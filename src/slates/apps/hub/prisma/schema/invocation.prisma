@@ -46,25 +46,3 @@ model SlateInvocationAttachment {
 
   createdAt DateTime @default(now())
 }
-
-enum SlateScopedInvocationGrantStatus {
-  active
-  consumed
-  revoked
-}
-
-model SlateScopedInvocationGrant {
-  oid BigInt @id
-  id  String @unique
-
-  tokenHash  String                           @unique
-  status     SlateScopedInvocationGrantStatus @default(active)
-  bindings   Json
-  expiresAt  DateTime
-  consumedAt DateTime?
-  revokedAt  DateTime?
-  createdAt  DateTime                         @default(now())
-  updatedAt  DateTime                         @default(now()) @updatedAt
-
-  @@index([status, expiresAt])
-}

@@ -3,9 +3,7 @@ import type { Tenant } from '../../../prisma/generated/client';
 import { slateTriggerReceiverPresenter } from '../../presenters';
 import {
   slateAuthConfigService,
-  slateCallbackConfigService,
   slateInstanceService,
-  slateTriggerReceiverSecretService,
   slateTriggerReceiverService
 } from '../../services';
 import { app } from './_app';
@@ -21,37 +19,7 @@ let resolveAuthConfig = async (tenant: Tenant, authConfigId?: string | null) => 
   });
 };
 
-let resolveCallbackConfig = async (tenant: Tenant, callbackConfigId?: string | null) => {
-  if (!callbackConfigId) return null;
-  return await slateCallbackConfigService.getSlateCallbackConfigById({
-    tenant,
-    id: callbackConfigId
-  });
-};
-
 export let callbackRegistrationController = app.controller({
-  get: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        callbackId: v.string(),
-        callbackInstanceId: v.string(),
-        slateTriggerReceiverId: v.string(),
-        expectedOwnerVersion: v.number()
-      })
-    )
-    .do(async ctx => {
-      let receiver = await slateTriggerReceiverService.getTriggerReceiverForCallback({
-        tenant: ctx.tenant,
-        receiverId: ctx.input.slateTriggerReceiverId,
-        callbackId: ctx.input.callbackId,
-        callbackInstanceId: ctx.input.callbackInstanceId,
-        expectedOwnerVersion: ctx.input.expectedOwnerVersion
-      });
-      return slateTriggerReceiverPresenter(receiver);
-    }),
-
   upsert: tenantApp
     .handler()
     .input(
@@ -59,18 +27,15 @@ export let callbackRegistrationController = app.controller({
         tenantId: v.string(),
         callbackId: v.string(),
         callbackInstanceId: v.string(),
-        expectedSlateTriggerReceiverId: v.nullable(v.string()),
-        expectedOwnerVersion: v.number(),
-        ownerMutationId: v.string(),
+        slateTriggerReceiverId: v.optional(v.nullable(v.string())),
         slateInstanceId: v.string(),
         authConfigId: v.optional(v.nullable(v.string())),
-        callbackConfigId: v.optional(v.string()),
         name: v.optional(v.nullable(v.string())),
         description: v.optional(v.nullable(v.string())),
+        eventTypes: v.optional(v.array(v.string())),
         triggers: v.array(
           v.object({
             triggerId: v.string(),
-            eventTypes: v.optional(v.array(v.string())),
             state: v.optional(v.nullable(v.record(v.any()))),
             pollIntervalSeconds: v.optional(v.nullable(v.number()))
           })
@@ -83,21 +48,18 @@ export let callbackRegistrationController = app.controller({
         id: ctx.input.slateInstanceId
       });
       let authConfig = await resolveAuthConfig(ctx.tenant, ctx.input.authConfigId);
-      let callbackConfig = await resolveCallbackConfig(ctx.tenant, ctx.input.callbackConfigId);
 
       let receiver = await slateTriggerReceiverService.upsertTriggerReceiverForCallback({
         tenant: ctx.tenant,
         slateInstance,
         authConfig: authConfig ?? null,
-        callbackConfig,
         input: {
           callbackId: ctx.input.callbackId,
           callbackInstanceId: ctx.input.callbackInstanceId,
-          expectedSlateTriggerReceiverId: ctx.input.expectedSlateTriggerReceiverId,
-          expectedOwnerVersion: ctx.input.expectedOwnerVersion,
-          ownerMutationId: ctx.input.ownerMutationId,
+          slateTriggerReceiverId: ctx.input.slateTriggerReceiverId,
           name: ctx.input.name,
           description: ctx.input.description,
+          eventTypes: ctx.input.eventTypes,
           triggers: ctx.input.triggers
         }
       });
@@ -105,118 +67,18 @@ export let callbackRegistrationController = app.controller({
       return slateTriggerReceiverPresenter(receiver);
     }),
 
-  createPathSecret: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        callbackId: v.string(),
-        callbackInstanceId: v.string(),
-        slateTriggerReceiverId: v.string(),
-        expectedOwnerVersion: v.number(),
-        ownerMutationId: v.string()
-      })
-    )
-    .do(async ctx => {
-      let result = await slateTriggerReceiverSecretService.createInitialPathSecret({
-        tenant: ctx.tenant,
-        receiverId: ctx.input.slateTriggerReceiverId,
-        owner: {
-          callbackId: ctx.input.callbackId,
-          callbackInstanceId: ctx.input.callbackInstanceId,
-          expectedOwnerVersion: ctx.input.expectedOwnerVersion,
-          mutationId: ctx.input.ownerMutationId
-        }
-      });
-      return {
-        slateTriggerReceiverId: ctx.input.slateTriggerReceiverId,
-        callbackOwnerVersion: ctx.input.expectedOwnerVersion,
-        ...result
-      };
-    }),
-
-  rotatePathSecret: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        callbackId: v.string(),
-        callbackInstanceId: v.string(),
-        slateTriggerReceiverId: v.string(),
-        expectedOwnerVersion: v.number(),
-        ownerMutationId: v.string()
-      })
-    )
-    .do(async ctx => {
-      let result = await slateTriggerReceiverSecretService.rotatePathSecret({
-        tenant: ctx.tenant,
-        receiverId: ctx.input.slateTriggerReceiverId,
-        owner: {
-          callbackId: ctx.input.callbackId,
-          callbackInstanceId: ctx.input.callbackInstanceId,
-          expectedOwnerVersion: ctx.input.expectedOwnerVersion,
-          mutationId: ctx.input.ownerMutationId
-        }
-      });
-      return {
-        slateTriggerReceiverId: ctx.input.slateTriggerReceiverId,
-        callbackOwnerVersion: ctx.input.expectedOwnerVersion,
-        ...result
-      };
-    }),
-
-  revokePathSecrets: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        callbackId: v.string(),
-        callbackInstanceId: v.string(),
-        slateTriggerReceiverId: v.string(),
-        expectedOwnerVersion: v.number(),
-        ownerMutationId: v.string()
-      })
-    )
-    .do(async ctx => {
-      let result = await slateTriggerReceiverSecretService.revokeAllPathSecrets({
-        tenant: ctx.tenant,
-        receiverId: ctx.input.slateTriggerReceiverId,
-        owner: {
-          callbackId: ctx.input.callbackId,
-          callbackInstanceId: ctx.input.callbackInstanceId,
-          expectedOwnerVersion: ctx.input.expectedOwnerVersion,
-          mutationId: ctx.input.ownerMutationId
-        }
-      });
-      return {
-        slateTriggerReceiverId: ctx.input.slateTriggerReceiverId,
-        callbackOwnerVersion: ctx.input.expectedOwnerVersion,
-        ...result
-      };
-    }),
-
   delete: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
-        callbackId: v.string(),
-        callbackInstanceId: v.string(),
-        slateTriggerReceiverId: v.string(),
-        expectedOwnerVersion: v.number(),
-        ownerMutationId: v.string()
+        slateTriggerReceiverId: v.string()
       })
     )
     .do(async ctx => {
       let receiver = await slateTriggerReceiverService.deleteTriggerReceiver({
         tenant: ctx.tenant,
-        receiverId: ctx.input.slateTriggerReceiverId,
-        callbackOwner: {
-          callbackId: ctx.input.callbackId,
-          callbackInstanceId: ctx.input.callbackInstanceId,
-          expectedOwnerVersion: ctx.input.expectedOwnerVersion,
-          ownerMutationId: ctx.input.ownerMutationId
-        }
+        receiverId: ctx.input.slateTriggerReceiverId
       });
 
       return slateTriggerReceiverPresenter(receiver);

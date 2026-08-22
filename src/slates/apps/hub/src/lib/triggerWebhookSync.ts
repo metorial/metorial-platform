@@ -1,5 +1,4 @@
 import type { TriggerWebhookRequestPayload } from './triggerWebhook';
-import type { WebhookWireRequest } from './webhookWire';
 import type {
   WebhookHttpResponse,
   WebhookRequestMatcher
@@ -23,6 +22,7 @@ let getHeader = (headers: Record<string, string>, expectedName: string) => {
   let normalizedName = expectedName.toLowerCase();
   return Object.entries(headers).find(([name]) => name.toLowerCase() === normalizedName)?.[1];
 };
+
 let getPathValue = (value: unknown, path: string) => {
   let current = value;
   let found = true;
@@ -95,9 +95,6 @@ export let webhookRequestMatches = (
   if (matcher.hasQueryParam && !new URL(request.url).searchParams.has(matcher.hasQueryParam)) {
     return false;
   }
-  if (matcher.lacksQueryParam && new URL(request.url).searchParams.has(matcher.lacksQueryParam)) {
-    return false;
-  }
 
   if (matcher.hasHeader) {
     let expectedHeader = matcher.hasHeader.toLowerCase();
@@ -131,66 +128,6 @@ export let webhookRequestMatches = (
     }
   }
 
-  return true;
-};
-
-export let webhookWireRequestMatches = (
-  request: WebhookWireRequest,
-  matcher: WebhookRequestMatcher
-) => {
-  if (matcher.method && request.method !== matcher.method) return false;
-  if (matcher.hasQueryParam && !new URL(request.url).searchParams.has(matcher.hasQueryParam)) {
-    return false;
-  }
-  if (matcher.lacksQueryParam && new URL(request.url).searchParams.has(matcher.lacksQueryParam)) {
-    return false;
-  }
-  if (
-    matcher.hasHeader &&
-    !request.headers.some(([name]) => name.toLowerCase() === matcher.hasHeader!.toLowerCase())
-  ) {
-    return false;
-  }
-  let bodyText = request.body.present
-    ? Buffer.from(request.body.base64, 'base64').toString('utf8')
-    : undefined;
-  if (bodyText !== undefined && Buffer.byteLength(bodyText) > MAX_MATCHER_BODY_BYTES) {
-    bodyText = undefined;
-  }
-  if (matcher.jsonBodyField) {
-    let body: unknown;
-    try {
-      body = bodyText === undefined ? undefined : JSON.parse(bodyText);
-    } catch {
-      return false;
-    }
-    let resolved = getPathValue(body, matcher.jsonBodyField.path);
-    if (!resolved.found) return false;
-    if (
-      matcher.jsonBodyField.equals !== undefined &&
-      String(resolved.value) !== matcher.jsonBodyField.equals
-    ) {
-      return false;
-    }
-  }
-  if (matcher.formBodyField) {
-    let contentType = request.headers
-      .find(([name]) => name.toLowerCase() === 'content-type')?.[1]
-      .split(';', 1)[0]
-      ?.trim()
-      .toLowerCase();
-    if (contentType !== 'application/x-www-form-urlencoded' || bodyText === undefined) {
-      return false;
-    }
-    let form = new URLSearchParams(bodyText);
-    if (!form.has(matcher.formBodyField.path)) return false;
-    if (
-      matcher.formBodyField.equals !== undefined &&
-      form.get(matcher.formBodyField.path) !== matcher.formBodyField.equals
-    ) {
-      return false;
-    }
-  }
   return true;
 };
 

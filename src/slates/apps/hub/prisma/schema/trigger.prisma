@@ -12,38 +12,14 @@ enum SlateTriggerReceiverStatus {
   paused
 }
 
+enum SlateTriggerReceiverDeliveryMode {
+  legacy_signal_event
+  callback_v2
+}
+
 enum SlateTriggerReceiverTriggerSource {
   polling
   webhook
-}
-
-enum SlateTriggerRegistrationStatus {
-  pending
-  registering
-  registered
-  renewing
-  failed
-  unregistering
-  unregistered
-}
-
-enum SlateTriggerRegistrationIntentKind {
-  register
-  reregister
-  renew
-  unregister
-  delete
-}
-
-enum SlateWebhookVerificationMechanism {
-  path_secret_only
-  hub
-  provider
-}
-
-enum SlateTriggerRegistrationOutboxStatus {
-  pending
-  enqueued
 }
 
 enum SlateTriggerInvocationType {
@@ -68,28 +44,6 @@ enum SlateTriggerEventInputStatus {
   failed
   retrying
   skipped
-}
-
-enum SlateTriggerWebhookReplayKind {
-  sync_response
-  dispatch
-}
-
-enum SlateTriggerWebhookReplayStatus {
-  claimed
-  queued
-  responded
-  delivered
-  failed_retryable
-  failed_terminal
-}
-
-enum SlateTriggerWebhookDispatchOutboxStatus {
-  pending
-  leased
-  retryable
-  delivered
-  dead_letter
 }
 
 model SlateTriggerDestination {
@@ -136,58 +90,31 @@ model SlateTriggerReceiver {
   authConfigOid BigInt?
   authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
 
-  callbackConfigOid BigInt?
-  callbackConfig    SlateCallbackConfig? @relation(fields: [callbackConfigOid], references: [oid], onDelete: SetNull)
-
   status SlateTriggerReceiverStatus @default(active)
 
-  callbackId                  String?
-  callbackInstanceId          String?
-  callbackOwnerVersion        Int     @default(0)
-  callbackOwnerMutationId     String?
-  callbackOwnerMutationDigest String?
-
-  // Receiver-wide Telegram Bot API webhook authority. The lease serializes
-  // setWebhook/deleteWebhook mutations across Hub workers; the generation and
-  // mutation version make stale remote work detectable and compensatable.
-  telegramWebhookGeneration        Int       @default(0)
-  telegramWebhookMutationVersion   Int       @default(0)
-  telegramWebhookLeaseToken        String?
-  telegramWebhookLeaseExpiresAt    DateTime?
-  telegramWebhookRemoteKnown       Boolean   @default(false)
-  telegramWebhookRefCount          Int       @default(0)
-  telegramWebhookAllowedUpdates    String[]  @default([])
-  telegramWebhookUrl               String?
-  telegramWebhookSecretFingerprint String?
+  deliveryMode       SlateTriggerReceiverDeliveryMode @default(legacy_signal_event)
+  callbackId         String?
+  callbackInstanceId String?
 
   name                       String?
   description                String?
   eventTypes                 String[]
-  consecutivePollingFailures Int       @default(0)
-  consecutiveEventFailures   Int       @default(0)
-  tombstonedAt               DateTime?
+  consecutivePollingFailures Int      @default(0)
+  consecutiveEventFailures   Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  triggers                        SlateTriggerReceiverTrigger[]
-  destinations                    SlateTriggerReceiverDestination[]     @ignore
-  events                          SlateTriggerEvent[]
-  eventInputs                     SlateTriggerEventInput[]
-  invocations                     SlateTriggerInvocation[]
-  slateErrors                     SlateError[]
-  pathSecret                      SlateTriggerReceiverPathSecret?
-  boundSecrets                    SlateTriggerReceiverSecret[]
-  webhookReplayClaims             SlateTriggerWebhookReplayClaim[]
-  webhookDispatchOutboxes         SlateTriggerWebhookDispatchOutbox[]
-  provisionedTenantAppProjections SlateProvisionedTenantAppProjection[]
+  triggers     SlateTriggerReceiverTrigger[]
+  destinations SlateTriggerReceiverDestination[] @ignore
+  events       SlateTriggerEvent[]
+  eventInputs  SlateTriggerEventInput[]
+  invocations  SlateTriggerInvocation[]
+  slateErrors  SlateError[]
 
   @@unique([tenantOid, callbackId, callbackInstanceId])
   @@index([tenantOid, slateInstanceOid])
   @@index([tenantOid, slateOid])
-  @@index([callbackConfigOid])
-  @@index([tombstonedAt])
-  @@index([telegramWebhookLeaseExpiresAt], map: "hub_telegram_webhook_lease_idx")
 }
 
 model SlateTriggerReceiverDestination {
@@ -215,230 +142,24 @@ model SlateTriggerReceiverTrigger {
   actionOid BigInt
   action    SlateAction @relation(fields: [actionOid], references: [oid])
 
-  source     SlateTriggerReceiverTriggerSource
-  eventTypes String[]                          @default([])
+  source SlateTriggerReceiverTriggerSource
 
   pollIntervalSeconds Int?
   lastPolledAt        DateTime?
   nextPollAt          DateTime?
 
-  state                         Json                               @default("null")
-  registrationDetailsSecretOid  BigInt?                            @unique
-  registrationDetailsSecret     Secret?                            @relation("triggerRegistrationDetails", fields: [registrationDetailsSecretOid], references: [oid], onDelete: SetNull)
-  registrationGeneration        Int                                @default(1)
-  registrationVersion           Int                                @default(1)
-  registrationTransitionVersion Int                                @default(0)
-  registrationStatus            SlateTriggerRegistrationStatus     @default(pending)
-  registrationIntentKind        SlateTriggerRegistrationIntentKind @default(register)
-  registrationLeaseToken        String?
-  registrationLeaseExpiresAt    DateTime?
-  registrationEnqueueDeadlineAt DateTime?
-  registrationLastAttemptAt     DateTime?
-  registrationErrorCode         String?
-  registrationErrorMessage      String?
-  registrationErrorMetadata     Json?
-  registrationErrorAt           DateTime?
-  remoteRegistrationKnown       Boolean                            @default(false)
-  tombstonedAt                  DateTime?
-  ingressDisabledAt             DateTime?
-
-  // Durable Telegram detach state. The mutation id is derived from this
-  // trigger's registration generation, so retries resume without decrementing
-  // the receiver-wide reference count twice.
-  telegramDetachMutationId      String?
-  telegramDetachGeneration      Int?
-  telegramDetachFinal           Boolean?
-  telegramDetachRemoteAppliedAt DateTime?
-  telegramDetachCompletedAt     DateTime?
-
-  verificationMechanism     SlateWebhookVerificationMechanism @default(path_secret_only)
-  verificationSpecHash      String?
-  authoritativeStateVersion Int                               @default(1)
+  state               Json @default("null")
+  registrationDetails Json @default("null")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  events                          SlateTriggerEvent[]
-  eventInputs                     SlateTriggerEventInput[]
-  invocations                     SlateTriggerInvocation[]
-  boundSecrets                    SlateTriggerReceiverSecret[]
-  webhookReplayClaims             SlateTriggerWebhookReplayClaim[]
-  webhookDispatchOutboxes         SlateTriggerWebhookDispatchOutbox[]
-  registrationOutboxes            SlateTriggerRegistrationOutbox[]
-  provisionedTenantAppProjections SlateProvisionedTenantAppProjection[]
+  events      SlateTriggerEvent[]
+  eventInputs SlateTriggerEventInput[]
+  invocations SlateTriggerInvocation[]
 
   @@unique([receiverOid, actionOid])
   @@index([source, nextPollAt])
-  @@index([telegramDetachMutationId, telegramDetachGeneration], map: "hub_telegram_detach_mutation_idx")
-  @@index([registrationStatus, registrationEnqueueDeadlineAt, registrationLeaseExpiresAt], map: "hub_trigger_registration_repair_idx")
-  @@index([tombstonedAt, registrationStatus], map: "hub_trigger_tombstone_cleanup_idx")
-}
-
-/// Credential-free Hub read model for a deliberately shared app route. The
-/// route identifier is public; the two opaque secret bindings are separate.
-model SlateProvisionedAppRouteProjection {
-  oid BigInt @id
-  id  String @unique(map: "hub_provisioned_route_id_key")
-
-  provisionedRouteId  String                 @unique(map: "hub_provisioned_route_authority_key")
-  routeIdentifier     String                 @unique(map: "hub_provisioned_route_selector_key")
-  vendor              String
-  purpose             String
-  oauthCredentialsOid BigInt?
-  oauthCredentials    SlateOAuthCredentials? @relation(fields: [oauthCredentialsOid], references: [oid], onDelete: Restrict, map: "hub_provisioned_route_oauth_credentials_fk")
-  authConfigOid       BigInt?
-  authConfig          SlateAuthConfig?       @relation(fields: [authConfigOid], references: [oid], onDelete: Restrict, map: "hub_provisioned_route_auth_config_fk")
-  generation          Int
-
-  status               String
-  projectionDigest     String
-  correlationId        String
-  tombstonedAt         DateTime?
-  tombstoneRetainUntil DateTime?
-  expiresAt            DateTime?
-  receivedAt           DateTime  @default(now())
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @default(now()) @updatedAt
-
-  tenantApps SlateProvisionedTenantAppProjection[]
-
-  @@index([vendor, status, expiresAt], map: "hub_provisioned_route_status_idx")
-  @@index([status, tombstoneRetainUntil], map: "hub_provisioned_route_tombstone_idx")
-}
-
-/// Tenant read model resolved only after route-secret and vendor-signature
-/// authentication. It contains opaque IDs/versions, never plaintext material.
-model SlateProvisionedTenantAppProjection {
-  oid BigInt @id
-  id  String @unique(map: "hub_provisioned_binding_id_key")
-
-  provisionedTenantAppId String                             @unique(map: "hub_provisioned_binding_authority_key")
-  routeProjectionOid     BigInt
-  routeProjection        SlateProvisionedAppRouteProjection @relation(fields: [routeProjectionOid], references: [oid], onDelete: Restrict, map: "hub_provisioned_binding_route_fk")
-  routeIdentifier        String
-  routeGeneration        Int
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Restrict, map: "hub_provisioned_binding_tenant_fk")
-
-  receiverOid BigInt
-  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Restrict, map: "hub_provisioned_binding_receiver_fk")
-
-  receiverTriggerOid BigInt
-  receiverTrigger    SlateTriggerReceiverTrigger @relation(fields: [receiverTriggerOid], references: [oid], onDelete: Restrict, map: "hub_provisioned_binding_trigger_fk")
-
-  callbackInstanceId    String
-  hubReceiverGeneration Int
-  triggerActionId       String
-  triggerSpecHash       String
-
-  vendor                       String
-  purpose                      String
-  externalAppId                String?
-  externalAccountId            String?
-  externalInstallationId       String?
-  externalOwnershipKey         String? @unique(map: "hub_provisioned_binding_external_owner_key")
-  retainedExternalOwnershipKey String?
-  ownerIdentity                String?
-
-  authConfigOid BigInt?
-  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: Restrict, map: "hub_provisioned_binding_auth_config_fk")
-
-  generation           Int
-  status               String
-  projectionDigest     String
-  correlationId        String
-  tombstonedAt         DateTime?
-  tombstoneRetainUntil DateTime?
-  expiresAt            DateTime?
-  receivedAt           DateTime  @default(now())
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @default(now()) @updatedAt
-
-  @@unique([routeIdentifier, externalOwnershipKey], map: "hub_provisioned_binding_route_owner_key")
-  @@index([routeProjectionOid, status, expiresAt], map: "hub_provisioned_binding_route_status_idx")
-  @@index([tenantOid, receiverOid, receiverTriggerOid], map: "hub_provisioned_binding_receiver_idx")
-  @@index([status, tombstoneRetainUntil], map: "hub_provisioned_binding_tombstone_idx")
-  @@index([routeProjectionOid, retainedExternalOwnershipKey], map: "hub_provisioned_binding_retained_owner_idx")
-}
-
-model SlateTriggerRegistrationOutbox {
-  oid BigInt @id
-  id  String @unique(map: "hub_trigger_registration_outbox_id_key")
-
-  receiverTriggerOid BigInt
-  receiverTrigger    SlateTriggerReceiverTrigger @relation(fields: [receiverTriggerOid], references: [oid], onDelete: Cascade, map: "hub_trigger_registration_outbox_trigger_fk")
-
-  operation              SlateTriggerRegistrationIntentKind
-  registrationGeneration Int
-  authConfigId           String?
-  callbackSecretIds      Json?
-  status                 SlateTriggerRegistrationOutboxStatus @default(pending)
-  enqueuedAt             DateTime?
-  createdAt              DateTime                             @default(now())
-  updatedAt              DateTime                             @default(now()) @updatedAt
-
-  @@unique([receiverTriggerOid, operation, registrationGeneration], map: "hub_trigger_registration_outbox_intent_key")
-  @@index([status, createdAt], map: "hub_trigger_registration_outbox_pending_idx")
-}
-
-model SlateTriggerReceiverPathSecret {
-  oid BigInt @id
-  id  String @unique(map: "hub_receiver_path_secret_id_key")
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade, map: "hub_receiver_path_secret_tenant_fk")
-
-  slateInstanceOid BigInt
-  slateInstance    SlateInstance @relation(fields: [slateInstanceOid], references: [oid], onDelete: Cascade, map: "hub_receiver_path_secret_instance_fk")
-
-  receiverOid BigInt               @unique(map: "hub_receiver_path_secret_receiver_key")
-  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade, map: "hub_receiver_path_secret_receiver_fk")
-
-  secretOid BigInt @unique(map: "hub_receiver_path_secret_secret_key")
-  secret    Secret @relation("receiverPathSecret", fields: [secretOid], references: [oid], onDelete: Restrict, map: "hub_receiver_path_secret_secret_fk")
-
-  lookupHash         String
-  generation         Int       @default(1)
-  plaintextIssuedAt  DateTime?
-  lastMutationId     String?
-  lastMutationDigest String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @default(now()) @updatedAt
-
-  @@index([tenantOid, slateInstanceOid, receiverOid], map: "hub_receiver_path_secret_owner_idx")
-}
-
-model SlateTriggerReceiverSecret {
-  oid BigInt @id
-  id  String @unique(map: "hub_trigger_secret_id_key")
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade, map: "hub_trigger_secret_tenant_fk")
-
-  slateInstanceOid BigInt
-  slateInstance    SlateInstance @relation(fields: [slateInstanceOid], references: [oid], onDelete: Cascade, map: "hub_trigger_secret_instance_fk")
-
-  receiverOid BigInt
-  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade, map: "hub_trigger_secret_receiver_fk")
-
-  receiverTriggerOid BigInt
-  receiverTrigger    SlateTriggerReceiverTrigger @relation(fields: [receiverTriggerOid], references: [oid], onDelete: Cascade, map: "hub_trigger_secret_trigger_fk")
-
-  secretOid BigInt @unique(map: "hub_trigger_secret_secret_key")
-  secret    Secret @relation("receiverCallbackSecret", fields: [secretOid], references: [oid], onDelete: Restrict, map: "hub_trigger_secret_secret_fk")
-
-  specHash           String
-  source             String
-  name               String
-  encoding           String
-  businessValidUntil DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @default(now()) @updatedAt
-
-  @@unique([receiverTriggerOid, name], map: "hub_trigger_secret_owner_name_key")
-  @@index([tenantOid, slateInstanceOid, receiverOid], map: "hub_trigger_secret_owner_idx")
-  @@index([receiverTriggerOid, businessValidUntil], map: "hub_trigger_secret_validity_idx")
 }
 
 model SlateTriggerInvocation {
@@ -497,9 +218,7 @@ model SlateTriggerEventInput {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  slateErrors           SlateError[]
-  webhookReplayClaim    SlateTriggerWebhookReplayClaim?
-  webhookDispatchOutbox SlateTriggerWebhookDispatchOutbox?
+  slateErrors SlateError[]
 
   @@index([status])
   @@index([receiverOid, createdAt])
@@ -582,151 +301,19 @@ model SlateTriggerWebhookRequest {
   headers Json
   body    Json?  @default("null")
 
-  tenantId                  String?
-  receiverOwnerId           String?
-  redactedUrl               String?
-  redactedHeaders           Json?
-  bodyByteLength            Int       @default(0)
-  requestHash               String?
-  bodyHash                  String?
-  selectedRule              String?
-  capturePolicyHash         String?
-  captureSpecHashes         String[]  @default([])
-  captureRuleIds            String[]  @default([])
-  outcome                   String    @default("accepted")
-  safeRejectionCode         String?
-  authenticatedBoundaryKind String?
-  authenticatedBoundaryAt   DateTime?
-  authenticatedBindingHash  String?
-
-  capturedRequest          Json?
-  capturedRequestExpiresAt DateTime?
-  processedAt              DateTime?
+  bodyStorageKey String?
+  processedAt    DateTime?
 
   syncOwnerToken                  String?
   syncOwnerExpiresAt              DateTime?
   syncOwnerCommitStartedAt        DateTime?
   syncCompletedReceiverTriggerIds String[]  @default([])
-  queueClaimToken                 String?
-  queueClaimState                 String?
-  queueClaimedAt                  DateTime?
-  terminalFailureAt               DateTime?
 
-  replayClaims SlateTriggerWebhookReplayClaim[]
-  createdAt    DateTime                         @default(now())
+  createdAt DateTime @default(now())
 
   @@index([receiverTriggerId])
   @@index([receiverTriggerId, createdAt])
   @@index([receiverId])
   @@index([receiverId, createdAt])
   @@index([processedAt])
-  @@index([outcome, createdAt])
-  @@index([capturedRequestExpiresAt])
-}
-
-model SlateTriggerWebhookReplayClaim {
-  oid BigInt @id
-  id  String @unique(map: "hub_webhook_replay_claim_id_key")
-
-  receiverOid BigInt
-  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade, map: "hub_webhook_replay_claim_receiver_fk")
-
-  receiverTriggerOid BigInt
-  receiverTrigger    SlateTriggerReceiverTrigger @relation(fields: [receiverTriggerOid], references: [oid], onDelete: Cascade, map: "hub_webhook_replay_claim_trigger_fk")
-
-  requestOid BigInt
-  request    SlateTriggerWebhookRequest @relation(fields: [requestOid], references: [oid], onDelete: Restrict, map: "hub_webhook_replay_claim_request_fk")
-
-  eventInputOid BigInt?                 @unique(map: "hub_webhook_replay_claim_event_input_key")
-  eventInput    SlateTriggerEventInput? @relation(fields: [eventInputOid], references: [oid], onDelete: Restrict, map: "hub_webhook_replay_claim_event_input_fk")
-
-  kind   SlateTriggerWebhookReplayKind
-  status SlateTriggerWebhookReplayStatus @default(claimed)
-
-  specHash        String
-  ruleId          String
-  itemBindingHash String
-  deliveryIdHash  String
-
-  itemAdapterId      String?
-  itemAdapterVersion Int?
-
-  originalRequestHash String
-  dispatchRequestHash String
-  callbackSecretIds   Json   @default("[]")
-
-  syncResponse          Json?
-  syncResponseExpiresAt DateTime?
-
-  leaseExpiresAt DateTime?
-  expiresAt      DateTime
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @default(now()) @updatedAt
-
-  dispatchOutbox SlateTriggerWebhookDispatchOutbox?
-
-  @@unique([receiverTriggerOid, specHash, ruleId, itemBindingHash, deliveryIdHash], map: "hub_webhook_replay_claim_identity_key")
-  @@index([receiverOid, status, expiresAt], map: "hub_webhook_replay_claim_receiver_status_idx")
-  @@index([status, leaseExpiresAt, expiresAt], map: "hub_webhook_replay_claim_retention_idx")
-  @@index([syncResponseExpiresAt])
-}
-
-model SlateTriggerWebhookDispatchOutbox {
-  oid BigInt @id
-  id  String @unique(map: "hub_webhook_dispatch_outbox_id_key")
-
-  receiverOid BigInt
-  receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade, map: "hub_webhook_dispatch_outbox_receiver_fk")
-
-  receiverTriggerOid BigInt
-  receiverTrigger    SlateTriggerReceiverTrigger @relation(fields: [receiverTriggerOid], references: [oid], onDelete: Cascade, map: "hub_webhook_dispatch_outbox_trigger_fk")
-
-  replayClaimOid BigInt                         @unique(map: "hub_webhook_dispatch_outbox_replay_claim_key")
-  replayClaim    SlateTriggerWebhookReplayClaim @relation(fields: [replayClaimOid], references: [oid], onDelete: Cascade, map: "hub_webhook_dispatch_outbox_replay_claim_fk")
-
-  eventInputOid BigInt                 @unique(map: "hub_webhook_dispatch_outbox_event_input_key")
-  eventInput    SlateTriggerEventInput @relation(fields: [eventInputOid], references: [oid], onDelete: Restrict, map: "hub_webhook_dispatch_outbox_event_input_fk")
-
-  tenantId       String
-  signalTenantId String?
-
-  adapterCandidateId String
-  itemBindingHash    String
-  deliveryIdHashes   String[]
-  itemAdapterId      String?
-  itemAdapterVersion Int?
-
-  originalRequestHash String
-  dispatchRequestHash String
-
-  acceptedPayload          Json
-  acceptedPayloadExpiresAt DateTime
-
-  status         SlateTriggerWebhookDispatchOutboxStatus @default(pending)
-  leaseOwner     String?
-  leaseExpiresAt DateTime?
-  attemptCount   Int                                     @default(0)
-  nextAttemptAt  DateTime                                @default(now())
-  readyAt        DateTime?
-
-  safeTerminalCode   String?
-  deadLetterMetadata Json?
-
-  signalIdempotencyKey     String  @unique(map: "hub_webhook_dispatch_signal_key")
-  signalRequestFingerprint String?
-  signalRequest            Json?
-  confirmedSignalEventId   String?
-
-  localEventId  String
-  localSourceId String
-
-  deliveredAt        DateTime?
-  retentionExpiresAt DateTime
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @default(now()) @updatedAt
-
-  @@index([status, nextAttemptAt, leaseExpiresAt], map: "hub_webhook_dispatch_due_idx")
-  @@index([tenantId, signalIdempotencyKey], map: "hub_webhook_dispatch_tenant_signal_idx")
-  @@index([retentionExpiresAt, status, leaseExpiresAt], map: "hub_webhook_dispatch_retention_idx")
-  @@index([acceptedPayloadExpiresAt])
 }

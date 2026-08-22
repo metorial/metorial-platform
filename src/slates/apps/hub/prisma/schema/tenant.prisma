@@ -14,21 +14,17 @@ model Tenant {
 
   createdAt DateTime @default(now())
 
-  secrets                         Secret[]
-  registries                      Registry[]
-  slateInstances                  SlateInstance[]
-  slateOAuthCredentials           SlateOAuthCredentials[]
-  slateAuthConfigs                SlateAuthConfig[]
-  slateCallbackConfigs            SlateCallbackConfig[]
-  slateInstanceOAuthSetups        SlateInstanceOAuthSetup[]
-  slateInstanceConfigs            SlateInstanceConfig[]
-  slateInstanceEvents             SlateInstanceEvent[]
-  slateSessions                   SlateSession[]
-  slateTriggerDestinations        SlateTriggerDestination[]             @ignore
-  slateTriggerReceivers           SlateTriggerReceiver[]
-  slateTriggerReceiverPathSecrets SlateTriggerReceiverPathSecret[]
-  slateTriggerReceiverSecrets     SlateTriggerReceiverSecret[]
-  provisionedTenantAppProjections SlateProvisionedTenantAppProjection[]
-  slateErrors                     SlateError[]
-  slateInstanceConfigurations     SlateInstanceConfiguration[]
+  secrets                     Secret[]
+  registries                  Registry[]
+  slateInstances              SlateInstance[]
+  slateOAuthCredentials       SlateOAuthCredentials[]
+  slateAuthConfigs            SlateAuthConfig[]
+  slateInstanceOAuthSetups    SlateInstanceOAuthSetup[]
+  slateInstanceConfigs        SlateInstanceConfig[]
+  slateInstanceEvents         SlateInstanceEvent[]
+  slateSessions               SlateSession[]
+  slateTriggerDestinations    SlateTriggerDestination[]    @ignore
+  slateTriggerReceivers       SlateTriggerReceiver[]
+  slateErrors                 SlateError[]
+  slateInstanceConfigurations SlateInstanceConfiguration[]
 }

@@ -20,18 +20,16 @@ model SlateInstance {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  configs                         SlateInstanceConfig[]
-  authConfigs                     SlateAuthConfig[]
-  events                          SlateInstanceEvent[]
-  oAuthSetups                     SlateInstanceOAuthSetup[]
-  usedAuthConfig                  SlateAuthConfigUsedForInstance[]
-  slateSessions                   SlateSession[]
-  slateTriggerReceivers           SlateTriggerReceiver[]
-  slateTriggerEvents              SlateTriggerEvent[]
-  slateTriggerEventInputs         SlateTriggerEventInput[]
-  slateTriggerReceiverPathSecrets SlateTriggerReceiverPathSecret[]
-  slateTriggerReceiverSecrets     SlateTriggerReceiverSecret[]
-  slateErrors                     SlateError[]
+  configs                 SlateInstanceConfig[]
+  authConfigs             SlateAuthConfig[]
+  events                  SlateInstanceEvent[]
+  oAuthSetups             SlateInstanceOAuthSetup[]
+  usedAuthConfig          SlateAuthConfigUsedForInstance[]
+  slateSessions           SlateSession[]
+  slateTriggerReceivers   SlateTriggerReceiver[]
+  slateTriggerEvents      SlateTriggerEvent[]
+  slateTriggerEventInputs SlateTriggerEventInput[]
+  slateErrors             SlateError[]
 }
 
 model SlateInstanceConfiguration {
@@ -125,9 +123,8 @@ model SlateOAuthCredentials {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  authConfigs          SlateAuthConfig[]
-  oAuthSetups          SlateInstanceOAuthSetup[]
-  provisionedAppRoutes SlateProvisionedAppRouteProjection[]
+  authConfigs SlateAuthConfig[]
+  oAuthSetups SlateInstanceOAuthSetup[]
 }
 
 enum SlateAuthConfigType {
@@ -178,42 +175,13 @@ model SlateAuthConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  defaultForInstances           SlateInstance[]                       @relation(name: "defaultAuthConfig")
+  defaultForInstances           SlateInstance[]                  @relation(name: "defaultAuthConfig")
   slateInstanceOAuthSetups      SlateInstanceOAuthSetup[]
   usingInstances                SlateAuthConfigUsedForInstance[]
   slateAuthConfigEvents         SlateAuthConfigEvent[]
   slateAuthConfigManualDecrypts SlateAuthConfigManualDecrypt[]
   slateTriggerReceivers         SlateTriggerReceiver[]
-  provisionedAppRoutes          SlateProvisionedAppRouteProjection[]
-  provisionedTenantAppBindings  SlateProvisionedTenantAppProjection[]
   slateErrors                   SlateError[]
-}
-
-model SlateCallbackConfig {
-  oid BigInt @id
-  id  String @unique
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
-
-  slateOid BigInt
-  slate    Slate @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
-
-  slateVersionOid BigInt
-  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Restrict)
-
-  secretOid BigInt
-  secret    Secret @relation(fields: [secretOid], references: [oid], onDelete: Restrict)
-
-  configuredKeys String[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  slateTriggerReceivers SlateTriggerReceiver[]
-
-  @@unique([secretOid])
-  @@index([tenantOid, slateOid])
 }
 
 model SlateAuthConfigManualDecrypt {

@@ -11,4 +11,3 @@ export * from './providerOAuthSetupInternal';
 export * from './providerSetupSession';
 export * from './providerSetupSessionInternal';
 export * from './providerSetupSessionUi';
-export * from './provisionedTenantApp';

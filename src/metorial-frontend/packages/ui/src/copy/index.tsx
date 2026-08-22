@@ -82,14 +82,9 @@ export let Copy = ({
 
   return (
     <div
-      onClick={() => doCopy()}
+      onClick={c => doCopy()}
       role="button"
-      aria-label={`Copy ${label ?? 'value'}`}
-      onKeyDown={event => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        doCopy();
-      }}
+      onKeyDown={c => doCopy()}
       tabIndex={0}
       style={{
         display: 'flex',

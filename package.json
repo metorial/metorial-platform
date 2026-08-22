@@ -37,7 +37,7 @@
     "src/metorial/*",
     "src/metorial/*/*",
     "src/metorial/*/*/*",
-    "src/metorial/products/*/*/*",
+    "src/metorial/*/*/*/*",
     "src/metorial-frontend/*",
     "src/metorial-frontend/*/*",
     "src/lowerdeck/packages/*",

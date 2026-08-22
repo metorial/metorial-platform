@@ -7,11 +7,6 @@ export let env = createValidatedEnv({
     DATABASE_URL: v.string()
   },
 
-  internal: {
-    HUB_SERVICE_CREDENTIAL: v.string(),
-    SUBSPACE_SERVICE_CREDENTIAL: v.string()
-  },
-
   storage: {
     OBJECT_STORAGE_URL: v.string(),
     LOGS_BUCKET_NAME: v.string()

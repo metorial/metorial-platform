@@ -8,21 +8,9 @@ import {
 } from '../presenters';
 import { callbackService, eventDeliveryAttemptService } from '../services';
 import { app } from './_app';
-import { subspaceInternalTenantApp, tenantApp } from './tenant';
+import { tenantApp } from './tenant';
 
 let callbackApp = tenantApp.use(async ctx => {
-  let callbackId = ctx.body.callbackId;
-  if (!callbackId) throw new Error('Callback ID is required');
-
-  let callback = await callbackService.getCallbackById({
-    tenant: ctx.tenant,
-    id: callbackId
-  });
-
-  return { callback };
-});
-
-let subspaceInternalCallbackApp = subspaceInternalTenantApp.use(async ctx => {
   let callbackId = ctx.body.callbackId;
   if (!callbackId) throw new Error('Callback ID is required');
 
@@ -60,7 +48,6 @@ export let callbackController = app.controller({
       v.object({
         tenantId: v.string(),
         callbackId: v.string(),
-        scopeId: v.string(),
         name: v.string(),
         description: v.optional(v.nullable(v.string())),
         eventTypes: v.optional(v.nullable(v.array(v.string()))),
@@ -72,7 +59,6 @@ export let callbackController = app.controller({
         tenant: ctx.tenant,
         input: {
           callbackId: ctx.input.callbackId,
-          scopeId: ctx.input.scopeId,
           name: ctx.input.name,
           description: ctx.input.description,
           eventTypes: ctx.input.eventTypes,
@@ -123,7 +109,6 @@ export let callbackController = app.controller({
           v.enumOf(['pending', 'processing', 'retrying', 'succeeded', 'failed', 'skipped'])
         ),
         eventType: v.string(),
-        deliveryEventId: v.optional(v.nullable(v.string())),
         deliveryPayloadJson: v.optional(v.nullable(v.string())),
         inputJson: v.optional(v.nullable(v.string())),
         outputJson: v.optional(v.nullable(v.string())),
@@ -143,7 +128,6 @@ export let callbackController = app.controller({
           triggerKey: ctx.input.triggerKey,
           status: ctx.input.status,
           eventType: ctx.input.eventType,
-          deliveryEventId: ctx.input.deliveryEventId,
           deliveryPayloadJson: ctx.input.deliveryPayloadJson,
           inputJson: ctx.input.inputJson,
           outputJson: ctx.input.outputJson,
@@ -155,41 +139,13 @@ export let callbackController = app.controller({
       return callbackEventPresenter(event, { includePayload: true });
     }),
 
-  recordDashboardTestEvent: subspaceInternalCallbackApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        callbackId: v.string(),
-        eventId: v.string(),
-        callbackInstanceId: v.string(),
-        eventType: v.string(),
-        payloadJson: v.string()
-      })
-    )
-    .do(async ctx => {
-      let event = await callbackService.recordDashboardTestEvent({
-        tenant: ctx.tenant,
-        callback: ctx.callback,
-        input: {
-          eventId: ctx.input.eventId,
-          callbackInstanceId: ctx.input.callbackInstanceId,
-          eventType: ctx.input.eventType,
-          payloadJson: ctx.input.payloadJson
-        }
-      });
-
-      return callbackEventPresenter(event, { includePayload: true });
-    }),
-
-  listEvents: tenantApp
+  listEvents: callbackApp
     .handler()
     .input(
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          callbackId: v.optional(v.string()),
-          callbackIds: v.optional(v.array(v.string())),
+          callbackId: v.string(),
           eventTypes: v.optional(v.array(v.string())),
           callbackInstanceIds: v.optional(v.array(v.string()))
         })
@@ -198,8 +154,7 @@ export let callbackController = app.controller({
     .do(async ctx => {
       let paginator = await callbackService.listCallbackEvents({
         tenant: ctx.tenant,
-        callbackId: ctx.input.callbackId,
-        callbackIds: ctx.input.callbackIds,
+        callback: ctx.callback,
         eventTypes: ctx.input.eventTypes,
         callbackInstanceIds: ctx.input.callbackInstanceIds
       });
@@ -229,19 +184,19 @@ export let callbackController = app.controller({
       );
     }),
 
-  getEvent: tenantApp
+  getEvent: callbackApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
-        callbackId: v.optional(v.string()),
+        callbackId: v.string(),
         callbackEventId: v.string()
       })
     )
     .do(async ctx => {
       let event = await callbackService.getCallbackEvent({
         tenant: ctx.tenant,
-        callbackId: ctx.input.callbackId,
+        callback: ctx.callback,
         callbackEventId: ctx.input.callbackEventId
       });
 

@@ -2,17 +2,15 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type {
   SlatesWebhookHttp,
   SlatesWebhookHttpResponse,
-  SlateWebhookRequestMatcher
+  SlatesWebhookRequestMatcher
 } from '@slates/proto';
 import { SlateTriggerReceiverTriggerSource } from '../../prisma/generated/client';
 import type {
   Slate,
   SlateAction,
   SlateAuthConfig,
-  SlateCallbackConfig,
   SlateInstance,
   SlateInstanceConfig,
-  SlateConfigSchema,
   SlateTriggerReceiver,
   SlateTriggerReceiverTrigger,
   Tenant
@@ -20,13 +18,6 @@ import type {
 
 export const normalizeEventTypes = (eventTypes?: string[] | null) =>
   eventTypes && eventTypes.length > 0 ? eventTypes : [];
-
-export let isRoutableWebhookReceiverTrigger = (
-  trigger: Pick<SlateTriggerReceiverTrigger, 'source' | 'tombstonedAt' | 'ingressDisabledAt'>
-) =>
-  trigger.source === SlateTriggerReceiverTriggerSource.webhook &&
-  trigger.tombstonedAt === null &&
-  trigger.ingressDisabledAt === null;
 
 export type TriggerInvocationSpec =
   | {
@@ -42,7 +33,7 @@ export type TriggerInvocationSpec =
 
 export type WebhookHttpCapability = SlatesWebhookHttp;
 export type WebhookHttpMethod = NonNullable<SlatesWebhookHttp['methods']>[number];
-export type WebhookRequestMatcher = SlateWebhookRequestMatcher;
+export type WebhookRequestMatcher = SlatesWebhookRequestMatcher;
 
 export type WebhookHttpResponse = SlatesWebhookHttpResponse;
 
@@ -56,12 +47,10 @@ export type ReceiverTriggerWithRelations = SlateTriggerReceiverTrigger & {
   receiver: SlateTriggerReceiver & {
     tenant: Tenant;
     slate: Slate;
-    triggers: (SlateTriggerReceiverTrigger & { action: SlateAction })[];
     slateInstance: SlateInstance & {
-      currentConfig: (SlateInstanceConfig & { schema: SlateConfigSchema }) | null;
+      currentConfig: SlateInstanceConfig | null;
     };
     authConfig: SlateAuthConfig | null;
-    callbackConfig: SlateCallbackConfig | null;
   };
 };
 
@@ -70,7 +59,7 @@ export const receiverInclude = {
   slate: true,
   slateInstance: {
     include: {
-      currentConfig: { include: { schema: true } }
+      currentConfig: true
     }
   },
   triggers: {
@@ -78,17 +67,7 @@ export const receiverInclude = {
       action: true
     }
   },
-  pathSecret: {
-    select: {
-      id: true,
-      generation: true,
-      plaintextIssuedAt: true,
-      createdAt: true,
-      updatedAt: true
-    }
-  },
-  authConfig: true,
-  callbackConfig: true
+  authConfig: true
 };
 
 export const receiverTriggerInclude = {

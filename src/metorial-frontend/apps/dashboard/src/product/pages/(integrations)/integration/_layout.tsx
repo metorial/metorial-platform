@@ -7,7 +7,6 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useDashboardFlags,
   useIntegration
 } from '@metorial/state';
 import {
@@ -26,7 +25,6 @@ import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 import { showIntegrationInstanceFormModal } from '../../../scenes/integrations/instancesTable';
-import { isCallbacksTabVisible } from '../../../scenes/integrations/integrationCallbackLogic';
 
 let showIntegrationSetupSessionModal = (p: {
   instanceId: string;
@@ -130,7 +128,6 @@ export let IntegrationLayout = () => {
   let project = useCurrentProject();
   let { integrationId } = useParams();
   let integration = useIntegration(instance.data?.id, integrationId);
-  let flags = useDashboardFlags();
   let pathname = useLocation().pathname;
   let navigate = useNavigate();
 
@@ -216,7 +213,7 @@ export let IntegrationLayout = () => {
       />
 
       <InitialLoadBoundary>
-        {renderWithLoader({ integration, flags })(({ integration, flags }) => (
+        {renderWithLoader({ integration })(({ integration }) => (
           <>
             <DeletedRecordCallout status={integration.data.status} />
             <LinkTabs
@@ -230,14 +227,6 @@ export let IntegrationLayout = () => {
                   label: 'Instances',
                   to: Paths.instance.integration(...params, 'instances')
                 },
-                ...(isCallbacksTabVisible(flags.data.flags)
-                  ? [
-                      {
-                        label: 'Callbacks',
-                        to: Paths.instance.integration(...params, 'callbacks')
-                      }
-                    ]
-                  : []),
                 {
                   label: 'Settings',
                   to: Paths.instance.integration(...params, 'settings')

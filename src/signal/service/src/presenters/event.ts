@@ -42,7 +42,6 @@ export let eventPresenter = async (
 
     id: event.id,
     type: event.eventType,
-    scopeId: event.scopeId,
     topics: event.topics,
     status: event.status,
 

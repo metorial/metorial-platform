@@ -12,8 +12,7 @@ import {
   portalDocsCategory,
   providerDocsCategory,
   sessionDocsCategory,
-  skillDocsCategory,
-  webhookDocsCategory
+  skillDocsCategory
 } from './_categories';
 import {
   consumerActivityController,
@@ -42,9 +41,10 @@ import {
 import {
   agentController,
   callbackController,
+  callbackDestinationController,
   callbackEventController,
   callbackInstanceController,
-  integrationProviderCallbackController,
+  callbackNotificationController,
   consumerController,
   consumerSurfaceController,
   customProviderCodeController,
@@ -164,9 +164,7 @@ import {
   storeItemController,
   storeParticipantController,
   tokenController,
-  toolCallController,
-  webhookDestinationController,
-  webhookEventController
+  toolCallController
 } from './instance';
 import {
   accessPolicyManagementController,
@@ -297,18 +295,13 @@ let setControllerDocsMetadata = <
 
 [
   callbackController,
-  integrationProviderCallbackController,
+  callbackDestinationController,
   callbackEventController,
-  callbackInstanceController
+  callbackInstanceController,
+  callbackNotificationController
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: callbackDocsCategory
-  })
-);
-
-[webhookDestinationController, webhookEventController].forEach(controller =>
-  setControllerDocsMetadata(controller, {
-    category: webhookDocsCategory
   })
 );
 
@@ -461,11 +454,10 @@ export let magnetarController = Controller.create<any>(
     integrationInstanceGroupProviderController,
 
     callbackController,
-    integrationProviderCallbackController,
+    callbackDestinationController,
     callbackEventController,
     callbackInstanceController,
-    webhookDestinationController,
-    webhookEventController,
+    callbackNotificationController,
 
     networkController,
     enclaveController,
@@ -714,11 +706,10 @@ export let dashboardController = Controller.create<any>(
     providerAuthExportController,
 
     callbackController,
-    integrationProviderCallbackController,
+    callbackDestinationController,
     callbackEventController,
     callbackInstanceController,
-    webhookDestinationController,
-    webhookEventController,
+    callbackNotificationController,
 
     networkController,
     dashboardEnclaveController,

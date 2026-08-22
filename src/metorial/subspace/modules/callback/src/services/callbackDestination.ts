@@ -1,9 +1,4 @@
-import {
-  badRequestError,
-  isServiceError,
-  notFoundError,
-  ServiceError
-} from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -23,7 +18,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
 import { callbackRegistrationService } from './callbackRegistration';
-import { getInternalSignal, getTenantForSignal, signal } from '../signal';
+import { getTenantForSignal, signal } from '../signal';
 
 type SignalDestination = Awaited<ReturnType<typeof signal.eventDestination.get>>;
 type EnrichedCallbackDestination = CallbackDestination & {
@@ -46,7 +41,6 @@ export type CreateCallbackDestinationParams = {
     description?: string;
     metadata?: Record<string, any>;
     url: string;
-    method?: 'POST' | 'PUT' | 'PATCH';
   };
 };
 
@@ -57,15 +51,10 @@ export type UpdateCallbackDestinationParams = {
     description?: string;
     metadata?: Record<string, any>;
     url?: string;
-    method?: 'POST' | 'PUT' | 'PATCH';
   };
 };
 
 export type ArchiveCallbackDestinationParams = {
-  callbackDestination: CallbackDestination;
-};
-
-export type RotateCallbackDestinationSigningSecretParams = {
   callbackDestination: CallbackDestination;
 };
 
@@ -78,15 +67,6 @@ type EnrichCallbackDestinationsParams = {
 };
 
 class callbackDestinationServiceImpl {
-  private notMaterializedError() {
-    return new ServiceError(
-      badRequestError({
-        code: 'webhook_destination_not_materialized',
-        message: 'The webhook destination has not been materialized in Signal.'
-      })
-    );
-  }
-
   async enrichCallbackDestination(d: MetorialFacing<EnrichCallbackDestinationParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
@@ -148,8 +128,8 @@ class callbackDestinationServiceImpl {
     } catch {
       throw new ServiceError(
         badRequestError({
-          code: 'invalid_webhook_destination_url',
-          message: 'Webhook destination URL must be a valid absolute URL.'
+          code: 'invalid_callback_destination_url',
+          message: 'Callback destination URL must be a valid absolute URL.'
         })
       );
     }
@@ -157,8 +137,8 @@ class callbackDestinationServiceImpl {
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       throw new ServiceError(
         badRequestError({
-          code: 'invalid_webhook_destination_url',
-          message: 'Webhook destination URL must use http or https.'
+          code: 'invalid_callback_destination_url',
+          message: 'Callback destination URL must use http or https.'
         })
       );
     }
@@ -193,7 +173,10 @@ class callbackDestinationServiceImpl {
             tenantOid: d.tenant.oid,
             solutionOid: solution.oid,
             status: {
-              notIn: [CallbackDestinationStatus.archived, CallbackDestinationStatus.deleted]
+              notIn: [
+                CallbackDestinationStatus.archived,
+                CallbackDestinationStatus.deleted
+              ]
             },
             AND: [
               d.callbackIds?.length
@@ -245,7 +228,7 @@ class callbackDestinationServiceImpl {
       }
     });
     if (!callbackDestination) {
-      throw new ServiceError(notFoundError('webhook.destination', d.callbackDestinationId));
+      throw new ServiceError(notFoundError('callback.destination', d.callbackDestinationId));
     }
 
     return callbackDestination;
@@ -279,10 +262,10 @@ class callbackDestinationServiceImpl {
 
     let endpoint = this.normalizeAndValidateEndpoint({
       url: d.input.url,
-      method: d.input.method
+      method: 'POST'
     });
 
-    let callbackDestination = await db.callbackDestination.create({
+    return await db.callbackDestination.create({
       data: {
         ...getId('callbackDestination'),
         tenantOid: d.tenant.oid,
@@ -295,11 +278,6 @@ class callbackDestinationServiceImpl {
         url: endpoint.url,
         method: endpoint.method
       }
-    });
-
-    return await this.ensureMaterializedInternal({
-      tenant: d.tenant,
-      callbackDestination
     });
   }
 
@@ -319,13 +297,12 @@ class callbackDestinationServiceImpl {
   ) {
     let destination = d.callbackDestination;
 
-    let endpoint =
-      d.input.url !== undefined || d.input.method !== undefined
-        ? this.normalizeAndValidateEndpoint({
-            url: d.input.url ?? destination.url,
-            method: d.input.method ?? (destination.method as 'POST' | 'PUT' | 'PATCH')
-          })
-        : null;
+    let endpoint = d.input.url
+      ? this.normalizeAndValidateEndpoint({
+          url: d.input.url ?? destination.url,
+          method: destination.method as 'POST' | 'PUT' | 'PATCH'
+        })
+      : null;
 
     let updated = await db.callbackDestination.update({
       where: { oid: destination.oid },
@@ -336,11 +313,6 @@ class callbackDestinationServiceImpl {
         url: endpoint?.url ?? destination.url,
         method: endpoint?.method ?? destination.method
       }
-    });
-
-    updated = await this.ensureMaterializedInternal({
-      tenant: d.tenant,
-      callbackDestination: updated
     });
 
     let callbacks = await db.callbackDestinationLink.findMany({
@@ -384,16 +356,6 @@ class callbackDestinationServiceImpl {
   ) {
     let destination = d.callbackDestination;
 
-    let signalTenant = await getTenantForSignal(d.tenant);
-    try {
-      await signal.eventDestination.delete({
-        tenantId: signalTenant.id,
-        eventDestinationId: destination.signalEventDestinationId ?? destination.id
-      });
-    } catch (error) {
-      if (!isServiceError(error) || error.data.code !== 'not_found') throw error;
-    }
-
     let archived = await db.callbackDestination.update({
       where: { oid: destination.oid },
       data: {
@@ -414,81 +376,6 @@ class callbackDestinationServiceImpl {
 
     return await db.callbackDestination.findFirstOrThrow({
       where: { oid: archived.oid }
-    });
-  }
-
-  async rotateSigningSecret(d: MetorialFacing<RotateCallbackDestinationSigningSecretParams>) {
-    let { instance, organizationActor, ...rest } = d;
-    let scope = await resolveMetorialFacing(d);
-
-    return await this.rotateSigningSecretInternal({
-      ...rest,
-      tenant: scope.tenant,
-      environment: scope.environment
-    });
-  }
-
-  async rotateSigningSecretInternal(
-    d: {
-      tenant: Tenant;
-      environment: Environment;
-    } & RotateCallbackDestinationSigningSecretParams
-  ) {
-    let destination = await this.getCallbackDestinationByIdInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      callbackDestinationId: d.callbackDestination.id
-    });
-
-    try {
-      destination = await this.ensureMaterializedInternal({
-        tenant: d.tenant,
-        callbackDestination: destination
-      });
-    } catch {
-      throw this.notMaterializedError();
-    }
-
-    if (!destination.signalEventDestinationId) {
-      throw this.notMaterializedError();
-    }
-
-    let signalTenant = await getTenantForSignal(d.tenant);
-    let rotated = await getInternalSignal().eventDestination.rotateSigningSecret({
-      tenantId: signalTenant.id,
-      eventDestinationId: destination.signalEventDestinationId
-    });
-
-    return {
-      webhookDestinationId: destination.id,
-      signingSecret: rotated.signingSecret,
-      rotatedAt: rotated.rotatedAt
-    };
-  }
-
-  async ensureMaterializedInternal(d: {
-    tenant: Tenant;
-    callbackDestination: CallbackDestination;
-  }) {
-    let signalTenant = await getTenantForSignal(d.tenant);
-    let materialized = await signal.eventDestination.upsertByExternalId({
-      tenantId: signalTenant.id,
-      externalId: d.callbackDestination.id,
-      name: d.callbackDestination.name,
-      description: d.callbackDestination.description,
-      variant: {
-        type: 'http_endpoint',
-        url: d.callbackDestination.url,
-        method: d.callbackDestination.method as 'POST' | 'PUT' | 'PATCH'
-      }
-    });
-
-    return await db.callbackDestination.update({
-      where: { oid: d.callbackDestination.oid },
-      data: {
-        signalEventDestinationId: materialized.id,
-        lastSignalSyncedAt: new Date()
-      }
     });
   }
 }

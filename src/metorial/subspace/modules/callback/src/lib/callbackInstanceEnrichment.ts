@@ -1,6 +1,7 @@
 import type {
   Callback,
   CallbackInstance,
+  CallbackReceiverRegistration,
   Provider,
   ProviderSpecification,
   ProviderTrigger
@@ -11,7 +12,7 @@ import { resolveMetorialFacing } from '@metorial-subspace/module-tenant';
 import type { Instance } from '@metorial/db';
 
 export type CallbackInstanceReceiverTrigger = Awaited<
-  ReturnType<typeof slates.callbackRegistration.get>
+  ReturnType<typeof slates.slateTriggerReceiver.get>
 >['triggers'][number];
 
 export type EnrichedCallbackInstanceTrigger = CallbackInstanceReceiverTrigger & {
@@ -25,13 +26,11 @@ export type EnrichedCallbackInstanceTrigger = CallbackInstanceReceiverTrigger & 
 
 export type CallbackInstanceReceiver = {
   receiverWebhookUrl: string | null;
-  receiverPathSecret: {
-    id: string;
-    generation: number;
-    createdAt: Date;
-    updatedAt: Date;
-  } | null;
   triggers: EnrichedCallbackInstanceTrigger[];
+};
+
+type CallbackInstanceWithRegistration = CallbackInstance & {
+  activeRegistration?: CallbackReceiverRegistration | null;
 };
 
 let providerTriggerInclude = {
@@ -70,47 +69,56 @@ export let enrichTriggers = (
 export let enrichCallbackInstanceTriggers = async (
   instance: Instance,
   callback: Callback,
-  instances: CallbackInstance[]
+  instances: CallbackInstanceWithRegistration[]
 ): Promise<Map<string, CallbackInstanceReceiver>> => {
   let { tenant } = await resolveMetorialFacing({ instance });
-  let result = new Map<string, CallbackInstanceReceiver>();
-  let slatesTenant = await getTenantForSlates(tenant);
-  let receivers = (
-    await Promise.all(
-      instances.map(async callbackInstance => {
-        if (
-          !callbackInstance.slateTriggerReceiverId ||
-          callbackInstance.registrationReceiverAuthorityVersion < 1
-        ) {
-          return null;
-        }
-        try {
-          let receiver = await slates.callbackRegistration.get({
-            tenantId: slatesTenant.id,
-            callbackId: callback.id,
-            callbackInstanceId: callbackInstance.id,
-            slateTriggerReceiverId: callbackInstance.slateTriggerReceiverId,
-            expectedOwnerVersion: callbackInstance.registrationReceiverAuthorityVersion
-          });
-          return { callbackInstanceId: callbackInstance.id, receiver };
-        } catch {
-          return null;
-        }
-      })
-    )
-  ).filter(item => item !== null);
+  let receiverIdToInstanceIds = new Map<string, string[]>();
+  for (let callbackInstance of instances) {
+    let receiverId =
+      callbackInstance.slateTriggerReceiverId ??
+      callbackInstance.activeRegistration?.slateTriggerReceiverId;
+    if (!receiverId) continue;
+    let ids = receiverIdToInstanceIds.get(receiverId);
+    if (!ids) {
+      ids = [];
+      receiverIdToInstanceIds.set(receiverId, ids);
+    }
+    ids.push(callbackInstance.id);
+  }
 
-  let allTriggerIds = [
-    ...new Set(receivers.flatMap(item => item.receiver.triggers.map(t => t.triggerId)))
-  ];
+  let result = new Map<string, CallbackInstanceReceiver>();
+  if (!receiverIdToInstanceIds.size) return result;
+
+  let slatesTenant = await getTenantForSlates(tenant);
+  let receiverIds = [...receiverIdToInstanceIds.keys()];
+
+  let receivers: {
+    id: string;
+    receiverWebhookUrl?: string | null;
+    triggers: CallbackInstanceReceiverTrigger[];
+  }[];
+  try {
+    receivers = await slates.slateTriggerReceiver.getMany({
+      tenantId: slatesTenant.id,
+      slateTriggerReceiverIds: receiverIds
+    });
+  } catch {
+    return result;
+  }
+
+  let allTriggerIds = [...new Set(receivers.flatMap(r => r.triggers.map(t => t.triggerId)))];
   let providerTriggerMap = await resolveProviderTriggers(callback.oid, allTriggerIds);
 
-  for (let { callbackInstanceId, receiver } of receivers) {
-    result.set(callbackInstanceId, {
-      receiverWebhookUrl: receiver.receiverWebhookUrl ?? null,
-      receiverPathSecret: receiver.receiverPathSecret ?? null,
-      triggers: enrichTriggers(receiver.triggers, providerTriggerMap)
-    });
+  for (let receiver of receivers) {
+    let instanceIds = receiverIdToInstanceIds.get(receiver.id);
+    if (!instanceIds) continue;
+    let enriched = enrichTriggers(receiver.triggers, providerTriggerMap);
+    for (let instanceId of instanceIds) {
+      result.set(instanceId, {
+        receiverWebhookUrl: receiver.receiverWebhookUrl ?? null,
+        triggers: enriched
+      });
+    }
   }
 
   return result;
@@ -119,22 +127,22 @@ export let enrichCallbackInstanceTriggers = async (
 export let enrichSingleCallbackInstanceTriggers = async (
   instance: Instance,
   callback: Callback,
-  callbackInstance: CallbackInstance
+  callbackInstance: CallbackInstanceWithRegistration
 ): Promise<CallbackInstanceReceiver | undefined> => {
   let { tenant } = await resolveMetorialFacing({ instance });
-  let receiverId = callbackInstance.slateTriggerReceiverId;
-  if (!receiverId || callbackInstance.registrationReceiverAuthorityVersion < 1) {
-    return undefined;
-  }
+  let receiverId =
+    callbackInstance.slateTriggerReceiverId ??
+    callbackInstance.activeRegistration?.slateTriggerReceiverId;
+  if (!receiverId) return undefined;
 
   let slatesTenant = await getTenantForSlates(tenant);
   try {
-    let receiver = await slates.callbackRegistration.get({
+    let receiver: {
+      receiverWebhookUrl?: string | null;
+      triggers: CallbackInstanceReceiverTrigger[];
+    } = await slates.slateTriggerReceiver.get({
       tenantId: slatesTenant.id,
-      callbackId: callback.id,
-      callbackInstanceId: callbackInstance.id,
-      slateTriggerReceiverId: receiverId,
-      expectedOwnerVersion: callbackInstance.registrationReceiverAuthorityVersion
+      slateTriggerReceiverId: receiverId
     });
 
     let triggerIds = receiver.triggers.map(t => t.triggerId);
@@ -142,7 +150,6 @@ export let enrichSingleCallbackInstanceTriggers = async (
 
     return {
       receiverWebhookUrl: receiver.receiverWebhookUrl ?? null,
-      receiverPathSecret: receiver.receiverPathSecret ?? null,
       triggers: enrichTriggers(receiver.triggers, providerTriggerMap)
     };
   } catch {

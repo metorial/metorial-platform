@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Callback Events controller
- * @description Read inbound callback trigger events across an instance.
+ * @description Read callback trigger events.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -44,6 +44,7 @@ export class MetorialDashboardInstanceCallbacksEventsEndpoint {
    * @description Returns a paginated list of callback events.
    *
    * @param `instanceId` - string
+   * @param `callbackId` - string
    * @param `query` - DashboardInstanceCallbacksEventsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCallbacksEventsListOutput
@@ -52,10 +53,11 @@ export class MetorialDashboardInstanceCallbacksEventsEndpoint {
    */
   list(
     instanceId: string,
+    callbackId: string,
     query?: DashboardInstanceCallbacksEventsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksEventsListOutput> {
-    let path = `dashboard/instances/${instanceId}/callback-events`;
+    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}/events`;
 
     let request = {
       path,
@@ -76,6 +78,7 @@ export class MetorialDashboardInstanceCallbacksEventsEndpoint {
    * @description Retrieves a specific callback event.
    *
    * @param `instanceId` - string
+   * @param `callbackId` - string
    * @param `callbackEventId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCallbacksEventsGetOutput
@@ -84,10 +87,11 @@ export class MetorialDashboardInstanceCallbacksEventsEndpoint {
    */
   get(
     instanceId: string,
+    callbackId: string,
     callbackEventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksEventsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/callback-events/${callbackEventId}`;
+    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}/events/${callbackEventId}`;
 
     let request = {
       path,

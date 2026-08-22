@@ -27,14 +27,12 @@ export let ID = createIdGenerator({
   slateInstanceConfig: idType.sorted('shic'),
   slateInstanceConfiguration: idType.sorted('shinc'),
   slateAuthConfig: idType.sorted('shiac'),
-  slateCallbackConfig: idType.sorted('shcbc'),
   slateInstanceEvent: idType.sorted('hsiev'),
   slateInstanceOAuthSetup: idType.sorted('shios'),
   slateAuthConfigEvent: idType.sorted('shace'),
   slateInstanceOAuthSetupEvent: idType.sorted('shiose'),
 
   slateInvocation: idType.sorted('shiv'),
-  slateScopedInvocationGrant: idType.sorted('shsig'),
 
   slateOAuthCredentials: idType.sorted('shoc'),
   slateToolCall: idType.sorted('shtc'),
@@ -46,11 +44,6 @@ export let ID = createIdGenerator({
   slateTriggerEventInput: idType.sorted('shtin'),
   slateTriggerEvent: idType.sorted('shte'),
   slateTriggerWebhookRequest: idType.sorted('shtwr'),
-  slateTriggerWebhookReplayClaim: idType.sorted('shtwc'),
-  slateTriggerWebhookDispatchOutbox: idType.sorted('shtwo'),
-  slateTriggerRegistrationOutbox: idType.sorted('shtro'),
-  slateProvisionedAppRouteProjection: idType.sorted('shpar'),
-  slateProvisionedTenantAppProjection: idType.sorted('shpap'),
 
   changeNotification: idType.sorted('shcn'),
 
@@ -62,6 +55,7 @@ export let ID = createIdGenerator({
 
   slateError: idType.sorted('sher')
 });
+
 let workerIdBits = 12;
 let workerIdMask = (1 << workerIdBits) - 1;
 

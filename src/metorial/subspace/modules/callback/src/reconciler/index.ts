@@ -1,19 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
   callbackReconcileInstanceQueueProcessor,
-  callbackReconcileQueueProcessor
+  callbackReconcileQueueProcessor,
+  callbackV2MigrationCallbackQueueProcessor,
+  callbackV2MigrationScanQueueProcessor
 } from './queues/processors';
-import { reconcileCallbackRegistrationQueueProcessor } from './queues/reconcileCallbackRegistration';
-import {
-  repairCallbackRegistrationsCron,
-  repairCallbackRegistrationsQueueProcessor
-} from './queues/repairCallbackRegistrations';
-import {
-  sweepCallbackLifecycleCron,
-  sweepCallbackLifecycleInstancesQueueProcessor,
-  sweepCallbackLifecycleMissingProjectionsQueueProcessor,
-  sweepDeadDeploymentCallbacksQueueProcessor
-} from './queues/sweepLifecycle';
 
 export * from './lib/state';
 export * from './lib/sync';
@@ -23,11 +14,6 @@ export * from './queues/processors';
 export let reconcilerQueueProcessor = combineQueueProcessors([
   callbackReconcileQueueProcessor,
   callbackReconcileInstanceQueueProcessor,
-  reconcileCallbackRegistrationQueueProcessor,
-  repairCallbackRegistrationsQueueProcessor,
-  repairCallbackRegistrationsCron,
-  sweepDeadDeploymentCallbacksQueueProcessor,
-  sweepCallbackLifecycleInstancesQueueProcessor,
-  sweepCallbackLifecycleMissingProjectionsQueueProcessor,
-  sweepCallbackLifecycleCron
+  callbackV2MigrationScanQueueProcessor,
+  callbackV2MigrationCallbackQueueProcessor
 ]);

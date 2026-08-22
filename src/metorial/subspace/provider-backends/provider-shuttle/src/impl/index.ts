@@ -1,7 +1,6 @@
 import { createProvider } from '@metorial-subspace/provider-utils';
 import { ProviderAuth } from './auth';
 import { ProviderCapabilities } from './capabilities';
-import { ProviderCallbackConfig } from './callbackConfig';
 import { ProviderDeployment } from './deployment';
 import { ProviderEnclaveInstanceConfiguration } from './enclaveInstanceConfiguration';
 import { ProviderEnrichments } from './enrichment';
@@ -17,6 +16,5 @@ export let shuttleProvider = createProvider({
   deployment: ProviderDeployment,
   enclaveInstanceConfiguration: ProviderEnclaveInstanceConfiguration,
   enrichment: ProviderEnrichments,
-  capabilities: ProviderCapabilities,
-  callbackConfig: ProviderCallbackConfig
+  capabilities: ProviderCapabilities
 });

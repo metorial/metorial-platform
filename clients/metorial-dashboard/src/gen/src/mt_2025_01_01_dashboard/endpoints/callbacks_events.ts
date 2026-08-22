@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Callback Events controller
- * @description Read inbound callback trigger events across an instance.
+ * @description Read callback trigger events.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -43,6 +43,7 @@ export class MetorialCallbacksEventsEndpoint {
    * @name List callback events
    * @description Returns a paginated list of callback events.
    *
+   * @param `callbackId` - string
    * @param `query` - DashboardInstanceCallbacksEventsListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCallbacksEventsListOutput
@@ -50,10 +51,11 @@ export class MetorialCallbacksEventsEndpoint {
    * @see https://metorial.com/docs
    */
   list(
+    callbackId: string,
     query?: DashboardInstanceCallbacksEventsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksEventsListOutput> {
-    let path = 'callback-events';
+    let path = `callbacks/${callbackId}/events`;
 
     let request = {
       path,
@@ -73,6 +75,7 @@ export class MetorialCallbacksEventsEndpoint {
    * @name Get callback event
    * @description Retrieves a specific callback event.
    *
+   * @param `callbackId` - string
    * @param `callbackEventId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceCallbacksEventsGetOutput
@@ -80,10 +83,11 @@ export class MetorialCallbacksEventsEndpoint {
    * @see https://metorial.com/docs
    */
   get(
+    callbackId: string,
     callbackEventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksEventsGetOutput> {
-    let path = `callback-events/${callbackEventId}`;
+    let path = `callbacks/${callbackId}/events/${callbackEventId}`;
 
     let request = {
       path,

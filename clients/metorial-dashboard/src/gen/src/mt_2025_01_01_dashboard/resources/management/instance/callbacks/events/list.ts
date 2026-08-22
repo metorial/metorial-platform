@@ -78,9 +78,9 @@ export type ManagementInstanceCallbacksEventsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  callbackId?: string | string[] | undefined;
-  callbackInstanceId?: string | string[] | undefined;
+  id?: string | string[] | undefined;
   type?: string | string[] | undefined;
+  sourceId?: string | string[] | undefined;
 };
 
 export let mapManagementInstanceCallbacksEventsListQuery = mtMap.union([
@@ -92,18 +92,8 @@ export let mapManagementInstanceCallbacksEventsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      callbackId: mtMap.objectField(
-        'callback_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      callbackInstanceId: mtMap.objectField(
-        'callback_instance_id',
+      id: mtMap.objectField(
+        'id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -114,6 +104,16 @@ export let mapManagementInstanceCallbacksEventsListQuery = mtMap.union([
       ),
       type: mtMap.objectField(
         'type',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sourceId: mtMap.objectField(
+        'source_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

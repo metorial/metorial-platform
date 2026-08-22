@@ -1,6 +1,5 @@
 export * from './providerAuth';
 export * from './providerCapabilities';
-export * from './providerCallbackConfig';
 export * from './providerDeployment';
 export * from './providerEnrichment';
 export * from './providerEnclaveInstanceConfiguration';

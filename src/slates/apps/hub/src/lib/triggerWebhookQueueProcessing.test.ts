@@ -44,7 +44,7 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
           await released;
           return callback();
         },
-        claimQueueOwnership: vi.fn(),
+        fenceExpiredOwner: vi.fn(),
         targetExists: async () => true,
         handleTarget,
         checkpointTriggerCompleted: vi.fn(),
@@ -82,11 +82,10 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
         {
           loadPendingRequest: async () => pendingRequest,
           usingLock: async (_key, callback) => callback(),
-          claimQueueOwnership: async value => {
+          fenceExpiredOwner: async value => {
             calls.push('fence');
             value.syncOwnerToken = null;
             value.syncOwnerExpiresAt = null;
-            return 'owned' as const;
           },
           targetExists: async () => true,
           handleTarget,
@@ -119,7 +118,7 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
               syncOwnerExpiresAt: new Date('2026-01-01T00:00:02.000Z')
             }),
           usingLock: async (_key, callback) => callback(),
-          claimQueueOwnership: async () => 'ownerActive' as const,
+          fenceExpiredOwner: vi.fn(),
           targetExists: async () => true,
           handleTarget,
           checkpointTriggerCompleted: vi.fn(),
@@ -143,7 +142,7 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
     let dependencies = {
       loadPendingRequest: async () => pendingRequest,
       usingLock: async <T>(_key: string, callback: () => Promise<T>) => callback(),
-      claimQueueOwnership: async () => 'owned' as const,
+      fenceExpiredOwner: vi.fn(),
       targetExists: async () => true,
       handleTarget: async (
         _request: PendingWebhookQueueRequest,

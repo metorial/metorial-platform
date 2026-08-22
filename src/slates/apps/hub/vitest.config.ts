@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
+    '@slates/proto': resolve(__dirname, '../../packages/proto/src/index.ts'),
+    '@slates/provider': resolve(__dirname, '../../packages/provider/src/index.ts'),
     '@metorial-services/slates-registry-client': resolve(
       __dirname,
       '../../clients/registry/src/index.ts'

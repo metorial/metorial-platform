@@ -3,89 +3,70 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { eventFailedQueue, eventSucceededQueue } from './lifecycle';
 
-let getIntentForTerminalTransition = (intentId: string) =>
-  db.eventDeliveryIntent.findFirst({
-    where: { id: intentId },
-    include: {
-      attempts: {
-        orderBy: { attemptNumber: 'desc' as const },
-        take: 1,
-        select: { attemptNumber: true }
-      }
-    }
-  });
-
-let getTerminalAttemptCount = (
-  queuedAttemptCount: number | undefined,
-  intent: Awaited<ReturnType<typeof getIntentForTerminalTransition>>
-) => queuedAttemptCount ?? intent?.attempts[0]?.attemptNumber ?? 0;
-
 export let intentSucceededQueue = createQueue<{
   intentId: string;
-  attemptCount?: number;
+  errorCode: string;
+  errorMessage: string;
 }>({
   name: 'sgnl/event/intent_succeeded',
   redisUrl: env.service.REDIS_URL
 });
 
 export let intentSucceededQueueProcessor = intentSucceededQueue.process(async data => {
-  let intent = await getIntentForTerminalTransition(data.intentId);
+  let intent = await db.eventDeliveryIntent.findFirst({
+    where: { id: data.intentId }
+  });
   if (!intent) throw new QueueRetryError();
-  let attemptCount = getTerminalAttemptCount(data.attemptCount, intent);
 
-  await db.$transaction(async tx => {
-    let transitioned = await tx.eventDeliveryIntent.updateMany({
-      where: { id: data.intentId, status: { notIn: ['delivered', 'failed'] } },
-      data: {
-        status: 'delivered',
-        attemptCount
-      }
-    });
-    if (transitioned.count === 0) return;
-
-    await tx.event.update({
-      where: { oid: intent.eventOid },
-      data: { deliverySuccessCount: { increment: 1 } }
-    });
+  await db.eventDeliveryIntent.updateMany({
+    where: { id: data.intentId },
+    data: {
+      status: 'delivered'
+    }
   });
 
-  await intentEndedQueue.add({ intentId: intent.id }, { id: intent.id });
+  await db.event.update({
+    where: { oid: intent.eventOid },
+    data: {
+      deliverySuccessCount: { increment: 1 }
+    }
+  });
+
+  await intentEndedQueue.add({ intentId: intent.id });
 });
 
 export let intentFailedQueue = createQueue<{
   intentId: string;
   errorCode: string;
   errorMessage: string;
-  attemptCount?: number;
 }>({
   name: 'sgnl/event/intent_failed',
   redisUrl: env.service.REDIS_URL
 });
 
 export let intentFailedQueueProcessor = intentFailedQueue.process(async data => {
-  let intent = await getIntentForTerminalTransition(data.intentId);
+  let intent = await db.eventDeliveryIntent.findFirst({
+    where: { id: data.intentId }
+  });
   if (!intent) throw new QueueRetryError();
-  let attemptCount = getTerminalAttemptCount(data.attemptCount, intent);
 
-  await db.$transaction(async tx => {
-    let transitioned = await tx.eventDeliveryIntent.updateMany({
-      where: { id: data.intentId, status: { notIn: ['delivered', 'failed'] } },
-      data: {
-        status: 'failed',
-        errorCode: data.errorCode,
-        errorMessage: data.errorMessage,
-        attemptCount
-      }
-    });
-    if (transitioned.count === 0) return;
-
-    await tx.event.update({
-      where: { oid: intent.eventOid },
-      data: { deliveryFailureCount: { increment: 1 } }
-    });
+  await db.eventDeliveryIntent.updateMany({
+    where: { id: data.intentId },
+    data: {
+      status: 'failed',
+      errorCode: 'no_destination',
+      errorMessage: 'No active destination instance found'
+    }
   });
 
-  await intentEndedQueue.add({ intentId: intent.id }, { id: intent.id });
+  await db.event.update({
+    where: { oid: intent.eventOid },
+    data: {
+      deliveryFailureCount: { increment: 1 }
+    }
+  });
+
+  await intentEndedQueue.add({ intentId: intent.id });
 });
 
 let intentEndedQueue = createQueue<{
@@ -107,9 +88,9 @@ export let intentEndedQueueProcessor = intentEndedQueue.process(async data => {
   let totalSends = event.deliveryFailureCount + event.deliverySuccessCount;
   if (totalSends >= event.deliveryDestinationCount) {
     if (event.deliveryFailureCount > 0) {
-      await eventFailedQueue.add({ eventId: event.id }, { id: event.id });
+      await eventFailedQueue.add({ eventId: event.id });
     } else {
-      await eventSucceededQueue.add({ eventId: event.id }, { id: event.id });
+      await eventSucceededQueue.add({ eventId: event.id });
     }
   }
 });

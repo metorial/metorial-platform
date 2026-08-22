@@ -3,13 +3,11 @@ import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
 import { callbackRegistrationController } from './callbackRegistration';
 import { changeNotificationController } from './changeNotification';
-import { provisionedAppProjectionController } from './provisionedAppProjection';
 import { registryController } from './registry';
 import { secretController } from './secret';
 import { slateController } from './slate';
 import { slateAuthConfigController } from './slateAuthConfig';
 import { slateAuthConfigEventController } from './slateAuthConfigEvent';
-import { slateCallbackConfigController } from './slateCallbackConfig';
 import { slateDeploymentController } from './slateDeployment';
 import { slateDiscoveryController } from './slateDiscovery';
 import { slateErrorController } from './slateError';
@@ -36,7 +34,6 @@ export let rootController = app.controller({
   tenant: tenantController,
   secret: secretController,
   callbackRegistration: callbackRegistrationController,
-  provisionedAppProjection: provisionedAppProjectionController,
 
   registry: registryController,
 
@@ -57,7 +54,6 @@ export let rootController = app.controller({
   slateOAuthSetupEvent: slateOAuthSetupEventController,
   slateAuthConfig: slateAuthConfigController,
   slateAuthConfigEvent: slateAuthConfigEventController,
-  slateCallbackConfig: slateCallbackConfigController,
   slateSession: slateSessionController,
   slateSessionToolCall: slateSessionToolCallController,
 

@@ -2,7 +2,6 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import { randomUUID } from 'crypto';
-import type { SafeWebhookRejectionCode, WebhookWireResponse } from '@slates/proto';
 import {
   SlateTriggerReceiverStatus,
   SlateTriggerReceiverTriggerSource,
@@ -10,22 +9,16 @@ import {
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
+import type { TriggerWebhookRequestPayload } from '../lib/triggerWebhook';
+import { webhookRequestMatches } from '../lib/triggerWebhookSync';
 import {
-  adaptWebhookWireRequestForProviderInvocation,
-  type WebhookWireRequest
-} from '../lib/webhookWire';
-import type { WebhookCapturePolicy } from '../lib/webhookCapturePolicy';
-import { webhookWireRequestMatches } from '../lib/triggerWebhookSync';
-import {
+  getSyncFallbackQueuePayload,
   planSyncCandidateResult,
   runWithHardSyncOwnershipBoundary
 } from '../lib/triggerWebhookSyncOwnership';
 import { slateTriggerReceiverService } from './slateTriggerReceiver';
-import { actionVerificationDeclaration } from './slateTriggerRegistrationLifecycle';
-import { authenticateReceiverRouteBoundary } from './slateTriggerWebhookAuthenticatedBoundary';
 import {
   getTriggerSpec,
-  isRoutableWebhookReceiverTrigger,
   receiverInclude,
   receiverTriggerInclude,
   webhookTriggerAllowsMethod,
@@ -99,40 +92,7 @@ let getAllowedMethodsForTriggers = (triggers: Array<{ action: SlateAction }>) =>
   return ALL_WEBHOOK_METHODS.filter(method => allowed.has(method));
 };
 
-let adaptExactWebhookResponse = (response: WebhookWireResponse): WebhookHttpResponse => ({
-  status: response.status,
-  headers: Object.fromEntries(response.headers),
-  body: response.body.present
-    ? {
-        encoding: 'base64' as const,
-        content: response.body.base64
-      }
-    : null
-});
-
-let exactWebhookFailureResponse = (
-  code: SafeWebhookRejectionCode | 'sync_deadline_exceeded' | 'mixed_sync_authority'
-): WebhookHttpResponse => {
-  let status =
-    code === 'sync_deadline_exceeded' ||
-    code === 'provider_timeout' ||
-    code === 'state_cas_conflict'
-      ? 503
-      : code === 'mixed_sync_authority' ||
-          code === 'conflicting_rule_outcomes' ||
-          code === 'conflicting_sync_responses'
-        ? 409
-        : code.startsWith('credential_') || code === 'security_header_ambiguous'
-          ? 401
-          : 400;
-  return {
-    status,
-    headers: { 'content-type': 'text/plain; charset=utf-8' },
-    body: { encoding: 'base64', content: Buffer.from(code).toString('base64') }
-  };
-};
-
-export let getSyncCandidates = (
+let getSyncCandidates = (
   triggers: Array<{ id: string; oid: bigint; action: SlateAction }>,
   requestMethod: string
 ) =>
@@ -144,41 +104,11 @@ export let getSyncCandidates = (
 
       let sync = spec.invocation.http?.sync;
       if (!sync || sync.mode === 'never') return [];
-      let ingress = (
-        spec.invocation.http as {
-          ingress?: {
-            kind?: string;
-            verification?: {
-              mechanism?: string;
-              rules?: Array<{
-                result?: {
-                  type?: string;
-                };
-              }>;
-            };
-          };
-        }
-      )?.ingress;
-      let hasHubSyncOnlyAuthority =
-        ingress?.kind === 'receiver_route' &&
-        ingress.verification?.mechanism === 'hub' &&
-        ingress.verification.rules?.some(rule => rule.result?.type === 'sync_only');
-      let mechanism = actionVerificationDeclaration(trigger.action).mechanism;
-      let kind =
-        mechanism === 'hub' || hasHubSyncOnlyAuthority
-          ? hasHubSyncOnlyAuthority
-            ? ('hub_exact' as const)
-            : null
-          : mechanism === 'path_secret_only'
-            ? ('legacy_path' as const)
-            : null;
-      if (!kind) return [];
 
       return [
         {
           id: trigger.id,
           oid: trigger.oid,
-          kind,
           sync
         }
       ];
@@ -189,12 +119,7 @@ class slateTriggerWebhookSyncServiceImpl {
   private async loadTarget(d: { receiverTriggerId?: string; receiverId?: string }) {
     if (d.receiverTriggerId) {
       let receiverTrigger = await db.slateTriggerReceiverTrigger.findFirst({
-        where: {
-          id: d.receiverTriggerId,
-          source: SlateTriggerReceiverTriggerSource.webhook,
-          tombstonedAt: null,
-          ingressDisabledAt: null
-        },
+        where: { id: d.receiverTriggerId },
         include: receiverTriggerInclude
       });
       if (!receiverTrigger) {
@@ -208,7 +133,6 @@ class slateTriggerWebhookSyncServiceImpl {
           receiverId: null
         } satisfies WebhookTarget,
         active: receiverTrigger.receiver.status === SlateTriggerReceiverStatus.active,
-        receiver: receiverTrigger.receiver,
         triggers: [receiverTrigger]
       };
     }
@@ -216,17 +140,7 @@ class slateTriggerWebhookSyncServiceImpl {
     if (d.receiverId) {
       let receiver = await db.slateTriggerReceiver.findFirst({
         where: { id: d.receiverId },
-        include: {
-          ...receiverInclude,
-          triggers: {
-            where: {
-              source: SlateTriggerReceiverTriggerSource.webhook,
-              tombstonedAt: null,
-              ingressDisabledAt: null
-            },
-            include: { action: true }
-          }
-        }
+        include: receiverInclude
       });
       if (!receiver) throw new ServiceError(notFoundError('slate.trigger.receiver'));
 
@@ -237,8 +151,9 @@ class slateTriggerWebhookSyncServiceImpl {
           receiverId: receiver.id
         } satisfies WebhookTarget,
         active: receiver.status === SlateTriggerReceiverStatus.active,
-        receiver,
-        triggers: receiver.triggers.filter(isRoutableWebhookReceiverTrigger)
+        triggers: receiver.triggers.filter(
+          trigger => trigger.source === SlateTriggerReceiverTriggerSource.webhook
+        )
       };
     }
 
@@ -248,75 +163,19 @@ class slateTriggerWebhookSyncServiceImpl {
   async handleWebhookRequest(d: {
     receiverTriggerId?: string;
     receiverId?: string;
-    request: WebhookWireRequest;
-    pathSecret: string;
-    capturePolicy: WebhookCapturePolicy;
+    request: TriggerWebhookRequestPayload;
   }): Promise<
     | { type: 'methodNotAllowed'; allowedMethods: WebhookHttpMethod[] }
     | { type: 'queued'; webhookRequestId: string }
     | { type: 'response'; webhookRequestId: string; response: WebhookHttpResponse }
   > {
-    let target;
-    try {
-      target = await this.loadTarget(d);
-    } catch (error) {
-      await slateTriggerWebhookRequestService.createRejectedWebhookRequest({
-        receiverTriggerId: d.receiverTriggerId,
-        receiverId: d.receiverId,
-        url: d.request.url,
-        method: d.request.method,
-        headers: d.request.headers,
-        pathSecret: d.pathSecret,
-        capturePolicy: d.capturePolicy,
-        safeRejectionCode: 'target_unavailable'
-      });
-      throw error;
-    }
-    let owner = target.receiver;
-    let authenticatedBoundary = owner
-      ? await authenticateReceiverRouteBoundary({
-          tenant: owner.tenant,
-          receiverId: owner.id,
-          supplied: d.pathSecret
-        }).catch(() => null)
-      : null;
-    let requestRecord = !authenticatedBoundary
-      ? {
-          ...(await slateTriggerWebhookRequestService.createRejectedWebhookRequest({
-            receiverTriggerId: target.target.receiverTriggerId ?? undefined,
-            receiverId: target.target.receiverId ?? undefined,
-            url: d.request.url,
-            method: d.request.method,
-            headers: d.request.headers,
-            pathSecret: d.pathSecret,
-            capturePolicy: d.capturePolicy,
-            safeRejectionCode: 'baseline_path_invalid'
-          })),
-          __baselineRejected: true as const
-        }
-      : await slateTriggerWebhookRequestService.createCapturedWebhookRequest({
-          receiverTriggerId: target.target.receiverTriggerId ?? undefined,
-          receiverId: target.target.receiverId ?? undefined,
-          wireRequest: d.request,
-          pathSecret: d.pathSecret,
-          capturePolicy: d.capturePolicy,
-          authenticatedBoundary,
-          enqueue: false
-        });
-    if ('__baselineRejected' in requestRecord) {
-      return {
-        type: 'response',
-        webhookRequestId: requestRecord.id,
-        response: {
-          status: 401,
-          headers: { 'content-type': 'text/plain; charset=utf-8' },
-          body: {
-            encoding: 'base64',
-            content: Buffer.from('baseline_path_invalid').toString('base64')
-          }
-        }
-      };
-    }
+    let target = await this.loadTarget(d);
+    let requestRecord = await slateTriggerWebhookRequestService.createWebhookRequest({
+      receiverTriggerId: target.target.receiverTriggerId ?? undefined,
+      receiverId: target.target.receiverId ?? undefined,
+      request: d.request,
+      enqueue: false
+    });
     let finalize = (ownerToken?: string) =>
       finalizeWebhookRequest({
         request: {
@@ -328,7 +187,7 @@ class slateTriggerWebhookSyncServiceImpl {
           headers: requestRecord.headers as Record<string, string>,
           createdAt: requestRecord.createdAt
         },
-        body: null,
+        body: d.request.body,
         ownerToken
       });
 
@@ -349,184 +208,39 @@ class slateTriggerWebhookSyncServiceImpl {
             candidate.sync.mode === 'always' ||
             (candidate.sync.mode === 'match' &&
               (candidate.sync.match ?? []).some(matcher =>
-                webhookWireRequestMatches(d.request, matcher)
+                webhookRequestMatches(d.request, matcher)
               ))
           );
         })
       : [];
 
     if (candidates.length === 0) {
-      let ownerToken = randomUUID();
-      let claimToken = randomUUID();
-      let ownerExpiresAt = new Date(Date.now() + HARD_SYNC_OWNERSHIP_MS);
-      if (
-        !(await slateTriggerWebhookRequestService.claimSyncOwnership({
-          webhookRequestId: requestRecord.id,
-          ownerToken,
-          expiresAt: ownerExpiresAt
-        })) ||
-        !(await slateTriggerWebhookRequestService.prepareQueueTakeover({
-          webhookRequestId: requestRecord.id,
-          ownerToken,
-          claimToken
-        }))
-      ) {
-        throw new Error('Webhook queue ownership could not be prepared');
-      }
-      try {
-        await slateTriggerWebhookRequestService.enqueueWebhookRequest({
-          webhookRequestId: requestRecord.id,
-          claimToken
-        });
-      } catch (error) {
-        await slateTriggerWebhookRequestService.abortPreparedQueueTakeover({
-          webhookRequestId: requestRecord.id,
-          ownerToken,
-          claimToken
-        });
-        throw error;
-      }
-      await slateTriggerWebhookRequestService.confirmQueueTakeover({
-        webhookRequestId: requestRecord.id,
-        ownerToken,
-        claimToken
+      await slateTriggerWebhookRequestService.enqueueWebhookRequest({
+        webhookRequestId: requestRecord.id
       });
       return { type: 'queued', webhookRequestId: requestRecord.id };
     }
-    let candidateKinds = new Set(candidates.map(candidate => candidate.kind));
-    if (candidateKinds.size > 1) {
-      await finalize();
-      return {
-        type: 'response',
-        webhookRequestId: requestRecord.id,
-        response: exactWebhookFailureResponse('mixed_sync_authority')
-      };
-    }
-    let exactOnly = candidates.every(candidate => candidate.kind === 'hub_exact');
-    if (exactOnly) {
-      let run = async () => {
-        let result =
-          target.target.type === 'receiverTrigger'
-            ? await slateTriggerReceiverService.handleCapturedTriggerWebhook({
-                receiverTriggerId: target.target.receiverTriggerId,
-                request: d.request,
-                requestId: requestRecord.id
-              })
-            : await slateTriggerReceiverService.handleCapturedReceiverWebhook({
-                receiverId: target.target.receiverId,
-                request: d.request,
-                requestId: requestRecord.id,
-                excludeReceiverTriggerIds: applicableTriggers
-                  .filter(
-                    trigger => !candidates.some(candidate => candidate.id === trigger.id)
-                  )
-                  .map(trigger => trigger.id)
-              });
-        await finalize();
-        return {
-          type: 'response' as const,
-          webhookRequestId: requestRecord.id,
-          response:
-            result.status === 'rejected'
-              ? exactWebhookFailureResponse(result.code)
-              : result.response
-                ? adaptExactWebhookResponse(result.response)
-                : exactWebhookFailureResponse('sync_deadline_exceeded')
-        };
-      };
-      let execution = run().catch(async _error => {
-        await finalize().catch(() => undefined);
-        return {
-          type: 'response' as const,
-          webhookRequestId: requestRecord.id,
-          response: exactWebhookFailureResponse('sync_deadline_exceeded')
-        };
-      });
-      let timeoutMs = candidates[0]!.sync.timeoutMs ?? getTotalSyncTimeoutMs();
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      let deadline = new Promise<Awaited<typeof execution>>(resolve => {
-        timer = setTimeout(
-          () =>
-            resolve({
-              type: 'response',
-              webhookRequestId: requestRecord.id,
-              response: exactWebhookFailureResponse('sync_deadline_exceeded')
-            }),
-          timeoutMs
-        );
-      });
-      let response = await Promise.race([execution, deadline]);
-      if (timer) clearTimeout(timer);
-      return response;
-    }
 
     let ownerToken = randomUUID();
-    let queueClaimToken = randomUUID();
     let ownerExpiresAt = new Date(Date.now() + HARD_SYNC_OWNERSHIP_MS);
 
     // Persist the delayed owner before claiming or invoking inline work. If this process exits
     // at any later instruction, BullMQ still has a durable takeover scheduled for the same hard
     // boundary used by the ownership fence below. Hub has no webhook outbox/reconciler, so the
     // row-create to first Redis publish gap remains the queue producer's pre-existing boundary.
+    await slateTriggerWebhookRequestService.enqueueWebhookRequest({
+      webhookRequestId: requestRecord.id,
+      delayMs: HARD_SYNC_OWNERSHIP_MS,
+      jobId: `sync-fallback-${requestRecord.id}`
+    });
     let claimedOwnership = await slateTriggerWebhookRequestService.claimSyncOwnership({
       webhookRequestId: requestRecord.id,
       ownerToken,
       expiresAt: ownerExpiresAt
     });
     if (!claimedOwnership) {
-      throw new Error('Webhook inline ownership could not be claimed');
+      return { type: 'queued', webhookRequestId: requestRecord.id };
     }
-    if (
-      !(await slateTriggerWebhookRequestService.prepareQueueTakeover({
-        webhookRequestId: requestRecord.id,
-        ownerToken,
-        claimToken: queueClaimToken
-      }))
-    ) {
-      throw new Error('Webhook delayed takeover could not be prepared');
-    }
-    try {
-      await slateTriggerWebhookRequestService.enqueueWebhookRequest({
-        webhookRequestId: requestRecord.id,
-        claimToken: queueClaimToken,
-        delayMs: HARD_SYNC_OWNERSHIP_MS,
-        jobId: `sync-fallback-${requestRecord.id}`
-      });
-    } catch (error) {
-      await slateTriggerWebhookRequestService.abortPreparedQueueTakeover({
-        webhookRequestId: requestRecord.id,
-        ownerToken,
-        claimToken: queueClaimToken
-      });
-      await slateTriggerWebhookRequestService.releaseSyncOwnership({
-        webhookRequestId: requestRecord.id,
-        ownerToken
-      });
-      throw error;
-    }
-
-    let transferToQueue = async (excludeReceiverTriggerIds: string[]) => {
-      let confirmed = await slateTriggerWebhookRequestService.confirmQueueTakeover({
-        webhookRequestId: requestRecord.id,
-        ownerToken,
-        claimToken: queueClaimToken
-      });
-      if (!confirmed) return false;
-      try {
-        await slateTriggerWebhookRequestService.enqueueWebhookRequest({
-          webhookRequestId: requestRecord.id,
-          claimToken: queueClaimToken,
-          excludeReceiverTriggerIds,
-          jobId: `sync-now-${requestRecord.id}`
-        });
-      } catch (_error) {
-        // The delayed job was durably published before transfer. It remains the fallback owner.
-        Sentry.captureException(new Error('Immediate webhook takeover wake-up failed'), {
-          extra: { webhookRequestId: requestRecord.id }
-        });
-      }
-      return true;
-    };
 
     let processedReceiverTriggerIds: string[] = [];
     let startedAt = Date.now();
@@ -577,7 +291,7 @@ class slateTriggerWebhookSyncServiceImpl {
           enterCommit =>
             slateTriggerReceiverService.handleTriggerWebhook({
               receiverTriggerId: candidate.id,
-              request: adaptWebhookWireRequestForProviderInvocation(d.request),
+              request: d.request,
               invocationGuard: ownsContinuation,
               enterCommit
             }),
@@ -591,8 +305,8 @@ class slateTriggerWebhookSyncServiceImpl {
               if (entered) commitActive = true;
               return entered;
             },
-            onLateError: _error => {
-              Sentry.captureException(new Error('Late synchronous webhook RPC failed'), {
+            onLateError: error => {
+              Sentry.captureException(error, {
                 extra: { webhookRequestId: requestRecord.id, phase: 'late_sync_rpc' }
               });
             }
@@ -664,14 +378,21 @@ class slateTriggerWebhookSyncServiceImpl {
                 trigger => !processedReceiverTriggerIds.includes(trigger.id)
               );
               if (remainingTriggers.length > 0) {
-                await transferToQueue(processedReceiverTriggerIds);
+                await slateTriggerWebhookRequestService.releaseSyncOwnership({
+                  webhookRequestId: requestRecord.id,
+                  ownerToken
+                });
+                await slateTriggerWebhookRequestService.enqueueWebhookRequest({
+                  webhookRequestId: requestRecord.id,
+                  excludeReceiverTriggerIds: processedReceiverTriggerIds
+                });
               } else {
                 await finalize(ownerToken);
               }
 
               return candidateResult;
-            } catch (_error) {
-              Sentry.captureException(new Error('Synchronous webhook processing failed'), {
+            } catch (error) {
+              Sentry.captureException(error, {
                 extra: {
                   webhookRequestId: requestRecord.id,
                   receiverId: target.target.receiverId,
@@ -682,11 +403,17 @@ class slateTriggerWebhookSyncServiceImpl {
                 'Failed to process webhook synchronously; falling back to queue:',
                 {
                   webhookRequestId: requestRecord.id,
-                  errorCode: 'webhook_sync_processing_failed'
+                  error
                 }
               );
 
-              await transferToQueue(processedReceiverTriggerIds);
+              await slateTriggerWebhookRequestService.releaseSyncOwnership({
+                webhookRequestId: requestRecord.id,
+                ownerToken
+              });
+              await slateTriggerWebhookRequestService.enqueueWebhookRequest(
+                getSyncFallbackQueuePayload(requestRecord.id, processedReceiverTriggerIds)
+              );
               return { type: 'fallback' as const };
             }
           },
@@ -717,8 +444,8 @@ class slateTriggerWebhookSyncServiceImpl {
               }
             : { type: 'queued', webhookRequestId: requestRecord.id }
         );
-      } catch (_error) {
-        Sentry.captureException(new Error('Synchronous webhook orchestration failed'), {
+      } catch (error) {
+        Sentry.captureException(error, {
           extra: {
             webhookRequestId: requestRecord.id,
             receiverId: target.target.receiverId,
@@ -727,25 +454,29 @@ class slateTriggerWebhookSyncServiceImpl {
         });
         console.error('Failed to process webhook synchronously; falling back to queue:', {
           webhookRequestId: requestRecord.id,
-          errorCode: 'webhook_sync_orchestration_failed'
+          error
         });
 
-        await transferToQueue(processedReceiverTriggerIds);
+        await slateTriggerWebhookRequestService.releaseSyncOwnership({
+          webhookRequestId: requestRecord.id,
+          ownerToken
+        });
+        await slateTriggerWebhookRequestService.enqueueWebhookRequest(
+          getSyncFallbackQueuePayload(requestRecord.id, processedReceiverTriggerIds)
+        );
         settleQueued();
       }
     })();
 
-    void processing.catch(_error => {
-      Sentry.captureException(new Error('Webhook sync fallback orchestration failed'), {
-        extra: { webhookRequestId: requestRecord.id }
-      });
+    void processing.catch(error => {
+      Sentry.captureException(error, { extra: { webhookRequestId: requestRecord.id } });
       console.error('Webhook sync fallback orchestration failed:', {
         webhookRequestId: requestRecord.id,
-        errorCode: 'webhook_sync_fallback_failed'
+        error
       });
       if (!publicResultSettled) {
         publicResultSettled = true;
-        rejectPublicResult(_error);
+        rejectPublicResult(error);
       }
     });
 

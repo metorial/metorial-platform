@@ -3,19 +3,11 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceCallbacksGetOutput = {
   object: 'callback';
   id: string;
-  integrationId: string;
-  integrationProviderId: string;
   status: 'active' | 'archived' | 'deleted';
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
   pollIntervalSecondsOverride: number | null;
-  config: {
-    object: 'callback.config';
-    id: string;
-    configuredKeys: string[];
-    createdAt: Date;
-  } | null;
   providerDeployment: {
     object: 'provider.deployment#preview';
     id: string;
@@ -28,15 +20,15 @@ export type DashboardInstanceCallbacksGetOutput = {
     updatedAt: Date;
   };
   destinations: {
-    object: 'webhook.destination';
+    object: 'callback.destination';
     id: string;
     status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
     url: string;
-    method: 'POST' | 'PUT' | 'PATCH';
-    signingSecretConfigured: boolean;
+    method: string;
+    signingSecret: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -60,11 +52,6 @@ export let mapDashboardInstanceCallbacksGetOutput =
   mtMap.object<DashboardInstanceCallbacksGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
-    integrationProviderId: mtMap.objectField(
-      'integration_provider_id',
-      mtMap.passthrough()
-    ),
     status: mtMap.objectField('status', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
@@ -72,18 +59,6 @@ export let mapDashboardInstanceCallbacksGetOutput =
     pollIntervalSecondsOverride: mtMap.objectField(
       'poll_interval_seconds_override',
       mtMap.passthrough()
-    ),
-    config: mtMap.objectField(
-      'config',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        configuredKeys: mtMap.objectField(
-          'configured_keys',
-          mtMap.array(mtMap.passthrough())
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date())
-      })
     ),
     providerDeployment: mtMap.objectField(
       'provider_deployment',
@@ -111,8 +86,8 @@ export let mapDashboardInstanceCallbacksGetOutput =
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
           url: mtMap.objectField('url', mtMap.passthrough()),
           method: mtMap.objectField('method', mtMap.passthrough()),
-          signingSecretConfigured: mtMap.objectField(
-            'signing_secret_configured',
+          signingSecret: mtMap.objectField(
+            'signing_secret',
             mtMap.passthrough()
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),

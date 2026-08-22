@@ -13,8 +13,7 @@ model SlateOAuthCredentials {
 
   createdAt DateTime @default(now())
 
-  providerAuthCredentials    ProviderAuthCredentials[]
-  provisionedVendorAppRoutes ProvisionedVendorAppRoute[]
+  providerAuthCredentials ProviderAuthCredentials[]
 
   @@index([projectOid])
 }

@@ -43,11 +43,11 @@ import {
   v1AuditLogStreamPresenter,
   v1BootPresenter,
   v1BucketEditorTokenPresenter,
-  v1CallbackConfigSchemaPresenter,
+  v1CallbackDestinationPresenter,
   v1CallbackEventPresenter,
   v1CallbackInstancePresenter,
+  v1CallbackNotificationPresenter,
   v1CallbackPresenter,
-  v1CallbackReceiverPathSecretPresenter,
   v1CliDevicePresenter,
   v1ConfigPresenter,
   v1ConsumerAccessListingPresenter,
@@ -235,10 +235,6 @@ import {
   v1TeamPresenter,
   v1TokenPresenter,
   v1UsagePresenter,
-  v1WebhookDestinationPresenter,
-  v1WebhookDestinationSigningSecretPresenter,
-  v1WebhookEventDeliveryPresenter,
-  v1WebhookEventPresenter,
   v1UserPresenter
 } from './implementation';
 import {
@@ -259,10 +255,10 @@ import {
   authImportSchemaType,
   bootType,
   bucketEditorTokenType,
-  callbackConfigSchemaType,
+  callbackDestinationType,
   callbackEventType,
   callbackInstanceType,
-  callbackReceiverPathSecretType,
+  callbackNotificationType,
   callbackType,
   cliDeviceType,
   configPreviewType,
@@ -449,10 +445,6 @@ import {
   tokenType,
   toolCallType,
   usageType,
-  webhookDestinationSigningSecretType,
-  webhookDestinationType,
-  webhookEventDeliveryType,
-  webhookEventType,
   userType
 } from './types';
 
@@ -901,51 +893,25 @@ export let callbackPresenter = declarePresenter(callbackType, {
   mt_2026_01_01_magnetar: v1CallbackPresenter
 });
 
-export let callbackConfigSchemaPresenter = declarePresenter(callbackConfigSchemaType, {
-  mt_2025_01_01_dashboard: v1CallbackConfigSchemaPresenter,
-  mt_2026_01_01_magnetar: v1CallbackConfigSchemaPresenter
-});
-
 export let callbackEventPresenter = declarePresenter(callbackEventType, {
   mt_2025_01_01_dashboard: v1CallbackEventPresenter,
   mt_2026_01_01_magnetar: v1CallbackEventPresenter
 });
 
-export let webhookDestinationPresenter = declarePresenter(webhookDestinationType, {
-  mt_2025_01_01_dashboard: v1WebhookDestinationPresenter,
-  mt_2026_01_01_magnetar: v1WebhookDestinationPresenter
+export let callbackNotificationPresenter = declarePresenter(callbackNotificationType, {
+  mt_2025_01_01_dashboard: v1CallbackNotificationPresenter,
+  mt_2026_01_01_magnetar: v1CallbackNotificationPresenter
 });
 
-export let webhookDestinationSigningSecretPresenter = declarePresenter(
-  webhookDestinationSigningSecretType,
-  {
-    mt_2025_01_01_dashboard: v1WebhookDestinationSigningSecretPresenter,
-    mt_2026_01_01_magnetar: v1WebhookDestinationSigningSecretPresenter
-  }
-);
-
-export let webhookEventPresenter = declarePresenter(webhookEventType, {
-  mt_2025_01_01_dashboard: v1WebhookEventPresenter,
-  mt_2026_01_01_magnetar: v1WebhookEventPresenter
-});
-
-export let webhookEventDeliveryPresenter = declarePresenter(webhookEventDeliveryType, {
-  mt_2025_01_01_dashboard: v1WebhookEventDeliveryPresenter,
-  mt_2026_01_01_magnetar: v1WebhookEventDeliveryPresenter
+export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
+  mt_2025_01_01_dashboard: v1CallbackDestinationPresenter,
+  mt_2026_01_01_magnetar: v1CallbackDestinationPresenter
 });
 
 export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
   mt_2025_01_01_dashboard: v1CallbackInstancePresenter,
   mt_2026_01_01_magnetar: v1CallbackInstancePresenter
 });
-
-export let callbackReceiverPathSecretPresenter = declarePresenter(
-  callbackReceiverPathSecretType,
-  {
-    mt_2025_01_01_dashboard: v1CallbackReceiverPathSecretPresenter,
-    mt_2026_01_01_magnetar: v1CallbackReceiverPathSecretPresenter
-  }
-);
 
 export let teamPresenter = declarePresenter(teamType, {
   mt_2025_01_01_dashboard: v1TeamPresenter,

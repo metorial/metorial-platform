@@ -44,9 +44,6 @@ export let instanceScopes = [
   'instance.callback:read' as const,
   'instance.callback:write' as const,
 
-  'instance.webhook:read' as const,
-  'instance.webhook:write' as const,
-
   'instance.network:read' as const,
   'instance.network:write' as const,
 

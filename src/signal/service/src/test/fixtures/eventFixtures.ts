@@ -23,7 +23,6 @@ export const EventFixtures = (db: PrismaClient) => {
         oid,
         id,
         status: data.overrides?.status ?? 'pending',
-        scopeId: data.overrides?.scopeId ?? 'scope_test',
         topics,
         deliveryDestinationCount: data.overrides?.deliveryDestinationCount ?? -1,
         deliverySuccessCount: data.overrides?.deliverySuccessCount ?? 0,

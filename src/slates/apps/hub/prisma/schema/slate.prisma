@@ -40,7 +40,6 @@ model Slate {
   slateOAuthCredentials     SlateOAuthCredentials[]
   slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
   slateAuthConfigs          SlateAuthConfig[]
-  slateCallbackConfigs      SlateCallbackConfig[]
   slateSessions             SlateSession[]
   slateTriggerReceivers     SlateTriggerReceiver[]
   slateTriggerEvents        SlateTriggerEvent[]
@@ -110,7 +109,6 @@ model SlateVersion {
   slateSessionToolCalls      SlateSessionToolCall[]
   changeNotifications        ChangeNotification[]
   slateErrors                SlateError[]
-  slateCallbackConfigs       SlateCallbackConfig[]
 
   @@unique([slateOid, version])
 }

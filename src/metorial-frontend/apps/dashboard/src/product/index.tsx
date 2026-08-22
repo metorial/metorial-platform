@@ -4,7 +4,7 @@ import { createSlice } from '@metorial/microfrontend';
 import { NotFound } from '@metorial/pages';
 import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@metorial/state';
 import { useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
 import { InstanceLayout } from './pages/_instanceLayout';
 import { InstanceRootRedirectPage } from './pages/rootRedirect';
@@ -152,9 +152,6 @@ let IntegrationOverviewPage = dynamicPage(() =>
 let IntegrationInstancesPage = dynamicPage(() =>
   import('./pages/(integrations)/integration/instances').then(c => c.IntegrationInstancesPage)
 );
-let IntegrationCallbacksPage = dynamicPage(() =>
-  import('./pages/(integrations)/integration/callbacks').then(c => c.IntegrationCallbacksPage)
-);
 let IntegrationSettingsPage = dynamicPage(() =>
   import('./pages/(integrations)/integration/settings').then(c => c.IntegrationSettingsPage)
 );
@@ -252,14 +249,29 @@ let ManagedServersPage = dynamicPage(() =>
     c => c.CustomerProvidersPage
   )
 );
-let WebhooksLayout = dynamicPage(() =>
-  import('./pages/(webhooks)/_layout').then(c => c.WebhooksLayout)
+let CallbacksListLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
 );
-let WebhooksEventsPage = dynamicPage(() =>
-  import('./pages/(webhooks)/events').then(c => c.WebhooksEventsPage)
+let CallbacksPage = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/index').then(c => c.CallbacksPage)
 );
-let WebhooksLogsPage = dynamicPage(() =>
-  import('./pages/(webhooks)/logs').then(c => c.WebhooksLogsPage)
+let CallbackLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/_layout').then(c => c.CallbackLayout)
+);
+let CallbackOverviewPage = dynamicPage(() =>
+  import('./pages/(callbacks)/overview').then(c => c.CallbackOverviewPage)
+);
+let CallbackEventsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/events').then(c => c.CallbackEventsPage)
+);
+let CallbackLogsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
+);
+let CallbackTriggersPage = dynamicPage(() =>
+  import('./pages/(callbacks)/triggers').then(c => c.CallbackTriggersPage)
+);
+let CallbackDestinationsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
 );
 let SessionLogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.SessionLogsListLayout)
@@ -748,10 +760,6 @@ export let productIntegrationsSlice = createSlice([
                 element: <IntegrationInstancesPage />
               },
               {
-                path: 'callbacks',
-                element: <IntegrationCallbacksPage />
-              },
-              {
                 path: 'settings',
                 element: <IntegrationSettingsPage />
               }
@@ -856,20 +864,39 @@ export let productIntegrationsSlice = createSlice([
           },
 
           {
-            path: 'webhooks',
-            element: <WebhooksLayout />,
+            path: 'callback/:callbackId',
+            element: <CallbackLayout />,
             children: [
               {
                 path: '',
-                element: <Navigate to="events" replace />
+                element: <CallbackOverviewPage />
               },
               {
                 path: 'events',
-                element: <WebhooksEventsPage />
+                element: <CallbackEventsPage />
               },
               {
                 path: 'logs',
-                element: <WebhooksLogsPage />
+                element: <CallbackLogsPage />
+              },
+              {
+                path: 'triggers',
+                element: <CallbackTriggersPage />
+              },
+              {
+                path: 'destinations',
+                element: <CallbackDestinationsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'callbacks',
+            element: <CallbacksListLayout />,
+            children: [
+              {
+                path: '',
+                element: <CallbacksPage />
               }
             ]
           },

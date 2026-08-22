@@ -42,9 +42,7 @@ const queueMocks = vi.hoisted(() => ({
   processAddMany: vi.fn(),
   processAdd: vi.fn(),
   sendAdd: vi.fn(),
-  registerAdd: vi.fn(),
   registerAddMany: vi.fn(),
-  unregisterAdd: vi.fn(),
   webhookAdd: vi.fn(),
   archiveAdd: vi.fn()
 }));
@@ -77,11 +75,9 @@ vi.mock('../../../queues/trigger/eventQueues', () => ({
     add: queueMocks.archiveAdd
   },
   slateTriggerWebhookRegisterQueue: {
-    add: queueMocks.registerAdd,
     addManyWithOps: queueMocks.registerAddMany
   },
   slateTriggerWebhookUnregisterQueue: {
-    add: queueMocks.unregisterAdd,
     addManyWithOps: vi.fn()
   }
 }));
@@ -282,18 +278,16 @@ vi.mock('../../../signal', async () => {
 
 import { slateTriggerInvocationService } from '../../../services/slateTriggerInvocation';
 import { slateTriggerReceiverService } from '../../../services/slateTriggerReceiver';
-import { slateTriggerReceiverSecretService } from '../../../services/slateTriggerReceiverSecret';
 import { hubApp } from '../index';
 
-const pathSecrets = new Map<string, string>();
-const buildWebhookUrl = (receiverTriggerId: string, _suffix?: string) =>
-  `http://slates-hub.test/slates-hub/triggers/webhook/${receiverTriggerId}/${
-    pathSecrets.get(receiverTriggerId) ?? 'missing'
+const buildWebhookUrl = (receiverTriggerId: string, suffix?: string) =>
+  `http://slates-hub.test/slates-hub/triggers/webhook/${receiverTriggerId}${
+    suffix ? `/${suffix}` : ''
   }`;
 
-const buildReceiverWebhookUrl = (receiverId: string, _suffix?: string) =>
-  `http://slates-hub.test/slates-hub/triggers/receiver-webhook/${receiverId}/${
-    pathSecrets.get(receiverId) ?? 'missing'
+const buildReceiverWebhookUrl = (receiverId: string, suffix?: string) =>
+  `http://slates-hub.test/slates-hub/triggers/receiver-webhook/${receiverId}${
+    suffix ? `/${suffix}` : ''
   }`;
 
 describe('slate:trigger webhook E2E', () => {
@@ -305,13 +299,10 @@ describe('slate:trigger webhook E2E', () => {
     signalState.events.length = 0;
     signalState.tenants.clear();
     signalState.senders.clear();
-    pathSecrets.clear();
     queueMocks.processAddMany.mockClear();
     queueMocks.processAdd.mockClear();
     queueMocks.sendAdd.mockClear();
-    queueMocks.registerAdd.mockClear();
     queueMocks.registerAddMany.mockClear();
-    queueMocks.unregisterAdd.mockClear();
     queueMocks.webhookAdd.mockClear();
     queueMocks.archiveAdd.mockClear();
     invocationMocks.handleWebhookRequest.mockReset();
@@ -417,21 +408,11 @@ describe('slate:trigger webhook E2E', () => {
     await testDb.slateTriggerReceiver.update({
       where: { oid: receiver.oid },
       data: {
+        deliveryMode: 'callback_v2',
         callbackId: `callback_${receiver.id}`,
         callbackInstanceId: `callback_instance_${receiver.id}`
       }
     });
-
-    let pathSecret = await slateTriggerReceiverSecretService.resolvePathSecret({
-      tenant,
-      receiverId: receiver.id
-    });
-    if (pathSecret) {
-      pathSecrets.set(receiver.id, pathSecret.plaintext);
-      for (let trigger of receiver.triggers) {
-        pathSecrets.set(trigger.id, pathSecret.plaintext);
-      }
-    }
 
     if (
       options?.receiverStatus &&
@@ -517,6 +498,11 @@ describe('slate:trigger webhook E2E', () => {
         }
       });
 
+    await testDb.slateTriggerReceiverTrigger.update({
+      where: { oid: receiverTrigger.oid },
+      data: { registrationDetails: { signingSecret: 'registered-secret' } }
+    });
+
     const webhookInvocation = await f.slateInvocation.succeeded({
       deploymentOid: deployment.oid,
       bucketOid: bucket.oid,
@@ -559,7 +545,7 @@ describe('slate:trigger webhook E2E', () => {
     expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
     expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledWith(
       expect.objectContaining({
-        registrationDetails: null
+        registrationDetails: { signingSecret: 'registered-secret' }
       })
     );
 
@@ -874,18 +860,10 @@ describe('slate:trigger webhook E2E', () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as { status: string; webhookRequestId: string };
     expect(body.status).toBe('queued');
-    expect(queueMocks.webhookAdd).toHaveBeenNthCalledWith(
-      2,
-      {
-        webhookRequestId: body.webhookRequestId,
-        claimToken: expect.any(String),
-        excludeReceiverTriggerIds: []
-      },
-      {
-        delay: undefined,
-        id: `sync-now-${body.webhookRequestId}`
-      }
-    );
+    expect(queueMocks.webhookAdd).toHaveBeenCalledWith({
+      webhookRequestId: body.webhookRequestId,
+      excludeReceiverTriggerIds: undefined
+    });
   });
 
   it('schedules a durable queue owner when the synchronous invocation does not settle', async () => {
@@ -904,10 +882,7 @@ describe('slate:trigger webhook E2E', () => {
     const body = (await response.json()) as { status: string; webhookRequestId: string };
     expect(body.status).toBe('queued');
     expect(queueMocks.webhookAdd).toHaveBeenCalledWith(
-      {
-        webhookRequestId: body.webhookRequestId,
-        claimToken: expect.any(String)
-      },
+      { webhookRequestId: body.webhookRequestId },
       {
         delay: expect.any(Number),
         id: `sync-fallback-${body.webhookRequestId}`
@@ -1010,18 +985,10 @@ describe('slate:trigger webhook E2E', () => {
     expect(response.status).toBe(202);
     expect(await response.text()).toBe('first');
     expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
-    expect(queueMocks.webhookAdd).toHaveBeenNthCalledWith(
-      2,
-      {
-        webhookRequestId: expect.any(String),
-        claimToken: expect.any(String),
-        excludeReceiverTriggerIds: [receiverTrigger.id]
-      },
-      {
-        delay: undefined,
-        id: expect.stringMatching(/^sync-now-/)
-      }
-    );
+    expect(queueMocks.webhookAdd).toHaveBeenCalledWith({
+      webhookRequestId: expect.any(String),
+      excludeReceiverTriggerIds: [receiverTrigger.id]
+    });
     expect(secondTrigger.id).not.toBe(receiverTrigger.id);
 
     const requestRecord = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
@@ -1123,19 +1090,11 @@ describe('slate:trigger webhook E2E', () => {
     await testDb.slateTriggerReceiver.update({
       where: { oid: receiver.oid },
       data: {
+        deliveryMode: 'callback_v2',
         callbackId: `callback_${receiver.id}`,
         callbackInstanceId: `callback_instance_${receiver.id}`
       }
     });
-    let pathSecret = await slateTriggerReceiverSecretService.resolvePathSecret({
-      tenant,
-      receiverId: receiver.id
-    });
-    expect(pathSecret).toBeTruthy();
-    pathSecrets.set(receiver.id, pathSecret!.plaintext);
-    for (let trigger of receiver.triggers) {
-      pathSecrets.set(trigger.id, pathSecret!.plaintext);
-    }
 
     expect(receiver.triggers[0]).toBeDefined();
     const receiverTrigger = receiver.triggers[0]!;
@@ -1425,30 +1384,19 @@ describe('slate:trigger webhook E2E', () => {
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
   });
 
-  it('fails closed when a receiver has no webhook-compatible trigger', async () => {
+  it('ignores polling triggers during receiver-level webhook fanout', async () => {
     const { receiver, receiverTrigger } = await setupWebhookScenario({
       triggerInvocation: SlateTriggerReceiverTriggerSource.polling
     });
 
-    const response = await hubApp.fetch(
-      new Request(buildReceiverWebhookUrl(receiver.id), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ hello: 'world' })
-      })
-    );
+    const requestRecord = await postReceiverWebhook(receiver.id, { hello: 'world' });
 
-    expect(response.status).toBe(503);
+    await slateTriggerReceiverService.handleReceiverWebhook({
+      receiverId: receiver.id,
+      request: webhookRequestPayload(requestRecord)
+    });
+
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
-
-    const requestRecord = await testDb.slateTriggerWebhookRequest.findFirst({
-      where: { receiverId: receiver.id }
-    });
-    expect(requestRecord).toMatchObject({
-      outcome: 'rejected',
-      safeRejectionCode: 'routing_projection_unavailable',
-      capturedRequest: null
-    });
 
     const eventInput = await testDb.slateTriggerEventInput.findFirst({
       where: { receiverTriggerOid: receiverTrigger.oid }
@@ -1459,25 +1407,16 @@ describe('slate:trigger webhook E2E', () => {
   it('skips oversized receiver-level webhook invocation payloads', async () => {
     const { receiver, receiverTrigger } = await setupWebhookScenario();
 
-    const response = await hubApp.fetch(
-      new Request(buildReceiverWebhookUrl(receiver.id), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ payload: 'x'.repeat(4 * 1024 * 1024) })
-      })
-    );
+    const requestRecord = await postReceiverWebhook(receiver.id, {
+      payload: 'x'.repeat(4 * 1024 * 1024)
+    });
 
-    expect(response.status).toBe(413);
+    await slateTriggerReceiverService.handleReceiverWebhook({
+      receiverId: receiver.id,
+      request: webhookRequestPayload(requestRecord)
+    });
+
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
-
-    const requestRecord = await testDb.slateTriggerWebhookRequest.findFirst({
-      where: { receiverId: receiver.id }
-    });
-    expect(requestRecord).toMatchObject({
-      outcome: 'rejected',
-      safeRejectionCode: 'wire_input_oversized',
-      capturedRequest: null
-    });
 
     const eventInput = await testDb.slateTriggerEventInput.findFirst({
       where: { receiverTriggerOid: receiverTrigger.oid }
@@ -1531,30 +1470,24 @@ describe('slate:trigger webhook E2E', () => {
     expect(eventInput).toBeNull();
   });
 
-  it('fails closed for a polling-only per-trigger webhook route', async () => {
+  it('ignores webhook requests when trigger source is polling', async () => {
     const { receiverTrigger } = await setupWebhookScenario({
       triggerInvocation: SlateTriggerReceiverTriggerSource.polling
     });
 
-    const response = await hubApp.fetch(
-      new Request(buildWebhookUrl(receiverTrigger.id), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ hello: 'world' })
-      })
-    );
+    const requestRecord = await postWebhook(receiverTrigger.id, { hello: 'world' });
 
-    expect(response.status).toBe(503);
+    await slateTriggerReceiverService.handleTriggerWebhook({
+      receiverTriggerId: receiverTrigger.id,
+      request: {
+        url: requestRecord.url,
+        method: requestRecord.method,
+        headers: requestRecord.headers as Record<string, string>,
+        body: requestRecord.body as { encoding: 'base64'; content: string } | null
+      }
+    });
+
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
-
-    const requestRecord = await testDb.slateTriggerWebhookRequest.findFirst({
-      where: { receiverTriggerId: receiverTrigger.id }
-    });
-    expect(requestRecord).toMatchObject({
-      outcome: 'rejected',
-      safeRejectionCode: 'routing_projection_unavailable',
-      capturedRequest: null
-    });
 
     const eventInput = await testDb.slateTriggerEventInput.findFirst({
       where: { receiverTriggerOid: receiverTrigger.oid }
@@ -1594,8 +1527,8 @@ describe('slate:trigger webhook E2E', () => {
     });
     expect(eventInput).toMatchObject({
       status: SlateTriggerEventInputStatus.failed,
-      errorCode: 'webhook_provider_error',
-      errorMessage: 'Webhook provider invocation failed.'
+      errorCode: 'webhook_error',
+      errorMessage: 'Webhook failed'
     });
     expect(eventInput?.input).toMatchObject({
       url: requestRecord.url,

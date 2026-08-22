@@ -10,17 +10,9 @@ export let slateTriggerEventProcessQueueProcessor = slateTriggerEventProcessQueu
   async data => {
     let eventInput = await db.slateTriggerEventInput.findFirst({
       where: { id: data.eventInputId },
-      select: {
-        id: true,
-        webhookDispatchOutbox: { select: { status: true } }
-      }
+      select: { id: true }
     });
     if (!eventInput) return;
-    if (
-      eventInput.webhookDispatchOutbox?.status === 'delivered' ||
-      eventInput.webhookDispatchOutbox?.status === 'dead_letter'
-    )
-      return;
 
     try {
       await slateTriggerReceiverService.processTriggerEventInput({

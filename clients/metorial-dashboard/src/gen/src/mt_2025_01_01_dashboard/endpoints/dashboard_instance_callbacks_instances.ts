@@ -4,25 +4,23 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput,
+  mapDashboardInstanceCallbacksInstancesCreateBody,
+  mapDashboardInstanceCallbacksInstancesCreateOutput,
+  mapDashboardInstanceCallbacksInstancesDeleteOutput,
   mapDashboardInstanceCallbacksInstancesGetOutput,
   mapDashboardInstanceCallbacksInstancesListOutput,
   mapDashboardInstanceCallbacksInstancesListQuery,
-  mapDashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput,
-  mapDashboardInstanceCallbacksInstancesSendTestEventBody,
-  mapDashboardInstanceCallbacksInstancesSendTestEventOutput,
-  type DashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput,
+  type DashboardInstanceCallbacksInstancesCreateBody,
+  type DashboardInstanceCallbacksInstancesCreateOutput,
+  type DashboardInstanceCallbacksInstancesDeleteOutput,
   type DashboardInstanceCallbacksInstancesGetOutput,
   type DashboardInstanceCallbacksInstancesListOutput,
-  type DashboardInstanceCallbacksInstancesListQuery,
-  type DashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput,
-  type DashboardInstanceCallbacksInstancesSendTestEventBody,
-  type DashboardInstanceCallbacksInstancesSendTestEventOutput
+  type DashboardInstanceCallbacksInstancesListQuery
 } from '../resources';
 
 /**
  * @name Callback Instances controller
- * @description Inspect callback instances derived from configured integration providers.
+ * @description Attach or detach callback instances for a deployment/config/auth-config combination.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -113,60 +111,56 @@ export class MetorialDashboardInstanceCallbacksInstancesEndpoint {
   }
 
   /**
-   * @name Send callback test event
-   * @description Queues an authenticated dashboard synthetic event for a callback instance.
+   * @name Create callback instance
+   * @description Attaches a callback to a config and optional auth config.
    *
    * @param `instanceId` - string
    * @param `callbackId` - string
-   * @param `callbackInstanceId` - string
-   * @param `body` - DashboardInstanceCallbacksInstancesSendTestEventBody
+   * @param `body` - DashboardInstanceCallbacksInstancesCreateBody
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceCallbacksInstancesSendTestEventOutput
+   * @returns DashboardInstanceCallbacksInstancesCreateOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  sendTestEvent(
+  create(
     instanceId: string,
     callbackId: string,
-    callbackInstanceId: string,
-    body: DashboardInstanceCallbacksInstancesSendTestEventBody,
+    body: DashboardInstanceCallbacksInstancesCreateBody,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceCallbacksInstancesSendTestEventOutput> {
-    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/test-event`;
+  ): Promise<DashboardInstanceCallbacksInstancesCreateOutput> {
+    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances`;
 
     let request = {
       path,
-      body: mapDashboardInstanceCallbacksInstancesSendTestEventBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceCallbacksInstancesCreateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._post(request).transform(
-      mapDashboardInstanceCallbacksInstancesSendTestEventOutput
+      mapDashboardInstanceCallbacksInstancesCreateOutput
     );
   }
 
   /**
-   * @name Create secure callback URL
-   * @description Creates the initial receiver path secret and returns its plaintext once.
+   * @name Delete callback instance
+   * @description Detaches a callback instance.
    *
    * @param `instanceId` - string
    * @param `callbackId` - string
    * @param `callbackInstanceId` - string
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput
+   * @returns DashboardInstanceCallbacksInstancesDeleteOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  createReceiverPathSecret(
+  delete(
     instanceId: string,
     callbackId: string,
     callbackInstanceId: string,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput> {
-    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret`;
+  ): Promise<DashboardInstanceCallbacksInstancesDeleteOutput> {
+    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}`;
 
     let request = {
       path,
@@ -174,39 +168,8 @@ export class MetorialDashboardInstanceCallbacksInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput
-    );
-  }
-
-  /**
-   * @name Rotate secure callback URL
-   * @description Immediately rotates the receiver path secret and returns its new plaintext once.
-   *
-   * @param `instanceId` - string
-   * @param `callbackId` - string
-   * @param `callbackInstanceId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  rotateReceiverPathSecret(
-    instanceId: string,
-    callbackId: string,
-    callbackInstanceId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput> {
-    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret/rotate`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._post(request).transform(
-      mapDashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput
+    return this._delete(request).transform(
+      mapDashboardInstanceCallbacksInstancesDeleteOutput
     );
   }
 }

@@ -24,4 +24,3 @@ export * from './skills';
 export * from './stores';
 export * from './usage';
 export * from './user';
-export * from './webhook';

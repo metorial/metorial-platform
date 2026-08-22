@@ -20,11 +20,9 @@ let Icon = styled('div')`
 `;
 
 let Content = styled('p')`
-  display: block;
+  display: flex;
+  align-items: center;
   flex-grow: 1;
-  min-width: 0;
-  margin: 0;
-  line-height: 1.45;
 `;
 
 export let Callout = ({

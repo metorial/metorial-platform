@@ -189,12 +189,12 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'developer', ...subPages),
 
-    webhooks: (
+    callbacks: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'webhooks', ...subPages),
+    ) => InstancePaths(organization, project, instance, 'callbacks', ...subPages),
 
     security: (
       organization: EntityParam,
@@ -244,6 +244,17 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'network', 'settings', ...subPages),
+    callback: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'callback', id, ...subPages);
+    },
+
     providers: (
       organization: EntityParam,
       project: EntityParam,

@@ -1,9 +1,11 @@
-import type { DashboardInstanceCallbacksListQuery } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceCallbacksCreateBody,
+  DashboardInstanceCallbacksListQuery,
+  DashboardInstanceCallbacksUpdateBody
+} from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
-import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
-import { callbackInstancesLoader } from './callbackInstances';
 
 export let callbacksLoader = createLoader({
   name: 'callbacks',
@@ -13,22 +15,9 @@ export let callbacksLoader = createLoader({
   mutators: {}
 });
 
-export type SendCallbackTestEventInput = {
-  instanceId: string;
-  callbackId: string;
-  callbackInstanceId: string;
-  eventType: string;
-  payload: Record<string, unknown>;
-};
-
-export let useSendCallbackTestEvent = callbacksLoader.createExternalMutator(
-  (i: SendCallbackTestEventInput) =>
-    withAuth(sdk =>
-      sdk.callbacks.instances.sendTestEvent(i.instanceId, i.callbackId, i.callbackInstanceId, {
-        eventType: i.eventType,
-        payload: i.payload
-      })
-    )
+export let useCreateCallback = callbacksLoader.createExternalMutator(
+  (i: DashboardInstanceCallbacksCreateBody & { instanceId: string }) =>
+    withAuth(sdk => sdk.callbacks.create(i.instanceId, i))
 );
 
 export let useCallbacks = (
@@ -42,30 +31,19 @@ export let useCallbacks = (
   return data;
 };
 
-export let allCallbacksLoader = createLoader({
-  name: 'allCallbacks',
-  parents: [callbacksLoader],
-  fetch: (i: { instanceId: string }) =>
-    withAuth(sdk =>
-      autoPaginate(cursor =>
-        sdk.callbacks.list(i.instanceId, {
-          ...cursor,
-          status: ['active', 'archived']
-        })
-      )
-    ),
-  mutators: {}
-});
-
-export let useAllCallbacks = (instanceId: string | null | undefined) =>
-  allCallbacksLoader.use(instanceId ? { instanceId } : null);
-
 export let callbackLoader = createLoader({
   name: 'callback',
-  parents: [callbacksLoader, callbackInstancesLoader],
+  parents: [callbacksLoader],
   fetch: (i: { instanceId: string; callbackId: string }) =>
     withAuth(sdk => sdk.callbacks.get(i.instanceId, i.callbackId)),
-  mutators: {}
+  mutators: {
+    update: (
+      body: DashboardInstanceCallbacksUpdateBody,
+      { input: { instanceId, callbackId } }
+    ) => withAuth(sdk => sdk.callbacks.update(instanceId, callbackId, body)),
+    delete: (_: void, { input: { instanceId, callbackId } }) =>
+      withAuth(sdk => sdk.callbacks.delete(instanceId, callbackId))
+  }
 });
 
 export let useCallback = (
@@ -74,5 +52,9 @@ export let useCallback = (
 ) => {
   let data = callbackLoader.use(instanceId && callbackId ? { instanceId, callbackId } : null);
 
-  return data;
+  return {
+    ...data,
+    useUpdateMutator: data.useMutator('update'),
+    useDeleteMutator: data.useMutator('delete')
+  };
 };

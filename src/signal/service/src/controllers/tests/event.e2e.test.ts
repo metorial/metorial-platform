@@ -1,24 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('../../queues/send/init', () => ({
-  newEventQueue: { add: vi.fn() }
-}));
+import { beforeEach, describe, expect, it } from 'vitest';
 import { env } from '../../env';
-import { cleanupEvent } from '../../queues/send/cleanup';
+import { eventCleanupQueueProcessor } from '../../queues/send/cleanup';
 import { storage } from '../../storage';
-import { createTestSignalClient, signalClient } from '../../test/client';
+import { signalClient } from '../../test/client';
 import { fixtures } from '../../test/fixtures';
 import { cleanDatabase, testDb } from '../../test/setup';
 
 describe('event.e2e', () => {
   const f = fixtures(testDb);
-  let serviceCredential = 'hub-service-test-credential';
-  let internalClient = createTestSignalClient({
-    headers: { 'x-metorial-signal-service-credential': serviceCredential }
-  });
 
   beforeEach(async () => {
-    env.internal.HUB_SERVICE_CREDENTIAL = serviceCredential;
     await cleanDatabase();
   });
 
@@ -81,33 +72,6 @@ describe('event.e2e', () => {
     );
   });
 
-  it('lists events within the requested scope', async () => {
-    let tenant = await f.tenant.default();
-    let sender = await f.sender.default();
-    let included = await f.event.default({
-      tenantOid: tenant.oid,
-      senderOid: sender.oid,
-      overrides: { scopeId: 'environment-a' }
-    });
-    await f.event.default({
-      tenantOid: tenant.oid,
-      senderOid: sender.oid,
-      overrides: { scopeId: 'environment-b' }
-    });
-
-    let result = await signalClient.event.list({
-      tenantId: tenant.id,
-      scopeIds: ['environment-a'],
-      limit: 10
-    });
-
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0]).toMatchObject({
-      id: included.id,
-      scopeId: 'environment-a'
-    });
-  });
-
   it('reads event payloads after cleanup offloads them to storage', async () => {
     let tenant = await f.tenant.default();
     let sender = await f.sender.default();
@@ -124,7 +88,7 @@ describe('event.e2e', () => {
       }
     });
 
-    await cleanupEvent({ eventId: event.id });
+    await (eventCleanupQueueProcessor as any).handler({ eventId: event.id });
 
     let offloaded = await testDb.event.findUniqueOrThrow({
       where: { id: event.id }
@@ -145,99 +109,5 @@ describe('event.e2e', () => {
         headers: [{ key: 'content-type', value: 'application/json' }]
       }
     });
-  });
-
-  it('authenticates idempotent create and returns the exact narrow response', async () => {
-    let tenant = await f.tenant.default();
-    let sender = await f.sender.default();
-    let request = {
-      tenantId: tenant.id,
-      senderId: sender.id,
-      idempotencyKey: 'hub-key-a',
-      scopeId: 'environment-a',
-      topics: ['orders'],
-      eventType: 'order.created',
-      payloadJson: '{"id":"order-a"}',
-      headers: { 'content-type': 'application/json' }
-    };
-
-    let first = await internalClient.event.createIdempotent(request);
-    let duplicate = await internalClient.event.createIdempotent(request);
-    let lookup = await internalClient.event.getByIdempotencyKey({
-      tenantId: tenant.id,
-      idempotencyKey: request.idempotencyKey
-    });
-
-    expect(duplicate).toEqual(first);
-    expect(lookup).toEqual(first);
-    expect(Object.keys(first).sort()).toEqual(['id', 'idempotencyKey', 'requestFingerprint']);
-    expect(
-      await testDb.event.count({ where: { idempotencyKey: request.idempotencyKey } })
-    ).toBe(1);
-  });
-
-  it('recovers a concurrent unique-key race and rejects a mismatched winner', async () => {
-    let tenant = await f.tenant.default();
-    let sender = await f.sender.default();
-    let request = {
-      tenantId: tenant.id,
-      senderId: sender.id,
-      idempotencyKey: 'hub-key-concurrent',
-      scopeId: 'environment-concurrent',
-      topics: ['orders'],
-      eventType: 'order.created',
-      payloadJson: '{"id":"order-a"}',
-      headers: {}
-    };
-    let secondClient = createTestSignalClient({
-      headers: { 'x-metorial-signal-service-credential': serviceCredential }
-    });
-    let matching = await Promise.all([
-      internalClient.event.createIdempotent(request),
-      secondClient.event.createIdempotent(request)
-    ]);
-
-    expect(matching[1]).toEqual(matching[0]);
-    await expect(
-      secondClient.event.createIdempotent({ ...request, payloadJson: '{"id":"order-b"}' })
-    ).rejects.toMatchObject({ data: { code: 'idempotency_payload_conflict' } });
-  });
-
-  it('rejects missing and invalid credentials before tenant/key lookup', async () => {
-    let invalidClient = createTestSignalClient({
-      headers: { 'x-metorial-signal-service-credential': 'invalid' }
-    });
-    let lookup = { tenantId: 'tenant-does-not-exist', idempotencyKey: 'unknown-key' };
-
-    await expect(signalClient.event.getByIdempotencyKey(lookup)).rejects.toMatchObject({
-      data: { status: 401 }
-    });
-    await expect(invalidClient.event.getByIdempotencyKey(lookup)).rejects.toMatchObject({
-      data: { status: 401 }
-    });
-  });
-
-  it('keeps idempotency lookup tenant-scoped', async () => {
-    let tenantA = await f.tenant.default();
-    let tenantB = await f.tenant.withIdentifier('tenant-b');
-    let sender = await f.sender.default();
-    let request = {
-      tenantId: tenantA.id,
-      senderId: sender.id,
-      idempotencyKey: 'hub-key-isolated',
-      scopeId: 'environment-isolated',
-      topics: ['orders'],
-      eventType: 'order.created',
-      payloadJson: '{"id":"order-a"}',
-      headers: {}
-    };
-
-    await internalClient.event.createIdempotent(request);
-    await expect(
-      internalClient.event.getByIdempotencyKey({
-        tenantId: tenantB.id,
-        idempotencyKey: request.idempotencyKey
-      })
-    ).rejects.toMatchObject({ data: { status: 404 } });
   });
 });

@@ -26,56 +26,6 @@ let throwStoredAuthConfigError = (d: { errorCode: string; errorMessage?: string 
 };
 
 class slateAuthHandlerServiceImpl {
-  async getSlateInstanceAuthMetadata(d: {
-    tenant: Tenant;
-    slateInstance?: SlateInstance;
-    authConfigId: string;
-  }) {
-    let authConfig = await db.slateAuthConfig.findFirst({
-      where: {
-        tenantOid: d.tenant.oid,
-        id: d.authConfigId
-      },
-      include
-    });
-    if (!authConfig) throw new ServiceError(notFoundError('slate.auth_config'));
-    if (
-      authConfig.instanceOid &&
-      d.slateInstance &&
-      authConfig.instanceOid !== d.slateInstance.oid
-    ) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'This authentication configuration is not valid for the selected provider.'
-        })
-      );
-    }
-
-    let i = 0;
-    while (authConfig.isProcessing) {
-      await delay(1000);
-      authConfig = await db.slateAuthConfig.findFirstOrThrow({
-        where: { oid: authConfig.oid },
-        include
-      });
-      if (i++ > 30) {
-        throw new ServiceError(
-          badRequestError({
-            code: 'timeout',
-            message: 'Timed out waiting for authentication configuration to be ready.'
-          })
-        );
-      }
-    }
-    if (authConfig.errorCode) {
-      throwStoredAuthConfigError({
-        errorCode: authConfig.errorCode,
-        errorMessage: authConfig.errorMessage
-      });
-    }
-    return { authConfig, authMethod: authConfig.authMethod };
-  }
-
   async getSlateInstanceAuth(d: {
     tenant: Tenant;
     slateInstance?: SlateInstance;

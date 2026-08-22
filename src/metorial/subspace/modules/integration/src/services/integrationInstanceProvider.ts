@@ -33,7 +33,6 @@ import {
 } from '@metorial-subspace/list-utils';
 import { providerService } from '@metorial-subspace/module-catalog';
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
-import { Fabric } from '@metorial/fabric';
 import {
   checkTenant,
   getMetorialSolution,
@@ -957,9 +956,6 @@ class integrationInstanceProviderServiceImpl {
 
     checkTenant(d, d.integrationInstanceProvider);
     checkDeletedEdit(d.integrationInstanceProvider, 'archive');
-    await Fabric.fire('provider.integration_instance_provider.archived:before', {
-      integrationInstanceProvider: d.integrationInstanceProvider
-    });
 
     return await withTransaction(async db => {
       let integrationInstanceProvider = await db.integrationInstanceProvider.update({
@@ -996,15 +992,12 @@ class integrationInstanceProviderServiceImpl {
         include: integrationInstanceProviderInclude
       });
 
-      await addAfterTransactionHook(async () => {
-        await enqueueIntegrationInstanceProviderSet({
+      await addAfterTransactionHook(async () =>
+        enqueueIntegrationInstanceProviderSet({
           integrationInstanceId: res.integrationInstance.id,
           integrationInstanceProviderId: res.id
-        });
-        await Fabric.fire('provider.integration_instance_provider.archived:after', {
-          integrationInstanceProvider: res
-        });
-      });
+        })
+      );
 
       return res;
     });

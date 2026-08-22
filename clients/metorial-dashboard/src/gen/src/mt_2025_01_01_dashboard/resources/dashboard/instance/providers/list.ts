@@ -298,13 +298,6 @@ export type DashboardInstanceProvidersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   id?: string | string[] | undefined;
-  search?: string | undefined;
-  authMethod?: string | string[] | undefined;
-  authSetup?:
-    | 'configured'
-    | 'not_configured'
-    | ('configured' | 'not_configured')[]
-    | undefined;
   capabilities?:
     | {
         supportsConfig?: boolean | undefined;
@@ -336,21 +329,6 @@ export let mapDashboardInstanceProvidersListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
-      ),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      authMethod: mtMap.objectField(
-        'auth_method',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      authSetup: mtMap.objectField(
-        'auth_setup',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
       capabilities: mtMap.objectField(
         'capabilities',

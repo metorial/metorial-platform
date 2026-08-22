@@ -51,7 +51,6 @@ model Integration {
   providers                         IntegrationProvider[]
   versions                          IntegrationVersion[]
   integrationInstances              IntegrationInstance[]
-  callbacks                         Callback[]
   integrationSetupSessions          IntegrationSetupSession[]
   integrationInstanceProviders      IntegrationInstanceProvider[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
@@ -122,7 +121,6 @@ model IntegrationProvider {
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
   integrationSetupSessionProviders  IntegrationSetupSessionProvider[]
   magicMcpServerProviders           MagicMcpServerProvider[]
-  callback                          Callback?
 
   @@unique([integrationOid, providerOid])
   @@index([createdAt])

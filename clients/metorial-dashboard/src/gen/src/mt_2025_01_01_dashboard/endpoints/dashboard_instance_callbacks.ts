@@ -4,12 +4,22 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardInstanceCallbacksCreateBody,
+  mapDashboardInstanceCallbacksCreateOutput,
+  mapDashboardInstanceCallbacksDeleteOutput,
   mapDashboardInstanceCallbacksGetOutput,
   mapDashboardInstanceCallbacksListOutput,
   mapDashboardInstanceCallbacksListQuery,
+  mapDashboardInstanceCallbacksUpdateBody,
+  mapDashboardInstanceCallbacksUpdateOutput,
+  type DashboardInstanceCallbacksCreateBody,
+  type DashboardInstanceCallbacksCreateOutput,
+  type DashboardInstanceCallbacksDeleteOutput,
   type DashboardInstanceCallbacksGetOutput,
   type DashboardInstanceCallbacksListOutput,
-  type DashboardInstanceCallbacksListQuery
+  type DashboardInstanceCallbacksListQuery,
+  type DashboardInstanceCallbacksUpdateBody,
+  type DashboardInstanceCallbacksUpdateOutput
 } from '../resources';
 
 /**
@@ -96,5 +106,96 @@ export class MetorialDashboardInstanceCallbacksEndpoint {
     } as any;
 
     return this._get(request).transform(mapDashboardInstanceCallbacksGetOutput);
+  }
+
+  /**
+   * @name Create callback
+   * @description Creates a new callback definition.
+   *
+   * @param `instanceId` - string
+   * @param `body` - DashboardInstanceCallbacksCreateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksCreateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  create(
+    instanceId: string,
+    body: DashboardInstanceCallbacksCreateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksCreateOutput> {
+    let path = `dashboard/instances/${instanceId}/callbacks`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceCallbacksCreateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksCreateOutput
+    );
+  }
+
+  /**
+   * @name Update callback
+   * @description Updates a callback definition.
+   *
+   * @param `instanceId` - string
+   * @param `callbackId` - string
+   * @param `body` - DashboardInstanceCallbacksUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    instanceId: string,
+    callbackId: string,
+    body: DashboardInstanceCallbacksUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksUpdateOutput> {
+    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceCallbacksUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstanceCallbacksUpdateOutput
+    );
+  }
+
+  /**
+   * @name Delete callback
+   * @description Archives a callback definition.
+   *
+   * @param `instanceId` - string
+   * @param `callbackId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksDeleteOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  delete(
+    instanceId: string,
+    callbackId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksDeleteOutput> {
+    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceCallbacksDeleteOutput
+    );
   }
 }
