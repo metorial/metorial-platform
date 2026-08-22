@@ -345,7 +345,10 @@ class InstanceService {
       });
 
       await addAfterTransactionHook(() =>
-        instancePortalSetupQueue.add({ instance: instance.id, context: d.auditScope.context })
+        instancePortalSetupQueue.add(
+          { instanceId: instance.id, context: d.auditScope.context },
+          { delay: 45_000 }
+        )
       );
 
       await Fabric.fire('organization.project.instance.created:after', {
