@@ -435,6 +435,25 @@ class chatMessageServiceImpl {
     if (d.ephemeral) assertMessageSendEphemeralCapability(client);
     else assertMessageSendCapability(client);
 
+    let localChannel = await db.chatChannel.findFirst({
+      where: {
+        chatOid: d.chat.oid,
+        OR: [{ id: d.channelId }, { channelId: d.channelId }]
+      }
+    });
+    let channelId = localChannel?.channelId ?? d.channelId;
+
+    let localThread =
+      d.threadId && localChannel
+        ? await db.chatThread.findFirst({
+            where: {
+              channelOid: localChannel.oid,
+              OR: [{ id: d.threadId }, { threadId: d.threadId }]
+            }
+          })
+        : null;
+    let threadId = localThread?.threadId ?? d.threadId;
+
     let reply: ReplyRef | undefined;
     if (d.reply) {
       assertMessageReplyCapability(client);
@@ -462,28 +481,21 @@ class chatMessageServiceImpl {
       ? await client.call('metorial_chat$message.sendEphemeral', {
           parts: d.body.parts,
           altText: d.body.altText,
-          channelId: d.channelId,
+          channelId,
           userId: d.ephemeral.targetUserId,
-          threadId: d.threadId
+          threadId
         })
       : await client.call('metorial_chat$message.send', {
           parts: d.body.parts,
           altText: d.body.altText,
-          channelId: d.channelId,
-          threadId: d.threadId,
+          channelId,
+          threadId,
           reply
         });
 
     let result = unwrapChatCall(sent, {
       code: 'chat_message_send_failed',
       message: 'Failed to send the message with the chat provider.'
-    });
-
-    let localChannel = await db.chatChannel.findFirst({
-      where: {
-        chatOid: d.chat.oid,
-        OR: [{ id: d.channelId }, { channelId: d.channelId }]
-      }
     });
 
     return this.persistMessageResult(d.chat, localChannel, result);

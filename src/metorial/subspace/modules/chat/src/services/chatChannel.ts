@@ -71,13 +71,25 @@ class chatChannelServiceImpl {
   ) {
     let search = d.search?.trim() || undefined;
 
+    let resolveWorkspaceId = (async () => {
+      if (!d.workspaceId) return d.workspaceId;
+
+      let localWorkspace = await db.chatWorkspace.findFirst({
+        where: {
+          chatIntegrationInstanceProviderOid: d.chat.chatIntegrationInstanceProviderOid,
+          OR: [{ id: d.workspaceId }, { workspaceId: d.workspaceId }]
+        }
+      });
+      return localWorkspace?.workspaceId ?? d.workspaceId;
+    })();
+
     return Paginator.create(({ externalCursor }) =>
       externalCursor(async page => {
         let listed = await d.client.call('metorial_chat$channel.list', {
           cursor: page.cursor,
           limit: page.limit,
           direction: page.direction,
-          workspaceId: d.workspaceId,
+          workspaceId: await resolveWorkspaceId,
           type: d.type,
           query: search
         });
