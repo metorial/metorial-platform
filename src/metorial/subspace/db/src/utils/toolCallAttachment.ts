@@ -17,11 +17,13 @@ export let getToolCallAttachmentPublicUrl = (urlKey: string) => {
 };
 
 export let presentToolCallAttachment = (attachment: {
+  id: string;
   urlKey: string;
   mimeType?: string | null;
   expiresAt?: Date | null;
 }) => ({
   type: 'url' as const,
+  id: attachment.id,
   url: getToolCallAttachmentPublicUrl(attachment.urlKey),
   mimeType: attachment.mimeType ?? undefined,
   urlExpiresAt: attachment.expiresAt ?? undefined

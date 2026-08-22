@@ -1,0 +1,37 @@
+model ChatMessageAttachment {
+  oid BigInt @id
+  id  String @unique
+
+  messageOid BigInt
+  message    ChatMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
+
+  fileId String
+
+  // Only set for outbound attachments: the file the user originally uploaded via the
+  // file module before it was pushed to the provider. 
+  uploadedFileId String?
+
+  toolCallAttachmentOid BigInt?
+  toolCallAttachment    ToolCallAttachment? @relation(fields: [toolCallAttachmentOid], references: [oid], onDelete: SetNull)
+
+  type     String
+  name     String?
+  mimeType String?
+  size     Int?
+  width    Int?
+  height   Int?
+
+  attachmentId String?
+
+  clientReferenceId String?
+
+  providerFileReference Json?
+
+  raw Json?
+
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([messageOid, attachmentId])
+  @@index([messageOid])
+}

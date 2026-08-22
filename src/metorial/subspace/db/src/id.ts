@@ -198,6 +198,8 @@ export let ID = createIdGenerator({
   chatThread: idType.sorted('cth'),
   chatAuthor: idType.sorted('cau'),
   chatMessage: idType.sorted('cms'),
+  chatMessageAttachment: idType.sorted('cma'),
+  chatMessageGroup: idType.sorted('cmg'),
 
   skillEntity: idType.sorted('ske'),
   skill: idType.sorted('skl'),

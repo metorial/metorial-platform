@@ -2,6 +2,7 @@ import { AdapterClient, type AdapterClientParams } from '@metorial-subspace/adap
 import { ChatAdapter } from '@slates/adapter-chat';
 
 export type {
+  AttachmentRef,
   Author,
   AuthorRole,
   AuthorType,
