@@ -953,7 +953,14 @@ export class SlateTriggerReceiverRuntime {
     ) {
       throw new Error('Webhook ingress projection does not match its authenticated boundary');
     }
-    let verification = ingress?.verification ?? ({ mechanism: 'path_secret_only' } as const);
+    let verification =
+      ingress?.verification ??
+      ({
+        mechanism: 'path_secret_only',
+        baseline: 'receiver_path_secret',
+        reason:
+          'No provider verification policy is declared; the receiver path secret is the authentication boundary.'
+      } as const);
     if (sharedBoundary) {
       if (
         !ingress ||
