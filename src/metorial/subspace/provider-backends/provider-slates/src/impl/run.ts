@@ -14,6 +14,8 @@ import type {
   ProviderRunLogsParam,
   ProviderRunLogsRes,
   ProviderRuntimeBehavior,
+  PublicToolInvocationParam,
+  PublicToolInvocationRes,
   ToolInvocationCreateParam,
   ToolInvocationCreateRes
 } from '@metorial-subspace/provider-utils';
@@ -115,6 +117,46 @@ export class ProviderRun extends IProviderRun {
       connectTimeoutMs: 30_000,
       requestTimeoutMs: 120_000,
       messageTtlExtensionMs: 1000 * 30
+    };
+  }
+
+  override async callPublicTool(data: PublicToolInvocationParam): Promise<PublicToolInvocationRes> {
+    if (!data.providerVersion.slateVersionOid) {
+      throw new Error('Provider version does not have a slate associated with it');
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+
+    let slateVersion = await db.slateVersion.findUniqueOrThrow({
+      where: { oid: data.providerVersion.slateVersionOid },
+      include: { slate: true }
+    });
+
+    let res = await slates.slatePublicToolCall.call({
+      tenantId: tenant.id,
+      slateId: slateVersion.slate.id,
+      slateVersionId: slateVersion.id,
+      toolId: data.toolKey,
+      input: data.input,
+      participants: [
+        {
+          type: 'consumer',
+          id: data.caller?.id ?? 'subspace',
+          name: data.caller?.name ?? 'Subspace',
+          description: data.caller?.description
+        }
+      ]
+    });
+
+    if (res.status === 'error') {
+      return { status: 'error', error: res.error };
+    }
+
+    return {
+      status: 'success',
+      output: res.output,
+      message: res.message,
+      attachments: res.attachments
     };
   }
 }

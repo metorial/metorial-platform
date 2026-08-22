@@ -85,6 +85,7 @@ export interface SpecificationTool {
 
   scopes?: SpecificationActionScopes | null;
   authMethods?: string[] | null;
+  isPublic?: boolean;
 
   metadata: Record<string, any>;
 

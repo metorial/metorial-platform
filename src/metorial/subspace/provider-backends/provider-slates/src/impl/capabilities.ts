@@ -172,31 +172,33 @@ export class ProviderCapabilities extends IProviderCapabilities {
         capabilities: {},
         metadata: {}
       })),
-      tools: specRecord.tools.map(t => {
-        let tool = t as typeof t & { authMethods?: string[] | null };
+      tools: specRecord.tools
+        .filter(t => !t.isPublic)
+        .map(t => {
+          let tool = t as typeof t & { authMethods?: string[] | null };
 
-        return {
-          specId: t.id,
-          specUniqueIdentifier: t.identifier,
-          callableId: t.key,
-          key: t.key,
-          name: t.name,
-          description: t.description,
-          inputJsonSchema: t.inputSchema,
-          outputJsonSchema: t.outputSchema,
-          constraints: t.constraints ?? [],
-          instructions: t.instructions ?? [],
-          capabilities: {},
-          mcpToolType: {
-            type: 'tool.callable'
-          },
-          scopes: t.scopes ?? null,
-          authMethods: tool.authMethods ?? null,
-          tags: t.tags,
-          metadata: {},
-          adapterIdentifier: t.adapter?.slateIdentifier ?? null
-        };
-      })
+          return {
+            specId: t.id,
+            specUniqueIdentifier: t.identifier,
+            callableId: t.key,
+            key: t.key,
+            name: t.name,
+            description: t.description,
+            inputJsonSchema: t.inputSchema,
+            outputJsonSchema: t.outputSchema,
+            constraints: t.constraints ?? [],
+            instructions: t.instructions ?? [],
+            capabilities: {},
+            mcpToolType: {
+              type: 'tool.callable'
+            },
+            scopes: t.scopes ?? null,
+            authMethods: tool.authMethods ?? null,
+            tags: t.tags,
+            metadata: {},
+            adapterIdentifier: t.adapter?.slateIdentifier ?? null
+          };
+        })
     };
   }
 }

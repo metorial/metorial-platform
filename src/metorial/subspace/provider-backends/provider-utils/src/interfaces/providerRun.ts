@@ -33,6 +33,10 @@ export abstract class IProviderRun extends IProviderFunctionality {
   abstract getProviderRunLogs(data: ProviderRunLogsParam): Promise<ProviderRunLogsRes>;
 
   abstract getRuntimeBehavior(): ProviderRuntimeBehavior;
+
+  async callPublicTool(data: PublicToolInvocationParam): Promise<PublicToolInvocationRes> {
+    throw new Error(`Backend "${this.backend.type}" does not support calling public tools`);
+  }
 }
 
 export abstract class IProviderRunConnection {
@@ -172,4 +176,30 @@ export interface ProviderRunLog {
 
 export interface ProviderRunLogsRes {
   logs: ProviderRunLog[];
+}
+
+export interface PublicToolInvocationParam {
+  tenant: Tenant;
+  provider: Provider;
+  providerVariant: ProviderVariant;
+  providerVersion: ProviderVersion;
+
+  toolKey: string;
+  input: Record<string, any>;
+
+  caller?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+}
+
+export interface PublicToolInvocationRes {
+  status: 'success' | 'error';
+
+  output?: Record<string, any>;
+  message?: string;
+  attachments?: any[];
+
+  error?: ProviderInvocationError;
 }

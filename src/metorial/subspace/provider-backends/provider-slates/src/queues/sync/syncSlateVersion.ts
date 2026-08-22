@@ -11,8 +11,8 @@ import {
   publisherInternalService
 } from '@metorial-subspace/module-provider-internal';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
-import { backend } from '../../backend';
 import { canonicalizeAdapterCapabilities } from '../../adapterCapabilities';
+import { backend } from '../../backend';
 import { slates } from '../../client';
 import { env } from '../../env';
 
@@ -95,7 +95,7 @@ let buildProviderListingDocs = (spec: any): PrismaJson.ProviderListingDocs | und
     }))
     .filter((authMethod: any) => authMethod.docs.length > 0);
   let actions = [...(spec.tools ?? []), ...(spec.triggers ?? [])]
-    .filter((action: any) => !action.adapter)
+    .filter((action: any) => !action.adapter && !action.isPublic)
     .map((action: any) => ({
       key: action.key,
       name: action.name,
