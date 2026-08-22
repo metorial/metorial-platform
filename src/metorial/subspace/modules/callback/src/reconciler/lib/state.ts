@@ -25,6 +25,13 @@ export let callbackInclude = {
     include: {
       providerTrigger: true
     }
+  },
+  callbackConfig: {
+    include: {
+      currentVersion: {
+        include: { slateCallbackConfig: true }
+      }
+    }
   }
 };
 
@@ -72,6 +79,8 @@ let loadCallbackInstanceUncached = async (callbackInstanceId: string) =>
   db.callbackInstance.findFirst({
     where: { id: callbackInstanceId },
     include: {
+      integrationInstance: true,
+      integrationInstanceProvider: true,
       callback: {
         include: callbackInclude
       },

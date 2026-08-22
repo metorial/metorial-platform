@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   callbackInstanceFindFirst: vi.fn(),
-  callbackInstanceUpsert: vi.fn(),
+  callbackInstanceFindUnique: vi.fn(),
+  callbackInstanceFindUniqueOrThrow: vi.fn(),
+  callbackInstanceCreate: vi.fn(),
+  callbackInstanceUpdateMany: vi.fn(),
   getCombinations: vi.fn(),
   upsertPair: vi.fn(),
   syncCallbackInstance: vi.fn(),
@@ -25,9 +28,16 @@ vi.mock('@metorial-subspace/db', () => ({
   db: {
     callbackInstance: {
       findFirst: mocks.callbackInstanceFindFirst,
-      upsert: mocks.callbackInstanceUpsert
+      findUnique: mocks.callbackInstanceFindUnique,
+      findUniqueOrThrow: mocks.callbackInstanceFindUniqueOrThrow,
+      create: mocks.callbackInstanceCreate,
+      updateMany: mocks.callbackInstanceUpdateMany
+    },
+    integrationInstanceProvider: {
+      findMany: vi.fn()
     }
   },
+  Prisma: { DbNull: null },
   getId: () => ({ oid: 100n, id: 'callback_instance_generated' }),
   withTransaction: vi.fn()
 }));
@@ -92,6 +102,8 @@ import { callbackInstanceService } from './callbackInstance';
 let callback = {
   oid: 4n,
   id: 'callback_1',
+  integrationOid: 3n,
+  integrationProviderOid: 2n,
   status: 'active',
   providerDeployment: {
     oid: 5n,
@@ -102,22 +114,40 @@ let callback = {
 } as any;
 let config = { oid: 7n, id: 'config_1' } as any;
 let pair = { oid: 8n, id: 'pair_1' } as any;
+let integrationInstance = {
+  oid: 10n,
+  id: 'integration_instance_1',
+  integrationOid: callback.integrationOid
+} as any;
+let integrationInstanceProvider = {
+  oid: 11n,
+  id: 'integration_instance_provider_1',
+  integrationOid: callback.integrationOid,
+  integrationInstanceOid: integrationInstance.oid,
+  integrationProviderOid: callback.integrationProviderOid
+} as any;
 let callbackInstance = {
   oid: 9n,
   id: 'callback_instance_1',
   callbackOid: callback.oid,
+  integrationInstanceOid: integrationInstance.oid,
+  integrationInstanceProviderOid: integrationInstanceProvider.oid,
   providerDeploymentConfigPairOid: pair.oid,
   status: 'attached',
   slateTriggerReceiverId: 'receiver_1',
-  registrationReceiverAuthorityVersion: 4
+  registrationReceiverAuthorityVersion: 4,
+  updatedAt: new Date('2026-08-21T12:00:00.000Z')
 } as any;
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getCombinations.mockResolvedValue([{ config, authConfig: null }]);
   mocks.upsertPair.mockResolvedValue({ pair });
-  mocks.callbackInstanceUpsert.mockResolvedValue(callbackInstance);
+  mocks.callbackInstanceCreate.mockResolvedValue(callbackInstance);
+  mocks.callbackInstanceUpdateMany.mockResolvedValue({ count: 1 });
+  mocks.callbackInstanceFindUniqueOrThrow.mockResolvedValue(callbackInstance);
   mocks.callbackInstanceFindFirst.mockResolvedValue(callbackInstance);
+  mocks.callbackInstanceFindUnique.mockResolvedValue(callbackInstance);
   mocks.syncCallbackInstance.mockResolvedValue(undefined);
   mocks.applyMirror.mockResolvedValue('applied');
   mocks.registrationGet.mockResolvedValue({
@@ -139,32 +169,116 @@ beforeEach(() => {
 });
 
 describe('callback instance attachment', () => {
-  it('uses the canonical pair upsert and preserves receiver ownership on reattach', async () => {
+  it('uses the canonical pair identity and preserves receiver ownership on reattach', async () => {
+    mocks.callbackInstanceFindUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(callbackInstance);
     await callbackInstanceService.attachInternal({
       tenant: { oid: 1n },
       environment: { oid: 2n },
       callback,
-      config
+      config,
+      integrationInstance,
+      integrationInstanceProvider
+    } as any);
+    await callbackInstanceService.attachInternal({
+      tenant: { oid: 1n },
+      environment: { oid: 2n },
+      callback,
+      config,
+      integrationInstance,
+      integrationInstanceProvider
     } as any);
 
-    expect(mocks.callbackInstanceUpsert).toHaveBeenCalledWith({
-      where: {
-        callbackOid_providerDeploymentConfigPairOid: {
-          callbackOid: callback.oid,
-          providerDeploymentConfigPairOid: pair.oid
-        }
-      },
-      create: expect.objectContaining({
+    expect(mocks.callbackInstanceCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.callbackInstanceCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
         callbackOid: callback.oid,
+        integrationInstanceOid: integrationInstance.oid,
+        integrationInstanceProviderOid: integrationInstanceProvider.oid,
         providerDeploymentConfigPairOid: pair.oid,
         status: 'attached'
       }),
-      update: { status: 'attached' },
       include: expect.any(Object)
     });
     expect(mocks.syncCallbackInstance).toHaveBeenCalledWith({
       callbackInstanceId: callbackInstance.id
     });
+  });
+
+  it('rejects an integration instance provider owned by a different integration provider', async () => {
+    await expect(
+      callbackInstanceService.attachInternal({
+        tenant: { oid: 1n },
+        environment: { oid: 2n },
+        callback,
+        config,
+        integrationInstance,
+        integrationInstanceProvider: {
+          ...integrationInstanceProvider,
+          integrationProviderOid: 999n
+        }
+      } as any)
+    ).rejects.toThrow('does not belong to the callback integration provider');
+
+    expect(mocks.callbackInstanceCreate).not.toHaveBeenCalled();
+  });
+
+  it('detaches and reattaches the same row when the resolved pair changes', async () => {
+    let nextPair = { oid: 80n, id: 'pair_2' };
+    mocks.upsertPair.mockResolvedValue({ pair: nextPair });
+    let detach = vi
+      .spyOn(callbackInstanceService, 'detachInternal')
+      .mockResolvedValue({ ...callbackInstance, status: 'detached' } as any);
+    mocks.callbackInstanceFindUnique
+      .mockResolvedValueOnce(callbackInstance)
+      .mockResolvedValueOnce({ ...callbackInstance, status: 'detached' });
+
+    let result = await callbackInstanceService.attachInternal({
+      tenant: { oid: 1n },
+      environment: { oid: 2n },
+      callback,
+      config,
+      integrationInstance,
+      integrationInstanceProvider
+    } as any);
+
+    expect(detach).toHaveBeenCalledWith(expect.objectContaining({ callbackInstance }));
+    expect(mocks.callbackInstanceUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'attached',
+          providerDeploymentConfigPairOid: nextPair.oid,
+          slateTriggerReceiverId: null,
+          registrationStatus: 'pending'
+        })
+      })
+    );
+    expect(result.id).toBe(callbackInstance.id);
+  });
+
+  it('retries instead of overwriting receiver ownership after a concurrent transition', async () => {
+    mocks.callbackInstanceFindUnique.mockResolvedValue({
+      ...callbackInstance,
+      status: 'detached'
+    });
+    mocks.callbackInstanceUpdateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      callbackInstanceService.attachInternal({
+        tenant: { oid: 1n },
+        environment: { oid: 2n },
+        callback,
+        config,
+        integrationInstance,
+        integrationInstanceProvider
+      } as any)
+    ).rejects.toMatchObject({
+      data: { code: 'callback_instance_attach_conflict' }
+    });
+
+    expect(mocks.syncCallbackInstance).not.toHaveBeenCalled();
   });
 });
 

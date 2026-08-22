@@ -113,6 +113,8 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
     return {
       object: 'callback.instance' as const,
       id: callbackInstance.id,
+      integration_instance_id: callbackInstance.integrationInstance.id,
+      integration_instance_provider_id: callbackInstance.integrationInstanceProvider.id,
       status: callbackInstance.status,
       registration_status: callbackInstance.registrationStatus,
       registration_generation: callbackInstance.registrationGeneration,
@@ -210,6 +212,7 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
                       description: trigger.providerTrigger.description,
                       inputJsonSchema: trigger.providerTrigger.value.inputJsonSchema,
                       outputJsonSchema: trigger.providerTrigger.value.outputJsonSchema ?? null,
+                      eventTypes: trigger.providerTrigger.value.eventTypes ?? [],
                       invocation:
                         trigger.providerTrigger.value.invocation.type === 'polling'
                           ? {
@@ -258,6 +261,13 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
         name: 'id',
         description: 'Unique callback instance identifier',
         examples: ['cbi_5gHjKlMnPqRsTuVw']
+      }),
+      integration_instance_id: v.string({
+        description: 'Integration instance represented by this callback instance'
+      }),
+      integration_instance_provider_id: v.string({
+        description:
+          'Configured integration instance provider represented by this callback instance'
       }),
       status: v.enumOf(['attached', 'detached'], {
         name: 'status',

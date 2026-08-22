@@ -51,6 +51,7 @@ model IntegrationInstance {
   updatedAt DateTime @default(now()) @updatedAt
 
   integrationInstanceProviders      IntegrationInstanceProvider[]
+  callbackInstances                 CallbackInstance[]
   integrationSetupSessions          IntegrationSetupSession[]
   providerConfigs                   ProviderConfig[]
   providerAuthConfigs               ProviderAuthConfig[]
@@ -121,6 +122,7 @@ model IntegrationInstanceProvider {
   updatedAt DateTime @default(now()) @updatedAt
 
   integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
+  callbackInstances                   CallbackInstance[]
   providerConfigs                     ProviderConfig[]
   providerAuthConfigs                 ProviderAuthConfig[]
   identityCredential                  IdentityCredential?

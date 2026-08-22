@@ -48,6 +48,9 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.callback:read' as const,
   'instance.callback:write' as const,
 
+  'instance.webhook:read' as const,
+  'instance.webhook:write' as const,
+
   'instance.server.config_vault:read' as const,
   'instance.server.config_vault:write' as const,
 

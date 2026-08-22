@@ -92,7 +92,7 @@
     "@remixicon/react": "^4.0.0",
     "@sentry/bun": "^10.36.0",
     "@sentry/cli": "^3.2.0",
-    "@slates/proto": "1.0.0-rc.17",
+    "@slates/proto": "link:@slates/proto",
     "@types/semver": "^7.7.1",
     "@types/unzipper": "^0.10.11",
     "date-fns": "^4.1.0",

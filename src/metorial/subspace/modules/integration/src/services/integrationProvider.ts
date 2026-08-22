@@ -34,6 +34,7 @@ import {
 } from '@metorial-subspace/list-utils';
 import { providerAuthCredentialsService } from '@metorial-subspace/module-auth';
 import { providerAuthMethodService, providerService } from '@metorial-subspace/module-catalog';
+import { Fabric } from '@metorial/fabric';
 import {
   providerConfigService,
   providerDeploymentService
@@ -863,6 +864,9 @@ class integrationProviderServiceImpl {
 
     checkTenant(d, d.integrationProvider);
     checkDeletedEdit(d.integrationProvider, 'archive');
+    await Fabric.fire('provider.integration_provider.archived:before', {
+      integrationProvider: d.integrationProvider
+    });
 
     let current = await db.integrationProvider.findUniqueOrThrow({
       where: { oid: d.integrationProvider.oid },
@@ -902,9 +906,12 @@ class integrationProviderServiceImpl {
         include: integrationProviderInclude
       });
 
-      await addAfterTransactionHook(async () =>
-        integrationProviderArchivedQueue.add({ integrationProviderId: res.id })
-      );
+      await addAfterTransactionHook(async () => {
+        await integrationProviderArchivedQueue.add({ integrationProviderId: res.id });
+        await Fabric.fire('provider.integration_provider.archived:after', {
+          integrationProvider: res
+        });
+      });
 
       return res;
     });

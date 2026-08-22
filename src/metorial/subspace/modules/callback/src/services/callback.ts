@@ -7,9 +7,7 @@ import {
   db,
   type Environment,
   getId,
-  type Provider,
-  type ProviderDeployment,
-  type ProviderType,
+  type IntegrationProvider,
   snowflake,
   type Tenant,
   withTransaction
@@ -19,6 +17,8 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveIntegrationProviders,
+  resolveIntegrations,
   resolveProviderDeployments
 } from '@metorial-subspace/list-utils';
 import {
@@ -27,14 +27,19 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { providerDeploymentInternalService } from '@metorial-subspace/module-provider-internal';
 import { Fabric } from '@metorial/fabric';
+import { resolveCallbackProviderTriggers } from '../lib/resolveCallbackProviderTriggers';
+import { callbackConfigBackingDeleteQueue } from '../queues/deleteCallbackConfigBacking';
+import { callbackConfigService } from './callbackConfig';
+import { callbackDestinationService } from './callbackDestination';
 import { callbackRegistrationService } from './callbackRegistration';
 
 let MAX_DESTINATIONS_PER_CALLBACK = 100;
 let MAX_TRIGGERS_PER_CALLBACK = 100;
 
 let callbackInclude = {
+  integration: true,
+  integrationProvider: true,
   providerDeployment: {
     include: {
       provider: {
@@ -54,6 +59,11 @@ let callbackInclude = {
     include: {
       callbackDestination: true
     }
+  },
+  callbackConfig: {
+    include: {
+      currentVersion: true
+    }
   }
 };
 
@@ -62,6 +72,8 @@ export type ListCallbacksParams = {
   allowDeleted?: boolean;
   ids?: string[];
   providerDeploymentIds?: string[];
+  integrationIds?: string[];
+  integrationProviderIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
 };
@@ -71,37 +83,26 @@ export type GetCallbackByIdParams = {
   allowDeleted?: boolean;
 };
 
-export type CreateCallbackParams = {
-  providerDeployment: {
-    id: string;
-  };
-  input: {
-    name: string;
-    description?: string;
-    metadata?: Record<string, any>;
-    pollIntervalSecondsOverride?: number | null;
-    triggers: { triggerId: string; eventTypes?: string[] }[];
-    destinationIds: string[];
-  };
-};
-
-export type UpdateCallbackParams = {
-  callback: Callback & {
-    providerDeployment: ProviderDeployment & {
-      provider: Provider & {
-        type: ProviderType;
-      };
-      currentVersion: unknown;
-    };
-  };
+export type UpsertCallbackForIntegrationProviderParams = {
+  integrationProvider: IntegrationProvider;
   input: {
     name?: string;
     description?: string;
     metadata?: Record<string, any>;
     pollIntervalSecondsOverride?: number | null;
-    triggers?: { triggerId: string; eventTypes?: string[] }[];
+    triggers: { triggerId: string; eventTypes?: string[] }[];
     destinationIds?: string[];
+    configValues?: Record<string, string>;
   };
+};
+
+export type GetCallbackForIntegrationProviderParams = {
+  integrationProvider: IntegrationProvider;
+};
+
+export type GetCallbackConfigSchemaForIntegrationProviderParams = {
+  integrationProvider: IntegrationProvider;
+  triggerIds: string[];
 };
 
 export type ArchiveCallbackParams = {
@@ -123,6 +124,25 @@ class callbackServiceImpl {
     return value;
   }
 
+  private validateTriggerSelection(triggers: { triggerId: string; eventTypes?: string[] }[]) {
+    if (triggers.length === 0) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_requires_trigger',
+          message: 'A callback must reference at least one trigger.'
+        })
+      );
+    }
+    if (triggers.length > MAX_TRIGGERS_PER_CALLBACK) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_trigger_limit_exceeded',
+          message: `A callback can reference at most ${MAX_TRIGGERS_PER_CALLBACK} triggers.`
+        })
+      );
+    }
+  }
+
   async listCallbacks(d: MetorialFacing<ListCallbacksParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
@@ -134,10 +154,14 @@ class callbackServiceImpl {
     });
   }
 
-  async listCallbacksInternal(d: { tenant: Tenant; environment: Environment } & ListCallbacksParams) {
+  async listCallbacksInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCallbacksParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let integrations = await resolveIntegrations(ts, d.integrationIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -151,6 +175,10 @@ class callbackServiceImpl {
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               deployments ? { providerDeploymentOid: deployments.in } : undefined!,
+              integrations ? { integrationOid: integrations.in } : undefined!,
+              integrationProviders
+                ? { integrationProviderOid: integrationProviders.in }
+                : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
@@ -194,40 +222,60 @@ class callbackServiceImpl {
     return callback;
   }
 
-  private async getDeploymentAndValidate(d: {
+  private async getIntegrationProviderAndDeployment(d: {
     tenant: Tenant;
     environment: Environment;
-    providerDeployment: {
-      id: string;
-    };
+    integrationProvider: IntegrationProvider;
   }) {
     let solution = await getMetorialSolution();
 
-    let providerDeployment = await db.providerDeployment.findFirst({
+    let integrationProvider = await db.integrationProvider.findFirst({
       where: {
-        id: d.providerDeployment.id,
+        oid: d.integrationProvider.oid,
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
-        environmentOid: d.environment.oid
+        environmentOid: d.environment.oid,
+        status: 'active'
       },
       include: {
-        provider: {
-          include: {
-            type: true,
-            defaultVariant: true
-          }
-        },
+        integration: true,
         currentVersion: {
           include: {
-            lockedVersion: true
+            deployment: {
+              include: {
+                provider: {
+                  include: {
+                    type: true,
+                    defaultVariant: true
+                  }
+                },
+                currentVersion: {
+                  include: {
+                    lockedVersion: true
+                  }
+                }
+              }
+            }
           }
         }
       }
     });
-    if (!providerDeployment) {
-      throw new ServiceError(notFoundError('provider.deployment', d.providerDeployment.id));
+    if (!integrationProvider) {
+      throw new ServiceError(notFoundError('integration.provider', d.integrationProvider.id));
+    }
+    if (integrationProvider.integrationOid !== integrationProvider.integration.oid) {
+      throw new Error('Integration provider ownership invariant is invalid');
+    }
+    if (!integrationProvider.currentVersion) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'integration_provider_version_required',
+          message: 'Integration provider has no active version.'
+        })
+      );
     }
 
+    let providerDeployment = integrationProvider.currentVersion.deployment;
     if (
       providerDeployment.provider.type.attributes.backend !== 'slates' ||
       providerDeployment.provider.type.attributes.triggers.status !== 'enabled'
@@ -240,219 +288,152 @@ class callbackServiceImpl {
       );
     }
 
-    return providerDeployment;
+    return { integrationProvider, providerDeployment, solution };
   }
 
-  private async resolveTriggerDefs(d: {
+  private async getCallbackRowForUpsertInternal(d: {
+    tenant: Tenant;
     environment: Environment;
-    deployment: ProviderDeployment;
-    inputTriggers: { triggerId: string; eventTypes?: string[] }[];
+    integrationProvider: IntegrationProvider;
   }) {
-    let deployment = await db.providerDeployment.findFirstOrThrow({
-      where: { oid: d.deployment.oid },
-      include: {
-        provider: {
-          include: {
-            defaultVariant: {
-              include: {
-                currentVersion: true
-              }
-            }
-          }
-        },
-        currentVersion: {
-          include: {
-            lockedVersion: true
-          }
-        }
-      }
+    let solution = await getMetorialSolution();
+    let callback = await db.callback.findUnique({
+      where: { integrationProviderOid: d.integrationProvider.oid }
     });
-
-    let version = await providerDeploymentInternalService.getCurrentVersion({
-      provider: deployment.provider,
-      environment: d.environment,
-      deployment
-    });
-    if (!version?.specificationOid) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'missing_specification',
-          message: 'Deployment has no discovered specification with triggers.'
-        })
-      );
+    if (!callback) return null;
+    if (
+      callback.tenantOid !== d.tenant.oid ||
+      callback.solutionOid !== solution.oid ||
+      callback.environmentOid !== d.environment.oid
+    ) {
+      return null;
     }
-
-    let providerTriggers = await db.providerTrigger.findMany({
-      where: { specificationOid: version.specificationOid }
-    });
-
-    let byMatcher = new Map<string, (typeof providerTriggers)[number]>();
-    for (let trigger of providerTriggers) {
-      byMatcher.set(trigger.key, trigger);
-      byMatcher.set(trigger.specId, trigger);
-      byMatcher.set(trigger.callableId, trigger);
-      if (trigger.specUniqueIdentifier) {
-        byMatcher.set(trigger.specUniqueIdentifier, trigger);
-      }
-    }
-
-    return d.inputTriggers.map(item => {
-      let trigger = byMatcher.get(item.triggerId);
-      if (!trigger) {
-        throw new ServiceError(
-          badRequestError({
-            code: 'invalid_callback_trigger',
-            message: `Trigger not found in provider specification: ${item.triggerId}`
-          })
-        );
-      }
-
-      return {
-        providerTriggerOid: trigger.oid,
-        eventTypes: item.eventTypes?.length ? item.eventTypes : []
-      };
-    });
+    return callback;
   }
 
-  async createCallback(d: MetorialFacing<CreateCallbackParams>) {
+  async getCallbackForIntegrationProvider(
+    d: MetorialFacing<GetCallbackForIntegrationProviderParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-
-    let eventBase = toProviderEventBase(d);
-    await Fabric.fire('provider.callback.created:before', eventBase);
-
-    let callback = await this.createCallbackInternal({
+    return await this.getCallbackForIntegrationProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+  }
 
-    await Fabric.fire('provider.callback.created:after', { ...eventBase, callback });
+  async getCallbackForIntegrationProviderInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & GetCallbackForIntegrationProviderParams
+  ) {
+    let solution = await getMetorialSolution();
+    return await db.callback.findFirst({
+      where: {
+        integrationProviderOid: d.integrationProvider.oid,
+        tenantOid: d.tenant.oid,
+        solutionOid: solution.oid,
+        environmentOid: d.environment.oid,
+        status: 'active'
+      },
+      include: callbackInclude
+    });
+  }
+
+  async getCallbackConfigSchemaForIntegrationProvider(
+    d: MetorialFacing<GetCallbackConfigSchemaForIntegrationProviderParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+    return await this.getCallbackConfigSchemaForIntegrationProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCallbackConfigSchemaForIntegrationProviderInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & GetCallbackConfigSchemaForIntegrationProviderParams
+  ) {
+    let { integrationProvider, providerDeployment } =
+      await this.getIntegrationProviderAndDeployment(d);
+    let triggers = d.triggerIds.map(triggerId => ({ triggerId }));
+    this.validateTriggerSelection(triggers);
+    let resolvedTriggers = await resolveCallbackProviderTriggers({
+      environment: d.environment,
+      deployment: providerDeployment,
+      inputTriggers: triggers
+    });
+
+    return await callbackConfigService.getCallbackConfigSchemaInternal({
+      tenant: d.tenant,
+      integrationProvider,
+      providerTriggers: resolvedTriggers.map(trigger => trigger.providerTrigger)
+    });
+  }
+
+  async upsertCallbackForIntegrationProvider(
+    d: MetorialFacing<UpsertCallbackForIntegrationProviderParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+    let internal = {
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    };
+    let existing = await this.getCallbackRowForUpsertInternal(internal);
+    let eventBase = toProviderEventBase(d);
+    if (existing) {
+      await Fabric.fire('provider.callback.updated:before', eventBase);
+    } else {
+      await Fabric.fire('provider.callback.created:before', eventBase);
+    }
+    let callback = await this.upsertCallbackForIntegrationProviderInternal(internal);
+    if (existing) {
+      await Fabric.fire('provider.callback.updated:after', { ...eventBase, callback });
+    } else {
+      await Fabric.fire('provider.callback.created:after', { ...eventBase, callback });
+    }
 
     return callback;
   }
 
-  async createCallbackInternal(
-    d: { tenant: Tenant; environment: Environment } & CreateCallbackParams
+  async upsertCallbackForIntegrationProviderInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & UpsertCallbackForIntegrationProviderParams
   ) {
-    let solution = await getMetorialSolution();
+    this.validateTriggerSelection(d.input.triggers);
 
-    let providerDeployment = await this.getDeploymentAndValidate({
-      tenant: d.tenant,
-      environment: d.environment,
-      providerDeployment: d.providerDeployment
-    });
-
-    if (d.input.triggers.length > MAX_TRIGGERS_PER_CALLBACK) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'callback_trigger_limit_exceeded',
-          message: `A callback can reference at most ${MAX_TRIGGERS_PER_CALLBACK} triggers.`
-        })
-      );
-    }
-
-    let providerTriggers = await this.resolveTriggerDefs({
+    let { integrationProvider, providerDeployment, solution } =
+      await this.getIntegrationProviderAndDeployment(d);
+    let resolvedTriggers = await resolveCallbackProviderTriggers({
       environment: d.environment,
       deployment: providerDeployment,
       inputTriggers: d.input.triggers
     });
-    let destinationIds = [...new Set(d.input.destinationIds)];
-    if (destinationIds.length > MAX_DESTINATIONS_PER_CALLBACK) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'callback_destination_limit_exceeded',
-          message: `A callback can reference at most ${MAX_DESTINATIONS_PER_CALLBACK} destinations.`
-        })
-      );
-    }
-    let pollIntervalSecondsOverride = this.normalizePollInterval(
-      d.input.pollIntervalSecondsOverride
-    );
 
-    let destinations = await db.callbackDestination.findMany({
-      where: {
-        tenantOid: d.tenant.oid,
-        solutionOid: solution.oid,
-        id: { in: destinationIds },
-        status: CallbackDestinationStatus.active
-      }
-    });
-    if (destinations.length !== destinationIds.length) {
-      throw new ServiceError(
-        badRequestError({ message: 'One or more callback destinations were not found.' })
-      );
-    }
-
-    let callback = await db.callback.create({
-      data: {
-        ...getId('callback'),
-        tenantOid: d.tenant.oid,
-        projectOid: d.tenant.projectOid,
-        solutionOid: solution.oid,
-        environmentOid: d.environment.oid,
-        instanceOid: d.environment.instanceOid,
-        providerDeploymentOid: providerDeployment.oid,
-        status: 'active',
-        mode: 'manual',
-        name: d.input.name,
-        description: d.input.description,
-        metadata: d.input.metadata,
-        pollIntervalSecondsOverride,
-        callbackProviderTriggers: {
-          create: providerTriggers.map(trigger => ({
-            ...getId('callbackProviderTrigger'),
-            providerTriggerOid: trigger.providerTriggerOid,
-            eventTypes: trigger.eventTypes
-          }))
-        },
-        callbackDestinationLinks: {
-          create: destinations.map(destination => ({
-            oid: snowflake.nextId(),
-            callbackDestinationOid: destination.oid
-          }))
-        }
-      }
-    });
-
-    await callbackRegistrationService.syncCallback({ callbackId: callback.id });
-
-    return await this.getCallbackByIdInternal({
+    let configSchema = await callbackConfigService.getCallbackConfigSchemaInternal({
       tenant: d.tenant,
-      environment: d.environment,
-      callbackId: callback.id
+      integrationProvider,
+      providerTriggers: resolvedTriggers.map(trigger => trigger.providerTrigger)
     });
-  }
-
-  async updateCallback(d: MetorialFacing<UpdateCallbackParams>) {
-    let { instance, organizationActor, ...rest } = d;
-    let scope = await resolveMetorialFacing(d);
-
-    return this.updateCallbackInternal({
-      ...rest,
-      tenant: scope.tenant,
-      environment: scope.environment
-    });
-  }
-
-  async updateCallbackInternal(
-    d: { tenant: Tenant; environment: Environment } & UpdateCallbackParams
-  ) {
-    let solution = await getMetorialSolution();
-
-    let pollIntervalSecondsOverride =
-      d.input.pollIntervalSecondsOverride !== undefined
-        ? this.normalizePollInterval(d.input.pollIntervalSecondsOverride)
-        : undefined;
 
     let destinationOids: bigint[] | undefined;
-    if (d.input.destinationIds) {
+    if (d.input.destinationIds !== undefined) {
       let destinationIds = [...new Set(d.input.destinationIds)];
       if (destinationIds.length > MAX_DESTINATIONS_PER_CALLBACK) {
         throw new ServiceError(
           badRequestError({
-            code: 'callback_destination_limit_exceeded',
-            message: `A callback can reference at most ${MAX_DESTINATIONS_PER_CALLBACK} destinations.`
+            code: 'webhook_destination_limit_exceeded',
+            message: `A callback can reference at most ${MAX_DESTINATIONS_PER_CALLBACK} webhook destinations.`
           })
         );
       }
@@ -469,85 +450,137 @@ class callbackServiceImpl {
           badRequestError({ message: 'One or more callback destinations were not found.' })
         );
       }
-      destinationOids = destinations.map(dest => dest.oid);
-    }
-
-    if (d.input.triggers && d.input.triggers.length > MAX_TRIGGERS_PER_CALLBACK) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'callback_trigger_limit_exceeded',
-          message: `A callback can reference at most ${MAX_TRIGGERS_PER_CALLBACK} triggers.`
-        })
-      );
-    }
-
-    let triggerDefs =
-      d.input.triggers !== undefined
-        ? await this.resolveTriggerDefs({
-            environment: d.environment,
-            deployment: d.callback.providerDeployment,
-            inputTriggers: d.input.triggers
+      await Promise.all(
+        destinations.map(callbackDestination =>
+          callbackDestinationService.ensureMaterializedInternal({
+            tenant: d.tenant,
+            callbackDestination
           })
+        )
+      );
+      destinationOids = destinations.map(destination => destination.oid);
+    }
+
+    let existing = await this.getCallbackRowForUpsertInternal({
+      tenant: d.tenant,
+      environment: d.environment,
+      integrationProvider
+    });
+    let pollIntervalSecondsOverride =
+      d.input.pollIntervalSecondsOverride !== undefined
+        ? this.normalizePollInterval(d.input.pollIntervalSecondsOverride)
         : undefined;
 
-    await db.$transaction(async tx => {
-      await tx.callback.update({
-        where: { oid: d.callback.oid },
-        data: {
-          mode: 'manual',
-          name: d.input.name ?? undefined,
-          description: d.input.description ?? undefined,
-          metadata: d.input.metadata ?? undefined,
-          pollIntervalSecondsOverride: pollIntervalSecondsOverride ?? undefined
-        }
+    let result = await withTransaction(async tx => {
+      let callback = existing
+        ? await tx.callback.update({
+            where: { oid: existing.oid },
+            data: {
+              tenantOid: integrationProvider.integration.tenantOid,
+              projectOid: integrationProvider.integration.projectOid,
+              solutionOid: integrationProvider.integration.solutionOid,
+              environmentOid: integrationProvider.integration.environmentOid,
+              instanceOid: integrationProvider.integration.instanceOid,
+              integrationOid: integrationProvider.integration.oid,
+              integrationProviderOid: integrationProvider.oid,
+              providerDeploymentOid: providerDeployment.oid,
+              status: 'active',
+              archivedAt: null,
+              name:
+                d.input.name ??
+                integrationProvider.name ??
+                integrationProvider.integration.name,
+              description: d.input.description !== undefined ? d.input.description : undefined,
+              metadata: d.input.metadata !== undefined ? d.input.metadata : undefined,
+              pollIntervalSecondsOverride
+            }
+          })
+        : await tx.callback.create({
+            data: {
+              ...getId('callback'),
+              tenantOid: integrationProvider.integration.tenantOid,
+              projectOid: integrationProvider.integration.projectOid,
+              solutionOid: integrationProvider.integration.solutionOid,
+              environmentOid: integrationProvider.integration.environmentOid,
+              instanceOid: integrationProvider.integration.instanceOid,
+              integrationOid: integrationProvider.integration.oid,
+              integrationProviderOid: integrationProvider.oid,
+              providerDeploymentOid: providerDeployment.oid,
+              status: 'active',
+              name:
+                d.input.name ??
+                integrationProvider.name ??
+                integrationProvider.integration.name,
+              description: d.input.description,
+              metadata: d.input.metadata,
+              pollIntervalSecondsOverride
+            }
+          });
+
+      let configResult = configSchema.schema
+        ? await callbackConfigService.setCallbackConfigInternal({
+            tenant: d.tenant,
+            callback,
+            providerTriggers: resolvedTriggers.map(trigger => trigger.providerTrigger),
+            valuesPatch: d.input.configValues ?? {},
+            db: tx
+          })
+        : await callbackConfigService.clearCallbackConfigInternal({
+            tenant: d.tenant,
+            callback,
+            db: tx
+          });
+
+      await tx.callbackProviderTrigger.deleteMany({
+        where: { callbackOid: callback.oid }
+      });
+      await tx.callbackProviderTrigger.createMany({
+        data: resolvedTriggers.map(trigger => ({
+          ...getId('callbackProviderTrigger'),
+          callbackOid: callback.oid,
+          providerTriggerOid: trigger.providerTrigger.oid,
+          eventTypes: trigger.eventTypes
+        }))
       });
 
-      if (destinationOids) {
+      if (destinationOids !== undefined || !existing) {
         await tx.callbackDestinationLink.deleteMany({
-          where: { callbackOid: d.callback.oid }
+          where: { callbackOid: callback.oid }
         });
-        if (destinationOids.length) {
+        if (destinationOids?.length) {
           await tx.callbackDestinationLink.createMany({
-            data: destinationOids.map(destinationOid => ({
+            data: destinationOids.map(callbackDestinationOid => ({
               oid: snowflake.nextId(),
-              callbackOid: d.callback.oid,
-              callbackDestinationOid: destinationOid
+              callbackOid: callback.oid,
+              callbackDestinationOid
             }))
           });
         }
       }
 
-      if (triggerDefs) {
-        await tx.callbackProviderTrigger.deleteMany({
-          where: { callbackOid: d.callback.oid }
-        });
-
-        if (triggerDefs.length) {
-          await tx.callbackProviderTrigger.createMany({
-            data: triggerDefs.map(trigger => ({
-              ...getId('callbackProviderTrigger'),
-              callbackOid: d.callback.oid,
-              providerTriggerOid: trigger.providerTriggerOid,
-              eventTypes: trigger.eventTypes
-            }))
-          });
-        }
-      }
+      return {
+        callbackId: callback.id,
+        supersededCallbackConfigVersionId: configResult.supersededCallbackConfigVersionId
+      };
     });
 
-    await callbackRegistrationService.syncCallback({ callbackId: d.callback.id });
+    await callbackRegistrationService.syncCallback({ callbackId: result.callbackId });
+    if (result.supersededCallbackConfigVersionId) {
+      await callbackConfigBackingDeleteQueue.add({
+        callbackConfigVersionId: result.supersededCallbackConfigVersionId
+      });
+    }
 
     return await this.getCallbackByIdInternal({
       tenant: d.tenant,
       environment: d.environment,
-      callbackId: d.callback.id
+      callbackId: result.callbackId
     });
   }
 
   async archiveCallback(d: MetorialFacing<ArchiveCallbackParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.callback.archived:before', eventBase);
 
@@ -558,7 +591,6 @@ class callbackServiceImpl {
     });
 
     await Fabric.fire('provider.callback.archived:after', { ...eventBase, callback });
-
     return callback;
   }
 
@@ -567,8 +599,8 @@ class callbackServiceImpl {
   ) {
     let archivedAt = new Date();
 
-    let archived = await withTransaction(async db => {
-      let archived = await db.callback.update({
+    let archived = await withTransaction(async tx => {
+      let archived = await tx.callback.update({
         where: { oid: d.callback.oid },
         data: {
           status: 'archived',
@@ -577,7 +609,7 @@ class callbackServiceImpl {
         include: callbackInclude
       });
 
-      await db.callbackInstance.updateMany({
+      await tx.callbackInstance.updateMany({
         where: { callbackOid: d.callback.oid },
         data: { isParentDeleted: true }
       });

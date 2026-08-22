@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackType } from '../../../types';
-import { v1CallbackDestinationPresenter } from './callbackDestination';
+import { v1WebhookDestinationPresenter } from '../webhooks/webhookDestination';
 import { v1ProviderDeploymentPreviewPresenter } from '../config/deploymentPreview';
 
 let callbackTriggerSchema = v.object({
@@ -62,11 +62,23 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
       object: 'callback' as const,
 
       id: callback.id,
+      integration_id: callback.integration.id,
+      integration_provider_id: callback.integrationProvider.id,
       status: callback.status,
       name: callback.name,
       description: callback.description,
       metadata: callback.metadata,
       poll_interval_seconds_override: callback.pollIntervalSecondsOverride,
+
+      config:
+        callback.callbackConfig?.status === 'active' && callback.callbackConfig.currentVersion
+          ? {
+              object: 'callback.config' as const,
+              id: callback.callbackConfig.id,
+              configured_keys: callback.callbackConfig.currentVersion.configuredKeys,
+              created_at: callback.callbackConfig.createdAt
+            }
+          : null,
 
       provider_deployment: await v1ProviderDeploymentPreviewPresenter
         .present(
@@ -79,8 +91,8 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
 
       destinations: await Promise.all(
         callback.callbackDestinationLinks.map(async link =>
-          v1CallbackDestinationPresenter
-            .present({ callbackDestination: link.callbackDestination }, opts)
+          v1WebhookDestinationPresenter
+            .present({ webhookDestination: link.callbackDestination }, opts)
             .run()
         )
       ),
@@ -115,6 +127,16 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
         description: 'Unique callback identifier',
         examples: ['clb_4dEfGhJkLmNpQrSt']
       }),
+      integration_id: v.string({
+        name: 'integration_id',
+        description: 'Integration that owns this callback',
+        examples: ['int_4dEfGhJkLmNpQrSt']
+      }),
+      integration_provider_id: v.string({
+        name: 'integration_provider_id',
+        description: 'Integration provider that owns this callback',
+        examples: ['intp_4dEfGhJkLmNpQrSt']
+      }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
         description: 'Callback lifecycle status'
@@ -146,8 +168,27 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
           examples: [60]
         })
       ),
+      config: v.nullable(
+        v.object({
+          object: v.literal('callback.config', {
+            description: "String representing the object's type"
+          }),
+          id: v.string({
+            name: 'id',
+            description: 'Stable callback config identifier'
+          }),
+          configured_keys: v.array(v.string(), {
+            name: 'configured_keys',
+            description: 'Names of callback config keys that have values'
+          }),
+          created_at: v.date({
+            name: 'created_at',
+            description: 'Timestamp when the callback config was created'
+          })
+        })
+      ),
       provider_deployment: v1ProviderDeploymentPreviewPresenter.schema,
-      destinations: v.array(v1CallbackDestinationPresenter.schema, {
+      destinations: v.array(v1WebhookDestinationPresenter.schema, {
         name: 'destinations',
         description: 'Destinations currently attached to this callback'
       }),

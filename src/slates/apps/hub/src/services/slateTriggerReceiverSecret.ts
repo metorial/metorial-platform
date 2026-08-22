@@ -5,6 +5,7 @@ import { db } from '../db';
 import { getId } from '../id';
 import { secretService } from './secret';
 import { slateTriggerReceiverPathSecretMethods } from './slateTriggerReceiverPathSecret';
+import { slateCallbackConfigService } from './slateCallbackConfig';
 
 type HubDbClient = typeof db | Prisma.TransactionClient;
 
@@ -13,16 +14,15 @@ let isRecord = (value: unknown): value is Record<string, unknown> =>
 
 let nestedValue = (value: unknown, key: string) => {
   if (!isRecord(value)) return undefined;
-  return key.split('.').reduce<unknown>(
-    (current, part) => (isRecord(current) ? current[part] : undefined),
-    value
-  );
+  return key
+    .split('.')
+    .reduce<unknown>(
+      (current, part) => (isRecord(current) ? current[part] : undefined),
+      value
+    );
 };
 
-let triggerWithSecurityContext = async (
-  receiverTriggerId: string,
-  store: HubDbClient = db
-) =>
+let triggerWithSecurityContext = async (receiverTriggerId: string, store: HubDbClient = db) =>
   await store.slateTriggerReceiverTrigger.findUniqueOrThrow({
     where: { id: receiverTriggerId },
     include: {
@@ -37,7 +37,8 @@ let triggerWithSecurityContext = async (
               authMethod: true,
               oauthCredentials: { include: { secret: true } }
             }
-          }
+          },
+          callbackConfig: { include: { secret: true } }
         }
       },
       boundSecrets: { include: { secret: true } },
@@ -51,11 +52,7 @@ let declaredSecretRef = (action: { spec: unknown }, name: string) => {
   return Array.isArray(refs) ? refs.find(ref => ref?.name === name) : undefined;
 };
 
-let decryptBoundValue = async (d: {
-  tenant: Tenant;
-  secret: Secret;
-  note: string;
-}) =>
+let decryptBoundValue = async (d: { tenant: Tenant; secret: Secret; note: string }) =>
   (
     await secretService.DANGEROUSLY_decryptSecret({
       tenant: d.tenant,
@@ -111,7 +108,8 @@ let upsertCallbackValue = async (d: {
       receiverOid: trigger.receiverOid,
       receiverTriggerOid: trigger.oid,
       secretOid: secret.oid,
-      specHash: d.specHash ?? String((trigger.action.spec as Record<string, any>).specHash ?? ''),
+      specHash:
+        d.specHash ?? String((trigger.action.spec as Record<string, any>).specHash ?? ''),
       source: d.source,
       name: d.name,
       encoding: d.encoding ?? 'utf8',
@@ -132,7 +130,10 @@ let resolveDeclared = async (receiverTriggerId: string, name: string) => {
   if (reference.source === 'auth_config') {
     let authConfig = trigger.receiver.authConfig;
     if (!authConfig) throw new Error('credential_missing');
-    if (reference.authMethods?.length && !reference.authMethods.includes(authConfig.authMethod.key)) {
+    if (
+      reference.authMethods?.length &&
+      !reference.authMethods.includes(authConfig.authMethod.key)
+    ) {
       throw new Error('credential_invalid');
     }
     let auth = await secretService.DANGEROUSLY_decryptSecret({
@@ -158,6 +159,31 @@ let resolveDeclared = async (receiverTriggerId: string, name: string) => {
     if (typeof resolved !== 'string' || !resolved) throw new Error('credential_missing');
     value = resolved;
     secretId = oauth.secret.id;
+  } else if (reference.source === 'callback_secret') {
+    let callbackConfig = trigger.receiver.callbackConfig;
+    let configured = callbackConfig
+      ? await slateCallbackConfigService.resolveCallbackConfigValue({
+          tenant: trigger.receiver.tenant,
+          slateCallbackConfig: callbackConfig,
+          callbackSecretKey: reference.callbackSecretKey,
+          note: `Resolve callback config value ${name} for ${receiverTriggerId}`
+        })
+      : null;
+    if (configured) {
+      value = configured.value;
+      secretId = configured.secretId;
+    } else {
+      let binding = trigger.boundSecrets.find(secret => secret.name === name);
+      if (!binding) throw new Error('credential_missing');
+      if (binding.businessValidUntil && binding.businessValidUntil <= new Date()) return [];
+      value = await decryptBoundValue({
+        tenant: trigger.receiver.tenant,
+        secret: binding.secret,
+        note: `Resolve callback value ${name} for ${receiverTriggerId}`
+      });
+      secretId = binding.secret.id;
+      validUntil = binding.businessValidUntil;
+    }
   } else {
     let binding = trigger.boundSecrets.find(secret => secret.name === name);
     if (!binding && reference.source === 'generated') {
@@ -203,7 +229,10 @@ let persistCapturedSecrets = async (d: {
     if (typeof value !== 'string' || !value) throw new Error('invalid_provider_result');
     let trigger = await triggerWithSecurityContext(d.receiverTriggerId, d.store);
     let reference = declaredSecretRef(trigger.action, name);
-    if (!reference || !['registration', 'callback_secret', 'generated'].includes(reference.source)) {
+    if (
+      !reference ||
+      !['registration', 'callback_secret', 'generated'].includes(reference.source)
+    ) {
       throw new Error('invalid_provider_result');
     }
     let businessValidUntil: Date | null = null;
@@ -236,10 +265,7 @@ export let persistCapturedCallbackSecretsInTransaction = async (d: {
     store: d.tx
   });
 
-let writeRegistrationDetails = async (d: {
-  receiverTriggerId: string;
-  details: unknown;
-}) => {
+let writeRegistrationDetails = async (d: { receiverTriggerId: string; details: unknown }) => {
   let trigger = await triggerWithSecurityContext(d.receiverTriggerId);
   if (trigger.registrationDetailsSecret) {
     await secretService.DANGEROUSLY_updateSecret({

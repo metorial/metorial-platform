@@ -4,6 +4,9 @@ let mocks = vi.hoisted(() => ({
   callbackFindFirst: vi.fn(),
   callbackInstanceFindFirst: vi.fn(),
   getTenantForSignal: vi.fn(),
+  resolveAuthorizedCallbackIdsInternal: vi.fn(),
+  listEvents: vi.fn(),
+  getEvent: vi.fn(),
   recordDashboardTestEvent: vi.fn()
 }));
 
@@ -31,7 +34,19 @@ vi.mock('../signal', () => ({
   getInternalSignal: () => ({
     callback: { recordDashboardTestEvent: mocks.recordDashboardTestEvent }
   }),
-  signal: { callback: { getEvent: vi.fn(), listEvents: vi.fn(), listEventsByIds: vi.fn() } }
+  signal: {
+    callback: {
+      getEvent: mocks.getEvent,
+      listEvents: mocks.listEvents,
+      listEventsByIds: vi.fn()
+    }
+  }
+}));
+
+vi.mock('./webhookEvent', () => ({
+  webhookEventService: {
+    resolveAuthorizedCallbackIdsInternal: mocks.resolveAuthorizedCallbackIdsInternal
+  }
 }));
 
 import { callbackEventService } from './callbackEvent';
@@ -46,6 +61,15 @@ describe('callback dashboard test events', () => {
     });
     mocks.callbackInstanceFindFirst.mockResolvedValue({ id: 'cbi_1' });
     mocks.getTenantForSignal.mockResolvedValue({ id: 'signal_tenant_1' });
+    mocks.resolveAuthorizedCallbackIdsInternal.mockResolvedValue([
+      'callback-active',
+      'callback-archived'
+    ]);
+    mocks.listEvents.mockResolvedValue({
+      object: 'list',
+      items: [],
+      pagination: { has_more_after: false, has_more_before: false }
+    });
     mocks.recordDashboardTestEvent.mockResolvedValue({
       id: 'callback_event_1',
       externalId: 'dashboard_test:request_1',
@@ -142,5 +166,48 @@ describe('callback dashboard test events', () => {
       } as any)
     ).rejects.toThrow();
     expect(mocks.recordDashboardTestEvent).not.toHaveBeenCalled();
+  });
+
+  it('applies the active-and-archived allowlist to instance-wide list and get', async () => {
+    await callbackEventService.listCallbackEventsForScopeInternal({
+      tenant: { oid: 10n },
+      environment: { oid: 20n },
+      input: { callbackIds: ['callback-foreign'] }
+    } as any);
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ callbackIds: [] })
+    );
+
+    mocks.getEvent.mockResolvedValue({
+      id: 'callback-event-1',
+      externalId: null,
+      type: 'message.created',
+      sourceId: 'source-1',
+      triggerKey: 'trigger-1',
+      input: null,
+      output: null,
+      status: 'succeeded',
+      error: null,
+      deliveryStatus: 'sent',
+      callbackId: 'callback-archived',
+      callbackInstanceId: 'callback-instance-1',
+      createdAt: new Date('2026-08-21T12:00:00.000Z')
+    });
+    await expect(
+      callbackEventService.getCallbackEventForScopeInternal({
+        tenant: { oid: 10n },
+        environment: { oid: 20n },
+        callbackEventId: 'callback-event-1'
+      } as any)
+    ).resolves.toMatchObject({ callbackId: 'callback-archived' });
+
+    mocks.getEvent.mockResolvedValue({ callbackId: 'callback-foreign' });
+    await expect(
+      callbackEventService.getCallbackEventForScopeInternal({
+        tenant: { oid: 10n },
+        environment: { oid: 20n },
+        callbackEventId: 'callback-event-2'
+      } as any)
+    ).rejects.toMatchObject({ data: { code: 'not_found' } });
   });
 });

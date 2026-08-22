@@ -9,6 +9,7 @@ import { secretController } from './secret';
 import { slateController } from './slate';
 import { slateAuthConfigController } from './slateAuthConfig';
 import { slateAuthConfigEventController } from './slateAuthConfigEvent';
+import { slateCallbackConfigController } from './slateCallbackConfig';
 import { slateDeploymentController } from './slateDeployment';
 import { slateDiscoveryController } from './slateDiscovery';
 import { slateErrorController } from './slateError';
@@ -56,6 +57,7 @@ export let rootController = app.controller({
   slateOAuthSetupEvent: slateOAuthSetupEventController,
   slateAuthConfig: slateAuthConfigController,
   slateAuthConfigEvent: slateAuthConfigEventController,
+  slateCallbackConfig: slateCallbackConfigController,
   slateSession: slateSessionController,
   slateSessionToolCall: slateSessionToolCallController,
 

@@ -9,6 +9,8 @@ import type {
   FirewallBinding as SubspaceFirewallBinding,
   Integration as SubspaceIntegration,
   IntegrationInstance as SubspaceIntegrationInstance,
+  IntegrationInstanceProvider as SubspaceIntegrationInstanceProvider,
+  IntegrationProvider as SubspaceIntegrationProvider,
   IntegrationSetupSession as SubspaceIntegrationSetupSession,
   NetworkPolicy as SubspaceNetworkPolicy,
   ProviderAuthConfig as SubspaceProviderAuthConfig,
@@ -790,6 +792,33 @@ export interface FabricEvents {
   'provider.integration_instance.deleted:before': ProviderEventBase;
   'provider.integration_instance.deleted:after': ProviderEventBase & { integrationInstance: SubspaceIntegrationInstance };
 
+  'provider.integration_instance_provider.version_changed:after': {
+    integrationInstanceProviderId: string;
+    integrationInstanceId: string;
+    integrationProviderId: string;
+    fromVersionId: string | null;
+    toVersionId: string;
+  };
+  'provider.integration_instance_provider.archived:before': {
+    integrationInstanceProvider: SubspaceIntegrationInstanceProvider;
+  };
+  'provider.integration_instance_provider.archived:after': {
+    integrationInstanceProvider: SubspaceIntegrationInstanceProvider;
+  };
+
+  'provider.integration_provider.updated:before': {
+    integrationProvider: SubspaceIntegrationProvider;
+  };
+  'provider.integration_provider.updated:after': {
+    integrationProvider: SubspaceIntegrationProvider;
+  };
+  'provider.integration_provider.archived:before': {
+    integrationProvider: SubspaceIntegrationProvider;
+  };
+  'provider.integration_provider.archived:after': {
+    integrationProvider: SubspaceIntegrationProvider;
+  };
+
   'provider.setup_session.created:before': ProviderEventBase;
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: SubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
@@ -797,13 +826,24 @@ export interface FabricEvents {
 
   'provider.callback.created:before': ProviderEventBase;
   'provider.callback.created:after': ProviderEventBase & { callback: SubspaceCallback };
+  'provider.callback.updated:before': ProviderEventBase;
+  'provider.callback.updated:after': ProviderEventBase & { callback: SubspaceCallback };
   'provider.callback.archived:before': ProviderEventBase;
   'provider.callback.archived:after': ProviderEventBase & { callback: SubspaceCallback };
 
-  'provider.callback_instance.attached:before': ProviderEventBase;
-  'provider.callback_instance.attached:after': ProviderEventBase & { callbackInstance: SubspaceCallbackInstance };
-  'provider.callback_instance.detached:before': ProviderEventBase;
-  'provider.callback_instance.detached:after': ProviderEventBase & { callbackInstance: SubspaceCallbackInstance };
+  'provider.callback_instance.attached:before': {
+    callback: SubspaceCallback;
+    integrationInstanceProvider: SubspaceIntegrationInstanceProvider;
+  };
+  'provider.callback_instance.attached:after': {
+    callbackInstance: SubspaceCallbackInstance;
+  };
+  'provider.callback_instance.detached:before': {
+    callbackInstance: SubspaceCallbackInstance;
+  };
+  'provider.callback_instance.detached:after': {
+    callbackInstance: SubspaceCallbackInstance;
+  };
 
   'provider.callback_destination.created:before': ProviderEventBase;
   'provider.callback_destination.created:after': ProviderEventBase & { callbackDestination: SubspaceCallbackDestination };

@@ -3,11 +3,19 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ManagementInstanceCallbacksGetOutput = {
   object: 'callback';
   id: string;
+  integrationId: string;
+  integrationProviderId: string;
   status: 'active' | 'archived' | 'deleted';
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
   pollIntervalSecondsOverride: number | null;
+  config: {
+    object: 'callback.config';
+    id: string;
+    configuredKeys: string[];
+    createdAt: Date;
+  } | null;
   providerDeployment: {
     object: 'provider.deployment#preview';
     id: string;
@@ -20,14 +28,14 @@ export type ManagementInstanceCallbacksGetOutput = {
     updatedAt: Date;
   };
   destinations: {
-    object: 'callback.destination';
+    object: 'webhook.destination';
     id: string;
     status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
     url: string;
-    method: string;
+    method: 'POST' | 'PUT' | 'PATCH';
     signingSecretConfigured: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -52,6 +60,11 @@ export let mapManagementInstanceCallbacksGetOutput =
   mtMap.object<ManagementInstanceCallbacksGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
+    integrationProviderId: mtMap.objectField(
+      'integration_provider_id',
+      mtMap.passthrough()
+    ),
     status: mtMap.objectField('status', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
@@ -59,6 +72,18 @@ export let mapManagementInstanceCallbacksGetOutput =
     pollIntervalSecondsOverride: mtMap.objectField(
       'poll_interval_seconds_override',
       mtMap.passthrough()
+    ),
+    config: mtMap.objectField(
+      'config',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        configuredKeys: mtMap.objectField(
+          'configured_keys',
+          mtMap.array(mtMap.passthrough())
+        ),
+        createdAt: mtMap.objectField('created_at', mtMap.date())
+      })
     ),
     providerDeployment: mtMap.objectField(
       'provider_deployment',

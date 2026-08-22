@@ -4,6 +4,7 @@ import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { syncCallback } from '../lib/sync';
 import { callbackReconcileInstanceQueue } from './definitions';
+import { callbackFanoutQueue } from '../../queues/integrationReconcile';
 
 let SWEEP_PAGE_SIZE = 250;
 
@@ -18,7 +19,10 @@ export let sweepDeadDeploymentCallbacksQueueProcessor =
     let callbacks = await db.callback.findMany({
       where: {
         status: 'active',
-        providerDeployment: { status: { not: 'active' } },
+        OR: [
+          { providerDeployment: { status: { not: 'active' } } },
+          { integrationProvider: { status: { not: 'active' } } }
+        ],
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },
@@ -62,6 +66,14 @@ export let sweepCallbackLifecycleInstancesQueueProcessor =
         id: data.cursor ? { gt: data.cursor } : undefined,
         OR: [
           { callback: { status: { not: 'active' } } },
+          { integrationInstanceProvider: { status: { not: 'active' } } },
+          { integrationInstanceProvider: { isParentDeleted: true } },
+          {
+            integrationInstance: {
+              status: { notIn: ['active', 'draft'] }
+            }
+          },
+          { integrationInstance: { isParentDeleted: true } },
           {
             providerDeploymentConfigPair: {
               providerDeploymentVersion: {
@@ -102,6 +114,38 @@ export let sweepCallbackLifecycleInstancesQueueProcessor =
     }
   });
 
+export let sweepCallbackLifecycleMissingProjectionsQueue = createQueue<{
+  cursor?: string;
+}>({
+  name: 'sub/callback/lifecycle/sweepMissingProjections',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
+});
+
+export let sweepCallbackLifecycleMissingProjectionsQueueProcessor =
+  sweepCallbackLifecycleMissingProjectionsQueue.process(async data => {
+    let callbacks = await db.callback.findMany({
+      where: {
+        status: 'active',
+        integrationProvider: { status: 'active', currentVersionOid: { not: null } },
+        id: data.cursor ? { gt: data.cursor } : undefined
+      },
+      orderBy: { id: 'asc' },
+      take: SWEEP_PAGE_SIZE,
+      select: { id: true }
+    });
+    if (!callbacks.length) return;
+
+    await callbackFanoutQueue.addMany(
+      callbacks.map(callback => ({ callbackId: callback.id }))
+    );
+    if (callbacks.length === SWEEP_PAGE_SIZE) {
+      await sweepCallbackLifecycleMissingProjectionsQueue.add({
+        cursor: callbacks[callbacks.length - 1]!.id
+      });
+    }
+  });
+
 export let sweepCallbackLifecycleCron = createCron(
   {
     name: 'sub/callback/lifecycle/sweep/cron',
@@ -111,5 +155,6 @@ export let sweepCallbackLifecycleCron = createCron(
   async () => {
     await sweepDeadDeploymentCallbacksQueue.add({}, { id: 'periodic' });
     await sweepCallbackLifecycleInstancesQueue.add({}, { id: 'periodic' });
+    await sweepCallbackLifecycleMissingProjectionsQueue.add({}, { id: 'periodic' });
   }
 );

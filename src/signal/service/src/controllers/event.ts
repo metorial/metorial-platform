@@ -129,7 +129,9 @@ export let eventController = app.controller({
           eventTypes: v.optional(v.array(v.string())),
           topics: v.optional(v.array(v.string())),
           senderIds: v.optional(v.array(v.string())),
-          callbackId: v.optional(v.string())
+          callbackIds: v.optional(v.array(v.string())),
+          statuses: v.optional(v.array(v.enumOf(['pending', 'delivered', 'failed']))),
+          destinationIds: v.optional(v.array(v.string()))
         })
       )
     )
@@ -140,7 +142,9 @@ export let eventController = app.controller({
         eventTypes: ctx.input.eventTypes,
         topics: ctx.input.topics,
         senderIds: ctx.input.senderIds,
-        callbackId: ctx.input.callbackId
+        callbackIds: ctx.input.callbackIds,
+        statuses: ctx.input.statuses,
+        destinationIds: ctx.input.destinationIds
       });
 
       let list = await paginator.run(ctx.input);

@@ -11,6 +11,7 @@ import {
 import {
   sweepCallbackLifecycleCron,
   sweepCallbackLifecycleInstancesQueueProcessor,
+  sweepCallbackLifecycleMissingProjectionsQueueProcessor,
   sweepDeadDeploymentCallbacksQueueProcessor
 } from './queues/sweepLifecycle';
 
@@ -27,5 +28,6 @@ export let reconcilerQueueProcessor = combineQueueProcessors([
   repairCallbackRegistrationsCron,
   sweepDeadDeploymentCallbacksQueueProcessor,
   sweepCallbackLifecycleInstancesQueueProcessor,
+  sweepCallbackLifecycleMissingProjectionsQueueProcessor,
   sweepCallbackLifecycleCron
 ]);

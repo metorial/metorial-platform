@@ -134,6 +134,9 @@ export let ID = createIdGenerator({
   callback: idType.sorted('cbk'),
   callbackInstance: idType.sorted('cbi'),
   callbackProviderTrigger: idType.sorted('cbpt'),
+  callbackConfig: idType.sorted('cbcfg'),
+  callbackConfigVersion: idType.sorted('cbcfgv'),
+  callbackConfigUpdate: idType.sorted('cbcfgu'),
   provisionedVendorAppRoute: idType.sorted('pvar'),
   provisionedTenantApp: idType.sorted('pta'),
 

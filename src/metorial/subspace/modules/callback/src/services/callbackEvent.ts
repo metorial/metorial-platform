@@ -7,6 +7,7 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { getInternalSignal, getTenantForSignal, signal } from '../signal';
+import { webhookEventService } from './webhookEvent';
 
 let toCallbackEvent = (event: Awaited<ReturnType<typeof signal.callback.getEvent>>) => {
   return {
@@ -42,6 +43,23 @@ export type ListCallbackEventsParams = {
 export type GetCallbackEventParams = {
   callbackId: string;
   slateTriggerEventId: string;
+};
+
+export type ListCallbackEventsForScopeParams = {
+  input: {
+    callbackIds?: string[];
+    callbackInstanceIds?: string[];
+    eventTypes?: string[];
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+  };
+};
+
+export type GetCallbackEventForScopeParams = {
+  callbackEventId: string;
 };
 
 type ListCallbackEventSourceIdsParams = {
@@ -139,6 +157,69 @@ class callbackEventServiceImpl {
       callbackEventId: d.slateTriggerEventId
     });
 
+    return toCallbackEvent(event);
+  }
+
+  async listCallbackEventsForScope(d: MetorialFacing<ListCallbackEventsForScopeParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+    return await this.listCallbackEventsForScopeInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listCallbackEventsForScopeInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCallbackEventsForScopeParams
+  ) {
+    let authorizedIds = await webhookEventService.resolveAuthorizedCallbackIdsInternal(d);
+    let authorizedSet = new Set(authorizedIds);
+    let callbackIds = d.input.callbackIds
+      ? d.input.callbackIds.filter(id => authorizedSet.has(id))
+      : authorizedIds;
+    let signalTenant = await getTenantForSignal(d.tenant);
+    let res = await signal.callback.listEvents({
+      tenantId: signalTenant.id,
+      callbackIds,
+      eventTypes: d.input.eventTypes,
+      callbackInstanceIds: d.input.callbackInstanceIds,
+      limit: d.input.limit,
+      after: d.input.after,
+      before: d.input.before,
+      cursor: d.input.cursor,
+      order: d.input.order
+    });
+
+    return {
+      object: res.object,
+      items: res.items.map(toCallbackEvent),
+      pagination: res.pagination
+    };
+  }
+
+  async getCallbackEventForScope(d: MetorialFacing<GetCallbackEventForScopeParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+    return await this.getCallbackEventForScopeInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCallbackEventForScopeInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCallbackEventForScopeParams
+  ) {
+    let signalTenant = await getTenantForSignal(d.tenant);
+    let event = await signal.callback.getEvent({
+      tenantId: signalTenant.id,
+      callbackEventId: d.callbackEventId
+    });
+    let authorizedIds = await webhookEventService.resolveAuthorizedCallbackIdsInternal(d);
+    if (!authorizedIds.includes(event.callbackId)) {
+      throw new ServiceError(notFoundError('callback.event', d.callbackEventId));
+    }
     return toCallbackEvent(event);
   }
 

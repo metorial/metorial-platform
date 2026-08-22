@@ -19,6 +19,7 @@ model Tenant {
   slateInstances                  SlateInstance[]
   slateOAuthCredentials           SlateOAuthCredentials[]
   slateAuthConfigs                SlateAuthConfig[]
+  slateCallbackConfigs            SlateCallbackConfig[]
   slateInstanceOAuthSetups        SlateInstanceOAuthSetup[]
   slateInstanceConfigs            SlateInstanceConfig[]
   slateInstanceEvents             SlateInstanceEvent[]

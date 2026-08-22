@@ -3,6 +3,8 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceCallbacksInstancesGetOutput = {
   object: 'callback.instance';
   id: string;
+  integrationInstanceId: string;
+  integrationInstanceProviderId: string;
   status: 'attached' | 'detached';
   registrationStatus:
     | 'pending'
@@ -713,6 +715,14 @@ export let mapDashboardInstanceCallbacksInstancesGetOutput =
   mtMap.object<DashboardInstanceCallbacksInstancesGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    integrationInstanceId: mtMap.objectField(
+      'integration_instance_id',
+      mtMap.passthrough()
+    ),
+    integrationInstanceProviderId: mtMap.objectField(
+      'integration_instance_provider_id',
+      mtMap.passthrough()
+    ),
     status: mtMap.objectField('status', mtMap.passthrough()),
     registrationStatus: mtMap.objectField(
       'registration_status',

@@ -8,6 +8,8 @@ let mocks = vi.hoisted(() => ({
   callbackDestinationLinkFindMany: vi.fn(),
   syncCallback: vi.fn(),
   getTenantForSignal: vi.fn(),
+  upsertByExternalId: vi.fn(),
+  deleteEventDestination: vi.fn(),
   rotateSigningSecret: vi.fn()
 }));
 
@@ -67,7 +69,13 @@ vi.mock('../signal', () => ({
   getInternalSignal: () => ({
     eventDestination: { rotateSigningSecret: mocks.rotateSigningSecret }
   }),
-  signal: { eventDestination: { get: vi.fn() } }
+  signal: {
+    eventDestination: {
+      get: vi.fn(),
+      upsertByExternalId: mocks.upsertByExternalId,
+      delete: mocks.deleteEventDestination
+    }
+  }
 }));
 
 import { callbackDestinationService } from './callbackDestination';
@@ -85,11 +93,27 @@ let createParams = (tenant: { oid: bigint; projectOid: bigint | null }) =>
 describe('Callback destination creation double-writes the mirrored project column', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.callbackDestinationCreate.mockResolvedValue({ oid: 700n, id: 'cbd_1' });
-    mocks.callbackDestinationUpdate.mockResolvedValue({ oid: 700n, id: 'cbd_1' });
+    mocks.callbackDestinationCreate.mockResolvedValue({
+      oid: 700n,
+      id: 'cbd_1',
+      name: 'Ops webhook',
+      description: null,
+      url: 'https://example.com/hooks/ops',
+      method: 'POST'
+    });
+    mocks.callbackDestinationUpdate.mockResolvedValue({
+      oid: 700n,
+      id: 'cbd_1',
+      name: 'Ops webhook',
+      description: null,
+      url: 'https://example.com/hooks/ops',
+      method: 'POST',
+      signalEventDestinationId: 'sgnl_dest_1'
+    });
     mocks.callbackDestinationFindFirstOrThrow.mockResolvedValue({ oid: 700n, id: 'cbd_1' });
     mocks.callbackDestinationLinkFindMany.mockResolvedValue([]);
     mocks.getTenantForSignal.mockResolvedValue({ id: 'signal_tenant_1' });
+    mocks.upsertByExternalId.mockResolvedValue({ id: 'sgnl_dest_1' });
     mocks.rotateSigningSecret.mockResolvedValue({
       eventDestinationId: 'sgnl_dest_1',
       signingSecret: 'metorial_whsec_rotated',
@@ -120,6 +144,21 @@ describe('Callback destination creation double-writes the mirrored project colum
   });
 
   it('does not touch the scoping columns when updating an existing destination', async () => {
+    mocks.callbackDestinationUpdate
+      .mockResolvedValueOnce({
+        oid: 700n,
+        id: 'cbd_1',
+        name: 'Renamed webhook',
+        description: null,
+        metadata: null,
+        url: 'https://example.com/hooks/new',
+        method: 'PATCH'
+      })
+      .mockResolvedValueOnce({
+        oid: 700n,
+        id: 'cbd_1',
+        signalEventDestinationId: 'sgnl_dest_1'
+      });
     await callbackDestinationService.updateCallbackDestinationInternal({
       tenant: { oid: 10n, projectOid: 20n },
       environment: { oid: 11n, instanceOid: 21n },
@@ -132,12 +171,53 @@ describe('Callback destination creation double-writes the mirrored project colum
         url: 'https://example.com/hooks/ops',
         method: 'POST'
       },
-      input: { name: 'Renamed webhook' }
+      input: {
+        name: 'Renamed webhook',
+        url: 'https://example.com/hooks/new',
+        method: 'PATCH'
+      }
     } as any);
 
     let data = mocks.callbackDestinationUpdate.mock.calls[0]![0].data;
     expect(data).not.toHaveProperty('tenantOid');
     expect(data).not.toHaveProperty('projectOid');
+    expect(mocks.upsertByExternalId).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalId: 'cbd_1',
+        variant: expect.objectContaining({
+          url: 'https://example.com/hooks/new',
+          method: 'PATCH'
+        })
+      })
+    );
+  });
+
+  it('archives a backing by its stable external id when the mirror id was not persisted', async () => {
+    let destination = {
+      oid: 700n,
+      id: 'cbd_1',
+      signalEventDestinationId: null
+    };
+    mocks.deleteEventDestination.mockResolvedValue({ id: destination.id });
+    mocks.callbackDestinationUpdate.mockResolvedValue({
+      ...destination,
+      status: 'archived'
+    });
+    mocks.callbackDestinationFindFirstOrThrow.mockResolvedValue({
+      ...destination,
+      status: 'archived'
+    });
+
+    await callbackDestinationService.archiveCallbackDestinationInternal({
+      tenant: { oid: 10n, projectOid: 20n },
+      environment: { oid: 11n, instanceOid: 21n },
+      callbackDestination: destination
+    } as any);
+
+    expect(mocks.deleteEventDestination).toHaveBeenCalledWith({
+      tenantId: 'signal_tenant_1',
+      eventDestinationId: destination.id
+    });
   });
 
   it('rotates a materialized Signal destination and returns plaintext once', async () => {
@@ -160,13 +240,13 @@ describe('Callback destination creation double-writes the mirrored project colum
       eventDestinationId: 'sgnl_dest_1'
     });
     expect(result).toEqual({
-      callbackDestinationId: 'cbd_1',
+      webhookDestinationId: 'cbd_1',
       signingSecret: 'metorial_whsec_rotated',
       rotatedAt: new Date('2026-08-21T12:00:00.000Z')
     });
   });
 
-  it('materializes linked callbacks before rotating an ordinary signing secret', async () => {
+  it('eagerly materializes an ordinary destination before rotating its signing secret', async () => {
     let destination = {
       oid: 700n,
       id: 'cbd_1',
@@ -174,13 +254,6 @@ describe('Callback destination creation double-writes the mirrored project colum
       signalEventDestinationId: null
     };
     mocks.callbackDestinationFindFirst.mockResolvedValue(destination);
-    mocks.callbackDestinationLinkFindMany.mockResolvedValue([
-      { callback: { id: 'callback_1' } }
-    ]);
-    mocks.callbackDestinationFindFirstOrThrow.mockResolvedValue({
-      ...destination,
-      signalEventDestinationId: 'sgnl_dest_1'
-    });
 
     await callbackDestinationService.rotateSigningSecretInternal({
       tenant: { oid: 10n, projectOid: 20n },
@@ -188,7 +261,10 @@ describe('Callback destination creation double-writes the mirrored project colum
       callbackDestination: destination
     } as any);
 
-    expect(mocks.syncCallback).toHaveBeenCalledWith({ callbackId: 'callback_1' });
+    expect(mocks.upsertByExternalId).toHaveBeenCalledWith(
+      expect.objectContaining({ externalId: 'cbd_1' })
+    );
+    expect(mocks.syncCallback).not.toHaveBeenCalled();
     expect(mocks.rotateSigningSecret).toHaveBeenCalledWith({
       tenantId: 'signal_tenant_1',
       eventDestinationId: 'sgnl_dest_1'
@@ -203,7 +279,7 @@ describe('Callback destination creation double-writes the mirrored project colum
       signalEventDestinationId: null
     };
     mocks.callbackDestinationFindFirst.mockResolvedValue(destination);
-    mocks.callbackDestinationFindFirstOrThrow.mockResolvedValue(destination);
+    mocks.upsertByExternalId.mockRejectedValue(new Error('Signal unavailable'));
 
     await expect(
       callbackDestinationService.rotateSigningSecretInternal({
@@ -211,7 +287,7 @@ describe('Callback destination creation double-writes the mirrored project colum
         environment: { oid: 11n, instanceOid: 21n },
         callbackDestination: destination
       } as any)
-    ).rejects.toThrow('has not been materialized');
+    ).rejects.toMatchObject({ data: { code: 'webhook_destination_not_materialized' } });
     expect(mocks.rotateSigningSecret).not.toHaveBeenCalled();
   });
 });

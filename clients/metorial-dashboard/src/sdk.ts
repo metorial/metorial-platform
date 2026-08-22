@@ -8,11 +8,9 @@ import {
   MetorialDashboardInstanceAgentsEndpoint,
   MetorialDashboardInstanceAgentsInstancesEndpoint,
   MetorialDashboardInstanceAssistantsEndpoint,
-  MetorialDashboardInstanceCallbacksDestinationsEndpoint,
   MetorialDashboardInstanceCallbacksEndpoint,
   MetorialDashboardInstanceCallbacksEventsEndpoint,
   MetorialDashboardInstanceCallbacksInstancesEndpoint,
-  MetorialDashboardInstanceCallbacksNotificationsEndpoint,
   MetorialDashboardInstanceConsumersEndpoint,
   MetorialDashboardInstanceConsumersProfilesEndpoint,
   MetorialDashboardInstanceConsumerSurfacesEndpoint,
@@ -47,6 +45,7 @@ import {
   MetorialDashboardInstanceIntegrationsInstancesEndpoint,
   MetorialDashboardInstanceIntegrationsInstancesProvidersEndpoint,
   MetorialDashboardInstanceIntegrationsProvidersEndpoint,
+  MetorialDashboardInstanceIntegrationsProvidersCallbackEndpoint,
   MetorialDashboardInstanceIntegrationsSetupSessionsEndpoint,
   MetorialDashboardInstanceMagicMcpEndpointsEndpoint,
   MetorialDashboardInstanceMagicMcpGroupsEndpoint,
@@ -142,6 +141,9 @@ import {
   MetorialDashboardInstanceStoresParticipantsEndpoint,
   MetorialDashboardInstanceStoresPermissionsEndpoint,
   MetorialDashboardInstanceToolCallsEndpoint,
+  MetorialDashboardInstanceWebhooksDestinationsEndpoint,
+  MetorialDashboardInstanceWebhooksDestinationsEventsEndpoint,
+  MetorialDashboardInstanceWebhooksEventsEndpoint,
   MetorialDashboardOauthAuthorizationRequestsEndpoint,
   MetorialDashboardOrganizationsAccessPoliciesEndpoint,
   MetorialDashboardOrganizationsAccessRolesEndpoint,
@@ -772,11 +774,19 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   ),
 
   callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
-    destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager),
     events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
-    notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
     instances: new MetorialDashboardInstanceCallbacksInstancesEndpoint(manager)
   }),
+
+  webhooks: {
+    destinations: Object.assign(
+      new MetorialDashboardInstanceWebhooksDestinationsEndpoint(manager),
+      {
+        events: new MetorialDashboardInstanceWebhooksDestinationsEventsEndpoint(manager)
+      }
+    ),
+    events: new MetorialDashboardInstanceWebhooksEventsEndpoint(manager)
+  },
 
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
     events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),
@@ -819,7 +829,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   ),
 
   integration: Object.assign(new MetorialDashboardInstanceIntegrationsEndpoint(manager), {
-    providers: new MetorialDashboardInstanceIntegrationsProvidersEndpoint(manager),
+    providers: Object.assign(
+      new MetorialDashboardInstanceIntegrationsProvidersEndpoint(manager),
+      {
+        callback: new MetorialDashboardInstanceIntegrationsProvidersCallbackEndpoint(manager)
+      }
+    ),
     instances: Object.assign(
       new MetorialDashboardInstanceIntegrationsInstancesEndpoint(manager),
       {

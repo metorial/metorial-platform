@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import {
   db,
   getId,
+  Prisma,
   withTransaction,
   type Callback,
   type CallbackInstance,
@@ -13,12 +14,16 @@ import {
   type ProviderConfig,
   type ProviderDeployment,
   type ProviderDeploymentVersion,
+  type IntegrationInstance,
+  type IntegrationInstanceProvider,
   type Tenant
 } from '@metorial-subspace/db';
 import {
   normalizeDateFilter,
   normalizeStatusForList,
   resolveCallbacks,
+  resolveIntegrationInstanceProviders,
+  resolveIntegrationInstances,
   resolveProviderAuthConfigs,
   resolveProviderConfigs,
   type DateFilter
@@ -30,8 +35,7 @@ import {
 import {
   getMetorialSolution,
   type MetorialFacing,
-  resolveMetorialFacing,
-  toProviderEventBase
+  resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
@@ -41,6 +45,8 @@ import { callbackService } from './callback';
 import { callbackRegistrationService } from './callbackRegistration';
 
 let callbackInstanceInclude = {
+  integrationInstance: true,
+  integrationInstanceProvider: true,
   providerDeploymentConfigPair: {
     include: {
       providerDeploymentVersion: {
@@ -78,6 +84,37 @@ let callbackInstanceInclude = {
   }
 };
 
+let callbackInstanceRegistrationReset = {
+  registrationStatus: 'pending' as const,
+  registrationGeneration: 0,
+  registrationTransitionVersion: 0,
+  registrationErrorCode: null,
+  registrationErrorMessage: null,
+  registrationErrorMetadata: Prisma.DbNull,
+  registrationErrorAt: null,
+  registrationPublicSnapshot: Prisma.DbNull,
+  registrationMirrorVersion: 0,
+  registrationReceiverAuthorityVersion: 0,
+  slateTriggerReceiverId: null,
+  lastSyncErrorCode: null,
+  lastSyncErrorMessage: null,
+  lastRegistrationSyncErrorCode: null,
+  lastRegistrationSyncErrorMessage: null,
+  lastRegistrationSyncErrorAt: null,
+  verificationMechanism: null,
+  verificationSpecHash: null
+};
+
+let callbackInstanceAttachConflict = () =>
+  new ServiceError(
+    badRequestError({
+      code: 'callback_instance_attach_conflict',
+      message: 'The callback instance changed while it was being attached.'
+    })
+  );
+
+let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
+
 export type GetCallbackInstanceParams = {
   callbackId: string;
   callbackInstanceId: string;
@@ -85,6 +122,8 @@ export type GetCallbackInstanceParams = {
 
 export type ListCallbackInstancesParams = {
   callbackIds?: string[];
+  integrationInstanceIds?: string[];
+  integrationInstanceProviderIds?: string[];
   ids?: string[];
   status?: ('attached' | 'detached')[];
   allowDeleted?: boolean;
@@ -94,7 +133,7 @@ export type ListCallbackInstancesParams = {
   updatedAt?: DateFilter;
 };
 
-export type AttachCallbackInstanceParams = {
+export type AttachCallbackInstanceInternalParams = {
   callback: Callback & {
     providerDeployment: ProviderDeployment & {
       id: string;
@@ -103,6 +142,8 @@ export type AttachCallbackInstanceParams = {
   };
   config: ProviderConfig;
   authConfig?: ProviderAuthConfig;
+  integrationInstance: IntegrationInstance;
+  integrationInstanceProvider: IntegrationInstanceProvider;
 };
 
 export type DetachCallbackInstanceParams = {
@@ -174,6 +215,11 @@ class callbackInstanceServiceImpl {
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     let callbacks = await resolveCallbacks(ts, d.callbackIds);
+    let integrationInstances = await resolveIntegrationInstances(ts, d.integrationInstanceIds);
+    let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
+      ts,
+      d.integrationInstanceProviderIds
+    );
     let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
 
@@ -183,9 +229,20 @@ class callbackInstanceServiceImpl {
           ...opts,
           where: {
             ...normalizeStatusForList(d).onlyParent,
+            callback: {
+              tenantOid: d.tenant.oid,
+              solutionOid: solution.oid,
+              environmentOid: d.environment.oid
+            },
 
             AND: [
               callbacks ? { callbackOid: callbacks.in } : undefined!,
+              integrationInstances
+                ? { integrationInstanceOid: integrationInstances.in }
+                : undefined!,
+              integrationInstanceProviders
+                ? { integrationInstanceProviderOid: integrationInstanceProviders.in }
+                : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
               d.status?.length ? { status: { in: d.status } } : undefined!,
               configs
@@ -216,29 +273,8 @@ class callbackInstanceServiceImpl {
     );
   }
 
-  async attach(d: MetorialFacing<AttachCallbackInstanceParams>) {
-    let { instance, organizationActor, ...rest } = d;
-    let scope = await resolveMetorialFacing(d);
-
-    let eventBase = toProviderEventBase(d);
-    await Fabric.fire('provider.callback_instance.attached:before', eventBase);
-
-    let callbackInstance = await this.attachInternal({
-      ...rest,
-      tenant: scope.tenant,
-      environment: scope.environment
-    });
-
-    await Fabric.fire('provider.callback_instance.attached:after', {
-      ...eventBase,
-      callbackInstance
-    });
-
-    return callbackInstance;
-  }
-
   async attachInternal(
-    d: { tenant: Tenant; environment: Environment } & AttachCallbackInstanceParams
+    d: { tenant: Tenant; environment: Environment } & AttachCallbackInstanceInternalParams
   ) {
     if (d.callback.status !== 'active') {
       throw new ServiceError(
@@ -252,6 +288,22 @@ class callbackInstanceServiceImpl {
     if (d.callback.providerDeployment.status !== 'active') {
       throw new ServiceError(
         notFoundError('provider.deployment', d.callback.providerDeployment.id)
+      );
+    }
+
+    if (
+      d.integrationInstanceProvider.integrationInstanceOid !== d.integrationInstance.oid ||
+      d.integrationInstanceProvider.integrationProviderOid !==
+        d.callback.integrationProviderOid ||
+      d.integrationInstanceProvider.integrationOid !== d.callback.integrationOid ||
+      d.integrationInstance.integrationOid !== d.callback.integrationOid
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_instance_integration_mismatch',
+          message:
+            'The integration instance provider does not belong to the callback integration provider.'
+        })
       );
     }
 
@@ -275,52 +327,124 @@ class callbackInstanceServiceImpl {
       }
     );
 
-    let callbackInstance = await db.callbackInstance.upsert({
+    let existing = await db.callbackInstance.findUnique({
       where: {
-        callbackOid_providerDeploymentConfigPairOid: {
+        callbackOid_integrationInstanceProviderOid: {
           callbackOid: d.callback.oid,
-          providerDeploymentConfigPairOid: pairRes.pair.oid
+          integrationInstanceProviderOid: d.integrationInstanceProvider.oid
         }
-      },
-      create: {
-        ...getId('callbackInstance'),
-        callbackOid: d.callback.oid,
-        providerDeploymentConfigPairOid: pairRes.pair.oid,
-        status: 'attached',
-        registrationStatus: 'pending'
-      },
-      update: {
-        status: 'attached'
-      },
-      include: callbackInstanceInclude
+      }
     });
+    if (
+      existing?.status === 'attached' &&
+      (existing.providerDeploymentConfigPairOid !== pairRes.pair.oid ||
+        existing.isParentDeleted)
+    ) {
+      await this.detachInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        callbackInstance: existing
+      });
+    }
+
+    existing = await db.callbackInstance.findUnique({
+      where: {
+        callbackOid_integrationInstanceProviderOid: {
+          callbackOid: d.callback.oid,
+          integrationInstanceProviderOid: d.integrationInstanceProvider.oid
+        }
+      }
+    });
+    let shouldResetRegistration =
+      !existing ||
+      existing.status !== 'attached' ||
+      existing.isParentDeleted ||
+      existing.providerDeploymentConfigPairOid !== pairRes.pair.oid;
+    if (
+      existing &&
+      !shouldResetRegistration &&
+      existing.integrationInstanceOid === d.integrationInstance.oid &&
+      !existing.isParentDeleted
+    ) {
+      await callbackRegistrationService.syncCallbackInstance({
+        callbackInstanceId: existing.id
+      });
+      return await this.getById({
+        callback: d.callback,
+        callbackInstanceId: existing.id
+      });
+    }
+
+    await Fabric.fire('provider.callback_instance.attached:before', {
+      callback: d.callback,
+      integrationInstanceProvider: d.integrationInstanceProvider
+    });
+    let callbackInstance;
+    if (!existing) {
+      try {
+        callbackInstance = await db.callbackInstance.create({
+          data: {
+            ...getId('callbackInstance'),
+            callbackOid: d.callback.oid,
+            integrationInstanceOid: d.integrationInstance.oid,
+            integrationInstanceProviderOid: d.integrationInstanceProvider.oid,
+            providerDeploymentConfigPairOid: pairRes.pair.oid,
+            status: 'attached',
+            registrationStatus: 'pending'
+          },
+          include: callbackInstanceInclude
+        });
+      } catch (error) {
+        if (!isUniqueConstraintError(error)) throw error;
+        throw callbackInstanceAttachConflict();
+      }
+    } else {
+      let updated = await db.callbackInstance.updateMany({
+        where: {
+          oid: existing.oid,
+          updatedAt: existing.updatedAt,
+          status: existing.status,
+          providerDeploymentConfigPairOid: existing.providerDeploymentConfigPairOid,
+          slateTriggerReceiverId: existing.slateTriggerReceiverId,
+          registrationReceiverAuthorityVersion: existing.registrationReceiverAuthorityVersion
+        },
+        data: {
+          status: 'attached',
+          isParentDeleted: false,
+          integrationInstanceOid: d.integrationInstance.oid,
+          providerDeploymentConfigPairOid: pairRes.pair.oid,
+          ...(shouldResetRegistration ? callbackInstanceRegistrationReset : {})
+        }
+      });
+      if (updated.count !== 1) throw callbackInstanceAttachConflict();
+      callbackInstance = await db.callbackInstance.findUniqueOrThrow({
+        where: { oid: existing.oid },
+        include: callbackInstanceInclude
+      });
+    }
 
     await callbackRegistrationService.syncCallbackInstance({
       callbackInstanceId: callbackInstance.id
     });
 
-    return await this.getById({
+    let attached = await this.getById({
       callback: d.callback,
       callbackInstanceId: callbackInstance.id
     });
+    await Fabric.fire('provider.callback_instance.attached:after', {
+      callbackInstance: attached
+    });
+    return attached;
   }
 
   async detach(d: MetorialFacing<DetachCallbackInstanceParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    let eventBase = toProviderEventBase(d);
-    await Fabric.fire('provider.callback_instance.detached:before', eventBase);
-
     let callbackInstance = await this.detachInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
-    });
-
-    await Fabric.fire('provider.callback_instance.detached:after', {
-      ...eventBase,
-      callbackInstance
     });
 
     return callbackInstance;
@@ -329,6 +453,10 @@ class callbackInstanceServiceImpl {
   async detachInternal(
     d: { tenant: Tenant; environment: Environment } & DetachCallbackInstanceParams
   ) {
+    if (d.callbackInstance.status !== 'attached') return d.callbackInstance;
+    await Fabric.fire('provider.callback_instance.detached:before', {
+      callbackInstance: d.callbackInstance
+    });
     let callback = await db.callback.findUniqueOrThrow({
       where: { oid: d.callbackInstance.callbackOid },
       select: { id: true }
@@ -344,22 +472,59 @@ class callbackInstanceServiceImpl {
       slatesTenantId: slatesTenant.id
     });
 
-    return await withTransaction(async db => {
+    let detached = await withTransaction(async db => {
       let now = new Date();
+      let transitioned = await db.callbackInstance.updateMany({
+        where: {
+          oid: d.callbackInstance.oid,
+          status: 'attached',
+          providerDeploymentConfigPairOid: d.callbackInstance.providerDeploymentConfigPairOid,
+          slateTriggerReceiverId: d.callbackInstance.slateTriggerReceiverId
+        },
+        data: {
+          status: 'detached',
+          registrationStatus: 'unregistered',
+          registrationGeneration: 0,
+          registrationTransitionVersion: 0,
+          registrationErrorCode: null,
+          registrationErrorMessage: null,
+          registrationErrorMetadata: Prisma.DbNull,
+          registrationErrorAt: null,
+          registrationPublicSnapshot: Prisma.DbNull,
+          registrationMirrorVersion: 0,
+          registrationReceiverAuthorityVersion: 0,
+          slateTriggerReceiverId: null,
+          lastSyncErrorCode: null,
+          lastSyncErrorMessage: null,
+          lastRegistrationSyncErrorCode: null,
+          lastRegistrationSyncErrorMessage: null,
+          lastRegistrationSyncErrorAt: null,
+          verificationMechanism: null,
+          verificationSpecHash: null,
+          lastSyncedAt: now
+        }
+      });
+      if (transitioned.count !== 1) return null;
       await tombstoneProvisionedTenantAppsForCallbackInTransaction(
         db,
         d.callbackInstance.oid,
         now
       );
-      return await db.callbackInstance.update({
+      return await db.callbackInstance.findUniqueOrThrow({
         where: { oid: d.callbackInstance.oid },
-        data: {
-          status: 'detached',
-          lastSyncedAt: now
-        },
         include: callbackInstanceInclude
       });
     });
+    if (!detached) {
+      return await db.callbackInstance.findUniqueOrThrow({
+        where: { oid: d.callbackInstance.oid },
+        include: callbackInstanceInclude
+      });
+    }
+    await Fabric.fire('provider.callback_instance.detached:after', {
+      callbackInstance: detached
+    });
+    return detached;
   }
 
   private assertPathSecretOwner(d: CallbackInstancePathSecretParams) {

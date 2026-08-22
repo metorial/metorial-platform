@@ -8,7 +8,7 @@ import {
   normalizeIdempotentEventHeaders,
   normalizeIdempotentEventTopics
 } from '@metorial-platform-systems/signal-protocol';
-import type { Callback, Sender, Tenant } from '../../prisma/generated/client';
+import type { Callback, EventStatus, Sender, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { newEventQueue } from '../queues/send/init';
@@ -285,7 +285,9 @@ export class eventServiceImpl {
     eventTypes?: string[];
     topics?: string[];
     senderIds?: string[];
-    callbackId?: string;
+    callbackIds?: string[];
+    statuses?: EventStatus[];
+    destinationIds?: string[];
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -299,7 +301,13 @@ export class eventServiceImpl {
               sender: d.senderIds
                 ? { OR: [{ id: { in: d.senderIds } }, { identifier: { in: d.senderIds } }] }
                 : undefined,
-              callback: d.callbackId ? { id: d.callbackId } : undefined
+              callback:
+                d.callbackIds !== undefined ? { id: { in: d.callbackIds } } : undefined,
+              status: d.statuses ? { in: d.statuses } : undefined,
+              intents:
+                d.destinationIds !== undefined
+                  ? { some: { destination: { id: { in: d.destinationIds } } } }
+                  : undefined
             },
             include
           })

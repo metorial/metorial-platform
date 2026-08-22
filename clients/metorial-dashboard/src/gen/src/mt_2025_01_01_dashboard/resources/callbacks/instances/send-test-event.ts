@@ -8,7 +8,13 @@ export type CallbacksInstancesSendTestEventOutput = {
   triggerKey: string;
   input: Record<string, any> | null;
   output: Record<string, any> | null;
-  status: 'pending' | 'processing' | 'retrying' | 'succeeded' | 'failed' | 'skipped';
+  status:
+    | 'pending'
+    | 'processing'
+    | 'retrying'
+    | 'succeeded'
+    | 'failed'
+    | 'skipped';
   error: { code: string | null; message: string | null } | null;
   deliveryStatus: 'pending' | 'sent' | 'failed' | 'skipped';
   callbackId: string;
@@ -35,7 +41,10 @@ export let mapCallbacksInstancesSendTestEventOutput =
     ),
     deliveryStatus: mtMap.objectField('delivery_status', mtMap.passthrough()),
     callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
-    callbackInstanceId: mtMap.objectField('callback_instance_id', mtMap.passthrough()),
+    callbackInstanceId: mtMap.objectField(
+      'callback_instance_id',
+      mtMap.passthrough()
+    ),
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
 
@@ -49,3 +58,4 @@ export let mapCallbacksInstancesSendTestEventBody =
     eventType: mtMap.objectField('event_type', mtMap.passthrough()),
     payload: mtMap.objectField('payload', mtMap.passthrough())
   });
+

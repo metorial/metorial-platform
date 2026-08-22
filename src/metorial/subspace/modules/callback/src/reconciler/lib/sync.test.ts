@@ -6,7 +6,9 @@ let mocks = vi.hoisted(() => ({
   callbackInstanceUpdate: vi.fn(),
   callbackInstanceUpdateMany: vi.fn(),
   loadFreshCallback: vi.fn(),
+  loadFreshCallbackInstance: vi.fn(),
   isCallbackSupported: vi.fn(),
+  isPairUsable: vi.fn(),
   signalCallbackUpsert: vi.fn(),
   signalCallbackArchive: vi.fn(),
   registrationDelete: vi.fn(),
@@ -22,7 +24,11 @@ vi.mock('@metorial-subspace/db', () => ({
       updateMany: mocks.callbackInstanceUpdateMany
     }
   },
-  withTransaction: vi.fn()
+  withTransaction: vi.fn(async callback =>
+    await callback({
+      callbackInstance: { update: mocks.callbackInstanceUpdate }
+    })
+  )
 }));
 
 vi.mock('@metorial-subspace/module-auth', () => ({
@@ -54,17 +60,18 @@ vi.mock('./state', () => ({
   TRIGGER_PAGE_SIZE: 100,
   getTenantForSlatesCached: vi.fn(),
   isCallbackSupported: mocks.isCallbackSupported,
-  isPairUsable: vi.fn(),
+  isPairUsable: mocks.isPairUsable,
   loadCallback: vi.fn(),
   loadFreshCallback: mocks.loadFreshCallback,
   loadCallbackInstance: vi.fn(),
-  loadFreshCallbackInstance: vi.fn()
+  loadFreshCallbackInstance: mocks.loadFreshCallbackInstance
 }));
 
 import {
   applyCallbackRegistrationMirror,
   buildCallbackRegistrationMirror,
   detachRegistration,
+  syncCallbackInstance,
   syncSignalCallback
 } from './sync';
 
@@ -137,6 +144,7 @@ beforeEach(() => {
   });
   mocks.callbackInstanceUpdateMany.mockResolvedValue({ count: 1 });
   mocks.isCallbackSupported.mockReturnValue(true);
+  mocks.isPairUsable.mockReturnValue(true);
   mocks.signalCallbackUpsert.mockResolvedValue({
     destinations: [{ destination: { externalId: 'destination_1', id: 'signal_1' } }]
   });
@@ -231,6 +239,41 @@ describe('callback teardown', () => {
         data: expect.objectContaining({
           lastRegistrationSyncErrorCode: 'registration_sync_failed'
         })
+      })
+    );
+  });
+
+  it('detaches a projection whose integration provider lifecycle is no longer usable', async () => {
+    mocks.loadFreshCallbackInstance.mockResolvedValue({
+      oid: 100n,
+      id: 'instance_1',
+      status: 'attached',
+      slateTriggerReceiverId: null,
+      callback: callback({
+        callbackProviderTriggers: [{ providerTrigger: { specId: 'trigger_1' }, eventTypes: [] }]
+      }),
+      integrationInstance: {
+        status: 'active',
+        isParentDeleted: false
+      },
+      integrationInstanceProvider: {
+        status: 'archived',
+        isParentDeleted: false
+      },
+      providerDeploymentConfigPair: {}
+    });
+
+    await syncCallbackInstance({
+      callbackInstanceId: 'instance_1',
+      fresh: true,
+      skipSignalSync: true,
+      throwOnError: true
+    });
+
+    expect(mocks.callbackInstanceUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { oid: 100n },
+        data: expect.objectContaining({ status: 'detached' })
       })
     );
   });

@@ -1,0 +1,22 @@
+model SlateCallbackConfig {
+  oid BigInt @id
+  id  String @unique
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  callbackConfigUpdateOid BigInt?
+  callbackConfigUpdate    CallbackConfigUpdate? @relation(fields: [callbackConfigUpdateOid], references: [oid])
+
+  callbackConfigVersion CallbackConfigVersion?
+
+  createdAt DateTime @default(now())
+
+  @@index([projectOid])
+}

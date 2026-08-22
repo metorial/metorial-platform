@@ -449,13 +449,21 @@ export let syncCallbackInstance = async (d: {
       : {})
   }));
   let pairUsable = isPairUsable(callbackInstance.providerDeploymentConfigPair);
+  let integrationLifecycleUsable =
+    callbackInstance.integrationInstanceProvider.status === 'active' &&
+    !callbackInstance.integrationInstanceProvider.isParentDeleted &&
+    (callbackInstance.integrationInstance.status === 'active' ||
+      callbackInstance.integrationInstance.status === 'draft') &&
+    !callbackInstance.integrationInstance.isParentDeleted;
   let shouldDetachInstance =
-    callbackInstance.status === 'attached' && (callback.status !== 'active' || !pairUsable);
+    callbackInstance.status === 'attached' &&
+    (callback.status !== 'active' || !pairUsable || !integrationLifecycleUsable);
 
   if (
     callbackInstance.status !== 'attached' ||
     !isCallbackSupported(callback) ||
     !pairUsable ||
+    !integrationLifecycleUsable ||
     !providerTriggerInputs.length
   ) {
     if (callbackInstance.slateTriggerReceiverId) {
@@ -507,6 +515,10 @@ export let syncCallbackInstance = async (d: {
     let authConfigId =
       callbackInstance.providerDeploymentConfigPair.providerAuthConfigVersion?.slateAuthConfig
         ?.id ?? null;
+    let callbackConfigId =
+      callback.callbackConfig?.status === 'active'
+        ? callback.callbackConfig.currentVersion?.slateCallbackConfig?.id
+        : undefined;
     let upsertInput = {
       tenantId: slatesTenant.id,
       callbackId: callback.id,
@@ -515,6 +527,7 @@ export let syncCallbackInstance = async (d: {
       expectedOwnerVersion: callbackInstance.registrationReceiverAuthorityVersion,
       slateInstanceId,
       authConfigId,
+      callbackConfigId,
       triggers: providerTriggerInputs,
       name: `Callback ${callback.id}`
     };
@@ -526,6 +539,7 @@ export let syncCallbackInstance = async (d: {
         callbackInstanceId: upsertInput.callbackInstanceId,
         slateInstanceId: upsertInput.slateInstanceId,
         authConfigId: upsertInput.authConfigId,
+        callbackConfigId: upsertInput.callbackConfigId ?? null,
         name: upsertInput.name,
         description: null,
         triggers: upsertInput.triggers

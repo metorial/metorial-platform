@@ -24,6 +24,8 @@
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-subspace/provider-slates": "^1.0.0",
+    "@metorial-subspace/provider": "^1.0.0",
+    "@metorial-subspace/provider-utils": "^1.0.0",
     "@metorial-platform-systems/signal-client": "workspace:*",
     "@lowerdeck/validation": "workspace:2.0.0"
   },

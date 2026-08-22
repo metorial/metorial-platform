@@ -37,6 +37,7 @@ model Instance {
   agents                                   Agent[]
   agentClients                             AgentClient[]
   callbacks                                Callback[]
+  callbackConfigs                          CallbackConfig[]
   customProviderEnvironments               CustomProviderEnvironment[]
   customProviderEnvironmentVersions        CustomProviderEnvironmentVersion[]
   enclaves                                 Enclave[]

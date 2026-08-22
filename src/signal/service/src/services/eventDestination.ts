@@ -11,12 +11,14 @@ import type {
   EventDestination,
   EventDestinationInstance,
   EventRetryType,
+  Prisma,
   Sender,
   Tenant,
   WebhookMethod
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId, snowflake } from '../id';
+import { senderService } from './sender';
 
 let include = {
   currentInstance: {
@@ -24,9 +26,188 @@ let include = {
       webhook: true
     }
   }
+} as const;
+
+type MaterializedEventDestination = Prisma.EventDestinationGetPayload<{
+  include: typeof include;
+}>;
+
+export type CallbackEventDestinationInput = {
+  externalId: string;
+  name: string;
+  description?: string | null;
+  eventTypes?: string[] | null;
+  retry?: {
+    type: EventRetryType;
+    delaySeconds: number;
+    maxAttempts: number;
+  };
+  variant: {
+    type: 'http_endpoint';
+    url: string;
+    method: WebhookMethod;
+  };
 };
 
+let CALLBACK_SENDER = {
+  identifier: 'callbacks',
+  name: 'Callbacks'
+};
+
+let arraysEqual = (left: string[], right: string[]) =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
+
 class eventDestinationServiceImpl {
+  async upsertCallbackDestinationByExternalId(d: {
+    input: CallbackEventDestinationInput;
+    tenant: Tenant;
+    sender?: Sender;
+    prisma?: Parameters<Parameters<typeof db.$transaction>[0]>[0];
+  }): Promise<MaterializedEventDestination> {
+    let sender = d.sender ?? (await senderService.upsertSender({ input: CALLBACK_SENDER }));
+    if (!d.prisma) {
+      return await db.$transaction(
+        async prisma =>
+          await this.upsertCallbackDestinationByExternalId({
+            ...d,
+            sender,
+            prisma
+          })
+      );
+    }
+    let prisma = d.prisma;
+    let ownership = await prisma.eventDestination.findFirst({
+      where: { externalId: d.input.externalId },
+      select: { tenantOid: true, senderOid: true, isCallbackDestination: true }
+    });
+    if (
+      ownership &&
+      (ownership.tenantOid !== d.tenant.oid ||
+        ownership.senderOid !== sender.oid ||
+        !ownership.isCallbackDestination)
+    ) {
+      throw new ServiceError(
+        badRequestError({ message: 'Webhook destination ownership is invalid.' })
+      );
+    }
+
+    let existing = await prisma.eventDestination.findFirst({
+      where: {
+        externalId: d.input.externalId,
+        tenantOid: d.tenant.oid,
+        senderOid: sender.oid,
+        isCallbackDestination: true
+      },
+      include
+    });
+
+    if (!existing) {
+      let destinationId = getId('eventDestination');
+      let webhook = await prisma.webhookDestinationWebhook.create({
+        data: {
+          ...getId('eventDestinationWebhook'),
+          url: d.input.variant.url,
+          method: d.input.variant.method,
+          signingSecret: generateCustomId('metorial_whsec_', 50),
+          tenantOid: d.tenant.oid
+        }
+      });
+      let destination = await prisma.eventDestination.create({
+        data: {
+          ...destinationId,
+          id: d.input.externalId,
+          externalId: d.input.externalId,
+          status: 'active',
+          isCallbackDestination: true,
+          type: 'http_endpoint',
+          eventTypes: d.input.eventTypes ?? [],
+          hasEventTypesFilter: !!d.input.eventTypes?.length,
+          name: d.input.name,
+          description: d.input.description,
+          retryType: d.input.retry?.type ?? 'linear',
+          retryDelaySeconds: d.input.retry?.delaySeconds ?? 30,
+          retryMaxAttempts: d.input.retry?.maxAttempts ?? 5,
+          tenantOid: d.tenant.oid,
+          senderOid: sender.oid
+        }
+      });
+      let instance = await prisma.eventDestinationInstance.create({
+        data: {
+          oid: snowflake.nextId(),
+          type: 'http_endpoint',
+          webhookOid: webhook.oid,
+          destinationOid: destination.oid
+        }
+      });
+      return await prisma.eventDestination.update({
+        where: { oid: destination.oid },
+        data: { currentInstanceOid: instance.oid },
+        include
+      });
+    }
+
+    let eventTypes = d.input.eventTypes ?? [];
+    let retryType = d.input.retry?.type ?? existing.retryType;
+    let retryDelaySeconds = d.input.retry?.delaySeconds ?? existing.retryDelaySeconds;
+    let retryMaxAttempts = d.input.retry?.maxAttempts ?? existing.retryMaxAttempts;
+    let description =
+      d.input.description === undefined ? existing.description : d.input.description;
+    if (
+      existing.status === 'active' &&
+      existing.isCallbackDestination &&
+      existing.senderOid === sender.oid &&
+      existing.name === d.input.name &&
+      existing.description === description &&
+      arraysEqual(existing.eventTypes, eventTypes) &&
+      existing.hasEventTypesFilter === eventTypes.length > 0 &&
+      existing.retryType === retryType &&
+      existing.retryDelaySeconds === retryDelaySeconds &&
+      existing.retryMaxAttempts === retryMaxAttempts &&
+      existing.currentInstance?.type === d.input.variant.type &&
+      existing.currentInstance.webhook?.url === d.input.variant.url &&
+      existing.currentInstance.webhook.method === d.input.variant.method
+    ) {
+      return existing;
+    }
+
+    let webhook = await prisma.webhookDestinationWebhook.create({
+      data: {
+        ...getId('eventDestinationWebhook'),
+        url: d.input.variant.url,
+        method: d.input.variant.method,
+        signingSecret:
+          existing.currentInstance?.webhook?.signingSecret ??
+          generateCustomId('metorial_whsec_', 50),
+        tenantOid: existing.tenantOid
+      }
+    });
+    let instance = await prisma.eventDestinationInstance.create({
+      data: {
+        oid: snowflake.nextId(),
+        type: d.input.variant.type,
+        webhookOid: webhook.oid,
+        destinationOid: existing.oid
+      }
+    });
+    return await prisma.eventDestination.update({
+      where: { oid: existing.oid },
+      data: {
+        status: 'active',
+        isCallbackDestination: true,
+        senderOid: sender.oid,
+        name: d.input.name,
+        description,
+        eventTypes,
+        hasEventTypesFilter: eventTypes.length > 0,
+        retryType: d.input.retry?.type,
+        retryDelaySeconds: d.input.retry?.delaySeconds,
+        retryMaxAttempts: d.input.retry?.maxAttempts,
+        currentInstanceOid: instance.oid
+      },
+      include
+    });
+  }
+
   async createEventDestination(d: {
     input: {
       externalId?: string;
@@ -284,8 +465,8 @@ class eventDestinationServiceImpl {
       if (!webhook) {
         throw new ServiceError(
           preconditionFailedError({
-            code: 'callback_destination_not_materialized',
-            message: 'The callback destination has not been materialized in Signal.'
+            code: 'webhook_destination_not_materialized',
+            message: 'The webhook destination has not been materialized in Signal.'
           })
         );
       }
