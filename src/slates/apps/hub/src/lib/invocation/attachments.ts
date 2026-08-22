@@ -1,14 +1,11 @@
-import { getSentry } from '@lowerdeck/sentry';
 import { addDays } from 'date-fns';
 import { PublicUrlPurpose } from 'object-storage-client';
 import type { SlateAttachment, SlateInvocation } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId } from '../../id';
+import { slateAttachmentReplicateQueue } from '../../queues/attachment/replicate';
 import { invocationsBucketRecord, storage } from '../../storage';
-import { AttachmentDownloadTooLargeError, downloadUrlToStream } from '../network/ssrfDownload';
 import { getAttachmentStorageKey, getStoredAttachmentsStorageKey } from './store';
-
-let Sentry = getSentry();
 
 export type SlateToolCallAttachment = {
   content:
@@ -26,12 +23,19 @@ export type SlateToolCallAttachment = {
 };
 
 let ATTACHMENT_EXPIRATION_DAYS = 7;
-let ATTACHMENT_MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024;
 
 let presentStoredAttachment = async (d: {
   attachment: SlateAttachment;
   mimeType?: string;
 }) => {
+  if (d.attachment.sourceUrl) {
+    return {
+      type: 'url' as const,
+      url: d.attachment.sourceUrl,
+      mimeType: d.mimeType
+    };
+  }
+
   let storageKey = getAttachmentStorageKey(d.attachment);
   let url = await storage.getPublicURL(
     invocationsBucketRecord.bucket,
@@ -98,50 +102,28 @@ export let ensureSlateInvocationAttachment = async (d: {
       };
     }
 
-    try {
-      let { stream, mimeType } = await downloadUrlToStream({
-        url: d.content.url,
-        maxBytes: ATTACHMENT_MAX_DOWNLOAD_BYTES
-      });
-
-      let attachmentId = getId('slateAttachment');
-      let storageKey = getStoredAttachmentsStorageKey(attachmentId.id);
-
-      await storage.putObject(
-        invocationsBucketRecord.bucket,
-        storageKey,
-        stream,
-        d.mimeType ?? mimeType ?? 'application/octet-stream'
-      );
-
-      let attachment = await db.slateAttachment.create({
-        data: {
-          ...attachmentId,
-          digest: null,
-          tenantOid: d.tenantOid,
-          slateOid: d.slateOid,
-          attachmentHash: d.attachmentHash ?? null,
-          expiresAt: addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS),
-          lastCreatedAt: new Date()
-        }
-      });
-
-      await linkInvocationToAttachment({ invocation: d.invocation, attachment });
-
-      return presentStoredAttachment({ attachment, mimeType: d.mimeType });
-    } catch (err) {
-      if (!(err instanceof AttachmentDownloadTooLargeError)) {
-        Sentry.captureException(err, {
-          extra: { invocationOid: d.invocation.oid, url: d.content.url }
-        });
+    let attachment = await db.slateAttachment.create({
+      data: {
+        ...getId('slateAttachment'),
+        digest: null,
+        tenantOid: d.tenantOid,
+        slateOid: d.slateOid,
+        attachmentHash: d.attachmentHash ?? null,
+        sourceUrl: d.content.url,
+        expiresAt: addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS),
+        lastCreatedAt: new Date()
       }
+    });
 
-      return {
-        type: 'url' as const,
-        url: d.content.url,
-        mimeType: d.mimeType
-      };
-    }
+    await linkInvocationToAttachment({ invocation: d.invocation, attachment });
+
+    await slateAttachmentReplicateQueue.add({
+      attachmentId: attachment.id,
+      url: d.content.url,
+      mimeType: d.mimeType
+    });
+
+    return presentStoredAttachment({ attachment, mimeType: d.mimeType });
   }
 
   let contentBuffer = Buffer.from(d.content.content, d.content.encoding);

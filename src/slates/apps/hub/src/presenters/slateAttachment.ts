@@ -31,6 +31,13 @@ let getStoredAttachments = async (invocation: InvocationWithStoredAttachments) =
 };
 
 export let slateStoredAttachmentPresenter = async (attachment: SlateAttachment) => {
+  if (attachment.sourceUrl) {
+    return {
+      type: 'url' as const,
+      url: attachment.sourceUrl
+    };
+  }
+
   let storageKey = getAttachmentStorageKey(attachment);
   let url = await storage.getPublicURL(
     invocationsBucketRecord.bucket,
