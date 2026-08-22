@@ -77,7 +77,8 @@ export let slateSessionToolCallController = app.controller({
               description: v.optional(v.string()),
               metadata: v.optional(v.record(v.any()))
             })
-          )
+          ),
+          downloadUrlAttachments: v.optional(v.boolean())
         })
       )
     )
@@ -91,7 +92,8 @@ export let slateSessionToolCallController = app.controller({
           enclaveId: ctx.input.enclaveId,
           egressPolicy: ctx.input.egressPolicy,
           input: ctx.input.input,
-          participants: ctx.input.participants
+          participants: ctx.input.participants,
+          downloadUrlAttachments: ctx.input.downloadUrlAttachments
         }
       });
 

@@ -48,6 +48,7 @@ model Slate {
   changeNotifications       ChangeNotification[]
   slateErrors               SlateError[]
   slateAdapters             SlateAdapter[]
+  slateAttachments          SlateAttachment[]
 
   @@unique([registryOid, slateIdOnRegistry])
   @@unique([registryOid, slateFullIdentifierOnRegistry])

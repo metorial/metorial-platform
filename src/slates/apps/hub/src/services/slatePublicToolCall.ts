@@ -34,6 +34,7 @@ class slatePublicToolCallServiceImpl {
       egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
       participants: SlatesParticipant[];
+      downloadUrlAttachments?: boolean;
     };
   }) {
     let tenant = await db.tenant.findFirst({
@@ -62,7 +63,11 @@ class slatePublicToolCallServiceImpl {
       include: { specification: true }
     });
     if (!version) throw new ServiceError(notFoundError('slate.version'));
-    if (version.status !== 'active' || !version.activeDeploymentOid || !version.specification) {
+    if (
+      version.status !== 'active' ||
+      !version.activeDeploymentOid ||
+      !version.specification
+    ) {
       throw new ServiceError(
         badRequestError({ message: 'Provider version has not been deployed yet.' })
       );
@@ -141,7 +146,11 @@ class slatePublicToolCallServiceImpl {
         ensureSlateInvocationAttachment({
           content: attachment.content,
           mimeType: attachment.mimeType,
-          invocation: callRes.invocation
+          attachmentHash: (attachment as { attachmentHash?: string }).attachmentHash,
+          invocation: callRes.invocation,
+          tenantOid: tenant.oid,
+          slateOid: slate.oid,
+          downloadUrlAttachments: d.input.downloadUrlAttachments
         })
       )
     );

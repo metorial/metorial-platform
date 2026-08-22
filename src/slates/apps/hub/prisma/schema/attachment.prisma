@@ -2,7 +2,18 @@ model SlateAttachment {
   oid BigInt @id
   id  String @unique
 
-  digest Bytes @unique
+  // Content-addressed dedup key. Null for URL-downloaded attachments, where we stream
+  // straight into storage without buffering the whole body to compute a digest.
+  digest Bytes? @unique
+
+  // Caller-supplied stable identifier for the underlying attachment (e.g. `slack:file:F123`),
+  // scoped to a tenant + slate so a repeated tool call referencing the same file reuses the
+  // stored copy instead of re-downloading/re-uploading it.
+  tenantOid      BigInt?
+  tenant         Tenant? @relation(fields: [tenantOid], references: [oid])
+  slateOid       BigInt?
+  slate          Slate?  @relation(fields: [slateOid], references: [oid])
+  attachmentHash String?
 
   createdAt     DateTime @default(now())
   expiresAt     DateTime
@@ -10,5 +21,6 @@ model SlateAttachment {
 
   slateInvocationAttachments SlateInvocationAttachment[]
 
+  @@unique([tenantOid, slateOid, attachmentHash])
   @@index([expiresAt])
 }

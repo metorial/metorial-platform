@@ -2,7 +2,7 @@ import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
-import { getStoredAttachmentsStorageKey } from '../../lib/invocation/store';
+import { getAttachmentStorageKey } from '../../lib/invocation/store';
 import { invocationsBucketRecord, storage } from '../../storage';
 import { RETENTION_BATCH_SIZE, retentionStorageCleanupWorkerOpts } from '../retention/_config';
 
@@ -45,7 +45,7 @@ export let slateAttachmentCleanupManyQueueProcessor = slateAttachmentCleanupMany
     await slateAttachmentCleanupSingleQueue.addMany(
       attachments.map(attachment => ({
         attachmentId: attachment.id,
-        digest: Buffer.from(attachment.digest).toString('hex')
+        digest: attachment.digest ? Buffer.from(attachment.digest).toString('hex') : null
       }))
     );
 
@@ -57,7 +57,7 @@ export let slateAttachmentCleanupManyQueueProcessor = slateAttachmentCleanupMany
 
 export let slateAttachmentCleanupSingleQueue = createQueue<{
   attachmentId: string;
-  digest: string;
+  digest: string | null;
 }>({
   name: 'shub/att/cleanup/single',
   redisUrl: env.service.REDIS_URL,
@@ -97,18 +97,23 @@ export let slateAttachmentCleanupSingleQueueProcessor =
       }
     }
 
-    let isDigestStillTracked = await db.slateAttachment.findFirst({
-      where: {
-        digest: Buffer.from(data.digest, 'hex')
-      },
-      select: {
-        oid: true
-      }
-    });
-    if (isDigestStillTracked) return;
+    if (data.digest) {
+      let isDigestStillTracked = await db.slateAttachment.findFirst({
+        where: {
+          digest: Buffer.from(data.digest, 'hex')
+        },
+        select: {
+          oid: true
+        }
+      });
+      if (isDigestStillTracked) return;
+    }
 
     await storage.deleteObject(
       invocationsBucketRecord.bucket,
-      getStoredAttachmentsStorageKey(data.digest)
+      getAttachmentStorageKey({
+        id: data.attachmentId,
+        digest: data.digest ? Buffer.from(data.digest, 'hex') : null
+      })
     );
   });

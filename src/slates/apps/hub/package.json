@@ -97,6 +97,7 @@
     "@types/unzipper": "^0.10.11",
     "date-fns": "^4.1.0",
     "hono": "4.12.23",
+    "ipaddr.js": "^2.3.0",
     "jszip": "^3.10.1",
     "lodash": "4.17.21",
     "object-storage-client": "^0.2.5",

@@ -48,6 +48,7 @@ class slateSessionToolCallServiceImpl {
       egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
       participants: SlatesParticipant[];
+      downloadUrlAttachments?: boolean;
     };
   }) {
     let session = await db.slateSession.findFirst({
@@ -237,7 +238,11 @@ class slateSessionToolCallServiceImpl {
         ensureSlateInvocationAttachment({
           content: attachment.content,
           mimeType: attachment.mimeType,
-          invocation: callRes.invocation
+          attachmentHash: (attachment as { attachmentHash?: string }).attachmentHash,
+          invocation: callRes.invocation,
+          tenantOid: session.tenantOid,
+          slateOid: session.slateOid,
+          downloadUrlAttachments: d.input.downloadUrlAttachments
         })
       )
     );

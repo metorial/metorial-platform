@@ -28,4 +28,5 @@ model Tenant {
   slateTriggerReceivers       SlateTriggerReceiver[]
   slateErrors                 SlateError[]
   slateInstanceConfigurations SlateInstanceConfiguration[]
+  slateAttachments            SlateAttachment[]
 }
