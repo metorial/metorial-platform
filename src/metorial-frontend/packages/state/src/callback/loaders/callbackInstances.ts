@@ -58,27 +58,3 @@ export let useCallbackInstances = (
 
   return data;
 };
-
-export let callbackInstanceLoader = createLoader({
-  name: 'callbackInstance',
-  parents: [callbackInstancesLoader],
-  fetch: (i: { instanceId: string; callbackId: string; callbackInstanceId: string }) =>
-    withAuth(sdk =>
-      sdk.callbacks.instances.get(i.instanceId, i.callbackId, i.callbackInstanceId)
-    ),
-  mutators: {}
-});
-
-export let useCallbackInstance = (
-  instanceId: string | null | undefined,
-  callbackId: string | null | undefined,
-  callbackInstanceId: string | null | undefined
-) => {
-  let data = callbackInstanceLoader.use(
-    instanceId && callbackId && callbackInstanceId
-      ? { instanceId, callbackId, callbackInstanceId }
-      : null
-  );
-
-  return data;
-};

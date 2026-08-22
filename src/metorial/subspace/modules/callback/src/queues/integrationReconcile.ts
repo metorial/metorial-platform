@@ -22,7 +22,6 @@ let PAGE_SIZE = 250;
 export type CallbackIntegrationReconcileInput =
   | {
       integrationInstanceProviderId: string;
-      targetVersionId?: string;
       archived?: boolean;
     }
   | {

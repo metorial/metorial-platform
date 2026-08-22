@@ -15,8 +15,7 @@ export let registerIntegrationLifecycleHooks = () => {
     'provider.integration_instance_provider.version_changed:after',
     async event => {
       await callbackIntegrationReconcileQueue.add({
-        integrationInstanceProviderId: event.integrationInstanceProviderId,
-        targetVersionId: event.toVersionId
+        integrationInstanceProviderId: event.integrationInstanceProviderId
       });
     }
   );

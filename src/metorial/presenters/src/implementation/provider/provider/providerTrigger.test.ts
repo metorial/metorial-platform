@@ -92,11 +92,11 @@ describe('v1ProviderTriggerPresenter I1 callback contract', () => {
     expect(JSON.stringify(result)).not.toMatch(/ciphertext|plaintext|secretVersion|receipt/i);
   });
 
-  it('normalizes legacy rows without invocation.http to explicit null verification', async () => {
-    let legacy = trigger();
-    delete (legacy.invocation as { http?: unknown }).http;
+  it('presents rows created before invocation.http was stored without inventing verification', async () => {
+    let missingHttp = trigger();
+    delete (missingHttp.invocation as { http?: unknown }).http;
 
-    await expect(present(legacy)).resolves.toMatchObject({
+    await expect(present(missingHttp)).resolves.toMatchObject({
       invocation: { type: 'webhook', http: { verification: null } }
     });
   });

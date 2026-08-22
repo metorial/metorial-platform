@@ -1,123 +1,7 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
-import { canonicalizeJsonJcs } from '@slates/proto';
 import type { WebhookWireRequest } from './webhookWire';
 
 export let DEFAULT_WEBHOOK_BODY_LIMIT_BYTES = 1024 * 1024;
 export let GLOBAL_WEBHOOK_BODY_LIMIT_BYTES = 10 * 1024 * 1024;
-
-export let WEBHOOK_CAPTURE_CONFORMANCE_CASES = [
-  'unique_mixed_case_headers',
-  'case_variant_duplicate_name',
-  'ordered_duplicate_headers',
-  'comma_containing_single_value',
-  'repeated_query_parameters',
-  'binary_body',
-  'absent_body',
-  'present_empty_body'
-] as const;
-
-export type WebhookCaptureConformanceReport = {
-  version: 1;
-  reportId: string;
-  deploymentId: string;
-  runtime: string;
-  buildId: string;
-  route: string;
-  configDigest: string;
-  rawHeaderSource: 'native';
-  executedAt: string;
-  expiresAt: string;
-  cases: Record<(typeof WEBHOOK_CAPTURE_CONFORMANCE_CASES)[number], 'passed' | 'failed'>;
-  attestation: {
-    scheme: 'slates_hub_service_auth_hmac_sha256_v1';
-    actorId: 'slates_hub_internal_service';
-    signature: string;
-  };
-};
-export type UnsignedWebhookCaptureConformanceReport = Omit<
-  WebhookCaptureConformanceReport,
-  'attestation'
->;
-
-let conformanceAttestationPayload = (report: UnsignedWebhookCaptureConformanceReport) =>
-  `metorial.webhook-capture-conformance\0v1\0${canonicalizeJsonJcs(report)}`;
-
-export let attestWebhookCaptureConformanceReport = (
-  report: UnsignedWebhookCaptureConformanceReport,
-  serviceAuthSecret: string
-): WebhookCaptureConformanceReport => ({
-  ...report,
-  attestation: {
-    scheme: 'slates_hub_service_auth_hmac_sha256_v1',
-    actorId: 'slates_hub_internal_service',
-    signature: createHmac('sha256', serviceAuthSecret)
-      .update(conformanceAttestationPayload(report))
-      .digest('hex')
-  }
-});
-
-export let validateWebhookCaptureConformanceReport = (
-  value: string | undefined,
-  deploymentId: string | undefined,
-  options?: {
-    buildId?: string;
-    route?: string;
-    configDigest?: string;
-    serviceAuthSecret?: string;
-    now?: Date;
-    usedReportIds?: Set<string>;
-  }
-) => {
-  if (
-    !value ||
-    !deploymentId ||
-    !options?.serviceAuthSecret ||
-    !options.buildId ||
-    !options.route ||
-    !options.configDigest
-  )
-    return false;
-  try {
-    let report = JSON.parse(value) as WebhookCaptureConformanceReport;
-    if (
-      report.version === 1 &&
-      typeof report.reportId === 'string' &&
-      report.reportId.length >= 16 &&
-      report.deploymentId === deploymentId &&
-      report.buildId === options.buildId &&
-      report.route === options.route &&
-      report.configDigest === options.configDigest &&
-      // Hub currently has no authenticated gateway-envelope implementation. A deployment
-      // report may only enable direct ingress when the runtime itself supplied raw tuples.
-      report.rawHeaderSource === 'native' &&
-      Number.isFinite(new Date(report.executedAt).getTime()) &&
-      Number.isFinite(new Date(report.expiresAt).getTime()) &&
-      new Date(report.executedAt) <= (options.now ?? new Date()) &&
-      new Date(report.expiresAt) > (options.now ?? new Date()) &&
-      report.attestation?.scheme === 'slates_hub_service_auth_hmac_sha256_v1' &&
-      report.attestation.actorId === 'slates_hub_internal_service' &&
-      WEBHOOK_CAPTURE_CONFORMANCE_CASES.every(name => report.cases?.[name] === 'passed')
-    ) {
-      let { attestation, ...unsigned } = report;
-      let expected = createHmac('sha256', options.serviceAuthSecret)
-        .update(conformanceAttestationPayload(unsigned))
-        .digest();
-      let received = Buffer.from(attestation.signature, 'hex');
-      if (
-        received.byteLength !== expected.byteLength ||
-        !timingSafeEqual(received, expected)
-      ) {
-        return false;
-      }
-      if (options.usedReportIds?.has(report.reportId)) return false;
-      options.usedReportIds?.add(report.reportId);
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-};
 
 let SECURITY_HEADER_NAMES = new Set([
   'authorization',
@@ -141,17 +25,12 @@ export class WebhookCaptureError extends Error {
     readonly code:
       | 'wire_input_malformed'
       | 'wire_input_oversized'
-      | 'security_header_ambiguous'
-      | 'raw_header_capture_unavailable',
+      | 'security_header_ambiguous',
     message: string
   ) {
     super(message);
   }
 }
-
-export type TrustedRawHeaderRequest = Request & {
-  rawHeaders?: readonly (readonly [string, string])[];
-};
 
 export let resolveWebhookBodyLimit = (requested?: number) => {
   let value = requested ?? DEFAULT_WEBHOOK_BODY_LIMIT_BYTES;
@@ -269,28 +148,17 @@ let validateRawHeaders = (headers: readonly (readonly [string, string])[]) => {
 };
 
 export let captureWebhookWireRequest = async (d: {
-  request: TrustedRawHeaderRequest;
+  request: Request;
   maxBodyBytes?: number;
-  trustedRawHeaders?: readonly (readonly [string, string])[];
-  requireTrustedRawHeaders?: boolean;
   supportedDuplicateSecurityHeaders?: readonly string[];
 }): Promise<WebhookWireRequest> => {
   let maxBodyBytes = resolveWebhookBodyLimit(d.maxBodyBytes);
-  let suppliedHeaders = d.trustedRawHeaders ?? d.request.rawHeaders;
-  if (d.requireTrustedRawHeaders && !suppliedHeaders) {
-    throw new WebhookCaptureError(
-      'raw_header_capture_unavailable',
-      'Trusted raw header capture is unavailable'
-    );
-  }
-  let rawHeaders = suppliedHeaders
-    ? suppliedHeaders.map(([name, value]) => [name, value] as [string, string])
-    : [...d.request.headers.entries()].map(
-        ([name, value]) => [name, value] as [string, string]
-      );
-  validateRawHeaders(rawHeaders);
-  assertUnambiguousSecurityHeaders(rawHeaders, d.supportedDuplicateSecurityHeaders);
-  let contentLength = parseContentLength(rawHeaders);
+  let headers = [...d.request.headers.entries()].map(
+    ([name, value]) => [name, value] as [string, string]
+  );
+  validateRawHeaders(headers);
+  assertUnambiguousSecurityHeaders(headers, d.supportedDuplicateSecurityHeaders);
+  let contentLength = parseContentLength(headers);
   let body = await readBoundedBody(d.request, maxBodyBytes, contentLength);
   let method = d.request.method.toUpperCase();
   if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(method)) {
@@ -299,7 +167,7 @@ export let captureWebhookWireRequest = async (d: {
   return {
     url: d.request.url,
     method: method as WebhookWireRequest['method'],
-    headers: rawHeaders,
+    headers,
     body
   };
 };

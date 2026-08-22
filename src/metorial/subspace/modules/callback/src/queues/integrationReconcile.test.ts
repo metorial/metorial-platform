@@ -168,8 +168,7 @@ beforeEach(() => {
 describe('integration callback reconciliation', () => {
   it('attaches a configured provider idempotently through the stable provider identity', async () => {
     let input = {
-      integrationInstanceProviderId: integrationInstanceProvider.id,
-      targetVersionId: integrationInstanceProvider.currentVersion.id
+      integrationInstanceProviderId: integrationInstanceProvider.id
     };
     await integrationProcessor()(input);
     await integrationProcessor()(input);

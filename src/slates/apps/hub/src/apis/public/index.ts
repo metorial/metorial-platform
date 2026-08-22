@@ -5,9 +5,7 @@ import { env } from '../../env';
 import {
   captureWebhookWireRequest,
   extractExplicitPathSecret,
-  validateWebhookCaptureConformanceReport,
-  WebhookCaptureError,
-  type TrustedRawHeaderRequest
+  WebhookCaptureError
 } from '../../lib/webhookRequestCapture';
 import {
   WebhookCapturePolicyError,
@@ -58,22 +56,6 @@ let handleTriggerWebhookRequest =
     if (!pathSecret) {
       return c.text('Malformed secured webhook path', 400);
     }
-    if (
-      env.service.METORIAL_ENV === 'production' &&
-      !validateWebhookCaptureConformanceReport(
-        process.env.SLATES_WEBHOOK_CAPTURE_CONFORMANCE_REPORT_JSON,
-        process.env.SLATES_DEPLOYMENT_ID,
-        {
-          buildId: process.env.SLATES_BUILD_ID,
-          route: 'slates_hub_public_native_v1',
-          configDigest: process.env.SLATES_EDGE_CONFIG_DIGEST,
-          serviceAuthSecret: env.encryption.ENCRYPTION_KEY
-        }
-      )
-    ) {
-      return c.text('secured_ingress_conformance_not_approved', 503);
-    }
-
     let capturePolicy;
     try {
       capturePolicy = await resolveWebhookTargetCapturePolicy({
@@ -97,12 +79,11 @@ let handleTriggerWebhookRequest =
       return c.text(code, 503);
     }
 
-    let rawRequest = c.req.raw as TrustedRawHeaderRequest;
+    let rawRequest = c.req.raw as Request;
     let wireRequest;
     try {
       wireRequest = await captureWebhookWireRequest({
         request: rawRequest,
-        requireTrustedRawHeaders: env.service.METORIAL_ENV === 'production',
         maxBodyBytes: capturePolicy?.maxBodyBytes,
         supportedDuplicateSecurityHeaders: capturePolicy?.duplicateSecurityHeaders.map(
           policy => policy.headerName
@@ -118,17 +99,12 @@ let handleTriggerWebhookRequest =
         receiverId: targetType === 'receiver' ? targetId : undefined,
         url: c.req.url,
         method: c.req.method,
-        headers: rawRequest.rawHeaders,
+        headers: [...rawRequest.headers.entries()],
         pathSecret: pathSecret ?? undefined,
         safeRejectionCode: captureError.code,
         capturePolicy
       });
-      let status =
-        captureError.code === 'wire_input_oversized'
-          ? 413
-          : captureError.code === 'raw_header_capture_unavailable'
-            ? 503
-            : 400;
+      let status = captureError.code === 'wire_input_oversized' ? 413 : 400;
       return c.text(captureError.code, status);
     }
 
@@ -174,39 +150,17 @@ let handleSharedAppWebhookRequest = async (c: any) => {
   let routePrefix = `/slates-hub/triggers/shared-app/${encodeURIComponent(routeIdentifier)}`;
   let pathSecret = extractExplicitPathSecret({ requestUrl: c.req.url, routePrefix });
   if (!pathSecret) return c.text('Malformed secured webhook path', 400);
-  if (
-    env.service.METORIAL_ENV === 'production' &&
-    !validateWebhookCaptureConformanceReport(
-      process.env.SLATES_WEBHOOK_CAPTURE_CONFORMANCE_REPORT_JSON,
-      process.env.SLATES_DEPLOYMENT_ID,
-      {
-        buildId: process.env.SLATES_BUILD_ID,
-        route: 'slates_hub_public_native_v1',
-        configDigest: process.env.SLATES_EDGE_CONFIG_DIGEST,
-        serviceAuthSecret: env.encryption.ENCRYPTION_KEY
-      }
-    )
-  ) {
-    return c.text('secured_ingress_conformance_not_approved', 503);
-  }
-
   let wireRequest;
   try {
     wireRequest = await captureWebhookWireRequest({
-      request: c.req.raw as TrustedRawHeaderRequest,
-      requireTrustedRawHeaders: env.service.METORIAL_ENV === 'production'
+      request: c.req.raw as Request
     });
   } catch (error) {
     let captureError =
       error instanceof WebhookCaptureError
         ? error
         : new WebhookCaptureError('wire_input_malformed', 'Webhook capture failed');
-    let status =
-      captureError.code === 'wire_input_oversized'
-        ? 413
-        : captureError.code === 'raw_header_capture_unavailable'
-          ? 503
-          : 400;
+    let status = captureError.code === 'wire_input_oversized' ? 413 : 400;
     return c.text(captureError.code, status);
   }
 

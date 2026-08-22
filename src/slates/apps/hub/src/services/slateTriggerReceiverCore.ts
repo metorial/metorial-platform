@@ -155,19 +155,20 @@ export interface SlateTriggerWebhookAuthorityResolver {
 
 export type WebhookCapabilityDecision =
   | { status: 'v1' }
-  | { status: 'legacy'; code: 'capability_absent' }
   | {
       status: 'fail_closed';
       code:
         | 'provider_identification_failed'
+        | 'webhook_registration_capability_absent'
         | 'webhook_registration_capabilities_inconsistent'
+        | 'webhook_verification_capability_absent'
         | 'webhook_verification_capabilities_inconsistent'
+        | 'webhook_bootstrap_capability_absent'
         | 'webhook_bootstrap_capabilities_inconsistent';
     };
 
 export type WebhookBootstrapCapabilityDecision =
   | { status: 'v1' }
-  | { status: 'unavailable'; code: 'capability_absent' }
   | Extract<WebhookCapabilityDecision, { status: 'fail_closed' }>;
 
 export interface WebhookCapabilityNegotiation {
@@ -197,7 +198,10 @@ export let negotiateWebhookCapabilityAdvertisement = (d: {
   let actionBootstrap = d.action.webhookInboundBootstrapCaptureV1 === true;
   let registration: WebhookCapabilityDecision =
     !providerRegistration && !actionRegistration
-      ? { status: 'legacy', code: 'capability_absent' }
+      ? {
+          status: 'fail_closed',
+          code: 'webhook_registration_capability_absent'
+        }
       : providerRegistration && actionRegistration && scoped
         ? { status: 'v1' }
         : {
@@ -206,7 +210,10 @@ export let negotiateWebhookCapabilityAdvertisement = (d: {
           };
   let verification: WebhookCapabilityDecision =
     !providerVerification && !actionVerification
-      ? { status: 'legacy', code: 'capability_absent' }
+      ? {
+          status: 'fail_closed',
+          code: 'webhook_verification_capability_absent'
+        }
       : providerVerification && actionVerification && scoped
         ? { status: 'v1' }
         : {
@@ -215,7 +222,10 @@ export let negotiateWebhookCapabilityAdvertisement = (d: {
           };
   let bootstrapCapture: WebhookBootstrapCapabilityDecision =
     !providerBootstrap && !actionBootstrap
-      ? { status: 'unavailable', code: 'capability_absent' }
+      ? {
+          status: 'fail_closed',
+          code: 'webhook_bootstrap_capability_absent'
+        }
       : providerBootstrap &&
           actionBootstrap &&
           scoped &&
@@ -406,7 +416,7 @@ export class SlateTriggerReceiverCore {
         badRequestError({
           code: 'scoped_invocation_grant_required',
           message:
-            'Classified registration, polling and legacy webhook callbacks require a scoped invocation grant.'
+            'Classified registration, polling and webhook callbacks require a scoped invocation grant.'
         })
       );
     }

@@ -1,9 +1,7 @@
 import type { DashboardInstanceCallbacksListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
-import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
-import { callbackInstancesLoader } from './callbackInstances';
 
 export let callbacksLoader = createLoader({
   name: 'callbacks',
@@ -31,17 +29,6 @@ export let useSendCallbackTestEvent = callbacksLoader.createExternalMutator(
     )
 );
 
-export let useCallbacks = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceCallbacksListQuery
-) => {
-  let data = usePaginator(pagination =>
-    callbacksLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
-  );
-
-  return data;
-};
-
 export let allCallbacksLoader = createLoader({
   name: 'allCallbacks',
   parents: [callbacksLoader],
@@ -59,20 +46,3 @@ export let allCallbacksLoader = createLoader({
 
 export let useAllCallbacks = (instanceId: string | null | undefined) =>
   allCallbacksLoader.use(instanceId ? { instanceId } : null);
-
-export let callbackLoader = createLoader({
-  name: 'callback',
-  parents: [callbacksLoader, callbackInstancesLoader],
-  fetch: (i: { instanceId: string; callbackId: string }) =>
-    withAuth(sdk => sdk.callbacks.get(i.instanceId, i.callbackId)),
-  mutators: {}
-});
-
-export let useCallback = (
-  instanceId: string | null | undefined,
-  callbackId: string | null | undefined
-) => {
-  let data = callbackLoader.use(instanceId && callbackId ? { instanceId, callbackId } : null);
-
-  return data;
-};

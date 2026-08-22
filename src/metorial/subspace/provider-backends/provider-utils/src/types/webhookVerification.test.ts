@@ -50,7 +50,7 @@ describe('webhook verification projection', () => {
     ).toEqual({ verification });
   });
 
-  it('normalizes a missing HTTP contract to metadata-only undeclared verification', () => {
+  it('represents an absent optional HTTP declaration without inventing verification', () => {
     expect(projectSlatesSpecificationTriggerWebhookHttp(undefined)).toEqual({
       verification: null
     });

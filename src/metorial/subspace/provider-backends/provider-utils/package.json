@@ -22,6 +22,6 @@
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
-    "@slates/proto": "link:@slates/proto"
+    "@slates/proto": "1.0.0-rc.13"
   }
 }

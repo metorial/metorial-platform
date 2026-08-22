@@ -171,66 +171,6 @@ export let IntegrationCallbackPanelWrapper = ({
   );
 };
 
-let getEventTypes = (value: unknown) =>
-  Array.isArray(value)
-    ? value.filter((eventType): eventType is string => typeof eventType === 'string')
-    : [];
-
-let showTriggerEventTypesModal = (p: {
-  trigger: ProviderTrigger;
-  selectedEventTypes: readonly string[];
-  onSave: (eventTypes: string[]) => void;
-}) =>
-  showModal(({ dialogProps, close }) => {
-    let availableEventTypes = getEventTypes(p.trigger.eventTypes);
-    let [eventTypes, setEventTypes] = useState(
-      p.selectedEventTypes.length ? [...p.selectedEventTypes] : availableEventTypes
-    );
-    let hasSelection = eventTypes.length > 0;
-
-    return (
-      <Dialog.Wrapper {...dialogProps} width={600}>
-        <Dialog.Title>{p.trigger.name} event types</Dialog.Title>
-        <Dialog.Description>
-          Choose which event types should reach this callback. All are selected by default.
-        </Dialog.Description>
-
-        {availableEventTypes.length ? (
-          <CallbackCompactMultiSelect
-            label="Event types"
-            value={eventTypes}
-            onChange={setEventTypes}
-            placeholder="Select event types"
-            summary={`${eventTypes.length} of ${availableEventTypes.length} selected`}
-            items={availableEventTypes.map(eventType => ({ id: eventType, label: eventType }))}
-            error={!hasSelection && 'Select at least one event type'}
-          />
-        ) : (
-          <Callout color="gray">
-            This trigger publishes all events without a typed filter.
-          </Callout>
-        )}
-
-        <Spacer height={20} />
-        <Dialog.Actions>
-          <Button type="button" variant="outline" onClick={close}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            disabled={availableEventTypes.length > 0 && !hasSelection}
-            onClick={() => {
-              p.onSave(eventTypes.length === availableEventTypes.length ? [] : eventTypes);
-              close();
-            }}
-          >
-            Save event types
-          </Button>
-        </Dialog.Actions>
-      </Dialog.Wrapper>
-    );
-  });
-
 let IntegrationProviderCallbackPanelContent = (p: {
   instanceId: string;
   integrationProviderId: string;
@@ -252,8 +192,7 @@ let IntegrationProviderCallbackPanelContent = (p: {
     ])
   );
   let [selectedTriggerIds, setSelectedTriggerIds] = useState<string[]>(initialTriggerIds);
-  let [eventTypesByTrigger, setEventTypesByTrigger] =
-    useState<Record<string, string[]>>(initialEventTypes);
+  let eventTypesByTrigger: Record<string, string[]> = initialEventTypes;
   let [selectedDestinationIds, setSelectedDestinationIds] = useState<string[]>(
     p.callback?.destinations.map(destination => destination.id) ?? []
   );
@@ -388,7 +327,6 @@ let IntegrationProviderCallbackPanelContent = (p: {
             {selectedTriggerIds.map(triggerId => {
               let trigger = p.triggers.find(candidate => candidate.key === triggerId);
               if (!trigger) return null;
-              let selectedEventTypes = eventTypesByTrigger[triggerId] ?? [];
               return (
                 <TriggerListItem key={triggerId}>
                   <Flex justify="space-between" align="center" gap={10}>
@@ -396,29 +334,7 @@ let IntegrationProviderCallbackPanelContent = (p: {
                       <Text size="2" weight="strong">
                         {trigger.name}
                       </Text>
-                      {/* <Text size="1" color="gray600">
-                        {selectedEventTypes.length
-                          ? `${selectedEventTypes.length} event types selected`
-                          : 'All event types'}
-                      </Text> */}
                     </Flex>
-                    {/* <Button
-                      size="1"
-                      variant="outline"
-                      onClick={() =>
-                        showTriggerEventTypesModal({
-                          trigger,
-                          selectedEventTypes,
-                          onSave: eventTypes =>
-                            setEventTypesByTrigger(current => ({
-                              ...current,
-                              [triggerId]: eventTypes
-                            }))
-                        })
-                      }
-                    >
-                      Configure events
-                    </Button> */}
                   </Flex>
                 </TriggerListItem>
               );

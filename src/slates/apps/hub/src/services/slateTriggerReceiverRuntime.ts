@@ -1130,9 +1130,6 @@ export class SlateTriggerReceiverRuntime {
                 }
               : undefined
           });
-          if (result.status !== 'verified') {
-            throw new Error('Provider webhook verification capability is unavailable');
-          }
           if (result.acceptedProof) {
             verificationProofs.set(trigger.receiverTriggerId, result.acceptedProof);
           }
@@ -1170,15 +1167,11 @@ export class SlateTriggerReceiverRuntime {
     ruleId: string;
     requestId?: string;
     itemAdapter?: HubWebhookItemAdapter;
-  }): Promise<
-    | { status: 'legacy_fallback' }
-    | {
-        status: 'verified';
-        result: HubWebhookVerifyOutput;
-        invocation: { oid: bigint };
-        acceptedProof?: import('../lib/invocation/types').AcceptedWebhookVerificationProof;
-      }
-  > {
+  }): Promise<{
+    result: HubWebhookVerifyOutput;
+    invocation: { oid: bigint };
+    acceptedProof?: import('../lib/invocation/types').AcceptedWebhookVerificationProof;
+  }> {
     let resolver = this.core.security.webhookAuthorityResolver;
     if (!resolver) throw new Error('Authoritative webhook resolution is unavailable');
     let hubInvocationId = getId('slateInvocation').id;
@@ -1228,10 +1221,6 @@ export class SlateTriggerReceiverRuntime {
         receiverTrigger: authority.receiverTrigger,
         version: authority.version
       });
-      // This is the only legacy transition. Route presence is deliberately irrelevant.
-      if (capabilities.verification.status === 'legacy') {
-        return { status: 'legacy_fallback' };
-      }
       if (capabilities.verification.status === 'fail_closed') {
         throw new Error(capabilities.verification.code);
       }
@@ -1340,7 +1329,6 @@ export class SlateTriggerReceiverRuntime {
           });
         }
         return {
-          status: 'verified',
           result: verified,
           invocation: result.invocation,
           ...(acceptedProof ? { acceptedProof } : {})
@@ -1540,10 +1528,7 @@ export class SlateTriggerReceiverRuntime {
         version: authority.version
       });
       if (capabilities.bootstrapCapture.status !== 'v1') {
-        if (capabilities.bootstrapCapture.status === 'fail_closed') {
-          throw new Error(capabilities.bootstrapCapture.code);
-        }
-        throw new Error('Provider does not advertise bootstrap capture');
+        throw new Error(capabilities.bootstrapCapture.code);
       }
       let issuer = this.core.security.scopedGrantIssuer;
       let redeemer = this.core.security.scopedGrantRedeemer;
@@ -2991,21 +2976,18 @@ export class SlateTriggerReceiverRuntime {
     });
     assertLeaseOwned();
 
-    let registrationAuthority: AuthoritativeWebhookRegistration | undefined;
-    if (capabilities.registration.status === 'fail_closed') {
+    if (capabilities.registration.status !== 'v1') {
       throw new Error(capabilities.registration.code);
     }
-    if (capabilities.registration.status === 'v1') {
-      let resolver = this.core.security.webhookAuthorityResolver;
-      if (!resolver) throw new Error('Authoritative webhook registration is unavailable');
-      registrationAuthority = await resolver.resolveRegistration({
-        receiverTriggerId: receiverTrigger.id
-      });
-      assertLeaseOwned();
-      validateRegistrationAuthority(registrationAuthority);
-      if (registrationAuthority.receiverTrigger.id !== receiverTrigger.id) {
-        throw new Error('Authoritative webhook registration receiver is stale');
-      }
+    let resolver = this.core.security.webhookAuthorityResolver;
+    if (!resolver) throw new Error('Authoritative webhook registration is unavailable');
+    let registrationAuthority = await resolver.resolveRegistration({
+      receiverTriggerId: receiverTrigger.id
+    });
+    assertLeaseOwned();
+    validateRegistrationAuthority(registrationAuthority);
+    if (registrationAuthority.receiverTrigger.id !== receiverTrigger.id) {
+      throw new Error('Authoritative webhook registration receiver is stale');
     }
 
     let stack = await this.core.createInvocationStack({
@@ -3147,68 +3129,49 @@ export class SlateTriggerReceiverRuntime {
       let registrationData = res.data as typeof res.data & {
         capturedSecrets?: Record<string, string>;
       };
-      if (capabilities.registration.status === 'v1') {
-        if (!registrationAuthority) {
-          throw new Error('Authoritative webhook registration is unavailable');
-        }
-        if (
-          !isRecord(registrationData.capturedSecrets) ||
-          Object.entries(registrationData.capturedSecrets ?? {}).some(
-            ([name, secret]) => !name || typeof secret !== 'string' || secret.length === 0
-          )
-        ) {
-          throw new Error(
-            'Webhook registration returned invalid, missing, or undeclared secrets'
-          );
-        }
-        let commit = await slateTriggerReceiverSecretService.commitRegistrationResult({
-          claim: d.claim,
-          authority: registrationAuthority,
-          registrationDetails: res.data.registrationDetails,
-          remoteRegistrationKnown: true,
-          state: res.data.state,
-          capturedSecrets: registrationData.capturedSecrets,
-          ...(d.telegramLease
-            ? {
-                telegramAuthority: {
-                  ...d.telegramLease,
-                  generation:
-                    typeof telegramRegistrationDetails?.singletonGeneration === 'number'
-                      ? telegramRegistrationDetails.singletonGeneration
-                      : d.telegramLease.generation,
-                  refCount: receiverTrigger.receiver.triggers.filter(
-                    trigger =>
-                      !trigger.tombstonedAt &&
-                      trigger.source === SlateTriggerReceiverTriggerSource.webhook &&
-                      !['unregistered', 'unregistering'].includes(trigger.registrationStatus)
-                  ).length,
-                  allowedUpdates: telegramAllowedUpdates(receiverTrigger),
-                  webhookUrl: getReceiverWebhookBaseUrl(receiverTrigger.receiver.id),
-                  secretFingerprint: telegramWebhookSecretFingerprint(
-                    registrationData.capturedSecrets!.telegram_secret_token!
-                  )
-                }
-              }
-            : {})
-        });
-        if (commit !== 'committed') {
-          throw new Error('registration_capture_conflict');
-        }
-        return;
+      if (
+        !isRecord(registrationData.capturedSecrets) ||
+        Object.entries(registrationData.capturedSecrets ?? {}).some(
+          ([name, secret]) => !name || typeof secret !== 'string' || secret.length === 0
+        )
+      ) {
+        throw new Error(
+          'Webhook registration returned invalid, missing, or undeclared secrets'
+        );
       }
-
-      if (registrationData.capturedSecrets !== undefined) {
-        throw new Error('Legacy webhook registration cannot return captured secrets');
-      }
-
-      assertLeaseOwned();
       let commit = await slateTriggerReceiverSecretService.commitRegistrationResult({
         claim: d.claim,
-        registrationDetails: res.data.registrationDetails ?? null,
+        authority: registrationAuthority,
+        registrationDetails: res.data.registrationDetails,
         remoteRegistrationKnown: true,
-        state: res.data.state ?? receiverTrigger.state
+        state: res.data.state,
+        capturedSecrets: registrationData.capturedSecrets,
+        ...(d.telegramLease
+          ? {
+              telegramAuthority: {
+                ...d.telegramLease,
+                generation:
+                  typeof telegramRegistrationDetails?.singletonGeneration === 'number'
+                    ? telegramRegistrationDetails.singletonGeneration
+                    : d.telegramLease.generation,
+                refCount: receiverTrigger.receiver.triggers.filter(
+                  trigger =>
+                    !trigger.tombstonedAt &&
+                    trigger.source === SlateTriggerReceiverTriggerSource.webhook &&
+                    !['unregistered', 'unregistering'].includes(trigger.registrationStatus)
+                ).length,
+                allowedUpdates: telegramAllowedUpdates(receiverTrigger),
+                webhookUrl: getReceiverWebhookBaseUrl(receiverTrigger.receiver.id),
+                secretFingerprint: telegramWebhookSecretFingerprint(
+                  registrationData.capturedSecrets!.telegram_secret_token!
+                )
+              }
+            }
+          : {})
       });
-      if (commit !== 'committed') throw new Error('registration_capture_conflict');
+      if (commit !== 'committed') {
+        throw new Error('registration_capture_conflict');
+      }
       return;
     } catch (error) {
       return await this.compensateRemoteRegistration({

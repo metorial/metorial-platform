@@ -24,8 +24,8 @@ let exactKeys = (value: Record<string, unknown>, expected: readonly string[]) =>
 };
 
 /**
- * Projects the normalized Subspace storage shape through the canonical protocol parser.
- * Missing `http` is the only legacy storage representation accepted implicitly.
+ * Projects the Subspace storage shape through the canonical protocol parser.
+ * Webhook triggers stored before HTTP declarations were introduced have no `http` field.
  */
 export let projectStoredSpecificationTriggerWebhookHttp = (
   http: unknown

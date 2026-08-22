@@ -66,14 +66,23 @@ export let registrationFailureError = (code: SafeRegistrationFailureCode) =>
 
 export let actionVerificationDeclaration = (action: SlateAction) => {
   let contract = action.spec as Record<string, any>;
-  let specHash = contract.specHash;
-  if (typeof specHash !== 'string' || !/^[a-f0-9]{64}$/.test(specHash)) {
+  if (contract.invocation?.type !== 'webhook') {
     return {
       mechanism: 'path_secret_only' as const,
       specHash: null
     };
   }
-  let parsed = slatesWebhookHttp.safeParse(contract.invocation?.http ?? {});
+  let specHash = contract.specHash;
+  if (specHash === undefined) {
+    return {
+      mechanism: 'path_secret_only' as const,
+      specHash: null
+    };
+  }
+  if (typeof specHash !== 'string' || !/^[a-f0-9]{64}$/.test(specHash)) {
+    throw new TypeError('Webhook trigger has an invalid verification declaration');
+  }
+  let parsed = slatesWebhookHttp.safeParse(contract.invocation.http ?? {});
   let ingress = parsed.success ? parsed.data.ingress : undefined;
   if (!ingress) {
     return {
@@ -359,7 +368,7 @@ class SlateTriggerRegistrationLifecycleServiceImpl {
         registrationErrorMessage: null,
         registrationErrorMetadata: Prisma.DbNull,
         registrationErrorAt: null,
-        authoritativeStateVersion: { increment: 1 },
+        authoritativeStateVersion: { increment: 1 }
       }
     });
     if (result.count === 0) return false;

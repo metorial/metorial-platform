@@ -59,8 +59,6 @@ import {
   type WebhookSource
 } from './webhookDisplay';
 
-export { getWebhookDestinationDisplay, getWebhookSourceDisplay } from './webhookDisplay';
-
 let WEBHOOK_EVENTS_POLL_MS = 3000;
 
 let formatJson = (value: unknown) => {
@@ -79,7 +77,7 @@ let formatJson = (value: unknown) => {
   }
 };
 
-export let getNotificationStatusBadge = (status?: string) => {
+let getWebhookDeliveryStatusBadge = (status?: string) => {
   let color: 'blue' | 'gray' | 'red' | 'orange' =
     status === 'delivered'
       ? 'blue'
@@ -92,7 +90,7 @@ export let getNotificationStatusBadge = (status?: string) => {
   return <Badge color={color}>{status ?? 'unknown'}</Badge>;
 };
 
-export let getNotificationAttemptStatusBadge = (status?: string) => {
+let getWebhookDeliveryAttemptStatusBadge = (status?: string) => {
   let color: 'green' | 'gray' | 'red' =
     status === 'succeeded' ? 'green' : status === 'failed' ? 'red' : 'gray';
 
@@ -333,7 +331,7 @@ let WebhookDeliveryAttempts = ({
                   {attempt.response.statusCode}
                 </Badge>
               ) : null}
-              {getNotificationAttemptStatusBadge(attempt.status)}
+              {getWebhookDeliveryAttemptStatusBadge(attempt.status)}
             </RequestTopRow>
 
             <RequestMeta>
@@ -447,7 +445,7 @@ let WebhookLogsTable = ({
             <Text size="2" weight="strong">
               {event.type}
             </Text>,
-            getNotificationStatusBadge(event.status),
+            getWebhookDeliveryStatusBadge(event.status),
             <Text size="2">
               {event.deliverySuccessCount} delivered / {event.deliveryFailureCount} failed /{' '}
               {event.deliveryDestinationCount ?? event.deliveries?.length ?? 0} total
@@ -578,7 +576,7 @@ let WebhookEventDetails = ({
             attributes={[
               {
                 label: 'Status',
-                content: getNotificationStatusBadge(event.data.status)
+                content: getWebhookDeliveryStatusBadge(event.data.status)
               },
               {
                 label: 'Event ID',
@@ -643,7 +641,7 @@ let WebhookEventDetails = ({
               >
                 <Datalist
                   items={[
-                    { label: 'Status', value: getNotificationStatusBadge(delivery.status) },
+                    { label: 'Status', value: getWebhookDeliveryStatusBadge(delivery.status) },
                     { label: 'Attempts', value: `${delivery.attemptCount}` },
                     {
                       label: 'Destination ID',

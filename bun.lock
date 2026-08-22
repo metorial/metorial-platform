@@ -4467,7 +4467,7 @@
         "@lowerdeck/id": "workspace:2.0.0",
         "@metorial-subspace/db": "^1.0.0",
         "@modelcontextprotocol/sdk": "^1.25.3",
-        "@slates/proto": "link:@slates/proto",
+        "@slates/proto": "1.0.0-rc.13",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -5106,7 +5106,7 @@
         "@remixicon/react": "^4.0.0",
         "@sentry/bun": "^10.36.0",
         "@sentry/cli": "^3.2.0",
-        "@slates/proto": "link:@slates/proto",
+        "@slates/proto": "1.0.0-rc.13",
         "@types/semver": "^7.7.1",
         "@types/unzipper": "^0.10.11",
         "date-fns": "^4.1.0",
@@ -7218,7 +7218,7 @@
 
     "@sinclair/typebox": ["@sinclair/typebox@0.27.10", "", {}, "sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA=="],
 
-    "@slates/proto": ["@slates/proto@link:@slates/proto", {}],
+    "@slates/proto": ["@slates/proto@1.0.0-rc.13", "", { "dependencies": { "@lowerdeck/emitter": "^1.0.4", "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "zod": "^4.2.1" } }, "sha512-LpXwx2UnG6X6JlzKINdGNLFfSFt8F737dIbVvO31Kmv+i2egpBxm6g2mbmclke+Qe2WCBDnv3pMt0B+43PErOQ=="],
 
     "@smithy/core": ["@smithy/core@3.26.0", "", { "dependencies": { "@aws-crypto/crc32": "5.2.0", "@smithy/types": "^4.15.0", "tslib": "^2.6.2" } }, "sha512-mLUktFAn+Pa2agl1J7VgtYNFWCX8/b4GMJSK1hCu4YCvtBfM6F8Os3EP4ry+DFFlXOf3wyvlgXhuUdFoy52D3g=="],
 

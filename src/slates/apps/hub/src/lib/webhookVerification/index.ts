@@ -247,7 +247,6 @@ export let verifyHubWebhookRule = (d: {
   graphAuthorities?: readonly GraphWebhookAuthorityBinding[];
   registrationGeneration?: number;
   specHash?: string;
-  nowMs?: number;
 }): WebhookVerificationResult => {
   if (d.rule.verify.type === 'path_secret') {
     return { status: 'accepted', selection: { scope: 'receiver_trigger' } };
@@ -280,8 +279,7 @@ export let verifyHubWebhookRule = (d: {
     itemAdapter: d.itemAdapter,
     graphAuthorities: d.graphAuthorities,
     registrationGeneration: d.registrationGeneration,
-    specHash: d.specHash,
-    nowMs: d.nowMs
+    specHash: d.specHash
   });
 };
 
@@ -645,8 +643,6 @@ export let executeExactWebhookPipeline = async (d: {
   request: WebhookWireRequest;
   triggers: readonly ExactWebhookTriggerProjection[];
   dependencies: ExactWebhookPipelineDependencies;
-  /** Test-only clock seam; production callers intentionally omit it. */
-  nowMs?: number;
 }): Promise<ExactWebhookPipelineResult> => {
   let request = parseWebhookWireRequest(d.request);
   let originalRequestHash = computeOriginalWebhookRequestHash(request);
@@ -705,8 +701,7 @@ export let executeExactWebhookPipeline = async (d: {
             itemAdapter,
             graphAuthorities: trigger.graphAuthorities,
             registrationGeneration: trigger.registrationGeneration,
-            specHash: trigger.specHash,
-            nowMs: d.nowMs
+            specHash: trigger.specHash
           })
         : undefined;
       if (graphAuthority?.status === 'rejected') {
@@ -760,8 +755,7 @@ export let executeExactWebhookPipeline = async (d: {
         itemAdapter,
         graphAuthorities: trigger.graphAuthorities,
         registrationGeneration: trigger.registrationGeneration,
-        specHash: trigger.specHash,
-        nowMs: d.nowMs
+        specHash: trigger.specHash
       });
     }
     if (rule) {
@@ -771,7 +765,7 @@ export let executeExactWebhookPipeline = async (d: {
         rule,
         verification,
         request,
-        nowMs: d.nowMs ?? Date.now()
+        nowMs: Date.now()
       });
     }
     let acceptedIds =
