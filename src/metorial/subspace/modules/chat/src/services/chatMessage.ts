@@ -304,8 +304,7 @@ class chatMessageServiceImpl {
           where: {
             channelOid: localChannel.oid,
             ...(threadOid !== undefined ? { threadOid } : {})
-          },
-          orderBy: { sentAt: 'asc' }
+          }
         });
 
         let threadOids = [
