@@ -56,3 +56,37 @@ model SlateSessionToolCall {
 
   slateErrors SlateError[]
 }
+
+enum SlatePublicToolCallStatus {
+  succeeded
+  failed
+}
+
+model SlatePublicToolCall {
+  oid    BigInt                    @id
+  id     String                    @unique
+  status SlatePublicToolCallStatus
+
+  errorCode    String?
+  errorMessage String?
+  durationMs   Int?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  actionOid BigInt
+  action    SlateAction @relation(fields: [actionOid], references: [oid], onDelete: Cascade)
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  slateOid BigInt
+  slate    Slate @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantOid, createdAt])
+}

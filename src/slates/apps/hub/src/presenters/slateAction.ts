@@ -20,6 +20,7 @@ export let slateActionPresenter = (
     name: method.name,
     key: method.key,
     type: method.type,
+    isPublic: method.isPublic,
 
     capabilities: method.spec.capabilities,
     invocation: method.spec.type === 'action.trigger' ? method.spec.invocation : undefined,

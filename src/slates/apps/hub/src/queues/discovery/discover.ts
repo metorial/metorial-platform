@@ -328,6 +328,8 @@ let buildActionUpsertData = async (d: {
         'action.trigger': 'trigger' as const
       }[action.type],
 
+      isPublic: action.type === 'action.tool' ? action.isPublic === true : false,
+
       hash,
       identifier,
 

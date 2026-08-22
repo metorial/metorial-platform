@@ -23,6 +23,7 @@ model Tenant {
   slateInstanceConfigs        SlateInstanceConfig[]
   slateInstanceEvents         SlateInstanceEvent[]
   slateSessions               SlateSession[]
+  slatePublicToolCalls        SlatePublicToolCall[]
   slateTriggerDestinations    SlateTriggerDestination[]    @ignore
   slateTriggerReceivers       SlateTriggerReceiver[]
   slateErrors                 SlateError[]

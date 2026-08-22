@@ -19,6 +19,7 @@ export * from './slateOAuthCredentials';
 export * from './slateOAuthSetup';
 export * from './slateOAuthSetupEvent';
 export * from './slateOAuthSetupLogs';
+export * from './slatePublicToolCall';
 export * from './slateSession';
 export * from './slateSessionToolCall';
 export * from './slateSpecification';

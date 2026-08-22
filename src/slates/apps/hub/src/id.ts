@@ -41,6 +41,7 @@ export let ID = createIdGenerator({
 
   slateOAuthCredentials: idType.sorted('shoc'),
   slateToolCall: idType.sorted('shtc'),
+  slatePublicToolCall: idType.sorted('shptc'),
   slateSession: idType.sorted('shses'),
 
   slateTriggerReceiver: idType.sorted('shtr'),

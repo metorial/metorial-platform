@@ -18,6 +18,7 @@ import { slateInvocationController } from './slateInvocation';
 import { slateOAuthCredentialsController } from './slateOAuthCredentials';
 import { slateOAuthSetupController } from './slateOAuthSetup';
 import { slateOAuthSetupEventController } from './slateOAuthSetupEvent';
+import { slatePublicToolCallController } from './slatePublicToolCall';
 import { slateSessionController } from './slateSession';
 import { slateSessionToolCallController } from './slateSessionToolCall';
 import { slateSpecificationController } from './slateSpecification';
@@ -56,6 +57,7 @@ export let rootController = app.controller({
   slateAuthConfigEvent: slateAuthConfigEventController,
   slateSession: slateSessionController,
   slateSessionToolCall: slateSessionToolCallController,
+  slatePublicToolCall: slatePublicToolCallController,
 
   slateTriggerReceiver: slateTriggerReceiverController,
   slateTriggerEvent: slateTriggerEventController,

@@ -41,6 +41,7 @@ model Slate {
   slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
   slateAuthConfigs          SlateAuthConfig[]
   slateSessions             SlateSession[]
+  slatePublicToolCalls      SlatePublicToolCall[]
   slateTriggerReceivers     SlateTriggerReceiver[]
   slateTriggerEvents        SlateTriggerEvent[]
   slateTriggerEventInputs   SlateTriggerEventInput[]
@@ -108,6 +109,7 @@ model SlateVersion {
   slateInstanceOAuthSetups   SlateInstanceOAuthSetup[]
   slateSessions              SlateSession[]
   slateSessionToolCalls      SlateSessionToolCall[]
+  slatePublicToolCalls       SlatePublicToolCall[]
   changeNotifications        ChangeNotification[]
   slateErrors                SlateError[]
   slateVersionAdapters       SlateVersionAdapter[]
@@ -219,6 +221,8 @@ model SlateAction {
   key  String
   name String
 
+  isPublic Boolean @default(false)
+
   /// [SlateAction]
   spec Json
 
@@ -235,6 +239,7 @@ model SlateAction {
 
   slateSpecifications          SlateSpecificationAction[]
   slateSessionToolCalls        SlateSessionToolCall[]
+  slatePublicToolCalls         SlatePublicToolCall[]
   slateTriggerReceiverTriggers SlateTriggerReceiverTrigger[]
   slateTriggerEvents           SlateTriggerEvent[]
   slateTriggerEventInputs      SlateTriggerEventInput[]
