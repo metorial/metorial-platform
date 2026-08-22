@@ -6,6 +6,7 @@ import { getId } from '../id';
 import { secretService } from './secret';
 import { slateTriggerReceiverPathSecretMethods } from './slateTriggerReceiverPathSecret';
 import { slateCallbackConfigService } from './slateCallbackConfig';
+import { expiredRegistrationSecretReference } from '../lib/registrationSecretExpiry';
 
 type HubDbClient = typeof db | Prisma.TransactionClient;
 
@@ -194,6 +195,15 @@ let resolveDeclared = async (receiverTriggerId: string, name: string) => {
         source: 'generated',
         encoding: reference.encoding
       });
+    }
+    if (!binding && reference.source === 'registration' && trigger.registrationDetailsSecret) {
+      let registrationDetails = await secretService.DANGEROUSLY_decryptSecret({
+        tenant: trigger.receiver.tenant,
+        secret: trigger.registrationDetailsSecret,
+        purpose: 'slate_callback_registration',
+        note: `Resolve expired callback registration authority ${name} for ${receiverTriggerId}`
+      });
+      if (expiredRegistrationSecretReference(registrationDetails.details, name)) return [];
     }
     if (!binding) throw new Error('credential_missing');
     if (binding.businessValidUntil && binding.businessValidUntil <= new Date()) return [];

@@ -21,6 +21,54 @@ describe('callback.e2e', () => {
     await storage.upsertBucket(env.storage.LOGS_BUCKET_NAME);
   });
 
+  it('links callback lifecycle state to an existing delivery event without duplicating it', async () => {
+    let tenant = await f.tenant.default();
+    let sender = await f.sender.default();
+
+    await signalClient.callback.upsert({
+      tenantId: tenant.id,
+      callbackId: 'callback-existing-delivery',
+      scopeId: 'environment-existing-delivery',
+      name: 'Existing delivery callback',
+      destinations: []
+    });
+    let callback = await testDb.callback.findUniqueOrThrow({
+      where: { id: 'callback-existing-delivery' }
+    });
+    let deliveryEvent = await f.event.default({
+      tenantOid: tenant.oid,
+      senderOid: sender.oid,
+      overrides: {
+        callbackOid: callback.oid,
+        callbackInstanceId: 'callback-instance-existing-delivery',
+        callbackSourceId: 'source-existing-delivery',
+        callbackTriggerId: 'trigger-existing-delivery',
+        eventType: 'record.created'
+      }
+    });
+
+    let recorded = await signalClient.callback.recordEvent({
+      tenantId: tenant.id,
+      callbackId: callback.id,
+      eventId: 'input-existing-delivery',
+      callbackInstanceId: 'callback-instance-existing-delivery',
+      sourceId: 'source-existing-delivery',
+      triggerId: 'trigger-existing-delivery',
+      triggerKey: 'records',
+      status: 'succeeded',
+      eventType: 'record.created',
+      deliveryEventId: deliveryEvent.id,
+      inputJson: JSON.stringify({ stage: 'input' }),
+      outputJson: JSON.stringify({ stage: 'output' })
+    });
+
+    expect(recorded.eventId).toBe(deliveryEvent.id);
+    expect(await testDb.event.count()).toBe(1);
+    expect(
+      await testDb.callbackEvent.findUniqueOrThrow({ where: { id: recorded.id } })
+    ).toMatchObject({ eventOid: deliveryEvent.oid, status: 'succeeded' });
+  });
+
   it('records authenticated dashboard test events idempotently and tenant-scoped', async () => {
     let tenant = await f.tenant.default();
     let otherTenant = await f.tenant.withIdentifier('other-tenant');
@@ -33,6 +81,7 @@ describe('callback.e2e', () => {
     await signalClient.callback.upsert({
       tenantId: tenant.id,
       callbackId: 'callback-dashboard-test',
+      scopeId: 'environment-dashboard-test',
       name: 'Dashboard test callback',
       destinations: []
     });
@@ -78,6 +127,7 @@ describe('callback.e2e', () => {
     await signalClient.callback.upsert({
       tenantId: tenant.id,
       callbackId: 'callback-orders',
+      scopeId: 'environment-orders',
       name: 'Order callbacks',
       destinations: []
     });

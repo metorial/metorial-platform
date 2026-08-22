@@ -8,13 +8,13 @@ import {
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
-import { assertScopedInvocationIsolation } from '../lib/invocation/types';
+import { redactWebhookPayloadMetadata } from '../lib/webhookRequestCapture';
 import type {
   AcceptedWebhookVerificationBindings,
   AcceptedWebhookVerificationProof,
   ScopedInvocationAuthorityHandle,
-  ScopedInvocationExecutionControl,
   ScopedInvocationGrantOperation,
+  ScopedInvocationRedemption,
   ScopedWebhookCandidateBinding,
   SlatesScopedInvocationGrantEnvelope
 } from '../lib/invocation/types';
@@ -28,7 +28,6 @@ import {
   receiverTriggerInclude,
   type ReceiverTriggerWithRelations
 } from './slateTriggerReceiverShared';
-import { requireScopedInvocationExecutionControl } from './slateTriggerReceiverProductionSecurityAdapters';
 import { recordCallbackEventLifecycle } from './callbackEventLifecycle';
 
 export interface SlateTriggerScopedGrantIssuer {
@@ -41,6 +40,18 @@ export interface SlateTriggerScopedGrantIssuer {
     acceptedVerificationProofId?: string;
   }): Promise<SlatesScopedInvocationGrantEnvelope>;
   revoke(envelope: SlatesScopedInvocationGrantEnvelope): Promise<void>;
+}
+
+export interface SlateTriggerScopedGrantRedeemer {
+  redeem(d: {
+    envelope: SlatesScopedInvocationGrantEnvelope;
+    expected: {
+      requestId: string;
+      operation: Exclude<ScopedInvocationGrantOperation, 'tool_invoke'>;
+      actionId: string;
+    };
+    secrets: Readonly<Record<string, { value: string }>>;
+  }): Promise<ScopedInvocationRedemption>;
 }
 
 export interface AuthoritativeWebhookRule {
@@ -74,9 +85,10 @@ export interface AuthoritativeWebhookResolution {
   registrationVersion: number;
   itemAdapterId?: 'graph.body_value.v1';
   authConfigId: string | null;
-  callbackSecretIds: readonly string[];
+  callbackSecretIds: Readonly<Record<string, string>>;
   candidateBindings: readonly Readonly<ScopedWebhookCandidateBinding>[];
   redactionSentinels: readonly string[];
+  scopedSecrets: Readonly<Record<string, { value: string }>>;
 }
 
 export interface ResolvedAuthoritativeWebhook {
@@ -265,10 +277,10 @@ export interface SlateTriggerBootstrapCaptureWriter {
 
 export interface SlateTriggerReceiverSecurityAdapters {
   scopedGrantIssuer?: SlateTriggerScopedGrantIssuer;
+  scopedGrantRedeemer?: SlateTriggerScopedGrantRedeemer;
   webhookAuthorityResolver?: SlateTriggerWebhookAuthorityResolver;
   acceptedVerificationProofs?: SlateTriggerAcceptedVerificationProofs;
   bootstrapCaptureWriter?: SlateTriggerBootstrapCaptureWriter;
-  scopedInvocationExecutionControl?: ScopedInvocationExecutionControl;
 }
 
 export class SlateTriggerReceiverCore {
@@ -429,14 +441,8 @@ export class SlateTriggerReceiverCore {
     hubInvocationId: string;
     redactionSentinels: readonly string[];
     forbiddenValues: readonly string[];
+    redemption: ScopedInvocationRedemption;
   }) {
-    let executionControl = requireScopedInvocationExecutionControl(
-      this.security.scopedInvocationExecutionControl
-    );
-    await assertScopedInvocationIsolation({
-      hubInvocationId: d.hubInvocationId,
-      control: executionControl
-    });
     return await slateInvocationService.createInvocation({
       tenant: d.receiverTrigger.receiver.tenant,
       participants: [],
@@ -446,7 +452,7 @@ export class SlateTriggerReceiverCore {
       scopedSecurity: {
         redactionSentinels: d.redactionSentinels,
         forbiddenValues: d.forbiddenValues,
-        executionControl
+        redemption: d.redemption
       }
     });
   }
@@ -573,6 +579,7 @@ export class SlateTriggerReceiverCore {
       output?: Record<string, any> | null;
       errorCode?: string | null;
       errorMessage?: string | null;
+      deliveryEventId?: string | null;
       providerInvocation?: Pick<SlateInvocation, 'id'> | null;
     };
   }) {
@@ -625,13 +632,16 @@ export class SlateTriggerReceiverCore {
     };
   }) {
     let { tenant, sender } = await getTenantAndSenderForSignal(d.receiver.tenant);
+    if (d.receiver.callbackId) {
+      sender = await signal.sender.get({ senderId: 'callbacks' });
+    }
     let payload = {
       object: 'callback.event_payload',
       id: d.event.id,
       type: d.event.type,
       trigger: d.action.key,
       idempotencyKey: d.idempotencyKey,
-      data: d.event.output
+      data: redactWebhookPayloadMetadata(d.event.output)
     };
     return {
       tenantId: tenant.id,
@@ -653,7 +663,6 @@ export class SlateTriggerReceiverCore {
         'metorial-trigger-receiver-id': d.receiver.id,
         'metorial-trigger-id': d.action.id
       },
-      onlyForDestinations: [],
       ...(d.receiver.callbackId ? { callbackId: d.receiver.callbackId } : {}),
       ...(d.receiver.callbackInstanceId
         ? { callbackInstanceId: d.receiver.callbackInstanceId }

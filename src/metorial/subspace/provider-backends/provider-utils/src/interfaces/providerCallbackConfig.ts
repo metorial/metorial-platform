@@ -1,7 +1,6 @@
 import type {
   Provider,
   ProviderDeployment,
-  ProviderDeploymentVersion,
   ProviderVariant,
   ProviderVersion,
   SlateCallbackConfig,
@@ -24,17 +23,12 @@ export abstract class IProviderCallbackConfig extends IProviderFunctionality {
   ): Promise<CallbackConfigDeleteRes>;
 }
 
-export type CallbackConfigDeployment = ProviderDeployment & {
-  currentVersion:
-    | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-    | null;
-};
-
 export interface CallbackConfigBaseParam {
   tenant: Tenant;
   provider: Provider;
   providerVariant: ProviderVariant;
-  deployment: CallbackConfigDeployment;
+  providerVersion: ProviderVersion;
+  deployment: ProviderDeployment;
   triggerIds: string[];
 }
 

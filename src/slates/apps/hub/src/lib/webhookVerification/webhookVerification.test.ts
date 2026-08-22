@@ -9,11 +9,14 @@ import {
   verifyReceiverPathSecret,
   type WebhookAtomicCommitInput
 } from '.';
+import { renderPresetSyncResponse, verifyWebhookPreset } from './presets';
 
-let wire = (d: {
-  headers?: [string, string][];
-  body?: Uint8Array;
-} = {}): WebhookWireRequest => ({
+let wire = (
+  d: {
+    headers?: [string, string][];
+    body?: Uint8Array;
+  } = {}
+): WebhookWireRequest => ({
   url: 'https://webhook.example/callback',
   method: 'POST',
   headers: d.headers ?? [],
@@ -110,6 +113,33 @@ describe('verified webhook ingress', () => {
         secrets
       })
     ).toEqual({ status: 'rejected', code: 'security_header_ambiguous' });
+  });
+
+  it('rejects a malformed JSON body without throwing from an unrelated preset', () => {
+    expect(
+      verifyWebhookPreset({
+        preset: 'typeform.v1',
+        request: wire({ body: Buffer.from('plain payload') }),
+        secrets: [{ name: 'secret', value: 'value', encoding: 'utf8' }]
+      })
+    ).toEqual({ status: 'rejected', code: 'credential_missing' });
+  });
+
+  it('acknowledges an authenticated Slack SSL check with an empty success response', () => {
+    expect(
+      renderPresetSyncResponse({
+        preset: 'slack.v0',
+        request: wire({
+          headers: [['content-type', 'application/x-www-form-urlencoded']],
+          body: Buffer.from('ssl_check=1')
+        }),
+        secrets: []
+      })
+    ).toEqual({
+      status: 200,
+      headers: [['content-type', 'text/plain; charset=utf-8']],
+      body: { present: true, base64: '' }
+    });
   });
 
   it('commits replay identity and state as one operation', async () => {

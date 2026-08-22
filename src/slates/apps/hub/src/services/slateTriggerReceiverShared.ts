@@ -82,6 +82,7 @@ export const receiverInclude = {
     select: {
       id: true,
       generation: true,
+      plaintextIssuedAt: true,
       createdAt: true,
       updatedAt: true
     }

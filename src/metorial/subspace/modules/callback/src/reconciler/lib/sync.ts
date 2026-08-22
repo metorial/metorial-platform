@@ -26,6 +26,13 @@ let canonicalJson = (value: unknown): string => {
     .join(',')}}`;
 };
 
+let canonicalTriggerAuthority = (
+  trigger: HubCallbackRegistrationReceiver['triggers'][number]
+) => {
+  let { lastPolledAt: _lastPolledAt, nextPollAt: _nextPollAt, ...authority } = trigger;
+  return canonicalJson(authority);
+};
+
 export let callbackOwnerMutationId = (value: unknown) =>
   `callback-owner:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
 
@@ -61,21 +68,22 @@ export let buildCallbackRegistrationMirror = (receiver: HubCallbackRegistrationR
   }
 
   let activeTriggers = triggers.filter(trigger => trigger.active);
+  let registrationTriggers = activeTriggers.filter(trigger => trigger.source === 'webhook');
   let status =
     STATUS_PRIORITY.find(candidate =>
       candidate === 'registered' || candidate === 'unregistered'
-        ? activeTriggers.length > 0 &&
-          activeTriggers.every(trigger => trigger.registrationStatus === candidate)
-        : activeTriggers.some(trigger => trigger.registrationStatus === candidate)
+        ? registrationTriggers.length > 0 &&
+          registrationTriggers.every(trigger => trigger.registrationStatus === candidate)
+        : registrationTriggers.some(trigger => trigger.registrationStatus === candidate)
     ) ?? 'unregistered';
-  let failed = activeTriggers.find(trigger => trigger.registrationStatus === 'failed');
+  let failed = registrationTriggers.find(trigger => trigger.registrationStatus === 'failed');
   let commonRegistration =
     new Set(
-      activeTriggers.map(
+      registrationTriggers.map(
         trigger => `${trigger.registrationGeneration}:${trigger.registrationTransitionVersion}`
       )
     ).size === 1
-      ? (activeTriggers[0] ?? null)
+      ? (registrationTriggers[0] ?? null)
       : null;
   let verificationMechanisms = new Set(
     activeTriggers.map(trigger => trigger.verificationMechanism)
@@ -150,7 +158,9 @@ export let applyCallbackRegistrationMirror = async (d: {
       registrationPublicSnapshot: true,
       registrationMirrorVersion: true,
       registrationReceiverAuthorityVersion: true,
-      slateTriggerReceiverId: true
+      slateTriggerReceiverId: true,
+      lastRegistrationSyncErrorCode: true,
+      lastSyncErrorCode: true
     }
   });
 
@@ -218,13 +228,33 @@ export let applyCallbackRegistrationMirror = async (d: {
       advanced = true;
     } else if (
       incoming.authoritativeStateVersion === stored.authoritativeStateVersion &&
-      canonicalJson(incoming) !== canonicalJson(stored)
+      canonicalTriggerAuthority(incoming) !== canonicalTriggerAuthority(stored)
     ) {
       throw new Error('callback_registration_equal_version_conflict');
     }
   }
 
-  if (!advanced) return 'unchanged' as const;
+  if (!advanced) {
+    if (current.lastRegistrationSyncErrorCode || current.lastSyncErrorCode) {
+      await db.callbackInstance.updateMany({
+        where: {
+          oid: d.callbackInstanceOid,
+          registrationMirrorVersion: current.registrationMirrorVersion,
+          registrationReceiverAuthorityVersion: current.registrationReceiverAuthorityVersion,
+          slateTriggerReceiverId: current.slateTriggerReceiverId
+        },
+        data: {
+          lastSyncedAt: new Date(),
+          lastRegistrationSyncErrorCode: null,
+          lastRegistrationSyncErrorMessage: null,
+          lastRegistrationSyncErrorAt: null,
+          lastSyncErrorCode: null,
+          lastSyncErrorMessage: null
+        }
+      });
+    }
+    return 'unchanged' as const;
+  }
   let mirror = buildCallbackRegistrationMirror({
     id: d.receiver.id,
     callbackOwnerVersion: d.receiver.callbackOwnerVersion,
@@ -339,6 +369,7 @@ let syncLoadedSignalCallback = async (
       ? await signal.callback.upsert({
           tenantId: signalTenant.id,
           callbackId: callback.id,
+          scopeId: callback.environment.id,
           name: callback.name,
           description: callback.description,
           eventTypes,

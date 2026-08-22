@@ -138,6 +138,7 @@ class callbackServiceImpl {
   async upsertCallback(d: {
     input: {
       callbackId: string;
+      scopeId: string;
       name: string;
       description?: string | null;
       eventTypes?: string[] | null;
@@ -175,6 +176,7 @@ class callbackServiceImpl {
             where: { oid: callbackOwner.oid },
             data: {
               status: 'active',
+              scopeId: d.input.scopeId,
               name: d.input.name,
               description: d.input.description ?? null,
               eventTypes,
@@ -188,6 +190,7 @@ class callbackServiceImpl {
               oid: snowflake.nextId(),
               id: d.input.callbackId,
               status: 'active',
+              scopeId: d.input.scopeId,
               name: d.input.name,
               description: d.input.description ?? null,
               eventTypes,
@@ -279,6 +282,7 @@ class callbackServiceImpl {
       triggerKey?: string | null;
       status?: CallbackEventStatus;
       eventType: string;
+      deliveryEventId?: string | null;
       deliveryPayloadJson?: string | null;
       inputJson?: string | null;
       outputJson?: string | null;
@@ -327,7 +331,32 @@ class callbackServiceImpl {
 
     let event = null;
     if (status === 'succeeded') {
-      if (!d.input.deliveryPayloadJson) {
+      if (d.input.deliveryEventId && d.input.deliveryPayloadJson) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'delivery_event_conflict',
+            message: 'Only one of deliveryEventId and deliveryPayloadJson may be provided.'
+          })
+        );
+      }
+
+      if (d.input.deliveryEventId) {
+        event = await db.event.findFirst({
+          where: {
+            id: d.input.deliveryEventId,
+            tenantOid: d.tenant.oid,
+            callbackOid: d.callback.oid
+          }
+        });
+        if (!event) {
+          throw new ServiceError(
+            badRequestError({
+              code: 'delivery_event_invalid',
+              message: 'The delivery event does not belong to this callback.'
+            })
+          );
+        }
+      } else if (!d.input.deliveryPayloadJson) {
         throw new ServiceError(
           badRequestError({
             code: 'delivery_payload_required',
@@ -336,34 +365,36 @@ class callbackServiceImpl {
         );
       }
 
-      event = await eventService.createEvent({
-        input: {
-          idempotencyKey,
-          topics: [
-            `callback:${d.callback.id}`,
-            ...(d.input.callbackInstanceId
-              ? [`callback_instance:${d.input.callbackInstanceId}`]
-              : []),
-            ...(d.input.triggerId ? [`callback_trigger:${d.input.triggerId}`] : [])
-          ],
-          eventType: d.input.eventType,
-          payloadJson: d.input.deliveryPayloadJson,
-          headers: {
-            'metorial-callback-id': d.callback.id,
-            ...(d.input.callbackInstanceId
-              ? { 'metorial-callback-instance-id': d.input.callbackInstanceId }
-              : {})
+      if (!event) {
+        event = await eventService.createEvent({
+          input: {
+            idempotencyKey,
+            topics: [
+              `callback:${d.callback.id}`,
+              ...(d.input.callbackInstanceId
+                ? [`callback_instance:${d.input.callbackInstanceId}`]
+                : []),
+              ...(d.input.triggerId ? [`callback_trigger:${d.input.triggerId}`] : [])
+            ],
+            eventType: d.input.eventType,
+            payloadJson: d.input.deliveryPayloadJson!,
+            headers: {
+              'metorial-callback-id': d.callback.id,
+              ...(d.input.callbackInstanceId
+                ? { 'metorial-callback-instance-id': d.input.callbackInstanceId }
+                : {})
+            },
+            // Empty is deliberate: a filtered/disabled callback has no delivery targets.
+            onlyForDestinations: destinationIds
           },
-          // Empty is deliberate: a filtered/disabled callback has no delivery targets.
-          onlyForDestinations: destinationIds
-        },
-        sender,
-        tenant: d.tenant,
-        callback: d.callback,
-        callbackInstanceId: d.input.callbackInstanceId,
-        callbackSourceId: d.input.sourceId,
-        callbackTriggerId: d.input.triggerId
-      });
+          sender,
+          tenant: d.tenant,
+          callback: d.callback,
+          callbackInstanceId: d.input.callbackInstanceId,
+          callbackSourceId: d.input.sourceId,
+          callbackTriggerId: d.input.triggerId
+        });
+      }
     }
 
     let eventOid = event?.oid ?? existing?.eventOid ?? null;

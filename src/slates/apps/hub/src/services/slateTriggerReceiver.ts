@@ -38,6 +38,7 @@ export let slateTriggerReceiverProductionSecurityAdapters =
     bootstrapCaptureWriter: slateTriggerReceiverBootstrapCaptureWriter,
     webhookAuthorityResolver: slateTriggerReceiverProductionSecurity.webhookAuthorityResolver,
     scopedGrantIssuer: slateTriggerReceiverProductionSecurity.scopedGrantIssuer,
+    scopedGrantRedeemer: slateTriggerReceiverProductionSecurity.scopedGrantRedeemer,
     acceptedVerificationProofs:
       slateTriggerReceiverProductionSecurity.acceptedVerificationProofs
   });

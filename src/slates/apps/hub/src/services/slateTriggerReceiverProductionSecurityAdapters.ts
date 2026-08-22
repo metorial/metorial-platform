@@ -1,4 +1,3 @@
-import type { ScopedInvocationExecutionControl } from '../lib/invocation/types';
 import type { SlateTriggerReceiverSecurityAdapters } from './slateTriggerReceiverCore';
 
 export let createSlateTriggerReceiverProductionSecurityAdapters = (d: {
@@ -6,6 +5,9 @@ export let createSlateTriggerReceiverProductionSecurityAdapters = (d: {
     SlateTriggerReceiverSecurityAdapters['webhookAuthorityResolver']
   >;
   scopedGrantIssuer: NonNullable<SlateTriggerReceiverSecurityAdapters['scopedGrantIssuer']>;
+  scopedGrantRedeemer: NonNullable<
+    SlateTriggerReceiverSecurityAdapters['scopedGrantRedeemer']
+  >;
   acceptedVerificationProofs: NonNullable<
     SlateTriggerReceiverSecurityAdapters['acceptedVerificationProofs']
   >;
@@ -13,11 +15,3 @@ export let createSlateTriggerReceiverProductionSecurityAdapters = (d: {
     SlateTriggerReceiverSecurityAdapters['bootstrapCaptureWriter']
   >;
 }): SlateTriggerReceiverSecurityAdapters => ({ ...d });
-
-export let requireScopedInvocationExecutionControl = (
-  control: ScopedInvocationExecutionControl | undefined
-) => {
-  if (!control)
-    throw new Error('Trusted scoped invocation termination control is unavailable');
-  return control;
-};

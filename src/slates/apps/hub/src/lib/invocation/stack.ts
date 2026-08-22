@@ -20,7 +20,7 @@ import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
 import { invocationsBucketRecord } from '../../storage';
 import { storeSlateInvocation } from './store';
-import { runScopedRemoteInvocation, sanitizeScopedInvocationValue } from './types';
+import { sanitizeScopedInvocationValue } from './types';
 import type {
   InvocationError,
   InvocationResult,
@@ -111,48 +111,21 @@ export class SlateInvocationStack {
       functionBayTenant
     ]);
     let [providerInvocation, invocationRecord] = await Promise.all([
-      this.#scopedSecurity
-        ? runScopedRemoteInvocation({
-            hubInvocationId: invocationId,
-            control: this.#scopedSecurity.executionControl,
-            invoke: () =>
-              functionBay.function.invoke({
-                tenantId: runtimeTenant.id,
-                functionTenantId: deploymentTenant.id,
-                functionId: providerDeploymentInfo.functionId,
-                payload: {
-                  messages,
-                  invocationId
-                },
-                enclave:
-                  this.#enclaveId && runtimeTenant
-                    ? { identifier: this.#enclaveId }
-                    : undefined,
-                egressPolicy: this.#egressPolicy
-              })
-          }).catch(error => ({
-            id: '',
-            logs: [],
-            computeTimeMs: 0,
-            billedTimeMs: 0,
-            functionVersionId: '',
-            type: 'error' as const,
-            status: 'failed' as const,
-            error: { code: 'scoped_invocation_terminated', message: String(error) },
-            result: undefined
-          }))
-        : functionBay.function.invoke({
-            tenantId: runtimeTenant.id,
-            functionTenantId: deploymentTenant.id,
-            functionId: providerDeploymentInfo.functionId,
-            payload: {
-              messages,
-              invocationId
-            },
-            enclave:
-              this.#enclaveId && runtimeTenant ? { identifier: this.#enclaveId } : undefined,
-            egressPolicy: this.#egressPolicy
-          }),
+      functionBay.function.invoke({
+        tenantId: runtimeTenant.id,
+        functionTenantId: deploymentTenant.id,
+        functionId: providerDeploymentInfo.functionId,
+        payload: {
+          messages,
+          invocationId,
+          ...(this.#scopedSecurity
+            ? { scopedInvocationRedemption: this.#scopedSecurity.redemption }
+            : {})
+        },
+        enclave:
+          this.#enclaveId && runtimeTenant ? { identifier: this.#enclaveId } : undefined,
+        egressPolicy: this.#egressPolicy
+      }),
       db.slateInvocation.create({
         data: {
           oid: snowflake.nextId(),

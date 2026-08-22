@@ -56,15 +56,11 @@ class webhookEventServiceImpl {
   async listWebhookEventsInternal(
     d: { tenant: Tenant; environment: Environment } & ListWebhookEventsParams
   ) {
-    let authorizedIds = await this.resolveAuthorizedCallbackIdsInternal(d);
-    let authorizedSet = new Set(authorizedIds);
-    let callbackIds = d.filters.callbackIds
-      ? d.filters.callbackIds.filter(id => authorizedSet.has(id))
-      : authorizedIds;
     let signalTenant = await getTenantForSignal(d.tenant);
     return await signal.event.list({
       tenantId: signalTenant.id,
-      callbackIds,
+      scopeIds: [d.environment.id],
+      callbackIds: d.filters.callbackIds,
       eventTypes: d.filters.eventTypes,
       statuses: d.filters.statuses,
       destinationIds: d.filters.destinationIds,
@@ -102,8 +98,7 @@ class webhookEventServiceImpl {
       }
       throw error;
     }
-    let authorizedIds = await this.resolveAuthorizedCallbackIdsInternal(d);
-    if (!event.callbackId || !authorizedIds.includes(event.callbackId)) {
+    if (event.scopeId !== d.environment.id) {
       throw new ServiceError(notFoundError('webhook.event', d.webhookEventId));
     }
     return event;

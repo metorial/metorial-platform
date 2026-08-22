@@ -335,6 +335,39 @@ export let redactWebhookUrl = (value: string, pathSecret?: string) => {
 export let redactWebhookHeaders = (headers: readonly (readonly [string, string])[]) =>
   headers.map(([name]) => [name, '[REDACTED]']);
 
+let pathSecretFromWebhookUrl = (value: string) => {
+  try {
+    let parts = new URL(value).pathname.split('/').filter(Boolean);
+    let routeIndex = parts.findIndex(
+      part => part === 'webhook' || part === 'receiver-webhook'
+    );
+    return routeIndex >= 0 && parts.length > routeIndex + 2
+      ? decodeURIComponent(parts[routeIndex + 2]!)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+export let redactWebhookPayloadMetadata = (input: Record<string, any>) => {
+  let url = typeof input.url === 'string' ? input.url : undefined;
+  let headers =
+    input.headers && typeof input.headers === 'object' && !Array.isArray(input.headers)
+      ? Object.fromEntries(
+          redactWebhookHeaders(
+            Object.entries(input.headers).flatMap(([name, value]) =>
+              typeof value === 'string' ? ([[name, value]] as [string, string][]) : []
+            )
+          )
+        )
+      : input.headers;
+  return {
+    ...input,
+    ...(url ? { url: redactWebhookUrl(url, pathSecretFromWebhookUrl(url)) } : {}),
+    ...(headers ? { headers } : {})
+  };
+};
+
 export let extractExplicitPathSecret = (d: { requestUrl: string; routePrefix: string }) => {
   let pathname = new URL(d.requestUrl).pathname;
   let prefix = d.routePrefix.endsWith('/') ? d.routePrefix : `${d.routePrefix}/`;

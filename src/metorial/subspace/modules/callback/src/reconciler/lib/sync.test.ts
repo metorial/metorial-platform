@@ -24,10 +24,11 @@ vi.mock('@metorial-subspace/db', () => ({
       updateMany: mocks.callbackInstanceUpdateMany
     }
   },
-  withTransaction: vi.fn(async callback =>
-    await callback({
-      callbackInstance: { update: mocks.callbackInstanceUpdate }
-    })
+  withTransaction: vi.fn(
+    async callback =>
+      await callback({
+        callbackInstance: { update: mocks.callbackInstanceUpdate }
+      })
   )
 }));
 
@@ -119,6 +120,7 @@ let callback = (overrides: Record<string, unknown> = {}) => ({
   name: 'Order updates',
   description: null,
   tenant: { oid: 10n },
+  environment: { id: 'env_1' },
   callbackDestinationLinks: [
     {
       callbackDestination: {
@@ -166,6 +168,86 @@ describe('callback registration mirror', () => {
         receiverPathSecret: { id: 'secret_1', generation: 2 }
       }
     });
+  });
+
+  it('does not let a polling trigger downgrade registered webhooks', () => {
+    let pollingTrigger = {
+      ...receiver().triggers[0],
+      id: 'poll_1',
+      source: 'polling',
+      registrationStatus: 'unregistered',
+      isWebhookRegistered: null
+    };
+    let mirror = buildCallbackRegistrationMirror(
+      receiver({ triggers: [...receiver().triggers, pollingTrigger] })
+    );
+
+    expect(mirror.registrationStatus).toBe('registered');
+  });
+
+  it('ignores volatile polling timestamps at an equal authority version', async () => {
+    let polling = {
+      ...receiver().triggers[0],
+      source: 'polling',
+      registrationStatus: 'unregistered',
+      isWebhookRegistered: null,
+      nextPollAt: new Date('2026-08-22T12:00:00.000Z'),
+      lastPolledAt: new Date('2026-08-22T11:50:00.000Z')
+    };
+    let stored = buildCallbackRegistrationMirror(receiver({ triggers: [polling] }));
+    mocks.callbackInstanceFindUniqueOrThrow.mockResolvedValue({
+      registrationPublicSnapshot: stored.registrationPublicSnapshot,
+      registrationMirrorVersion: 7,
+      registrationReceiverAuthorityVersion: 3,
+      slateTriggerReceiverId: 'receiver_1'
+    });
+
+    await expect(
+      applyCallbackRegistrationMirror({
+        callbackInstanceOid: 100n,
+        receiver: receiver({
+          triggers: [
+            {
+              ...polling,
+              nextPollAt: new Date('2026-08-22T12:10:00.000Z'),
+              lastPolledAt: new Date('2026-08-22T12:00:00.000Z')
+            }
+          ]
+        }),
+        expectedReceiverId: 'receiver_1',
+        expectedReceiverAuthorityVersion: 3
+      })
+    ).resolves.toBe('unchanged');
+    expect(mocks.callbackInstanceUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('clears a stale sync error when the authoritative mirror is unchanged', async () => {
+    let stored = buildCallbackRegistrationMirror(receiver());
+    mocks.callbackInstanceFindUniqueOrThrow.mockResolvedValue({
+      registrationPublicSnapshot: stored.registrationPublicSnapshot,
+      registrationMirrorVersion: 7,
+      registrationReceiverAuthorityVersion: 3,
+      slateTriggerReceiverId: 'receiver_1',
+      lastRegistrationSyncErrorCode: 'registration_sync_failed',
+      lastSyncErrorCode: 'registration_sync_failed'
+    });
+
+    await expect(
+      applyCallbackRegistrationMirror({
+        callbackInstanceOid: 100n,
+        receiver: receiver(),
+        expectedReceiverId: 'receiver_1',
+        expectedReceiverAuthorityVersion: 3
+      })
+    ).resolves.toBe('unchanged');
+    expect(mocks.callbackInstanceUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lastRegistrationSyncErrorCode: null,
+          lastSyncErrorCode: null
+        })
+      })
+    );
   });
 
   it('advances the local owner mirror with a CAS update', async () => {
@@ -250,7 +332,9 @@ describe('callback teardown', () => {
       status: 'attached',
       slateTriggerReceiverId: null,
       callback: callback({
-        callbackProviderTriggers: [{ providerTrigger: { specId: 'trigger_1' }, eventTypes: [] }]
+        callbackProviderTriggers: [
+          { providerTrigger: { specId: 'trigger_1' }, eventTypes: [] }
+        ]
       }),
       integrationInstance: {
         status: 'active',

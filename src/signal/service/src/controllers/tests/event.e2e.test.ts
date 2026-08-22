@@ -81,6 +81,33 @@ describe('event.e2e', () => {
     );
   });
 
+  it('lists events within the requested scope', async () => {
+    let tenant = await f.tenant.default();
+    let sender = await f.sender.default();
+    let included = await f.event.default({
+      tenantOid: tenant.oid,
+      senderOid: sender.oid,
+      overrides: { scopeId: 'environment-a' }
+    });
+    await f.event.default({
+      tenantOid: tenant.oid,
+      senderOid: sender.oid,
+      overrides: { scopeId: 'environment-b' }
+    });
+
+    let result = await signalClient.event.list({
+      tenantId: tenant.id,
+      scopeIds: ['environment-a'],
+      limit: 10
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      id: included.id,
+      scopeId: 'environment-a'
+    });
+  });
+
   it('reads event payloads after cleanup offloads them to storage', async () => {
     let tenant = await f.tenant.default();
     let sender = await f.sender.default();
@@ -127,6 +154,7 @@ describe('event.e2e', () => {
       tenantId: tenant.id,
       senderId: sender.id,
       idempotencyKey: 'hub-key-a',
+      scopeId: 'environment-a',
       topics: ['orders'],
       eventType: 'order.created',
       payloadJson: '{"id":"order-a"}',
@@ -155,6 +183,7 @@ describe('event.e2e', () => {
       tenantId: tenant.id,
       senderId: sender.id,
       idempotencyKey: 'hub-key-concurrent',
+      scopeId: 'environment-concurrent',
       topics: ['orders'],
       eventType: 'order.created',
       payloadJson: '{"id":"order-a"}',
@@ -196,6 +225,7 @@ describe('event.e2e', () => {
       tenantId: tenantA.id,
       senderId: sender.id,
       idempotencyKey: 'hub-key-isolated',
+      scopeId: 'environment-isolated',
       topics: ['orders'],
       eventType: 'order.created',
       payloadJson: '{"id":"order-a"}',

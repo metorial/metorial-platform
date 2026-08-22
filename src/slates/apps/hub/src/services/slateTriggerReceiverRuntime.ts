@@ -41,6 +41,10 @@ import {
   isTrustedSharedAppBoundary,
   type SharedAppAuthenticatedBoundary
 } from '../lib/sharedAppRouting';
+import {
+  canDeferRegistrationSecretForBootstrap,
+  fulfilledWebhookTriggerProjections
+} from '../lib/webhookProjectionPolicy';
 import { redactWebhookHeaders, redactWebhookUrl } from '../lib/webhookRequestCapture';
 import {
   slateTriggerEventInputArchiveQueue,
@@ -943,12 +947,16 @@ export class SlateTriggerReceiverRuntime {
     }
     let http = slatesWebhookHttp.parse(actionContract.invocation?.http ?? {});
     let ingress = http.ingress;
-    if (!ingress || ingress.kind !== (sharedBoundary?.kind ?? 'receiver_route')) {
+    if (
+      (sharedBoundary && !ingress) ||
+      (ingress && ingress.kind !== (sharedBoundary?.kind ?? 'receiver_route'))
+    ) {
       throw new Error('Webhook ingress projection does not match its authenticated boundary');
     }
-    let verification = ingress.verification;
+    let verification = ingress?.verification ?? ({ mechanism: 'path_secret_only' } as const);
     if (sharedBoundary) {
       if (
+        !ingress ||
         !isTrustedSharedAppBoundary(sharedBoundary) ||
         sharedBoundary.receiverId !== receiverTrigger.receiver.id ||
         sharedBoundary.receiverTriggerId !== receiverTrigger.id ||
@@ -979,20 +987,39 @@ export class SlateTriggerReceiverRuntime {
     if (!isRoutableWebhookReceiverTrigger(receiverTrigger)) {
       throw new Error('Authoritative webhook verification policy is blocked');
     }
-    let secretNames =
-      verification.mechanism === 'path_secret_only'
-        ? []
-        : verification.allowedSecretRefs.map(secretRef => secretRef.name);
+    let secretRefs =
+      verification.mechanism === 'path_secret_only' ? [] : verification.allowedSecretRefs;
+    let secretNames = secretRefs.map(secretRef => secretRef.name);
     let secrets = sharedBoundary
       ? [...sharedBoundary.vendorSecrets]
       : (
           await Promise.all(
-            secretNames.map(name =>
-              slateTriggerReceiverSecretService.resolveDeclaredTriggerSecretsForVerification({
-                receiverTriggerId: receiverTrigger.id,
-                name
-              })
-            )
+            secretNames.map(async name => {
+              try {
+                return await slateTriggerReceiverSecretService.resolveDeclaredTriggerSecretsForVerification(
+                  {
+                    receiverTriggerId: receiverTrigger.id,
+                    name
+                  }
+                );
+              } catch (error) {
+                let secretRef = secretRefs.find(ref => ref.name === name);
+                if (
+                  error instanceof Error &&
+                  error.message === 'credential_missing' &&
+                  secretRef &&
+                  canDeferRegistrationSecretForBootstrap({
+                    registrationStatus: receiverTrigger.registrationStatus,
+                    secretRef,
+                    rules:
+                      verification.mechanism === 'path_secret_only' ? [] : verification.rules
+                  })
+                ) {
+                  return [];
+                }
+                throw error;
+              }
+            })
           )
         ).flat();
     let stateVersion = receiverTrigger.registrationVersion;
@@ -1060,15 +1087,23 @@ export class SlateTriggerReceiverRuntime {
       string,
       import('../lib/invocation/types').AcceptedWebhookVerificationProof
     >();
+    let projectionResults = await Promise.allSettled(
+      d.receiverTriggers.map(trigger =>
+        this.projectExactWebhookTrigger(trigger, d.sharedBoundary)
+      )
+    );
+    let triggers = fulfilledWebhookTriggerProjections(projectionResults);
+    if (triggers.length === 0) {
+      return { status: 'rejected', code: 'routing_projection_unavailable' };
+    }
+
     return await executeExactWebhookPipeline({
       receiverId: d.receiverId,
       requestId: d.requestId,
       request: d.request,
-      triggers: await Promise.all(
-        d.receiverTriggers.map(trigger =>
-          this.projectExactWebhookTrigger(trigger, d.sharedBoundary)
-        )
-      ),
+      // A stale or misconfigured sibling must not make otherwise healthy receiver routes
+      // unavailable. Exact trigger routes still fail closed because they contain one projection.
+      triggers,
       dependencies: {
         lookupReplay: async input =>
           await slateTriggerWebhookReplayService.lookupBeforeMapping(input),
@@ -1194,9 +1229,10 @@ export class SlateTriggerReceiverRuntime {
         throw new Error(capabilities.verification.code);
       }
       let issuer = this.core.security.scopedGrantIssuer;
+      let redeemer = this.core.security.scopedGrantRedeemer;
       // An advertised secret-bearing operation may not silently downgrade when authenticated
       // grant issue/redemption is unavailable.
-      if (!issuer) {
+      if (!issuer || !redeemer) {
         throw new Error('Authenticated scoped invocation grant issuance is unavailable');
       }
 
@@ -1208,6 +1244,15 @@ export class SlateTriggerReceiverRuntime {
         operation: 'webhook_verify'
       });
       try {
+        let redemption = await redeemer.redeem({
+          envelope,
+          expected: {
+            requestId,
+            operation: 'webhook_verify',
+            actionId: authority.actionId
+          },
+          secrets: authority.scopedSecrets
+        });
         let stack = await this.core.createRestrictedInvocationStack({
           receiverTrigger: authority.receiverTrigger,
           version: authority.version,
@@ -1218,7 +1263,8 @@ export class SlateTriggerReceiverRuntime {
             envelope.token,
             authorityHandle.id,
             authorityHandle.token
-          ]
+          ],
+          redemption
         });
         let itemAdapter = authority.itemAdapterId
           ? {
@@ -1317,7 +1363,8 @@ export class SlateTriggerReceiverRuntime {
   }): Promise<ExactWebhookMappedOutput> {
     let resolver = this.core.security.webhookAuthorityResolver;
     let issuer = this.core.security.scopedGrantIssuer;
-    if (!resolver?.resolveMapping || !issuer) {
+    let redeemer = this.core.security.scopedGrantRedeemer;
+    if (!resolver?.resolveMapping || !issuer || !redeemer) {
       throw new Error('Scoped webhook mapping authority is unavailable');
     }
     let hubInvocationId = getId('slateInvocation').id;
@@ -1362,6 +1409,15 @@ export class SlateTriggerReceiverRuntime {
         operation: 'webhook_handle'
       });
       try {
+        let redemption = await redeemer.redeem({
+          envelope,
+          expected: {
+            requestId,
+            operation: 'webhook_handle',
+            actionId: authority.actionId
+          },
+          secrets: authority.scopedSecrets
+        });
         let stack = await this.core.createRestrictedInvocationStack({
           receiverTrigger: authority.receiverTrigger,
           version: authority.version,
@@ -1372,7 +1428,8 @@ export class SlateTriggerReceiverRuntime {
             envelope.token,
             authorityHandle.id,
             authorityHandle.token
-          ]
+          ],
+          redemption
         });
         let result = await slateInvocationService.handleVerifiedWebhookRequest({
           stack,
@@ -1482,7 +1539,8 @@ export class SlateTriggerReceiverRuntime {
         throw new Error('Provider does not advertise bootstrap capture');
       }
       let issuer = this.core.security.scopedGrantIssuer;
-      if (!issuer) {
+      let redeemer = this.core.security.scopedGrantRedeemer;
+      if (!issuer || !redeemer) {
         throw new Error('Authenticated bootstrap capture redemption is unavailable');
       }
       let envelope = await issuer.issue({
@@ -1518,6 +1576,15 @@ export class SlateTriggerReceiverRuntime {
       };
       let output: unknown;
       try {
+        let redemption = await redeemer.redeem({
+          envelope,
+          expected: {
+            requestId,
+            operation: 'webhook_bootstrap_capture',
+            actionId: authority.actionId
+          },
+          secrets: authority.scopedSecrets
+        });
         let stack = await this.core.createRestrictedInvocationStack({
           receiverTrigger: authority.receiverTrigger,
           version: authority.version,
@@ -1528,7 +1595,8 @@ export class SlateTriggerReceiverRuntime {
             envelope.token,
             authorityHandle.id,
             authorityHandle.token
-          ]
+          ],
+          redemption
         });
         let result = await slateInvocationService.captureWebhookBootstrap({
           stack,
@@ -2102,19 +2170,6 @@ export class SlateTriggerReceiverRuntime {
           eventOid: event.oid,
           type: SlateTriggerInvocationType.map_event,
           invocation: mapRes.invocation
-        });
-        await this.core.recordCallbackEventLifecycle({
-          receiver,
-          action: context.action,
-          event: {
-            id: eventInput.id,
-            status: 'succeeded',
-            type: mapRes.data.type,
-            sourceId: eventInput.webhookDispatchOutbox.localSourceId,
-            input: eventInput.input as Record<string, any> | null,
-            output: mapRes.data.output,
-            providerInvocation: mapRes.invocation
-          }
         });
         await slateTriggerWebhookDispatchOutboxQueue.add(
           { outboxId: eventInput.webhookDispatchOutbox.id },
@@ -3330,9 +3385,8 @@ export class SlateTriggerReceiverRuntime {
             }
           });
           if (updated.status === 'error') throw new Error('provider_rejected');
-          let captured = (
-            updated.data as { capturedSecrets?: Record<string, string> }
-          ).capturedSecrets?.telegram_secret_token;
+          let captured = (updated.data as { capturedSecrets?: Record<string, string> })
+            .capturedSecrets?.telegram_secret_token;
           if (
             !captured ||
             telegramWebhookSecretFingerprint(captured) !== d.telegramLease.secretFingerprint

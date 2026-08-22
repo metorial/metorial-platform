@@ -1,4 +1,4 @@
-import { isServiceError } from '@lowerdeck/error';
+import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { db, snowflake } from '@metorial-subspace/db';
 import {
   IProviderCallbackConfig,
@@ -45,30 +45,53 @@ let callbackConfigApi = (
 
 let resolveSlateContext = async (data: CallbackConfigSchemaGetParam) => {
   if (!data.providerVariant.slateOid) {
-    throw new Error('Provider variant does not have a slate associated with it');
+    throw new ServiceError(
+      badRequestError({
+        code: 'callback_slate_required',
+        message: 'Provider variant does not have a Slate associated with it.'
+      })
+    );
+  }
+  if (!data.providerVersion.slateVersionOid) {
+    throw new ServiceError(
+      badRequestError({
+        code: 'callback_slate_version_required',
+        message: 'Provider version does not have a Slate version associated with it.'
+      })
+    );
   }
 
-  let slate = await db.slate.findUniqueOrThrow({
+  let slate = await db.slate.findUnique({
     where: { oid: data.providerVariant.slateOid }
   });
-  let deployment = await db.providerDeployment.findUniqueOrThrow({
-    where: { oid: data.deployment.oid },
-    include: {
-      currentVersion: {
-        include: {
-          lockedVersion: {
-            include: { slateVersion: true }
-          }
-        }
-      }
-    }
+  if (!slate) {
+    throw new ServiceError(
+      badRequestError({
+        code: 'callback_slate_not_found',
+        message: "Provider variant's Slate could not be found."
+      })
+    );
+  }
+
+  let slateVersion = await db.slateVersion.findUnique({
+    where: { oid: data.providerVersion.slateVersionOid }
   });
-  let slateVersion = deployment.currentVersion?.lockedVersion?.slateVersion;
   if (!slateVersion) {
-    throw new Error('Provider deployment does not have a locked slate version');
+    throw new ServiceError(
+      badRequestError({
+        code: 'callback_slate_version_not_found',
+        message: "Provider version's Slate version could not be found."
+      })
+    );
   }
   if (slateVersion.slateOid !== slate.oid) {
-    throw new Error('Provider deployment slate version does not match its provider variant');
+    throw new ServiceError(
+      badRequestError({
+        code: 'callback_slate_version_mismatch',
+        message:
+          "Provider version's Slate version does not belong to the provider variant's Slate."
+      })
+    );
   }
 
   let tenant = await getTenantForSlates(data.tenant);

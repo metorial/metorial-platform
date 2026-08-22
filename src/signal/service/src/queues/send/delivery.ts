@@ -10,6 +10,7 @@ import { getAxiosSsrfFilter } from '../../lib/ssrf';
 import { storageKey } from '../../lib/storageKey';
 import { buildWebhookDeliveryHeaders } from '../../lib/webhookDeliveryHeaders';
 import { storage } from '../../storage';
+import { buildEventDestinationDeliveryCompatibilityWhere } from './destinationRouting';
 import { intentFailedQueue, intentSucceededQueue } from './intent';
 import { enqueueDeliveryAttempt } from './deliveryRetry';
 
@@ -31,7 +32,7 @@ export let createDeliveryQueueProcessor = createDeliveryQueue.process(async data
     where: {
       id: data.destinationId,
       tenantOid: event.tenantOid,
-      senderOid: event.senderOid
+      AND: [buildEventDestinationDeliveryCompatibilityWhere(event)]
     }
   });
   if (!destination) throw new QueueRetryError();
@@ -112,7 +113,10 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
     errorMessage: string | null;
   }) => {
     if (attempt.status === 'succeeded') {
-      await intentSucceededQueue.add({ intentId: intent.id }, { id: intent.id });
+      await intentSucceededQueue.add(
+        { intentId: intent.id, attemptCount: attempt.attemptNumber },
+        { id: intent.id }
+      );
       return;
     }
 
@@ -121,7 +125,8 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
         {
           intentId: intent.id,
           errorCode: attempt.errorCode ?? 'delivery_failed',
-          errorMessage: attempt.errorMessage ?? 'Webhook delivery failed'
+          errorMessage: attempt.errorMessage ?? 'Webhook delivery failed',
+          attemptCount: attempt.attemptNumber
         },
         { id: intent.id }
       );
