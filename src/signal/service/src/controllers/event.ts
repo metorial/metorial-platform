@@ -18,6 +18,7 @@ export let eventController = app.controller({
         payloadJson: v.string(),
         headers: v.record(v.string()),
         onlyForDestinations: v.optional(v.array(v.string())),
+        scopeId: v.optional(v.string()),
         callbackId: v.optional(v.string()),
         callbackInstanceId: v.optional(v.string()),
         callbackSourceId: v.optional(v.string()),
@@ -43,6 +44,7 @@ export let eventController = app.controller({
           payloadJson: ctx.input.payloadJson,
           headers: ctx.input.headers,
           onlyForDestinations: ctx.input.onlyForDestinations,
+          scopeId: ctx.input.scopeId,
           callbackInstanceId: ctx.input.callbackInstanceId,
           callbackSourceId: ctx.input.callbackSourceId,
           callbackTriggerId: ctx.input.callbackTriggerId
@@ -76,6 +78,7 @@ export let eventController = app.controller({
       v.object({
         tenantId: v.string(),
         senderId: v.string(),
+        scopeId: v.string(),
 
         topics: v.array(v.string()),
         eventType: v.string(),
@@ -95,7 +98,8 @@ export let eventController = app.controller({
           headers: ctx.input.headers,
           eventType: ctx.input.eventType,
           payloadJson: ctx.input.payloadJson,
-          onlyForDestinations: ctx.input.onlyForDestinations
+          onlyForDestinations: ctx.input.onlyForDestinations,
+          scopeId: ctx.input.scopeId
         }
       });
 
@@ -129,6 +133,7 @@ export let eventController = app.controller({
           eventTypes: v.optional(v.array(v.string())),
           topics: v.optional(v.array(v.string())),
           senderIds: v.optional(v.array(v.string())),
+          scopeIds: v.optional(v.array(v.string())),
           callbackIds: v.optional(v.array(v.string())),
           statuses: v.optional(v.array(v.enumOf(['pending', 'delivered', 'failed']))),
           destinationIds: v.optional(v.array(v.string()))
@@ -142,6 +147,7 @@ export let eventController = app.controller({
         eventTypes: ctx.input.eventTypes,
         topics: ctx.input.topics,
         senderIds: ctx.input.senderIds,
+        scopeIds: ctx.input.scopeIds,
         callbackIds: ctx.input.callbackIds,
         statuses: ctx.input.statuses,
         destinationIds: ctx.input.destinationIds

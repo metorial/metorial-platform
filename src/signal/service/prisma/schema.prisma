@@ -126,6 +126,7 @@ model Callback {
   id  String @unique
 
   status CallbackStatus
+  scopeId String
 
   name        String
   description String?
@@ -266,6 +267,7 @@ model Event {
   requestFingerprint   String?
   initializationStatus EventInitializationStatus @default(initialized)
   status               EventStatus
+  scopeId              String
 
   topics String[]
 
@@ -303,6 +305,7 @@ model Event {
 
   @@index([topics])
   @@index([eventType])
+  @@index([tenantOid, scopeId, createdAt])
   @@index([callbackOid, createdAt])
   @@index([callbackInstanceId])
 }

@@ -64,10 +64,14 @@ let verifyHmac = (d: {
 let bodyBytes = (request: WebhookWireRequest) => decodeWebhookBody(request) ?? Buffer.alloc(0);
 
 let jsonRecord = (request: WebhookWireRequest) => {
-  let value = parseWebhookJsonBody(request);
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
+  try {
+    let value = parseWebhookJsonBody(request);
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
 };
 
 let strictUtf8Body = (request: WebhookWireRequest) => {
@@ -84,9 +88,20 @@ let slackSyncResponse = (request: WebhookWireRequest): WebhookWireResponse | nul
   let contentTypes = getExactHeaderValues(request, 'content-type');
   if (contentTypes.length !== 1) return null;
   let mediaType = contentTypes[0]!.split(';', 1)[0]!.trim().toLowerCase();
-  if (mediaType !== 'application/json') return null;
   let body = strictUtf8Body(request);
   if (body === null) return null;
+
+  if (mediaType === 'application/x-www-form-urlencoded') {
+    let form = new URLSearchParams(body);
+    let sslCheckValues = form.getAll('ssl_check');
+    if (sslCheckValues.length !== 1 || sslCheckValues[0] !== '1') return null;
+    return {
+      status: 200,
+      headers: [['content-type', 'text/plain; charset=utf-8']],
+      body: { present: true, base64: '' }
+    };
+  }
+  if (mediaType !== 'application/json') return null;
 
   let payload: unknown;
   try {

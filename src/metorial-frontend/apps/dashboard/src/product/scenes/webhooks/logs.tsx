@@ -478,6 +478,48 @@ let DestinationFilter = ({
   );
 };
 
+let WebhookLogsTable = ({
+  events,
+  callbacks
+}: {
+  events: ReturnType<typeof useWebhookEvents>;
+  callbacks: readonly CallbackLabel[];
+}) => {
+  let [_, setSearchParams] = useSearchParams();
+
+  return renderWithPagination(events)(events => (
+    <>
+      <Table
+        headers={['Type', 'Status', 'Deliveries', 'Source', 'Created']}
+        data={events.data.items.map(event => ({
+          data: [
+            <Text size="2" weight="strong">
+              {event.type}
+            </Text>,
+            getNotificationStatusBadge(event.status),
+            <Text size="2">
+              {event.deliverySuccessCount} delivered / {event.deliveryFailureCount} failed /{' '}
+              {event.deliveryDestinationCount ?? event.deliveries?.length ?? 0} total
+            </Text>,
+            <WebhookSourceCell source={event.source as WebhookSource} callbacks={callbacks} />,
+            <RenderDate date={event.createdAt} />
+          ],
+          onClick: () =>
+            setSearchParams(params => {
+              params.set('webhook_event_id', event.id);
+              return params;
+            })
+        }))}
+      />
+      {events.data.items.length === 0 ? (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No webhook events found.
+        </Text>
+      ) : null}
+    </>
+  ));
+};
+
 export let WebhookLogsList = () => {
   let instance = useCurrentInstance();
   let callbacks = useAllCallbacks(instance.data?.id);
@@ -492,7 +534,6 @@ export let WebhookLogsList = () => {
     ...(callbackId === 'all' ? {} : { callbackId }),
     ...(destinationId === 'all' ? {} : { destinationId })
   });
-  let [_, setSearchParams] = useSearchParams();
   let shouldPollEvents =
     !!events.data &&
     (events.data.items.length === 0 ||
@@ -539,43 +580,9 @@ export let WebhookLogsList = () => {
         />
       </Flex>
 
-      {renderWithLoader({ callbacks })(({ callbacks }) =>
-        renderWithPagination(events)(events => (
-          <>
-            <Table
-              headers={['Type', 'Status', 'Deliveries', 'Source', 'Created']}
-              data={events.data.items.map(event => ({
-                data: [
-                  <Text size="2" weight="strong">
-                    {event.type}
-                  </Text>,
-                  getNotificationStatusBadge(event.status),
-                  <Text size="2">
-                    {event.deliverySuccessCount} delivered / {event.deliveryFailureCount}{' '}
-                    failed / {event.deliveryDestinationCount ?? event.deliveries?.length ?? 0}{' '}
-                    total
-                  </Text>,
-                  <WebhookSourceCell
-                    source={event.source as WebhookSource}
-                    callbacks={callbacks.data}
-                  />,
-                  <RenderDate date={event.createdAt} />
-                ],
-                onClick: () =>
-                  setSearchParams(params => {
-                    params.set('webhook_event_id', event.id);
-                    return params;
-                  })
-              }))}
-            />
-            {events.data.items.length === 0 ? (
-              <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-                No webhook events found.
-              </Text>
-            ) : null}
-          </>
-        ))
-      )}
+      {renderWithLoader({ callbacks })(({ callbacks }) => (
+        <WebhookLogsTable events={events} callbacks={callbacks.data} />
+      ))}
 
       <RouterPanel param="webhook_event_id" width={1000}>
         {webhookEventId => (

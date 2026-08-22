@@ -60,6 +60,7 @@ export let callbackController = app.controller({
       v.object({
         tenantId: v.string(),
         callbackId: v.string(),
+        scopeId: v.string(),
         name: v.string(),
         description: v.optional(v.nullable(v.string())),
         eventTypes: v.optional(v.nullable(v.array(v.string()))),
@@ -71,6 +72,7 @@ export let callbackController = app.controller({
         tenant: ctx.tenant,
         input: {
           callbackId: ctx.input.callbackId,
+          scopeId: ctx.input.scopeId,
           name: ctx.input.name,
           description: ctx.input.description,
           eventTypes: ctx.input.eventTypes,
@@ -121,6 +123,7 @@ export let callbackController = app.controller({
           v.enumOf(['pending', 'processing', 'retrying', 'succeeded', 'failed', 'skipped'])
         ),
         eventType: v.string(),
+        deliveryEventId: v.optional(v.nullable(v.string())),
         deliveryPayloadJson: v.optional(v.nullable(v.string())),
         inputJson: v.optional(v.nullable(v.string())),
         outputJson: v.optional(v.nullable(v.string())),
@@ -140,6 +143,7 @@ export let callbackController = app.controller({
           triggerKey: ctx.input.triggerKey,
           status: ctx.input.status,
           eventType: ctx.input.eventType,
+          deliveryEventId: ctx.input.deliveryEventId,
           deliveryPayloadJson: ctx.input.deliveryPayloadJson,
           inputJson: ctx.input.inputJson,
           outputJson: ctx.input.outputJson,

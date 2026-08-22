@@ -20,6 +20,7 @@ let include = {
 
 export type IdempotentEventCreateInput = {
   idempotencyKey: string;
+  scopeId?: string;
   topics: string[];
   eventType: string;
   payloadJson: string;
@@ -54,6 +55,31 @@ let idempotencyConflict = () =>
     })
   );
 
+let resolveEventScopeId = (d: { callback?: Callback; scopeId?: string }) => {
+  if (d.callback) {
+    if (d.scopeId !== undefined && d.scopeId !== d.callback.scopeId) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'event_scope_mismatch',
+          message: 'The Signal event scope does not match the callback scope.'
+        })
+      );
+    }
+    return d.callback.scopeId;
+  }
+
+  if (!d.scopeId) {
+    throw new ServiceError(
+      badRequestError({
+        code: 'event_scope_required',
+        message: 'A Signal event scope is required.'
+      })
+    );
+  }
+
+  return d.scopeId;
+};
+
 export let normalizeEventTopics = (topics: readonly string[]) =>
   normalizeIdempotentEventTopics(topics);
 
@@ -73,6 +99,7 @@ export let computeIdempotentEventRequestFingerprint = (d: {
     computeIdempotentEventRequestFingerprintV1({
       tenantId: d.tenantId,
       senderId: d.senderId,
+      scopeId: d.input.scopeId,
       topics: d.input.topics,
       eventType: d.input.eventType,
       payloadJson: d.input.payloadJson,
@@ -125,6 +152,7 @@ export class eventServiceImpl {
   async createEvent(d: {
     input: {
       idempotencyKey?: string;
+      scopeId?: string;
       topics: string[];
       eventType: string;
       payloadJson: string;
@@ -138,6 +166,8 @@ export class eventServiceImpl {
     callbackSourceId?: string | null;
     callbackTriggerId?: string | null;
   }) {
+    let scopeId = resolveEventScopeId({ callback: d.callback, scopeId: d.input.scopeId });
+
     if (d.input.idempotencyKey) {
       return await this.createIdempotentEvent({
         tenant: d.tenant,
@@ -158,6 +188,7 @@ export class eventServiceImpl {
         ...getId('event'),
         initializationStatus: 'awaiting_enqueue',
         status: 'pending',
+        scopeId,
         topics: normalizeEventTopics(d.input.topics),
         eventType: d.input.eventType,
         payloadJson: d.input.payloadJson,
@@ -188,6 +219,7 @@ export class eventServiceImpl {
     tenant: Tenant;
     callback?: Callback;
   }) {
+    let scopeId = resolveEventScopeId({ callback: d.callback, scopeId: d.input.scopeId });
     let requestFingerprint = computeIdempotentEventRequestFingerprint({
       tenantId: d.tenant.id,
       senderId: d.sender.id,
@@ -204,6 +236,7 @@ export class eventServiceImpl {
         !existing ||
         existing.tenantOid !== d.tenant.oid ||
         existing.senderOid !== d.sender.oid ||
+        existing.scopeId !== scopeId ||
         existing.requestFingerprint !== requestFingerprint
       ) {
         throw idempotencyConflict();
@@ -231,6 +264,7 @@ export class eventServiceImpl {
           requestFingerprint,
           initializationStatus: 'awaiting_enqueue',
           status: 'pending',
+          scopeId,
           topics: normalizeEventTopics(d.input.topics),
           eventType: d.input.eventType,
           payloadJson: d.input.payloadJson,
@@ -285,6 +319,7 @@ export class eventServiceImpl {
     eventTypes?: string[];
     topics?: string[];
     senderIds?: string[];
+    scopeIds?: string[];
     callbackIds?: string[];
     statuses?: EventStatus[];
     destinationIds?: string[];
@@ -301,6 +336,7 @@ export class eventServiceImpl {
               sender: d.senderIds
                 ? { OR: [{ id: { in: d.senderIds } }, { identifier: { in: d.senderIds } }] }
                 : undefined,
+              scopeId: d.scopeIds !== undefined ? { in: d.scopeIds } : undefined,
               callback:
                 d.callbackIds !== undefined ? { id: { in: d.callbackIds } } : undefined,
               status: d.statuses ? { in: d.statuses } : undefined,

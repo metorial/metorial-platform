@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 export type IdempotentEventRequestFingerprintV1Input = {
   tenantId: string;
   senderId: string;
+  scopeId?: string;
   topics: readonly string[];
   eventType: string;
   payloadJson: string;
@@ -72,6 +73,7 @@ export let computeIdempotentEventRequestFingerprintV1 = (
       canonicalJson({
         tenantId: request.tenantId,
         senderId: request.senderId,
+        ...(request.scopeId === undefined ? {} : { scopeId: request.scopeId }),
         topics: normalizeIdempotentEventTopics(request.topics),
         eventType: request.eventType,
         // The payload is bound as its exact UTF-8 representation, not parsed and serialized.

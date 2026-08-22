@@ -30,7 +30,7 @@ export interface SlateInvocationBaseParams {
   scopedSecurity?: {
     redactionSentinels: readonly string[];
     forbiddenValues: readonly string[];
-    executionControl: ScopedInvocationExecutionControl;
+    redemption: ScopedInvocationRedemption;
   };
   artifactSecurity?: {
     redactionSentinels: readonly string[];
@@ -39,106 +39,9 @@ export interface SlateInvocationBaseParams {
   canonicalConfigSchema?: Record<string, unknown>;
 }
 
-export interface ScopedInvocationExecutionControl {
-  timeoutMs: number;
-  assertIsolation(d: {
-    hubInvocationId: string;
-    networkEgress: 'deny_all';
-    sideEffects: 'deny_all';
-    adversarialProbes: readonly ['network', 'persistence', 'event'];
-  }): Promise<{
-    status: 'enforced';
-    hubInvocationId: string;
-    networkEgress: 'deny_all';
-    sideEffects: 'deny_all';
-    deniedEffects: readonly ['network', 'persistence', 'event'];
-  }>;
-  probeDeniedEffect(d: {
-    hubInvocationId: string;
-    effect: 'network' | 'persistence' | 'event';
-  }): Promise<{
-    status: 'denied';
-    hubInvocationId: string;
-    effect: 'network' | 'persistence' | 'event';
-  }>;
-  terminate(d: {
-    hubInvocationId: string;
-    reason: 'timeout' | 'cancelled';
-  }): Promise<{ status: 'terminated'; hubInvocationId: string }>;
-}
-
 export type InvocationArtifactSecurity = {
   redactionSentinels: readonly string[];
   forbiddenValues: readonly string[];
-};
-
-export let runScopedRemoteInvocation = async <Result>(d: {
-  hubInvocationId: string;
-  invoke: () => Promise<Result>;
-  control: ScopedInvocationExecutionControl;
-}): Promise<Result> => {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let invocation = d.invoke();
-  invocation.catch(() => {});
-  let outcome: { type: 'result'; result: Result } | { type: 'timeout' };
-  try {
-    outcome = await Promise.race([
-      invocation.then(result => ({ type: 'result' as const, result })),
-      new Promise<{ type: 'timeout' }>(resolve => {
-        timer = setTimeout(() => resolve({ type: 'timeout' }), d.control.timeoutMs);
-      })
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-  if (outcome.type === 'result') return outcome.result;
-  let acknowledgement = await d.control.terminate({
-    hubInvocationId: d.hubInvocationId,
-    reason: 'timeout'
-  });
-  if (
-    acknowledgement.status !== 'terminated' ||
-    acknowledgement.hubInvocationId !== d.hubInvocationId
-  ) {
-    throw new Error('Scoped invocation termination was not acknowledged');
-  }
-  throw new Error('Scoped invocation timed out after confirmed remote termination');
-};
-
-export let assertScopedInvocationIsolation = async (d: {
-  hubInvocationId: string;
-  control: ScopedInvocationExecutionControl;
-}) => {
-  let isolation = await d.control.assertIsolation({
-    hubInvocationId: d.hubInvocationId,
-    networkEgress: 'deny_all',
-    sideEffects: 'deny_all',
-    adversarialProbes: ['network', 'persistence', 'event']
-  });
-  if (
-    isolation.status !== 'enforced' ||
-    isolation.hubInvocationId !== d.hubInvocationId ||
-    isolation.networkEgress !== 'deny_all' ||
-    isolation.sideEffects !== 'deny_all' ||
-    JSON.stringify(isolation.deniedEffects) !==
-      JSON.stringify(['network', 'persistence', 'event'])
-  ) {
-    throw new Error('Trusted scoped invocation isolation was not acknowledged');
-  }
-  for (let effect of ['network', 'persistence', 'event'] as const) {
-    let denial = await d.control.probeDeniedEffect({
-      hubInvocationId: d.hubInvocationId,
-      effect
-    });
-    if (
-      denial.status !== 'denied' ||
-      denial.hubInvocationId !== d.hubInvocationId ||
-      denial.effect !== effect
-    ) {
-      throw new Error(`Trusted scoped ${effect} denial was not acknowledged`);
-    }
-  }
-  return isolation;
 };
 
 export let sanitizeScopedInvocationValue = <Value>(
@@ -242,6 +145,12 @@ export interface SlatesScopedInvocationGrantEnvelope {
   requestId: string;
 }
 
+export interface ScopedInvocationRedemption {
+  envelope: SlatesScopedInvocationGrantEnvelope;
+  bindings: Readonly<ScopedInvocationGrantBindings>;
+  secrets: Readonly<Record<string, { value: string }>>;
+}
+
 export type ScopedSlateInvocationRequest = SlatesRequests & {
   invocation?: SlatesScopedInvocationGrantEnvelope;
 };
@@ -278,7 +187,7 @@ interface ScopedReceiverWebhookInvocationGrantBindingBase {
   registrationGeneration: number;
   registrationVersion: number;
   authConfigId: string | null;
-  callbackSecretIds: readonly string[];
+  callbackSecretIds: Readonly<Record<string, string>>;
   candidateBindings: readonly Readonly<ScopedWebhookCandidateBinding>[];
 }
 
@@ -304,7 +213,7 @@ export interface ScopedToolInvocationGrantBindings {
   issuedAtMs: number;
   expiresAtMs: number;
   authConfigId: string | null;
-  callbackSecretIds: readonly string[];
+  callbackSecretIds: Readonly<Record<string, string>>;
   receiverCallback?: Readonly<{
     receiverId: string;
     receiverTriggerId: string;
@@ -313,7 +222,7 @@ export interface ScopedToolInvocationGrantBindings {
     registrationGeneration: number;
     registrationVersion: number;
     authConfigId: string | null;
-    callbackSecretIds: readonly string[];
+    callbackSecretIds: Readonly<Record<string, string>>;
   }>;
 }
 
@@ -390,7 +299,8 @@ let sameRequest = (
     left.requestId !== right.requestId ||
     left.operation !== right.operation ||
     left.hubInvocationId !== right.hubInvocationId
-  ) return false;
+  )
+    return false;
   if (left.operation === 'tool_invoke' && right.operation === 'tool_invoke') {
     return (
       left.deploymentId === right.deploymentId &&
@@ -412,15 +322,15 @@ let freezeBindings = <Bindings extends UnissuedScopedInvocationGrantBindings>(
 ): Bindings =>
   Object.freeze({
     ...bindings,
-    callbackSecretIds: Object.freeze([...bindings.callbackSecretIds]),
+    callbackSecretIds: Object.freeze({ ...bindings.callbackSecretIds }),
     ...(bindings.operation === 'tool_invoke'
       ? bindings.receiverCallback
         ? {
             receiverCallback: Object.freeze({
               ...bindings.receiverCallback,
-              callbackSecretIds: Object.freeze([
+              callbackSecretIds: Object.freeze({
                 ...bindings.receiverCallback.callbackSecretIds
-              ])
+              })
             })
           }
         : {}
@@ -436,10 +346,21 @@ let freezeBindings = <Bindings extends UnissuedScopedInvocationGrantBindings>(
         })
   }) as Bindings;
 
-let validOpaqueIds = (ids: readonly string[]) =>
-  ids.length <= 64 &&
-  new Set(ids).size === ids.length &&
-  ids.every(id => typeof id === 'string' && id.length > 0 && id.length <= 256);
+let validOpaqueIdRecord = (ids: Readonly<Record<string, string>>) => {
+  let entries = Object.entries(ids);
+  return (
+    entries.length <= 64 &&
+    new Set(entries.map(([name]) => name)).size === entries.length &&
+    entries.every(
+      ([name, id]) =>
+        name.length > 0 &&
+        name.length <= 256 &&
+        typeof id === 'string' &&
+        id.length > 0 &&
+        id.length <= 256
+    )
+  );
+};
 
 export class ScopedInvocationGrantAuthority {
   private readonly grants = new Map<
@@ -457,7 +378,11 @@ export class ScopedInvocationGrantAuthority {
   >();
   private readonly terminalResolutions = new Map<
     string,
-    Readonly<{ id: string; request: Readonly<ScopedInvocationGrantRequest>; expiresAtMs: number }>
+    Readonly<{
+      id: string;
+      request: Readonly<ScopedInvocationGrantRequest>;
+      expiresAtMs: number;
+    }>
   >();
 
   constructor(
@@ -508,7 +433,9 @@ export class ScopedInvocationGrantAuthority {
     return Object.freeze({ handle, bindings });
   }
 
-  async issue(d: ScopedInvocationGrantIssueInput): Promise<SlatesScopedInvocationGrantEnvelope> {
+  async issue(
+    d: ScopedInvocationGrantIssueInput
+  ): Promise<SlatesScopedInvocationGrantEnvelope> {
     this.purgeExpiredResolutions();
     let resolution = this.resolutions.get(d.authorityHandle.token);
     this.resolutions.delete(d.authorityHandle.token);
@@ -540,7 +467,7 @@ export class ScopedInvocationGrantAuthority {
       !resolved.tenantId ||
       !resolved.slateInstanceId ||
       !resolved.actionId ||
-      !validOpaqueIds(resolved.callbackSecretIds);
+      !validOpaqueIdRecord(resolved.callbackSecretIds);
     if (resolved.operation === 'tool_invoke') {
       invalid ||=
         d.request.operation !== 'tool_invoke' ||
@@ -560,7 +487,7 @@ export class ScopedInvocationGrantAuthority {
             !/^[a-f0-9]{64}$/.test(resolved.receiverCallback.specHash) ||
             resolved.receiverCallback.registrationGeneration <= 0 ||
             resolved.receiverCallback.registrationVersion <= 0 ||
-            !validOpaqueIds(resolved.receiverCallback.callbackSecretIds)));
+            !validOpaqueIdRecord(resolved.receiverCallback.callbackSecretIds)));
     } else {
       invalid ||=
         d.request.operation === 'tool_invoke' ||
@@ -626,7 +553,8 @@ export class ScopedInvocationGrantAuthority {
       [key: string]: unknown;
     };
   }) {
-    if (!d.authenticated) throw new Error('Scoped invocation grant redemption is unauthenticated');
+    if (!d.authenticated)
+      throw new Error('Scoped invocation grant redemption is unauthenticated');
     let validate = (bindings: Readonly<ScopedInvocationGrantBindings>) =>
       d.envelope.grantId === bindings.grantId &&
       d.envelope.requestId === bindings.requestId &&

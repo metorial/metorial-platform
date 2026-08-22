@@ -7,6 +7,7 @@ export let REGISTRATION_PAGE_SIZE = 100;
 
 export let callbackInclude = {
   tenant: true,
+  environment: true,
   providerDeployment: {
     include: {
       provider: {

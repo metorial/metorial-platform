@@ -47,6 +47,18 @@ let Section = styled.section`
   gap: 12px;
 `;
 
+let TriggerList = styled.ul`
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+`;
+
+let TriggerListItem = styled.li`
+  list-style-type: disc;
+`;
+
 let getDialogZIndex = (dialog: Element) => {
   let zIndex = Number.parseInt(getComputedStyle(dialog).zIndex, 10);
   return Number.isNaN(zIndex) ? null : zIndex;
@@ -372,42 +384,46 @@ let IntegrationProviderCallbackPanelContent = (p: {
             </Callout>
           ) : null}
 
-          {selectedTriggerIds.map(triggerId => {
-            let trigger = p.triggers.find(candidate => candidate.key === triggerId);
-            if (!trigger) return null;
-            let selectedEventTypes = eventTypesByTrigger[triggerId] ?? [];
-            return (
-              <Flex key={triggerId} justify="space-between" align="center" gap={10}>
-                <Flex direction="column" gap={2}>
-                  <Text size="2" weight="strong">
-                    {trigger.name}
-                  </Text>
-                  <Text size="1" color="gray600">
-                    {selectedEventTypes.length
-                      ? `${selectedEventTypes.length} event types selected`
-                      : 'All event types'}
-                  </Text>
-                </Flex>
-                <Button
-                  size="1"
-                  variant="outline"
-                  onClick={() =>
-                    showTriggerEventTypesModal({
-                      trigger,
-                      selectedEventTypes,
-                      onSave: eventTypes =>
-                        setEventTypesByTrigger(current => ({
-                          ...current,
-                          [triggerId]: eventTypes
-                        }))
-                    })
-                  }
-                >
-                  Configure events
-                </Button>
-              </Flex>
-            );
-          })}
+          <TriggerList>
+            {selectedTriggerIds.map(triggerId => {
+              let trigger = p.triggers.find(candidate => candidate.key === triggerId);
+              if (!trigger) return null;
+              let selectedEventTypes = eventTypesByTrigger[triggerId] ?? [];
+              return (
+                <TriggerListItem key={triggerId}>
+                  <Flex justify="space-between" align="center" gap={10}>
+                    <Flex direction="column" gap={2}>
+                      <Text size="2" weight="strong">
+                        {trigger.name}
+                      </Text>
+                      {/* <Text size="1" color="gray600">
+                        {selectedEventTypes.length
+                          ? `${selectedEventTypes.length} event types selected`
+                          : 'All event types'}
+                      </Text> */}
+                    </Flex>
+                    {/* <Button
+                      size="1"
+                      variant="outline"
+                      onClick={() =>
+                        showTriggerEventTypesModal({
+                          trigger,
+                          selectedEventTypes,
+                          onSave: eventTypes =>
+                            setEventTypesByTrigger(current => ({
+                              ...current,
+                              [triggerId]: eventTypes
+                            }))
+                        })
+                      }
+                    >
+                      Configure events
+                    </Button> */}
+                  </Flex>
+                </TriggerListItem>
+              );
+            })}
+          </TriggerList>
         </Section>
 
         {schema ? (

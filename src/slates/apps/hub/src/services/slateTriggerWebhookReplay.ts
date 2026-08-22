@@ -12,6 +12,7 @@ import type {
 } from '../lib/webhookVerification';
 import { slateTriggerEventProcessQueue } from '../queues/trigger/eventQueues';
 import { signal } from '../signal';
+import { recordCallbackEventLifecycle } from './callbackEventLifecycle';
 import { persistCapturedCallbackSecretsInTransaction } from './slateTriggerReceiverSecret';
 
 export let WEBHOOK_REPLAY_DEFAULT_RETENTION_MS = 24 * 60 * 60 * 1000;
@@ -246,8 +247,7 @@ let syncIdentity = (sync: WebhookAtomicSync): PreparedIdentity => {
   };
 };
 
-let adapterVersion = (adapterId?: string) =>
-  adapterId === 'graph.body_value.v1' ? 1 : 0;
+let adapterVersion = (adapterId?: string) => (adapterId === 'graph.body_value.v1' ? 1 : 0);
 
 let claimWhere = (d: {
   receiverTriggerId: string;
@@ -269,14 +269,13 @@ let responseFromClaim = (claim: { syncResponse: unknown }) => {
 };
 
 export let classifySignalDispatchError = (error: unknown) => {
-  let value =
-    typeof error === 'object' && error !== null
-      ? error
-      : {};
+  let value = typeof error === 'object' && error !== null ? error : {};
   let code = 'code' in value && typeof value.code === 'string' ? value.code : '';
-  let status = 'status' in value && typeof value.status === 'number' ? value.status : undefined;
+  let status =
+    'status' in value && typeof value.status === 'number' ? value.status : undefined;
   if (code === 'idempotency_payload_conflict') return { terminal: true, code };
-  if (status === 401 || code === 'unauthorized') return { terminal: true, code: 'unauthorized' };
+  if (status === 401 || code === 'unauthorized')
+    return { terminal: true, code: 'unauthorized' };
   if (status === 403 || code === 'forbidden') return { terminal: true, code: 'forbidden' };
   if (status !== undefined && status >= 400 && status < 500) {
     return { terminal: true, code: 'signal_request_invalid' };
@@ -293,13 +292,15 @@ export class SlateTriggerWebhookReplayService {
   }) {
     let identities =
       d.kind === 'sync_response'
-        ? [syncIdentity({
-            bindings: d.bindings,
-            response: { status: 204, headers: [], body: { present: false } },
-            capturedSecrets: {},
-            replayKeys: d.replayKeys,
-            replayTtlSeconds: 1
-          })]
+        ? [
+            syncIdentity({
+              bindings: d.bindings,
+              response: { status: 204, headers: [], body: { present: false } },
+              capturedSecrets: {},
+              replayKeys: d.replayKeys,
+              replayTtlSeconds: 1
+            })
+          ]
         : dispatchIdentities({
             bindings: d.bindings,
             acceptedRequest: {
@@ -349,9 +350,13 @@ export class SlateTriggerWebhookReplayService {
       !request.capturedRequest ||
       !request.capturedRequestExpiresAt ||
       request.capturedRequestExpiresAt <= now
-    ) return { status: 'rejected', code: 'mapped_output_invalid' };
+    )
+      return { status: 'rejected', code: 'mapped_output_invalid' };
 
-    let duplicates: { commitId: string; response?: ReturnType<typeof parseWebhookWireResponse> }[] = [];
+    let duplicates: {
+      commitId: string;
+      response?: ReturnType<typeof parseWebhookWireResponse>;
+    }[] = [];
     for (let sync of input.syncs) {
       let identity = syncIdentity(sync);
       let existing = await db.slateTriggerWebhookReplayClaim.findFirst({
@@ -389,10 +394,9 @@ export class SlateTriggerWebhookReplayService {
         }
       }
     }
-    let total = input.syncs.length + input.dispatches.reduce(
-      (count, dispatch) => count + dispatch.inputs.length,
-      0
-    );
+    let total =
+      input.syncs.length +
+      input.dispatches.reduce((count, dispatch) => count + dispatch.inputs.length, 0);
     if (total > 0 && duplicates.length === total) {
       return {
         status: 'duplicate',
@@ -421,7 +425,8 @@ export class SlateTriggerWebhookReplayService {
             trigger.registrationGeneration !== dispatch.bindings.registrationGeneration ||
             trigger.registrationVersion !== dispatch.bindings.registrationVersion ||
             trigger.verificationSpecHash !== dispatch.bindings.specHash
-          ) throw new Error('mapped_output_invalid');
+          )
+            throw new Error('mapped_output_invalid');
 
           if (dispatch.proposedState) {
             let updated = await tx.slateTriggerReceiverTrigger.updateMany({
@@ -456,7 +461,9 @@ export class SlateTriggerWebhookReplayService {
                 input: acceptedPayload as Prisma.InputJsonValue
               }
             });
-            let callbackSecretIds = trigger.boundSecrets.map(binding => binding.secret.id).sort();
+            let callbackSecretIds = trigger.boundSecrets
+              .map(binding => binding.secret.id)
+              .sort();
             let claim = await tx.slateTriggerWebhookReplayClaim.create({
               data: {
                 ...claimId,
@@ -537,7 +544,8 @@ export class SlateTriggerWebhookReplayService {
             trigger.registrationGeneration !== sync.bindings.registrationGeneration ||
             trigger.registrationVersion !== sync.bindings.registrationVersion ||
             trigger.verificationSpecHash !== sync.bindings.specHash
-          ) throw new Error('mapped_output_invalid');
+          )
+            throw new Error('mapped_output_invalid');
           let identity = syncIdentity(sync);
           assertBoundedStoredPayload(sync.response);
           await persistCapturedCallbackSecretsInTransaction({
@@ -615,10 +623,7 @@ export class SlateTriggerWebhookReplayService {
       if (error instanceof Error && error.message === 'state_cas_conflict') {
         return { status: 'rejected', code: 'state_cas_conflict' };
       }
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         return { status: 'rejected', code: 'replay_conflict' };
       }
       return { status: 'rejected', code: 'mapped_output_invalid' };
@@ -682,7 +687,9 @@ export class SlateTriggerWebhookReplayService {
         leaseOwner: d.owner,
         leaseExpiresAt: { gt: now }
       },
-      data: { leaseExpiresAt: new Date(now.getTime() + (d.leaseMs ?? WEBHOOK_OUTBOX_LEASE_MS)) }
+      data: {
+        leaseExpiresAt: new Date(now.getTime() + (d.leaseMs ?? WEBHOOK_OUTBOX_LEASE_MS))
+      }
     });
     return renewed.count === 1;
   }
@@ -848,6 +855,33 @@ export class SlateTriggerWebhookReplayService {
       });
       throw new Error('Signal idempotency request fingerprint conflict');
     }
+
+    let localEvent = await db.slateTriggerEvent.findUniqueOrThrow({
+      where: { id: outbox.localEventId },
+      include: {
+        receiver: { include: { tenant: true } },
+        action: true,
+        invocation: true,
+        eventInputs: { where: { oid: outbox.eventInputOid }, take: 1 }
+      }
+    });
+    let eventInput = localEvent.eventInputs[0];
+    if (!eventInput) throw new Error('Webhook outbox event input is missing');
+
+    await recordCallbackEventLifecycle({
+      receiver: localEvent.receiver,
+      action: localEvent.action,
+      event: {
+        id: eventInput.id,
+        status: 'succeeded',
+        type: localEvent.type,
+        sourceId: localEvent.sourceId,
+        input: eventInput.input as Record<string, any> | null,
+        output: localEvent.output as Record<string, any>,
+        deliveryEventId: event.id,
+        providerInvocation: localEvent.invocation
+      }
+    });
     await d.beforeLeaseRelease?.();
     let confirmed = await this.confirmDelivered({
       outboxId: outbox.id,

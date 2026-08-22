@@ -28,6 +28,7 @@ export let slateTriggerReceiverPresenter = (
     pathSecret?: {
       id: string;
       generation: number;
+      plaintextIssuedAt: Date | null;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -50,7 +51,7 @@ export let slateTriggerReceiverPresenter = (
   consecutivePollingFailures: receiver.consecutivePollingFailures,
   consecutiveEventFailures: receiver.consecutiveEventFailures,
   receiverWebhookUrl: getReceiverWebhookBaseUrl(receiver.id),
-  receiverPathSecret: receiver.pathSecret
+  receiverPathSecret: receiver.pathSecret?.plaintextIssuedAt
     ? {
         id: receiver.pathSecret.id,
         generation: receiver.pathSecret.generation,

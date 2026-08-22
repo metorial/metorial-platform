@@ -89,6 +89,7 @@ describe('Signal idempotent event request protocol v1', () => {
   it.each([
     ['tenantId', 'tenant-b'],
     ['senderId', 'sender-b'],
+    ['scopeId', 'environment-b'],
     ['eventType', 'updated'],
     ['callbackId', 'callback-b'],
     ['callbackInstanceId', 'instance-b'],

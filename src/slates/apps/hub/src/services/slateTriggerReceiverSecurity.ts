@@ -32,8 +32,34 @@ let isRecord = (value: unknown): value is Record<string, unknown> =>
 let findRule = (value: unknown, ruleId: string): AuthoritativeWebhookRule | null => {
   if (!isRecord(value)) return null;
   let invocation = value.invocation;
-  if (!isRecord(invocation)) return null;
+  if (!isRecord(invocation) || invocation.type !== 'webhook') return null;
   let http = invocation.http;
+  if (ruleId === 'path_secret_only') {
+    let verification =
+      isRecord(http) && isRecord(http.ingress) && isRecord(http.ingress.verification)
+        ? http.ingress.verification
+        : null;
+    if (!verification || verification.mechanism === 'path_secret_only') {
+      return {
+        id: 'path_secret_only',
+        phase: 'delivery',
+        when: {
+          methods: isRecord(http) && Array.isArray(http.methods) ? http.methods : ['POST']
+        },
+        verify: { type: 'path_secret' },
+        result: { type: 'dispatch', scope: 'receiver_trigger' },
+        replay: {
+          kind: 'enforced',
+          deduplicate: {
+            source: 'header',
+            headerName: 'x-metorial-delivery-id',
+            ttlSeconds: 1,
+            scope: 'request'
+          }
+        }
+      } as AuthoritativeWebhookRule;
+    }
+  }
   if (!isRecord(http)) return null;
   let ingress = http.ingress;
   if (!isRecord(ingress)) return null;
@@ -51,7 +77,8 @@ let findRule = (value: unknown, ruleId: string): AuthoritativeWebhookRule | null
     (rule.verify.allowedSecretRefs !== undefined &&
       (!Array.isArray(rule.verify.allowedSecretRefs) ||
         !rule.verify.allowedSecretRefs.every((name: unknown) => typeof name === 'string')))
-  ) return null;
+  )
+    return null;
   return rule as unknown as AuthoritativeWebhookRule;
 };
 
@@ -93,7 +120,8 @@ let durableScopedGrantStore: ScopedInvocationGrantStore = {
       });
       if (!pending || pending.status !== 'active' || pending.expiresAt <= d.now) return null;
       let bindings = pending.bindings as unknown as Readonly<ScopedInvocationGrantBindings>;
-      if (!d.validate(bindings)) throw new Error('Scoped invocation grant binding validation failed');
+      if (!d.validate(bindings))
+        throw new Error('Scoped invocation grant binding validation failed');
       let consumed = await tx.slateScopedInvocationGrant.updateMany({
         where: { tokenHash: d.tokenHash, status: 'active', expiresAt: { gt: d.now } },
         data: { status: 'consumed', consumedAt: d.now }
@@ -142,7 +170,11 @@ class SlateTriggerReceiverProductionSecurity {
     this.pending.set(requestKey(request), bindings);
     let resolved = await this.grants.resolve(request);
     try {
-      return await this.grants.issue({ authorityHandle: resolved.handle, ttlMs: 60_000, request });
+      return await this.grants.issue({
+        authorityHandle: resolved.handle,
+        ttlMs: 60_000,
+        request
+      });
     } finally {
       this.grants.release({ handle: resolved.handle, request });
     }
@@ -169,7 +201,8 @@ class SlateTriggerReceiverProductionSecurity {
     if (
       typeof published !== 'string' ||
       published !== computeHubWebhookActionSpecHashV1(actionContract)
-    ) throw new Error('Published webhook action contract hash is invalid');
+    )
+      throw new Error('Published webhook action contract hash is invalid');
     return {
       receiverTrigger: receiverTrigger as ReceiverTriggerWithRelations & {
         boundSecrets: { secret: { id: string } }[];
@@ -200,24 +233,48 @@ class SlateTriggerReceiverProductionSecurity {
     if (!rule) throw new Error('Published webhook verification rule was not found');
     if (!isRecord(d.request)) throw new Error('Authoritative webhook request is invalid');
 
-    let callbackSecretIds = new Set(
-      loaded.receiverTrigger.boundSecrets.map(binding => binding.secret.id)
-    );
-    let redactionSentinels: string[] = [];
+    let callbackSecretIds: Record<string, string> = {};
+    let scopedSecrets: Record<string, { value: string }> = {};
+    let pathSecrets = await slateTriggerReceiverSecretService.resolvePathActiveAndRetiring({
+      tenant: loaded.receiverTrigger.receiver.tenant,
+      receiverId: loaded.receiverTrigger.receiver.id
+    });
+    let redactionSentinels: string[] = pathSecrets.map(secret => secret.plaintext);
+    let verification = isRecord(loaded.actionContract.invocation)
+      ? loaded.actionContract.invocation
+      : null;
+    let http = verification && isRecord(verification.http) ? verification.http : null;
+    let ingress = http && isRecord(http.ingress) ? http.ingress : null;
+    let verificationPolicy =
+      ingress && isRecord(ingress.verification) ? ingress.verification : null;
+    let allowedSecretRefs =
+      verificationPolicy && Array.isArray(verificationPolicy.allowedSecretRefs)
+        ? verificationPolicy.allowedSecretRefs.filter(isRecord)
+        : [];
     for (let name of d.resolveVerificationSecrets === false
       ? []
       : (rule.verify.allowedSecretRefs ?? [])) {
-      let resolved = await slateTriggerReceiverSecretService
-        .resolveDeclaredTriggerSecretsForVerification({
+      let resolved =
+        await slateTriggerReceiverSecretService.resolveDeclaredTriggerSecretsForVerification({
           receiverTriggerId: loaded.receiverTrigger.id,
           name
         });
       if (resolved.length === 0) {
         throw new Error(`Authoritative callback secret is missing: ${name}`);
       }
+      if (resolved.length !== 1) {
+        throw new Error(`Authoritative callback secret is ambiguous: ${name}`);
+      }
       for (let secret of resolved) {
-        callbackSecretIds.add(secret.id);
+        scopedSecrets[name] = { value: secret.value };
         redactionSentinels.push(secret.value);
+        let reference = allowedSecretRefs.find(candidate => candidate.name === name);
+        if (
+          reference &&
+          ['callback_secret', 'registration', 'generated'].includes(String(reference.source))
+        ) {
+          callbackSecretIds[name] = secret.id;
+        }
       }
     }
 
@@ -226,7 +283,8 @@ class SlateTriggerReceiverProductionSecurity {
       rule.result.type === 'dispatch' &&
       rule.result.scope === 'verified_items' &&
       (d.itemAdapterId !== 'graph.body_value.v1' || candidateBindings.length === 0)
-    ) throw new Error('Authoritative verified-item candidate projection is unavailable');
+    )
+      throw new Error('Authoritative verified-item candidate projection is unavailable');
     if (rule.result.type !== 'dispatch' || rule.result.scope !== 'verified_items') {
       if (d.itemAdapterId !== undefined || candidateBindings.length !== 0) {
         throw new Error('Unexpected authoritative webhook item candidates');
@@ -245,13 +303,16 @@ class SlateTriggerReceiverProductionSecurity {
       registrationGeneration: loaded.receiverTrigger.registrationGeneration,
       registrationVersion: loaded.receiverTrigger.registrationVersion,
       authConfigId: loaded.receiverTrigger.receiver.authConfig?.id ?? null,
-      callbackSecretIds: [...callbackSecretIds].sort(),
+      callbackSecretIds: Object.fromEntries(
+        Object.entries(callbackSecretIds).sort(([left], [right]) => left.localeCompare(right))
+      ),
       ...(d.itemAdapterId ? { itemAdapterId: d.itemAdapterId } : {}),
       candidateBindings: candidateBindings.map(candidate => ({
         ...candidate,
         deliveryIds: [...candidate.deliveryIds]
       })),
-      redactionSentinels
+      redactionSentinels: [...new Set(redactionSentinels)],
+      scopedSecrets
     };
   }
 
@@ -261,7 +322,8 @@ class SlateTriggerReceiverProductionSecurity {
     originalRequestHash: string;
     dispatchRequestHash: string;
   }) {
-    if (d.request.operation === 'tool_invoke') throw new Error('Unexpected tool grant request');
+    if (d.request.operation === 'tool_invoke')
+      throw new Error('Unexpected tool grant request');
     this.pending.set(requestKey(d.request), {
       tenantId: d.authority.receiverTrigger.receiver.tenant.id,
       slateInstanceId: d.authority.receiverTrigger.receiver.slateInstance.id,
@@ -306,9 +368,11 @@ class SlateTriggerReceiverProductionSecurity {
 
     resolveMapping: async d => {
       if (
-        computeHubWebhookWireRequestHash(d.originalRequest as never) !== d.originalRequestHash ||
+        computeHubWebhookWireRequestHash(d.originalRequest as never) !==
+          d.originalRequestHash ||
         computeHubWebhookWireRequestHash(d.dispatchRequest as never) !== d.dispatchRequestHash
-      ) throw new Error('Authoritative webhook mapping hash is invalid');
+      )
+        throw new Error('Authoritative webhook mapping hash is invalid');
       let authority = await this.buildResolution({
         receiverTriggerId: d.receiverTriggerId,
         ruleId: d.ruleId,
@@ -396,7 +460,9 @@ class SlateTriggerReceiverProductionSecurity {
 
   readonly scopedGrantIssuer = {
     issue: async (d: {
-      authorityHandle: Parameters<ScopedInvocationGrantAuthority['issue']>[0]['authorityHandle'];
+      authorityHandle: Parameters<
+        ScopedInvocationGrantAuthority['issue']
+      >[0]['authorityHandle'];
       receiverTriggerId: string;
       hubInvocationId: string;
       requestId: string;
@@ -422,6 +488,28 @@ class SlateTriggerReceiverProductionSecurity {
   async redeemScopedGrant(d: Parameters<ScopedInvocationGrantAuthority['redeem']>[0]) {
     return await this.grants.redeem(d);
   }
+
+  readonly scopedGrantRedeemer = {
+    redeem: async (d: {
+      envelope: import('../lib/invocation/types').SlatesScopedInvocationGrantEnvelope;
+      expected: {
+        requestId: string;
+        operation: Exclude<ScopedInvocationGrantRequest['operation'], 'tool_invoke'>;
+        actionId: string;
+      };
+      secrets: Readonly<Record<string, { value: string }>>;
+    }) => ({
+      envelope: d.envelope,
+      bindings: await this.redeemScopedGrant({
+        envelope: d.envelope,
+        authenticated: true,
+        expected: d.expected
+      }),
+      secrets: Object.fromEntries(
+        Object.entries(d.secrets).map(([name, secret]) => [name, { value: secret.value }])
+      )
+    })
+  };
 }
 
 export let slateTriggerReceiverProductionSecurity =

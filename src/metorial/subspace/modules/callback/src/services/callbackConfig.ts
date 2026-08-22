@@ -29,7 +29,7 @@ let loadProviderContext = async (integrationProviderOid: bigint) => {
           deployment: {
             include: {
               provider: { include: { defaultVariant: true } },
-              currentVersion: { include: { lockedVersion: true } }
+              currentVersion: true
             }
           }
         }
@@ -123,6 +123,7 @@ class callbackConfigServiceImpl {
       tenant: d.tenant,
       provider: context.provider,
       providerVariant: context.providerVariant,
+      providerVersion: context.providerVersion,
       deployment: context.deployment,
       triggerIds
     });
@@ -166,6 +167,7 @@ class callbackConfigServiceImpl {
           tenant: d.tenant,
           provider: context.provider,
           providerVariant: context.providerVariant,
+          providerVersion: context.providerVersion,
           deployment: context.deployment,
           triggerIds,
           previousBacking: {
@@ -177,6 +179,7 @@ class callbackConfigServiceImpl {
           tenant: d.tenant,
           provider: context.provider,
           providerVariant: context.providerVariant,
+          providerVersion: context.providerVersion,
           deployment: context.deployment,
           triggerIds,
           values: d.valuesPatch

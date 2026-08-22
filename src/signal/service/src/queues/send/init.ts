@@ -2,6 +2,7 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { createDeliveryQueue } from './delivery';
+import { buildEventDestinationSelectionWhere } from './destinationRouting';
 import { eventSucceededQueue } from './lifecycle';
 
 export let newEventQueue = createQueue<{
@@ -21,21 +22,7 @@ export let newEventQueueProcessor = newEventQueue.process(async data => {
   let destinations = await db.eventDestination.findMany({
     where: {
       tenantOid: event.tenantOid,
-      senderOid: event.senderOid,
-      status: 'active',
-      isCallbackDestination: event.callbackOid != null,
-      callbackDestinationLinks: event.callbackOid
-        ? {
-            some: {
-              callbackOid: event.callbackOid,
-              status: 'active'
-            }
-          }
-        : undefined,
-
-      OR: [{ hasEventTypesFilter: false }, { eventTypes: { has: event.eventType } }],
-
-      id: event.hasOnlyForDestinationsFilter ? { in: event.onlyForDestinations } : undefined
+      ...buildEventDestinationSelectionWhere(event)
     }
   });
 

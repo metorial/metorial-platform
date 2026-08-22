@@ -13,7 +13,7 @@ import {
 
 let tenant = { oid: 1n, id: 'tenant-a' } as any;
 let sender = { oid: 2n, id: 'sender-a' } as any;
-let callback = { oid: 3n, id: 'callback-a' } as any;
+let callback = { oid: 3n, id: 'callback-a', scopeId: 'environment-a' } as any;
 let input = {
   idempotencyKey: 'stable-key',
   topics: ['users', 'orders', 'orders'],
@@ -81,6 +81,7 @@ describe('Signal idempotent create semantics', () => {
     expect(first).toMatchObject({
       requestFingerprint: fingerprint(),
       initializationStatus: 'awaiting_enqueue',
+      scopeId: callback.scopeId,
       topics: ['orders', 'users'],
       onlyForDestinations: ['dest-a', 'dest-b'],
       headers: [
@@ -95,6 +96,7 @@ describe('Signal idempotent create semantics', () => {
     ['tenant', { tenant: { ...tenant, oid: 100n, id: 'tenant-other' } }],
     ['sender', { sender: { ...sender, oid: 200n, id: 'sender-other' } }],
     ['callback', { callback: { ...callback, oid: 300n, id: 'callback-other' } }],
+    ['scope', { callback: { ...callback, scopeId: 'environment-other' } }],
     ['callback instance', { input: { ...input, callbackInstanceId: 'instance-other' } }]
   ])('rejects reuse of one key with a different %s binding', async (_, variant) => {
     let existing = {
@@ -104,6 +106,7 @@ describe('Signal idempotent create semantics', () => {
       initializationStatus: 'initialized',
       tenantOid: tenant.oid,
       senderOid: sender.oid,
+      scopeId: callback.scopeId,
       sender,
       callback
     };
@@ -132,6 +135,7 @@ describe('Signal idempotent create semantics', () => {
       initializationStatus: 'awaiting_enqueue',
       tenantOid: tenant.oid,
       senderOid: sender.oid,
+      scopeId: callback.scopeId,
       sender,
       callback
     };
@@ -162,6 +166,7 @@ describe('Signal idempotent create semantics', () => {
       initializationStatus: 'initialized',
       tenantOid: tenant.oid,
       senderOid: sender.oid,
+      scopeId: callback.scopeId,
       sender,
       callback
     };

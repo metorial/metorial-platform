@@ -258,9 +258,10 @@ let CallbackInstancesSection = (p: {
           {instances.data.items.map(callbackInstance => {
             let receiverUrl = callbackInstance.webhookUrl;
             let hasSecret = Boolean(callbackInstance.receiverPathSecret);
+            let activeTriggers = callbackInstance.triggers.filter(trigger => trigger.active);
             let defaultEventType =
-              callbackInstance.triggers[0]?.providerTrigger?.eventTypes[0] ??
-              callbackInstance.triggers[0]?.providerTrigger?.key ??
+              activeTriggers[0]?.providerTrigger?.eventTypes[0] ??
+              activeTriggers[0]?.providerTrigger?.key ??
               'test';
             return (
               <Entity.Wrapper key={callbackInstance.id}>
@@ -280,10 +281,7 @@ let CallbackInstancesSection = (p: {
                       </Badge>
                     }
                   />
-                  <Entity.Field
-                    title="Triggers"
-                    value={`${callbackInstance.triggers.length}`}
-                  />
+                  <Entity.Field title="Triggers" value={`${activeTriggers.length}`} />
                   {receiverUrl ? (
                     <Entity.Field
                       title="Webhook URL"

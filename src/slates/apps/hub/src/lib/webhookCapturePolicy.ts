@@ -111,10 +111,12 @@ export let projectStoredWebhookActionCapturePolicy = (d: {
   }
   let ingress = http.ingress;
   if (!ingress) {
-    throw new WebhookCapturePolicyError(
-      'routing_projection_unavailable',
-      'Stored webhook ingress declaration is unavailable'
-    );
+    let value = {
+      maxBodyBytes: DEFAULT_WEBHOOK_BODY_LIMIT_BYTES,
+      duplicateSecurityHeaders: [] as WebhookDuplicateHeaderPolicy[],
+      ruleIds: ['path_secret_only']
+    };
+    return { ...value, specHash: action.specHash, comparable: comparablePolicy(value) };
   }
   let verification = ingress.verification;
   if (verification.mechanism === 'path_secret_only') {
@@ -170,18 +172,21 @@ export let combineWebhookCapturePolicyProjections = (
       'Webhook target has no capture policy'
     );
   }
-  if (new Set(projections.map(projection => projection.comparable)).size !== 1) {
-    throw new WebhookCapturePolicyError(
-      'routing_projection_unavailable',
-      'Webhook target has inconsistent capture policies'
-    );
-  }
+  let duplicateSecurityHeaders = [
+    ...new Map(
+      projections
+        .flatMap(projection => projection.duplicateSecurityHeaders)
+        .map(policy => [`${policy.headerName}:${policy.grammar}`, policy] as const)
+    ).values()
+  ].sort((first, second) => first.headerName.localeCompare(second.headerName));
   let specHashes = [...new Set(projections.map(projection => projection.specHash))].sort();
   let ruleIds = [...new Set(projections.flatMap(projection => projection.ruleIds))].sort();
   let contract = {
     version: 1 as const,
-    maxBodyBytes: projections[0]!.maxBodyBytes,
-    duplicateSecurityHeaders: projections[0]!.duplicateSecurityHeaders,
+    // Capture the conservative union once. Each selected trigger still enforces its own
+    // body-size and duplicate-header policy during exact verification.
+    maxBodyBytes: Math.max(...projections.map(projection => projection.maxBodyBytes)),
+    duplicateSecurityHeaders,
     specHashes,
     ruleIds
   };

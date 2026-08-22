@@ -206,6 +206,31 @@ beforeEach(() => {
 });
 
 describe('integration-provider callback upsert', () => {
+  it('only exposes active callback destinations', async () => {
+    await callbackService.getCallbackForIntegrationProviderInternal({
+      tenant: { oid: 10n },
+      environment: { oid: 11n },
+      integrationProvider: { oid: 31n }
+    } as any);
+
+    expect(mocks.callbackFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          callbackDestinationLinks: {
+            where: {
+              callbackDestination: {
+                status: 'active'
+              }
+            },
+            include: {
+              callbackDestination: true
+            }
+          }
+        })
+      })
+    );
+  });
+
   it('rejects an empty trigger selection before resolving provider state', async () => {
     await expect(
       callbackService.upsertCallbackForIntegrationProviderInternal(

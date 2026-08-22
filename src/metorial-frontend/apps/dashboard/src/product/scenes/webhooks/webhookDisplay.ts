@@ -7,6 +7,12 @@ export type CallbackLabel = {
 export type WebhookSource = {
   type: string;
   callbackId?: string | null;
+  senderId?: string | null;
+  senderIdentifier?: string | null;
+  senderName?: string | null;
+  sender_id?: string | null;
+  sender_identifier?: string | null;
+  sender_name?: string | null;
 };
 
 export let getCallbackFilterItems = (callbacks: readonly CallbackLabel[]) => [
@@ -28,6 +34,20 @@ export let getWebhookSourceDisplay = (
       label: callback?.name ?? 'Unknown callback',
       archived: callback?.status === 'archived'
     };
+  }
+
+  if (source.type === 'sender') {
+    let senderName = (source.senderName ?? source.sender_name)?.trim();
+    let senderIdentifier = (
+      source.senderIdentifier ?? source.sender_identifier
+    )?.trim();
+    let senderId = (source.senderId ?? source.sender_id)?.trim();
+    let label =
+      senderName && senderIdentifier && senderName !== senderIdentifier
+        ? `${senderName} (${senderIdentifier})`
+        : senderName || senderIdentifier || senderId || 'Unknown sender';
+
+    return { label, archived: false };
   }
 
   return {

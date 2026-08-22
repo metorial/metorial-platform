@@ -8,6 +8,9 @@ type SlatePackageJson = {
   main?: string;
   dependencies?: Record<string, any>;
   scripts?: Record<string, string | undefined>;
+  slatesRuntime?: {
+    wrapper?: string;
+  };
 };
 
 let logoFiles = ['png', 'jpg', 'jpeg', 'svg'].map(ext => `logo.${ext}`);
@@ -15,6 +18,9 @@ let wrapperDependencies = {
   '@slates/provider-handler': 'latest',
   '@slates/proto': 'latest',
   slates: 'latest',
+  '@lowerdeck/serialize': 'latest'
+};
+let bundledWrapperDependencies = {
   '@lowerdeck/serialize': 'latest'
 };
 let entrypointExtensions = ['.ts', '.js', '.cjs', '.mjs'];
@@ -113,15 +119,26 @@ let isPrebuiltNccArtifact = (filePath: string) => {
 let stripSourcemapRegisterImport = (content: string) =>
   content.replace(/^import\s+['"]\.\/?sourcemap-register\.cjs['"];?\s*/m, '');
 
-let getMergedPackageJson = (packageJson: SlatePackageJson | null) => {
+let getMergedPackageJson = (
+  packageJson: SlatePackageJson | null,
+  useBundledWrapper: boolean
+) => {
+  let dependencies = { ...(packageJson?.dependencies ?? {}) };
+
+  if (useBundledWrapper) {
+    delete dependencies['@slates/provider-handler'];
+    delete dependencies['@slates/proto'];
+    delete dependencies.slates;
+  }
+
   let mergedPackageJson: SlatePackageJson = {
     ...(packageJson ?? {
       name: 'slate-version-function',
       version: '1.0.0'
     }),
     dependencies: {
-      ...(packageJson?.dependencies ?? {}),
-      ...wrapperDependencies
+      ...dependencies,
+      ...(useBundledWrapper ? bundledWrapperDependencies : wrapperDependencies)
     }
   };
 
@@ -152,6 +169,16 @@ let getFunctionBayConfig = (providerImportPath: string) => ({
     : {})
 });
 
+let getWrapperImports = (providerImportPath: string, useBundledWrapper: boolean) => {
+  if (useBundledWrapper) {
+    return `import { provider, createProviderHandler, SlatesProviderProtoHandlerManager } from './${providerImportPath}';`;
+  }
+
+  return `import { provider } from './${providerImportPath}';
+          import { createProviderHandler } from '@slates/provider-handler';
+          import { SlatesProviderProtoHandlerManager } from '@slates/proto';`;
+};
+
 export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
   let packageJsonFile = getArchiveFile(files, 'package.json');
   let packageJson: SlatePackageJson | null = null;
@@ -167,8 +194,11 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
     }
   }
 
+  let useBundledWrapper = packageJson?.slatesRuntime?.wrapper === 'bundled';
   let slateEntrypoint = getSlateEntrypoint(files, packageJson);
-  let providerImportPath = getProviderImportPath(files, slateEntrypoint);
+  let providerImportPath = useBundledWrapper
+    ? slateEntrypoint
+    : getProviderImportPath(files, slateEntrypoint);
   let usePrebuiltDist = providerImportPath.startsWith('dist/');
 
   console.log(`[Deployment]: Using slate entrypoint: ${slateEntrypoint}`);
@@ -179,7 +209,7 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
   let generatedFiles = [
     {
       filename: 'package.json',
-      content: JSON.stringify(getMergedPackageJson(packageJson), null, 2)
+      content: JSON.stringify(getMergedPackageJson(packageJson, useBundledWrapper), null, 2)
     },
     {
       filename: 'function-bay.json',
@@ -189,14 +219,74 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
       filename: 'slates_entry_point.js',
       content: `
           import { createRequire } from 'node:module';
-          import { provider } from './${providerImportPath}';
-          import { createProviderHandler } from '@slates/provider-handler';
-          import { SlatesProviderProtoHandlerManager } from '@slates/proto';
+          ${getWrapperImports(providerImportPath, useBundledWrapper)}
           import { serialize } from '@lowerdeck/serialize';
 
-          let handler = createProviderHandler(provider, [
-            e => e.forEach(e => console.log(e.type.toUpperCase(), e.message))
-          ]);
+          let currentScopedRedemption = null;
+          let clearScopedRedemption = redemption => {
+            if (!redemption) return;
+            for (let secret of Object.values(redemption.secrets ?? {})) {
+              if (secret && typeof secret == 'object') secret.value = '';
+            }
+          };
+          let clearCurrentScopedRedemption = () => {
+            if (!currentScopedRedemption) return;
+            clearScopedRedemption(currentScopedRedemption);
+            currentScopedRedemption = null;
+          };
+          let handler = createProviderHandler(
+            provider,
+            [e => e.forEach(e => console.log(e.type.toUpperCase(), e.message))],
+            {
+              redeemScopedInvocationGrant: async ({ envelope }) => {
+                let redemption = currentScopedRedemption;
+                currentScopedRedemption = null;
+                if (
+                  !redemption ||
+                  redemption.envelope?.version !== envelope.version ||
+                  redemption.envelope?.grantId !== envelope.grantId ||
+                  redemption.envelope?.token !== envelope.token ||
+                  redemption.envelope?.requestId !== envelope.requestId
+                ) {
+                  clearScopedRedemption(redemption);
+                  throw new Error('Authenticated scoped invocation redemption is invalid');
+                }
+                let secrets = Object.fromEntries(
+                  Object.entries(redemption.secrets ?? {}).map(([name, secret]) => [
+                    name,
+                    { value: secret.value }
+                  ])
+                );
+                let bindings = {
+                  ...redemption.bindings,
+                  ...(Array.isArray(redemption.bindings?.candidateBindings)
+                    ? {
+                        candidateBindings: redemption.bindings.candidateBindings.map(
+                          candidate => ({
+                            candidateId: candidate.candidateId,
+                            index: candidate.index,
+                            bindingHash: candidate.bindingHash,
+                            deliveryIds: candidate.deliveryIds
+                          })
+                        )
+                      }
+                    : {})
+                };
+                let cleared = false;
+                return {
+                  bindings,
+                  secrets,
+                  clear: () => {
+                    if (cleared) return;
+                    cleared = true;
+                    for (let secret of Object.values(secrets)) secret.value = '';
+                    clearScopedRedemption(redemption);
+                  }
+                };
+              },
+              operationTimeoutMs: 15000
+            }
+          );
 
           let initialGlobals = {}
           for (let key of Object.getOwnPropertyNames(globalThis)) {
@@ -234,22 +324,29 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
               input = serialize.decode(input._encoded);
             }
 
+            clearCurrentScopedRedemption();
+            currentScopedRedemption = input.scopedInvocationRedemption ?? null;
+
             let manager = await handler.run();
 
             let messages = [];
 
-            for (let m of input.messages) {
-              console.log('[Metorial Runtime]: Processing input message', m.method + (m.id ? \`(\${m.id})\` : ''));
-              let result = await SlatesProviderProtoHandlerManager.handleInput(manager, m);
-              if (result) {
-                if (m.id) result.id = m.id;
-                messages.push(result);
+            try {
+              for (let m of input.messages) {
+                console.log('[Metorial Runtime]: Processing input message', m.method + (m.id ? \`(\${m.id})\` : ''));
+                let result = await SlatesProviderProtoHandlerManager.handleInput(manager, m);
+                if (result) {
+                  if (m.id) result.id = m.id;
+                  messages.push(result);
 
-                if (typeof result.error == 'object' && result.error) {
-                  console.error('[Metorial Runtime]: Error in processing:', result.error);
-                  break;
+                  if (typeof result.error == 'object' && result.error) {
+                    console.error('[Metorial Runtime]: Error in processing:', result.error);
+                    break;
+                  }
                 }
               }
+            } finally {
+              clearCurrentScopedRedemption();
             }
 
             if (input._encoded) {

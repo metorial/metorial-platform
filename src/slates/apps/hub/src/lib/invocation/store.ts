@@ -11,6 +11,7 @@ import type {
   SlatesResponse,
   StoredSlateInvocation
 } from './types';
+import { sanitizeScopedInvocationValue } from './types';
 
 let Sentry = getSentry();
 
@@ -68,6 +69,10 @@ export let storeSlateInvocation = (
 
         return m;
       });
+      sanitizedRequests = sanitizeScopedInvocationValue(
+        sanitizedRequests,
+        d.scopedSecurity ?? d.artifactSecurity
+      );
 
       let hasResponseError = false;
 
@@ -92,6 +97,10 @@ export let storeSlateInvocation = (
 
         return m;
       });
+      sanitizedResponses = sanitizeScopedInvocationValue(
+        sanitizedResponses,
+        d.scopedSecurity ?? d.artifactSecurity
+      );
 
       let extractRequestTraces = (source: unknown) => {
         if (!source || typeof source !== 'object') return [];
@@ -152,7 +161,10 @@ export let storeSlateInvocation = (
           requests: sanitizedRequests as any,
           responses: (sanitizedResponses ?? []) as any,
           provider,
-          logs: d.invocationResult.logs.map(log => [log.timestamp, log.message] as const),
+          logs: sanitizeScopedInvocationValue(
+            d.invocationResult.logs.map(log => [log.timestamp, log.message] as const),
+            d.scopedSecurity ?? d.artifactSecurity
+          ),
           requestTraces
         } satisfies StoredSlateInvocation)
       );

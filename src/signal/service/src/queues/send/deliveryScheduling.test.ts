@@ -146,11 +146,31 @@ describe('Signal delivery attempt processor scheduling', () => {
       {
         intentId: 'intent-1',
         errorCode: 'http_error',
-        errorMessage: 'Destination responded with HTTP status 502'
+        errorMessage: 'Destination responded with HTTP status 502',
+        attemptCount: 5
       },
       { id: 'intent-1' }
     );
     expect(mocks.queues.get('sgnl/event/att')!.add).not.toHaveBeenCalled();
+  });
+
+  it('finalizes a successful delivery with the persisted attempt number', async () => {
+    mocks.axiosPost.mockResolvedValue({ status: 204, data: '', headers: {} });
+    mocks.db.eventDeliveryAttempt.create.mockResolvedValue({
+      oid: 6n,
+      id: 'attempt-1',
+      attemptNumber: 1,
+      status: 'succeeded',
+      errorCode: null,
+      errorMessage: null
+    });
+
+    await mocks.processors.get('sgnl/event/att')!({ intentId: 'intent-1' });
+
+    expect(mocks.intentSucceededAdd).toHaveBeenCalledWith(
+      { intentId: 'intent-1', attemptCount: 1 },
+      { id: 'intent-1' }
+    );
   });
 
   it('resumes a persisted attempt without repeating the outbound HTTP request', async () => {

@@ -16,6 +16,19 @@ let callbackWebhookSourceSchema = v.object(
   }
 );
 
+let senderWebhookSourceSchema = v.object(
+  {
+    type: v.literal('sender'),
+    sender_id: v.string(),
+    sender_identifier: v.string(),
+    sender_name: v.string()
+  },
+  {
+    description:
+      'Generic webhook source backed by the Signal sender that emitted the event.'
+  }
+);
+
 export let v1WebhookEventPresenter = Presenter.create(webhookEventType)
   .presenter(async ({ webhookEvent, webhookEventDeliveries }, opts) => {
     let source = (() => {
@@ -27,7 +40,13 @@ export let v1WebhookEventPresenter = Presenter.create(webhookEventType)
           callback_trigger_id: webhookEvent.callbackTriggerId
         };
       }
-      throw new Error('unsupported_webhook_event_source');
+
+      return {
+        type: 'sender' as const,
+        sender_id: webhookEvent.sender.id,
+        sender_identifier: webhookEvent.sender.identifier,
+        sender_name: webhookEvent.sender.name
+      };
     })();
 
     return {
@@ -75,7 +94,7 @@ export let v1WebhookEventPresenter = Presenter.create(webhookEventType)
       delivery_destination_count: v.nullable(v.number()),
       delivery_success_count: v.number(),
       delivery_failure_count: v.number(),
-      source: callbackWebhookSourceSchema,
+      source: v.union([callbackWebhookSourceSchema, senderWebhookSourceSchema]),
       deliveries: v.nullable(v.array(v1WebhookEventDeliveryPresenter.schema)),
       created_at: v.date(),
       updated_at: v.date()

@@ -56,6 +56,11 @@ let callbackInclude = {
     }
   },
   callbackDestinationLinks: {
+    where: {
+      callbackDestination: {
+        status: CallbackDestinationStatus.active
+      }
+    },
     include: {
       callbackDestination: true
     }
