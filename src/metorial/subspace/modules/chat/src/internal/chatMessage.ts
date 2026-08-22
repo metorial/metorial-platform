@@ -1,18 +1,22 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
-import { type Message } from '@metorial-subspace/adapter-chat';
+import { type AttachmentRef, type Message } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
   type ChatChannel,
   type ChatMessage,
   type ChatThread,
+  type Environment,
   db,
   getId,
+  type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { enqueueChatMessageAttachmentSync } from '../queues/attachment/sync';
 import { isUniqueConstraintError } from '../lib/unique';
 import { chatAuthorServiceInternal } from './chatAuthor';
+import { chatMessageGroupServiceInternal } from './chatMessageGroup';
 
 export type ChatMessageWithRelations = ChatMessage & {
   chat: Chat;
@@ -40,7 +44,74 @@ class chatMessageServiceInternalImpl {
     return Hash.sha256(canonicalize(payload));
   }
 
+  private async discoverAndSyncAttachments(d: {
+    tenant: Tenant;
+    environment: Environment;
+    chat: Chat;
+    messages: Message[];
+    persistedByRemoteId: Map<string, ChatMessage>;
+  }) {
+    let candidates: Array<{ messageOid: bigint; messageId: string; attachment: AttachmentRef }> =
+      [];
+
+    for (let message of d.messages) {
+      let persisted = d.persistedByRemoteId.get(message.id);
+      let attachments = (message.body as { attachments?: AttachmentRef[] } | null)
+        ?.attachments;
+      if (!persisted || !attachments?.length) continue;
+
+      for (let attachment of attachments) {
+        candidates.push({ messageOid: persisted.oid, messageId: persisted.id, attachment });
+      }
+    }
+    if (candidates.length === 0) return;
+
+    let existing = await db.chatMessageAttachment.findMany({
+      where: {
+        messageOid: { in: candidates.map(c => c.messageOid) },
+        attachmentId: { in: candidates.map(c => c.attachment.id).filter((id): id is string => !!id) }
+      },
+      select: { messageOid: true, attachmentId: true }
+    });
+    let existingKeys = new Set(existing.map(row => `${row.messageOid}:${row.attachmentId}`));
+
+    for (let [index, candidate] of candidates.entries()) {
+      if (candidate.attachment.id && existingKeys.has(`${candidate.messageOid}:${candidate.attachment.id}`)) {
+        continue;
+      }
+
+      await enqueueChatMessageAttachmentSync({
+        tenantId: d.tenant.id,
+        environmentId: d.environment.id,
+        chatId: d.chat.id,
+        messageId: candidate.messageId,
+        attachment: candidate.attachment,
+        position: index
+      });
+    }
+  }
+
+  private async syncMessageGroups(d: {
+    channel: ChatChannel;
+    messages: Message[];
+    persistedByRemoteId: Map<string, ChatMessage>;
+  }) {
+    for (let message of d.messages) {
+      if (!message.groupId) continue;
+      let persisted = d.persistedByRemoteId.get(message.id);
+      if (!persisted) continue;
+
+      await chatMessageGroupServiceInternal.attachInboundMessageToGroup({
+        channel: d.channel,
+        message: persisted,
+        providerGroupKey: message.groupId
+      });
+    }
+  }
+
   async upsertChatMessages(d: {
+    tenant: Tenant;
+    environment: Environment;
     chat: Chat;
     channel: ChatChannel;
     messages: Message[];
@@ -132,12 +203,29 @@ class chatMessageServiceInternalImpl {
         { ifExists: true }
       );
 
+    let upserted: ChatMessageWithRelations[];
     try {
-      return await run();
+      upserted = await run();
     } catch (err) {
       if (!isUniqueConstraintError(err)) throw err;
-      return await run();
+      upserted = await run();
     }
+
+    let persistedByRemoteId = new Map(upserted.map(message => [message.messageId, message]));
+    await this.syncMessageGroups({
+      channel: d.channel,
+      messages: d.messages,
+      persistedByRemoteId
+    });
+    await this.discoverAndSyncAttachments({
+      tenant: d.tenant,
+      environment: d.environment,
+      chat: d.chat,
+      messages: d.messages,
+      persistedByRemoteId
+    });
+
+    return upserted;
   }
 }
 

@@ -120,7 +120,9 @@ export class ProviderRun extends IProviderRun {
     };
   }
 
-  override async callPublicTool(data: PublicToolInvocationParam): Promise<PublicToolInvocationRes> {
+  override async callPublicTool(
+    data: PublicToolInvocationParam
+  ): Promise<PublicToolInvocationRes> {
     if (!data.providerVersion.slateVersionOid) {
       throw new Error('Provider version does not have a slate associated with it');
     }
@@ -145,7 +147,8 @@ export class ProviderRun extends IProviderRun {
           name: data.caller?.name ?? 'Subspace',
           description: data.caller?.description
         }
-      ]
+      ],
+      downloadUrlAttachments: true
     });
 
     if (res.status === 'error') {
@@ -237,7 +240,8 @@ export class ProviderRunConnection extends IProviderRunConnection {
           name: data.sender.name,
           description: (data.sender.payload as any).description
         }
-      ]
+      ],
+      downloadUrlAttachments: this.params.adapter?.identifier === 'chat'
     });
 
     let slateToolCall = await db.slateToolCall.create({

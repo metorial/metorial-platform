@@ -1,7 +1,8 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  type AttachmentRef,
   type Channel,
   type ChatAdapterInstance,
   type ChatBody,
@@ -10,14 +11,23 @@ import {
   type ReplyRef,
   type Thread
 } from '@metorial-subspace/adapter-chat';
-import { type ChatChannel, db, type Environment, type Tenant } from '@metorial-subspace/db';
+import {
+  type ChatChannel,
+  type ChatMessage,
+  db,
+  type Environment,
+  type Tenant
+} from '@metorial-subspace/db';
 import {
   checkTenant,
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { db as coreDb } from '@metorial/db';
+import { getSignedFileDownloadUrlOrThrow } from '@metorial/module-file';
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatChannelServiceInternal } from '../internal/chatChannel';
+import { chatMessageGroupServiceInternal } from '../internal/chatMessageGroup';
 import {
   chatMessageServiceInternal,
   type ChatMessageWithRelations
@@ -29,6 +39,8 @@ import {
   withChatCapabilityFallback
 } from '../lib/chatCapability';
 import { unwrapChatCall } from '../lib/chatError';
+import { usingChatMessageLock } from '../lib/chatLock';
+import { chatMessageAttachmentService } from './chatMessageAttachment';
 import { type ChatWithProvider } from './chatChannel';
 
 export type ListChatMessagesParams = {
@@ -47,6 +59,7 @@ export type GetChatMessageParams = {
 export type SendChatMessageBody = {
   parts: ChatPart[];
   altText?: string;
+  attachments?: { fileId: string }[];
 };
 
 export type SendChatMessageParams = {
@@ -81,6 +94,11 @@ export type MarkChatMessageReadParams = {
 let assertMessageSendCapability = (client: ChatAdapterInstance) =>
   assertChatCapability(client, 'message_send', {
     message: 'This chat provider does not support sending messages.'
+  });
+
+let assertFileUploadCapability = (client: ChatAdapterInstance) =>
+  assertChatCapability(client, 'file_upload', {
+    message: 'This chat provider does not support uploading files.'
   });
 
 let assertMessageSendEphemeralCapability = (client: ChatAdapterInstance) =>
@@ -149,7 +167,9 @@ class chatMessageServiceImpl {
   }
 
   private async listChatMessagesFromProvider(
-    d: ListChatMessagesParams & { client: ChatAdapterInstance }
+    d: { tenant: Tenant; environment: Environment } & ListChatMessagesParams & {
+        client: ChatAdapterInstance;
+      }
   ) {
     let localChannel = await db.chatChannel.findFirst({
       where: {
@@ -203,6 +223,8 @@ class chatMessageServiceImpl {
         }
 
         let upserted = await chatMessageServiceInternal.upsertChatMessages({
+          tenant: d.tenant,
+          environment: d.environment,
           chat: d.chat,
           channel,
           messages: listing.messages
@@ -218,7 +240,10 @@ class chatMessageServiceImpl {
   }
 
   private async listChatMessagesFromSearch(
-    d: ListChatMessagesParams & { search: string; client: ChatAdapterInstance }
+    d: { tenant: Tenant; environment: Environment } & ListChatMessagesParams & {
+        search: string;
+        client: ChatAdapterInstance;
+      }
   ) {
     let localChannel = await db.chatChannel.findFirst({
       where: {
@@ -261,6 +286,8 @@ class chatMessageServiceImpl {
         }
 
         let upserted = await chatMessageServiceInternal.upsertChatMessages({
+          tenant: d.tenant,
+          environment: d.environment,
           chat: d.chat,
           channel,
           messages: listing.messages
@@ -355,7 +382,9 @@ class chatMessageServiceImpl {
   }
 
   private async getChatMessageFromProvider(
-    d: GetChatMessageParams & { client: ChatAdapterInstance }
+    d: { tenant: Tenant; environment: Environment } & GetChatMessageParams & {
+        client: ChatAdapterInstance;
+      }
   ) {
     let localChannel = await db.chatChannel.findFirst({
       where: {
@@ -381,7 +410,7 @@ class chatMessageServiceImpl {
       message: 'Failed to load the message from the chat provider.'
     });
 
-    return this.persistMessageResult(d.chat, localChannel, result);
+    return this.persistMessageResult(d.tenant, d.environment, d.chat, localChannel, result);
   }
 
   private async getChatMessageFromDb(d: GetChatMessageParams) {
@@ -424,81 +453,242 @@ class chatMessageServiceImpl {
   async sendChatMessageInternal(
     d: { tenant: Tenant; environment: Environment } & SendChatMessageParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    return usingChatMessageLock(d.chat.oid, async () => {
+      checkTenant(d, d.chat.chatIntegrationInstanceProvider);
 
-    let client = await chatAdapterService.getChatAdapterClientInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
-    });
+      let client = await chatAdapterService.getChatAdapterClientInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      });
 
-    if (d.ephemeral) assertMessageSendEphemeralCapability(client);
-    else assertMessageSendCapability(client);
+      if (d.ephemeral) assertMessageSendEphemeralCapability(client);
+      else assertMessageSendCapability(client);
 
-    let localChannel = await db.chatChannel.findFirst({
-      where: {
-        chatOid: d.chat.oid,
-        OR: [{ id: d.channelId }, { channelId: d.channelId }]
+      let localChannel = await db.chatChannel.findFirst({
+        where: {
+          chatOid: d.chat.oid,
+          OR: [{ id: d.channelId }, { channelId: d.channelId }]
+        }
+      });
+      let channelId = localChannel?.channelId ?? d.channelId;
+
+      let localThread =
+        d.threadId && localChannel
+          ? await db.chatThread.findFirst({
+              where: {
+                channelOid: localChannel.oid,
+                OR: [{ id: d.threadId }, { threadId: d.threadId }]
+              }
+            })
+          : null;
+      let threadId = localThread?.threadId ?? d.threadId;
+
+      let reply: ReplyRef | undefined;
+      if (d.reply) {
+        assertMessageReplyCapability(client);
+
+        let resolved = await this.getChatMessageInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          chat: d.chat,
+          channelId: d.channelId,
+          messageId: d.reply.messageId
+        });
+
+        reply = {
+          id: resolved.messageId,
+          reference: {
+            id: resolved.messageId,
+            channelId: resolved.channel.channelId,
+            threadId: resolved.thread?.threadId,
+            body: resolved.body as ChatBody
+          }
+        };
       }
-    });
-    let channelId = localChannel?.channelId ?? d.channelId;
 
-    let localThread =
-      d.threadId && localChannel
-        ? await db.chatThread.findFirst({
-            where: {
-              channelOid: localChannel.oid,
-              OR: [{ id: d.threadId }, { threadId: d.threadId }]
-            }
-          })
-        : null;
-    let threadId = localThread?.threadId ?? d.threadId;
+      if (d.ephemeral || !d.body.attachments?.length) {
+        let sent = d.ephemeral
+          ? await client.call('metorial_chat$message.sendEphemeral', {
+              parts: d.body.parts,
+              altText: d.body.altText,
+              channelId,
+              userId: d.ephemeral.targetUserId,
+              threadId
+            })
+          : await client.call('metorial_chat$message.send', {
+              parts: d.body.parts,
+              altText: d.body.altText,
+              channelId,
+              threadId,
+              reply
+            });
 
-    let reply: ReplyRef | undefined;
-    if (d.reply) {
-      assertMessageReplyCapability(client);
+        let result = unwrapChatCall(sent, {
+          code: 'chat_message_send_failed',
+          message: 'Failed to send the message with the chat provider.'
+        });
 
-      let resolved = await this.getChatMessageInternal({
+        return this.persistMessageResult(d.tenant, d.environment, d.chat, localChannel, result);
+      }
+
+      return this.sendChatMessageWithAttachments({
         tenant: d.tenant,
         environment: d.environment,
         chat: d.chat,
-        channelId: d.channelId,
-        messageId: d.reply.messageId
+        body: d.body,
+        client,
+        localChannel,
+        channelId,
+        threadId,
+        reply
       });
+    });
+  }
 
-      reply = {
-        id: resolved.messageId,
-        reference: {
-          id: resolved.messageId,
-          channelId: resolved.channel.channelId,
-          threadId: resolved.thread?.threadId,
-          body: resolved.body as ChatBody
-        }
-      };
+  private async sendChatMessageWithAttachments(d: {
+    tenant: Tenant;
+    environment: Environment;
+    chat: ChatWithProvider;
+    body: SendChatMessageBody;
+    client: ChatAdapterInstance;
+    localChannel: ChatChannel | null;
+    channelId: string;
+    threadId?: string;
+    reply?: ReplyRef;
+  }): Promise<ChatMessageWithRelations> {
+    assertFileUploadCapability(d.client);
+
+    let uploadedFilesByReferenceId = new Map<string, { id: string }>();
+    let pendingAttachmentRefs: AttachmentRef[] = [];
+    let pendingUploadedFiles: { id: string }[] = [];
+    let createdMessages: {
+      chatMessage: ChatMessage;
+      withRelations: ChatMessageWithRelations;
+    }[] = [];
+
+    if (d.body.attachments?.length && !d.environment.instanceOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Chat environment is not linked to an instance; cannot send attachments.'
+        })
+      );
     }
 
-    let sent = d.ephemeral
-      ? await client.call('metorial_chat$message.sendEphemeral', {
-          parts: d.body.parts,
-          altText: d.body.altText,
-          channelId,
-          userId: d.ephemeral.targetUserId,
-          threadId
-        })
-      : await client.call('metorial_chat$message.send', {
-          parts: d.body.parts,
-          altText: d.body.altText,
-          channelId,
-          threadId,
-          reply
+    for (let attachmentInput of d.body.attachments ?? []) {
+      let file = await coreDb.file.findFirst({
+        where: {
+          id: attachmentInput.fileId,
+          status: 'active',
+          instanceOid: d.environment.instanceOid!
+        }
+      });
+      if (!file) throw new ServiceError(notFoundError('file', attachmentInput.fileId));
+
+      let fileUrl = await getSignedFileDownloadUrlOrThrow(file, { expiresInSeconds: 1800 });
+
+      let uploaded = await d.client.call('metorial_chat$file.upload', {
+        channelId: d.channelId,
+        threadId: d.threadId,
+        filename: file.fileName,
+        mimeType: file.fileType,
+        fileUrl,
+        fileSize: file.fileSize,
+        clientReferenceId: file.id
+      });
+      let uploadResult = unwrapChatCall(uploaded, {
+        code: 'chat_attachment_upload_failed',
+        message: 'Failed to upload the attachment to the chat provider.'
+      });
+
+      uploadedFilesByReferenceId.set(file.id, file);
+
+      if (uploadResult.message) {
+        let withRelations = await this.persistMessageResult(
+          d.tenant,
+          d.environment,
+          d.chat,
+          d.localChannel,
+          { message: uploadResult.message }
+        );
+        await chatMessageAttachmentService.attachUploadedFile({
+          environment: d.environment,
+          message: withRelations,
+          attachment: uploadResult.attachment,
+          uploadedFile: file
         });
+        createdMessages.push({ chatMessage: withRelations, withRelations });
+      } else {
+        pendingAttachmentRefs.push(uploadResult.attachment);
+        pendingUploadedFiles.push(file);
+      }
+    }
 
-    let result = unwrapChatCall(sent, {
-      code: 'chat_message_send_failed',
-      message: 'Failed to send the message with the chat provider.'
-    });
+    if (d.body.parts.length > 0 || pendingAttachmentRefs.length > 0) {
+      let sent = await d.client.call('metorial_chat$message.send', {
+        parts: d.body.parts,
+        altText: d.body.altText,
+        channelId: d.channelId,
+        threadId: d.threadId,
+        reply: d.reply,
+        attachments: pendingAttachmentRefs
+      });
+      let result = unwrapChatCall(sent, {
+        code: 'chat_message_send_failed',
+        message: 'Failed to send the message with the chat provider.'
+      });
 
-    return this.persistMessageResult(d.chat, localChannel, result);
+      let withRelations = await this.persistMessageResult(
+        d.tenant,
+        d.environment,
+        d.chat,
+        d.localChannel,
+        result
+      );
+
+      let finalizedAttachments = ((result.message.body as ChatBody | null)?.attachments ??
+        []) as AttachmentRef[];
+      for (let [index, attachment] of finalizedAttachments.entries()) {
+        let uploadedFile =
+          (attachment.clientReferenceId &&
+            uploadedFilesByReferenceId.get(attachment.clientReferenceId)) ||
+          pendingUploadedFiles[index];
+        if (!uploadedFile) continue;
+
+        await chatMessageAttachmentService.attachUploadedFile({
+          environment: d.environment,
+          message: withRelations,
+          attachment,
+          uploadedFile,
+          position: index
+        });
+      }
+
+      createdMessages.push({ chatMessage: withRelations, withRelations });
+    }
+
+    if (createdMessages.length > 1) {
+      await chatMessageGroupServiceInternal.createGroupForMessages({
+        channel: createdMessages[0]!.withRelations.channel,
+        messages: createdMessages.map(m => m.chatMessage)
+      });
+    }
+
+    let primary =
+      createdMessages.find(m =>
+        (m.chatMessage.body as ChatBody | null)?.parts?.some(
+          part => part.type === 'text' || part.type === 'markdown'
+        )
+      ) ?? createdMessages[0];
+    if (!primary) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Sending this message did not produce any provider message.'
+        })
+      );
+    }
+
+    return primary.withRelations;
   }
 
   async editChatMessage(d: MetorialFacing<EditChatMessageParams>) {
@@ -514,46 +704,48 @@ class chatMessageServiceImpl {
   async editChatMessageInternal(
     d: { tenant: Tenant; environment: Environment } & EditChatMessageParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    return usingChatMessageLock(d.chat.oid, async () => {
+      checkTenant(d, d.chat.chatIntegrationInstanceProvider);
 
-    let client = await chatAdapterService.getChatAdapterClientInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      let client = await chatAdapterService.getChatAdapterClientInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      });
+
+      assertMessageEditCapability(client);
+
+      let localChannel = await db.chatChannel.findFirst({
+        where: {
+          chatOid: d.chat.oid,
+          OR: [{ id: d.channelId }, { channelId: d.channelId }]
+        }
+      });
+      let channelId = localChannel?.channelId ?? d.channelId;
+
+      let localMessage = localChannel
+        ? await db.chatMessage.findFirst({
+            where: {
+              channelOid: localChannel.oid,
+              OR: [{ id: d.messageId }, { messageId: d.messageId }]
+            }
+          })
+        : null;
+      let messageId = localMessage?.messageId ?? d.messageId;
+
+      let edited = await client.call('metorial_chat$message.edit', {
+        parts: d.body.parts,
+        altText: d.body.altText,
+        channelId,
+        messageId
+      });
+      let result = unwrapChatCall(edited, {
+        code: 'chat_message_edit_failed',
+        message: 'Failed to edit the message with the chat provider.'
+      });
+
+      return this.persistMessageResult(d.tenant, d.environment, d.chat, localChannel, result);
     });
-
-    assertMessageEditCapability(client);
-
-    let localChannel = await db.chatChannel.findFirst({
-      where: {
-        chatOid: d.chat.oid,
-        OR: [{ id: d.channelId }, { channelId: d.channelId }]
-      }
-    });
-    let channelId = localChannel?.channelId ?? d.channelId;
-
-    let localMessage = localChannel
-      ? await db.chatMessage.findFirst({
-          where: {
-            channelOid: localChannel.oid,
-            OR: [{ id: d.messageId }, { messageId: d.messageId }]
-          }
-        })
-      : null;
-    let messageId = localMessage?.messageId ?? d.messageId;
-
-    let edited = await client.call('metorial_chat$message.edit', {
-      parts: d.body.parts,
-      altText: d.body.altText,
-      channelId,
-      messageId
-    });
-    let result = unwrapChatCall(edited, {
-      code: 'chat_message_edit_failed',
-      message: 'Failed to edit the message with the chat provider.'
-    });
-
-    return this.persistMessageResult(d.chat, localChannel, result);
   }
 
   async deleteChatMessage(d: MetorialFacing<DeleteChatMessageParams>) {
@@ -569,47 +761,49 @@ class chatMessageServiceImpl {
   async deleteChatMessageInternal(
     d: { tenant: Tenant; environment: Environment } & DeleteChatMessageParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    return usingChatMessageLock(d.chat.oid, async () => {
+      checkTenant(d, d.chat.chatIntegrationInstanceProvider);
 
-    let client = await chatAdapterService.getChatAdapterClientInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
-    });
-
-    assertMessageDeleteCapability(client);
-
-    let localChannel = await db.chatChannel.findFirst({
-      where: {
-        chatOid: d.chat.oid,
-        OR: [{ id: d.channelId }, { channelId: d.channelId }]
-      }
-    });
-    let channelId = localChannel?.channelId ?? d.channelId;
-
-    let localMessage = localChannel
-      ? await db.chatMessage.findFirst({
-          where: {
-            channelOid: localChannel.oid,
-            OR: [{ id: d.messageId }, { messageId: d.messageId }]
-          }
-        })
-      : null;
-    let messageId = localMessage?.messageId ?? d.messageId;
-
-    let deleted = await client.call('metorial_chat$message.delete', { channelId, messageId });
-    let result = unwrapChatCall(deleted, {
-      code: 'chat_message_delete_failed',
-      message: 'Failed to delete the message with the chat provider.'
-    });
-
-    if (localChannel) {
-      await db.chatMessage.deleteMany({
-        where: { channelOid: localChannel.oid, messageId }
+      let client = await chatAdapterService.getChatAdapterClientInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
       });
-    }
 
-    return result;
+      assertMessageDeleteCapability(client);
+
+      let localChannel = await db.chatChannel.findFirst({
+        where: {
+          chatOid: d.chat.oid,
+          OR: [{ id: d.channelId }, { channelId: d.channelId }]
+        }
+      });
+      let channelId = localChannel?.channelId ?? d.channelId;
+
+      let localMessage = localChannel
+        ? await db.chatMessage.findFirst({
+            where: {
+              channelOid: localChannel.oid,
+              OR: [{ id: d.messageId }, { messageId: d.messageId }]
+            }
+          })
+        : null;
+      let messageId = localMessage?.messageId ?? d.messageId;
+
+      let deleted = await client.call('metorial_chat$message.delete', { channelId, messageId });
+      let result = unwrapChatCall(deleted, {
+        code: 'chat_message_delete_failed',
+        message: 'Failed to delete the message with the chat provider.'
+      });
+
+      if (localChannel) {
+        await db.chatMessage.deleteMany({
+          where: { channelOid: localChannel.oid, messageId }
+        });
+      }
+
+      return result;
+    });
   }
 
   async markChatMessageRead(d: MetorialFacing<MarkChatMessageReadParams>) {
@@ -677,6 +871,8 @@ class chatMessageServiceImpl {
   }
 
   private async persistMessageResult(
+    tenant: Tenant,
+    environment: Environment,
     chat: ChatWithProvider,
     localChannel: ChatChannel | null,
     result: { message: Message; channel?: Channel; thread?: Thread }
@@ -701,6 +897,8 @@ class chatMessageServiceImpl {
     }
 
     let [upserted] = await chatMessageServiceInternal.upsertChatMessages({
+      tenant,
+      environment,
       chat,
       channel,
       messages: [result.message]
