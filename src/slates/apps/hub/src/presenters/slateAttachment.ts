@@ -1,7 +1,7 @@
 import { addDays } from 'date-fns';
 import type { SlateAttachment, SlateInvocation } from '../../prisma/generated/client';
 import { db } from '../db';
-import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
+import { getAttachmentStorageKey } from '../lib/invocation/store';
 import { invocationsBucketRecord, storage } from '../storage';
 
 let ATTACHMENT_PUBLIC_URL_EXPIRATION_DAYS = 7;
@@ -31,9 +31,14 @@ let getStoredAttachments = async (invocation: InvocationWithStoredAttachments) =
 };
 
 export let slateStoredAttachmentPresenter = async (attachment: SlateAttachment) => {
-  let storageKey = getStoredAttachmentsStorageKey(
-    Buffer.from(attachment.digest).toString('hex')
-  );
+  if (attachment.sourceUrl) {
+    return {
+      type: 'url' as const,
+      url: attachment.sourceUrl
+    };
+  }
+
+  let storageKey = getAttachmentStorageKey(attachment);
   let url = await storage.getPublicURL(
     invocationsBucketRecord.bucket,
     storageKey,

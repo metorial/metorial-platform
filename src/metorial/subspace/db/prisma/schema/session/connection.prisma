@@ -33,7 +33,13 @@ model SessionConnection {
 
   token String @unique
 
+  systemIdentifier String? @unique
+
   isEphemeral Boolean
+  isInternal  Boolean @default(false)
+
+  adapterGlobalOid BigInt?
+  adapterGlobal    ProviderAdapterGlobal? @relation(fields: [adapterGlobalOid], references: [oid])
 
   status    SessionConnectionStatus
   transport SessionConnectionTransport
@@ -104,6 +110,9 @@ model SessionConnection {
   @@index([lastActiveAt])
   @@index([state])
   @@index([status])
+  @@index([isInternal])
+  @@index([adapterGlobalOid])
+  @@index([tenantOid, environmentOid, isInternal, createdAt])
   @@index([projectOid])
   @@index([instanceOid])
 }

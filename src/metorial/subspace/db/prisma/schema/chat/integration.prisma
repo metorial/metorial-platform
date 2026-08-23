@@ -1,0 +1,106 @@
+enum ChatIntegrationStatus {
+  active
+  archived
+  deleted
+}
+
+model ChatIntegration {
+  oid BigInt @id
+  id  String @unique
+
+  status     ChatIntegrationStatus
+  archivedAt DateTime?
+
+  slug            String  @unique
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  adapterIntegrationOid BigInt             @unique
+  adapterIntegration    AdapterIntegration @relation(fields: [adapterIntegrationOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providers         ChatIntegrationProvider[]
+  instances         ChatIntegrationInstance[]
+  instanceProviders ChatIntegrationInstanceProvider[]
+  chats             Chat[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+enum ChatIntegrationProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model ChatIntegrationProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status     ChatIntegrationProviderStatus
+  archivedAt DateTime?
+
+  name        String
+  description String?
+  metadata    Json?
+
+  chatIntegrationOid BigInt
+  chatIntegration    ChatIntegration @relation(fields: [chatIntegrationOid], references: [oid], onDelete: Cascade)
+
+  adapterIntegrationOid BigInt
+  adapterIntegration    AdapterIntegration @relation(fields: [adapterIntegrationOid], references: [oid], onDelete: Cascade)
+
+  adapterIntegrationProviderOid BigInt                     @unique
+  adapterIntegrationProvider    AdapterIntegrationProvider @relation(fields: [adapterIntegrationProviderOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  instanceProviders ChatIntegrationInstanceProvider[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([chatIntegrationOid, status])
+  @@index([adapterIntegrationOid, status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

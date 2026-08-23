@@ -79,6 +79,7 @@ import {
   buildConnectionStatusTool,
   CONNECTION_STATUS_TOOL_KEY
 } from '../lib/connectionStatusTool';
+import { getProviderActionAdapterWhere } from '../lib/internalSession';
 import { broadcastNats } from '../lib/nats';
 import { isSyntheticTool } from '../lib/syntheticTool';
 import {
@@ -126,6 +127,8 @@ export interface InitProps {
   mcpProtocolVersion?: string;
   mcpTransport: SessionConnectionMcpConnectionTransport;
   agentInstance?: AgentInstance | null;
+  systemIdentifier?: string;
+  allowReservedClientIdentifier?: boolean;
 }
 
 export interface CallToolProps {
@@ -165,6 +168,7 @@ export interface SenderMangerProps {
         foreignId: string;
       };
   connectionPrivateMetadata?: Record<string, any>;
+  adapter?: { identifier: string };
   ingressPolicyCheck?: {
     sourceIp: string;
     hostname?: string;
@@ -254,7 +258,10 @@ export class SenderManager {
                       data: {
                         ...getId('sessionConnection'),
                         token: oldToken,
+                        systemIdentifier: lockedConnection.systemIdentifier,
                         isEphemeral: lockedCurrentSession.isEphemeral,
+                        isInternal: lockedCurrentSession.isInternal,
+                        adapterGlobalOid: lockedCurrentSession.adapterGlobalOid,
                         status: lockedConnection.status,
                         transport: lockedConnection.transport,
                         isParentDeleted: lockedConnection.isParentDeleted,
@@ -373,6 +380,29 @@ export class SenderManager {
       throw new ServiceError(goneError({ message: 'Session has been archived or deleted' }));
     }
 
+    let requestedAdapter = d.adapter
+      ? await db.providerAdapterGlobal.findUnique({
+          where: { identifier: d.adapter.identifier }
+        })
+      : null;
+    if (session.isInternal) {
+      if (!requestedAdapter || requestedAdapter.oid !== session.adapterGlobalOid) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'internal_session_adapter_mismatch',
+            message: 'The adapter supplied for this internal session is missing or incorrect.'
+          })
+        );
+      }
+    } else if (d.adapter) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'adapter_not_allowed_for_ordinary_session',
+          message: 'Adapters may only be used with internal sessions.'
+        })
+      );
+    }
+
     let connection = session.connection;
     if (d.connectionToken && !connection) {
       throw new ServiceError(notFoundError('connection'));
@@ -380,6 +410,18 @@ export class SenderManager {
     if (isRecordDeleted(connection)) {
       throw new ServiceError(
         goneError({ message: 'Connection has been archived or deleted' })
+      );
+    }
+    if (
+      connection &&
+      (connection.isInternal !== session.isInternal ||
+        (connection.adapterGlobalOid ?? null) !== (session.adapterGlobalOid ?? null))
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'connection_adapter_scope_mismatch',
+          message: 'The connection does not match the internal scope of its session.'
+        })
       );
     }
 
@@ -452,19 +494,21 @@ export class SenderManager {
             }
           });
 
-          await db.sessionEvent.createMany({
-            data: {
-              ...getId('sessionEvent'),
-              type: 'connection_connected',
-              sessionOid: session.oid,
-              connectionOid: connection.oid,
-              tenantOid: session.tenantOid,
-              projectOid: session.projectOid,
-              solutionOid: session.solutionOid,
-              environmentOid: session.environmentOid,
-              instanceOid: session.instanceOid
-            }
-          });
+          if (!session.isInternal) {
+            await db.sessionEvent.createMany({
+              data: {
+                ...getId('sessionEvent'),
+                type: 'connection_connected',
+                sessionOid: session.oid,
+                connectionOid: connection.oid,
+                tenantOid: session.tenantOid,
+                projectOid: session.projectOid,
+                solutionOid: session.solutionOid,
+                environmentOid: session.environmentOid,
+                instanceOid: session.instanceOid
+              }
+            });
+          }
         })().catch(() => {});
       }
     }
@@ -858,7 +902,10 @@ export class SenderManager {
 
     let tools = specificationOid
       ? await db.providerTool.findMany({
-          where: { specificationOid }
+          where: {
+            specificationOid,
+            ...getProviderActionAdapterWhere(this.session)
+          }
         })
       : [];
 
@@ -920,9 +967,11 @@ export class SenderManager {
 
     let tools = discoveryRes.flatMap(r => (r.status == 'ok' ? r.tools : []));
 
-    tools.push(buildConnectionStatusTool(this.session) as unknown as (typeof tools)[number]);
+    if (!this.session.isInternal) {
+      tools.push(buildConnectionStatusTool(this.session) as unknown as (typeof tools)[number]);
+    }
 
-    if (failedRes.length > 0) {
+    if (!this.session.isInternal && failedRes.length > 0) {
       // A failed provider never fails the whole listing: the session keeps
       // working and each failed provider gets a synthetic
       // `{provider}_connection_failed` tool that explains the failure.
@@ -1065,7 +1114,8 @@ export class SenderManager {
     let tool = await db.providerTool.findFirst({
       where: {
         key: d.originalToolName,
-        specificationOid
+        specificationOid,
+        ...getProviderActionAdapterWhere(this.session)
       }
     });
     if (!tool) return null;
@@ -1126,6 +1176,9 @@ export class SenderManager {
 
   async getToolById(d: { toolId: string }) {
     if (d.toolId === CONNECTION_STATUS_TOOL_KEY) {
+      if (this.session.isInternal) {
+        throw new ServiceError(notFoundError('tool', d.toolId));
+      }
       return {
         provider: null,
         instance: null,
@@ -1164,6 +1217,7 @@ export class SenderManager {
 
     for (let match of matches) {
       if (match!.originalToolName === CONNECTION_FAILED_TOOL_KEY) {
+        if (this.session.isInternal) continue;
         let synthetic = await this.resolveConnectionFailedTool(match!.provider);
         if (synthetic) return synthetic;
       }
@@ -1181,6 +1235,9 @@ export class SenderManager {
     provider: Awaited<ReturnType<SenderManager['listProviders']>>[number];
     type: string;
   }) {
+    if (this.session.isInternal) {
+      throw new ServiceError(notFoundError('tool', d.type));
+    }
     let toolsRes = await this.listToolsForProvider(d.provider);
     if (toolsRes.status === 'discovery_failed') {
       throw new ServiceError(
@@ -1558,6 +1615,8 @@ export class SenderManager {
           token: await ID.generateId('sessionConnection_token'),
 
           isEphemeral: this.session.isEphemeral,
+          isInternal: this.session.isInternal,
+          adapterGlobalOid: this.session.adapterGlobalOid,
 
           status: 'active',
           state: 'connected',
@@ -1603,12 +1662,32 @@ export class SenderManager {
   }
 
   async setConnection(connection: SessionConnection) {
+    if (
+      connection.sessionOid !== this.session.oid ||
+      connection.isInternal !== this.session.isInternal ||
+      (connection.adapterGlobalOid ?? null) !== (this.session.adapterGlobalOid ?? null)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'connection_adapter_scope_mismatch',
+          message: 'The connection does not match the internal scope of its session.'
+        })
+      );
+    }
     this.connection = Object.assign(this.connection ?? {}, connection);
   }
 
   async disableConnection() {
     if (!this.connection) {
       throw new ServiceError(badRequestError({ message: 'No connection to disable' }));
+    }
+    if (this.session.isInternal) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'internal_session_readonly',
+          message: 'Internal session connections cannot be disabled by customers.'
+        })
+      );
     }
 
     this.connection = await db.sessionConnection.update({
@@ -1621,19 +1700,21 @@ export class SenderManager {
       include: { participant: true }
     });
 
-    await db.sessionEvent.createMany({
-      data: {
-        ...getId('sessionEvent'),
-        type: 'connection_disabled',
-        sessionOid: this.session.oid,
-        connectionOid: this.connection.oid,
-        tenantOid: this.session.tenantOid,
-        projectOid: this.session.projectOid,
-        solutionOid: this.session.solutionOid,
-        environmentOid: this.session.environmentOid,
-        instanceOid: this.session.instanceOid
-      }
-    });
+    if (!this.session.isInternal) {
+      await db.sessionEvent.createMany({
+        data: {
+          ...getId('sessionEvent'),
+          type: 'connection_disabled',
+          sessionOid: this.session.oid,
+          connectionOid: this.connection.oid,
+          tenantOid: this.session.tenantOid,
+          projectOid: this.session.projectOid,
+          solutionOid: this.session.solutionOid,
+          environmentOid: this.session.environmentOid,
+          instanceOid: this.session.instanceOid
+        }
+      });
+    }
   }
 
   async initialize(d: InitProps & { isManualConnection?: boolean }) {
@@ -1642,7 +1723,7 @@ export class SenderManager {
     // Ignore if already initialized
     if (this.connection?.initState === 'completed') return this.connection;
 
-    if (d.client.identifier.startsWith('metorial#') && !d.isManualConnection) {
+    if (d.client.identifier.startsWith('metorial#') && !d.allowReservedClientIdentifier) {
       throw new ServiceError(
         badRequestError({
           message: 'Client identifier cannot start with reserved prefix metorial#'
@@ -1699,7 +1780,8 @@ export class SenderManager {
       lastActiveAt: new Date(),
       disconnectedAt: null,
 
-      transport: this.transport
+      transport: this.transport,
+      ...(d.systemIdentifier === undefined ? {} : { systemIdentifier: d.systemIdentifier })
     };
 
     let connection: SessionConnection;
@@ -1717,6 +1799,8 @@ export class SenderManager {
           isForManualToolCalls: !!d.isManualConnection,
           isReplaced: false,
           isEphemeral: this.session.isEphemeral,
+          isInternal: this.session.isInternal,
+          adapterGlobalOid: this.session.adapterGlobalOid,
           status: 'active',
           tenantOid: this.tenant.oid,
           projectOid: this.tenant.projectOid,
@@ -1747,39 +1831,42 @@ export class SenderManager {
       }
     });
 
-    await db.sessionEvent.createMany({
-      data: [
-        {
-          ...getId('sessionEvent'),
-          type: 'connection_created',
-          sessionOid: this.session.oid,
-          connectionOid: connection.oid,
-          tenantOid: this.session.tenantOid,
-          projectOid: this.session.projectOid,
-          solutionOid: this.session.solutionOid,
-          environmentOid: this.session.environmentOid,
-          instanceOid: this.session.instanceOid
-        },
-        {
-          ...getId('sessionEvent'),
-          type: 'connection_connected',
-          sessionOid: this.session.oid,
-          connectionOid: connection.oid,
-          tenantOid: this.session.tenantOid,
-          projectOid: this.session.projectOid,
-          solutionOid: this.session.solutionOid,
-          environmentOid: this.session.environmentOid,
-          instanceOid: this.session.instanceOid
-        }
-      ]
-    });
+    let connectionEvents = !this.session.isInternal
+      ? [
+          {
+            ...getId('sessionEvent'),
+            type: 'connection_created' as const,
+            sessionOid: this.session.oid,
+            connectionOid: connection.oid,
+            tenantOid: this.session.tenantOid,
+            projectOid: this.session.projectOid,
+            solutionOid: this.session.solutionOid,
+            environmentOid: this.session.environmentOid,
+            instanceOid: this.session.instanceOid
+          },
+          {
+            ...getId('sessionEvent'),
+            type: 'connection_connected' as const,
+            sessionOid: this.session.oid,
+            connectionOid: connection.oid,
+            tenantOid: this.session.tenantOid,
+            projectOid: this.session.projectOid,
+            solutionOid: this.session.solutionOid,
+            environmentOid: this.session.environmentOid,
+            instanceOid: this.session.instanceOid
+          }
+        ]
+      : [];
+    if (connectionEvents.length) {
+      await db.sessionEvent.createMany({ data: connectionEvents });
+    }
 
     (async () => {
       let res = await db.session.updateMany({
         where: { oid: this.session.oid, isStarted: false },
         data: { isStarted: true }
       });
-      if (res.count > 0) {
+      if (res.count > 0 && !this.session.isInternal) {
         await db.sessionEvent.createMany({
           data: {
             ...getId('sessionEvent'),

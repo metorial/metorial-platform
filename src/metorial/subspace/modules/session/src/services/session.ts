@@ -43,6 +43,12 @@ import {
 } from '../lib/sessionEnrichment';
 import { sessionArchivedQueue, sessionUpdatedQueue } from '../queues/lifecycle/session';
 import { createSessionRecord, sessionInclude as include } from './_shared/createSession';
+import {
+  assertInternalAdapterSupportedBySession,
+  assertInternalSessionMutable,
+  type InternalAdapterInput,
+  resolveInternalAdapter
+} from './_shared/internalAdapter';
 import { type SessionProviderInput } from './sessionProviderInput';
 
 export { finalizeSessionCreate };
@@ -66,6 +72,7 @@ let assertCanWriteSession = (
 export type ListSessionsParams = {
   status?: SessionStatus[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
 
   ids?: string[];
   accessTagSessionIds?: string[];
@@ -102,6 +109,10 @@ export type CreateSessionParams = {
   };
 };
 
+export type CreateInternalSessionParams = CreateSessionParams & {
+  adapter?: InternalAdapterInput;
+};
+
 export type UpdateSessionParams = {
   session: Session;
   input: {
@@ -111,11 +122,13 @@ export type UpdateSessionParams = {
     privateMetadata?: Record<string, any>;
   };
   _allowMagicMcpUpdate?: boolean;
+  _allowInternalUpdate?: boolean;
 };
 
 export type ArchiveSessionParams = {
   session: Session;
   _allowMagicMcpDelete?: boolean;
+  _allowInternalDelete?: boolean;
 };
 
 class sessionServiceImpl {
@@ -144,7 +157,10 @@ class sessionServiceImpl {
   }
 
   async listSessionsInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<ListSessionsParams, 'accessTagSessionIds'>
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      ListSessionsParams,
+      'accessTagSessionIds'
+    >
   ) {
     let solution = await getMetorialSolution();
 
@@ -172,6 +188,7 @@ class sessionServiceImpl {
               // isEphemeral: false,
 
               ...normalizeStatusForList(d).noParent,
+              ...(d.includeInternal ? {} : { isInternal: false }),
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
@@ -249,7 +266,9 @@ class sessionServiceImpl {
     });
   }
 
-  async getSessionByIdInternal(d: { tenant: Tenant; environment: Environment } & GetSessionByIdParams) {
+  async getSessionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetSessionByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let session = await db.session.findFirst({
@@ -326,15 +345,35 @@ class sessionServiceImpl {
     return enriched;
   }
 
-  async createSessionInternal(d: { tenant: Tenant; environment: Environment } & CreateSessionParams) {
-    return withTransaction(async db =>
-      createSessionRecord({
+  async createSessionInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateInternalSessionParams
+  ) {
+    return withTransaction(async db => {
+      let adapter = d.adapter
+        ? await resolveInternalAdapter({
+            tenant: d.tenant,
+            environment: d.environment,
+            adapter: d.adapter
+          })
+        : null;
+      let session = await createSessionRecord({
         tenant: d.tenant,
         environment: d.environment,
         input: d.input,
-        isEphemeral: false
-      })
-    );
+        isEphemeral: false,
+        isInternal: !!adapter,
+        adapterGlobalOid: adapter?.oid ?? null
+      });
+
+      if (adapter) {
+        await assertInternalAdapterSupportedBySession({
+          session,
+          adapterGlobalOid: adapter.oid
+        });
+      }
+
+      return session;
+    });
   }
 
   async updateSession(d: MetorialFacing<UpdateSessionParams>) {
@@ -366,13 +405,17 @@ class sessionServiceImpl {
   }
 
   async updateSessionInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<UpdateSessionParams, '_allowMagicMcpUpdate'>
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      UpdateSessionParams,
+      '_allowMagicMcpUpdate'
+    >
   ) {
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.session);
     checkDeletedEdit(d.session, 'update');
     assertCanWriteSession(d.session, 'update');
+    assertInternalSessionMutable(d.session, 'update', d._allowInternalUpdate);
 
     return withTransaction(async db => {
       let session = await db.session.update({
@@ -428,13 +471,17 @@ class sessionServiceImpl {
   }
 
   async archiveSessionInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<ArchiveSessionParams, '_allowMagicMcpDelete'>
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      ArchiveSessionParams,
+      '_allowMagicMcpDelete'
+    >
   ) {
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.session);
     checkDeletedEdit(d.session, 'archive');
     assertCanWriteSession(d.session, 'archive');
+    assertInternalSessionMutable(d.session, 'archive', d._allowInternalDelete);
 
     return withTransaction(async db => {
       let archivedAt = new Date();
@@ -472,7 +519,10 @@ class sessionServiceImpl {
   }
 
   async deleteSessionInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<ArchiveSessionParams, '_allowMagicMcpDelete'>
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      ArchiveSessionParams,
+      '_allowMagicMcpDelete'
+    >
   ) {
     return this.archiveSessionInternal(d);
   }

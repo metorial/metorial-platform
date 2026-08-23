@@ -47,6 +47,7 @@ export let sessionParticipantInclude = include;
 export type ListSessionParticipantsParams = {
   types?: SessionParticipantType[];
   connectionTypes?: SessionParticipantConnectionType[];
+  includeInternal?: boolean;
 
   ids?: string[];
   agentIds?: string[];
@@ -116,6 +117,27 @@ class sessionParticipantServiceImpl {
               environmentOid: d.environment.oid,
 
               AND: [
+                !d.includeInternal && !d.sessionIds?.length
+                  ? {
+                      OR: [
+                        {
+                          sessionConnections: {
+                            some: { session: { isInternal: false } }
+                          }
+                        },
+                        {
+                          sessionMessagesSender: {
+                            some: { session: { isInternal: false } }
+                          }
+                        },
+                        {
+                          sessionMessagesResponder: {
+                            some: { session: { isInternal: false } }
+                          }
+                        }
+                      ]
+                    }
+                  : undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.types ? { type: { in: d.types } } : undefined!,
                 d.connectionTypes ? { connectionType: { in: d.connectionTypes } } : undefined!,

@@ -14,6 +14,8 @@ import type {
   ProviderRunLogsParam,
   ProviderRunLogsRes,
   ProviderRuntimeBehavior,
+  PublicToolInvocationParam,
+  PublicToolInvocationRes,
   ToolInvocationCreateParam,
   ToolInvocationCreateRes
 } from '@metorial-subspace/provider-utils';
@@ -117,6 +119,49 @@ export class ProviderRun extends IProviderRun {
       messageTtlExtensionMs: 1000 * 30
     };
   }
+
+  override async callPublicTool(
+    data: PublicToolInvocationParam
+  ): Promise<PublicToolInvocationRes> {
+    if (!data.providerVersion.slateVersionOid) {
+      throw new Error('Provider version does not have a slate associated with it');
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+
+    let slateVersion = await db.slateVersion.findUniqueOrThrow({
+      where: { oid: data.providerVersion.slateVersionOid },
+      include: { slate: true }
+    });
+
+    let res = await slates.slatePublicToolCall.call({
+      tenantId: tenant.id,
+      slateId: slateVersion.slate.id,
+      slateVersionId: slateVersion.id,
+      toolId: data.toolKey,
+      input: data.input,
+      participants: [
+        {
+          type: 'consumer',
+          id: data.caller?.id ?? 'subspace',
+          name: data.caller?.name ?? 'Subspace',
+          description: data.caller?.description
+        }
+      ],
+      downloadUrlAttachments: true
+    });
+
+    if (res.status === 'error') {
+      return { status: 'error', error: res.error };
+    }
+
+    return {
+      status: 'success',
+      output: res.output,
+      message: res.message,
+      attachments: res.attachments
+    };
+  }
 }
 
 export class ProviderRunConnection extends IProviderRunConnection {
@@ -144,6 +189,29 @@ export class ProviderRunConnection extends IProviderRunConnection {
   override async handleToolInvocation(
     data: ToolInvocationCreateParam
   ): Promise<ToolInvocationCreateRes> {
+    if (this.params.session.isInternal) {
+      if (
+        !data.tool.adapterOid ||
+        !this.params.session.adapterGlobalOid ||
+        !this.params.adapter
+      ) {
+        throw new Error('Internal sessions may only invoke tools from their adapter');
+      }
+      let adapter = await db.providerAdapter.findFirst({
+        where: {
+          oid: data.tool.adapterOid,
+          globalOid: this.params.session.adapterGlobalOid,
+          global: { identifier: this.params.adapter.identifier }
+        },
+        select: { oid: true }
+      });
+      if (!adapter) {
+        throw new Error('Tool adapter does not match the internal session adapter');
+      }
+    } else if (data.tool.adapterOid || this.params.adapter) {
+      throw new Error('Adapter-linked tools require an internal session');
+    }
+
     if (this.providerAuthConfigVersion && !this.providerAuthConfigVersion.slateAuthConfigOid) {
       throw new Error('Provider auth config is missing slate auth config association');
     }
@@ -172,7 +240,8 @@ export class ProviderRunConnection extends IProviderRunConnection {
           name: data.sender.name,
           description: (data.sender.payload as any).description
         }
-      ]
+      ],
+      downloadUrlAttachments: this.params.adapter?.identifier === 'chat'
     });
 
     let slateToolCall = await db.slateToolCall.create({

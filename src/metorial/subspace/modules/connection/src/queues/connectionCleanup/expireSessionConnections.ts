@@ -53,7 +53,8 @@ let expireSessionConnectionQueue = createQueue<{ connectionId: string }>({
 let expireSessionConnectionQueueProcessor = expireSessionConnectionQueue.process(
   async data => {
     let connection = await db.sessionConnection.findUnique({
-      where: { id: data.connectionId }
+      where: { id: data.connectionId },
+      include: { session: { select: { isInternal: true } } }
     });
     if (!connection || connection.state !== 'connected') return;
 
@@ -65,19 +66,21 @@ let expireSessionConnectionQueueProcessor = expireSessionConnectionQueue.process
       }
     });
 
-    await db.sessionEvent.createMany({
-      data: {
-        ...getId('sessionEvent'),
-        type: 'connection_disconnected',
-        sessionOid: connection.sessionOid,
-        connectionOid: connection.oid,
-        tenantOid: connection.tenantOid,
-        projectOid: connection.projectOid,
-        solutionOid: connection.solutionOid,
-        environmentOid: connection.environmentOid,
-        instanceOid: connection.instanceOid
-      }
-    });
+    if (!connection.session.isInternal) {
+      await db.sessionEvent.createMany({
+        data: {
+          ...getId('sessionEvent'),
+          type: 'connection_disconnected',
+          sessionOid: connection.sessionOid,
+          connectionOid: connection.oid,
+          tenantOid: connection.tenantOid,
+          projectOid: connection.projectOid,
+          solutionOid: connection.solutionOid,
+          environmentOid: connection.environmentOid,
+          instanceOid: connection.instanceOid
+        }
+      });
+    }
   }
 );
 

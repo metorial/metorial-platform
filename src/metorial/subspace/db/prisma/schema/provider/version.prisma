@@ -69,6 +69,7 @@ model ProviderVersion {
   providerDeploymentVersions                   ProviderDeploymentVersion[]
   providerDeploymentConfigPairDiscoveries      ProviderDeploymentConfigPairDiscovery[]
   sessionConnectionProviderSpecifications      SessionConnectionProviderSpecification[]
+  providerAdapters                             ProviderVersionAdapter[]
 
   @@index([createdAt])
   @@index([updatedAt])

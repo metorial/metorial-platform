@@ -12,6 +12,10 @@ model Session {
   archivedAt DateTime?
 
   isEphemeral Boolean
+  isInternal  Boolean @default(false)
+
+  adapterGlobalOid BigInt?
+  adapterGlobal    ProviderAdapterGlobal? @relation(fields: [adapterGlobalOid], references: [oid])
 
   connectionState SessionConnectionState @default(disconnected)
   isStarted       Boolean                @default(false)
@@ -60,19 +64,21 @@ model Session {
   lastMessageAt           DateTime?
   lastActiveAt            DateTime?
 
-  providers                         SessionProvider[]
-  providerRuns                      ProviderRun[]
-  sessionMessages                   SessionMessage[]
-  sessionEvents                     SessionEvent[]
-  connections                       SessionConnection[]
-  sessionErrors                     SessionError[]
-  sessionProviderInstances          SessionProviderInstance[]
-  toolCalls                         ToolCall[]
-  sessionWarnings                   SessionWarning[]
-  sessionUsageRecords               SessionUsageRecord[]
-  protoGuardRuns                    ProtoGuardRun[]
-  protoGuardAlerts                  ProtoGuardAlert[]
-  currentForEphemeralManagedSession EphemeralManagedSession?  @relation("EphemeralManagedSessionCurrentSession")
+  providers                                    SessionProvider[]
+  providerRuns                                 ProviderRun[]
+  sessionMessages                              SessionMessage[]
+  sessionEvents                                SessionEvent[]
+  connections                                  SessionConnection[]
+  sessionErrors                                SessionError[]
+  sessionProviderInstances                     SessionProviderInstance[]
+  toolCalls                                    ToolCall[]
+  sessionWarnings                              SessionWarning[]
+  sessionUsageRecords                          SessionUsageRecord[]
+  protoGuardRuns                               ProtoGuardRun[]
+  protoGuardAlerts                             ProtoGuardAlert[]
+  currentForEphemeralManagedSession            EphemeralManagedSession?                    @relation("EphemeralManagedSessionCurrentSession")
+  currentForAdapterIntegrationInstanceProvider AdapterIntegrationInstanceProvider?         @relation("AdapterIntegrationInstanceProviderCurrentSession")
+  adapterIntegrationInstanceProviderSessions   AdapterIntegrationInstanceProviderSession[]
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -84,6 +90,9 @@ model Session {
   @@index([identityActorOid])
   @@index([identityOid])
   @@index([isEphemeral])
+  @@index([isInternal])
+  @@index([adapterGlobalOid])
+  @@index([tenantOid, environmentOid, isInternal, createdAt])
   @@index([ephemeralManagedSessionOid])
   @@index([projectOid])
   @@index([instanceOid])

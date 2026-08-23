@@ -32,6 +32,13 @@ model File {
 
   isInternal Boolean @default(false)
 
+  delegatorOid BigInt?
+  delegator    FileContentDelegator? @relation(fields: [delegatorOid], references: [oid], onDelete: SetNull)
+  delegatorRef Json?
+
+  delegatedContentUrl          String?
+  delegatedContentUrlExpiresAt DateTime?
+
   fileName          String
   fileSize          Int
   fileType          String
@@ -79,6 +86,20 @@ model File {
 
   @@index([storeId, status])
   @@index([status, expiresAt, oid])
+  @@index([delegatedContentUrlExpiresAt])
+}
+
+model FileContentDelegator {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  key         String  @unique
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  files File[]
 }
 
 model FilePendingContent {

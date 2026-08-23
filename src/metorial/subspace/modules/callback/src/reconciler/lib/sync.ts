@@ -6,9 +6,9 @@ import {
   getTenantForSlatesCached,
   isCallbackSupported,
   loadCallback,
+  loadCallbackInstance,
   loadFreshCallback,
   loadFreshCallbackInstance,
-  loadCallbackInstance,
   TRIGGER_PAGE_SIZE
 } from './state';
 
@@ -237,13 +237,19 @@ export let syncCallbackInstance = async (d: {
   if (!callbackInstance) return;
 
   let callback = callbackInstance.callback;
-  let providerTriggerInputs = callback.callbackProviderTriggers.map(trigger => ({
-    triggerId: trigger.providerTrigger.specId,
-    ...(callback.pollIntervalSecondsOverride !== null &&
-    callback.pollIntervalSecondsOverride !== undefined
-      ? { pollIntervalSeconds: callback.pollIntervalSecondsOverride }
-      : {})
-  }));
+  let providerTriggerInputs = callback.callbackProviderTriggers
+    .filter(trigger =>
+      callback.isInternal
+        ? trigger.providerTrigger.adapter?.globalOid === callback.adapterGlobalOid
+        : !trigger.providerTrigger.adapterOid
+    )
+    .map(trigger => ({
+      triggerId: trigger.providerTrigger.specId,
+      ...(callback.pollIntervalSecondsOverride !== null &&
+      callback.pollIntervalSecondsOverride !== undefined
+        ? { pollIntervalSeconds: callback.pollIntervalSecondsOverride }
+        : {})
+    }));
   let eventTypes = [
     ...new Set(callback.callbackProviderTriggers.flatMap(trigger => trigger.eventTypes))
   ];

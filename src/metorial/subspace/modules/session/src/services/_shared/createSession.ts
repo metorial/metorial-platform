@@ -16,6 +16,7 @@ import {
 export let sessionInclude = {
   identityActor: true,
   identity: true,
+  adapterGlobal: true,
   providers: {
     include: sessionProviderInclude,
     where: { status: 'active' as const }
@@ -35,6 +36,8 @@ export let createSessionRecord = async (d: {
     providers: SessionProviderInput[];
   };
   isEphemeral: boolean;
+  isInternal?: boolean;
+  adapterGlobalOid?: bigint | null;
   ephemeralManagedSessionOid?: bigint | null;
 }) => {
   let solution = await getMetorialSolution();
@@ -66,6 +69,8 @@ export let createSessionRecord = async (d: {
         status: 'active',
 
         isEphemeral: d.isEphemeral,
+        isInternal: d.isInternal ?? false,
+        adapterGlobalOid: d.adapterGlobalOid ?? null,
 
         name: d.input.name?.trim() || undefined,
         description: d.input.description?.trim() || undefined,
@@ -81,17 +86,21 @@ export let createSessionRecord = async (d: {
         identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
         ephemeralManagedSessionOid: d.ephemeralManagedSessionOid ?? undefined,
 
-        sessionEvents: {
-          create: {
-            ...getId('sessionEvent'),
-            type: 'session_created',
-            tenantOid: d.tenant.oid,
-            projectOid: d.tenant.projectOid,
-            solutionOid: solution.oid,
-            environmentOid: d.environment.oid,
-            instanceOid: d.environment.instanceOid
-          }
-        }
+        ...(d.isInternal
+          ? {}
+          : {
+              sessionEvents: {
+                create: {
+                  ...getId('sessionEvent'),
+                  type: 'session_created',
+                  tenantOid: d.tenant.oid,
+                  projectOid: d.tenant.projectOid,
+                  solutionOid: solution.oid,
+                  environmentOid: d.environment.oid,
+                  instanceOid: d.environment.instanceOid
+                }
+              }
+            })
       },
       include: sessionInclude
     });

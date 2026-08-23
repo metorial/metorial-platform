@@ -1,7 +1,7 @@
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { getSentry } from '@lowerdeck/sentry';
-import type { SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
+import type { SlateAdapter, SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
 import { differenceInMinutes } from 'date-fns';
 import semver from 'semver';
 import { db } from '../../db';
@@ -112,26 +112,223 @@ let syncSpecificationConfigSchema = async (d: {
   });
 };
 
+let syncDiscoveredAdapters = async (d: {
+  adapters: SlateAdapter[];
+  slateOid: bigint;
+  slateId: string;
+  slateVersionOid: bigint;
+}) => {
+  let adaptersById = new Map(d.adapters.map(adapter => [adapter.id, adapter]));
+  let adapters = [...adaptersById.values()];
+
+  for (let adapter of adapters) {
+    await db.adapter.upsert({
+      where: { identifier: adapter.id },
+      create: {
+        ...getId('adapter'),
+        identifier: adapter.id,
+        name: adapter.name
+      },
+      update: { name: adapter.name }
+    });
+  }
+
+  let upsertedAdapters = adapters.length
+    ? await db.adapter.findMany({
+        where: { identifier: { in: adapters.map(adapter => adapter.id) } }
+      })
+    : [];
+  let adapterOidByIdentifier = new Map(
+    upsertedAdapters.map(adapter => [adapter.identifier, adapter.oid])
+  );
+  let adapterOidById = new Map(
+    adapters.flatMap(adapter => {
+      let adapterOid = adapterOidByIdentifier.get(adapter.id);
+      return adapterOid ? [[adapter.id, adapterOid] as const] : [];
+    })
+  );
+
+  for (let adapter of adapters) {
+    let adapterOid = adapterOidById.get(adapter.id);
+    if (!adapterOid) continue;
+
+    await db.slateAdapter.upsert({
+      where: { slateOid_adapterOid: { slateOid: d.slateOid, adapterOid } },
+      create: {
+        ...getId('slateAdapter'),
+        identifier: `slate::${d.slateId}::adapter::${adapter.id}`,
+        slateOid: d.slateOid,
+        adapterOid
+      },
+      update: { identifier: `slate::${d.slateId}::adapter::${adapter.id}` }
+    });
+  }
+
+  let slateAdapters = await db.slateAdapter.findMany({
+    where: { slateOid: d.slateOid, adapterOid: { in: [...adapterOidById.values()] } },
+    select: { oid: true, adapterOid: true }
+  });
+  let slateAdapterOidByAdapterOid = new Map(
+    slateAdapters.map(slateAdapter => [slateAdapter.adapterOid, slateAdapter.oid])
+  );
+  let slateAdapterOidById = new Map(
+    adapters.flatMap(adapter => {
+      let adapterOid = adapterOidById.get(adapter.id);
+      let slateAdapterOid = adapterOid
+        ? slateAdapterOidByAdapterOid.get(adapterOid)
+        : undefined;
+      return slateAdapterOid ? [[adapter.id, slateAdapterOid] as const] : [];
+    })
+  );
+
+  for (let adapter of adapters) {
+    let adapterOid = adapterOidById.get(adapter.id);
+    if (!adapterOid) continue;
+
+    let capabilitiesById = new Map(
+      adapter.capabilities.map(capability => [capability.id, capability])
+    );
+    for (let capability of capabilitiesById.values()) {
+      await db.adapterCapability.upsert({
+        where: {
+          adapterOid_identifier: {
+            adapterOid,
+            identifier: capability.id
+          }
+        },
+        create: {
+          ...getId('adapterCapability'),
+          adapterOid,
+          identifier: capability.id
+        },
+        update: {}
+      });
+    }
+  }
+
+  let desiredSlateAdapterOids = [...slateAdapterOidById.values()];
+  let staleVersionAdapters = await db.slateVersionAdapter.findMany({
+    where: {
+      slateVersionOid: d.slateVersionOid,
+      slateAdapterOid: { notIn: desiredSlateAdapterOids }
+    },
+    select: { oid: true }
+  });
+  if (staleVersionAdapters.length > 0) {
+    await db.slateVersionAdapterCapability.deleteMany({
+      where: { slateVersionAdapterOid: { in: staleVersionAdapters.map(a => a.oid) } }
+    });
+    await db.slateVersionAdapter.deleteMany({
+      where: { oid: { in: staleVersionAdapters.map(a => a.oid) } }
+    });
+  }
+
+  await db.slateVersionAdapter.createMany({
+    skipDuplicates: true,
+    data: adapters.flatMap(adapter => {
+      let adapterOid = adapterOidById.get(adapter.id);
+      let slateAdapterOid = slateAdapterOidById.get(adapter.id);
+      return adapterOid && slateAdapterOid
+        ? [
+            {
+              ...getId('slateVersionAdapter'),
+              slateVersionOid: d.slateVersionOid,
+              adapterOid,
+              slateAdapterOid
+            }
+          ]
+        : [];
+    })
+  });
+
+  let slateVersionAdapters = await db.slateVersionAdapter.findMany({
+    where: { slateVersionOid: d.slateVersionOid },
+    select: { oid: true, slateAdapterOid: true }
+  });
+  let slateVersionAdapterOidBySlateAdapterOid = new Map(
+    slateVersionAdapters.map(adapter => [adapter.slateAdapterOid, adapter.oid])
+  );
+
+  let adapterCapabilities = await db.adapterCapability.findMany({
+    where: { adapterOid: { in: upsertedAdapters.map(adapter => adapter.oid) } },
+    select: { oid: true, adapterOid: true, identifier: true }
+  });
+  let adapterCapabilityOidByKey = new Map(
+    adapterCapabilities.map(capability => [
+      `${capability.adapterOid}:${capability.identifier}`,
+      capability.oid
+    ])
+  );
+  let slateVersionAdapterOids = [...slateVersionAdapterOidBySlateAdapterOid.values()];
+
+  await db.slateVersionAdapterCapability.deleteMany({
+    where: { slateVersionAdapterOid: { in: slateVersionAdapterOids } }
+  });
+
+  let versionCapabilities = adapters.flatMap(adapter => {
+    let adapterOid = adapterOidById.get(adapter.id);
+    let slateAdapterOid = slateAdapterOidById.get(adapter.id);
+    if (!adapterOid || !slateAdapterOid) return [];
+    let slateVersionAdapterOid = slateVersionAdapterOidBySlateAdapterOid.get(slateAdapterOid);
+    if (!slateVersionAdapterOid) return [];
+
+    return [
+      ...new Map(adapter.capabilities.map(capability => [capability.id, capability])).values()
+    ].flatMap(capability => {
+      let adapterCapabilityOid = adapterCapabilityOidByKey.get(
+        `${adapterOid}:${capability.id}`
+      );
+      return adapterCapabilityOid
+        ? [
+            {
+              ...getId('slateVersionAdapterCapability'),
+              slateVersionAdapterOid,
+              adapterCapabilityOid,
+              value: capability.value
+            }
+          ]
+        : [];
+    });
+  });
+  if (versionCapabilities.length > 0) {
+    await db.slateVersionAdapterCapability.createMany({
+      data: versionCapabilities
+    });
+  }
+
+  return slateAdapterOidById;
+};
+
 let buildActionUpsertData = async (d: {
   actions: SlatesAction[];
   slateOid: bigint;
   specificationOid: bigint;
   identifierBase: string;
   actionHashes: string[];
+  slateAdapterOidById: Map<string, bigint>;
 }) =>
   d.actions.map((action, index) => {
     let hash = d.actionHashes[index]!;
     let identifier = `${d.identifierBase}::action::${action.id}::${hash}`;
+    let slateAdapterOid = action.adapter
+      ? d.slateAdapterOidById.get(action.adapter)
+      : undefined;
+    if (action.adapter && !slateAdapterOid) {
+      throw new Error(`Adapter not found for action ${action.id}: ${action.adapter}`);
+    }
 
     return {
       ...getId('slateAction'),
       slateOid: d.slateOid,
       mostRecentSpecificationOid: d.specificationOid,
+      slateAdapterOid,
 
       type: {
         'action.tool': 'tool' as const,
         'action.trigger': 'trigger' as const
       }[action.type],
+
+      isPublic: action.type === 'action.tool' ? action.isPublic === true : false,
 
       hash,
       identifier,
@@ -289,7 +486,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         slateInvocationService.getConfigSchema({ stack }),
         // slateInvocationService.getDefaultConfig({ stack }),
         slateInvocationService.listAuthMethods({ stack }),
-        slateInvocationService.listActions({ stack })
+        slateInvocationService.listActions({ stack }),
+        slateInvocationService.listAdapters({ stack })
       ]);
 
       let invocation = stackResult[0].invocation;
@@ -307,7 +505,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         return;
       }
 
-      let [providerInfo, configSchema, authMethods, actions] =
+      let [providerInfo, configSchema, authMethods, actions, adapters] =
         getStackResultsOrThrow(stackResult);
 
       let discoveredAuthMethods = dedupeDiscoveredItems(authMethods.authenticationMethods, {
@@ -375,7 +573,13 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         slateOid: slate.oid,
         specificationOid: specification.oid,
         identifierBase,
-        actionHashes: discoveryHashes.actionHashes
+        actionHashes: discoveryHashes.actionHashes,
+        slateAdapterOidById: await syncDiscoveredAdapters({
+          adapters: adapters.adapters,
+          slateOid: slate.oid,
+          slateId: slate.id,
+          slateVersionOid: version.oid
+        })
       });
       await db.slateAction.createManyAndReturn({
         skipDuplicates: true,

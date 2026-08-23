@@ -188,6 +188,8 @@ model ToolCallAttachment {
 
   createdAt DateTime @default(now())
 
+  chatMessageAttachments ChatMessageAttachment[]
+
   @@index([createdAt])
   @@index([toolCallOid])
 }

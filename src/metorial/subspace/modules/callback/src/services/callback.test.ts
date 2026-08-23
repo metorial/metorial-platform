@@ -7,6 +7,8 @@ let mocks = vi.hoisted(() => ({
   providerDeploymentFindFirst: vi.fn(),
   providerDeploymentFindFirstOrThrow: vi.fn(),
   providerTriggerFindMany: vi.fn(),
+  providerAdapterGlobalFindUnique: vi.fn(),
+  providerVersionAdapterFindFirst: vi.fn(),
   getCurrentVersion: vi.fn(),
   syncCallback: vi.fn()
 }));
@@ -46,6 +48,12 @@ vi.mock('@metorial-subspace/db', () => ({
     },
     providerTrigger: {
       findMany: mocks.providerTriggerFindMany
+    },
+    providerAdapterGlobal: {
+      findUnique: mocks.providerAdapterGlobalFindUnique
+    },
+    providerVersionAdapter: {
+      findFirst: mocks.providerVersionAdapterFindFirst
     },
     $transaction: vi.fn()
   },
@@ -119,7 +127,8 @@ describe('Callback creation double-writes the mirrored scoping columns', () => {
     vi.clearAllMocks();
     mocks.providerDeploymentFindFirst.mockResolvedValue(deployment);
     mocks.providerDeploymentFindFirstOrThrow.mockResolvedValue(deployment);
-    mocks.getCurrentVersion.mockResolvedValue({ specificationOid: 40n });
+    mocks.getCurrentVersion.mockResolvedValue({ oid: 41n, specificationOid: 40n });
+    mocks.providerVersionAdapterFindFirst.mockResolvedValue({ oid: 42n });
     mocks.providerTriggerFindMany.mockResolvedValue([
       {
         oid: 50n,
@@ -137,6 +146,9 @@ describe('Callback creation double-writes the mirrored scoping columns', () => {
   it('writes projectOid and instanceOid next to the legacy oids', async () => {
     await callbackService.createCallbackInternal(createParams(linkedScope));
 
+    expect(mocks.providerTriggerFindMany).toHaveBeenCalledWith({
+      where: { specificationOid: 40n, adapterOid: null }
+    });
     expect(mocks.callbackCreate).toHaveBeenCalledTimes(1);
     expect(mocks.callbackCreate.mock.calls[0]![0].data).toMatchObject({
       tenantOid: 10n,
@@ -168,5 +180,37 @@ describe('Callback creation double-writes the mirrored scoping columns', () => {
     expect(where).toMatchObject({ tenantOid: 10n, environmentOid: 11n });
     expect(where).not.toHaveProperty('projectOid');
     expect(where).not.toHaveProperty('instanceOid');
+  });
+
+  it('binds internal callbacks to one global adapter and resolves only its triggers', async () => {
+    mocks.providerAdapterGlobalFindUnique.mockResolvedValue({
+      oid: 70n,
+      id: 'padg_1',
+      identifier: 'chat',
+      name: 'Chat'
+    });
+
+    await callbackService.createCallbackInternal({
+      ...createParams(linkedScope),
+      adapter: { identifier: 'chat' }
+    });
+
+    expect(mocks.providerTriggerFindMany).toHaveBeenCalledWith({
+      where: {
+        specificationOid: 40n,
+        adapter: { globalOid: 70n }
+      }
+    });
+    expect(mocks.providerVersionAdapterFindFirst).toHaveBeenCalledWith({
+      where: {
+        providerVersionOid: 41n,
+        adapter: { globalOid: 70n }
+      },
+      select: { oid: true }
+    });
+    expect(mocks.callbackCreate.mock.calls[0]![0].data).toMatchObject({
+      isInternal: true,
+      adapterGlobalOid: 70n
+    });
   });
 });

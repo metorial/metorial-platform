@@ -1,3 +1,4 @@
+import { db } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
 import type {
   HandleMcpNotificationOrRequestParam,
@@ -8,6 +9,14 @@ import type { ConnectionState } from '.';
 
 export let getConnectionBackendConnection = async (state: ConnectionState) => {
   let backend = await getBackend({ entity: state.version });
+
+  let adapter = state.session.adapterGlobalOid
+    ? await db.providerAdapterGlobal.findUniqueOrThrow({
+        where: { oid: state.session.adapterGlobalOid },
+        select: { id: true, identifier: true, name: true }
+      })
+    : null;
+
   let run = await backend.providerRun.createProviderRun({
     tenant: state.instance.sessionProvider.tenant,
     providerConfigVersion: state.instance.sessionProvider.config.currentVersion!,
@@ -18,6 +27,7 @@ export let getConnectionBackendConnection = async (state: ConnectionState) => {
     session: state.session,
     connection: state.connection,
     participant: state.participant,
+    adapter,
 
     providerVersion: state.version,
     provider: state.version.provider,

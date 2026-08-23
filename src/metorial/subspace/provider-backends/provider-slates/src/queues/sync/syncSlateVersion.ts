@@ -4,13 +4,14 @@ import { Hash } from '@lowerdeck/hash';
 import { generateCode } from '@lowerdeck/id';
 import { createQueue } from '@lowerdeck/queue';
 import { slugify } from '@lowerdeck/slugify';
-import { db, snowflake } from '@metorial-subspace/db';
+import { db, getId, snowflake } from '@metorial-subspace/db';
 import {
   providerInternalService,
   providerVersionInternalService,
   publisherInternalService
 } from '@metorial-subspace/module-provider-internal';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
+import { canonicalizeAdapterCapabilities } from '../../adapterCapabilities';
 import { backend } from '../../backend';
 import { slates } from '../../client';
 import { env } from '../../env';
@@ -94,6 +95,7 @@ let buildProviderListingDocs = (spec: any): PrismaJson.ProviderListingDocs | und
     }))
     .filter((authMethod: any) => authMethod.docs.length > 0);
   let actions = [...(spec.tools ?? []), ...(spec.triggers ?? [])]
+    .filter((action: any) => !action.adapter && !action.isPublic)
     .map((action: any) => ({
       key: action.key,
       name: action.name,
@@ -116,6 +118,140 @@ let buildProviderListingDocs = (spec: any): PrismaJson.ProviderListingDocs | und
     actions
   };
 };
+
+type SlatesAdapter = {
+  identifier: string;
+  slateIdentifier: string;
+  name: string;
+  capabilities: { id: string; value: any }[];
+};
+
+let syncProviderAdapters = async (d: { providerOid: bigint; adapters: SlatesAdapter[] }) =>
+  await db.$transaction(async tx => {
+    let adapterBySlateIdentifier = new Map<string, { oid: bigint }>();
+
+    for (let adapter of d.adapters) {
+      let global = await tx.providerAdapterGlobal.upsert({
+        where: { identifier: adapter.identifier },
+        create: {
+          ...getId('providerAdapterGlobal'),
+          identifier: adapter.identifier,
+          name: adapter.name
+        },
+        update: { name: adapter.name }
+      });
+
+      let providerAdapter = await tx.providerAdapter.upsert({
+        where: {
+          providerOid_globalOid: {
+            providerOid: d.providerOid,
+            globalOid: global.oid
+          }
+        },
+        create: {
+          ...getId('providerAdapter'),
+          identifier: adapter.slateIdentifier,
+          providerOid: d.providerOid,
+          globalOid: global.oid
+        },
+        update: { identifier: adapter.slateIdentifier }
+      });
+
+      for (let capability of canonicalizeAdapterCapabilities(adapter.capabilities)) {
+        await tx.providerAdapterCapability.upsert({
+          where: {
+            adapterOid_identifier: {
+              adapterOid: providerAdapter.oid,
+              identifier: capability.id
+            }
+          },
+          create: {
+            ...getId('providerAdapterCapability'),
+            adapterOid: providerAdapter.oid,
+            identifier: capability.id
+          },
+          update: {}
+        });
+      }
+
+      adapterBySlateIdentifier.set(adapter.slateIdentifier, providerAdapter);
+    }
+
+    return adapterBySlateIdentifier;
+  });
+
+let syncProviderVersionAdapters = async (d: {
+  providerVersionOid: bigint;
+  adapters: SlatesAdapter[];
+  adapterBySlateIdentifier: Map<string, { oid: bigint }>;
+}) =>
+  await db.$transaction(async tx => {
+    let desiredAdapterOids = d.adapters.flatMap(adapter => {
+      let record = d.adapterBySlateIdentifier.get(adapter.slateIdentifier);
+      return record ? [record.oid] : [];
+    });
+
+    await tx.providerVersionAdapter.deleteMany({
+      where: {
+        providerVersionOid: d.providerVersionOid,
+        adapterOid: { notIn: desiredAdapterOids }
+      }
+    });
+
+    for (let adapter of d.adapters) {
+      let providerAdapter = d.adapterBySlateIdentifier.get(adapter.slateIdentifier);
+      if (!providerAdapter) {
+        throw new Error(`Provider adapter not found: ${adapter.slateIdentifier}`);
+      }
+
+      let capabilities = canonicalizeAdapterCapabilities(adapter.capabilities);
+      let versionAdapter = await tx.providerVersionAdapter.upsert({
+        where: {
+          providerVersionOid_adapterOid: {
+            providerVersionOid: d.providerVersionOid,
+            adapterOid: providerAdapter.oid
+          }
+        },
+        create: {
+          ...getId('providerVersionAdapter'),
+          providerVersionOid: d.providerVersionOid,
+          adapterOid: providerAdapter.oid,
+          capabilities
+        },
+        update: { capabilities }
+      });
+
+      let capabilityRecords = await tx.providerAdapterCapability.findMany({
+        where: { adapterOid: providerAdapter.oid },
+        select: { oid: true, identifier: true }
+      });
+      let capabilityByIdentifier = new Map(
+        capabilityRecords.map(capability => [capability.identifier, capability])
+      );
+
+      await tx.providerVersionAdapterCapability.deleteMany({
+        where: { providerVersionAdapterOid: versionAdapter.oid }
+      });
+      if (capabilities.length > 0) {
+        await tx.providerVersionAdapterCapability.createMany({
+          data: capabilities.map(capability => {
+            let definition = capabilityByIdentifier.get(capability.id);
+            if (!definition) {
+              throw new Error(
+                `Provider adapter capability not found: ${adapter.slateIdentifier}/${capability.id}`
+              );
+            }
+            return {
+              ...getId('providerVersionAdapterCapability'),
+              providerVersionAdapterOid: versionAdapter.oid,
+              adapterCapabilityOid: definition.oid,
+              value: capability.value
+            };
+          })
+        });
+      }
+    }
+  });
 
 export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async data => {
   let version = await slates.slateVersion.get({
@@ -198,7 +334,7 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   let hasConfig = !!(spec ? normalizeJsonSchema(spec.configSchema) : null);
   let hasAuthConfig = !!(spec && spec.authMethods.length > 0);
   let hasOAuth = spec?.authMethods.some(am => am.type === 'oauth');
-  let hasTriggers = !!(spec ? spec.triggers.length > 0 : false);
+  let hasTriggers = !!(spec ? spec.triggers.some(trigger => !trigger.adapter) : false);
   let docs = buildProviderListingDocs(spec);
 
   let type = {
@@ -278,7 +414,13 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   // Abort if the version already existed
   // if (slateVersionRecord.oid !== newVersionOid) return;
 
-  await providerVersionInternalService.upsertVersion({
+  let adapters = (version.adapters ?? []) as SlatesAdapter[];
+  let adapterBySlateIdentifier = await syncProviderAdapters({
+    providerOid: provider.oid,
+    adapters
+  });
+
+  let providerVersion = await providerVersionInternalService.upsertVersion({
     variant: provider.defaultVariant,
     isCurrent: version.isCurrent,
     source: {
@@ -291,5 +433,11 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
       name: `v${version.version}`
     },
     type
+  });
+
+  await syncProviderVersionAdapters({
+    providerVersionOid: providerVersion.oid,
+    adapters,
+    adapterBySlateIdentifier
   });
 });

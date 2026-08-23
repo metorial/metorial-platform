@@ -185,3 +185,11 @@ export let getStoredInvocationStorageKey = (invocation: SlateInvocation) => {
 export let getStoredAttachmentsStorageKey = (digest: string) => {
   return `attachments/${digest}`;
 };
+
+export let getAttachmentStorageKey = (attachment: {
+  id: string;
+  digest: Uint8Array | null;
+}) =>
+  attachment.digest
+    ? getStoredAttachmentsStorageKey(Buffer.from(attachment.digest).toString('hex'))
+    : getStoredAttachmentsStorageKey(attachment.id);

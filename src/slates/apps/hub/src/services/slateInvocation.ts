@@ -208,8 +208,16 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async listAdapters(d: { stack: SlateInvocationStack }) {
+    return await d.stack.invoke('slates/adapters.list', {});
+  }
+
+  async getAdapter(d: { stack: SlateInvocationStack; adapterId: string }) {
+    return await d.stack.invoke('slates/adapter.get', { adapterId: d.adapterId });
+  }
+
   async listActions(d: { stack: SlateInvocationStack }) {
-    return await d.stack.invoke('slates/actions.list', {});
+    return await d.stack.invoke('slates/actions.list', { includeAdapterActions: true });
   }
 
   async getAction(d: { stack: SlateInvocationStack; actionId: string }) {

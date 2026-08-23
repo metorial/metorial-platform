@@ -23,7 +23,9 @@ export let callbackInclude = {
   },
   callbackProviderTriggers: {
     include: {
-      providerTrigger: true
+      providerTrigger: {
+        include: { adapter: true }
+      }
     }
   }
 };
@@ -106,4 +108,5 @@ export let isCallbackSupported = (
 ) =>
   callback.status === 'active' &&
   callback.providerDeployment.provider.type.attributes.backend === 'slates' &&
-  callback.providerDeployment.provider.type.attributes.triggers.status === 'enabled';
+  (callback.isInternal ||
+    callback.providerDeployment.provider.type.attributes.triggers.status === 'enabled');

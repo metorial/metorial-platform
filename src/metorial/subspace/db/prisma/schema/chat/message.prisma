@@ -1,0 +1,68 @@
+model ChatMessage {
+  oid BigInt @id
+  id  String @unique
+
+  messageId    String
+  providerType String
+
+  replyToMessageId String?
+
+  /// [ChatMessageBody]
+  body Json
+
+  /// [ChatMessageReactions]
+  reactions Json?
+
+  /// [ChatMessageUnfurls]
+  unfurls Json?
+
+  syncHash String?
+
+  channelOid BigInt
+  channel    ChatChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)
+
+  threadOid BigInt?
+  thread    ChatThread? @relation(fields: [threadOid], references: [oid], onDelete: Cascade)
+
+  authorOid BigInt
+  author    ChatAuthor @relation(fields: [authorOid], references: [oid], onDelete: Cascade)
+
+  sentAt   DateTime
+  edited   Boolean   @default(false)
+  editedAt DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+  lastInteractionAt DateTime?
+
+  attachments ChatMessageAttachment[]
+
+  groupOid BigInt?
+  group    ChatMessageGroup? @relation("GroupMessages", fields: [groupOid], references: [oid], onDelete: SetNull)
+
+  primaryOfGroup ChatMessageGroup? @relation("GroupPrimaryMessage")
+
+  isChildMessage Boolean @default(false)
+
+  @@unique([channelOid, messageId])
+  @@index([channelOid, isChildMessage])
+}
+
+model ChatMessageGroup {
+  oid BigInt @id
+  id  String @unique
+
+  channelOid BigInt
+  channel    ChatChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)
+
+  primaryMessageOid BigInt?      @unique
+  primaryMessage    ChatMessage? @relation("GroupPrimaryMessage", fields: [primaryMessageOid], references: [oid], onDelete: SetNull)
+
+  providerGroupKey String?
+
+  createdAt DateTime @default(now())
+
+  messages ChatMessage[] @relation("GroupMessages")
+
+  @@unique([channelOid, providerGroupKey])
+}

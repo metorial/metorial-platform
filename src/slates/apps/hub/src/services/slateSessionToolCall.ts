@@ -2,13 +2,11 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
-import { addDays, differenceInMinutes } from 'date-fns';
-import { PublicUrlPurpose } from 'object-storage-client';
-import type { SlateInvocation, Tenant } from '../../prisma/generated/client';
+import { differenceInMinutes } from 'date-fns';
+import type { Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
-import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
-import { invocationsBucketRecord, storage } from '../storage';
+import { ensureSlateInvocationAttachment } from '../lib/invocation/attachments';
 import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
@@ -28,22 +26,6 @@ let include = {
   session: true,
   slateVersion: true
 };
-
-type SlateToolCallAttachment = {
-  content:
-    | {
-        type: 'url';
-        url: string;
-      }
-    | {
-        type: 'content';
-        encoding: 'base64' | 'utf-8';
-        content: string;
-      };
-  mimeType?: string;
-};
-
-let ATTACHMENT_EXPIRATION_DAYS = 7;
 
 let throwStoredConfigError = (d: { errorCode: string; errorMessage?: string | null }) => {
   throw new ServiceError(
@@ -66,6 +48,7 @@ class slateSessionToolCallServiceImpl {
       egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
       participants: SlatesParticipant[];
+      downloadUrlAttachments?: boolean;
     };
   }) {
     let session = await db.slateSession.findFirst({
@@ -252,10 +235,14 @@ class slateSessionToolCallServiceImpl {
 
     let attachments = await Promise.all(
       (callRes.data.attachments ?? []).map(attachment =>
-        this.ensureAttachment({
+        ensureSlateInvocationAttachment({
           content: attachment.content,
           mimeType: attachment.mimeType,
-          invocation: callRes.invocation
+          attachmentHash: (attachment as { attachmentHash?: string }).attachmentHash,
+          invocation: callRes.invocation,
+          tenantOid: session.tenantOid,
+          slateOid: session.slateOid,
+          downloadUrlAttachments: d.input.downloadUrlAttachments
         })
       )
     );
@@ -268,75 +255,6 @@ class slateSessionToolCallServiceImpl {
       output: callRes.data.output,
       message: callRes.data.message,
       attachments
-    };
-  }
-
-  private async ensureAttachment(d: {
-    content: SlateToolCallAttachment['content'];
-    mimeType?: string | undefined;
-    invocation: SlateInvocation;
-  }) {
-    if (d.content.type === 'url') {
-      return {
-        type: 'url' as const,
-        url: d.content.url,
-        mimeType: d.mimeType
-      };
-    }
-
-    let contentBuffer = Buffer.from(d.content.content, d.content.encoding);
-    let digest = new Uint8Array(await crypto.subtle.digest('SHA-256', contentBuffer));
-    let digestString = Buffer.from(digest).toString('hex');
-    let storageKey = getStoredAttachmentsStorageKey(digestString);
-
-    let attachment = await db.slateAttachment.findFirst({
-      where: { digest }
-    });
-    if (!attachment) {
-      await storage.putObject(
-        invocationsBucketRecord.bucket,
-        storageKey,
-        contentBuffer,
-        d.mimeType ?? 'application/octet-stream'
-      );
-    }
-
-    let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
-    let inner = {
-      digest,
-      expiresAt,
-      lastCreatedAt: new Date()
-    };
-
-    attachment = await db.slateAttachment.upsert({
-      where: { digest },
-      create: {
-        ...getId('slateAttachment'),
-        ...inner
-      },
-      update: inner
-    });
-
-    await db.slateInvocationAttachment.createMany({
-      data: {
-        ...getId('slateInvocationAttachment'),
-        invocationOid: d.invocation.oid,
-        attachmentsOid: attachment.oid
-      }
-    });
-
-    let url = await storage.getPublicURL(
-      invocationsBucketRecord.bucket,
-      storageKey,
-      ATTACHMENT_EXPIRATION_DAYS * 24 * 60 * 60,
-      PublicUrlPurpose.Retrieve
-    );
-
-    return {
-      type: 'url' as const,
-      url: url.url,
-      mimeType: d.mimeType,
-      urlExpiresAt: addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS)
     };
   }
 

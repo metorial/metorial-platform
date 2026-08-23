@@ -21,13 +21,13 @@ import {
   normalizeStatusForList,
   resolveProviderDeployments
 } from '@metorial-subspace/list-utils';
+import { providerDeploymentInternalService } from '@metorial-subspace/module-provider-internal';
 import {
   getMetorialSolution,
   type MetorialFacing,
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { providerDeploymentInternalService } from '@metorial-subspace/module-provider-internal';
 import { Fabric } from '@metorial/fabric';
 import { callbackRegistrationService } from './callbackRegistration';
 
@@ -35,6 +35,7 @@ let MAX_DESTINATIONS_PER_CALLBACK = 100;
 let MAX_TRIGGERS_PER_CALLBACK = 100;
 
 let callbackInclude = {
+  adapterGlobal: true,
   providerDeployment: {
     include: {
       provider: {
@@ -60,6 +61,7 @@ let callbackInclude = {
 export type ListCallbacksParams = {
   status?: ('active' | 'archived' | 'deleted')[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
   ids?: string[];
   providerDeploymentIds?: string[];
   createdAt?: DateFilter;
@@ -85,6 +87,10 @@ export type CreateCallbackParams = {
   };
 };
 
+export type CreateInternalCallbackParams = CreateCallbackParams & {
+  adapter?: { identifier: string };
+};
+
 export type UpdateCallbackParams = {
   callback: Callback & {
     providerDeployment: ProviderDeployment & {
@@ -102,10 +108,12 @@ export type UpdateCallbackParams = {
     triggers?: { triggerId: string; eventTypes?: string[] }[];
     destinationIds?: string[];
   };
+  _allowInternalUpdate?: boolean;
 };
 
 export type ArchiveCallbackParams = {
   callback: Callback;
+  _allowInternalDelete?: boolean;
 };
 
 class callbackServiceImpl {
@@ -134,7 +142,9 @@ class callbackServiceImpl {
     });
   }
 
-  async listCallbacksInternal(d: { tenant: Tenant; environment: Environment } & ListCallbacksParams) {
+  async listCallbacksInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCallbacksParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
@@ -148,6 +158,7 @@ class callbackServiceImpl {
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             ...normalizeStatusForList(d).noParent,
+            ...(d.includeInternal ? {} : { isInternal: false }),
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               deployments ? { providerDeploymentOid: deployments.in } : undefined!,
@@ -200,6 +211,7 @@ class callbackServiceImpl {
     providerDeployment: {
       id: string;
     };
+    allowAdapterTriggers?: boolean;
   }) {
     let solution = await getMetorialSolution();
 
@@ -230,7 +242,8 @@ class callbackServiceImpl {
 
     if (
       providerDeployment.provider.type.attributes.backend !== 'slates' ||
-      providerDeployment.provider.type.attributes.triggers.status !== 'enabled'
+      (!d.allowAdapterTriggers &&
+        providerDeployment.provider.type.attributes.triggers.status !== 'enabled')
     ) {
       throw new ServiceError(
         badRequestError({
@@ -247,6 +260,7 @@ class callbackServiceImpl {
     environment: Environment;
     deployment: ProviderDeployment;
     inputTriggers: { triggerId: string; eventTypes?: string[] }[];
+    adapterGlobalOid?: bigint | null;
   }) {
     let deployment = await db.providerDeployment.findFirstOrThrow({
       where: { oid: d.deployment.oid },
@@ -283,8 +297,31 @@ class callbackServiceImpl {
     }
 
     let providerTriggers = await db.providerTrigger.findMany({
-      where: { specificationOid: version.specificationOid }
+      where: {
+        specificationOid: version.specificationOid,
+        ...(d.adapterGlobalOid
+          ? { adapter: { globalOid: d.adapterGlobalOid } }
+          : { adapterOid: null })
+      }
     });
+
+    if (d.adapterGlobalOid) {
+      let versionAdapter = await db.providerVersionAdapter.findFirst({
+        where: {
+          providerVersionOid: version.oid,
+          adapter: { globalOid: d.adapterGlobalOid }
+        },
+        select: { oid: true }
+      });
+      if (!versionAdapter) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'internal_adapter_not_supported',
+            message: 'The callback provider version does not support the requested adapter.'
+          })
+        );
+      }
+    }
 
     let byMatcher = new Map<string, (typeof providerTriggers)[number]>();
     for (let trigger of providerTriggers) {
@@ -333,14 +370,24 @@ class callbackServiceImpl {
   }
 
   async createCallbackInternal(
-    d: { tenant: Tenant; environment: Environment } & CreateCallbackParams
+    d: { tenant: Tenant; environment: Environment } & CreateInternalCallbackParams
   ) {
     let solution = await getMetorialSolution();
+
+    let adapter = d.adapter
+      ? await db.providerAdapterGlobal.findUnique({
+          where: { identifier: d.adapter.identifier }
+        })
+      : null;
+    if (d.adapter && !adapter) {
+      throw new ServiceError(notFoundError('provider.adapter', d.adapter.identifier));
+    }
 
     let providerDeployment = await this.getDeploymentAndValidate({
       tenant: d.tenant,
       environment: d.environment,
-      providerDeployment: d.providerDeployment
+      providerDeployment: d.providerDeployment,
+      allowAdapterTriggers: !!adapter
     });
 
     if (d.input.triggers.length > MAX_TRIGGERS_PER_CALLBACK) {
@@ -355,7 +402,8 @@ class callbackServiceImpl {
     let providerTriggers = await this.resolveTriggerDefs({
       environment: d.environment,
       deployment: providerDeployment,
-      inputTriggers: d.input.triggers
+      inputTriggers: d.input.triggers,
+      adapterGlobalOid: adapter?.oid ?? null
     });
     let destinationIds = [...new Set(d.input.destinationIds)];
     if (destinationIds.length > MAX_DESTINATIONS_PER_CALLBACK) {
@@ -395,6 +443,8 @@ class callbackServiceImpl {
         providerDeploymentOid: providerDeployment.oid,
         status: 'active',
         mode: 'manual',
+        isInternal: !!adapter,
+        adapterGlobalOid: adapter?.oid ?? null,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata,
@@ -439,6 +489,15 @@ class callbackServiceImpl {
     d: { tenant: Tenant; environment: Environment } & UpdateCallbackParams
   ) {
     let solution = await getMetorialSolution();
+
+    if (d.callback.isInternal && !d._allowInternalUpdate) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'internal_callback_readonly',
+          message: 'Internal callbacks cannot be updated by customers.'
+        })
+      );
+    }
 
     let pollIntervalSecondsOverride =
       d.input.pollIntervalSecondsOverride !== undefined
@@ -486,7 +545,8 @@ class callbackServiceImpl {
         ? await this.resolveTriggerDefs({
             environment: d.environment,
             deployment: d.callback.providerDeployment,
-            inputTriggers: d.input.triggers
+            inputTriggers: d.input.triggers,
+            adapterGlobalOid: d.callback.adapterGlobalOid
           })
         : undefined;
 
@@ -565,6 +625,14 @@ class callbackServiceImpl {
   async archiveCallbackInternal(
     d: { tenant: Tenant; environment: Environment } & ArchiveCallbackParams
   ) {
+    if (d.callback.isInternal && !d._allowInternalDelete) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'internal_callback_readonly',
+          message: 'Internal callbacks cannot be archived by customers.'
+        })
+      );
+    }
     let archivedAt = new Date();
 
     let archived = await withTransaction(async db => {

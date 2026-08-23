@@ -321,6 +321,23 @@ export class McpSender {
       return;
     }
 
+    if (
+      this.session.isInternal &&
+      (method.startsWith('prompts/') || method.startsWith('resources/'))
+    ) {
+      return {
+        store: false,
+        mcp: {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: -32601,
+            message: 'Method not found'
+          }
+        } satisfies JSONRPCErrorResponse
+      };
+    }
+
     switch (method) {
       case 'initialize': {
         let initMessage = mcpValidate(id, InitializeRequestSchema, msg);

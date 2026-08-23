@@ -422,6 +422,68 @@ class FileServiceImpl {
     return result;
   }
 
+  async createDelegatedFile(
+    d: CargoOwnerScope & {
+      purpose: string;
+      delegatorKey: string;
+      delegatorRef: unknown;
+      input: {
+        id?: string;
+        name: string;
+        mimeType: string;
+        size: number;
+        title?: string;
+        expiresAt?: Date;
+      };
+    }
+  ): Promise<FileRecord> {
+    return await withTransaction(async db => {
+      let fileName = d.input.name?.trim();
+      if (!fileName) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'File name is required'
+          })
+        );
+      }
+
+      let purpose = await filePurposeService.getFilePurposeById({
+        id: d.purpose
+      });
+
+      let delegator = await db.fileContentDelegator.findUnique({
+        where: { key: d.delegatorKey }
+      });
+      if (!delegator) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Unknown file content delegator "${d.delegatorKey}"`
+          })
+        );
+      }
+
+      let createdFile = await db.file.create({
+        data: {
+          id: d.input.id ?? (await ID.generateId('file')),
+          ...cargoFileScope(d),
+          purposeOid: purpose.oid,
+          storeId: '',
+          fileName,
+          fileSize: d.input.size,
+          fileType: d.input.mimeType,
+          title: d.input.title,
+          expiresAt: d.input.expiresAt,
+          isReadOnly: true,
+          delegatorOid: delegator.oid,
+          delegatorRef: d.delegatorRef as Prisma.InputJsonValue
+        },
+        include
+      });
+
+      return await this.withEffectiveStoreId(createdFile);
+    });
+  }
+
   async getFileById(
     d: CargoOwnerScope & {
       fileId: string;
@@ -715,6 +777,40 @@ class FileServiceImpl {
     }
 
     return file;
+  }
+
+  async deleteDelegatedFile(d: { file: File }) {
+    await this.ensureFileActive(d.file);
+
+    if (!d.file.delegatorOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: `File ${d.file.id} is not a delegated file`
+        })
+      );
+    }
+
+    let hasRefs = await fileReferenceService.hasReferencesForFile({
+      file: d.file
+    });
+
+    if (hasRefs) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot delete file: it has active references'
+        })
+      );
+    }
+
+    return await db.file.update({
+      where: {
+        id: d.file.id
+      },
+      data: {
+        status: 'deleted'
+      },
+      include
+    });
   }
 
   async listFiles(

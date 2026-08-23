@@ -1,0 +1,117 @@
+model ChatWorkspace {
+  oid BigInt @id
+  id  String @unique
+
+  workspaceId String
+  name        String?
+  domain      String?
+  imageUrl    String?
+
+  raw Json
+
+  syncHash String?
+
+  chatOid BigInt @unique
+  chat    Chat   @relation(fields: [chatOid], references: [oid], onDelete: Cascade)
+
+  chatIntegrationInstanceProviderOid BigInt
+  chatIntegrationInstanceProvider    ChatIntegrationInstanceProvider @relation(fields: [chatIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade, map: "cws_ciip_fkey")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  chatChannels ChatChannel[]
+
+  @@unique([chatIntegrationInstanceProviderOid, workspaceId], map: "cws_ciip_workspace_key")
+}
+
+enum ChatChannelType {
+  public
+  private
+  dm
+  group_dm
+  shared
+  announcement
+  forum
+  unknown
+}
+
+model ChatChannel {
+  oid BigInt @id
+  id  String @unique
+
+  type         ChatChannelType
+  providerType String
+
+  channelId String
+  name      String?
+  topic     String?
+  subject   String?
+
+  memberCount Int?
+
+  context   Json?
+  permalink String?
+
+  raw Json
+
+  syncHash String?
+
+  chatOid BigInt
+  chat    Chat   @relation(fields: [chatOid], references: [oid], onDelete: Cascade)
+
+  workspaceOid BigInt?
+  workspace    ChatWorkspace? @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+  lastInteractionAt DateTime?
+
+  threads      ChatThread[]
+  messages     ChatMessage[]
+  messageGroups ChatMessageGroup[]
+
+  @@unique([chatOid, channelId])
+}
+
+enum ChatThreadType {
+  conversation
+  dm
+  post
+}
+
+model ChatThread {
+  oid BigInt @id
+  id  String @unique
+
+  type         ChatThreadType
+  providerType String
+
+  threadId String
+  subject  String?
+
+  context   Json?
+  permalink String?
+
+  rootMessageId String?
+  replyCount    Int?
+  lastReplyAt   DateTime?
+
+  raw Json
+
+  syncHash String?
+
+  channelOid BigInt
+  channel    ChatChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)
+
+  chatOid BigInt
+  chat    Chat   @relation(fields: [chatOid], references: [oid], onDelete: Cascade)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+  lastInteractionAt DateTime?
+
+  messages ChatMessage[]
+
+  @@unique([channelOid, threadId])
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@metorial-subspace/adapter-chat",
+  "module": "index.ts",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@metorial-subspace/adapter": "^1.0.0",
+    "@slates/adapter-chat": "1.0.0-rc.5"
+  }
+}

@@ -192,6 +192,7 @@ let getFileContentHandler = async (c: Context) => {
     fileId,
     key
   });
+
   let shouldDownload = new URL(c.req.url).searchParams.has('download');
   let fileName = file.fileName?.trim();
   let contentDisposition = fileName
@@ -205,7 +206,10 @@ let getFileContentHandler = async (c: Context) => {
           ? getDocumentContentType(metadata.contentType)
           : getServedContentType(metadata.contentType),
       'Cache-Control':
-        metadata.source === 'document' || metadata.source === 'database' || link.expiresAt
+        metadata.source === 'document' ||
+        metadata.source === 'database' ||
+        metadata.source === 'delegate' ||
+        link.expiresAt
           ? 'private, no-store'
           : 'public, max-age=31536000, immutable',
       'X-Content-Type-Options': 'nosniff',

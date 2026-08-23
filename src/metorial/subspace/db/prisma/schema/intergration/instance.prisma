@@ -15,6 +15,7 @@ model IntegrationInstance {
   archivedAt      DateTime?
 
   isMagicMcpBacking Boolean @default(false)
+  isAdapterBacking  Boolean @default(false)
 
   name            String
   description     String?
@@ -50,16 +51,18 @@ model IntegrationInstance {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  integrationInstanceProviders      IntegrationInstanceProvider[]
-  integrationSetupSessions          IntegrationSetupSession[]
-  providerConfigs                   ProviderConfig[]
-  providerAuthConfigs               ProviderAuthConfig[]
-  identityCredentials               IdentityCredential[]
-  ownedIdentities                   Identity[]                         @relation("ownedIdentities")
-  sessionTemplates                  SessionTemplate[]
-  integrationInstanceGroupSources   IntegrationInstanceGroupSource[]
-  integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
-  magicMcpServerBackings            MagicMcpServerBacking[]
+  integrationInstanceProviders        IntegrationInstanceProvider[]
+  integrationSetupSessions            IntegrationSetupSession[]
+  providerConfigs                     ProviderConfig[]
+  providerAuthConfigs                 ProviderAuthConfig[]
+  identityCredentials                 IdentityCredential[]
+  ownedIdentities                     Identity[]                           @relation("ownedIdentities")
+  sessionTemplates                    SessionTemplate[]
+  integrationInstanceGroupSources     IntegrationInstanceGroupSource[]
+  integrationInstanceGroupProviders   IntegrationInstanceGroupProvider[]
+  magicMcpServerBackings              MagicMcpServerBacking[]
+  adapterIntegrationInstances         AdapterIntegrationInstance[]
+  adapterIntegrationInstanceProviders AdapterIntegrationInstanceProvider[]
 
   @@index([tenantOid, solutionOid, environmentOid, status, isHiddenDraft])
   @@index([integrationOid, status])
@@ -128,6 +131,7 @@ model IntegrationInstanceProvider {
   integrationInstanceGroupProviders   IntegrationInstanceGroupProvider[]
   integrationSetupSessionProviders    IntegrationSetupSessionProvider[]
   magicMcpServerProviders             MagicMcpServerProvider[]
+  adapterIntegrationInstanceProviders AdapterIntegrationInstanceProvider[]
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])

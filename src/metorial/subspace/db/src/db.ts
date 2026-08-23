@@ -10,6 +10,7 @@ import type {
 import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
+import type { ChatBody, LinkUnfurl, ReactionCount } from '@slates/adapter-chat';
 import { PrismaClient } from '../prisma/generated/client';
 import type {
   CustomProviderConfig,
@@ -90,6 +91,17 @@ declare global {
 
     type ProviderTriggerValue = SpecificationTrigger;
 
+    type ProviderAdapterCapabilities = {
+      id: string;
+      value: any;
+    }[];
+
+    type ChatMessageBody = ChatBody;
+
+    type ChatMessageReactions = ReactionCount[];
+
+    type ChatMessageUnfurls = LinkUnfurl[];
+
     type ActionScopes = {
       AND: {
         OR: string[];
@@ -164,7 +176,9 @@ declare global {
       | { type: 'tool.result'; data: any }
       | {
           type: 'error';
-          data: ErrorData<any, any> | { code: number | string; message: string };
+          data:
+            | ErrorData<any, any>
+            | { code: number | string; message: string; [key: string]: unknown };
         }
       | { type: 'mcp'; data: JSONRPCMessage };
 

@@ -49,6 +49,7 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
+import { notifyIntegrationTransaction } from '../listeners';
 import {
   createIntegrationProviderVersion,
   createIntegrationVersion,
@@ -258,6 +259,7 @@ let inferReconciliationAuthMaterial = async (d: {
 export type ListIntegrationProvidersParams = {
   search?: string;
   includeMagicMcpBackings?: boolean;
+  includeAdapterBackings?: boolean;
 
   status?: IntegrationProviderStatus[];
   allowDeleted?: boolean;
@@ -415,6 +417,9 @@ class integrationProviderServiceImpl {
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.includeAdapterBackings
+                  ? undefined!
+                  : { integration: { isAdapterBacking: false } },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 integrations ? { integrationOid: integrations.in } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
@@ -591,6 +596,12 @@ class integrationProviderServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationProviderCreatedQueue.add({ integrationProviderId: res.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integrationProvider.created',
+        integration: res.integration,
+        integrationProvider: res
+      });
 
       return res;
     });
@@ -841,6 +852,12 @@ class integrationProviderServiceImpl {
         integrationProviderUpdatedQueue.add({ integrationProviderId: res.id })
       );
 
+      await notifyIntegrationTransaction({
+        kind: 'integrationProvider.updated',
+        integration: res.integration,
+        integrationProvider: res
+      });
+
       return res;
     });
   }
@@ -905,6 +922,12 @@ class integrationProviderServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationProviderArchivedQueue.add({ integrationProviderId: res.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integrationProvider.archived',
+        integration: res.integration,
+        integrationProvider: res
+      });
 
       return res;
     });

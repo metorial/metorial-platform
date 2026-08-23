@@ -26,6 +26,7 @@
     "@metorial-subspace/module-connection": "^1.0.0",
     "@metorial-subspace/module-deployment": "^1.0.0",
     "@metorial-subspace/module-integration": "^1.0.0",
+    "@metorial-subspace/module-chat": "^1.0.0",
     "@metorial-subspace/module-monitor": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@lowerdeck/telemetry": "workspace:2.0.0",

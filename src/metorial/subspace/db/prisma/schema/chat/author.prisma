@@ -1,0 +1,43 @@
+enum ChatAuthorType {
+  user
+  app
+  system
+  webhook
+  unknown
+}
+
+enum ChatAuthorRole {
+  member
+  guest
+  unknown
+}
+
+model ChatAuthor {
+  oid BigInt @id
+  id  String @unique
+
+  userId   String
+  userName String
+  fullName String
+
+  type         ChatAuthorType
+  role         ChatAuthorRole
+  providerType String
+
+  isMe     Boolean
+  email    String?
+  imageUrl String?
+
+  raw Json
+
+  chatOid BigInt
+  chat    Chat   @relation(fields: [chatOid], references: [oid], onDelete: Cascade)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+  lastInteractionAt DateTime?
+
+  chatMessages ChatMessage[]
+
+  @@unique([chatOid, userId])
+}
