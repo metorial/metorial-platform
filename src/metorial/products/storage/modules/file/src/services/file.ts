@@ -779,6 +779,40 @@ class FileServiceImpl {
     return file;
   }
 
+  async deleteDelegatedFile(d: { file: File }) {
+    await this.ensureFileActive(d.file);
+
+    if (!d.file.delegatorOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: `File ${d.file.id} is not a delegated file`
+        })
+      );
+    }
+
+    let hasRefs = await fileReferenceService.hasReferencesForFile({
+      file: d.file
+    });
+
+    if (hasRefs) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot delete file: it has active references'
+        })
+      );
+    }
+
+    return await db.file.update({
+      where: {
+        id: d.file.id
+      },
+      data: {
+        status: 'deleted'
+      },
+      include
+    });
+  }
+
   async listFiles(
     d: {
       project: Project;

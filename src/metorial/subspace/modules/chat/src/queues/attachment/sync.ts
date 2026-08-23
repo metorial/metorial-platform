@@ -2,7 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { type AttachmentRef } from '@metorial-subspace/adapter-chat';
 import { addAfterTransactionHook, db } from '@metorial-subspace/db';
 import { env } from '../../env';
-import { chatMessageAttachmentService } from '../../services/chatMessageAttachment';
+import { chatMessageAttachmentInternalService } from '../../internal/chatMessageAttachment';
 import { isUniqueConstraintError } from '../../lib/unique';
 
 export type ChatMessageAttachmentSyncJob = {
@@ -40,7 +40,7 @@ export let chatMessageAttachmentSyncQueueProcessor = chatMessageAttachmentSyncQu
     if (!chat) return;
 
     try {
-      await chatMessageAttachmentService.downloadChatMessageAttachment({
+      await chatMessageAttachmentInternalService.downloadChatMessageAttachment({
         tenant,
         environment,
         chat,

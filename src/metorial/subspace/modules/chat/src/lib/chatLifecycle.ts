@@ -1,4 +1,5 @@
 import { withTransaction } from '@metorial-subspace/db';
+import { enqueueChatMessageAttachmentCleanup } from '../queues/attachment/cleanup';
 
 export type ChatLifecycleWhere = {
   oid?: bigint | { in: bigint[] };
@@ -52,9 +53,22 @@ export let deleteChatsWhere = async (where: ChatLifecycleWhere) => {
 
       let chatOids = chats.map(chat => chat.oid);
 
-      await db.chatMessage.deleteMany({
-        where: { author: { chatOid: { in: chatOids } } }
+      let messages = await db.chatMessage.findMany({
+        where: { author: { chatOid: { in: chatOids } } },
+        select: { oid: true }
       });
+      let messageOids = messages.map(message => message.oid);
+      let attachments = messageOids.length
+        ? await db.chatMessageAttachment.findMany({
+            where: { messageOid: { in: messageOids } },
+            select: { fileId: true, uploadedFileId: true, uploadedFileReferenceId: true }
+          })
+        : [];
+
+      await db.chatMessage.deleteMany({
+        where: { oid: { in: messageOids } }
+      });
+      await enqueueChatMessageAttachmentCleanup(attachments);
       await db.chatThread.deleteMany({
         where: { chatOid: { in: chatOids } }
       });

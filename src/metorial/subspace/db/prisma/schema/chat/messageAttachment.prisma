@@ -8,8 +8,12 @@ model ChatMessageAttachment {
   fileId String
 
   // Only set for outbound attachments: the file the user originally uploaded via the
-  // file module before it was pushed to the provider. 
+  // file module before it was pushed to the provider.
   uploadedFileId String?
+
+  // The FileReference tying the uploaded file above to this attachment. Cleaned up
+  // (and the uploaded file deleted if left unreferenced) when the attachment is deleted.
+  uploadedFileReferenceId String?
 
   toolCallAttachmentOid BigInt?
   toolCallAttachment    ToolCallAttachment? @relation(fields: [toolCallAttachmentOid], references: [oid], onDelete: SetNull)

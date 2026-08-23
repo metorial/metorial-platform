@@ -4,8 +4,8 @@ import { db } from '@metorial-subspace/db';
 import './listener';
 import {
   chatMessageAttachmentDelegatorKey,
-  chatMessageAttachmentService
-} from './services/chatMessageAttachment';
+  chatMessageAttachmentInternalService
+} from './internal/chatMessageAttachment';
 
 void registerFileContentDelegate({
   key: chatMessageAttachmentDelegatorKey,
@@ -36,12 +36,13 @@ void registerFileContentDelegate({
       db.environment.findUniqueOrThrow({ where: { oid: ciip.environmentOid } })
     ]);
 
-    let refreshed = await chatMessageAttachmentService.ensureFreshChatMessageAttachment({
-      tenant,
-      environment,
-      chat,
-      attachment
-    });
+    let refreshed =
+      await chatMessageAttachmentInternalService.ensureFreshChatMessageAttachment({
+        tenant,
+        environment,
+        chat,
+        attachment
+      });
 
     if (!refreshed.toolCallAttachment) {
       throw new Error(`Chat message attachment ${chatMessageAttachmentId} has no content`);
