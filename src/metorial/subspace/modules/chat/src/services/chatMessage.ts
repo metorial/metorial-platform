@@ -24,14 +24,22 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { db as coreDb } from '@metorial/db';
-import { getSignedFileDownloadUrlOrThrow } from '@metorial/module-file';
+import {
+  chatMessageAttachmentFilePurposeSlug,
+  getSignedFileDownloadUrlOrThrow
+} from '@metorial/module-file';
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatChannelServiceInternal } from '../internal/chatChannel';
-import { chatMessageGroupServiceInternal } from '../internal/chatMessageGroup';
 import {
   chatMessageServiceInternal,
   type ChatMessageWithRelations
 } from '../internal/chatMessage';
+import {
+  type AttachUploadedChatMessageAttachmentParams,
+  chatMessageAttachmentInternalService,
+  type HydratedChatMessageAttachment
+} from '../internal/chatMessageAttachment';
+import { chatMessageGroupServiceInternal } from '../internal/chatMessageGroup';
 import { chatThreadServiceInternal } from '../internal/chatThread';
 import {
   assertChatCapability,
@@ -40,7 +48,7 @@ import {
 } from '../lib/chatCapability';
 import { unwrapChatCall } from '../lib/chatError';
 import { usingChatMessageLock } from '../lib/chatLock';
-import { chatMessageAttachmentService } from './chatMessageAttachment';
+import { enqueueChatMessageAttachmentCleanup } from '../queues/attachment/cleanup';
 import { type ChatWithProvider } from './chatChannel';
 
 export type ListChatMessagesParams = {
@@ -155,15 +163,18 @@ class chatMessageServiceImpl {
     });
 
     let search = d.search?.trim() || undefined;
+    let paginator: Paginator<ChatMessageWithRelations>;
     if (search) {
       assertMessageSearchCapability(client);
-      return this.listChatMessagesFromSearch({ ...d, search, client });
+      paginator = await this.listChatMessagesFromSearch({ ...d, search, client });
+    } else {
+      paginator = await withChatCapabilityFallback(client, 'message_read', {
+        provider: () => this.listChatMessagesFromProvider({ ...d, client }),
+        fallback: () => this.listChatMessagesFromDb(d)
+      });
     }
 
-    return withChatCapabilityFallback(client, 'message_read', {
-      provider: () => this.listChatMessagesFromProvider({ ...d, client }),
-      fallback: () => this.listChatMessagesFromDb(d)
-    });
+    return paginator.mapAll(messages => this.hydrateChatMessages(messages));
   }
 
   private async listChatMessagesFromProvider(
@@ -375,10 +386,12 @@ class chatMessageServiceImpl {
       chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
     });
 
-    return withChatCapabilityFallback(client, 'message_read', {
+    let message = await withChatCapabilityFallback(client, 'message_read', {
       provider: () => this.getChatMessageFromProvider({ ...d, client }),
       fallback: () => this.getChatMessageFromDb(d)
     });
+
+    return this.hydrateChatMessage(message);
   }
 
   private async getChatMessageFromProvider(
@@ -529,10 +542,17 @@ class chatMessageServiceImpl {
           message: 'Failed to send the message with the chat provider.'
         });
 
-        return this.persistMessageResult(d.tenant, d.environment, d.chat, localChannel, result);
+        let withRelations = await this.persistMessageResult(
+          d.tenant,
+          d.environment,
+          d.chat,
+          localChannel,
+          result
+        );
+        return this.hydrateChatMessage(withRelations);
       }
 
-      return this.sendChatMessageWithAttachments({
+      let sent = await this.sendChatMessageWithAttachments({
         tenant: d.tenant,
         environment: d.environment,
         chat: d.chat,
@@ -543,6 +563,7 @@ class chatMessageServiceImpl {
         threadId,
         reply
       });
+      return this.hydrateChatMessage(sent);
     });
   }
 
@@ -559,9 +580,12 @@ class chatMessageServiceImpl {
   }): Promise<ChatMessageWithRelations> {
     assertFileUploadCapability(d.client);
 
-    let uploadedFilesByReferenceId = new Map<string, { id: string }>();
+    let uploadedFilesByReferenceId = new Map<
+      string,
+      AttachUploadedChatMessageAttachmentParams['uploadedFile']
+    >();
     let pendingAttachmentRefs: AttachmentRef[] = [];
-    let pendingUploadedFiles: { id: string }[] = [];
+    let pendingUploadedFiles: AttachUploadedChatMessageAttachmentParams['uploadedFile'][] = [];
     let createdMessages: {
       chatMessage: ChatMessage;
       withRelations: ChatMessageWithRelations;
@@ -581,9 +605,17 @@ class chatMessageServiceImpl {
           id: attachmentInput.fileId,
           status: 'active',
           instanceOid: d.environment.instanceOid!
-        }
+        },
+        include: { purpose: true }
       });
       if (!file) throw new ServiceError(notFoundError('file', attachmentInput.fileId));
+      if (file.purpose.slug !== chatMessageAttachmentFilePurposeSlug) {
+        throw new ServiceError(
+          badRequestError({
+            message: `File ${file.id} cannot be used as a chat attachment; it must have the "${chatMessageAttachmentFilePurposeSlug}" purpose.`
+          })
+        );
+      }
 
       let fileUrl = await getSignedFileDownloadUrlOrThrow(file, { expiresInSeconds: 1800 });
 
@@ -611,7 +643,8 @@ class chatMessageServiceImpl {
           d.localChannel,
           { message: uploadResult.message }
         );
-        await chatMessageAttachmentService.attachUploadedFile({
+        await chatMessageAttachmentInternalService.attachUploadedFile({
+          tenant: d.tenant,
           environment: d.environment,
           message: withRelations,
           attachment: uploadResult.attachment,
@@ -655,7 +688,8 @@ class chatMessageServiceImpl {
           pendingUploadedFiles[index];
         if (!uploadedFile) continue;
 
-        await chatMessageAttachmentService.attachUploadedFile({
+        await chatMessageAttachmentInternalService.attachUploadedFile({
+          tenant: d.tenant,
           environment: d.environment,
           message: withRelations,
           attachment,
@@ -744,7 +778,14 @@ class chatMessageServiceImpl {
         message: 'Failed to edit the message with the chat provider.'
       });
 
-      return this.persistMessageResult(d.tenant, d.environment, d.chat, localChannel, result);
+      let withRelations = await this.persistMessageResult(
+        d.tenant,
+        d.environment,
+        d.chat,
+        localChannel,
+        result
+      );
+      return this.hydrateChatMessage(withRelations);
     });
   }
 
@@ -790,17 +831,29 @@ class chatMessageServiceImpl {
         : null;
       let messageId = localMessage?.messageId ?? d.messageId;
 
-      let deleted = await client.call('metorial_chat$message.delete', { channelId, messageId });
+      let deleted = await client.call('metorial_chat$message.delete', {
+        channelId,
+        messageId
+      });
       let result = unwrapChatCall(deleted, {
         code: 'chat_message_delete_failed',
         message: 'Failed to delete the message with the chat provider.'
       });
+
+      let attachments = localMessage
+        ? await db.chatMessageAttachment.findMany({
+            where: { messageOid: localMessage.oid },
+            select: { fileId: true, uploadedFileId: true, uploadedFileReferenceId: true }
+          })
+        : [];
 
       if (localChannel) {
         await db.chatMessage.deleteMany({
           where: { channelOid: localChannel.oid, messageId }
         });
       }
+
+      await enqueueChatMessageAttachmentCleanup(attachments);
 
       return result;
     });
@@ -905,6 +958,40 @@ class chatMessageServiceImpl {
     });
 
     return upserted!;
+  }
+
+  // Batches attachment hydration across all given messages into a single call, so
+  // listing N messages costs one attachment lookup instead of N.
+  private async hydrateChatMessages<T extends ChatMessageWithRelations>(
+    messages: T[]
+  ): Promise<(T & { attachments: HydratedChatMessageAttachment[] })[]> {
+    if (!messages.length) return [];
+
+    let attachments = await db.chatMessageAttachment.findMany({
+      where: { messageOid: { in: messages.map(message => message.oid) } },
+      orderBy: { position: 'asc' }
+    });
+    let hydratedAttachments =
+      await chatMessageAttachmentInternalService.hydrateChatMessageAttachments(attachments);
+
+    let attachmentsByMessageOid = new Map<bigint, HydratedChatMessageAttachment[]>();
+    for (let attachment of hydratedAttachments) {
+      let existing = attachmentsByMessageOid.get(attachment.messageOid);
+      if (existing) existing.push(attachment);
+      else attachmentsByMessageOid.set(attachment.messageOid, [attachment]);
+    }
+
+    return messages.map(message => ({
+      ...message,
+      attachments: attachmentsByMessageOid.get(message.oid) ?? []
+    }));
+  }
+
+  private async hydrateChatMessage<T extends ChatMessageWithRelations>(
+    message: T
+  ): Promise<T & { attachments: HydratedChatMessageAttachment[] }> {
+    let [hydrated] = await this.hydrateChatMessages([message]);
+    return hydrated!;
   }
 }
 

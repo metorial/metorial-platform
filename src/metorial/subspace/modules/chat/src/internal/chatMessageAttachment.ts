@@ -10,15 +10,24 @@ import {
   type Tenant,
   type ToolCallAttachment
 } from '@metorial-subspace/db';
-import type { File } from '@metorial/db';
-import { fileService } from '@metorial/module-file';
+import { db as coreDb, type File } from '@metorial/db';
+import {
+  chatMessageAttachmentFilePurposeSlug,
+  fileLinkService,
+  fileReferenceService,
+  fileService
+} from '@metorial/module-file';
 import { toDownloadInput } from '@slates/adapter-chat';
-import { chatAdapterService } from '../internal/chatAdapter';
 import { assertChatCapability } from '../lib/chatCapability';
 import { unwrapChatCall } from '../lib/chatError';
-import { type ChatWithProvider } from './chatChannel';
+import { type ChatWithProvider } from '../services/chatChannel';
+import { chatAdapterService } from './chatAdapter';
 
 export let chatMessageAttachmentDelegatorKey = 'subspace-chat-message-attachment';
+
+// entityType used for the FileReference tying an uploaded file to the attachment
+// that references it -- see createUploadedFileReference / cleanupAttachmentFiles below.
+export let chatMessageAttachmentFileReferenceEntityType = 'chat_message_attachment';
 
 export type DownloadChatMessageAttachmentParams = {
   chat: ChatWithProvider;
@@ -30,13 +39,19 @@ export type DownloadChatMessageAttachmentParams = {
 export type AttachUploadedChatMessageAttachmentParams = {
   message: ChatMessage;
   attachment: AttachmentRef;
-  uploadedFile: Pick<File, 'id'>;
+  uploadedFile: Pick<File, 'id' | 'oid'> & { purpose: { canHaveLinks: boolean } };
   position?: number;
 };
 
 export type ChatMessageAttachmentWithToolCallAttachment = ChatMessageAttachment & {
   toolCallAttachment: ToolCallAttachment | null;
 };
+
+export type HydratedChatMessageAttachment<T extends ChatMessageAttachment = ChatMessageAttachment> =
+  T & {
+    file: File | null;
+    uploadedFile: File | null;
+  };
 
 type DownloadFileResult = {
   attachment: AttachmentRef;
@@ -57,7 +72,7 @@ let attachmentDownloadFailedError = () =>
     })
   );
 
-class chatMessageAttachmentServiceImpl {
+class chatMessageAttachmentInternalServiceImpl {
   private attachmentPayload(ref: AttachmentRef) {
     return {
       type: ref.type,
@@ -83,11 +98,7 @@ class chatMessageAttachmentServiceImpl {
     return toolCallAttachment?.oid ?? null;
   }
 
-  private async createDelegatedFileForAttachment(d: {
-    environment: Environment;
-    chatMessageAttachmentId: string;
-    ref: AttachmentRef;
-  }) {
+  private requireStorageScope(d: { tenant: Tenant; environment: Environment }) {
     if (!d.environment.instanceOid) {
       throw new ServiceError(
         badRequestError({
@@ -95,10 +106,31 @@ class chatMessageAttachmentServiceImpl {
         })
       );
     }
+    if (!d.tenant.projectOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Chat tenant is not linked to a project; cannot store attachments.'
+        })
+      );
+    }
+
+    return {
+      project: { oid: d.tenant.projectOid },
+      instance: { oid: d.environment.instanceOid }
+    };
+  }
+
+  private async createDelegatedFileForAttachment(d: {
+    tenant: Tenant;
+    environment: Environment;
+    chatMessageAttachmentId: string;
+    ref: AttachmentRef;
+  }) {
+    let scope = this.requireStorageScope(d);
 
     let file = await fileService.createDelegatedFile({
-      instance: { oid: d.environment.instanceOid },
-      purpose: 'generic',
+      ...scope,
+      purpose: chatMessageAttachmentFilePurposeSlug,
       delegatorKey: chatMessageAttachmentDelegatorKey,
       delegatorRef: { chatMessageAttachmentId: d.chatMessageAttachmentId },
       input: {
@@ -109,6 +141,35 @@ class chatMessageAttachmentServiceImpl {
     });
 
     return file.id;
+  }
+
+  // Uploaded files pre-exist and may be shared elsewhere, so (unlike the delegated file
+  // above, which is created exclusively for this attachment) we reference-count them via
+  // a FileLink/FileReference pair instead of assuming exclusive ownership.
+  private async createUploadedFileReference(d: {
+    tenant: Tenant;
+    environment: Environment;
+    chatMessageAttachmentId: string;
+    uploadedFile: AttachUploadedChatMessageAttachmentParams['uploadedFile'];
+  }) {
+    let scope = this.requireStorageScope(d);
+
+    let link = await fileLinkService.createFileLink({
+      ...scope,
+      file: d.uploadedFile,
+      input: {}
+    });
+
+    let reference = await fileReferenceService.upsertFileReference({
+      ...scope,
+      fileLink: link,
+      input: {
+        entityType: chatMessageAttachmentFileReferenceEntityType,
+        entityId: d.chatMessageAttachmentId
+      }
+    });
+
+    return reference.id;
   }
 
   async downloadChatMessageAttachment(
@@ -135,6 +196,7 @@ class chatMessageAttachmentServiceImpl {
 
     let ids = getId('chatMessageAttachment');
     let fileId = await this.createDelegatedFileForAttachment({
+      tenant: d.tenant,
       environment: d.environment,
       chatMessageAttachmentId: ids.id,
       ref: result.attachment
@@ -153,13 +215,20 @@ class chatMessageAttachmentServiceImpl {
   }
 
   async attachUploadedFile(
-    d: { environment: Environment } & AttachUploadedChatMessageAttachmentParams
+    d: { tenant: Tenant; environment: Environment } & AttachUploadedChatMessageAttachmentParams
   ): Promise<ChatMessageAttachment> {
     let ids = getId('chatMessageAttachment');
     let fileId = await this.createDelegatedFileForAttachment({
+      tenant: d.tenant,
       environment: d.environment,
       chatMessageAttachmentId: ids.id,
       ref: d.attachment
+    });
+    let uploadedFileReferenceId = await this.createUploadedFileReference({
+      tenant: d.tenant,
+      environment: d.environment,
+      chatMessageAttachmentId: ids.id,
+      uploadedFile: d.uploadedFile
     });
 
     return db.chatMessageAttachment.create({
@@ -168,6 +237,7 @@ class chatMessageAttachmentServiceImpl {
         messageOid: d.message.oid,
         fileId,
         uploadedFileId: d.uploadedFile.id,
+        uploadedFileReferenceId,
         position: d.position ?? 0,
         ...this.attachmentPayload(d.attachment)
       }
@@ -215,9 +285,77 @@ class chatMessageAttachmentServiceImpl {
 
     return { ...updated, toolCallAttachment: freshToolCallAttachment };
   }
+
+  // Called after a chat message (and, via cascade, its ChatMessageAttachment rows) has
+  // been deleted. The delegated file is exclusively owned by this attachment, so it is
+  // always deleted outright. The uploaded file may be shared elsewhere, so only its
+  // reference is removed here -- the file itself is deleted only once unreferenced.
+  async cleanupAttachmentFiles(d: {
+    fileId: string;
+    uploadedFileId?: string | null;
+    uploadedFileReferenceId?: string | null;
+  }) {
+    if (d.uploadedFileReferenceId) {
+      await fileReferenceService.deleteFileReferenceByIdAndCleanup({
+        fileReferenceId: d.uploadedFileReferenceId
+      });
+    }
+
+    if (d.uploadedFileId) {
+      let uploadedFile = await coreDb.file.findFirst({
+        where: { id: d.uploadedFileId, status: 'active' }
+      });
+      if (uploadedFile && !uploadedFile.isReadOnly) {
+        let hasRefs = await fileReferenceService.hasReferencesForFile({ file: uploadedFile });
+        if (!hasRefs) await fileService.deleteFile({ file: uploadedFile });
+      }
+    }
+
+    let delegatedFile = await coreDb.file.findFirst({
+      where: { id: d.fileId, status: 'active' }
+    });
+    if (delegatedFile) {
+      await fileService.deleteDelegatedFile({ file: delegatedFile });
+    }
+  }
+
+  // Batches file lookups for all given attachments into a single query, so callers
+  // hydrating attachments for many messages at once only pay for one round trip.
+  async hydrateChatMessageAttachments<T extends ChatMessageAttachment>(
+    attachments: T[]
+  ): Promise<HydratedChatMessageAttachment<T>[]> {
+    if (!attachments.length) return [];
+
+    let fileIds = [
+      ...new Set(
+        attachments
+          .flatMap(attachment => [attachment.fileId, attachment.uploadedFileId])
+          .filter((id): id is string => !!id)
+      )
+    ];
+    let files = fileIds.length
+      ? await coreDb.file.findMany({ where: { id: { in: fileIds } } })
+      : [];
+    let fileById = new Map(files.map(file => [file.id, file]));
+
+    return attachments.map(attachment => ({
+      ...attachment,
+      file: fileById.get(attachment.fileId) ?? null,
+      uploadedFile: attachment.uploadedFileId
+        ? (fileById.get(attachment.uploadedFileId) ?? null)
+        : null
+    }));
+  }
+
+  async hydrateChatMessageAttachment<T extends ChatMessageAttachment>(
+    attachment: T
+  ): Promise<HydratedChatMessageAttachment<T>> {
+    let [hydrated] = await this.hydrateChatMessageAttachments([attachment]);
+    return hydrated!;
+  }
 }
 
-export let chatMessageAttachmentService = Service.create(
-  'chatMessageAttachmentService',
-  () => new chatMessageAttachmentServiceImpl()
+export let chatMessageAttachmentInternalService = Service.create(
+  'chatMessageAttachmentInternalService',
+  () => new chatMessageAttachmentInternalServiceImpl()
 ).build();
