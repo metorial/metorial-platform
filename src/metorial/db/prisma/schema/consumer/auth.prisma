@@ -14,6 +14,8 @@ model ConsumerSession {
   consumerProfileOid BigInt
   consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
 
+  authSessionId String?
+
   ua String
   ip String
 
@@ -23,6 +25,8 @@ model ConsumerSession {
   loggedOutAt DateTime?
 
   authExchanges ConsumerAuthExchange[]
+
+  @@unique([consumerProfileOid, authSessionId])
 }
 
 model ConsumerAuthExchange {

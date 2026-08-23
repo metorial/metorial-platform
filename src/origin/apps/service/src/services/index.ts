@@ -8,4 +8,5 @@ export * from './scmInstallationSession';
 export * from './scmRepo';
 export * from './scmRepoPush';
 export * from './scmRepositorySync';
+export * from './repositorySyncState';
 export * from './tenant';

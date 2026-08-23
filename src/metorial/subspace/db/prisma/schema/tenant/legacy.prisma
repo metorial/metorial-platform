@@ -1,0 +1,290 @@
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  urlKey String @unique
+
+  identifier String @unique
+  name       String
+
+  slateTenantId         String?
+  slateTenantIdentifier String?
+
+  shuttleTenantId         String?
+  shuttleTenantIdentifier String?
+
+  originTenantId         String?
+  originTenantIdentifier String?
+
+  functionBayTenantId         String?
+  functionBayTenantIdentifier String?
+
+  resourceTenantId         String?
+  resourceTenantIdentifier String?
+
+  // No relation: Project.tenantOid already points here, so an FK would cycle
+  projectOid BigInt?
+
+  onlyAllowTrustedProviders Boolean @default(false)
+  isWhitelabel              Boolean @default(false)
+
+  useIntegrationNamesForSessionProviderNameTemplates Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  logRetentionInDays         Int     @default(30)
+  messageProcessingTimeoutMs Int     @default(30000)
+  enforceSessionExpiry       Boolean @default(false)
+
+  allowAuthConfigExport Boolean @default(false)
+  allowAuthConfigImport Boolean @default(false)
+
+  collectOperationDescriptionForToolCalls Boolean @default(true)
+
+  retiredAt DateTime?
+
+  providers                                Provider[]
+  providerListingGroups                    ProviderListingGroup[]
+  providerListings                         ProviderListing[]
+  publishers                               Publisher[]
+  providerDeployments                      ProviderDeployment[]
+  sessions                                 Session[]
+  providerConfigs                          ProviderConfig[]
+  providerConfigVaults                     ProviderConfigVault[]
+  slateInstances                           SlateInstance[]
+  slateInstanceConfigurations              SlateInstanceConfiguration[]
+  serverInstanceConfigurations             ServerInstanceConfiguration[]
+  providerDeploymentConfigPairs            ProviderDeploymentConfigPair[]
+  providerAuthCredentials                  ProviderAuthCredentials[]
+  managedProviderAuthCredentialsBackings   ManagedProviderAuthCredentialsBacking[]
+  slateOAuthCredentials                    SlateOAuthCredentials[]
+  providerOAuthSetups                      ProviderOAuthSetup[]
+  slateOAuthSetups                         SlateOAuthSetup[]
+  slateAuthConfigs                         SlateAuthConfig[]
+  providerAuthConfigs                      ProviderAuthConfig[]
+  providerAuthConfigEvents                 ProviderAuthConfigEvent[]
+  providerAuthConfigErrors                 ProviderAuthConfigError[]
+  providerAuthConfigErrorGlobals           ProviderAuthConfigErrorGlobal[]
+  providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
+  providerAuthExports                      ProviderAuthExport[]
+  providerAuthImports                      ProviderAuthImport[]
+  providerSetupSessions                    ProviderSetupSession[]
+  integrationSetupSessions                 IntegrationSetupSession[]
+  brand                                    Brand?
+  sessionProviders                         SessionProvider[]
+  sessionTemplates                         SessionTemplate[]
+  sessionTemplateProviders                 SessionTemplateProvider[]
+  ephemeralManagedSessions                 EphemeralManagedSession[]
+  sessionConnections                       SessionConnection[]
+  sessionErrors                            SessionError[]
+  sessionMessages                          SessionMessage[]
+  sessionEvents                            SessionEvent[]
+  sessionParticipants                      SessionParticipant[]
+  providerRuns                             ProviderRun[]
+  sessionErrorGroups                       SessionErrorGroup[]
+  toolCalls                                ToolCall[]
+  environmentProviders                     EnvironmentProvider[]
+  environments                             Environment[]
+  shuttleOAuthCredentials                  ShuttleOAuthCredentials[]
+  shuttleOAuthSetups                       ShuttleOAuthSetup[]
+  shuttleAuthConfigs                       ShuttleAuthConfig[]
+  shuttleServerConfigs                     ShuttleServerConfig[]
+  customProviderDeployments                CustomProviderDeployment[]
+  customProviderVersions                   CustomProviderVersion[]
+  customProviders                          CustomProvider[]
+  shuttleCustomServers                     ShuttleCustomServer[]
+  shuttleCustomServerDeployments           ShuttleCustomServerDeployment[]
+  providerEnvironments                     ProviderEnvironment[]
+  customProviderEnvironments               CustomProviderEnvironment[]
+  actors                                   TenantActor[]
+  customProviderCommits                    CustomProviderCommit[]
+  upcomingCustomProviders                  UpcomingCustomProvider[]
+  codeBuckets                              CodeBucket[]
+  scmRepos                                 ScmRepo[]
+  scmRepoPushes                            ScmRepoPush[]
+  sessionWarnings                          SessionWarning[]
+  sessionUsageRecords                      SessionUsageRecord[]
+  providerRunUsageRecords                  ProviderRunUsageRecord[]
+  callbackDestinations                     CallbackDestination[]
+  callbacks                                Callback[]
+  providerUses                             ProviderUse[]
+  identityActors                           IdentityActor[]
+  agents                                   Agent[]
+  identities                               Identity[]
+  identityDelegationConfigs                IdentityDelegationConfig[]
+  identityDelegations                      IdentityDelegation[]
+  identityDelegationRequests               IdentityDelegationRequest[]
+  agentClients                             AgentClient[]
+  integrations                             Integration[]
+  integrationProviders                     IntegrationProvider[]
+  integrationInstances                     IntegrationInstance[]
+  integrationInstanceProviders             IntegrationInstanceProvider[]
+  integrationInstanceGroups                IntegrationInstanceGroup[]
+  integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
+  integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
+  skills                                   Skill[]
+  skillEntities                            SkillEntity[]
+  skillTemplates                           SkillTemplate[]
+  tenantOAuthCallbackUrls                  TenantOAuthCallbackUrl[]
+  enclaveEnvironments                      EnclaveEnvironment[]
+  enclaves                                 Enclave[]
+  enclaveIngressNetworkLogs                EnclaveIngressNetworkLog[]
+  networks                                 Network[]
+  firewalls                                Firewall[]
+  networkPolicies                          NetworkPolicy[]
+  firewallBindings                         FirewallBinding[]
+  protoGuardSetting                        ProtoGuardTenantSetting?
+  protoGuardFilterSettings                 ProtoGuardTenantFilterSetting[]
+  protoGuardRuns                           ProtoGuardRun[]
+  protoGuardAlerts                         ProtoGuardAlert[]
+  monitors                                 Monitor[]
+  monitorAlerts                            MonitorAlert[]
+  projects                                 Project[]
+
+  @@index([retiredAt])
+}
+
+enum EnvironmentType {
+  development
+  production
+}
+
+model Environment {
+  oid BigInt @id
+  id  String @unique
+
+  type EnvironmentType
+
+  identifier String @unique
+  name       String
+
+  resourceGroupId         String?
+  resourceGroupIdentifier String?
+
+  // No relation: Instance.environmentOid already points here, so an FK would cycle
+  instanceOid BigInt?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providerAuthConfigs                      ProviderAuthConfig[]
+  providerAuthConfigEvents                 ProviderAuthConfigEvent[]
+  providerAuthConfigErrors                 ProviderAuthConfigError[]
+  providerAuthConfigErrorGlobals           ProviderAuthConfigErrorGlobal[]
+  providerAuthCredentials                  ProviderAuthCredentials[]
+  providerAuthExports                      ProviderAuthExport[]
+  providerAuthImports                      ProviderAuthImport[]
+  providerOAuthSetups                      ProviderOAuthSetup[]
+  providerConfigs                          ProviderConfig[]
+  providerDeployments                      ProviderDeployment[]
+  providerDeploymentConfigPairs            ProviderDeploymentConfigPair[]
+  environmentProviders                     EnvironmentProvider[]
+  providerConfigVaults                     ProviderConfigVault[]
+  providerListingGroups                    ProviderListingGroup[]
+  providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
+  sessionConnections                       SessionConnection[]
+  sessionErrorGroups                       SessionErrorGroup[]
+  sessionErrors                            SessionError[]
+  sessionEvents                            SessionEvent[]
+  sessionMessages                          SessionMessage[]
+  toolCalls                                ToolCall[]
+  sessionParticipants                      SessionParticipant[]
+  sessionProviders                         SessionProvider[]
+  providerRuns                             ProviderRun[]
+  sessions                                 Session[]
+  sessionTemplates                         SessionTemplate[]
+  ephemeralManagedSessions                 EphemeralManagedSession[]
+  sessionTemplateProviders                 SessionTemplateProvider[]
+  providerSetupSessions                    ProviderSetupSession[]
+  integrationSetupSessions                 IntegrationSetupSession[]
+  providerEnvironments                     ProviderEnvironment[]
+  customProviderEnvironments               CustomProviderEnvironment[]
+  customProviderEnvironmentVersions        CustomProviderEnvironmentVersion[]
+  providerEnvironmentVersions              ProviderEnvironmentVersion[]
+  upcomingCustomProviders                  UpcomingCustomProvider[]
+  sessionWarnings                          SessionWarning[]
+  callbacks                                Callback[]
+  providerUses                             ProviderUse[]
+  identityActors                           IdentityActor[]
+  agents                                   Agent[]
+  identities                               Identity[]
+  identityDelegationConfigs                IdentityDelegationConfig[]
+  identityDelegations                      IdentityDelegation[]
+  identityDelegationRequests               IdentityDelegationRequest[]
+  agentClients                             AgentClient[]
+  integrations                             Integration[]
+  integrationProviders                     IntegrationProvider[]
+  integrationInstances                     IntegrationInstance[]
+  integrationInstanceProviders             IntegrationInstanceProvider[]
+  integrationInstanceGroups                IntegrationInstanceGroup[]
+  integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
+  integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
+  skills                                   Skill[]
+  skillEntities                            SkillEntity[]
+  skillTemplates                           SkillTemplate[]
+  enclaves                                 Enclave[]
+  enclaveIngressNetworkLogs                EnclaveIngressNetworkLog[]
+  slateInstanceConfigurations              SlateInstanceConfiguration[]
+  serverInstanceConfigurations             ServerInstanceConfiguration[]
+  networks                                 Network[]
+  firewalls                                Firewall[]
+  networkPolicies                          NetworkPolicy[]
+  firewallBindings                         FirewallBinding[]
+  protoGuardRuns                           ProtoGuardRun[]
+  protoGuardAlerts                         ProtoGuardAlert[]
+  monitors                                 Monitor[]
+  monitorAlerts                            MonitorAlert[]
+  instances                                Instance[]
+
+  @@index([projectOid])
+}
+
+enum TenantActorType {
+  external
+  system
+
+  @@map("ActorType")
+}
+
+model TenantActor {
+  oid BigInt @id
+  id  String @unique
+
+  type TenantActorType
+
+  identifier          String
+  name                String
+  organizationActorId String?
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+
+  resourceActorId         String?
+  resourceActorIdentifier String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  customProviderVersions    CustomProviderVersion[]
+  customProviderDeployments CustomProviderDeployment[]
+  customProviderCommits     CustomProviderCommit[]
+  upcomingCustomProviders   UpcomingCustomProvider[]
+  monitorAlertEvents        MonitorAlertEvent[]
+  monitorAlertRecipients    MonitorAlertRecipient[]
+
+  @@unique([tenantOid, identifier])
+  @@unique([tenantOid, organizationActorOid])
+  @@index([organizationActorOid])
+  @@index([projectOid])
+  @@map("Actor")
+}

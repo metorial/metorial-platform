@@ -22,7 +22,7 @@ export let scmBackendSetupSessionController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
-        type: v.enumOf(['github_enterprise', 'gitlab_selfhosted']),
+        type: v.enumOf(['github_enterprise', 'gitlab_selfhosted', 'bitbucket_data_center']),
         parentInstallationSessionId: v.optional(v.string()),
         redirectUrl: v.optional(v.string())
       })

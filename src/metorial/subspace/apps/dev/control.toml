@@ -1,0 +1,5 @@
+# Disabled for now — use @metorial-subspace/app-worker directly.
+# The monolith hits a circular init in integration lifecycle queues.
+name = "@metorial/subspace-dev"
+group = "oss"
+mode = "oss"

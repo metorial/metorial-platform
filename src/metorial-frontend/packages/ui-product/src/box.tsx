@@ -27,17 +27,14 @@ let RightActions = styled.nav`
   gap: 10px;
 `;
 
-export let Box = ({
-  title,
-  description,
-  children,
-  rightActions
-}: {
+export type BoxProps = {
   title: React.ReactNode;
   description?: React.ReactNode;
   children: React.ReactNode;
   rightActions?: React.ReactNode;
-}) => {
+};
+
+export let Box = ({ title, description, children, rightActions }: BoxProps) => {
   return (
     <Wrapper>
       <Header>

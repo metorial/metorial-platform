@@ -28,6 +28,12 @@ export type DashboardOrganizationsServiceAccountsCredentialsListOutput = {
         name: string;
         email: string | null;
         imageUrl: string;
+        member: {
+          object: 'organization.member#preview';
+          id: string;
+          status: 'active' | 'deleted';
+          role: 'member' | 'admin';
+        } | null;
         teams: {
           id: string;
           name: string;
@@ -56,7 +62,6 @@ export type DashboardOrganizationsServiceAccountsCredentialsListOutput = {
           slug: string;
           name: string;
           organizationId: string;
-          magicMcpSessionDurationMinutes: number;
           createdAt: Date;
           updatedAt: Date;
         };
@@ -147,6 +152,15 @@ export let mapDashboardOrganizationsServiceAccountsCredentialsListOutput =
                   name: mtMap.objectField('name', mtMap.passthrough()),
                   email: mtMap.objectField('email', mtMap.passthrough()),
                   imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+                  member: mtMap.objectField(
+                    'member',
+                    mtMap.object({
+                      object: mtMap.objectField('object', mtMap.passthrough()),
+                      id: mtMap.objectField('id', mtMap.passthrough()),
+                      status: mtMap.objectField('status', mtMap.passthrough()),
+                      role: mtMap.objectField('role', mtMap.passthrough())
+                    })
+                  ),
                   teams: mtMap.objectField(
                     'teams',
                     mtMap.array(
@@ -198,10 +212,6 @@ export let mapDashboardOrganizationsServiceAccountsCredentialsListOutput =
                       name: mtMap.objectField('name', mtMap.passthrough()),
                       organizationId: mtMap.objectField(
                         'organization_id',
-                        mtMap.passthrough()
-                      ),
-                      magicMcpSessionDurationMinutes: mtMap.objectField(
-                        'magic_mcp_session_duration_minutes',
                         mtMap.passthrough()
                       ),
                       createdAt: mtMap.objectField('created_at', mtMap.date()),

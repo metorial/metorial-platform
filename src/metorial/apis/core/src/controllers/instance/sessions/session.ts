@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
-import { subspaceSessionService } from '@metorial/module-subspace';
+import { sessionService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -18,8 +18,14 @@ import {
   requireFineGrainedSessionParam
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerSessionPresenter } from '../../../presenters';
-import { toolFiltersValidator } from './_shared';
+import { providerSessionPresenter } from '@metorial/presenters';
+import { normalizeToolFilters, toolFiltersValidator } from './_shared';
+import {
+  resolveSessionProviderInput,
+  type SessionProviderAuthConfigSource,
+  type SessionProviderConfigSource,
+  type SessionProviderDeploymentSource
+} from './_providerInput';
 
 let sessionGroup = instanceGroup
   .use(requireFineGrainedSessionParam('sessionId')())
@@ -33,7 +39,7 @@ let sessionGroup = instanceGroup
       );
     }
 
-    let session = await subspaceSessionService.get({
+    let session = await sessionService.getSessionById({
       instance: ctx.instance,
       sessionId: ctx.params.sessionId
     });
@@ -56,13 +62,9 @@ let providerInput = v.intersection([
   })
 ]);
 
-type SessionCreateProviderInput = Parameters<
-  typeof subspaceSessionService.create
->[0]['providers'][number];
-
 export let mapSessionConfigSource = (
   config: ValidationTypeValue<typeof providerInput> | undefined
-): SessionCreateProviderInput['providerConfig'] => {
+): SessionProviderConfigSource | undefined => {
   if (!config) return undefined;
 
   if ('provider_config_id' in config && config.provider_config_id) {
@@ -88,7 +90,7 @@ export let mapSessionConfigSource = (
 
 export let mapSessionDeploymentSource = (
   deployment: ValidationTypeValue<typeof providerInput> | undefined
-): SessionCreateProviderInput['providerDeployment'] => {
+): SessionProviderDeploymentSource | undefined => {
   if (!deployment) return undefined;
 
   if ('provider_deployment_id' in deployment && deployment.provider_deployment_id) {
@@ -111,7 +113,7 @@ export let mapSessionDeploymentSource = (
 
 export let mapSessionAuthConfigSource = (
   auth: ValidationTypeValue<typeof authConfigValidator> | undefined
-): SessionCreateProviderInput['providerAuthConfig'] => {
+): SessionProviderAuthConfigSource | undefined => {
   if (!auth) return undefined;
 
   if ('provider_auth_config_id' in auth && auth.provider_auth_config_id) {
@@ -208,7 +210,7 @@ export let sessionController = Controller.create(
           identityIds: normalizeArrayParam(ctx.query.identity_id)
         });
 
-        let paginator = await subspaceSessionService.list({
+        let paginator = await sessionService.listSessions({
           instance: ctx.instance,
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
@@ -271,18 +273,29 @@ export let sessionController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        let subspaceSession = await subspaceSessionService.create({
+        let subspaceSession = await sessionService.createSession({
           instance: ctx.instance,
-          name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providers: ctx.body.providers.map(p => ({
-            providerDeployment: mapSessionDeploymentSource(p),
-            providerConfig: mapSessionConfigSource(p),
-            providerAuthConfig: mapSessionAuthConfigSource(p),
-            sessionTemplateId: 'session_template_id' in p ? p.session_template_id : undefined,
-            toolFilters: p.tool_filters
-          }))
+          input: {
+            name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            providers: await Promise.all(
+              ctx.body.providers.map(p =>
+                resolveSessionProviderInput({
+                  instance: ctx.instance,
+                  providerDeployment: mapSessionDeploymentSource(p),
+                  providerConfig: mapSessionConfigSource(p),
+                  providerAuthConfig: mapSessionAuthConfigSource(p),
+                  sessionTemplateId:
+                    'session_template_id' in p ? p.session_template_id : undefined,
+                  toolFilters:
+                    p.tool_filters === undefined
+                      ? undefined
+                      : normalizeToolFilters(p.tool_filters)
+                })
+              )
+            )
+          }
         });
 
         return providerSessionPresenter.present({
@@ -313,12 +326,14 @@ export let sessionController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        let session = await subspaceSessionService.update({
+        let session = await sessionService.updateSession({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          session: ctx.session,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata
+          }
         });
 
         return providerSessionPresenter.present({
@@ -339,9 +354,9 @@ export let sessionController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        let session = await subspaceSessionService.delete({
+        let session = await sessionService.deleteSession({
           instance: ctx.instance,
-          sessionId: ctx.session.id
+          session: ctx.session
         });
 
         return providerSessionPresenter.present({

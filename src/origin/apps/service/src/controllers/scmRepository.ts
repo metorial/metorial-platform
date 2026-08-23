@@ -55,7 +55,13 @@ export let scmRepositoryController = app.controller({
       v.object({
         tenantId: v.string(),
         scmInstallationId: v.string(),
-        externalAccountId: v.optional(v.string())
+        externalAccountId: v.optional(v.string()),
+        cursor: v.optional(v.string()),
+        limit: v.optional(
+          v.number({
+            modifiers: [v.minValue(1), v.maxValue(100)]
+          })
+        )
       })
     )
     .do(async ctx => {
@@ -64,13 +70,16 @@ export let scmRepositoryController = app.controller({
         scmInstallationId: ctx.input.scmInstallationId
       });
 
-      let repos = await scmRepoService.listRepositoryPreviews({
+      let result = await scmRepoService.listRepositoryPreviews({
         installation,
-        externalAccountId: ctx.input.externalAccountId ?? installation.externalAccountId
+        externalAccountId: ctx.input.externalAccountId ?? installation.externalAccountId,
+        cursor: ctx.input.cursor,
+        limit: ctx.input.limit
       });
 
       return {
-        repositories: repos.map(scmRepoPreviewPresenter)
+        repositories: result.repositories.map(scmRepoPreviewPresenter),
+        nextCursor: result.nextCursor
       };
     }),
 
@@ -176,17 +185,22 @@ export let scmRepositoryController = app.controller({
       };
     }),
 
-  syncCodeBucketToBranch: scmRepositoryApp
+  syncCodeBucket: scmRepositoryApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         scmRepositoryId: v.string(),
         codeBucketId: v.string(),
-        branchName: v.string(),
-        prName: v.string(),
+        repositoryAccessMode: v.enumOf(['pull_request', 'default_branch']),
+        requestKey: v.optional(v.string()),
+        branchName: v.optional(v.string()),
+        prName: v.optional(v.string()),
         prDescription: v.optional(v.string()),
-        enableAutoMerge: v.optional(v.boolean())
+        commitMessage: v.optional(v.string()),
+        enableAutoMerge: v.optional(v.boolean()),
+        forceMergeOrPush: v.optional(v.boolean()),
+        mergeBeforeChecksPass: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -199,10 +213,52 @@ export let scmRepositoryController = app.controller({
         tenant: ctx.tenant,
         repo: ctx.scmRepository,
         codeBucket,
+        repositoryAccessMode: ctx.input.repositoryAccessMode,
+        requestKey: ctx.input.requestKey,
         branchName: ctx.input.branchName,
         prName: ctx.input.prName,
         prDescription: ctx.input.prDescription,
-        enableAutoMerge: ctx.input.enableAutoMerge
+        commitMessage: ctx.input.commitMessage,
+        enableAutoMerge: ctx.input.enableAutoMerge,
+        forceMergeOrPush: ctx.input.forceMergeOrPush,
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass
+      });
+
+      return scmRepositorySyncPresenter(sync);
+    }),
+
+  syncCodeBucketToBranch: scmRepositoryApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        scmRepositoryId: v.string(),
+        codeBucketId: v.string(),
+        branchName: v.string(),
+        prName: v.string(),
+        prDescription: v.optional(v.string()),
+        enableAutoMerge: v.optional(v.boolean()),
+        forceMergeOrPush: v.optional(v.boolean()),
+        mergeBeforeChecksPass: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let codeBucket = await codeBucketService.getCodeBucketById({
+        tenant: ctx.tenant,
+        id: ctx.input.codeBucketId
+      });
+
+      let sync = await scmRepositorySyncService.createScmRepositorySync({
+        tenant: ctx.tenant,
+        repo: ctx.scmRepository,
+        codeBucket,
+        repositoryAccessMode: 'pull_request',
+        branchName: ctx.input.branchName,
+        prName: ctx.input.prName,
+        prDescription: ctx.input.prDescription,
+        enableAutoMerge: ctx.input.enableAutoMerge,
+        forceMergeOrPush: ctx.input.forceMergeOrPush,
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass
       });
 
       return scmRepositorySyncPresenter(sync);

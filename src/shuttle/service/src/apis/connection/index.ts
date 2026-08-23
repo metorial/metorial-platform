@@ -3,6 +3,7 @@ import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { AsyncConnection } from '../../mcp/connection/async';
 import { ClientConnection } from '../../mcp/connection/client';
+import { toConnectionError } from '../../mcp/utils/connectionError';
 import { serverConnectionPresenter } from '../../presenters';
 import { serverConnectionService, tenantService } from '../../services';
 
@@ -29,6 +30,13 @@ export let connectionApp = createHono().get(
 
     let mcp = new AsyncConnection();
 
+    let failConnection = (ws: WSContext<any>, error: unknown) => {
+      mcp.fail(error);
+      send(ws, 'error', toConnectionError(error, 'initialize_failed'));
+      send(ws, 'close', undefined);
+      setTimeout(() => ws.close(), 100);
+    };
+
     return {
       onOpen: async (_, ws) => {
         send(ws, 'connected', {});
@@ -42,18 +50,26 @@ export let connectionApp = createHono().get(
           }
         });
 
-        mcp.setAdapter(await ClientConnection.create(connection));
+        try {
+          mcp.setAdapter(await ClientConnection.create(connection));
+        } catch (error) {
+          failConnection(ws, error);
+        }
       },
 
       onMessage: async (msg, ws) => {
-        let parsed = JSON.parse(msg.data.toString());
+        try {
+          let parsed = JSON.parse(msg.data.toString());
 
-        if (!parsed.type) {
-          await mcp.sendMcpMessage(parsed);
-        }
+          if (!parsed.type) {
+            await mcp.sendMcpMessage(parsed);
+          }
 
-        if (parsed.type == 'mcp.message') {
-          await mcp.sendMcpMessage(parsed.data);
+          if (parsed.type == 'mcp.message') {
+            await mcp.sendMcpMessage(parsed.data);
+          }
+        } catch (error) {
+          send(ws, 'error', toConnectionError(error));
         }
       },
 

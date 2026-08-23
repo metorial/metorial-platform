@@ -9,7 +9,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { projectAuthConfigConfigurationPresenter } from '../../presenters';
+import { projectAuthConfigConfigurationPresenter } from '@metorial/presenters';
 
 let consumerAuthClientRegistrationLimitValidator = v.optional(
   v.number({ modifiers: [v.positive(), v.integer(), v.minValue(1)] })
@@ -120,8 +120,7 @@ export let dashboardAuthConfigConfigurationController = Controller.create(
           await projectAuthConfigConfigurationService.updateProjectAuthConfigConfiguration({
             project,
             organization: ctx.organization,
-            performedBy: ctx.actor,
-            context: ctx.context,
+            auditScope: ctx.auditScope,
             input: {
               allowAuthConfigExport: ctx.body.allow_auth_config_export,
               allowAuthConfigImport: ctx.body.allow_auth_config_import,

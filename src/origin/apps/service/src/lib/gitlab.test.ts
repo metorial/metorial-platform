@@ -6,10 +6,14 @@ let mocks = vi.hoisted(() => ({
       findUnique: vi.fn(),
       update: vi.fn()
     }
-  }
+  },
+  usingTokenRefreshLock: vi.fn()
 }));
 
 vi.mock('../db', () => ({ db: mocks.db }));
+vi.mock('./scmTokenRefreshLock', () => ({
+  usingScmTokenRefreshLock: mocks.usingTokenRefreshLock
+}));
 
 import { getGitLabAccessTokenWithInstallation } from './gitlab';
 
@@ -32,6 +36,10 @@ describe('GitLab installation access tokens', () => {
     vi.restoreAllMocks();
     mocks.db.scmInstallation.findUnique.mockReset();
     mocks.db.scmInstallation.update.mockReset();
+    mocks.usingTokenRefreshLock.mockReset();
+    mocks.usingTokenRefreshLock.mockImplementation(
+      async (_provider, _installationOid, fn) => await fn()
+    );
   });
 
   it('uses a token that is not close to expiring', async () => {
@@ -89,7 +97,7 @@ describe('GitLab installation access tokens', () => {
   });
 
   it('uses credentials persisted by a concurrent refresh winner', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
+    let fetch = vi.spyOn(globalThis, 'fetch');
     mocks.db.scmInstallation.findUnique.mockResolvedValue({
       accessToken: 'winner-access-token',
       refreshToken: 'winner-refresh-token',
@@ -103,6 +111,32 @@ describe('GitLab installation access tokens', () => {
     expect(mocks.db.scmInstallation.findUnique).toHaveBeenCalledWith({
       where: { oid: 42n }
     });
+    expect(mocks.usingTokenRefreshLock).toHaveBeenCalledWith(
+      'gitlab',
+      42n,
+      expect.any(Function)
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('uses credentials persisted while a refresh request is in flight', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
+    mocks.db.scmInstallation.findUnique
+      .mockResolvedValueOnce({
+        accessToken: 'old-access-token',
+        refreshToken: 'old-refresh-token',
+        accessTokenExpiresAt: new Date(0)
+      })
+      .mockResolvedValueOnce({
+        accessToken: 'winner-access-token',
+        refreshToken: 'winner-refresh-token',
+        accessTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000)
+      });
+    let installation = createInstallation({ accessTokenExpiresAt: new Date(0) });
+
+    await expect(getGitLabAccessTokenWithInstallation(installation)).resolves.toBe(
+      'winner-access-token'
+    );
   });
 
   it('surfaces an invalid refresh token when no concurrent refresh won', async () => {

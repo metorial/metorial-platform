@@ -1,10 +1,10 @@
 import { delay } from '@lowerdeck/delay';
+import type { ExecutionContext } from '@lowerdeck/execution-context';
 import {
   createExecutionContext,
   provideExecutionContext,
   withExecutionContextOptional
 } from '@lowerdeck/execution-context';
-import type { ExecutionContext } from '@lowerdeck/execution-context';
 import { generateSnowflakeId } from '@lowerdeck/id';
 import { memo } from '@lowerdeck/memo';
 import { parseRedisUrl } from '@lowerdeck/redis';
@@ -16,12 +16,14 @@ import {
   SpanStatusCode,
   trace
 } from '@lowerdeck/telemetry';
-import {
-  Queue,
-  QueueEvents,
-  Worker,
+import type {
+  DeduplicationOptions,
+  Job,
+  JobsOptions,
+  QueueOptions,
+  WorkerOptions
 } from 'bullmq';
-import type { DeduplicationOptions, JobsOptions, QueueOptions, WorkerOptions } from 'bullmq';
+import { Queue, QueueEvents, Worker } from 'bullmq';
 import { QueueRetryError } from '../lib/queueRetryError';
 import type { IQueue } from '../types';
 
@@ -132,22 +134,27 @@ export let createBullMqQueue = <JobData>(
   if (process.env.QUEUE_DEBUG_LOGGING)
     console.log('Creating queue with connection', opts.name, opts.redisUrl, redisOpts);
 
-  let queue = new Queue<JobData>(opts.name, {
-    ...opts.queueOpts,
-    connection: redisOpts,
-    defaultJobOptions: {
-      removeOnComplete: true,
-      removeOnFail: {
-        age: 60 * 60 * 24 // 1 day
-      },
-      backoff: {
-        type: 'custom'
-      },
-      attempts: 25,
-      keepLogs: 10,
-      ...opts.jobOpts
-    }
-  });
+  // Worker-only processes define hundreds of queues. Constructing every producer Queue
+  // eagerly opens a Redis connection even when that process never publishes to it.
+  let useQueue = memo(
+    () =>
+      new Queue<JobData>(opts.name, {
+        ...opts.queueOpts,
+        connection: redisOpts,
+        defaultJobOptions: {
+          removeOnComplete: true,
+          removeOnFail: {
+            age: 60 * 60 * 24 // 1 day
+          },
+          backoff: {
+            type: 'custom'
+          },
+          attempts: 25,
+          keepLogs: 10,
+          ...opts.jobOpts
+        }
+      })
+  );
 
   let useQueueEvents = memo(() => new QueueEvents(opts.name, { connection: redisOpts }));
 
@@ -172,7 +179,7 @@ export let createBullMqQueue = <JobData>(
           }
         },
         async () =>
-          await queue.addBulk(
+          await useQueue().addBulk(
             payloads.map(
               payload =>
                 ({
@@ -208,7 +215,7 @@ export let createBullMqQueue = <JobData>(
             operation: 'publish'
           },
           async () =>
-            await queue.add(
+            await useQueue().add(
               'j' as any,
               {
                 payload: SuperJson.serialize(payload),
@@ -257,69 +264,79 @@ export let createBullMqQueue = <JobData>(
           staredRef.started = true;
           anyQueueStartedRef.started = true;
 
+          let runJob = async (job: Job<JobData>) => {
+            try {
+              let data = job.data as any;
+
+              let payload: any;
+
+              try {
+                payload = SuperJson.deserialize(data.payload);
+              } catch (e: any) {
+                payload = data.payload;
+              }
+
+              let parentExecutionContext = (data as any)
+                .$$execution_context$$ as ExecutionContext;
+              while (
+                parentExecutionContext &&
+                parentExecutionContext.type == 'job' &&
+                parentExecutionContext.parent
+              )
+                parentExecutionContext = parentExecutionContext.parent;
+
+              let jobExecutionContext = createExecutionContext({
+                type: 'job',
+                contextId: job.id ?? generateSnowflakeId(),
+                queue: opts.name,
+                parent: parentExecutionContext
+              });
+
+              await provideExecutionContext(
+                jobExecutionContext,
+                async () =>
+                  await withQueueSpan(
+                    {
+                      name: `queue process: ${opts.name}`,
+                      kind: SpanKind.CONSUMER,
+                      queueName: opts.name,
+                      operation: 'process',
+                      createSpan: true,
+                      attributes: {
+                        'messaging.message.id': job.id ? String(job.id) : undefined,
+                        'messaging.message.retry.count': job.attemptsMade
+                      }
+                    },
+                    async () => await cb(payload as any, job)
+                  )
+              );
+            } catch (e: any) {
+              if (e instanceof QueueRetryError) {
+                await delay(1000);
+                throw e;
+              } else {
+                Sentry.captureException(e);
+                console.error(e);
+                throw e;
+              }
+            }
+          };
+
           let worker = new Worker<JobData>(
             opts.name,
-            async job => {
-              try {
-                let data = job.data as any;
+            async job =>
+              await Sentry.withIsolationScope(async scope => {
+                scope.setTransactionName(`queue process: ${opts.name}`);
+                scope.setTag('queue', opts.name);
+                if (job.id) scope.setTag('queue.job_id', String(job.id));
 
-                let payload: any;
-
-                try {
-                  payload = SuperJson.deserialize(data.payload);
-                } catch (e: any) {
-                  payload = data.payload;
-                }
-
-                let parentExecutionContext = (data as any)
-                  .$$execution_context$$ as ExecutionContext;
-                while (
-                  parentExecutionContext &&
-                  parentExecutionContext.type == 'job' &&
-                  parentExecutionContext.parent
-                )
-                  parentExecutionContext = parentExecutionContext.parent;
-
-                let jobExecutionContext = createExecutionContext({
-                  type: 'job',
-                  contextId: job.id ?? generateSnowflakeId(),
-                  queue: opts.name,
-                  parent: parentExecutionContext
-                });
-
-                await provideExecutionContext(
-                  jobExecutionContext,
-                  async () =>
-                    await withQueueSpan(
-                      {
-                        name: `queue process: ${opts.name}`,
-                        kind: SpanKind.CONSUMER,
-                        queueName: opts.name,
-                        operation: 'process',
-                        createSpan: true,
-                        attributes: {
-                          'messaging.message.id': job.id ? String(job.id) : undefined,
-                          'messaging.message.retry.count': job.attemptsMade
-                        }
-                      },
-                      async () => await cb(payload as any, job)
-                    )
-                );
-              } catch (e: any) {
-                if (e instanceof QueueRetryError) {
-                  await delay(1000);
-                  throw e;
-                } else {
-                  Sentry.captureException(e);
-                  console.error(e);
-                  throw e;
-                }
-              }
-            },
+                return await runJob(job);
+              }),
             {
               concurrency: 50,
               ...opts.workerOpts,
               connection: redisOpts,
+              autorun: false,
 
               settings: {
                 ...opts.workerOpts?.settings,
@@ -336,6 +353,24 @@ export let createBullMqQueue = <JobData>(
               }
             }
           );
+
+          // Do not let the processor-composition layer move on to the next queue until
+          // this worker has an established Redis connection.
+          try {
+            await worker.waitUntilReady();
+          } catch (error) {
+            await worker.close(true);
+            throw error;
+          }
+          void worker.run().catch(error => {
+            Sentry.captureException(error, {
+              tags: {
+                queueName: opts.name,
+                queueOperation: 'run'
+              }
+            });
+            console.error(`Queue ${opts.name} stopped unexpectedly`, error);
+          });
 
           return {
             close: () => worker.close()

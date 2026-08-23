@@ -3,6 +3,13 @@ import React, { useEffect, useState } from 'react';
 import Balancer from 'react-wrap-balancer';
 import { keyframes, styled } from 'styled-components';
 import { theme } from '..';
+import {
+  TooltipSuppressorProvider,
+  useIsInsideOpenOverlay,
+  useTooltipSuppressor
+} from './state';
+
+export * from './state';
 
 let fadeInTop = keyframes`
   from { opacity: 0; transform: translateY(-15px) scale(0.75); filter: blur(2px) }
@@ -113,15 +120,9 @@ let Arrow = styled(RadixTooltip.Arrow)`
   fill: ${theme.colors.foreground};
 `;
 
-export let Tooltip = ({
-  content,
-  children,
-  arrow,
-  delayDuration,
-  enabled,
-  side = 'bottom',
-  align = 'center'
-}: {
+let SUPPRESSION_LINGER = 300;
+
+export type TooltipProps = {
   content: React.ReactNode;
   children: React.ReactNode;
   arrow?: boolean;
@@ -129,38 +130,71 @@ export let Tooltip = ({
   enabled?: boolean;
   side?: 'top' | 'right' | 'bottom' | 'left';
   align?: 'start' | 'center' | 'end';
-}) => {
-  // We disable the trigger for a single render to prevent
-  // the tooltip from showing in dialogs
-  let [disabled, setDisabled] = useState(true);
+} & Omit<React.ComponentPropsWithoutRef<'button'>, 'content' | 'children'>;
 
-  useEffect(() => {
-    setDisabled(false);
-  }, []);
+export let Tooltip = React.forwardRef<HTMLButtonElement, TooltipProps>(
+  (
+    {
+      content,
+      children,
+      arrow,
+      delayDuration,
+      enabled,
+      side = 'bottom',
+      align = 'center',
+      ...triggerProps
+    },
+    ref
+  ) => {
+    let [isOpen, setIsOpen] = useState(false);
 
-  if (enabled === false) return <>{children}</>;
+    let [isSuppressed, setIsSuppressed] = useState(true);
 
-  return (
-    <RadixTooltip.Provider delayDuration={delayDuration}>
-      <RadixTooltip.Root>
-        <RadixTooltip.Trigger asChild disabled={disabled}>
-          {children}
-        </RadixTooltip.Trigger>
+    let { isHeld, suppressor } = useTooltipSuppressor();
+    let isInsideOpenOverlay = useIsInsideOpenOverlay();
+    let shouldSuppress = enabled === false || isHeld || isInsideOpenOverlay;
 
-        <RadixTooltip.Portal>
-          <Content sideOffset={5} side={side} align={align} hideWhenDetached>
-            {typeof content == 'string' ? (
-              <>
-                <Balancer>{content}</Balancer>
-              </>
-            ) : (
-              <>{content}</>
-            )}
+    useEffect(() => {
+      if (shouldSuppress) {
+        setIsSuppressed(true);
+        setIsOpen(false);
+        return;
+      }
 
-            {arrow && <Arrow />}
-          </Content>
-        </RadixTooltip.Portal>
-      </RadixTooltip.Root>
-    </RadixTooltip.Provider>
-  );
-};
+      let timeout = setTimeout(() => setIsSuppressed(false), SUPPRESSION_LINGER);
+      return () => clearTimeout(timeout);
+    }, [shouldSuppress]);
+
+    return (
+      <RadixTooltip.Provider delayDuration={delayDuration}>
+        <RadixTooltip.Root
+          open={isOpen && !isSuppressed}
+          onOpenChange={open => {
+            if (open && isSuppressed) return;
+            setIsOpen(open);
+          }}
+        >
+          <TooltipSuppressorProvider value={suppressor}>
+            <RadixTooltip.Trigger asChild {...triggerProps} ref={ref}>
+              {children}
+            </RadixTooltip.Trigger>
+          </TooltipSuppressorProvider>
+
+          <RadixTooltip.Portal>
+            <Content sideOffset={5} side={side} align={align} hideWhenDetached>
+              {typeof content == 'string' ? (
+                <>
+                  <Balancer>{content}</Balancer>
+                </>
+              ) : (
+                <>{content}</>
+              )}
+
+              {arrow && <Arrow />}
+            </Content>
+          </RadixTooltip.Portal>
+        </RadixTooltip.Root>
+      </RadixTooltip.Provider>
+    );
+  }
+);

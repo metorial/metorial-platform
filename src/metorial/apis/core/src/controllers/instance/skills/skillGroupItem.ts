@@ -1,18 +1,17 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  subspaceSkillGroupItemService,
-  subspaceSkillGroupService
-} from '@metorial/module-subspace';
+import { skillResourceService } from '@metorial/module-skill';
+import { skillGroupItemService } from '@metorial/module-skill-groups';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillGroupItemPresenter } from '../../../presenters';
+import { skillGroupItemPresenter } from '@metorial/presenters';
 import { skillGroupGroup } from './skillGroup';
 import { assertConsumerCanWriteSkillGroupItem } from './skillGroupItemAccess';
 
@@ -28,18 +27,16 @@ export let skillGroupItemGroup = skillGroupGroup.use(async ctx => {
     );
   }
 
-  let skillGroupItem = await subspaceSkillGroupItemService.get({
-    instance: ctx.instance,
+  let access = await getInstanceCargoAccess(ctx);
+  let localSkillGroupItem = await skillGroupItemService.getSkillGroupItemById({
+    project: access.project,
+    instance: access.instance,
     skillGroupItemId: ctx.params.skillGroupItemId,
-    allowDeleted: true
+    skillGroupId: ctx.skillGroup.id,
+    allowDeleted: true,
+    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
   });
-  if (skillGroupItem.skillGroupId !== ctx.skillGroup.id) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'Skill group item does not belong to the requested skill group.'
-      })
-    );
-  }
+  let skillGroupItem = await skillResourceService.hydrateSkillGroupItem(localSkillGroupItem);
 
   return { skillGroupItem };
 });
@@ -80,37 +77,23 @@ export let skillGroupItemController = Controller.create(
         )
       )
       .do(async ctx => {
-        let visibleSkillIds: Set<string> | null = null;
-        if (ctx.consumerProfile) {
-          let visibleGroup = await subspaceSkillGroupService.get({
-            instance: ctx.instance,
-            consumerProfile: ctx.consumerProfile,
-            consumerGroups: ctx.consumerGroups!,
-            skillGroupId: ctx.skillGroup.id,
-            allowDeleted: true
-          });
-          visibleSkillIds = new Set(visibleGroup.skills.map(skill => skill.id));
-        }
-
-        let paginator = await subspaceSkillGroupItemService.list({
-          instance: ctx.instance,
+        let access = await getInstanceCargoAccess(ctx);
+        let paginator = await skillGroupItemService.listSkillGroupItems({
+          project: access.project,
+          instance: access.instance,
           allowDeleted: true,
           skillGroupIds: [ctx.skillGroup.id],
-          status: normalizeArrayParam(ctx.query.status),
+          statuses: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           skillIds: normalizeArrayParam(ctx.query.skill_id),
-          createdAt: ctx.query.created_at
+          createdAt: ctx.query.created_at,
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
         });
 
         let list = await paginator.run(ctx.query);
-        if (visibleSkillIds) {
-          list = {
-            ...list,
-            items: list.items.filter(item => visibleSkillIds!.has(item.skill.id))
-          };
-        }
+        let items = await skillResourceService.hydrateSkillGroupItems(list.items);
 
-        return Paginator.present(list, skillGroupItem =>
+        return Paginator.present({ ...list, items }, skillGroupItem =>
           skillGroupItemPresenter.present({ skillGroupItem })
         );
       }),
@@ -134,26 +117,9 @@ export let skillGroupItemController = Controller.create(
       )
       .use(requireConsumerTokenForPublishableKey())
       .output(skillGroupItemPresenter)
-      .do(async ctx => {
-        if (ctx.consumerProfile) {
-          let visibleGroup = await subspaceSkillGroupService.get({
-            instance: ctx.instance,
-            consumerProfile: ctx.consumerProfile,
-            consumerGroups: ctx.consumerGroups!,
-            skillGroupId: ctx.skillGroup.id,
-            allowDeleted: true
-          });
-          if (!visibleGroup.skills.some(skill => skill.id === ctx.skillGroupItem.skill.id)) {
-            throw new ServiceError(
-              badRequestError({
-                message: 'Skill group item does not belong to a visible skill.'
-              })
-            );
-          }
-        }
-
-        return skillGroupItemPresenter.present({ skillGroupItem: ctx.skillGroupItem });
-      }),
+      .do(async ctx =>
+        skillGroupItemPresenter.present({ skillGroupItem: ctx.skillGroupItem })
+      ),
 
     create: skillGroupGroup
       .post(instancePath('skill-groups/:skillGroupId/items', 'skills.groups.items.create'), {
@@ -172,17 +138,26 @@ export let skillGroupItemController = Controller.create(
       .output(skillGroupItemPresenter)
       .do(async ctx => {
         await assertConsumerCanWriteSkillGroupItem({
-          instance: ctx.instance,
-          skillId: ctx.body.skill_id,
-          consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups
-        });
-
-        let skillGroupItem = await subspaceSkillGroupItemService.create({
+          project: ctx.project,
           instance: ctx.instance,
           skillGroupId: ctx.skillGroup.id,
-          skillId: ctx.body.skill_id
+          skillId: ctx.body.skill_id,
+          consumerProfile: ctx.consumerProfile,
+          accessTags: ctx.accessTags,
+          authorization: (await getInstanceCargoAccess(ctx)).authorization
         });
+
+        let access = await getInstanceCargoAccess(ctx);
+        let localSkillGroupItem = await skillGroupItemService.createSkillGroupItem({
+          project: access.project,
+          instance: access.instance,
+          input: {
+            skillGroupId: ctx.skillGroup.id,
+            skillId: ctx.body.skill_id
+          }
+        });
+        let skillGroupItem =
+          await skillResourceService.hydrateSkillGroupItem(localSkillGroupItem);
 
         return skillGroupItemPresenter.present({ skillGroupItem });
       }),
@@ -204,17 +179,29 @@ export let skillGroupItemController = Controller.create(
       .output(skillGroupItemPresenter)
       .do(async ctx => {
         await assertConsumerCanWriteSkillGroupItem({
+          project: ctx.project,
           instance: ctx.instance,
+          skillGroupId: ctx.skillGroup.id,
           skillId: ctx.skillGroupItem.skill.id,
           consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups
+          accessTags: ctx.accessTags,
+          authorization: (await getInstanceCargoAccess(ctx)).authorization
         });
 
-        let skillGroupItem = await subspaceSkillGroupItemService.delete({
-          instance: ctx.instance,
+        let access = await getInstanceCargoAccess(ctx);
+        let localSkillGroupItem = await skillGroupItemService.getSkillGroupItemById({
+          project: access.project,
+          instance: access.instance,
           skillGroupItemId: ctx.skillGroupItem.id,
           allowDeleted: true
         });
+        localSkillGroupItem = await skillGroupItemService.archiveSkillGroupItem({
+          project: access.project,
+          instance: access.instance,
+          skillGroupItem: localSkillGroupItem
+        });
+        let skillGroupItem =
+          await skillResourceService.hydrateSkillGroupItem(localSkillGroupItem);
 
         return skillGroupItemPresenter.present({ skillGroupItem });
       })

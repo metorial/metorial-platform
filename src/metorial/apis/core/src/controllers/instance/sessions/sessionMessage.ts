@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSessionMessageService } from '@metorial/module-subspace';
+import { sessionMessageService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -12,7 +12,7 @@ import {
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceSessionMessagePresenter } from '../../../presenters';
+import { subspaceSessionMessagePresenter } from '@metorial/presenters';
 
 let sessionMessageGroup = instanceGroup
   .use(async ctx => {
@@ -25,7 +25,7 @@ let sessionMessageGroup = instanceGroup
       );
     }
 
-    let sessionMessage = await subspaceSessionMessageService.get({
+    let sessionMessage = await sessionMessageService.getSessionMessageById({
       instance: ctx.instance,
       sessionMessageId: ctx.params.sessionMessageId
     });
@@ -113,7 +113,7 @@ export let sessionMessageController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSessionMessageService.list({
+        let paginator = await sessionMessageService.listSessionMessages({
           instance: ctx.instance,
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,

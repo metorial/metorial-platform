@@ -36,6 +36,9 @@ model AuthIntent {
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid])
 
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
   expiresAt  DateTime
@@ -113,12 +116,20 @@ enum AuthAttemptStatus {
   consumed
 }
 
+enum AuthLoginMethod {
+  email
+  oauth
+  sso
+}
+
 model AuthAttempt {
   oid          BigInt @id
   id           String @unique
   clientSecret String @unique
 
   status AuthAttemptStatus
+
+  loginMethod AuthLoginMethod?
 
   authorizationCode String? @unique
 
@@ -135,6 +146,9 @@ model AuthAttempt {
 
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid])
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
 
   authIntentOid BigInt?
   authIntent    AuthIntent? @relation(fields: [authIntentOid], references: [oid], onDelete: SetNull)

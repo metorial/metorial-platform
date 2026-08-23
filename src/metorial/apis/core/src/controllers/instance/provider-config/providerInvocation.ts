@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderInvocationService } from '@metorial/module-subspace';
+import { providerInvocationService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -8,7 +8,7 @@ import { isDashboardGroup } from '../../../middleware/isDashboard';
 import {
   providerInvocationPresenter,
   providerInvocationsPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 export let providerInvocationController = Controller.create(
   {
@@ -34,7 +34,7 @@ export let providerInvocationController = Controller.create(
       )
       .output(providerInvocationPresenter)
       .do(async ctx => {
-        let item = await subspaceProviderInvocationService.get({
+        let item = await providerInvocationService.getProviderInvocation({
           instance: ctx.instance,
           providerInvocationId: ctx.params.providerInvocationId
         });
@@ -74,16 +74,17 @@ export let providerInvocationController = Controller.create(
         })
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderInvocationService.list({
+        let items = await providerInvocationService.listProviderInvocations({
           instance: ctx.instance,
-          providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
-          sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
-          callbackEventIds: normalizeArrayParam(ctx.query.callback_event_id),
-          authConfigEventIds: normalizeArrayParam(ctx.query.auth_config_event_id)
+          inputs: {
+            providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
+            sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
+            callbackEventSourceIds: normalizeArrayParam(ctx.query.callback_event_id),
+            authConfigEventIds: normalizeArrayParam(ctx.query.auth_config_event_id)
+          }
         });
-        let list = await paginator.run({});
 
-        return providerInvocationsPresenter.present({ items: list.items });
+        return providerInvocationsPresenter.present({ items });
       })
   }
 );

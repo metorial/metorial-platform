@@ -12,10 +12,37 @@ model SkillPlugin {
   name      String?
   slug      String?
 
+  /// [EntityImage]
+  image Json?
+
+  /// [SkillPluginClientOverrides]
+  providerOverrides Json?
+
+  version         String?
+  versionHash     String?
+  description     String?
+  longDescription String?
+  category        String?
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  destinationOid BigInt?           @unique
+  destination    SkillDestination? @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
   status SkillPluginStatus @default(active)
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
@@ -28,6 +55,15 @@ model SkillPlugin {
   consumerAuthTestAuthorizations ConsumerAuthTestAuthorization[]
   magicMcpTokens                 MagicMcpToken[]
   magicMcpEndpoints              MagicMcpEndpoint[]
+  managed                        ManagedSkillPlugin?
+  skillPluginSkills              SkillPluginSkill[]
+  skillMarketplacePlugins        SkillMarketplacePlugin[]
+  skillDestinationItems          SkillDestinationItem[]
+  repositories                   SkillPluginRepository[]
+  skillExportRefs                SkillExportRef[]
+  accessTagEntities              AccessTagEntity[]
+  consumerAccesses               ConsumerAccess[]                @relation("ConsumerAccessSkillPlugin")
+  consumerAccessListings         ConsumerAccessListing[]
 
   @@index([instanceOid, status])
   @@index([slug])
@@ -40,4 +76,101 @@ model SkillPluginSync {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum SkillMarketplacePluginStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillMarketplacePlugin {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status     SkillMarketplacePluginStatus
+  pluginSlug String
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  skillMarketplaceOid BigInt
+  skillMarketplace    SkillMarketplace @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([skillMarketplaceOid, skillPluginOid])
+  @@unique([skillMarketplaceOid, pluginSlug])
+}
+
+model SkillPluginRepository {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  skillPluginOid BigInt
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillRepositoryOid BigInt          @unique
+  skillRepository    SkillRepository @relation(fields: [skillRepositoryOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([skillPluginOid, skillRepositoryOid])
+  @@index([skillPluginOid])
+}
+
+enum SkillPluginSkillStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillPluginSkill {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status          SkillPluginSkillStatus
+  pluginSkillSlug String
+
+  clientName        String?
+  clientDescription String?
+  clientMetadata    Json?
+  license           String?
+  compatibility     String?
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([skillPluginOid, skillOid])
+  @@unique([skillPluginOid, pluginSkillSlug])
+}
+
+model ManagedSkillPlugin {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  configHash String
+
+  skillOid BigInt @unique
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt      @unique
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  createdAt       DateTime         @default(now())
+  skillExportRefs SkillExportRef[]
 }

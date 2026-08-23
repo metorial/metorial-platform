@@ -1,20 +1,21 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { skillService } from '@metorial/module-skill';
+import { skillGroupService } from '@metorial/module-skill-groups';
+import { skillPluginService } from '@metorial/module-skill-marketplace';
+import { skillTemplateService } from '@metorial/module-skill-templates';
 import { db } from '@metorial/db';
-import { consumerAccessService, consumerGroupService } from '@metorial/module-consumer';
+import { consumerAccessService } from '@metorial/module-consumer-access';
+import { consumerGroupService } from '@metorial/module-consumer-core';
 import { magicMcpServerService, providerTemplateService } from '@metorial/module-magic';
-import {
-  subspaceSkillGroupService,
-  subspaceSkillService,
-  subspaceSkillTemplateService
-} from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { consumerAccessPresenter } from '../../../presenters';
+import { consumerAccessPresenter } from '@metorial/presenters';
 import { portalGroup } from './portal';
 
 export let consumerAccessGroup = portalGroup.use(async ctx => {
@@ -62,6 +63,7 @@ export let portalConsumerAccessController = Controller.create(
             skill_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
             skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             skill_marketplace_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_plugin_id: v.optional(v.union([v.string(), v.array(v.string())])),
             consumer_access_listing_id: v.optional(v.union([v.string(), v.array(v.string())])),
             type: v.optional(
               v.union([
@@ -71,7 +73,8 @@ export let portalConsumerAccessController = Controller.create(
                   'skill',
                   'skill_template',
                   'skill_group',
-                  'skill_marketplace'
+                  'skill_marketplace',
+                  'skill_plugin'
                 ]),
                 v.array(
                   v.enumOf([
@@ -80,7 +83,8 @@ export let portalConsumerAccessController = Controller.create(
                     'skill',
                     'skill_template',
                     'skill_group',
-                    'skill_marketplace'
+                    'skill_marketplace',
+                    'skill_plugin'
                   ])
                 )
               ])
@@ -98,6 +102,7 @@ export let portalConsumerAccessController = Controller.create(
           skillTemplateIds: normalizeArrayParam(ctx.query.skill_template_id),
           skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           skillMarketplaceIds: normalizeArrayParam(ctx.query.skill_marketplace_id),
+          skillPluginIds: normalizeArrayParam(ctx.query.skill_plugin_id),
           consumerAccessListingIds: normalizeArrayParam(ctx.query.consumer_access_listing_id),
           types: normalizeArrayParam(ctx.query.type),
           search: ctx.query.search
@@ -160,7 +165,13 @@ export let portalConsumerAccessController = Controller.create(
             }),
             v.object({
               type: v.literal('skill_marketplace'),
-              skill_marketplace_id: v.string()
+              skill_marketplace_id: v.string(),
+              permission: v.optional(v.enumOf(['read', 'manage']))
+            }),
+            v.object({
+              type: v.literal('skill_plugin'),
+              skill_marketplace_id: v.string(),
+              skill_plugin_id: v.string()
             })
           ])
         })
@@ -183,34 +194,35 @@ export let portalConsumerAccessController = Controller.create(
         let localSkillTemplate = null;
         let localSkillGroup = null;
         let localSkillMarketplace = null;
+        let localSkillPlugin = null;
+        let cargoAccess = await getInstanceCargoAccess(ctx);
 
         if (access.type == 'skill') {
-          let skill = await subspaceSkillService.get({
-            instance: ctx.instance,
+          localSkill = await skillService.getSkillById({
+            project: cargoAccess.project,
+            instance: cargoAccess.instance,
             skillId: access.skill_id,
             allowDeleted: true
           });
-          localSkill = skill.localSkill;
         }
 
         if (access.type == 'skill_template') {
-          let skillTemplate = await subspaceSkillTemplateService.get({
-            instance: ctx.instance,
-            skillTemplateId: access.skill_template_id,
-            allowDeleted: true
+          localSkillTemplate = await skillTemplateService.getSkillTemplateById({
+            project: cargoAccess.project,
+            instance: cargoAccess.instance,
+            skillTemplateId: access.skill_template_id
           });
-          localSkillTemplate = skillTemplate.localSkillTemplate;
         }
 
         if (access.type == 'skill_group') {
-          let skillGroup = await subspaceSkillGroupService.get({
-            instance: ctx.instance,
+          localSkillGroup = await skillGroupService.getSkillGroupById({
+            project: cargoAccess.project,
+            instance: cargoAccess.instance,
             skillGroupId: access.skill_group_id,
             allowDeleted: true
           });
-          localSkillGroup = skillGroup.localSkillGroup;
         }
-        if (access.type == 'skill_marketplace') {
+        if (access.type == 'skill_marketplace' || access.type == 'skill_plugin') {
           localSkillMarketplace = await db.skillMarketplace.findFirst({
             where: {
               instanceOid: ctx.instance.oid,
@@ -220,6 +232,26 @@ export let portalConsumerAccessController = Controller.create(
           });
           if (!localSkillMarketplace) {
             throw new ServiceError(notFoundError('skill.marketplace'));
+          }
+        }
+        if (access.type == 'skill_plugin') {
+          localSkillPlugin = await skillPluginService.getSkillPluginById({
+            project: cargoAccess.project,
+            instance: cargoAccess.instance,
+            skillPluginId: access.skill_plugin_id
+          });
+          let marketplacePlugin = await db.skillMarketplacePlugin.findFirst({
+            where: {
+              skillMarketplaceOid: localSkillMarketplace!.oid,
+              skillPluginOid: localSkillPlugin.oid,
+              status: 'active'
+            },
+            select: {
+              oid: true
+            }
+          });
+          if (!marketplacePlugin) {
+            throw new ServiceError(notFoundError('skill.plugin'));
           }
         }
         let consumerAccess =
@@ -284,16 +316,29 @@ export let portalConsumerAccessController = Controller.create(
                           skillGroup: localSkillGroup!
                         }
                       })
-                    : await consumerAccessService.createConsumerAccess({
-                        organization: ctx.organization,
-                        consumerSurface: ctx.portal.surface,
-                        consumerGroup,
-                        input,
-                        access: {
-                          type: 'skill_marketplace',
-                          skillMarketplace: localSkillMarketplace!
-                        }
-                      });
+                    : access.type == 'skill_plugin'
+                      ? await consumerAccessService.createConsumerAccess({
+                          organization: ctx.organization,
+                          consumerSurface: ctx.portal.surface,
+                          consumerGroup,
+                          input,
+                          access: {
+                            type: 'skill_plugin',
+                            skillPlugin: localSkillPlugin!,
+                            skillMarketplace: localSkillMarketplace!
+                          }
+                        })
+                      : await consumerAccessService.createConsumerAccess({
+                          organization: ctx.organization,
+                          consumerSurface: ctx.portal.surface,
+                          consumerGroup,
+                          input,
+                          access: {
+                            type: 'skill_marketplace',
+                            skillMarketplace: localSkillMarketplace!,
+                            accessLevel: access.permission == 'manage' ? 'manage' : 'read'
+                          }
+                        });
 
         return consumerAccessPresenter.present({ consumerAccess });
       }),

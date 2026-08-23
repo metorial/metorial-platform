@@ -1,0 +1,30 @@
+name = "@metorial/synthesis"
+group = "oss"
+
+[dev]
+run = ["bun --watch ./src/server.ts"]
+
+[[dev.expose]]
+port = 52160
+
+[[dev.expose]]
+port = 12121
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
+SYNTHESIS_API_PORT = "52160"
+SYNTHESIS_HEALTH_PORT = "12121"
+AI_GATEWAY_API_KEY = true
+SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
+SCOUT_TOKEN = true
+SUBSPACE_SOLUTION = "metorial-dev"
+
+[dev.db.main]
+name = "synthesis"
+engine = "postgres"
+env = "SYNTHESIS_DATABASE_URL"

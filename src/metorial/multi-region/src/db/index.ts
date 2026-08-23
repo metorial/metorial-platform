@@ -1,4 +1,5 @@
 import { Signer } from '@aws-sdk/rds-signer';
+import { delay } from '@lowerdeck/delay';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type pg from 'pg';
 import { PrismaClient } from '../../prisma/generated/client.js';
@@ -14,28 +15,43 @@ let getPositiveInteger = (value: number | undefined, fallback: number) => {
 };
 
 let GLOBAL_DB_TRANSACTION_MAX_WAIT_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_TRANSACTION_MAX_WAIT_MS,
+  Number(process.env.GLOBAL_DB_TRANSACTION_MAX_WAIT_MS),
   15_000
 );
 
 let GLOBAL_DB_TRANSACTION_TIMEOUT_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_TRANSACTION_TIMEOUT_MS,
+  Number(process.env.GLOBAL_DB_TRANSACTION_TIMEOUT_MS),
   30_000
 );
 
 let GLOBAL_DB_KEEPALIVE_INTERVAL_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_KEEPALIVE_INTERVAL_MS,
+  Number(process.env.GLOBAL_DB_KEEPALIVE_INTERVAL_MS),
   30_000
 );
 
 let GLOBAL_DB_POOL_IDLE_TIMEOUT_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_POOL_IDLE_TIMEOUT_MS,
+  Number(process.env.GLOBAL_DB_POOL_IDLE_TIMEOUT_MS),
   5 * 60_000
 );
 
 let GLOBAL_DB_CONNECTION_TIMEOUT_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_CONNECTION_TIMEOUT_MS,
+  Number(process.env.GLOBAL_DB_CONNECTION_TIMEOUT_MS),
   10_000
+);
+
+let GLOBAL_DB_READY_MAX_ATTEMPTS = getPositiveInteger(
+  env.service.GLOBAL_DB_READY_MAX_ATTEMPTS,
+  6
+);
+
+let GLOBAL_DB_READY_RETRY_BASE_MS = getPositiveInteger(
+  env.service.GLOBAL_DB_READY_RETRY_BASE_MS,
+  250
+);
+
+let GLOBAL_DB_READY_RETRY_MAX_MS = getPositiveInteger(
+  env.service.GLOBAL_DB_READY_RETRY_MAX_MS,
+  5_000
 );
 
 let getGlobalDatabaseRegion = (url: URL) => {
@@ -132,6 +148,20 @@ export { globalDB };
 
 export type GlobalDB = typeof globalDB;
 
+let globalDatabaseReadyPromise: Promise<void> | null = null;
+let globalDatabaseKeepaliveStarted = false;
+let globalDatabaseKeepaliveTimer: ReturnType<typeof setTimeout> | null = null;
+
+let getReadyRetryDelay = (attempt: number) => {
+  let exponentialDelay = Math.min(
+    GLOBAL_DB_READY_RETRY_BASE_MS * Math.pow(2, attempt - 1),
+    GLOBAL_DB_READY_RETRY_MAX_MS
+  );
+  let jitter = Math.floor(Math.random() * Math.max(1, exponentialDelay * 0.2));
+
+  return exponentialDelay + jitter;
+};
+
 let keepGlobalDbWarm = async () => {
   try {
     await globalDB.$queryRaw`SELECT 1`;
@@ -139,14 +169,66 @@ let keepGlobalDbWarm = async () => {
     console.error('Error pinging global database:', error);
   }
 
-  let timeout = setTimeout(() => {
+  globalDatabaseKeepaliveTimer = setTimeout(() => {
     void keepGlobalDbWarm();
   }, GLOBAL_DB_KEEPALIVE_INTERVAL_MS);
 
-  timeout.unref?.();
+  globalDatabaseKeepaliveTimer.unref?.();
 };
 
-void keepGlobalDbWarm();
+export let startGlobalDatabaseKeepalive = () => {
+  if (globalDatabaseKeepaliveStarted) return;
+  globalDatabaseKeepaliveStarted = true;
+
+  globalDatabaseKeepaliveTimer = setTimeout(() => {
+    void keepGlobalDbWarm();
+  }, GLOBAL_DB_KEEPALIVE_INTERVAL_MS);
+  globalDatabaseKeepaliveTimer.unref?.();
+};
+
+export let stopGlobalDatabaseKeepalive = () => {
+  if (globalDatabaseKeepaliveTimer) clearTimeout(globalDatabaseKeepaliveTimer);
+  globalDatabaseKeepaliveTimer = null;
+  globalDatabaseKeepaliveStarted = false;
+};
+
+export let ensureGlobalDatabaseReady = () => {
+  if (globalDatabaseReadyPromise) return globalDatabaseReadyPromise;
+
+  let readiness = (async () => {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= GLOBAL_DB_READY_MAX_ATTEMPTS; attempt++) {
+      try {
+        await globalDB.$queryRaw`SELECT 1`;
+        startGlobalDatabaseKeepalive();
+        return;
+      } catch (error) {
+        lastError = error;
+
+        if (attempt >= GLOBAL_DB_READY_MAX_ATTEMPTS) break;
+
+        let retryDelay = getReadyRetryDelay(attempt);
+        console.warn(
+          `Global database connection attempt ${attempt}/${GLOBAL_DB_READY_MAX_ATTEMPTS} failed; retrying in ${retryDelay}ms`
+        );
+        await delay(retryDelay);
+      }
+    }
+
+    throw new Error(
+      `Global database was not ready after ${GLOBAL_DB_READY_MAX_ATTEMPTS} attempts`,
+      { cause: lastError }
+    );
+  })();
+
+  globalDatabaseReadyPromise = readiness.catch(error => {
+    globalDatabaseReadyPromise = null;
+    throw error;
+  });
+
+  return globalDatabaseReadyPromise;
+};
 
 declare global {
   namespace PrismaJson {}

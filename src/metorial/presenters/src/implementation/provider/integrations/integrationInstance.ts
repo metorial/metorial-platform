@@ -1,0 +1,85 @@
+import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
+import { integrationInstanceType } from '../../../types';
+import {
+  dashboardIntegrationInstanceProviderPresenter,
+  v1IntegrationInstanceProviderPresenter
+} from './integrationInstanceProvider';
+
+export let v1IntegrationInstancePresenter = Presenter.create(integrationInstanceType)
+  .presenter(async ({ integrationInstance }, opts) => ({
+    object: 'integration.instance' as const,
+    id: integrationInstance.id,
+    status: integrationInstance.status,
+    name: integrationInstance.name,
+    description: integrationInstance.description,
+    metadata: integrationInstance.metadata,
+    integration_id: integrationInstance.integration.id,
+    identity_actor_id: integrationInstance.identityActor?.id ?? null,
+    identity_id: integrationInstance.identity?.id ?? null,
+    implementation: integrationInstance.magicMcpServerBackings[0]
+      ? {
+          type: 'magic_mcp_server' as const,
+          magic_mcp_server_id: integrationInstance.magicMcpServerBackings[0].id
+        }
+      : null,
+    providers: await Promise.all(
+      integrationInstance.integrationInstanceProviders.map(integrationInstanceProvider =>
+        v1IntegrationInstanceProviderPresenter
+          .present({ integrationInstanceProvider }, opts)
+          .run()
+      )
+    ),
+    created_at: integrationInstance.createdAt,
+    updated_at: integrationInstance.updatedAt,
+    archived_at: integrationInstance.archivedAt
+  }))
+  .schema(
+    v.object({
+      object: v.literal('integration.instance'),
+      id: v.string(),
+      status: v.enumOf(['draft', 'active', 'archived', 'deleted']),
+      name: v.string(),
+      description: v.nullable(v.string()),
+      metadata: v.nullable(v.record(v.any())),
+      integration_id: v.string(),
+      identity_actor_id: v.nullable(v.string()),
+      identity_id: v.nullable(v.string()),
+      implementation: v.nullable(
+        v.object({
+          type: v.literal('magic_mcp_server'),
+          magic_mcp_server_id: v.string()
+        })
+      ),
+      providers: v.array(v1IntegrationInstanceProviderPresenter.schema),
+      created_at: v.date(),
+      updated_at: v.date(),
+      archived_at: v.nullable(v.date())
+    })
+  )
+  .build();
+
+export let dashboardIntegrationInstancePresenter = Presenter.create(integrationInstanceType)
+  .presenter(async ({ integrationInstance }, opts) => {
+    let inner = await v1IntegrationInstancePresenter
+      .present({ integrationInstance }, opts)
+      .run();
+
+    return {
+      ...inner,
+      providers: await Promise.all(
+        integrationInstance.integrationInstanceProviders.map(integrationInstanceProvider =>
+          dashboardIntegrationInstanceProviderPresenter
+            .present({ integrationInstanceProvider }, opts)
+            .run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.object({
+      ...v1IntegrationInstancePresenter.schema.properties,
+      providers: v.array(dashboardIntegrationInstanceProviderPresenter.schema)
+    }) as any
+  )
+  .build();

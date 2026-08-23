@@ -1,0 +1,37 @@
+enum SessionConnectionProviderSpecificationStatus {
+  discovering
+  discovered
+  failed
+}
+
+// Tools of backends that declare connection-scoped discovery are listed once per
+// client connection, because they can differ per credentials or deploy.
+model SessionConnectionProviderSpecification {
+  oid BigInt @id
+  id  String @unique
+
+  status SessionConnectionProviderSpecificationStatus
+
+  /// [ProviderConnectionDiscoveryError]
+  error Json?
+
+  connectionOid BigInt
+  connection    SessionConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  sessionProviderOid BigInt
+  sessionProvider    SessionProvider @relation(fields: [sessionProviderOid], references: [oid], onDelete: Cascade)
+
+  providerVersionOid BigInt
+  providerVersion    ProviderVersion @relation(fields: [providerVersionOid], references: [oid])
+
+  specificationOid BigInt?
+  specification    ProviderSpecification? @relation(fields: [specificationOid], references: [oid])
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  discoveredAt DateTime?
+
+  @@unique([connectionOid, sessionProviderOid])
+  @@index([createdAt])
+  @@index([status])
+}

@@ -90,7 +90,7 @@ export let Control = memo(
     return (
       <Root
         value={value}
-        onValueChange={v => {
+        onValueChange={(v: string) => {
           if (v == value || !v) return;
           onChange?.(v);
         }}

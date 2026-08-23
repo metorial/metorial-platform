@@ -1,9 +1,9 @@
-import { delay } from '@lowerdeck/delay';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { codeBucketClient } from '../../lib/codeWorkspace';
 import { getInstallationAccessToken } from '../../lib/githubApp';
+import { runCodeBucketImport } from './importError';
 
 export let importGithubQueue = createQueue<{
   newBucketId: string;
@@ -26,25 +26,30 @@ export let importGithubQueueProcessor = importGithubQueue.process(async data => 
     throw new Error('Installation ID not found');
   }
 
-  // Get a fresh installation access token
-  let token = await getInstallationAccessToken(
-    repo.installation.externalInstallationId,
-    repo.installation.backend
-  );
+  await runCodeBucketImport({
+    provider: 'github',
+    bucketId: data.newBucketId,
+    context: {
+      owner: data.owner,
+      repo: data.repo,
+      ref: data.ref,
+      path: data.path,
+      repoId: data.repoId
+    },
+    importFn: async () => {
+      let token = await getInstallationAccessToken(
+        repo.installation.externalInstallationId!,
+        repo.installation.backend
+      );
 
-  await codeBucketClient.createBucketFromGithub({
-    newBucketId: data.newBucketId,
-    owner: data.owner,
-    repo: data.repo,
-    ref: data.ref,
-    path: data.path,
-    token
-  });
-
-  await delay(2000);
-
-  await db.codeBucket.updateMany({
-    where: { id: data.newBucketId },
-    data: { status: 'ready' }
+      await codeBucketClient.createBucketFromGithub({
+        newBucketId: data.newBucketId,
+        owner: data.owner,
+        repo: data.repo,
+        ref: data.ref,
+        path: data.path,
+        token
+      });
+    }
   });
 });

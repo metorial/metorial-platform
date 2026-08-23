@@ -1,0 +1,143 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { storeAccessService, storeReadPermission } from '@metorial/module-store';
+import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
+import { db } from '@metorial/db';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveDocumentParticipants,
+  resolveDocuments,
+  resolveResourceActors
+} from '@metorial/list-utils';
+import type { ResourceAuthorization } from '@metorial/module-access';
+import {
+  exposedParticipantResourceActorWhere,
+  resourceActorPresentationInclude
+} from '@metorial/module-resource-actor';
+import { internalDocumentParticipantService } from '../internal/documentParticipant';
+
+export let documentParticipantInclude = {
+  document: true,
+  resourceActor: {
+    include: resourceActorPresentationInclude
+  }
+} satisfies Prisma.DocumentParticipantInclude;
+
+class DocumentParticipantServiceImpl {
+  async getDocumentParticipantById(d: {
+    project: Project;
+    instance: Instance;
+    documentParticipantId: string;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
+    let participant = await db.documentParticipant.findFirst({
+      where: {
+        document: {
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
+          file: {
+            status: 'active'
+          }
+        },
+        id: d.documentParticipantId,
+        resourceActor: exposedParticipantResourceActorWhere
+      },
+      include: documentParticipantInclude
+    });
+
+    if (!participant) {
+      throw new ServiceError(notFoundError('documentParticipant', d.documentParticipantId));
+    }
+
+    await storeAccessService.assertStoreAccessForDocument({
+      project: d.project,
+      instance: d.instance,
+      document: participant.document,
+      authorization: d.authorization,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeReadPermission
+    });
+
+    return participant;
+  }
+
+  async listDocumentParticipants(d: {
+    project: Project;
+    instance: Instance;
+    documentId: string;
+    ids?: string[];
+    actorIds?: string[];
+    createdAt?: DateFilter;
+    lastEditedAt?: DateFilter;
+    lastViewedAt?: DateFilter;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
+    let document = await db.document.findFirst({
+      where: {
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
+        id: d.documentId,
+        file: {
+          status: 'active'
+        }
+      }
+    });
+
+    if (!document) throw new ServiceError(notFoundError('document', d.documentId));
+
+    await storeAccessService.assertStoreAccessForDocument({
+      project: d.project,
+      instance: d.instance,
+      document,
+      authorization: d.authorization,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeReadPermission
+    });
+
+    await internalDocumentParticipantService.materializeDocumentParticipantsFromStores({
+      document
+    });
+    let participants = await resolveDocumentParticipants(d, d.ids);
+    let documents = await resolveDocuments(d, [d.documentId]);
+    let actors = await resolveResourceActors(d, d.actorIds);
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.documentParticipant.findMany({
+            ...opts,
+            where: {
+              oid: participants ? participants.in : undefined,
+              document: {
+                projectOid: d.project.oid,
+                instanceOid: d.instance.oid,
+                oid: documents ? documents.in : undefined,
+                file: {
+                  status: 'active'
+                }
+              },
+              resourceActorOid: actors ? actors.in : undefined,
+              resourceActor: exposedParticipantResourceActorWhere,
+              createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
+              lastEditedAt: d.lastEditedAt ? normalizeDateFilter(d.lastEditedAt) : undefined,
+              lastViewedAt: d.lastViewedAt ? normalizeDateFilter(d.lastViewedAt) : undefined
+            },
+            include: documentParticipantInclude
+          })
+      )
+    );
+  }
+}
+
+export let documentParticipantService = Service.create(
+  'cargoDocumentParticipantService',
+  () => new DocumentParticipantServiceImpl()
+).build();

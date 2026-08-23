@@ -21,11 +21,34 @@ export let upsertOrganization = async (organizationId: string) => {
     deletedAt: organization.deletedAt
   };
 
-  await globalDB.organization.upsert({
-    where: { id: organization.id },
-    update: inner,
-    create: { id: organization.id, ...inner, ownerOid: (await cell).oid }
-  });
+  try {
+    await globalDB.organization.upsert({
+      where: { id: organization.id },
+      update: inner,
+      create: { id: organization.id, ...inner, ownerOid: (await cell).oid }
+    });
+  } catch (err: any) {
+    if (err.code !== 'P2002') throw err;
+
+    let existing = await globalDB.organization.findUnique({
+      where: { id: organization.id }
+    });
+    if (!existing) return;
+
+    try {
+      await globalDB.organization.update({
+        where: { id: organization.id },
+        data: inner
+      });
+    } catch (updateErr: any) {
+      if (updateErr.code !== 'P2002') throw updateErr;
+
+      await globalDB.organization.update({
+        where: { id: organization.id },
+        data: { ...inner, slug: existing.slug }
+      });
+    }
+  }
 };
 
 export let syncOrgsCron = createCron(

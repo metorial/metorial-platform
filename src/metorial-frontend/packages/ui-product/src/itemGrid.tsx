@@ -212,21 +212,33 @@ let getActionProps = ({ href, onClick, disabled }: ItemGridActionProps) => {
   return {};
 };
 
-let wrapAction = (children: React.ReactNode, href?: string, disabled?: boolean) => {
+let wrapAction = (
+  children: React.ReactNode,
+  href?: string,
+  disabled?: boolean,
+  nativeLink?: boolean
+) => {
   if (!href || disabled) return children;
+
+  let style = {
+    color: 'inherit',
+    display: 'flex',
+    minWidth: 0,
+    textDecoration: 'none'
+  };
+
+  if (nativeLink) {
+    return (
+      <a href={href} style={style}>
+        {children}
+      </a>
+    );
+  }
 
   let Link = getLink();
 
   return (
-    <Link
-      to={href}
-      style={{
-        color: 'inherit',
-        display: 'flex',
-        minWidth: 0,
-        textDecoration: 'none'
-      }}
-    >
+    <Link to={href} style={style}>
       {children}
     </Link>
   );
@@ -254,7 +266,8 @@ export let ItemGrid = {
     small,
     height,
     disabled = false,
-    loading = false
+    loading = false,
+    nativeLink = false
   }: {
     title: React.ReactNode;
     description?: React.ReactNode;
@@ -270,6 +283,7 @@ export let ItemGrid = {
     height?: number;
     disabled?: boolean;
     loading?: boolean;
+    nativeLink?: boolean;
   }) => {
     let menuItems = [
       ...(entity && showCopyId ? [{ id: 'id', label: 'Copy ID' }] : []),
@@ -362,7 +376,8 @@ export let ItemGrid = {
         )}
       </Wrapper>,
       onClick ? undefined : href,
-      disabled
+      disabled,
+      nativeLink
     );
   },
   CenteredItem: ({
@@ -372,7 +387,8 @@ export let ItemGrid = {
     href,
     onClick,
     disabled = false,
-    loading = false
+    loading = false,
+    nativeLink = false
   }: {
     title: React.ReactNode;
     description?: React.ReactNode;
@@ -381,6 +397,7 @@ export let ItemGrid = {
     onClick?: () => void;
     disabled?: boolean;
     loading?: boolean;
+    nativeLink?: boolean;
   }) => {
     return wrapAction(
       <Wrapper
@@ -415,7 +432,8 @@ export let ItemGrid = {
         )}
       </Wrapper>,
       onClick ? undefined : href,
-      disabled
+      disabled,
+      nativeLink
     );
   },
   RawItem: Wrapper

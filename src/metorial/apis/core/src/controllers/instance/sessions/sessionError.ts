@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSessionErrorService } from '@metorial/module-subspace';
+import { sessionErrorService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -13,7 +13,7 @@ import {
   requireFineGrainedSessionParam
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceSessionErrorPresenter } from '../../../presenters';
+import { subspaceSessionErrorPresenter } from '@metorial/presenters';
 
 let sessionErrorGroup = instanceGroup
   .use(async ctx => {
@@ -26,7 +26,7 @@ let sessionErrorGroup = instanceGroup
       );
     }
 
-    let sessionError = await subspaceSessionErrorService.get({
+    let sessionError = await sessionErrorService.getSessionErrorById({
       instance: ctx.instance,
       sessionErrorId: ctx.params.sessionErrorId
     });
@@ -113,7 +113,7 @@ export let sessionErrorController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSessionErrorService.list({
+        let paginator = await sessionErrorService.listSessionErrors({
           instance: ctx.instance,
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,

@@ -1,17 +1,161 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
+import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
+import { createHono, type Context as HonoContext } from '@lowerdeck/hono';
 import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
 import * as Cookies from 'cookie';
+import { randomBytes } from 'crypto';
+import type {
+  Account,
+  SsoImportedDelegation,
+  SsoTenant
+} from '../../../../prisma/generated/client';
+import { db } from '../../../db';
 import { env } from '../../../env';
+import { getRequestContext } from '../../../lib/context';
+import {
+  createDelegationCodeChallenge,
+  getDelegationCallbackUri,
+  getDelegationResponseMode,
+  getIdpInitiatedConsumerLoginRedirect
+} from '../../../lib/ssoDelegationProtocol';
 import { tickets } from '../../../lib/tickets';
 import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { ssoAuthService } from '../../../services/sso/auth';
-import { ssoTenantService } from '../../../services/sso/tenant';
-import { resolveApp } from '../lib/resolveApp';
-import { baseCookieOpts, SESSION_ID_COOKIE_NAME } from '../middleware/device';
+import type { DelegationSnapshot } from '../../../services/sso/delegation';
+import { ssoDelegationClient } from '../../../services/sso/delegationClient';
+import {
+  SsoDomainNotAllowedError,
+  ssoDomainPolicyService
+} from '../../../services/sso/domainPolicy';
+import { ssoIdentityService } from '../../../services/sso/identity';
+import { ssoLoginService } from '../../../services/sso/login';
+import { ssoDomainNotAllowedHtml } from '../../sso/pages/domain-not-allowed';
+import { errorHtml } from '../../sso/pages/error';
+import { resolveClient } from '../lib/resolveApp';
+import {
+  baseCookieOpts,
+  DEVICE_TOKEN_COOKIE_NAME,
+  parseDeviceToken,
+  SESSION_ID_COOKIE_NAME
+} from '../middleware/device';
+
+let getAccountLoginUrl = (d: {
+  accountClientId: string;
+  redirectUrl: string;
+  email?: string | null;
+  reason?: 'social_login_disabled' | 'account_sso_required';
+}) => {
+  let authUrl = new URL(`${env.service.ARES_AUTH_URL}/login`);
+  authUrl.searchParams.set('client_id', d.accountClientId);
+  authUrl.searchParams.set('redirect_url', d.redirectUrl);
+  authUrl.searchParams.set('auth_error', d.reason ?? 'social_login_disabled');
+  if (d.email) authUrl.searchParams.set('email', d.email);
+  return authUrl.toString();
+};
+
+let createCodeVerifier = () => randomBytes(32).toString('base64url');
+
+let getLocalDelegationCallbackUri = () =>
+  getDelegationCallbackUri(env.service.ARES_AUTH_URL);
+
+let importedDelegationInclude = {
+  remoteInstance: true,
+  localExportedDelegation: true
+} as const;
+
+let materializeDelegatedIdentity = async (d: {
+  imported: SsoImportedDelegation;
+  snapshot: DelegationSnapshot;
+  tenant: SsoTenant;
+  account?: Account | null;
+  context: { ip: string; ua: string };
+}) => {
+  if (
+    d.snapshot.type !== 'identity' ||
+    d.snapshot.delegation.id !== d.imported.sourceDelegationId ||
+    d.snapshot.delegation.clientId !== d.imported.clientId ||
+    d.snapshot.tenant.id !== d.imported.sourceTenantId ||
+    !d.snapshot.connection ||
+    !d.snapshot.userProfile
+  ) {
+    throw new ServiceError(
+      badRequestError({ message: 'Delegation identity did not match the import' })
+    );
+  }
+
+  let connection = await db.ssoConnection.findFirst({
+    where: {
+      importedDelegationOid: d.imported.oid,
+      sourceId: d.snapshot.connection.id,
+      tenantOid: d.tenant.oid,
+      status: 'active'
+    }
+  });
+  if (!connection) {
+    throw new ServiceError(
+      badRequestError({ message: 'Delegated SSO connection is unavailable' })
+    );
+  }
+
+  let profileData = d.snapshot.userProfile;
+
+  // The delegated instance authenticated against its own IdP and has no
+  // account domains of its own, so the asserted email is only checked here.
+  await ssoDomainPolicyService.assertEmailAllowed({
+    tenant: d.tenant,
+    connection,
+    account: d.account,
+    email: profileData.email,
+    context: d.context
+  });
+
+  let user = await ssoIdentityService.upsertUser({
+    tenant: d.tenant,
+    email: profileData.email,
+    firstName: profileData.firstName,
+    lastName: profileData.lastName
+  });
+  let profile = await ssoIdentityService.upsertUserProfile({
+    tenant: d.tenant,
+    connection,
+    user,
+    data: {
+      email: profileData.email,
+      uid: profileData.uid,
+      uidHash: profileData.uidHash,
+      sub: profileData.sub ?? undefined,
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      roles: profileData.roles,
+      groups: profileData.groups,
+      raw: profileData.raw
+    }
+  });
+
+  return { connection, user, profile };
+};
+
+// Hono hands downstream errors to the app-level handler, which answers JSON.
+// These hooks are reached by a browser redirect, so failures have to be caught
+// in the handler and rendered as a page.
+let renderSsoError = (ctx: HonoContext, error: unknown) => {
+  if (error instanceof SsoDomainNotAllowedError) {
+    return ctx.html(ssoDomainNotAllowedHtml(error), 403);
+  }
+
+  console.error('SSO hook failed:', error);
+
+  return ctx.html(
+    errorHtml({
+      title: 'Unable to Authenticate',
+      message: 'An error occurred during authentication.',
+      details: isServiceError(error) ? error.data.message : undefined
+    }),
+    500
+  );
+};
 
 export let authHooksApp = createHono()
   .get('/oauth/:ticket', async ctx => {
@@ -26,7 +170,16 @@ export let authHooksApp = createHono()
       })
     );
 
-    let app = await resolveApp(ticket.appClientId);
+    let { app, account } = await resolveClient(ticket.appClientId);
+    validateRedirectUrl(ticket.redirectUrl, app.redirectDomains);
+    if (account && !account.allowSocialLogin) {
+      return ctx.redirect(
+        getAccountLoginUrl({
+          accountClientId: account.clientId,
+          redirectUrl: ticket.redirectUrl
+        })
+      );
+    }
 
     let state = generateCustomId('oauth_state', 50);
 
@@ -78,7 +231,16 @@ export let authHooksApp = createHono()
       deviceId: string;
     };
 
-    let app = await resolveApp(stateData.appClientId);
+    let { app, account } = await resolveClient(stateData.appClientId);
+    validateRedirectUrl(stateData.redirectUrl, app.redirectDomains);
+    if (account && !account.allowSocialLogin) {
+      return ctx.redirect(
+        getAccountLoginUrl({
+          accountClientId: account.clientId,
+          redirectUrl: stateData.redirectUrl
+        })
+      );
+    }
     let device = await deviceService.dangerouslyGetDeviceOnlyById({
       deviceId: stateData.deviceId
     });
@@ -94,8 +256,19 @@ export let authHooksApp = createHono()
       app,
       device,
       redirectUrl: stateData.redirectUrl,
-      context: { ip, ua }
+      context: { ip, ua },
+      account
     });
+
+    if (res.type == 'social_disabled') {
+      return ctx.redirect(
+        getAccountLoginUrl({
+          accountClientId: res.account.clientId,
+          redirectUrl: stateData.redirectUrl,
+          email: res.email
+        })
+      );
+    }
 
     if (res.type == 'auth_attempt') {
       validateRedirectUrl(res.authAttempt.redirectUrl, app.redirectDomains);
@@ -129,120 +302,320 @@ export let authHooksApp = createHono()
     return ctx.redirect(authUrl.toString());
   })
   .get('/sso/:ticket', async ctx => {
-    let ticket = await tickets.decode(
-      ctx.req.param('ticket'),
-      v.object({
-        type: v.literal('sso'),
-        appClientId: v.string(),
-        deviceId: v.string(),
-        ssoTenantId: v.string(),
-        redirectUrl: v.string(),
-        email: v.optional(v.string())
-      })
-    );
-
-    let app = await resolveApp(ticket.appClientId);
-
-    let tenant = await ssoTenantService.getTenantById({ tenantId: ticket.ssoTenantId });
-    if (tenant.appOid !== app.oid && !tenant.isGlobal) {
-      throw new ServiceError(
-        badRequestError({ message: 'SSO tenant does not belong to this app' })
+    try {
+      let ticket = await tickets.decode(
+        ctx.req.param('ticket'),
+        v.object({
+          type: v.literal('sso'),
+          appClientId: v.string(),
+          deviceId: v.string(),
+          ssoTenantId: v.string(),
+          ssoConnectionId: v.optional(v.string()),
+          redirectUrl: v.string(),
+          email: v.optional(v.string())
+        })
       );
-    }
 
-    let ssoAuth = await ssoAuthService.createAuth({
-      tenant,
-      input: {
-        redirectUri: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`,
-        state: generateCustomId('sso_state', 50),
+      let { app, account: clientAccount } = await resolveClient(ticket.appClientId);
+      validateRedirectUrl(ticket.redirectUrl, app.redirectDomains);
+      let { account, tenant, connection } = await authService.resolveSsoConnection({
+        app,
+        account: clientAccount,
+        tenantId: ticket.ssoTenantId,
+        connectionId: ticket.ssoConnectionId,
         email: ticket.email
-      }
-    });
-
-    ctx.res.headers.append(
-      'Set-Cookie',
-      Cookies.serialize(
-        `metorial_sso_state_${ssoAuth.id}`,
-        JSON.stringify({
-          appClientId: ticket.appClientId,
-          deviceId: ticket.deviceId,
-          redirectUrl: ticket.redirectUrl
-        }),
-        {
-          path: '/'
+      });
+      let ssoAuth = await ssoAuthService.createAuth({
+        tenant,
+        account,
+        connection: connection ?? undefined,
+        input: {
+          redirectUri: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`,
+          state: generateCustomId('sso_state', 50),
+          email: ticket.email
         }
-      )
-    );
+      });
 
-    return ctx.redirect(
-      `${env.service.ARES_SSO_URL}/sso/auth?client_secret=${ssoAuth.clientSecret}`
-    );
+      ctx.res.headers.append(
+        'Set-Cookie',
+        Cookies.serialize(
+          `metorial_sso_state_${ssoAuth.id}`,
+          JSON.stringify({
+            appClientId: ticket.appClientId,
+            deviceId: ticket.deviceId,
+            redirectUrl: ticket.redirectUrl
+          }),
+          {
+            path: '/'
+          }
+        )
+      );
+
+      if (tenant.importedDelegationOid) {
+        let imported = await db.ssoImportedDelegation.findUnique({
+          where: { oid: tenant.importedDelegationOid },
+          include: {
+            remoteInstance: true,
+            localExportedDelegation: true
+          }
+        });
+        if (!imported || imported.status !== 'active') {
+          throw new ServiceError(badRequestError({ message: 'SSO delegation is disabled' }));
+        }
+
+        let codeVerifier = createCodeVerifier();
+        await db.ssoAuth.update({
+          where: { oid: ssoAuth.oid },
+          data: { codeVerifier }
+        });
+
+        let authorizationUrl = new URL(imported.remoteInstance.authorizationEndpointUrl);
+        authorizationUrl.searchParams.set('client_id', imported.clientId);
+        authorizationUrl.searchParams.set(
+          'response_type',
+          'urn:metorial.com:ares:sso-delegation'
+        );
+        authorizationUrl.searchParams.set(
+          'redirect_uri',
+          getLocalDelegationCallbackUri()
+        );
+        authorizationUrl.searchParams.set('state', ssoAuth.state);
+        authorizationUrl.searchParams.set(
+          'code_challenge',
+          createDelegationCodeChallenge(codeVerifier)
+        );
+        authorizationUrl.searchParams.set('code_challenge_method', 'S256');
+        if (connection?.sourceId) {
+          authorizationUrl.searchParams.set('connection_id', connection.sourceId);
+        }
+        if (ticket.email) authorizationUrl.searchParams.set('login_hint', ticket.email);
+        return ctx.redirect(authorizationUrl.toString());
+      }
+
+      return ctx.redirect(
+        `${env.service.ARES_SSO_URL}/sso/auth?client_secret=${ssoAuth.clientSecret}`
+      );
+    } catch (error) {
+      return renderSsoError(ctx, error);
+    }
+  })
+  .get('/sso-delegation-response', async ctx => {
+    try {
+      let code = ctx.req.query('code');
+      let state = ctx.req.query('state');
+      let clientId = ctx.req.query('client_id');
+      let mode = getDelegationResponseMode({ code, state, clientId });
+      if (mode.type === 'invalid') {
+        throw new ServiceError(
+          badRequestError({ message: 'Missing delegation code or state' })
+        );
+      }
+
+      let redirectUri = getLocalDelegationCallbackUri();
+      let context = getRequestContext(ctx);
+
+      if (mode.type === 'sp_initiated') {
+        let auth = await db.ssoAuth.findUnique({
+          where: { state: state! },
+          include: {
+            account: true,
+            tenant: {
+              include: {
+                importedDelegation: {
+                  include: importedDelegationInclude
+                }
+              }
+            }
+          }
+        });
+        let imported = auth?.tenant.importedDelegation;
+        if (
+          auth &&
+          imported &&
+          imported.status === 'active' &&
+          auth.status === 'pending' &&
+          !(auth.expiresAt && auth.expiresAt <= new Date()) &&
+          auth.codeVerifier
+        ) {
+          let snapshot = await ssoDelegationClient.exchangeCode({
+            imported,
+            code: code!,
+            redirectUri,
+            codeVerifier: auth.codeVerifier
+          });
+          let { connection, user, profile } = await materializeDelegatedIdentity({
+            imported,
+            snapshot,
+            tenant: auth.tenant,
+            account: auth.account,
+            context
+          });
+          await db.ssoAuth.update({
+            where: { oid: auth.oid },
+            data: {
+              status: 'completed',
+              connectionOid: connection.oid,
+              userOid: user.oid,
+              userProfileOid: profile.oid
+            }
+          });
+
+          let next = new URL(`${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`);
+          next.searchParams.set('tenant_id', auth.tenant.id);
+          next.searchParams.set('auth_id', auth.id);
+          return ctx.redirect(next.toString());
+        }
+
+        if (!clientId) {
+          throw new ServiceError(badRequestError({ message: 'Invalid delegation state' }));
+        }
+      }
+
+      let imported = await db.ssoImportedDelegation.findUnique({
+        where: { clientId: clientId! },
+        include: {
+          ...importedDelegationInclude,
+          tenant: { include: { account: true, app: true } },
+          app: true
+        }
+      });
+      if (!imported || imported.status !== 'active' || !imported.tenant) {
+        throw new ServiceError(badRequestError({ message: 'Invalid delegation state' }));
+      }
+
+      let tenant = imported.tenant;
+      let app = tenant.app;
+      let account = tenant.account;
+
+      let snapshot = await ssoDelegationClient.exchangeCode({
+        imported,
+        code: code!,
+        redirectUri
+      });
+      let { connection, profile } = await materializeDelegatedIdentity({
+        imported,
+        snapshot,
+        tenant,
+        account,
+        context
+      });
+
+      let cookieHeader = ctx.req.header('cookie') ?? '';
+      let deviceToken = Cookies.parse(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];
+      let deviceInfo = deviceToken ? parseDeviceToken(deviceToken) : null;
+      let device = await deviceService.ensureDevice({
+        deviceId: deviceInfo?.deviceId,
+        deviceClientSecret: deviceInfo?.deviceClientSecret,
+        context
+      });
+
+      let { authAttempt, session } = await ssoLoginService.completeLogin({
+        tenant,
+        connection,
+        userProfile: profile,
+        app,
+        account,
+        device,
+        context,
+        redirectUrl: app.defaultRedirectUrl
+      });
+
+      ctx.res.headers.append(
+        'Set-Cookie',
+        Cookies.serialize(
+          DEVICE_TOKEN_COOKIE_NAME,
+          `${device.id}:${device.clientSecret}`,
+          baseCookieOpts
+        )
+      );
+      ctx.res.headers.append(
+        'Set-Cookie',
+        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+      );
+
+      let completedRedirect = getIdpInitiatedConsumerLoginRedirect({
+        defaultRedirectUrl: authAttempt.redirectUrl,
+        authorizationCode: session.authorizationCode
+      });
+      return ctx.redirect(completedRedirect);
+    } catch (error) {
+      return renderSsoError(ctx, error);
+    }
   })
   .get('/sso-response', async ctx => {
-    let tenantId = ctx.req.query('tenant_id');
-    let authId = ctx.req.query('auth_id');
+    try {
+      let tenantId = ctx.req.query('tenant_id');
+      let authId = ctx.req.query('auth_id');
 
-    if (!tenantId || !authId) {
-      throw new ServiceError(badRequestError({ message: 'Missing tenant_id or auth_id' }));
+      if (!tenantId || !authId) {
+        throw new ServiceError(badRequestError({ message: 'Missing tenant_id or auth_id' }));
+      }
+
+      let { tenant, account, connection, userProfile } = await ssoAuthService.completeAuth({
+        authId,
+        tenantId
+      });
+
+      let cookieHeader = ctx.req.header('cookie') ?? '';
+      let cookies = Cookies.parse(cookieHeader);
+      let stateCookie = cookies[`metorial_sso_state_${authId}`];
+      if (!stateCookie) {
+        throw new ServiceError(badRequestError({ message: 'Invalid SSO state' }));
+      }
+
+      let stateData = JSON.parse(stateCookie) as {
+        appClientId: string;
+        deviceId: string;
+        redirectUrl: string;
+      };
+
+      let resolvedClient = await resolveClient(stateData.appClientId);
+      let app = resolvedClient.app;
+      validateRedirectUrl(stateData.redirectUrl, app.redirectDomains);
+      if (resolvedClient.account && resolvedClient.account.oid != account?.oid) {
+        throw new ServiceError(badRequestError({ message: 'SSO account context changed' }));
+      }
+      let emailAccount = await authService.resolveAccountForEmail({
+        app,
+        account,
+        email: userProfile.email
+      });
+      if (!account && emailAccount.account) {
+        return ctx.redirect(
+          getAccountLoginUrl({
+            accountClientId: emailAccount.account.clientId,
+            redirectUrl: stateData.redirectUrl,
+            email: userProfile.email,
+            reason: 'account_sso_required'
+          })
+        );
+      }
+      let device = await deviceService.dangerouslyGetDeviceOnlyById({
+        deviceId: stateData.deviceId
+      });
+
+      let { authAttempt, session } = await ssoLoginService.completeLogin({
+        tenant,
+        connection,
+        userProfile,
+        app,
+        account,
+        device,
+        context: getRequestContext(ctx),
+        redirectUrl: stateData.redirectUrl
+      });
+
+      ctx.res.headers.append(
+        'Set-Cookie',
+        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+      );
+
+      let redirectUrl = new URL(authAttempt.redirectUrl);
+      redirectUrl.searchParams.set('code', session.authorizationCode);
+      return ctx.redirect(redirectUrl.toString());
+    } catch (error) {
+      return renderSsoError(ctx, error);
     }
-
-    let { tenant, connection, userProfile } = await ssoAuthService.completeAuth({
-      authId
-    });
-
-    let cookieHeader = ctx.req.header('cookie') ?? '';
-    let cookies = Cookies.parse(cookieHeader);
-    let stateCookie = cookies[`metorial_sso_state_${authId}`];
-    if (!stateCookie) {
-      throw new ServiceError(badRequestError({ message: 'Invalid SSO state' }));
-    }
-
-    let stateData = JSON.parse(stateCookie) as {
-      appClientId: string;
-      deviceId: string;
-      redirectUrl: string;
-    };
-
-    let app = await resolveApp(stateData.appClientId);
-    let device = await deviceService.dangerouslyGetDeviceOnlyById({
-      deviceId: stateData.deviceId
-    });
-
-    let ip = (ctx.req.header('x-forwarded-for') ?? ctx.req.header('x-real-ip') ?? '')
-      .split(',')[0]!
-      .trim();
-    let ua = ctx.req.header('user-agent') ?? '';
-
-    let authAttempt = await authService.authWithSso({
-      ssoUser: {
-        email: userProfile.email,
-        firstName: userProfile.firstName,
-        lastName: userProfile.lastName
-      },
-      ssoConnectionId: connection.id,
-      ssoUid: userProfile.uid,
-      ssoTenant: tenant,
-      ssoUserProfile: userProfile,
-      context: { ip, ua },
-      redirectUrl: stateData.redirectUrl,
-      device,
-      app
-    });
-
-    validateRedirectUrl(authAttempt.redirectUrl, app.redirectDomains);
-
-    let session = await deviceService.exchangeAuthAttemptForSession({
-      authAttempt
-    });
-
-    ctx.res.headers.append(
-      'Set-Cookie',
-      Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
-    );
-
-    let redirectUrl = new URL(authAttempt.redirectUrl);
-    redirectUrl.searchParams.set('code', session.authorizationCode);
-    return ctx.redirect(redirectUrl.toString());
   })
 
   .get('/auth-attempt/:ticket', async ctx => {

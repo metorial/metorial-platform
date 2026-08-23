@@ -9,7 +9,6 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@metorial/mcp-utils": "^1.0.0",
     "@lowerdeck/base62": "workspace:2.0.0"
   },
   "devDependencies": {

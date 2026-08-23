@@ -1,0 +1,40 @@
+model SkillConfiguration {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  isDefault  Boolean?
+  isInternal Boolean  @default(false)
+
+  allowScripts                Boolean  @default(true)
+  allowedFileExtensions       String[] @default([])
+  allowNonStandardDirectories Boolean  @default(true)
+
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  skillMarketplaces       SkillMarketplace[]
+  skillMarketplacePlugins SkillMarketplacePlugin[]
+  skillPlugins            SkillPlugin[]
+  skillPluginSkills       SkillPluginSkill[]
+  skillExportRefs         SkillExportRef[]
+
+  @@unique([resourceGroupOid, isDefault])
+  @@unique([instanceOid, isDefault])
+  @@index([resourceTenantOid, resourceGroupOid, deletedAt])
+  @@index([resourceTenantOid, resourceGroupOid, isInternal])
+  @@index([instanceOid, deletedAt])
+  @@index([instanceOid, isInternal])
+}

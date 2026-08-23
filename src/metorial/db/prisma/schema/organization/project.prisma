@@ -29,6 +29,12 @@ model Project {
   synthesisTenantId String?
   nebulaTenantId    String?
 
+  resourceTenantOid BigInt?         @unique
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
+
+  resourceGroupOid BigInt?        @unique
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: SetNull)
+
   consumerAuthClientRegistrationsPerMinuteLimit Int @default(10)
   consumerAuthClientRegistrationsPerHourLimit   Int @default(25)
 
@@ -40,6 +46,33 @@ model Project {
   accessPolicyProjects AccessPolicyProject[]
   brand                ProjectBrand?
   teams                TeamProject[]
+
+  resourceActors        ResourceActor[]
+  fileLinks             FileLink[]
+  fileReferences        FileReference[]
+  documents             Document[]
+  documentVersions      DocumentVersion[]
+  stores                Store[]
+  storeTemplates        StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
+  skills                Skill[]
+  skillConfigurations   SkillConfiguration[]
+  skillTemplates        SkillTemplate[]
+  skillMarketplaces     SkillMarketplace[]
+  skillPlugins          SkillPlugin[]
+  skillRepositories     SkillRepository[]
+  skillExports          SkillExport[]
+  skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
+  skillMergeRequests    SkillMergeRequest[]
+  skillForkSyncs        SkillForkSync[]
+
+  productAssistants                      ProductAssistant[]
+  productAssistantConfig                 ProductAssistantConfig?
+  productAssistantInstances              ProductAssistantInstance[]
+  productAssistantConversations          ProductAssistantConversation[]
+  productAssistantModelRuns              ProductAssistantModelRun[]
+  productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
 
   @@index([previousSlugs])
 }

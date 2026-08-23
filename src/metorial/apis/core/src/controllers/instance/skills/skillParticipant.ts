@@ -1,14 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillParticipantService } from '@metorial/module-file';
+import { skillParticipantService } from '@metorial/module-skill';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillParticipantPresenter } from '../../../presenters';
+import { skillParticipantPresenter } from '@metorial/presenters';
 import { skillGroup } from './skill';
 
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
@@ -20,15 +20,10 @@ export let skillParticipantGroup = skillGroup.use(async ctx => {
 
   let skillParticipant = await skillParticipantService.getSkillParticipantById({
     skillParticipantId: ctx.params.skillParticipantId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
-  if (skillParticipant.skillId !== ctx.skill.id) {
+  if (skillParticipant.skill.id !== ctx.skill.id) {
     throw new ServiceError(notFoundError('skill.participant', ctx.params.skillParticipantId));
   }
 
@@ -54,12 +49,7 @@ export let skillParticipantController = Controller.create(
       .do(async ctx => {
         let paginator = await skillParticipantService.listSkillParticipants({
           skillId: ctx.skill.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx)
+          ...(await getInstanceCargoAccess(ctx))
         });
         let list = await paginator.run(ctx.query);
 

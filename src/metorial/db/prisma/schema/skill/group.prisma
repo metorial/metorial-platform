@@ -20,6 +20,8 @@ model SkillGroup {
   description String?
   metadata    Json?
 
+  allowConsumerSkillAssignment Boolean @default(true)
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 

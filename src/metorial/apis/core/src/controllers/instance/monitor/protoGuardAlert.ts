@@ -1,16 +1,16 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProtoGuardAlertService } from '@metorial/module-subspace';
+import { protoGuardAlertService } from '@metorial-subspace/module-monitor';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { protoGuardAlertPresenter } from '../../../presenters';
+import { protoGuardAlertPresenter } from '@metorial/presenters';
 import { getRequiredParam, stringOrArray } from './_shared';
 
 let protoGuardAlertGroup = instanceGroup.use(async ctx => {
-  let alert = await subspaceProtoGuardAlertService.get({
+  let alert = await protoGuardAlertService.getAlertById({
     instance: ctx.instance,
     alertId: getRequiredParam(ctx.params, 'protoGuardAlertId')
   });
@@ -47,7 +47,7 @@ export let protoGuardAlertController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProtoGuardAlertService.list({
+        let paginator = await protoGuardAlertService.listAlerts({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           runIds: normalizeArrayParam(ctx.query.run_id),

@@ -67,5 +67,6 @@ export let useCreateSkillForkSync = skillForkSyncsLoader.createExternalMutator(
         skillForkSyncId: skillForkSync.id,
         get: skillForkSyncId => sdk.skills.forkSyncs.get(i.instanceId, skillForkSyncId)
       });
-    })
+    }),
+  { disableToast: true }
 );

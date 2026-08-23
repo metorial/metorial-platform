@@ -134,7 +134,6 @@ describe('remoteOauthAuthorizationService.startAuthorization', () => {
     expect(result.redirectUrl).toBe('https://provider.example.com/auth');
     expect(oauthUtilsMock.buildAuthorizationUrl).toHaveBeenCalledWith(
       expect.objectContaining({
-        authEndpoint: 'https://provider.example.com/authorize',
         clientId: 'test-client-id',
         redirectUri: callbackUrlOverride,
         scopes: ['repo'],
@@ -142,5 +141,67 @@ describe('remoteOauthAuthorizationService.startAuthorization', () => {
         codeChallenge: 'test-code-challenge'
       })
     );
+  });
+});
+
+describe('remoteOauthAuthorizationService.resumeAuthorization', () => {
+  it('rebuilds the redirect with the existing state and PKCE verifier', async () => {
+    let connection = {
+      oid: 12n,
+      registrationOid: null,
+      status: 'active',
+      discoveryStatus: 'succeeded',
+      config: {
+        scopes: ['repo'],
+        config: {
+          authorization_endpoint: 'https://provider.example.com/authorize',
+          token_endpoint: 'https://provider.example.com/token',
+          code_challenge_methods_supported: ['S256']
+        }
+      }
+    };
+    let setup = {
+      oid: 13n,
+      status: 'pending',
+      stateIdentifier: 'existing-state',
+      codeVerifier: 'existing-verifier',
+      tenant: { oid: 11n }
+    };
+
+    let result = await remoteOauthAuthorizationService.resumeAuthorization({
+      connection: connection as any,
+      setup: setup as any,
+      serverOAuthSetup: {
+        callbackUrlOverride: 'https://subspace.example.com/oauth-callback/test-provider'
+      }
+    });
+
+    expect(result.redirectUrl).toBe('https://provider.example.com/auth');
+    expect(oauthUtilsMock.generateCodeChallenge).toHaveBeenCalledWith('existing-verifier');
+    expect(oauthUtilsMock.buildAuthorizationUrl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        state: 'existing-state',
+        codeChallenge: 'test-code-challenge'
+      })
+    );
+    expect(dbMock.remoteOAuthConnectionSetup.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an attempt whose callback state was already cleared', async () => {
+    await expect(
+      remoteOauthAuthorizationService.resumeAuthorization({
+        connection: {
+          status: 'active',
+          config: { config: {}, scopes: [] }
+        } as any,
+        setup: {
+          status: 'pending',
+          stateIdentifier: null,
+          codeVerifier: null,
+          tenant: { oid: 11n }
+        } as any,
+        serverOAuthSetup: { callbackUrlOverride: null }
+      })
+    ).rejects.toThrow('OAuth authorization attempt is no longer active');
   });
 });

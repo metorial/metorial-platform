@@ -1,0 +1,79 @@
+model ProviderAuthExport {
+  oid BigInt @id
+  id  String @unique
+
+  note     String?
+  ip       String?
+  ua       String?
+  metadata Json?
+
+  isParentDeleted Boolean @default(false)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  authConfigOid BigInt
+  authConfig    ProviderAuthConfig @relation(fields: [authConfigOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@index([createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model ProviderAuthImport {
+  oid BigInt @id
+  id  String @unique
+
+  ip       String?
+  ua       String?
+  note     String?
+  metadata Json?
+
+  isParentDeleted Boolean @default(false)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  authConfigOid BigInt
+  authConfig    ProviderAuthConfig @relation(fields: [authConfigOid], references: [oid])
+
+  authConfigUpdateOid BigInt
+  authConfigUpdate    ProviderAuthConfigUpdate @relation(fields: [authConfigUpdateOid], references: [oid])
+
+  deploymentOid BigInt?
+  deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@index([createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

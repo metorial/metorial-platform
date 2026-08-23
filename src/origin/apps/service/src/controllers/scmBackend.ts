@@ -52,7 +52,7 @@ export let scmBackendController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
-        type: v.enumOf(['github_enterprise', 'gitlab_selfhosted']),
+        type: v.enumOf(['github_enterprise', 'gitlab_selfhosted', 'bitbucket_data_center']),
         name: v.string(),
         description: v.optional(v.string()),
         apiUrl: v.string(),

@@ -1,0 +1,73 @@
+enum CustomProviderCommitStatus {
+  pending
+  applied
+  failed
+}
+
+enum CustomProviderCommitTrigger {
+  manual
+  system
+  scm
+}
+
+enum CustomProviderCommitType {
+  create_version
+  merge_version_into_environment
+  rollback_to_version
+}
+
+model CustomProviderCommit {
+  oid BigInt @id
+  id  String @unique
+
+  status  CustomProviderCommitStatus
+  trigger CustomProviderCommitTrigger
+  type    CustomProviderCommitType
+
+  message String?
+
+  errorCode    String?
+  errorMessage String?
+
+  creatorActorOid BigInt
+  creatorActor    TenantActor @relation(fields: [creatorActorOid], references: [oid])
+
+  fromEnvironmentOid BigInt?
+  fromEnvironment    CustomProviderEnvironment? @relation(fields: [fromEnvironmentOid], references: [oid], name: "CustomProviderCommitFromEnvironment")
+
+  toEnvironmentOid BigInt
+  toEnvironment    CustomProviderEnvironment @relation(fields: [toEnvironmentOid], references: [oid], name: "CustomProviderCommitToEnvironment")
+
+  toEnvironmentVersionBeforeOid BigInt?
+  toEnvironmentVersionBefore    CustomProviderVersion? @relation(fields: [toEnvironmentVersionBeforeOid], references: [oid], name: "CustomProviderCommitToEnvVersionBefore")
+
+  targetCustomProviderVersionOid BigInt
+  targetCustomProviderVersion    CustomProviderVersion @relation(fields: [targetCustomProviderVersionOid], references: [oid])
+
+  customProviderOid BigInt
+  customProvider    CustomProvider @relation(fields: [customProviderOid], references: [oid])
+
+  scmRepoPushOid BigInt?
+  scmRepoPush    ScmRepoPush? @relation(fields: [scmRepoPushOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  appliedAt DateTime?
+
+  customProviderDeployment          CustomProviderDeployment?
+  customProviderEnvironmentVersions CustomProviderEnvironmentVersion[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([trigger])
+  @@index([type])
+  @@index([projectOid])
+}

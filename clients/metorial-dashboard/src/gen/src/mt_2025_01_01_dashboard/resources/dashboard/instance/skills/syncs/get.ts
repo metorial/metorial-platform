@@ -3,15 +3,28 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceSkillsSyncsGetOutput = {
   object: 'skill.sync';
   id: string;
-  status: 'pending' | 'completed' | 'failed' | 'processing' | 'canceled';
+  status:
+    | 'pending'
+    | 'completed'
+    | 'failed'
+    | 'processing'
+    | 'waiting_for_review'
+    | 'canceled';
   skillMarketplaceId: string | null;
   skillPluginId: string | null;
   logs: { timestamp: Date; message: string }[];
   repositoryPropagations: {
     object: 'skill.sync_repository_propagation';
     id: string;
-    status: 'pending' | 'processing' | 'completed' | 'failed' | 'canceled';
+    status:
+      | 'pending'
+      | 'processing'
+      | 'waiting_for_review'
+      | 'completed'
+      | 'failed'
+      | 'canceled';
     repoId: string;
+    repositoryAccessMode: 'pull_request' | 'default_branch';
     branchName: string;
     prName: string;
     prDescription: string | null;
@@ -54,6 +67,10 @@ export let mapDashboardInstanceSkillsSyncsGetOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
+          repositoryAccessMode: mtMap.objectField(
+            'repository_access_mode',
+            mtMap.passthrough()
+          ),
           branchName: mtMap.objectField('branch_name', mtMap.passthrough()),
           prName: mtMap.objectField('pr_name', mtMap.passthrough()),
           prDescription: mtMap.objectField(

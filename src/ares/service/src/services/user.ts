@@ -6,26 +6,311 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { App, User, UserEmail, UserTermsType } from '../../prisma/generated/client';
-import { addAfterTransactionHook, db, withTransaction } from '../db';
+import type {
+  App,
+  AuthLoginMethod,
+  User,
+  UserEmail,
+  UserTermsType
+} from '../../prisma/generated/client';
+import { addAfterTransactionHook, db, type TransactionDB, withTransaction } from '../db';
 import { terms } from '../definitions';
 import { userEvents } from '../events/user';
 import { getId } from '../id';
 import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
+import { markAresUserChanged } from '../queues/syncCallback';
 import { auditLogService } from './auditLog';
 
+export class EmailInUseError extends ServiceError<ReturnType<typeof conflictError>> {
+  constructor() {
+    super(conflictError({ message: 'This email is already in use' }));
+  }
+}
+
+let isUniqueConstraintError = (e: any) => e?.code === 'P2002';
+
 class UserServiceImpl {
+  async getSyncSnapshot(d: { user: User }) {
+    let user = await db.user.findUniqueOrThrow({
+      where: { oid: d.user.oid },
+      include: {
+        userEmails: { include: { domain: true }, orderBy: { id: 'asc' } },
+        userIdentities: {
+          include: {
+            provider: { include: { oauthProvider: true, ssoTenant: true } }
+          },
+          orderBy: { id: 'asc' }
+        },
+        userTermsAgreements: {
+          include: { type: true },
+          orderBy: { id: 'asc' }
+        }
+      }
+    });
+
+    return {
+      revision: user.syncRevision.toString(),
+      user: {
+        id: user.id,
+        status: user.status,
+        email: user.email,
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        image: user.image,
+        lastLoginAt: user.lastLoginAt,
+        lastActiveAt: user.lastActiveAt,
+        deletedAt: user.deletedAt,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      },
+      emails: user.userEmails.map(email => ({
+        id: email.id,
+        email: email.email,
+        normalizedEmail: email.normalizedEmail,
+        domain: email.domain.domain,
+        isPrimary: email.isPrimary,
+        verifiedAt: email.verifiedAt,
+        lastResentAt: email.lastResentAt,
+        createdAt: email.createdAt,
+        updatedAt: email.updatedAt
+      })),
+      identities: user.userIdentities.map(identity => ({
+        id: identity.id,
+        provider: {
+          identifier: identity.provider.oauthProvider
+            ? identity.provider.oauthProvider.provider
+            : identity.provider.ssoTenant
+              ? `sso:${identity.provider.ssoTenant.id}`
+              : `ares:${identity.provider.id}`,
+          name: identity.provider.name
+        },
+        uid: identity.uid,
+        name: identity.name,
+        firstName: identity.firstName,
+        lastName: identity.lastName,
+        email: identity.email,
+        photoUrl: identity.photoUrl,
+        createdAt: identity.createdAt,
+        updatedAt: identity.updatedAt
+      })),
+      termsAgreements: user.userTermsAgreements.map(agreement => ({
+        id: agreement.id,
+        terms: {
+          identifier: agreement.type.identifier,
+          version: agreement.type.version,
+          name: agreement.type.name
+        },
+        ip: agreement.ip,
+        ua: agreement.ua,
+        acceptedAt: agreement.createdAt
+      }))
+    };
+  }
+
+  async applyProjection(d: {
+    app: App;
+    input: {
+      userId?: string | null;
+      authorityRevision: string;
+      email: string;
+      name: string;
+      firstName: string;
+      lastName: string;
+      image: PrismaJson.EntityImage;
+      status: 'active' | 'deleted';
+      lastLoginAt: Date | null;
+      lastActiveAt: Date | null;
+      deletedAt: Date | null;
+      emails: Array<{ email: string; isPrimary: boolean; isVerified: boolean }>;
+      termsAgreements: Array<{
+        terms: { identifier: string; version: string; name: string };
+        ip: string;
+        ua: string | null;
+        acceptedAt: Date;
+      }>;
+    };
+  }) {
+    let authorityRevision = BigInt(d.input.authorityRevision);
+    let resolveExisting = async () => {
+      let byId = d.input.userId
+        ? await db.user.findFirst({ where: { id: d.input.userId, appOid: d.app.oid } })
+        : null;
+      return (
+        byId ??
+        (await db.user.findFirst({ where: { appOid: d.app.oid, email: d.input.email } }))
+      );
+    };
+
+    let existing = await resolveExisting();
+    if (
+      existing?.hyperplaneRevision != null &&
+      existing.hyperplaneRevision >= authorityRevision
+    ) {
+      return existing;
+    }
+
+    let apply = async () =>
+      await withTransaction(async tdb => {
+        if (existing) {
+          await tdb.$queryRaw`
+            SELECT "oid"
+            FROM "User"
+            WHERE "oid" = ${existing.oid}
+            FOR UPDATE
+          `;
+          existing = await tdb.user.findUniqueOrThrow({ where: { oid: existing.oid } });
+
+          if (
+            existing.hyperplaneRevision != null &&
+            existing.hyperplaneRevision >= authorityRevision
+          ) {
+            return existing;
+          }
+        }
+
+        let lastLoginAt =
+          !existing?.lastLoginAt ||
+          (d.input.lastLoginAt && d.input.lastLoginAt > existing.lastLoginAt)
+            ? d.input.lastLoginAt
+            : existing.lastLoginAt;
+        let lastActiveAt =
+          !existing?.lastActiveAt ||
+          (d.input.lastActiveAt && d.input.lastActiveAt > existing.lastActiveAt)
+            ? d.input.lastActiveAt
+            : existing.lastActiveAt;
+        let user = existing
+          ? await tdb.user.update({
+              where: { oid: existing.oid },
+              data: {
+                email: d.input.email,
+                name: d.input.name,
+                firstName: d.input.firstName,
+                lastName: d.input.lastName,
+                image: d.input.image,
+                status: d.input.status,
+                deletedAt: d.input.deletedAt,
+                lastLoginAt,
+                lastActiveAt,
+                hyperplaneRevision: authorityRevision
+              }
+            })
+          : await tdb.user.create({
+              data: {
+                ...getId('user'),
+                ...(d.input.userId ? { id: d.input.userId } : {}),
+                appOid: d.app.oid,
+                tenantOid: d.app.defaultTenantOid!,
+                type: 'user',
+                owner: 'self',
+                status: d.input.status,
+                // The authority knows the user exists, not how they will get in. The
+                // first login on this instance is what settles the signup method.
+                signupMethod: 'unknown',
+                hasLoggedIn: false,
+                email: d.input.email,
+                name: d.input.name,
+                firstName: d.input.firstName,
+                lastName: d.input.lastName,
+                image: d.input.image,
+                deletedAt: d.input.deletedAt,
+                lastLoginAt,
+                lastActiveAt,
+                hyperplaneRevision: authorityRevision
+              }
+            });
+
+        await this.setEmails({ user, emails: d.input.emails, suppressSync: true });
+
+        for (let agreement of d.input.termsAgreements) {
+          let type = await tdb.userTermsType.upsert({
+            where: {
+              identifier_version: {
+                identifier: agreement.terms.identifier,
+                version: agreement.terms.version
+              }
+            },
+            create: { ...getId('userTermsType'), ...agreement.terms },
+            update: { name: agreement.terms.name }
+          });
+          let currentAgreement = await tdb.userTermsAgreement.findUnique({
+            where: { userOid_typeOid: { userOid: user.oid, typeOid: type.oid } }
+          });
+          if (!currentAgreement) {
+            await tdb.userTermsAgreement.create({
+              data: {
+                ...getId('userTermsAgreement'),
+                userOid: user.oid,
+                typeOid: type.oid,
+                ip: agreement.ip,
+                ua: agreement.ua,
+                createdAt: agreement.acceptedAt
+              }
+            });
+          } else if (agreement.acceptedAt < currentAgreement.createdAt) {
+            await tdb.userTermsAgreement.update({
+              where: { oid: currentAgreement.oid },
+              data: {
+                ip: agreement.ip,
+                ua: agreement.ua,
+                createdAt: agreement.acceptedAt
+              }
+            });
+          }
+        }
+        return user;
+      });
+
+    try {
+      return await apply();
+    } catch (e) {
+      if (!isUniqueConstraintError(e)) throw e;
+
+      // A login flow inserted the row for this email between our lookup and
+      // our insert. Re-resolve so the projection lands as an update instead.
+      existing = await resolveExisting();
+      if (!existing) throw e;
+
+      return await apply();
+    }
+  }
+
+  async linkToAccount(d: { user: User }) {
+    let { domain } = parseEmail(d.user.email);
+    let accountDomain = await db.accountDomain.findUnique({
+      where: {
+        appOid_domain: {
+          appOid: d.user.appOid,
+          domain
+        }
+      },
+      include: { account: true }
+    });
+    let accountOid =
+      accountDomain?.account.status == 'active' ? accountDomain.accountOid : null;
+
+    if (d.user.accountOid == accountOid) return d.user;
+    return await db.user.update({
+      where: { oid: d.user.oid },
+      data: { accountOid }
+    });
+  }
+
   async findByEmailSafe(d: { email: string; app: App }) {
+    // Emails are always persisted lower-cased, but identity providers assert
+    // them in whatever casing they please.
+    let email = d.email.trim().toLowerCase();
+
     return await db.user.findFirst({
       where: {
         appOid: d.app.oid,
         OR: [
-          { email: d.email },
+          { email },
           {
             userEmails: {
               some: {
-                email: d.email,
+                email,
                 verifiedAt: { not: null }
               }
             }
@@ -49,6 +334,7 @@ class UserServiceImpl {
     context: Context;
     app: App;
     type: 'standard_user' | 'pre_created_user';
+    signupMethod: 'email' | 'oauth' | 'sso';
   }) {
     if (!d.acceptedTerms) {
       throw new ServiceError(
@@ -62,6 +348,16 @@ class UserServiceImpl {
 
     return withTransaction(async tdb => {
       try {
+        let { domain } = parseEmail(d.email);
+        let accountDomain = await tdb.accountDomain.findUnique({
+          where: {
+            appOid_domain: {
+              appOid: d.app.oid,
+              domain
+            }
+          },
+          include: { account: true }
+        });
         let user = await tdb.user.create({
           data: {
             ...getId('user'),
@@ -75,9 +371,12 @@ class UserServiceImpl {
             owner: 'self',
             status: 'active',
             appOid: d.app.oid,
+            accountOid:
+              accountDomain?.account.status == 'active' ? accountDomain.accountOid : null,
             tenantOid: d.app.defaultTenantOid!,
 
             isFullyCreated: d.type === 'standard_user',
+            signupMethod: d.signupMethod,
 
             image: { type: 'default' }
           }
@@ -86,18 +385,23 @@ class UserServiceImpl {
         await this.createTermsAgreement({
           user,
           context: d.context,
-          terms: [terms.privacyPolicy, terms.termsOfService]
+          terms: [terms.privacyPolicy, terms.termsOfService],
+          suppressSync: true
         });
 
-        await this.createEmail({
-          email: d.email,
-          user,
-          app: d.app,
-          context: d.context,
-          isForNewUser: true
-        });
+        if (d.signupMethod !== 'sso') {
+          await this.createEmail({
+            email: d.email,
+            user,
+            app: d.app,
+            context: d.context,
+            isForNewUser: true,
+            suppressSync: true
+          });
+        }
 
         addAfterTransactionHook(() => userEvents.fire('create', user));
+        await markAresUserChanged({ userId: user.id, db: tdb });
 
         auditLogService.log({
           appOid: d.app.oid,
@@ -109,19 +413,52 @@ class UserServiceImpl {
 
         return user;
       } catch (e: any) {
+        if (isUniqueConstraintError(e)) throw new EmailInUseError();
+
         console.error('Error creating user:', e);
-
-        if (e.code === 'P2002') {
-          throw new ServiceError(
-            conflictError({
-              message: 'This email is already in use'
-            })
-          );
-        }
-
         throw e;
       }
     });
+  }
+
+  async resolveOrCreateUser(d: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    acceptedTerms: boolean;
+    context: Context;
+    app: App;
+    type: 'standard_user' | 'pre_created_user';
+    signupMethod: 'email' | 'oauth' | 'sso';
+  }): Promise<{ user: User; created: boolean }> {
+    let existing = await this.findByEmailSafe({ email: d.email, app: d.app });
+    if (existing) return { user: existing, created: false };
+
+    try {
+      return { user: await this.createUser(d), created: true };
+    } catch (e) {
+      if (!(e instanceof EmailInUseError) && !isUniqueConstraintError(e)) throw e;
+
+      let raced = await this.findByEmailSafe({ email: d.email, app: d.app });
+      if (!raced) throw e;
+
+      return { user: raced, created: false };
+    }
+  }
+
+  async recordLogin(d: { user: User; method: AuthLoginMethod | null; db?: TransactionDB }) {
+    let tdb = d.db ?? db;
+
+    await tdb.user.updateMany({
+      where: { oid: d.user.oid },
+      data: {
+        lastLoginAt: new Date(),
+        hasLoggedIn: true,
+        ...(d.method && d.user.signupMethod === 'unknown' ? { signupMethod: d.method } : {})
+      }
+    });
+
+    await markAresUserChanged({ userId: d.user.id, db: tdb });
   }
 
   async listUserProfile(d: { user: User }) {
@@ -135,7 +472,7 @@ class UserServiceImpl {
           include: {
             oauthProvider: true,
             ssoTenant: {
-              include: { ssoTenantDomain: true }
+              include: { account: true }
             }
           }
         },
@@ -159,32 +496,29 @@ class UserServiceImpl {
     app: App;
     context: Context;
     isForNewUser?: boolean;
+    suppressSync?: boolean;
   }) {
     d.email = d.email.trim().toLowerCase();
 
-    let existingEmail = await db.userEmail.findFirst({
-      where: {
-        appOid: d.app.oid,
-        email: d.email
-      }
-    });
-    if (existingEmail) {
-      if (existingEmail.userOid === d.user.oid) {
-        throw new ServiceError(
-          conflictError({
-            message: 'This email is already associated with your account'
-          })
-        );
-      }
-
-      throw new ServiceError(
-        conflictError({
-          message: 'This email is already in use'
-        })
-      );
-    }
-
     return withTransaction(async tdb => {
+      let existingEmail = await tdb.userEmail.findFirst({
+        where: {
+          appOid: d.app.oid,
+          email: d.email
+        }
+      });
+      if (existingEmail) {
+        if (existingEmail.userOid === d.user.oid) {
+          throw new ServiceError(
+            conflictError({
+              message: 'This email is already associated with your account'
+            })
+          );
+        }
+
+        throw new EmailInUseError();
+      }
+
       let parsedEmail = parseEmail(d.email);
 
       // Ensure email domain exists
@@ -222,6 +556,10 @@ class UserServiceImpl {
           ua: d.context.ua,
           metadata: { email: parsedEmail.email }
         });
+      }
+
+      if (!d.suppressSync) {
+        await markAresUserChanged({ userId: d.user.id, db: tdb });
       }
 
       return email;
@@ -268,6 +606,8 @@ class UserServiceImpl {
         metadata: { email: email.email }
       });
 
+      await markAresUserChanged({ userOid: email.userOid, db: tdb });
+
       return email;
     });
   }
@@ -295,12 +635,27 @@ class UserServiceImpl {
         data: { isPrimary: true }
       });
 
+      let parsedEmail = parseEmail(d.email.email);
+      let accountDomain = await tdb.accountDomain.findUnique({
+        where: {
+          appOid_domain: {
+            appOid: d.user.appOid,
+            domain: parsedEmail.domain
+          }
+        },
+        include: { account: true }
+      });
       let user = await tdb.user.update({
         where: { oid: d.user.oid },
-        data: { email: d.email.email }
+        data: {
+          email: d.email.email,
+          accountOid:
+            accountDomain?.account.status == 'active' ? accountDomain.accountOid : null
+        }
       });
 
       await addAfterTransactionHook(() => userEvents.fire('update', user!));
+      await markAresUserChanged({ userId: user.id, db: tdb });
 
       auditLogService.log({
         appOid: user.appOid,
@@ -337,6 +692,8 @@ class UserServiceImpl {
         metadata: { email: email.email }
       });
 
+      await markAresUserChanged({ userId: d.user.id, db: tdb });
+
       return email;
     });
   }
@@ -345,19 +702,22 @@ class UserServiceImpl {
     user: User;
     terms: (UserTermsType | Promise<UserTermsType>)[];
     context: Context;
+    suppressSync?: boolean;
   }) {
     return withTransaction(async db => {
       for (let termProm of i.terms) {
         let term = await termProm;
 
-        await db.userTermsAgreement.create({
-          data: {
+        await db.userTermsAgreement.upsert({
+          where: { userOid_typeOid: { userOid: i.user.oid, typeOid: term.oid } },
+          create: {
             ...getId('userTermsAgreement'),
             userOid: i.user.oid,
             typeOid: term.oid,
             ip: i.context.ip,
             ua: i.context.ua
-          }
+          },
+          update: {}
         });
 
         await auditLogService.log({
@@ -368,6 +728,9 @@ class UserServiceImpl {
           ua: i.context.ua,
           metadata: { terms: term.identifier, version: term.version }
         });
+      }
+      if (!i.suppressSync) {
+        await markAresUserChanged({ userId: i.user.id, db });
       }
     });
   }
@@ -394,6 +757,7 @@ class UserServiceImpl {
       });
 
       await addAfterTransactionHook(() => userEvents.fire('update', user!));
+      await markAresUserChanged({ userId: user.id, db: tdb });
 
       auditLogService.log({
         appOid: user.appOid,
@@ -435,6 +799,7 @@ class UserServiceImpl {
       });
 
       await addAfterTransactionHook(() => userEvents.fire('delete', user!));
+      await markAresUserChanged({ userId: user.id, db: tdb });
 
       await tdb.userEmail.deleteMany({
         where: { userOid: d.user.oid }
@@ -457,6 +822,7 @@ class UserServiceImpl {
   async setEmails(d: {
     user: User;
     emails: { email: string; isPrimary: boolean; isVerified: boolean }[];
+    suppressSync?: boolean;
   }) {
     return withTransaction(async tdb => {
       let existing = await tdb.userEmail.findMany({
@@ -520,10 +886,28 @@ class UserServiceImpl {
       // Sync the user's primary email field
       let primary = results.find(e => e.isPrimary);
       if (primary && primary.email !== d.user.email) {
+        let parsedEmail = parseEmail(primary.email);
+        let accountDomain = await tdb.accountDomain.findUnique({
+          where: {
+            appOid_domain: {
+              appOid: d.user.appOid,
+              domain: parsedEmail.domain
+            }
+          },
+          include: { account: true }
+        });
         await tdb.user.update({
           where: { oid: d.user.oid },
-          data: { email: primary.email }
+          data: {
+            email: primary.email,
+            accountOid:
+              accountDomain?.account.status == 'active' ? accountDomain.accountOid : null
+          }
         });
+      }
+
+      if (!d.suppressSync) {
+        await markAresUserChanged({ userId: d.user.id, db: tdb });
       }
 
       return results;

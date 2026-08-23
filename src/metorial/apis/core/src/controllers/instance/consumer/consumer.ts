@@ -5,17 +5,17 @@ import {
   consumerProfileService,
   consumerService,
   consumerSurfaceService
-} from '@metorial/module-consumer';
-import { Controller } from '@metorial/rest';
-import { checkAccess } from '../../../middleware/checkAccess';
-import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+} from '@metorial/module-consumer-core';
 import {
   consumerAndProfilePresenter,
   consumerPresenter,
   consumerProfilePresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
+import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
+import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 
 let getAssignedConsumerGroupsByProfileId = async (d: {
   consumerProfiles: Awaited<
@@ -224,7 +224,8 @@ export let consumerController = Controller.create(
         let consumerSurface = await consumerSurfaceService.ensureInternalConsumerSurface({
           instance: ctx.instance,
           identifier: ctx.body.surface_identifier,
-          name: 'CLI'
+          name: 'Metorial CLI',
+          type: 'cli'
         });
 
         let consumerProfile = await consumerProfileService.ensureConsumerProfile({

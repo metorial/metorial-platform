@@ -1,0 +1,233 @@
+model ProviderToolGlobal {
+  oid BigInt @id
+  id  String @unique
+
+  key String
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  currentInstanceOid BigInt?
+  currentInstance    ProviderTool? @relation(fields: [currentInstanceOid], references: [oid], name: "currentToolInstance")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerTools ProviderTool[]
+
+  @@unique([providerOid, key])
+}
+
+model ProviderTool {
+  oid BigInt @id
+  id  String @unique
+
+  specId               String
+  specUniqueIdentifier String
+  callableId           String
+  key                  String
+
+  name        String
+  description String?
+
+  /// [ProviderToolValue]
+  value Json
+
+  hash String
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  specificationOid BigInt
+  specification    ProviderSpecification @relation(fields: [specificationOid], references: [oid])
+
+  globalOid BigInt
+  global    ProviderToolGlobal @relation(fields: [globalOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  currentInGlobal ProviderToolGlobal[] @relation("currentToolInstance")
+  sessionMessages SessionMessage[]
+  toolCalls       ToolCall[]
+
+  @@unique([providerOid, specificationOid, hash])
+  @@unique([specificationOid, key])
+}
+
+model ProviderAuthMethodGlobal {
+  oid BigInt @id
+  id  String @unique
+
+  key String
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  currentInstanceOid BigInt?
+  currentInstance    ProviderAuthMethod? @relation(fields: [currentInstanceOid], references: [oid], name: "currentAuthMethodInstance")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerAuthMethods            ProviderAuthMethod[]
+  managedProviderAuthCredentials ManagedProviderAuthCredentials[]
+
+  @@unique([providerOid, key])
+}
+
+enum ProviderAuthMethodType {
+  oauth
+  token
+  service_account
+  custom
+}
+
+model ProviderAuthMethod {
+  oid BigInt @id
+  id  String @unique
+
+  specId               String
+  specUniqueIdentifier String
+  callableId           String
+  key                  String
+
+  type ProviderAuthMethodType
+
+  isDefault Boolean
+
+  name        String
+  description String?
+
+  /// [ProviderAuthMethodValue]
+  value Json
+
+  hash String
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  specificationOid BigInt
+  specification    ProviderSpecification @relation(fields: [specificationOid], references: [oid])
+
+  globalOid BigInt
+  global    ProviderAuthMethodGlobal @relation(fields: [globalOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerOAuthSetups            ProviderOAuthSetup[]
+  providerAuthConfigs            ProviderAuthConfig[]
+  managedProviderAuthCredentials ManagedProviderAuthCredentials[]
+  currentInGlobal                ProviderAuthMethodGlobal[]       @relation("currentAuthMethodInstance")
+  providerSetupSessions          ProviderSetupSession[]
+  integrationProviderVersions    IntegrationProviderVersion[]
+
+  @@unique([providerOid, specificationOid, hash])
+  @@unique([specificationOid, key])
+  @@index([isDefault])
+}
+
+enum ProviderSpecificationType {
+  preliminary
+  full
+}
+
+model ProviderSpecification {
+  oid  BigInt                    @id
+  id   String                    @unique
+  type ProviderSpecificationType
+
+  specId               String
+  specUniqueIdentifier String
+  key                  String
+
+  name        String
+  description String?
+
+  /// [ProviderSpecificationValue]
+  value Json
+
+  hash String
+
+  supportsAuthMethod Boolean
+  configContainsAuth Boolean
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerVersions                                     ProviderVersion[]
+  providerTools                                        ProviderTool[]
+  providerAuthMethods                                  ProviderAuthMethod[]
+  providerTriggers                                     ProviderTrigger[]
+  providerDeploymentConfigPairProviderVersions         ProviderDeploymentConfigPairProviderVersion[]
+  providerDeploymentConfigPairSpecificationChangesFrom ProviderDeploymentConfigPairSpecificationChange[] @relation("SpecChangeFrom")
+  providerDeploymentConfigPairSpecificationChangesTo   ProviderDeploymentConfigPairSpecificationChange[] @relation("SpecChangeTo")
+  providerVersionSpecificationChangesFrom              ProviderVersionSpecificationChange[]              @relation("SpecChangeFrom")
+  providerVersionSpecificationChangesTo                ProviderVersionSpecificationChange[]              @relation("SpecChangeTo")
+  providerConfigs                                      ProviderConfig[]
+  sessionConnectionProviderSpecifications              SessionConnectionProviderSpecification[]
+
+  @@unique([providerOid, hash])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model ProviderTriggerGlobal {
+  oid BigInt @id
+  id  String @unique
+
+  key String
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  currentInstanceOid BigInt?
+  currentInstance    ProviderTrigger? @relation(fields: [currentInstanceOid], references: [oid], name: "currentTriggerInstance")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerTriggers ProviderTrigger[]
+
+  @@unique([providerOid, key])
+}
+
+model ProviderTrigger {
+  oid BigInt @id
+  id  String @unique
+
+  specId               String
+  specUniqueIdentifier String
+  callableId           String
+  key                  String
+
+  name        String
+  description String?
+
+  /// [ProviderTriggerValue]
+  value Json
+
+  hash String
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  specificationOid BigInt
+  specification    ProviderSpecification @relation(fields: [specificationOid], references: [oid])
+
+  globalOid BigInt
+  global    ProviderTriggerGlobal @relation(fields: [globalOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  currentInGlobal          ProviderTriggerGlobal[]   @relation("currentTriggerInstance")
+  callbackProviderTriggers CallbackProviderTrigger[]
+
+  @@unique([providerOid, specificationOid, hash])
+  @@unique([specificationOid, key])
+}

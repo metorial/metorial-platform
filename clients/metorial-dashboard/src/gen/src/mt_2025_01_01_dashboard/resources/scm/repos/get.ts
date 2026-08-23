@@ -5,7 +5,7 @@ export type ScmReposGetOutput = {
   id: string;
   provider: {
     object: 'scm.provider';
-    type: 'github' | 'gitlab';
+    type: 'github' | 'gitlab' | 'bitbucket';
     id: string;
     name: string;
     owner: string;

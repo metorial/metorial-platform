@@ -1,12 +1,12 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderService } from '@metorial/module-subspace';
+import { providerService } from '@metorial-subspace/module-catalog';
+import { providerPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerPresenter } from '../../../presenters';
 
 let providerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerId) {
@@ -18,7 +18,7 @@ let providerGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let provider = await subspaceProviderService.get({
+  let provider = await providerService.getProviderById({
     instance: ctx.instance,
     providerId: ctx.params.providerId
   });
@@ -46,7 +46,27 @@ export let providerController = Controller.create(
           v.object({
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
-            })
+            }),
+
+            search: v.optional(v.string(), {
+              description: 'Search providers by name, description, or readme'
+            }),
+
+            auth_method: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter by auth method — matches an auth method ID, auth method global ID, key, name, or type (oauth, token, service_account, custom)'
+            }),
+
+            auth_setup: v.optional(
+              v.union([
+                v.enumOf(['configured', 'not_configured']),
+                v.array(v.enumOf(['configured', 'not_configured']))
+              ]),
+              {
+                description:
+                  'Filter by auth setup status. "configured" matches providers with a token or custom auth method, or with auth credentials already configured. "not_configured" matches providers with only OAuth auth methods and no auth credentials configured.'
+              }
+            )
           })
         ),
         v => v
@@ -70,6 +90,26 @@ export let providerController = Controller.create(
               description: 'Filter by provider ID(s)'
             }),
 
+            search: v.optional(v.string(), {
+              description: 'Search providers by name, description, or readme'
+            }),
+
+            auth_method: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter by auth method — matches an auth method ID, auth method global ID, key, name, or type (oauth, token, service_account, custom)'
+            }),
+
+            auth_setup: v.optional(
+              v.union([
+                v.enumOf(['configured', 'not_configured']),
+                v.array(v.enumOf(['configured', 'not_configured']))
+              ]),
+              {
+                description:
+                  'Filter by auth setup status. "configured" matches providers with a token or custom auth method, or with auth credentials already configured. "not_configured" matches providers with only OAuth auth methods and no auth credentials configured.'
+              }
+            ),
+
             capabilities: v.optional(
               v.object({
                 supportsConfig: v.optional(v.boolean()),
@@ -85,10 +125,13 @@ export let providerController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderService.list({
+        let paginator = await providerService.listProviders({
           instance: ctx.instance,
 
           ids: normalizeArrayParam(ctx.query.id),
+          search: ctx.query.search,
+          authMethods: normalizeArrayParam(ctx.query.auth_method),
+          authSetup: normalizeArrayParam(ctx.query.auth_setup),
           capabilities: ctx.query.capabilities
         });
 

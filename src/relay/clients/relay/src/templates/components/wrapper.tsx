@@ -69,8 +69,8 @@ export let Wrapper = ({
           <Section>
             {process.env.METORIAL_SOURCE == 'enterprise' ? (
               <Text style={footerText}>
-                Sent by Metorial 💌. If you have any questions, feel free to contact us. If you
-                need to reference this message use this ID: EMAIL_ID.
+                Sent by Metorial 💌. If you have any questions, feel free to reply to this
+                email. If you need to reference this message use this ID: EMAIL_ID.
               </Text>
             ) : (
               <Text style={footerText}>

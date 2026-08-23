@@ -2,8 +2,9 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { env } from '../../env';
+import { createSanitizedWebhookResponse } from '../../lib/triggerWebhookSync';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
-import { slateTriggerWebhookRequestService } from '../../services/slateTriggerWebhookRequest';
+import { slateTriggerWebhookSyncService } from '../../services/slateTriggerWebhookSync';
 
 let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';
 
@@ -33,6 +34,42 @@ let getWebhookRequestPayload = async (c: any) => {
   };
 };
 
+let handleTriggerWebhookRequest =
+  (targetType: 'receiverTrigger' | 'receiver') => async (c: any) => {
+    if (c.req.method === 'OPTIONS' && c.req.header('access-control-request-method')) {
+      return c.text('');
+    }
+
+    let targetId = c.req.param(
+      targetType === 'receiverTrigger' ? 'receiverTriggerId' : 'receiverId'
+    );
+    if (!targetId) return c.text('Missing trigger receiver ID', 400);
+
+    let result = await slateTriggerWebhookSyncService.handleWebhookRequest({
+      receiverTriggerId: targetType === 'receiverTrigger' ? targetId : undefined,
+      receiverId: targetType === 'receiver' ? targetId : undefined,
+      request: await getWebhookRequestPayload(c)
+    });
+
+    if (result.type === 'methodNotAllowed') {
+      return new Response('Method Not Allowed', {
+        status: 405,
+        headers: { Allow: result.allowedMethods.join(', ') }
+      });
+    }
+
+    if (result.type === 'response') {
+      return createSanitizedWebhookResponse(result.response);
+    }
+
+    return c.json({
+      status: 'queued',
+      webhookRequestId: result.webhookRequestId
+    });
+  };
+
+let WEBHOOK_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+
 export let hubApp = createHono()
   .use(async (c, next) => {
     await next();
@@ -40,7 +77,7 @@ export let hubApp = createHono()
     c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
     c.res.headers.set(
       'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+      'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD'
     );
     c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -93,27 +130,15 @@ export let hubApp = createHono()
 
     return c.redirect(res.redirectUrl);
   })
-  .post('/slates-hub/triggers/webhook/:receiverTriggerId/:key*?', async c => {
-    let receiverTriggerId = c.req.param('receiverTriggerId');
-    if (!receiverTriggerId) return c.text('Missing trigger receiver ID', 400);
-
-    let requestRecord = await slateTriggerWebhookRequestService.createWebhookRequest({
-      receiverTriggerId,
-      request: await getWebhookRequestPayload(c)
-    });
-
-    return c.json({ status: 'queued', webhookRequestId: requestRecord.id });
-  })
-  .post('/slates-hub/triggers/receiver-webhook/:receiverId/:key*?', async c => {
-    let receiverId = c.req.param('receiverId');
-    if (!receiverId) return c.text('Missing trigger receiver ID', 400);
-
-    let requestRecord = await slateTriggerWebhookRequestService.createWebhookRequest({
-      receiverId,
-      request: await getWebhookRequestPayload(c)
-    });
-
-    return c.json({ status: 'queued', webhookRequestId: requestRecord.id });
-  })
+  .on(
+    WEBHOOK_METHODS,
+    '/slates-hub/triggers/webhook/:receiverTriggerId/:key*?',
+    handleTriggerWebhookRequest('receiverTrigger')
+  )
+  .on(
+    WEBHOOK_METHODS,
+    '/slates-hub/triggers/receiver-webhook/:receiverId/:key*?',
+    handleTriggerWebhookRequest('receiver')
+  )
   .options('*', c => c.text(''))
   .get('/ping', c => c.text('OK'));

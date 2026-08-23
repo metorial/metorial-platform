@@ -4,10 +4,11 @@ import { RiArrowDownSLine, RiArrowUpSLine, RiCheckLine } from '@remixicon/react'
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { ButtonSize, getButtonSize } from '../button/constants';
-import { useZindex } from '../dialog/state';
+import { markSelectPointerDismiss, useZindex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { theme } from '../theme';
+import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
 
 let fadeIn = keyframes`
   from {
@@ -157,6 +158,8 @@ export let Select = ({
   let [isOpen, setIsOpen] = useState(false);
   let zIndex = useZindex(isOpen);
 
+  useSuppressTooltipWhileOpen(isOpen);
+
   let disabledItems = useMemo(
     () =>
       items
@@ -215,7 +218,11 @@ export let Select = ({
           </RadixSelect.Icon>
         </Trigger>
         <RadixSelect.Portal>
-          <Content data-metorial-select-content="true" style={{ zIndex }}>
+          <Content
+            data-metorial-select-content="true"
+            style={{ zIndex }}
+            onPointerDownOutside={markSelectPointerDismiss}
+          >
             <RadixSelect.ScrollUpButton className="SelectScrollButton">
               <RiArrowUpSLine size={14} />
             </RadixSelect.ScrollUpButton>

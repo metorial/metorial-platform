@@ -1,14 +1,17 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { assistantMessageService, assistantRequestService } from '@metorial/module-assistant';
+import {
+  productAssistantMessageService,
+  productAssistantRequestService
+} from '@metorial/module-product-assistant';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { assistantMessagePresenter } from '../../../presenters';
+import { assistantMessagePresenter } from '@metorial/presenters';
 import {
   assistantConversationGroup,
   assistantMessageGroup,
-  requireAssistantActor
+  getAssistantScope
 } from './context';
 
 let assistantMessagePartSchema = v.union([
@@ -49,11 +52,9 @@ export let assistantMessageHandlers = {
     .query('default', Paginator.validate(v.object({})))
     .outputList(assistantMessagePresenter)
     .do(async ctx => {
-      let paginator = await assistantMessageService.list({
-        organization: ctx.organization,
-        instance: ctx.instance,
-        ...requireAssistantActor(ctx),
-        conversationId: ctx.assistantConversation.id
+      let paginator = await productAssistantMessageService.listAssistantMessages({
+        ...getAssistantScope(ctx),
+        conversation: ctx.assistantConversation
       });
       let list = await paginator.run(ctx.query);
 
@@ -94,29 +95,29 @@ export let assistantMessageHandlers = {
     )
     .output(assistantMessagePresenter)
     .do(async ctx => {
-      let { item } = await assistantRequestService.create({
-        organization: ctx.organization,
-        instance: ctx.instance,
-        ...requireAssistantActor(ctx),
-        conversationId: ctx.assistantConversation.id,
-        message: {
-          parts: ctx.body.message.parts.map(part =>
-            part.type == 'text'
-              ? {
-                  type: 'text' as const,
-                  text: part.text
-                }
-              : {
-                  type: 'file' as const,
-                  filename: part.filename,
-                  mediaType: part.media_type,
-                  data: part.data,
-                  encoding: part.encoding
-                }
-          )
-        },
-        parentMessageId: ctx.body.parent_message_id,
-        modelId: ctx.body.model_id
+      let { item } = await productAssistantRequestService.createAssistantRequest({
+        ...getAssistantScope(ctx),
+        conversation: ctx.assistantConversation,
+        input: {
+          message: {
+            parts: ctx.body.message.parts.map(part =>
+              part.type == 'text'
+                ? {
+                    type: 'text' as const,
+                    text: part.text
+                  }
+                : {
+                    type: 'file' as const,
+                    filename: part.filename,
+                    mediaType: part.media_type,
+                    data: part.data,
+                    encoding: part.encoding
+                  }
+            )
+          },
+          parentMessageId: ctx.body.parent_message_id,
+          modelId: ctx.body.model_id
+        }
       });
 
       return assistantMessagePresenter.present({
@@ -184,16 +185,16 @@ export let assistantMessageHandlers = {
     )
     .output(assistantMessagePresenter)
     .do(async ctx => {
-      let item = await assistantRequestService.respondToHandoffs({
-        organization: ctx.organization,
-        instance: ctx.instance,
-        ...requireAssistantActor(ctx),
-        conversationId: ctx.assistantConversation.id,
-        messageId: ctx.assistantConversationItem.id,
-        responses: ctx.body.responses.map(response => ({
-          toolCallId: response.tool_call_id,
-          output: response.output
-        }))
+      let item = await productAssistantRequestService.respondToAssistantHandoffs({
+        ...getAssistantScope(ctx),
+        conversation: ctx.assistantConversation,
+        input: {
+          messageId: ctx.assistantConversationItem.message.id,
+          responses: ctx.body.responses.map(response => ({
+            toolCallId: response.tool_call_id,
+            output: response.output
+          }))
+        }
       });
 
       return assistantMessagePresenter.present({

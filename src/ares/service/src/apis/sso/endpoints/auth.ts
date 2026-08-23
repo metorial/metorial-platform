@@ -4,11 +4,18 @@ import { v } from '@lowerdeck/validation';
 import { createHash, randomBytes } from 'crypto';
 import { db } from '../../../db';
 import { env } from '../../../env';
+import { getRequestContext } from '../../../lib/context';
 import { jackson } from '../../../lib/jackson';
 import { ssoAuthService } from '../../../services/sso/auth';
+import { getSsoAuthCompletionRedirect } from '../../../services/sso/authRedirect';
 import { ssoConnectionService } from '../../../services/sso/connection';
+import {
+  SsoDomainNotAllowedError,
+  ssoDomainPolicyService
+} from '../../../services/sso/domainPolicy';
 import { ssoIdentityService } from '../../../services/sso/identity';
 import { authSelectConnectionHtml } from '../pages/auth-select-connection';
+import { ssoDomainNotAllowedHtml } from '../pages/domain-not-allowed';
 import { errorHtml } from '../pages/error';
 
 function generateCodeVerifier(): string {
@@ -52,7 +59,7 @@ export let ssoAuthApp = createHono()
         );
       }
 
-      if (auth.email && connections.length > 1) {
+      if (auth.email && !auth.connectionOid && connections.length > 1) {
         let user = await db.ssoUser.findFirst({
           where: { tenantOid: auth.tenant.oid, email: auth.email }
         });
@@ -67,12 +74,13 @@ export let ssoAuthApp = createHono()
         }
       }
 
-      let connection: (typeof connections)[number] | null = null;
+      let connection: (typeof connections)[number] | null =
+        connections.find(connection => connection.oid == auth.connectionOid) ?? null;
       let connectionId = c.req.query('connection_id');
 
-      if (connections.length == 1) {
+      if (!connection && connections.length == 1) {
         connection = connections[0]!;
-      } else if (connectionId) {
+      } else if (!connection && connectionId) {
         connection = connections.find(c => c.id === connectionId) || null;
       }
 
@@ -84,6 +92,11 @@ export let ssoAuthApp = createHono()
             clientSecret: body.client_secret,
             currentUrl: c.req.url
           })
+        );
+      }
+      if (!connection.internalClientId || !connection.internalClientSecret) {
+        throw new ServiceError(
+          badRequestError({ message: 'Imported connections must use delegation auth.' })
         );
       }
 
@@ -125,6 +138,10 @@ export let ssoAuthApp = createHono()
 
       return c.redirect(res.redirect_url!);
     } catch (error: any) {
+      if (error instanceof SsoDomainNotAllowedError) {
+        return c.html(ssoDomainNotAllowedHtml(error), 403);
+      }
+
       return c.html(
         errorHtml({
           title: 'Unable to Authenticate',
@@ -147,6 +164,9 @@ export let ssoAuthApp = createHono()
       let auth = await ssoAuthService.getAuthByClientSecret({
         clientSecret: body.state
       });
+      if (auth.account && auth.account.status != 'active') {
+        throw new ServiceError(badRequestError({ message: 'Account is not active.' }));
+      }
       if (auth.status === 'completed') {
         return c.redirect(auth.redirectUri);
       }
@@ -161,6 +181,11 @@ export let ssoAuthApp = createHono()
           })
         );
       }
+      if (!connection.internalClientId || !connection.internalClientSecret) {
+        throw new ServiceError(
+          badRequestError({ message: 'Imported connections must use delegation auth.' })
+        );
+      }
 
       let tokenRes = await jackson.oauthController.token({
         grant_type: 'authorization_code',
@@ -173,6 +198,49 @@ export let ssoAuthApp = createHono()
       });
 
       let userInfo = await jackson.oauthController.userInfo(tokenRes.access_token);
+
+      await ssoDomainPolicyService.assertEmailAllowed({
+        tenant: auth.tenant,
+        connection,
+        account: auth.account,
+        email: userInfo.email,
+        context: getRequestContext(c)
+      });
+
+      if (auth.purpose === 'connection_test') {
+        let testSso = await db.ssoTest.findUnique({ where: { authOid: auth.oid } });
+        if (!testSso) {
+          throw new ServiceError(badRequestError({ message: 'SSO test record not found.' }));
+        }
+
+        await db.ssoTest.update({
+          where: { oid: testSso.oid },
+          data: {
+            status: 'completed',
+            email: userInfo.email,
+            firstName: userInfo.firstName,
+            lastName: userInfo.lastName,
+            uid: userInfo.id,
+            sub: userInfo.sub ?? null,
+            groups: userInfo.groups ?? [],
+            roles: userInfo.roles ?? [],
+            raw: userInfo.raw,
+            completedAt: new Date()
+          }
+        });
+
+        let testRedirect = getSsoAuthCompletionRedirect({
+          redirectUri: auth.redirectUri,
+          purpose: auth.purpose,
+          tenantId: auth.tenant.id,
+          authId: auth.id,
+          testSsoId: testSso.id
+        });
+
+        // The auth was only ever a vehicle for the test, and `SsoTest.authId` keeps the audit trail.
+        await db.ssoAuth.delete({ where: { oid: auth.oid } });
+        return c.redirect(testRedirect.url);
+      }
 
       let user = await ssoIdentityService.upsertUser({
         tenant: auth.tenant,
@@ -208,12 +276,18 @@ export let ssoAuthApp = createHono()
         }
       });
 
-      let finalRedirectUri = new URL(auth.redirectUri);
-      finalRedirectUri.searchParams.set('tenant_id', auth.tenant.id);
-      finalRedirectUri.searchParams.set('auth_id', auth.id);
-
-      return c.redirect(finalRedirectUri.toString());
+      let completionRedirect = getSsoAuthCompletionRedirect({
+        redirectUri: auth.redirectUri,
+        purpose: auth.purpose,
+        tenantId: auth.tenant.id,
+        authId: auth.id
+      });
+      return c.redirect(completionRedirect.url);
     } catch (error: any) {
+      if (error instanceof SsoDomainNotAllowedError) {
+        return c.html(ssoDomainNotAllowedHtml(error), 403);
+      }
+
       return c.html(
         errorHtml({
           title: 'Unable to Authenticate',

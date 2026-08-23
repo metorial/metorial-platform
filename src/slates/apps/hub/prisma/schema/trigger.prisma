@@ -112,9 +112,9 @@ model SlateTriggerReceiver {
   invocations  SlateTriggerInvocation[]
   slateErrors  SlateError[]
 
+  @@unique([tenantOid, callbackId, callbackInstanceId])
   @@index([tenantOid, slateInstanceOid])
   @@index([tenantOid, slateOid])
-  @@unique([tenantOid, callbackId, callbackInstanceId])
 }
 
 model SlateTriggerReceiverDestination {
@@ -166,7 +166,8 @@ model SlateTriggerInvocation {
   oid BigInt @id
   id  String @unique
 
-  type SlateTriggerInvocationType
+  type        SlateTriggerInvocationType
+  hasResponse Boolean                    @default(false)
 
   receiverOid BigInt
   receiver    SlateTriggerReceiver @relation(fields: [receiverOid], references: [oid], onDelete: Cascade)
@@ -260,7 +261,7 @@ model SlateTriggerEvent {
 
   createdAt DateTime @default(now())
 
-  deliveries  SlateTriggerDelivery[] @ignore
+  deliveries  SlateTriggerDelivery[]   @ignore
   invocations SlateTriggerInvocation[]
   eventInputs SlateTriggerEventInput[]
 
@@ -302,6 +303,11 @@ model SlateTriggerWebhookRequest {
 
   bodyStorageKey String?
   processedAt    DateTime?
+
+  syncOwnerToken                  String?
+  syncOwnerExpiresAt              DateTime?
+  syncOwnerCommitStartedAt        DateTime?
+  syncCompletedReceiverTriggerIds String[]  @default([])
 
   createdAt DateTime @default(now())
 

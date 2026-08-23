@@ -1,5 +1,5 @@
 import { createCachedFunction } from '@lowerdeck/cache';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuthDevice, AuthDeviceUserSession, User } from '../../prisma/generated/client';
 import { db } from '../db';
@@ -8,6 +8,7 @@ import { getId } from '../id';
 import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
 import { deviceService } from './device';
+import { markAresUserChanged } from '../queues/syncCallback';
 
 let cacheTTLSecs = 60 * 5;
 let findAuthSessionCached = createCachedFunction<
@@ -41,6 +42,7 @@ let findAuthSessionCached = createCachedFunction<
         data: { lastActiveAt: new Date() },
         include: { userEmails: true }
       });
+      await markAresUserChanged({ userId: user.id });
     }
 
     return { device, session, user };
@@ -49,6 +51,34 @@ let findAuthSessionCached = createCachedFunction<
   getTags: o => (o ? [o.user.id] : []),
   ttlSeconds: cacheTTLSecs
 });
+
+export type SessionLifecycleState =
+  | 'active'
+  | 'superseded'
+  | 'logged_out'
+  | 'expired'
+  | 'revoked';
+
+export let SESSION_LIFECYCLE_STATES: [SessionLifecycleState, ...SessionLifecycleState[]] = [
+  'active',
+  'superseded',
+  'logged_out',
+  'expired',
+  'revoked'
+];
+
+let TERMINAL_LIFECYCLE_STATES = new Set<SessionLifecycleState>([
+  'logged_out',
+  'expired',
+  'revoked'
+]);
+
+export type ApplyOwnerStateResult =
+  | { applied: true }
+  | {
+      applied: false;
+      reason: 'owned_by_other' | 'stale_owner_session' | 'stale_revision' | 'session_closed';
+    };
 
 class SessionService {
   async clearCache(user: User) {
@@ -81,7 +111,15 @@ class SessionService {
     return res;
   }
 
-  async logout(d: { session: AuthDeviceUserSession }) {
+  async logout(d: { session: AuthDeviceUserSession; owner?: string }) {
+    if (d.session.lifecycleOwner && d.session.lifecycleOwner !== d.owner) {
+      throw new ServiceError(
+        forbiddenError({
+          message: `Session is owned by ${d.session.lifecycleOwner} and can only be ended there`
+        })
+      );
+    }
+
     let res = await db.authDeviceUserSession.update({
       where: {
         id: d.session.id
@@ -106,6 +144,93 @@ class SessionService {
     });
 
     return res;
+  }
+
+  // The owner claims a session by pushing its first state and keeps it by pushing
+  // every later one. Claiming is scoped to the app it names, so an owner of the main
+  // app can never reach a session that belongs to an admin app.
+  async applyOwnerState(d: {
+    sessionId: string;
+    owner: string;
+    ownerSessionId: string;
+    ownerRevision: bigint;
+    appSlug: string;
+    state: SessionLifecycleState;
+    expiresAt: Date;
+    lastActiveAt?: Date | null;
+    logoutUrl: string;
+  }): Promise<ApplyOwnerStateResult> {
+    let session = await db.authDeviceUserSession.findUnique({
+      where: { id: d.sessionId }
+    });
+    if (!session) throw new ServiceError(notFoundError('session', d.sessionId));
+
+    let app = await db.app.findUnique({ where: { slug: d.appSlug } });
+    if (!app || app.oid !== session.appOid) {
+      throw new ServiceError(
+        forbiddenError({ message: 'Session does not belong to the claiming app' })
+      );
+    }
+
+    if (session.lifecycleOwner && session.lifecycleOwner !== d.owner) {
+      return { applied: false, reason: 'owned_by_other' };
+    }
+
+    let isClaimed = session.lifecycleOwner !== null;
+    let isCurrentOwnerSession =
+      isClaimed && session.lifecycleOwnerSessionId === d.ownerSessionId;
+
+    // An unclaimed session accepts any state, so a session that predates ownership is
+    // taken over by whatever happens to it first. Once claimed, only an activation may
+    // move the claim: a replaced owner session must not be able to end the ares
+    // session that the one which replaced it is still using.
+    if (isClaimed && !isCurrentOwnerSession && d.state !== 'active') {
+      return { applied: false, reason: 'stale_owner_session' };
+    }
+
+    if (
+      isCurrentOwnerSession &&
+      session.lifecycleOwnerRevision !== null &&
+      session.lifecycleOwnerRevision >= d.ownerRevision
+    ) {
+      return { applied: false, reason: 'stale_revision' };
+    }
+
+    // The owner may end a session but never bring one back. Ares closes sessions
+    // itself when the account goes away, and a later resync must not undo that.
+    if (session.loggedOutAt && d.state === 'active') {
+      return { applied: false, reason: 'session_closed' };
+    }
+
+    let now = new Date();
+    let isTerminal = TERMINAL_LIFECYCLE_STATES.has(d.state);
+
+    // `superseded` deliberately leaves the lifecycle alone: another session took over
+    // the device, but this user stays signed in and keeps showing up as a logged in
+    // user that can be switched back to.
+    let lifecycle = isTerminal
+      ? { loggedOutAt: session.loggedOutAt ?? now, expiresAt: now }
+      : d.state === 'active'
+        ? { loggedOutAt: null, expiresAt: d.expiresAt }
+        : {};
+
+    await db.authDeviceUserSession.update({
+      where: { oid: session.oid },
+      data: {
+        ...lifecycle,
+        ...(d.lastActiveAt ? { lastActiveAt: d.lastActiveAt } : {}),
+        lifecycleOwner: d.owner,
+        lifecycleOwnerSessionId: d.ownerSessionId,
+        lifecycleOwnerRevision: d.ownerRevision,
+        lifecycleOwnerLogoutUrl: d.logoutUrl,
+        lifecycleClaimedAt: session.lifecycleClaimedAt ?? now,
+        lifecycleSyncedAt: now
+      }
+    });
+
+    await findAuthSessionCached.clear({ sessionId: session.id });
+
+    return { applied: true };
   }
 
   async getSessionSafe(d: { sessionId: string }) {

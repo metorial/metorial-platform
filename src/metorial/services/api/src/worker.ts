@@ -2,36 +2,60 @@ process.env.TZ = 'UTC';
 
 import { runQueueProcessors } from '@metorial/queue';
 
+import { documentQueueProcessor as cargoDocumentQueueProcessor } from '@metorial/module-documents';
+import { fileQueueProcessor as cargoFileQueueProcessor } from '@metorial/module-file';
+import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/module-store';
 import { accessQueueProcessor } from '@metorial/module-access';
-import { assistantQueueProcessor } from '@metorial/module-assistant';
+import { auditLogStreamQueueProcessor } from '@metorial/module-audit-log-stream';
+import { auditTrackerQueueProcessor } from '@metorial/module-audit-tracker';
 import { communityQueueProcessor } from '@metorial/module-community';
-import { consumerQueueProcessor } from '@metorial/module-consumer';
+import { consumerAccessQueueProcessor } from '@metorial/module-consumer-access';
+import { consumerCoreQueueProcessor } from '@metorial/module-consumer-core';
+import { consumerEntitiesQueueProcessor } from '@metorial/module-consumer-entities';
+import { consumerOAuthQueueProcessor } from '@metorial/module-consumer-oauth';
 import { emailQueueProcessor } from '@metorial/module-email';
-import { eventQueueProcessor } from '@metorial/module-event';
-import { fileQueueProcessor } from '@metorial/module-file';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import { organizationQueueProcessor } from '@metorial/module-organization';
-import { protectQueueProcessor } from '@metorial/module-protect';
-import { subspaceQueueProcessor } from '@metorial/module-subspace';
+import { portalQueueProcessor } from '@metorial/module-portal';
+import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
+import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/module-skill';
+import { skillConfigurationQueueProcessor } from '@metorial/module-skill-configurations';
+import { skillGroupQueueProcessor } from '@metorial/module-skill-groups';
+import { skillImportQueueProcessor } from '@metorial/module-skill-import';
+import { skillMarketplaceQueueProcessor } from '@metorial/module-skill-marketplace';
+import { skillMergeRequestQueueProcessor } from '@metorial/module-skill-merge-requests';
+import { skillTemplateQueueProcessor } from '@metorial/module-skill-templates';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
 import { multiRegionQueueProcessor } from '@metorial/multi-region';
 
 export let worker = runQueueProcessors([
-  assistantQueueProcessor,
+  auditTrackerQueueProcessor,
+  auditLogStreamQueueProcessor,
+  productAssistantQueueProcessor,
   userQueueProcessor,
   machineAccessQueueProcessor,
   organizationQueueProcessor,
   emailQueueProcessor,
   accessQueueProcessor,
-  fileQueueProcessor,
-  eventQueueProcessor,
+  cargoFileQueueProcessor,
+  cargoDocumentQueueProcessor,
+  cargoStoreQueueProcessor,
+  cargoSkillQueueProcessor,
+  skillTemplateQueueProcessor,
+  skillGroupQueueProcessor,
+  skillConfigurationQueueProcessor,
+  skillImportQueueProcessor,
+  skillMarketplaceQueueProcessor,
+  skillMergeRequestQueueProcessor,
   usageQueueProcessor,
   communityQueueProcessor,
-  consumerQueueProcessor,
+  consumerCoreQueueProcessor,
+  consumerAccessQueueProcessor,
+  consumerEntitiesQueueProcessor,
+  consumerOAuthQueueProcessor,
+  portalQueueProcessor,
   magicQueueProcessor,
-  protectQueueProcessor,
-  subspaceQueueProcessor,
   multiRegionQueueProcessor
 ]);

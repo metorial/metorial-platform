@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 import {
   skillMarketplaceRepositoryService,
   skillMarketplaceService
-} from '@metorial/module-file';
+} from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
@@ -12,7 +12,7 @@ import { isDashboardGroup } from '../../../middleware/isDashboard';
 import {
   bucketEditorTokenPresenter,
   skillMarketplaceRepositoryPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import { getSkillMarketplaceAccess, skillMarketplaceGroup } from './skillMarketplace';
 
 let readScopes = ['instance.skill:read'] as const;
@@ -43,8 +43,8 @@ export let skillMarketplaceRepositoryController = Controller.create(
       .do(async ctx => {
         let paginator =
           await skillMarketplaceRepositoryService.listSkillMarketplaceRepositories({
-            ...getSkillMarketplaceAccess(ctx),
-            skillMarketplace: ctx.skillMarketplace
+            ...(await getSkillMarketplaceAccess(ctx)),
+            skillMarketplaceId: ctx.skillMarketplace.id
           });
         let list = await paginator.run(ctx.query);
 
@@ -71,8 +71,8 @@ export let skillMarketplaceRepositoryController = Controller.create(
       .do(async ctx => {
         let skillMarketplaceRepository =
           await skillMarketplaceRepositoryService.getSkillMarketplaceRepositoryById({
-            ...getSkillMarketplaceAccess(ctx),
-            skillMarketplace: ctx.skillMarketplace,
+            ...(await getSkillMarketplaceAccess(ctx)),
+            skillMarketplaceId: ctx.skillMarketplace.id,
             skillMarketplaceRepositoryId: ctx.params.skillMarketplaceRepositoryId
           });
 
@@ -103,8 +103,8 @@ export let skillMarketplaceRepositoryController = Controller.create(
       .do(async ctx => {
         let skillMarketplaceRepository =
           await skillMarketplaceRepositoryService.createSkillMarketplaceRepository({
-            ...getSkillMarketplaceAccess(ctx),
-            skillMarketplace: ctx.skillMarketplace,
+            ...(await getSkillMarketplaceAccess(ctx)),
+            skillMarketplaceId: ctx.skillMarketplace.id,
             repoId: ctx.body.repo_id
           });
 
@@ -129,8 +129,8 @@ export let skillMarketplaceRepositoryController = Controller.create(
       .do(async ctx => {
         let skillMarketplaceRepository =
           await skillMarketplaceRepositoryService.deleteSkillMarketplaceRepository({
-            ...getSkillMarketplaceAccess(ctx),
-            skillMarketplace: ctx.skillMarketplace,
+            ...(await getSkillMarketplaceAccess(ctx)),
+            skillMarketplaceId: ctx.skillMarketplace.id,
             skillMarketplaceRepositoryId: ctx.params.skillMarketplaceRepositoryId
           });
 
@@ -156,14 +156,14 @@ export let skillMarketplaceRepositoryController = Controller.create(
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
         let token = await skillMarketplaceService.getSkillMarketplaceEditorUrl({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           skillMarketplace: ctx.skillMarketplace,
           isReadOnly: true
         });
 
         return bucketEditorTokenPresenter.present({
           token: {
-            id: ctx.skillMarketplace.backing.id,
+            id: ctx.skillMarketplace.id,
             url: token.url,
             expiresAt: token.expiresAt
           }

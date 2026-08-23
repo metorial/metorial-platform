@@ -13,6 +13,13 @@ enum UserStatus {
   deleted
 }
 
+enum UserSignupMethod {
+  unknown
+  email
+  oauth
+  sso
+}
+
 model User {
   oid BigInt @id
   id  String @unique
@@ -27,6 +34,9 @@ model User {
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid])
 
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
+
   email     String
   name      String
   firstName String
@@ -37,8 +47,15 @@ model User {
 
   isFullyCreated Boolean @default(true)
 
+  // The defaults describe rows that predate these columns. Writers that create a user
+  // without witnessing a login -- projections, SCIM -- pass `unknown` and `false`.
+  signupMethod UserSignupMethod @default(email)
+  hasLoggedIn  Boolean          @default(true)
+
   lastLoginAt  DateTime?
   lastActiveAt DateTime?
+  syncRevision BigInt @default(0)
+  hyperplaneRevision BigInt?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now()) @updatedAt
@@ -53,4 +70,6 @@ model User {
   auditLogs              AuditLog[]
 
   @@unique([appOid, email])
+  @@index([accountOid, id])
+  @@index([appOid, email])
 }

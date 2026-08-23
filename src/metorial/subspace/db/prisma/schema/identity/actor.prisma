@@ -1,0 +1,65 @@
+enum IdentityActorType {
+  person
+  agent
+}
+
+enum IdentityActorStatus {
+  active
+  archived
+  deleted
+}
+
+model IdentityActor {
+  oid BigInt @id
+  id  String @unique
+
+  type            IdentityActorType
+  status          IdentityActorStatus
+  isParentDeleted Boolean             @default(false)
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  agent                      Agent?
+  identities                 Identity[]
+  identityDelegationParties  IdentityDelegationParty[]
+  identityDelegationRequests IdentityDelegationRequest[]
+  delegatedIdentities        DelegatedIdentity[]
+  identityDelegations        IdentityDelegation[]        @relation("delegations")
+  subDelegations             IdentityDelegation[]        @relation("subDelegatedTo")
+  integrationInstances       IntegrationInstance[]
+  integrationInstanceGroups  IntegrationInstanceGroup[]
+  sessionTemplates           SessionTemplate[]
+  sessions                   Session[]
+  magicMcpEndpointBackings   MagicMcpEndpointBacking[]
+  magicMcpServerBackings     MagicMcpServerBacking[]
+  ephemeralManagedSessions   EphemeralManagedSession[]
+  sessionParticipants        SessionParticipant[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

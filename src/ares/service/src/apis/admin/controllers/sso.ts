@@ -54,7 +54,7 @@ export let ssoController = adminApp.controller({
       let app = await adminService.getApp({ appId: input.appId });
       let tenant = await ssoTenantService.createTenant({
         app,
-        input: { name: input.name }
+        input: { name: input.name, enrollment: 'app' }
       });
       return ssoTenantPresenter({ ...tenant, _count: { connections: 0 } });
     }),
@@ -225,31 +225,5 @@ export let ssoController = adminApp.controller({
         status: input.status
       });
       return ssoDirectoryPresenter(updated);
-    }),
-
-  listGlobalTenants: adminApp
-    .handler()
-    .input(Paginator.validate())
-    .do(async ({ input }) => {
-      let paginator = await ssoTenantService.listGlobalTenants();
-      let list = await paginator.run(input);
-      return Paginator.presentLight(list, t => ({
-        ...ssoTenantPresenter(t),
-        app: { id: t.app.id, clientId: t.app.clientId }
-      }));
-    }),
-
-  setGlobal: adminApp
-    .handler()
-    .input(
-      v.object({
-        id: v.string(),
-        isGlobal: v.boolean()
-      })
-    )
-    .do(async ({ input }) => {
-      let tenant = await ssoTenantService.getTenantById({ tenantId: input.id });
-      let updated = await ssoTenantService.setGlobal({ tenant, isGlobal: input.isGlobal });
-      return ssoTenantPresenter(updated);
     })
 });

@@ -1,8 +1,7 @@
 import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 
-let databaseUrl = process.env.GLOBAL_DATABASE_URL;
-console.log('Using database URL:', databaseUrl);
+let databaseUrl = process.env.GLOBAL_DATABASE_URL ?? process.env.DATABASE_URL;
 
 export default defineConfig({
   schema: 'prisma/schema',

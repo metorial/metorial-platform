@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillMarketplaceService } from '@metorial/module-file';
+import { skillMarketplaceService } from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -10,11 +10,8 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillMarketplacePresenter } from '../../../presenters';
-import {
-  assertConsumerCanAccessSkillMarketplace,
-  getReadSkillMarketplaceFilter
-} from './_marketplaceAccess';
+import { skillMarketplacePresenter } from '@metorial/presenters';
+import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write'] as const;
@@ -23,39 +20,36 @@ let skillMarketplaceInput = {
   name: v.optional(v.string()),
   description: v.optional(v.nullable(v.string())),
   image_file_id: v.optional(v.nullable(v.string())),
-  skill_configuration_id: v.optional(v.nullable(v.string()))
+  skill_configuration_id: v.optional(v.nullable(v.string())),
+  repository_access_mode: v.optional(v.enumOf(['pull_request', 'default_branch'])),
+  force_merge_or_push: v.optional(v.boolean()),
+  merge_before_checks_pass: v.optional(v.boolean())
 };
 
 export let getSkillMarketplaceAccess = (
   ctx: Parameters<typeof getInstanceCargoAccess>[0] & any
-) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  ...getInstanceCargoAccess(ctx)
-});
+) => getInstanceCargoAccess(ctx);
 
-export let skillMarketplaceGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
-  if (!ctx.params.skillMarketplaceId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'skillMarketplaceId is required',
-        description: 'The skillMarketplaceId path parameter is required.'
-      })
-    );
-  }
+export let skillMarketplaceGroup = instanceGroup
+  .use(hasFlags(['skills-enabled']))
+  .use(async ctx => {
+    if (!ctx.params.skillMarketplaceId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'skillMarketplaceId is required',
+          description: 'The skillMarketplaceId path parameter is required.'
+        })
+      );
+    }
 
-  await assertConsumerCanAccessSkillMarketplace(ctx, ctx.params.skillMarketplaceId);
+    let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
+      ...(await getSkillMarketplaceAccess(ctx)),
+      skillMarketplaceId: ctx.params.skillMarketplaceId,
+      ...getSkillMarketplaceAccessInput(ctx)
+    });
 
-  let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
-    ...getSkillMarketplaceAccess(ctx),
-    skillMarketplaceId: ctx.params.skillMarketplaceId
+    return { skillMarketplace };
   });
-
-  return { skillMarketplace };
-});
 
 export let skillMarketplaceController = Controller.create(
   {
@@ -91,18 +85,10 @@ export let skillMarketplaceController = Controller.create(
         )
       )
       .do(async ctx => {
-        let marketplaceFilter = await getReadSkillMarketplaceFilter(ctx);
-        let queryIds = normalizeArrayParam(ctx.query.id);
-        let ids =
-          marketplaceFilter == null
-            ? queryIds
-            : queryIds?.length
-              ? queryIds.filter(id => marketplaceFilter.includes(id))
-              : marketplaceFilter;
-
         let paginator = await skillMarketplaceService.listSkillMarketplaces({
-          ...getSkillMarketplaceAccess(ctx),
-          ids,
+          ...(await getSkillMarketplaceAccess(ctx)),
+          ...getSkillMarketplaceAccessInput(ctx),
+          ids: normalizeArrayParam(ctx.query.id),
           statuses: normalizeArrayParam(ctx.query.status),
           skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
           search: ctx.query.search,
@@ -112,7 +98,10 @@ export let skillMarketplaceController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, skillMarketplace =>
-          skillMarketplacePresenter.present({ skillMarketplace })
+          skillMarketplacePresenter.present({
+            skillMarketplace,
+            ...getSkillMarketplaceAccessInput(ctx)
+          })
         );
       }),
 
@@ -126,7 +115,10 @@ export let skillMarketplaceController = Controller.create(
       .use(requireConsumerTokenForPublishableKey())
       .output(skillMarketplacePresenter)
       .do(async ctx =>
-        skillMarketplacePresenter.present({ skillMarketplace: ctx.skillMarketplace })
+        skillMarketplacePresenter.present({
+          skillMarketplace: ctx.skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        })
       ),
 
     create: instanceGroup
@@ -146,16 +138,22 @@ export let skillMarketplaceController = Controller.create(
       .output(skillMarketplacePresenter)
       .do(async ctx => {
         let skillMarketplace = await skillMarketplaceService.createSkillMarketplace({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             imageFileId: ctx.body.image_file_id,
-            skillConfigurationId: ctx.body.skill_configuration_id
+            skillConfigurationId: ctx.body.skill_configuration_id,
+            repositoryAccessMode: ctx.body.repository_access_mode,
+            forceMergeOrPush: ctx.body.force_merge_or_push,
+            mergeBeforeChecksPass: ctx.body.merge_before_checks_pass
           }
         });
 
-        return skillMarketplacePresenter.present({ skillMarketplace });
+        return skillMarketplacePresenter.present({
+          skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     update: skillMarketplaceGroup
@@ -172,17 +170,23 @@ export let skillMarketplaceController = Controller.create(
       .output(skillMarketplacePresenter)
       .do(async ctx => {
         let skillMarketplace = await skillMarketplaceService.updateSkillMarketplace({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           skillMarketplace: ctx.skillMarketplace,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             imageFileId: ctx.body.image_file_id,
-            skillConfigurationId: ctx.body.skill_configuration_id
+            skillConfigurationId: ctx.body.skill_configuration_id,
+            repositoryAccessMode: ctx.body.repository_access_mode,
+            forceMergeOrPush: ctx.body.force_merge_or_push,
+            mergeBeforeChecksPass: ctx.body.merge_before_checks_pass
           }
         });
 
-        return skillMarketplacePresenter.present({ skillMarketplace });
+        return skillMarketplacePresenter.present({
+          skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     archive: skillMarketplaceGroup
@@ -198,11 +202,14 @@ export let skillMarketplaceController = Controller.create(
       .output(skillMarketplacePresenter)
       .do(async ctx => {
         let skillMarketplace = await skillMarketplaceService.archiveSkillMarketplace({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           skillMarketplace: ctx.skillMarketplace
         });
 
-        return skillMarketplacePresenter.present({ skillMarketplace });
+        return skillMarketplacePresenter.present({
+          skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     sync: skillMarketplaceGroup
@@ -222,11 +229,14 @@ export let skillMarketplaceController = Controller.create(
       .output(skillMarketplacePresenter)
       .do(async ctx => {
         let skillMarketplace = await skillMarketplaceService.forceSkillMarketplaceSync({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           skillMarketplace: ctx.skillMarketplace
         });
 
-        return skillMarketplacePresenter.present({ skillMarketplace });
+        return skillMarketplacePresenter.present({
+          skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       })
   }
 );

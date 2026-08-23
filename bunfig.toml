@@ -1,4 +1,4 @@
 [install]
 minimumReleaseAge = 604800
-minimumReleaseAgeExcludes = ["@codemirror/view"]
+minimumReleaseAgeExcludes = ["@codemirror/view", "resend"]
 linker = "hoisted"

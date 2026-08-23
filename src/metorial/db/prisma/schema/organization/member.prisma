@@ -36,16 +36,17 @@ model OrganizationMember {
 
   workspaceProfile WorkspaceProfile?
 
-  usedInvites             OrganizationInviteJoin[]
-  userConfigs             OrganizationUserConfig[]
-  oauthAuthorizations     OAuthAuthorization[]
-  internalOAuthTokens     InternalOAuthToken[]
-  policies                AccessPolicyAssignment[]
-  apiKeyCreatedEmailSends ApiKeyCreatedEmailSend[]
-  apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
-  consumers               Consumer[]
-  instanceConsumers       InstanceConsumer[]
-  consumerProfiles        ConsumerProfile[]
+  usedInvites                          OrganizationInviteJoin[]
+  oauthAuthorizations                  OAuthAuthorization[]
+  internalOAuthTokens                  InternalOAuthToken[]
+  policies                             AccessPolicyAssignment[]
+  apiKeyCreatedEmailSends              ApiKeyCreatedEmailSend[]
+  apiKeyExpiredEmailSends              ApiKeyExpiredEmailSend[]
+  consumers                            Consumer[]
+  instanceConsumers                    InstanceConsumer[]
+  consumerProfiles                     ConsumerProfile[]
+  organizationNotificationDestinations OrganizationNotificationDestination[]
+  organizationNotificationEmailDigests OrganizationNotificationEmailDigest[]
 
   @@unique([userOid, organizationOid])
   @@index([lastActiveAt])

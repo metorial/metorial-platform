@@ -5,9 +5,20 @@ import type { McpConnectionAdapter } from './adapter';
 
 export class AsyncConnection {
   readonly #adapter = new ProgrammablePromise<McpConnectionAdapter>();
+  #failed = false;
+
+  constructor() {
+    this.#adapter.promise.catch(() => {});
+  }
 
   setAdapter(adapter: McpConnectionAdapter) {
     this.#adapter.resolve(adapter);
+  }
+
+  /** Unblocks everything waiting on the adapter when it could not be created. */
+  fail(error: unknown) {
+    this.#failed = true;
+    this.#adapter.reject(error);
   }
 
   async onMessage(listener: (msg: ConnectionMessage) => unknown) {
@@ -30,6 +41,7 @@ export class AsyncConnection {
   }
 
   async terminate() {
+    if (this.#failed) return;
     let adapter = await this.#adapter.promise;
     return adapter.terminate();
   }

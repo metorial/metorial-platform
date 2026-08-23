@@ -6,14 +6,12 @@ import {
   type JSONRPCMessage
 } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerConnection } from '../../../prisma/generated/client';
-import {
-  EGRESS_POLICY_BLOCKED_CODE,
-  getEgressPolicyErrorMessage,
-  isEgressPolicyError
-} from '../../lib/network/egressPolicy';
 import { ConnectionBackend } from '../backend';
+import { ConnectionError, toConnectionError } from '../utils/connectionError';
 import type { ConnectionMessage } from '../utils/messenger';
 import type { McpConnectionAdapter, McpConnectionBackendAdapter } from './adapter';
+
+let RESPONSE_TIMEOUT_MS = 30_000;
 
 let isMcpTraceEnabled = process.env.MCP_TRACE === 'true';
 let mcpTraceLog = (...args: unknown[]) => {
@@ -29,6 +27,10 @@ export class ClientConnection implements McpConnectionAdapter {
     mcpTraceLog('ctor', {
       connectionOid: (this.adapter.connection as any).oid ?? null
     });
+
+    // Initialization failures are reported as `error` connection messages;
+    // waiters observe them when awaiting the promise.
+    this.#initPromise.promise.catch(() => {});
     this.init();
   }
 
@@ -97,10 +99,10 @@ export class ClientConnection implements McpConnectionAdapter {
           'debug.error',
           `Failed to parse initialize response: ${JSON.stringify(initResponse.error)}`
         );
-        this.#initPromise.reject(
-          new Error(`Failed to parse initialize response: ${JSON.stringify(initResponse.error)}`)
-        );
-        return;
+        throw new ConnectionError({
+          code: 'protocol_error',
+          message: 'The MCP server returned an initialize response that could not be parsed'
+        });
       }
 
       this.#listenerReady = true;
@@ -120,17 +122,14 @@ export class ClientConnection implements McpConnectionAdapter {
       this.#initPromise.resolve();
     } catch (error) {
       mcpTraceLog('init:failed', error);
-      if (isEgressPolicyError(error)) {
-        await this.adapter.messenger.sendToListeners({
-          type: 'error',
-          data: {
-            code: EGRESS_POLICY_BLOCKED_CODE,
-            message: getEgressPolicyErrorMessage(error)
-          }
-        });
-      }
+
+      await this.adapter.messenger.sendToListeners({
+        type: 'error',
+        data: toConnectionError(error, 'initialize_failed')
+      });
 
       this.#initPromise.reject(error);
+      await this.adapter.terminate().catch(() => {});
     }
   }
 
@@ -144,9 +143,14 @@ export class ClientConnection implements McpConnectionAdapter {
       });
       let to = setTimeout(() => {
         mcpTraceLog('wait-response:timeout', { id: (message as any).id });
-        reject(new Error('Timeout waiting for MCP response'));
+        reject(
+          new ConnectionError({
+            code: 'timeout',
+            message: 'The MCP server did not respond in time'
+          })
+        );
         off();
-      }, 30000);
+      }, RESPONSE_TIMEOUT_MS);
 
       let off = this.adapter.messenger.onMessage(msg => {
         if (msg.type === 'error') {
@@ -156,14 +160,19 @@ export class ClientConnection implements McpConnectionAdapter {
           });
           clearTimeout(to);
           off();
-          reject(new Error(`Connection error (${msg.data.code}): ${msg.data.message}`));
+          reject(new ConnectionError(msg.data));
           return;
         }
         if (msg.type === 'close') {
           mcpTraceLog('wait-response:connection-closed', { id: (message as any).id });
           clearTimeout(to);
           off();
-          reject(new Error('Connection closed while waiting for MCP response'));
+          reject(
+            new ConnectionError({
+              code: 'connection_closed',
+              message: 'The connection was closed before the MCP server responded'
+            })
+          );
           return;
         }
         if (msg.type !== 'mcp.message') return;
@@ -182,15 +191,9 @@ export class ClientConnection implements McpConnectionAdapter {
       } catch (error) {
         mcpTraceLog('wait-response:send-failed', error);
 
-        if (isEgressPolicyError(error)) {
-          clearTimeout(to);
-          off();
-          reject(
-            new Error(
-              `Connection error (${EGRESS_POLICY_BLOCKED_CODE}): ${getEgressPolicyErrorMessage(error)}`
-            )
-          );
-        }
+        clearTimeout(to);
+        off();
+        reject(new ConnectionError(toConnectionError(error)));
       }
     });
   }

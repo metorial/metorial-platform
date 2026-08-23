@@ -1,11 +1,14 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderTriggerService } from '@metorial/module-subspace';
+import {
+  providerTriggerService,
+  providerVersionService
+} from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerTriggerPresenter } from '../../../presenters';
+import { providerTriggerPresenter } from '@metorial/presenters';
 
 let providerTriggerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerTriggerId) {
@@ -17,7 +20,7 @@ let providerTriggerGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let trigger = await subspaceProviderTriggerService.get({
+  let trigger = await providerTriggerService.getProviderTriggerById({
     instance: ctx.instance,
     providerTriggerId: ctx.params.providerTriggerId
   });
@@ -52,14 +55,20 @@ export let providerTriggerController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderTriggerService.list({
+        let providerVersion = await providerVersionService.getProviderVersionById({
           instance: ctx.instance,
           providerVersionId: ctx.query.provider_version_id
+        });
+        let paginator = await providerTriggerService.listProviderTriggers({
+          instance: ctx.instance,
+          providerVersion
         });
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, trigger => providerTriggerPresenter.present({ trigger }));
+        return Paginator.present(list, trigger =>
+          providerTriggerPresenter.present({ trigger })
+        );
       }),
 
     get: providerTriggerGroup

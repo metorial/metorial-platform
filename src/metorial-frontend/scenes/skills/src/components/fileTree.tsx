@@ -15,6 +15,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { SkillFilePreviewLightbox } from './filePreviewLightbox';
 import type { SkillSharePanelContext } from './skillSharePanel';
+import { isSkillTextFile } from './textFile';
 
 export type SkillFileTreeNode = {
   id: string;
@@ -243,11 +244,13 @@ let TreeSpinnerWrap = styled.div`
   flex: 0 0 auto;
 `;
 
-let TreeNameWrap = styled.div`
+let TreeName = styled.div`
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   color: inherit;
   font-size: 13px;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -595,9 +598,12 @@ let SkillFileTreeRow = (p: {
   let documentPath =
     p.node.kind == 'document' && p.node.documentId && p.node.itemId
       ? p.getDocumentPath(p.node.documentId, p.node.itemId)
-      : null;
-  let isActive =
-    p.node.kind == 'document' && documentPath?.split(/[?#]/)[0] == location.pathname;
+      : p.node.kind == 'file' &&
+          p.node.itemId &&
+          isSkillTextFile({ fileName: p.node.name, fileType: p.node.fileType })
+        ? p.getDocumentPath('', p.node.itemId)
+        : null;
+  let isActive = documentPath?.split(/[?#]/)[0] == location.pathname;
   let fileInputRef = useRef<HTMLInputElement | null>(null);
   let previewTriggerRef = useRef<HTMLButtonElement | null>(null);
   let [fileError, setFileError] = useState<string | null>(null);
@@ -733,11 +739,7 @@ let SkillFileTreeRow = (p: {
             <TreeIconWrap $kind={p.node.kind}>
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
-            <TreeNameWrap>
-              <Text size="2" style={{ fontSize: 13 }}>
-                {getDisplayName(p.node)}
-              </Text>
-            </TreeNameWrap>
+            <TreeName>{getDisplayName(p.node)}</TreeName>
           </TreeRowLink>
         ) : p.node.kind == 'file' && p.node.fileId ? (
           <SkillFilePreviewLightbox
@@ -751,11 +753,7 @@ let SkillFileTreeRow = (p: {
             <TreeIconWrap $kind={p.node.kind}>
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
-            <TreeNameWrap>
-              <Text size="2" style={{ fontSize: 13 }}>
-                {getDisplayName(p.node)}
-              </Text>
-            </TreeNameWrap>
+            <TreeName>{getDisplayName(p.node)}</TreeName>
           </SkillFilePreviewLightbox>
         ) : (
           <TreeLabel>
@@ -764,11 +762,7 @@ let SkillFileTreeRow = (p: {
             <TreeIconWrap $kind={p.node.kind}>
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
-            <TreeNameWrap>
-              <Text size="2" style={{ fontSize: 13 }}>
-                {getDisplayName(p.node)}
-              </Text>
-            </TreeNameWrap>
+            <TreeName>{getDisplayName(p.node)}</TreeName>
           </TreeLabel>
         )}
         {p.node.isPending ? (
@@ -844,7 +838,7 @@ let SkillFileTreeRow = (p: {
 
     if (!isOpen) p.onToggle(p.node.path);
 
-    if (itemId == 'file') {
+    if (itemId == 'upload') {
       setFileError(null);
       fileInputRef.current?.click();
       return;
@@ -855,8 +849,12 @@ let SkillFileTreeRow = (p: {
   let directoryContextMenuItems = p.canWrite
     ? [
         {
-          id: 'file',
+          id: 'upload',
           label: 'Upload File'
+        },
+        {
+          id: 'file',
+          label: 'Create File'
         },
         {
           id: 'document',
@@ -868,6 +866,40 @@ let SkillFileTreeRow = (p: {
         }
       ]
     : [];
+  let selectFilesForUpload = async (files: File[]) => {
+    if (files.length > 50) {
+      setFileError('You can upload up to 50 files at a time.');
+      return;
+    }
+
+    let existingNames = new Set(p.node.children.map(child => child.name.trim().toLowerCase()));
+    let acceptedFiles: File[] = [];
+    let rejectedCount = 0;
+
+    for (let file of files) {
+      let normalizedName = file.name.trim().toLowerCase();
+      if (existingNames.has(normalizedName)) {
+        rejectedCount++;
+        continue;
+      }
+
+      existingNames.add(normalizedName);
+      acceptedFiles.push(file);
+    }
+
+    if (rejectedCount > 0) {
+      setFileError(
+        rejectedCount == 1
+          ? 'A file with this name already exists.'
+          : `${rejectedCount} files already exist in this directory.`
+      );
+    } else {
+      setFileError(null);
+    }
+
+    if (acceptedFiles.length == 0) return;
+    await p.onFilesDrop(p.node.path, acceptedFiles);
+  };
   let directoryRow = (
     <TreeRowShell
       $dropTarget={isDropTarget}
@@ -912,36 +944,8 @@ let SkillFileTreeRow = (p: {
 
         let files = Array.from(e.dataTransfer.files);
         if (files.length == 0) return;
-        let existingNames = new Set(
-          p.node.children.map(child => child.name.trim().toLowerCase())
-        );
-        let acceptedFiles: File[] = [];
-        let rejectedCount = 0;
-
-        for (let file of files) {
-          let normalizedName = file.name.trim().toLowerCase();
-          if (existingNames.has(normalizedName)) {
-            rejectedCount++;
-            continue;
-          }
-
-          existingNames.add(normalizedName);
-          acceptedFiles.push(file);
-        }
-
-        if (rejectedCount > 0) {
-          setFileError(
-            rejectedCount == 1
-              ? 'A file with this name already exists.'
-              : `${rejectedCount} files already exist in this directory.`
-          );
-        } else {
-          setFileError(null);
-        }
-
-        if (acceptedFiles.length == 0) return;
         if (!isOpen) p.onToggle(p.node.path);
-        await p.onFilesDrop(p.node.path, acceptedFiles);
+        await selectFilesForUpload(files);
       }}
     >
       <TreeRowButton
@@ -955,11 +959,7 @@ let SkillFileTreeRow = (p: {
           <TreeIconWrap $kind={p.node.kind}>
             <TreeIcon kind={p.node.kind} open={isOpen} />
           </TreeIconWrap>
-          <TreeNameWrap>
-            <Text size="2" style={{ fontSize: 13 }}>
-              {getDisplayName(p.node)}
-            </Text>
-          </TreeNameWrap>
+          <TreeName>{getDisplayName(p.node)}</TreeName>
         </TreeLabel>
       </TreeRowButton>
 
@@ -969,8 +969,12 @@ let SkillFileTreeRow = (p: {
             label={`Add item to ${getDisplayName(p.node)}`}
             items={[
               {
-                id: 'file',
+                id: 'upload',
                 label: 'Upload File'
+              },
+              {
+                id: 'file',
+                label: 'Create File'
               },
               {
                 id: 'document',
@@ -989,23 +993,13 @@ let SkillFileTreeRow = (p: {
           </Menu>
           <HiddenFileInput
             ref={fileInputRef}
+            multiple
             type="file"
             onChange={async e => {
-              let file = e.currentTarget.files?.[0];
+              let files = Array.from(e.currentTarget.files ?? []);
               e.currentTarget.value = '';
-              if (!file) return;
-
-              let alreadyExists = p.node.children.some(
-                child => child.name.trim().toLowerCase() == file.name.trim().toLowerCase()
-              );
-
-              if (alreadyExists) {
-                setFileError('A file with this name already exists.');
-                return;
-              }
-
-              setFileError(null);
-              await p.onFileSelect(p.node.path, file);
+              if (files.length == 0) return;
+              await selectFilesForUpload(files);
             }}
           />
         </>

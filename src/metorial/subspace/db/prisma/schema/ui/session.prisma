@@ -1,0 +1,293 @@
+enum ProviderSetupSessionStatus {
+  pending
+  completed
+  failed
+  expired
+
+  archived
+  deleted
+}
+
+enum ProviderSetupSessionType {
+  auth_only
+  config_only
+  auth_and_config
+  auto
+}
+
+enum ProviderSetupSessionTypeConcrete {
+  auth_only
+  config_only
+  auth_and_config
+}
+
+enum ProviderSetupSessionUiMode {
+  metorial_elements // For consumer facing UIs
+  dashboard_embeddable // For embedding in dashboards
+}
+
+model ProviderSetupSession {
+  oid BigInt @id
+  id  String @unique
+
+  status       ProviderSetupSessionStatus
+  typeSelected ProviderSetupSessionType          @map("type")
+  typeConcrete ProviderSetupSessionTypeConcrete?
+  uiMode       ProviderSetupSessionUiMode        @default(metorial_elements)
+
+  isParentDeleted Boolean @default(false)
+
+  clientSecret String
+
+  name            String?
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  /// [ProviderSetupSessionConfiguration]
+  configuration Json?
+
+  redirectUrl String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt?
+  provider    Provider? @relation(fields: [providerOid], references: [oid])
+
+  authMethodOid BigInt?
+  authMethod    ProviderAuthMethod? @relation(fields: [authMethodOid], references: [oid])
+
+  deploymentOid BigInt?
+  deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
+
+  authConfigOid BigInt?             @unique
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  configOid BigInt?
+  config    ProviderConfig? @relation(fields: [configOid], references: [oid])
+
+  identityCredentialOid BigInt?             @unique
+  identityCredential    IdentityCredential? @relation(fields: [identityCredentialOid], references: [oid], onDelete: SetNull)
+
+  oauthSetupOid BigInt?             @unique
+  oauthSetup    ProviderOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
+
+  brandOid BigInt?
+  brand    Brand?  @relation(fields: [brandOid], references: [oid], onDelete: Cascade)
+
+  integrationSetupSessionProviderOid BigInt?
+  integrationSetupSessionProvider    IntegrationSetupSessionProvider? @relation("integrationSetupProviderSessionAttempts", fields: [integrationSetupSessionProviderOid], references: [oid], onDelete: Cascade)
+  currentForIntegrationSetupProvider IntegrationSetupSessionProvider? @relation("currentIntegrationSetupProviderSession")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  expiresAt DateTime
+
+  events ProviderSetupSessionEvent[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([typeSelected])
+  @@index([identityOid])
+  @@index([integrationSetupSessionProviderOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+enum ProviderSetupSessionEventType {
+  created
+  link_opened
+  config_set
+  auth_config_set
+  oauth_setup_completed
+  oauth_setup_failed
+  completed
+  expired
+}
+
+model ProviderSetupSessionEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type ProviderSetupSessionEventType
+
+  ip String?
+  ua String?
+
+  setupOid BigInt?
+  setup    ProviderOAuthSetup? @relation(fields: [setupOid], references: [oid], onDelete: Cascade)
+
+  sessionOid BigInt
+  session    ProviderSetupSession @relation(fields: [sessionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+}
+
+enum IntegrationSetupSessionStatus {
+  pending
+  successful
+  expired
+
+  archived
+  deleted
+}
+
+enum IntegrationSetupSessionEventType {
+  created
+  link_opened
+  provider_started
+  provider_completed
+  completed
+  expired
+}
+
+model IntegrationSetupSession {
+  oid BigInt @id
+  id  String @unique
+
+  status IntegrationSetupSessionStatus
+
+  clientSecret String
+
+  name            String?
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  /// [ProviderSetupSessionConfiguration]
+  configuration Json?
+
+  redirectUrl String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid])
+
+  integrationInstanceOid BigInt
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  brandOid BigInt?
+  brand    Brand?  @relation(fields: [brandOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  expiresAt DateTime
+
+  providers IntegrationSetupSessionProvider[]
+  steps     IntegrationSetupSessionStep[]
+  events    IntegrationSetupSessionEvent[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([integrationOid])
+  @@index([integrationInstanceOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model IntegrationSetupSessionProvider {
+  oid BigInt @id
+  id  String @unique
+
+  integrationSetupSessionOid BigInt
+  integrationSetupSession    IntegrationSetupSession @relation(fields: [integrationSetupSessionOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
+
+  providerSetupSessionOid BigInt?               @unique
+  providerSetupSession    ProviderSetupSession? @relation("currentIntegrationSetupProviderSession", fields: [providerSetupSessionOid], references: [oid])
+
+  integrationInstanceProviderOid BigInt?                      @unique
+  integrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [integrationInstanceProviderOid], references: [oid])
+
+  providerSetupSessions ProviderSetupSession[]         @relation("integrationSetupProviderSessionAttempts")
+  step                  IntegrationSetupSessionStep?
+  events                IntegrationSetupSessionEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([integrationSetupSessionOid, integrationProviderOid])
+  @@index([integrationSetupSessionOid])
+  @@index([integrationProviderOid])
+}
+
+model IntegrationSetupSessionStep {
+  oid BigInt @id
+  id  String @unique
+
+  index Int
+
+  integrationSetupSessionOid BigInt
+  integrationSetupSession    IntegrationSetupSession @relation(fields: [integrationSetupSessionOid], references: [oid], onDelete: Cascade)
+
+  integrationSetupSessionProviderOid BigInt                          @unique
+  integrationSetupSessionProvider    IntegrationSetupSessionProvider @relation(fields: [integrationSetupSessionProviderOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([integrationSetupSessionOid, index])
+  @@index([integrationSetupSessionOid])
+  @@index([index])
+}
+
+model IntegrationSetupSessionEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type IntegrationSetupSessionEventType
+
+  ip String?
+  ua String?
+
+  integrationSetupSessionProviderOid BigInt?
+  integrationSetupSessionProvider    IntegrationSetupSessionProvider? @relation(fields: [integrationSetupSessionProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationSetupSessionOid BigInt
+  integrationSetupSession    IntegrationSetupSession @relation(fields: [integrationSetupSessionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([integrationSetupSessionOid])
+  @@index([integrationSetupSessionProviderOid])
+}

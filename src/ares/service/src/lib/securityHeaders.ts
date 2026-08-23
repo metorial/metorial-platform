@@ -1,8 +1,8 @@
 let cspDirectives = [
   `default-src 'self'`,
-  `script-src 'self' unsafe-inline https://challenges.cloudflare.com`,
+  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
   `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' *.metorial-cdn.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com`,
+  `img-src 'self' *.metorial-cdn.com metorial.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com *.metorial-staging.com`,
   `font-src 'self' *.metorial-cdn.com`,
   `connect-src 'self' *.metorial.com *.metorial.net *.metorial.dev`,
   `frame-src https://challenges.cloudflare.com`,
@@ -11,7 +11,7 @@ let cspDirectives = [
   `form-action 'self'`
 ];
 
-let headers: Record<string, string> =
+let getHeaders = (): Record<string, string> =>
   process.env.NODE_ENV === 'production'
     ? {
         'X-Content-Type-Options': 'nosniff',
@@ -32,7 +32,7 @@ export let withSecurityHeaders = (
     let patched = new Response(res.body, res);
 
     if (url.hostname.includes('.')) {
-      for (let [key, value] of Object.entries(headers)) patched.headers.set(key, value);
+      for (let [key, value] of Object.entries(getHeaders())) patched.headers.set(key, value);
     }
 
     return patched;

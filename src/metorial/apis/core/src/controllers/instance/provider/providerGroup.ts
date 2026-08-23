@@ -1,13 +1,16 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderListingGroupService } from '@metorial/module-subspace';
+import {
+  providerListingGroupService,
+  providerListingService
+} from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerGroupPresenter } from '../../../presenters';
+import { providerGroupPresenter } from '@metorial/presenters';
 
 let providerGroupGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerGroupId) {
@@ -19,7 +22,7 @@ let providerGroupGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let group = await subspaceProviderListingGroupService.get({
+  let group = await providerListingGroupService.getProviderListingGroupById({
     instance: ctx.instance,
     providerListingGroupId: ctx.params.providerGroupId
   });
@@ -61,7 +64,7 @@ export let providerGroupController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderListingGroupService.list({
+        let paginator = await providerListingGroupService.listProviderListingGroups({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
@@ -103,10 +106,12 @@ export let providerGroupController = Controller.create(
       )
       .output(providerGroupPresenter)
       .do(async ctx => {
-        let group = await subspaceProviderListingGroupService.create({
+        let group = await providerListingGroupService.createProviderListingGroup({
           instance: ctx.instance,
-          name: ctx.body.name,
-          description: ctx.body.description
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description
+          }
         });
 
         return providerGroupPresenter.present({
@@ -131,11 +136,13 @@ export let providerGroupController = Controller.create(
       )
       .output(providerGroupPresenter)
       .do(async ctx => {
-        let group = await subspaceProviderListingGroupService.update({
+        let group = await providerListingGroupService.updateProviderListingGroup({
           instance: ctx.instance,
-          providerListingGroupId: ctx.group.id,
-          name: ctx.body.name,
-          description: ctx.body.description
+          providerListingGroup: ctx.group,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description
+          }
         });
 
         return providerGroupPresenter.present({
@@ -160,10 +167,14 @@ export let providerGroupController = Controller.create(
       )
       .output(providerGroupPresenter)
       .do(async ctx => {
-        await subspaceProviderListingGroupService.addProvider({
+        let providerListing = await providerListingService.getProviderListingById({
           instance: ctx.instance,
-          providerListingGroupId: ctx.group.id,
           providerListingId: ctx.body.provider_listing_id
+        });
+
+        await providerListingGroupService.addProviderToGroup({
+          providerListingGroup: ctx.group,
+          providerListing
         });
 
         return providerGroupPresenter.present({ group: ctx.group });
@@ -192,10 +203,14 @@ export let providerGroupController = Controller.create(
           );
         }
 
-        await subspaceProviderListingGroupService.removeProvider({
+        let providerListing = await providerListingService.getProviderListingById({
           instance: ctx.instance,
-          providerListingGroupId: ctx.group.id,
           providerListingId: ctx.params.providerListingId
+        });
+
+        await providerListingGroupService.removeProviderFromGroup({
+          providerListingGroup: ctx.group,
+          providerListing
         });
 
         return providerGroupPresenter.present({ group: ctx.group });

@@ -2,11 +2,9 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpEndpointStatus } from '@metorial/db';
-import {
-  consumerProfileService,
-  grantConsumerOwnedMagicMcpEndpointAccess
-} from '@metorial/module-consumer';
-import { skillPluginService } from '@metorial/module-file';
+import { grantConsumerOwnedMagicMcpEndpointAccess } from '@metorial/consumer-magic-access';
+import { consumerProfileService } from '@metorial/module-consumer-core';
+import { skillPluginService } from '@metorial/module-skill-marketplace';
 import {
   magicMcpEndpointService,
   magicMcpServerService,
@@ -18,7 +16,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { magicMcpEndpointPresenter } from '../../../presenters';
+import { magicMcpEndpointPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 import { getSkillPluginAccess } from '../skills';
 
@@ -215,10 +213,10 @@ export let magicMcpEndpointController = Controller.create(
         let skillPlugin = ctx.body.skill_plugin_id
           ? (
               await skillPluginService.getSkillPluginById({
-                ...getSkillPluginAccess(ctx),
+                ...(await getSkillPluginAccess(ctx)),
                 skillPluginId: ctx.body.skill_plugin_id
               })
-            ).backing
+            )
           : undefined;
         let servers = resolveMagicMcpEndpointServers({
           magicMcpServer: ctx.body.magic_mcp_servers

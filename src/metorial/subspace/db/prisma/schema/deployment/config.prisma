@@ -1,0 +1,126 @@
+enum ProviderConfigStatus {
+  active
+  archived
+  deleted
+}
+
+model ProviderConfig {
+  oid BigInt @id
+  id  String @unique
+
+  status     ProviderConfigStatus
+  archivedAt DateTime?
+
+  isDefault   Boolean
+  isEphemeral Boolean
+  isForVault  Boolean
+
+  name            String?
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  /// [ToolFilter]
+  toolFilter Json @default("{\"type\":\"v1.allow_all\"}")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  specificationOid BigInt
+  specification    ProviderSpecification @relation(fields: [specificationOid], references: [oid])
+
+  owningIntegrationInstanceOid BigInt?
+  owningIntegrationInstance    IntegrationInstance? @relation(fields: [owningIntegrationInstanceOid], references: [oid])
+
+  owningIntegrationInstanceProviderOid BigInt?
+  owningIntegrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [owningIntegrationInstanceProviderOid], references: [oid])
+
+  deploymentOid BigInt?
+  deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
+
+  fromVaultOid BigInt?
+  fromVault    ProviderConfigVault? @relation(fields: [fromVaultOid], references: [oid], name: "vaultSource")
+
+  parentConfigOid BigInt?
+  parentConfig    ProviderConfig?  @relation("ConfigParentChild", fields: [parentConfigOid], references: [oid])
+  childConfigs    ProviderConfig[] @relation("ConfigParentChild")
+
+  currentVersionOid BigInt?
+  currentVersion    ProviderConfigVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  defaultForDeployment                ProviderDeployment?                  @relation("defaultConfig")
+  vault                               ProviderConfigVault?
+  providerSetupSessions               ProviderSetupSession[]
+  sessionProviders                    SessionProvider[]
+  sessionTemplateProviders            SessionTemplateProvider[]
+  providerConfigVersions              ProviderConfigVersion[]
+  providerConfigUpdates               ProviderConfigUpdate[]
+  identityCredentials                 IdentityCredential[]
+  integrationProviderVersions         IntegrationProviderVersion[]
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([isEphemeral])
+  @@index([isDefault])
+  @@index([status])
+  @@index([archivedAt])
+  @@index([status, archivedAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model ProviderConfigVersion {
+  oid BigInt @id
+  id  String @unique
+
+  configOid BigInt
+  config    ProviderConfig @relation(fields: [configOid], references: [oid])
+
+  slateInstanceOid BigInt?
+  slateInstance    SlateInstance? @relation(fields: [slateInstanceOid], references: [oid])
+
+  shuttleConfigOid BigInt?
+  shuttleConfig    ShuttleServerConfig? @relation(fields: [shuttleConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  configUpdatesFrom             ProviderConfigUpdate[]         @relation("fromVersion")
+  configUpdatesTo               ProviderConfigUpdate[]         @relation("toVersion")
+  currentForConfigs             ProviderConfig[]               @relation("currentVersion")
+  providerDeploymentConfigPairs ProviderDeploymentConfigPair[]
+}
+
+model ProviderConfigUpdate {
+  oid BigInt @id
+  id  String @unique
+
+  configOid BigInt
+  config    ProviderConfig @relation(fields: [configOid], references: [oid])
+
+  fromVersionOid BigInt?
+  fromVersion    ProviderConfigVersion? @relation(fields: [fromVersionOid], references: [oid], name: "fromVersion")
+
+  toVersionOid BigInt
+  toVersion    ProviderConfigVersion @relation(fields: [toVersionOid], references: [oid], name: "toVersion")
+
+  createdAt DateTime @default(now())
+}

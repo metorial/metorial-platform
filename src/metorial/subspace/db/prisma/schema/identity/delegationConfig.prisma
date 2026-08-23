@@ -1,0 +1,74 @@
+enum IdentityDelegationConfigStatus {
+  active
+  archived
+  deleted
+}
+
+model IdentityDelegationConfig {
+  oid BigInt @id
+  id  String @unique
+
+  isDefault Boolean
+
+  status          IdentityDelegationConfigStatus
+  isParentDeleted Boolean                        @default(false)
+
+  name        String?
+  description String?
+  metadata    Json?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  currentVersionOid BigInt?
+  currentVersion    IdentityDelegationConfigVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  versions            IdentityDelegationConfigVersion[]
+  identities          Identity[]
+  identityDelegations IdentityDelegation[]
+  identityCredentials IdentityCredential[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+enum IdentityDelegationConfigSubDelegationBehavior {
+  allow
+  deny
+  require_consent
+}
+
+model IdentityDelegationConfigVersion {
+  oid BigInt @id
+  id  String @unique
+
+  subDelegationBehavior IdentityDelegationConfigSubDelegationBehavior
+  subDelegationDepth    Int // Must be 0 if subDelegationBehavior=deny
+
+  delegationConfigOid BigInt
+  delegationConfig    IdentityDelegationConfig @relation(fields: [delegationConfigOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  currentVersionFor   IdentityDelegationConfig[] @relation("currentVersion")
+  identityDelegations IdentityDelegation[]
+}

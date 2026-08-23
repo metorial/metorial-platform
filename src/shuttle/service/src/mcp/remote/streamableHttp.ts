@@ -6,20 +6,21 @@ import type {
   ServerConnection,
   ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
-import {
-  EGRESS_POLICY_BLOCKED_CODE,
-  getEgressPolicyErrorMessage,
-  isEgressPolicyError
-} from '../../lib/network/egressPolicy';
 import { safeParse } from '../../lib/safeParse';
 import { fetchEventSource } from '../../lib/sse/fetch';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
+import { toConnectionError, type ConnectionErrorPayload } from '../utils/connectionError';
 import { ConnectionLogger } from '../utils/logger';
 import { ConnectionMessenger } from '../utils/messenger';
 import { RemoteConnectionAuthManager } from './authManager';
 
 const CLEANUP_TIMEOUT_MS = 30 * 1000;
+
+let FATAL_NOTIFICATION_STREAM_CODES = new Set([
+  'authentication_failed',
+  'egress_policy_blocked'
+]);
 
 export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapter {
   readonly #authManager: RemoteConnectionAuthManager;
@@ -69,10 +70,10 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
 
   async sendMcpMessage(message: JSONRPCMessage) {
     if (this.#exiting) {
-      console.warn(
-        'Attempted to send MCP message connection after server began exiting',
-        message
-      );
+      await this.#emitError({
+        code: 'connection_closed',
+        message: 'The connection to the MCP server is shutting down'
+      });
       return;
     }
 
@@ -110,27 +111,17 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
         },
 
         onerror: async err => {
-          await this.messenger.sendToListeners({
-            type: 'error',
-            data: {
-              code: 'connection_error',
-              message: err?.message ?? 'Unknown connection error'
-            }
-          });
+          await this.#emitError(toConnectionError(err));
         }
       });
     } catch (e) {
-      let isPolicyError = isEgressPolicyError(e);
-      this.messenger.sendToListeners({
-        type: 'error',
-        data: {
-          code: isPolicyError ? EGRESS_POLICY_BLOCKED_CODE : 'connection_error',
-          message: isPolicyError
-            ? getEgressPolicyErrorMessage(e)
-            : (e as Error).message || 'Unknown connection error'
-        }
-      });
+      await this.#emitError(toConnectionError(e));
     }
+  }
+
+  async #emitError(error: ConnectionErrorPayload) {
+    await this.logger.log('debug.error', `Streamable HTTP connection error: ${error.message}`);
+    await this.messenger.sendToListeners({ type: 'error', data: error });
   }
 
   async waitForInitialization() {}
@@ -156,7 +147,7 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
   private async init() {
     try {
       this.logger.log(
-        'debug.error',
+        'debug.info',
         `Establishing notification connection via streamable HTTP`
       );
 
@@ -171,28 +162,31 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
           let data = safeParse(event.data) as JSONRPCMessage | null;
           if (!data) return;
           await this.messenger.sendToListeners({ type: 'mcp.message', data });
-        }
+        },
+
+        onerror: async err => this.#handleNotificationStreamError(err)
       });
     } catch (e) {
-      if (isEgressPolicyError(e)) {
-        let message = getEgressPolicyErrorMessage(e);
-
-        this.logger.log('debug.error', `streamable HTTP connection error: ${message}`);
-        await this.messenger.sendToListeners({
-          type: 'error',
-          data: {
-            code: EGRESS_POLICY_BLOCKED_CODE,
-            message
-          }
-        });
-        return;
-      }
-
-      this.logger.log(
-        'debug.error',
-        `streamable HTTP connection error: ${(e as Error).message || e}`
-      );
+      await this.#handleNotificationStreamError(e);
     }
+  }
+
+  /**
+   * The server-initiated notification stream is optional; only failures that
+   * also break request/response traffic are escalated to the connection.
+   */
+  async #handleNotificationStreamError(error: unknown) {
+    let mapped = toConnectionError(error);
+
+    if (FATAL_NOTIFICATION_STREAM_CODES.has(mapped.code)) {
+      await this.#emitError(mapped);
+      return;
+    }
+
+    await this.logger.log(
+      'debug.info',
+      `Streamable HTTP notification stream unavailable: ${mapped.message}`
+    );
   }
 
   private async cleanup() {

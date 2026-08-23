@@ -49,3 +49,119 @@ export let cellTokenRepository = Service.create(
   'cellTokenRepository',
   () => new CellTokenRepository()
 ).build();
+
+class HyperplaneTokenRepository {
+  async findReusableHyperplaneToken(d: { hyperplaneIdentifier: string; expiresAfter?: Date }) {
+    return await globalDB.hyperplaneToken.findFirst({
+      where: {
+        hyperplane: { identifier: d.hyperplaneIdentifier },
+        expiresAt: d.expiresAfter ? { gt: d.expiresAfter } : { gt: new Date() }
+      },
+      include: {
+        hyperplane: true
+      },
+      orderBy: {
+        expiresAt: 'desc'
+      }
+    });
+  }
+
+  async getHyperplaneToken(d: { hyperplaneIdentifier: string; hyperplaneTokenId: string }) {
+    return await globalDB.hyperplaneToken.findFirst({
+      where: {
+        id: d.hyperplaneTokenId,
+        hyperplane: { identifier: d.hyperplaneIdentifier }
+      },
+      include: {
+        hyperplane: true
+      }
+    });
+  }
+
+  async createHyperplaneToken(d: {
+    hyperplaneIdentifier: string;
+    ttlMs: number;
+    cellOid?: number | null;
+  }) {
+    let expiresAt = new Date(Date.now() + d.ttlMs);
+
+    let hyperplane = await globalDB.hyperplane.upsert({
+      where: { identifier: d.hyperplaneIdentifier },
+      create: {
+        identifier: d.hyperplaneIdentifier,
+        cellOid: d.cellOid ?? null
+      },
+      update: {
+        cellOid: d.cellOid ?? undefined
+      }
+    });
+
+    return await globalDB.hyperplaneToken.create({
+      data: {
+        hyperplaneOid: hyperplane.oid,
+        token: crypto.randomUUID(),
+        expiresAt
+      },
+      include: {
+        hyperplane: true
+      }
+    });
+  }
+}
+
+export let hyperplaneTokenRepository = Service.create(
+  'hyperplaneTokenRepository',
+  () => new HyperplaneTokenRepository()
+).build();
+
+class HorizonTokenRepository {
+  async findReusableHorizonToken(d: { horizonIdentifier: string; expiresAfter?: Date }) {
+    return await globalDB.horizonToken.findFirst({
+      where: {
+        horizon: { identifier: d.horizonIdentifier },
+        expiresAt: d.expiresAfter ? { gt: d.expiresAfter } : { gt: new Date() }
+      },
+      include: {
+        horizon: true
+      },
+      orderBy: {
+        expiresAt: 'desc'
+      }
+    });
+  }
+
+  async getHorizonToken(d: { horizonIdentifier: string; horizonTokenId: string }) {
+    return await globalDB.horizonToken.findFirst({
+      where: {
+        id: d.horizonTokenId,
+        horizon: { identifier: d.horizonIdentifier }
+      },
+      include: {
+        horizon: true
+      }
+    });
+  }
+
+  async createHorizonToken(d: { horizonIdentifier: string; ttlMs: number }) {
+    let expiresAt = new Date(Date.now() + d.ttlMs);
+    let horizon = await globalDB.horizon.findUniqueOrThrow({
+      where: { identifier: d.horizonIdentifier }
+    });
+
+    return await globalDB.horizonToken.create({
+      data: {
+        horizonOid: horizon.oid,
+        token: crypto.randomUUID(),
+        expiresAt
+      },
+      include: {
+        horizon: true
+      }
+    });
+  }
+}
+
+export let horizonTokenRepository = Service.create(
+  'horizonTokenRepository',
+  () => new HorizonTokenRepository()
+).build();

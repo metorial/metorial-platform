@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { instancePresenter } from '../../../presenters';
+import { instancePresenter } from '@metorial/presenters';
 
 let resolveProjectFilter = async (d: {
   organization: Parameters<typeof projectService.getManyProjectsByIds>[0]['organization'];
@@ -153,8 +153,7 @@ export let instanceManagementController = Controller.create(
         instance = await instanceService.deleteInstance({
           instance,
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return instancePresenter.present({ instance });
@@ -196,8 +195,7 @@ export let instanceManagementController = Controller.create(
           input: {
             name: ctx.body.name
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return instancePresenter.present({ instance });

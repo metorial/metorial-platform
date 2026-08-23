@@ -1,12 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillMergeRequestService } from '@metorial/module-file';
+import { skillMergeRequestEventService } from '@metorial/module-skill-merge-requests';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { skillMergeRequestEventPresenter } from '../../../presenters';
+import { skillMergeRequestEventPresenter } from '@metorial/presenters';
 import {
   getSkillMergeRequestAccess,
   skillMergeRequestGroup,
@@ -27,7 +27,8 @@ let eventTypeValidator = v.enumOf([
 export let skillMergeRequestEventController = Controller.create(
   {
     name: 'Skill Merge Request Events',
-    description: 'Inspect the activity history of skill merge requests.'
+    description: 'Inspect the activity history of skill merge requests.',
+    hideInDocs: true
   },
   {
     list: skillMergeRequestGroup
@@ -53,9 +54,9 @@ export let skillMergeRequestEventController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await skillMergeRequestService.listSkillMergeRequestEvents({
-          ...getSkillMergeRequestAccess(ctx),
-          skillMergeRequestId: ctx.skillMergeRequest.id,
+        let paginator = await skillMergeRequestEventService.listEvents({
+          ...(await getSkillMergeRequestAccess(ctx)),
+          mergeRequest: ctx.skillMergeRequest,
           types: normalizeArrayParam(ctx.query.type),
           createdAt: ctx.query.created_at
         });
@@ -81,9 +82,9 @@ export let skillMergeRequestEventController = Controller.create(
       .output(skillMergeRequestEventPresenter)
       .do(async ctx => {
         let skillMergeRequestEvent =
-          await skillMergeRequestService.getSkillMergeRequestEventById({
-            ...getSkillMergeRequestAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
+          await skillMergeRequestEventService.getEventById({
+            ...(await getSkillMergeRequestAccess(ctx)),
+            mergeRequest: ctx.skillMergeRequest,
             eventId: ctx.params.eventId
           });
 

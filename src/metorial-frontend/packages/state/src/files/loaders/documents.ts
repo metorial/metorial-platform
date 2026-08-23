@@ -101,10 +101,7 @@ export let updateDocument = (
 export let getDocumentEditToken = (d: { instanceId: string; documentId: string }) =>
   withAuth(
     sdk =>
-      (sdk.documents as any).editToken.get(
-        d.instanceId,
-        d.documentId
-      ) as Promise<DocumentEditToken>
+      sdk.documents.editToken.get(d.instanceId, d.documentId) as Promise<DocumentEditToken>
   );
 
 export let documentPermissionsLoader = createLoader({

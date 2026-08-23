@@ -29,7 +29,23 @@ export let createQueue = <JobData>(opts: { driver?: 'bullmq' } & BullMqCreateOpt
 export let combineQueueProcessors = (opts: IQueueProcessor[]): IQueueProcessor => {
   return {
     start: async () => {
-      let processors = await Promise.all(opts.map(x => x.start()));
+      let processors: Awaited<ReturnType<IQueueProcessor['start']>>[] = [];
+
+      // Processor trees can contain hundreds of BullMQ workers. Starting the tree with
+      // Promise.all creates a Redis connection storm and immediately drains every queue
+      // at once. Waiting for each child also makes nested processor groups naturally
+      // bounded without a global semaphore or deadlocks.
+      try {
+        for (let processor of opts) {
+          processors.push(await processor.start());
+        }
+      } catch (error) {
+        // A partially started worker must not remain alive without a health endpoint.
+        await Promise.allSettled(
+          processors.reverse().map(async processor => await processor?.close?.())
+        );
+        throw error;
+      }
 
       return {
         close: async () => {

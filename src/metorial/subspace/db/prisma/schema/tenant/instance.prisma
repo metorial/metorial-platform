@@ -1,0 +1,104 @@
+enum InstanceType {
+  development
+  production
+}
+
+enum InstanceStatus {
+  active
+  deleted
+}
+
+model Instance {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type   InstanceType
+  status InstanceStatus
+
+  slug String @unique
+  name String
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  consumers        InstanceConsumer[]
+  consumerProfiles ConsumerProfile[]
+
+  agents                                   Agent[]
+  agentClients                             AgentClient[]
+  callbacks                                Callback[]
+  customProviderEnvironments               CustomProviderEnvironment[]
+  customProviderEnvironmentVersions        CustomProviderEnvironmentVersion[]
+  enclaves                                 Enclave[]
+  enclaveIngressNetworkLogs                EnclaveIngressNetworkLog[]
+  environmentProviders                     EnvironmentProvider[]
+  ephemeralManagedSessions                 EphemeralManagedSession[]
+  firewalls                                Firewall[]
+  firewallBindings                         FirewallBinding[]
+  identities                               Identity[]
+  identityActors                           IdentityActor[]
+  identityDelegations                      IdentityDelegation[]
+  identityDelegationConfigs                IdentityDelegationConfig[]
+  identityDelegationRequests               IdentityDelegationRequest[]
+  integrations                             Integration[]
+  integrationInstances                     IntegrationInstance[]
+  integrationInstanceGroups                IntegrationInstanceGroup[]
+  integrationInstanceGroupProviders        IntegrationInstanceGroupProvider[]
+  integrationInstanceGroupSources          IntegrationInstanceGroupSource[]
+  integrationInstanceProviders             IntegrationInstanceProvider[]
+  integrationProviders                     IntegrationProvider[]
+  integrationSetupSessions                 IntegrationSetupSession[]
+  monitors                                 Monitor[]
+  monitorAlerts                            MonitorAlert[]
+  networks                                 Network[]
+  networkPolicies                          NetworkPolicy[]
+  protoGuardAlerts                         ProtoGuardAlert[]
+  protoGuardRuns                           ProtoGuardRun[]
+  providerAuthConfigs                      ProviderAuthConfig[]
+  providerAuthConfigErrorGlobals           ProviderAuthConfigErrorGlobal[]
+  providerAuthConfigErrors                 ProviderAuthConfigError[]
+  providerAuthConfigEvents                 ProviderAuthConfigEvent[]
+  providerAuthCredentials                  ProviderAuthCredentials[]
+  providerAuthExports                      ProviderAuthExport[]
+  providerAuthImports                      ProviderAuthImport[]
+  providerConfigs                          ProviderConfig[]
+  providerConfigVaults                     ProviderConfigVault[]
+  providerDeployments                      ProviderDeployment[]
+  providerDeploymentConfigPairs            ProviderDeploymentConfigPair[]
+  providerEnvironments                     ProviderEnvironment[]
+  providerEnvironmentVersions              ProviderEnvironmentVersion[]
+  providerListingGroups                    ProviderListingGroup[]
+  providerOAuthSetups                      ProviderOAuthSetup[]
+  metorialProviderRuns                     ProviderRun[]
+  providerSetupSessions                    ProviderSetupSession[]
+  providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
+  providerUses                             ProviderUse[]
+  serverInstanceConfigurations             ServerInstanceConfiguration[]
+  sessions                                 Session[]
+  sessionConnections                       SessionConnection[]
+  sessionErrors                            SessionError[]
+  sessionErrorGroups                       SessionErrorGroup[]
+  sessionEvents                            SessionEvent[]
+  sessionMessages                          SessionMessage[]
+  sessionParticipants                      SessionParticipant[]
+  sessionProviders                         SessionProvider[]
+  sessionTemplates                         SessionTemplate[]
+  sessionTemplateProviders                 SessionTemplateProvider[]
+  sessionWarnings                          SessionWarning[]
+  skills                                   Skill[]
+  skillEntities                            SkillEntity[]
+  skillTemplates                           SkillTemplate[]
+  slateInstanceConfigurations              SlateInstanceConfiguration[]
+  toolCalls                                ToolCall[]
+  upcomingCustomProviders                  UpcomingCustomProvider[]
+}

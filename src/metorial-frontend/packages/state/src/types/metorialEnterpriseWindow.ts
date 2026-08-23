@@ -12,6 +12,7 @@ export type MetorialEnterpriseWindow = {
   landing_collection_ids?: string | string[];
   chrome?: MetorialEnterpriseChromeBridge;
   beforeCreateInstance?: () => void | Promise<unknown>;
+  beforeCreateProject?: () => void | Promise<unknown>;
   upgrade?: () => void | Promise<unknown>;
   demo_mode?: boolean;
 };

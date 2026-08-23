@@ -28,7 +28,7 @@ export let enqueueDisableSsoDirectoryUsers = async (d: { directoryId: string }) 
       data: {
         directoryId: d.directoryId
       },
-      opts: { id: `directory:${d.directoryId}` }
+      opts: { id: `directory--${d.directoryId}` }
     }
   ]);
 };
@@ -107,6 +107,7 @@ export let disableSingleSsoDirectoryUserQueueProcessor =
       userProfile: link.userProfile,
       roles: []
     });
+    await ssoGroupRoleService.reconcileDirectoryRoles({ directory: link.directory });
 
     if (!link.userProfile.ownedUser) return;
 

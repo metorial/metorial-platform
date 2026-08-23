@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { authService } from '../../../services/auth';
 import { publicApp } from '../_app';
-import { resolveApp } from '../lib/resolveApp';
+import { resolveClient } from '../lib/resolveApp';
 
 export let oauthController = publicApp.controller({
   exchange: publicApp
@@ -13,9 +13,10 @@ export let oauthController = publicApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let app = await resolveApp(input.clientId);
+      let { app, account } = await resolveClient(input.clientId);
       let { user, session } = await authService.exchangeAuthorizationCode({
         app,
+        account,
         authorizationCode: input.authorizationCode
       });
 

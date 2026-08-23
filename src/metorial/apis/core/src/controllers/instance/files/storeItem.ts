@@ -1,14 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeItemService } from '@metorial/module-file';
+import { storeItemService } from '@metorial/module-store';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { storeItemPresenter } from '../../../presenters';
+import { storeItemPresenter } from '@metorial/presenters';
 import { stringArrayFilterSchema } from './_listFilters';
 import { storeGroup } from './store';
 
@@ -19,15 +19,10 @@ export let storeItemGroup = storeGroup.use(async ctx => {
 
   let storeItem = await storeItemService.getStoreItemById({
     itemId: ctx.params.itemId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
-  if (storeItem.storeId !== ctx.store.id) {
+  if (storeItem.store.id !== ctx.store.id) {
     throw new ServiceError(notFoundError('store.item', ctx.params.itemId));
   }
 
@@ -45,7 +40,9 @@ export let storeItemController = Controller.create(
         name: 'List store items',
         description: 'Returns a paginated list of items for a specific store.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .outputList(storeItemPresenter)
       .query(
         'default',
@@ -73,12 +70,7 @@ export let storeItemController = Controller.create(
         let paginator = await storeItemService.listStoreItems({
           storeId: ctx.store.id,
           types: normalizeArrayParam(ctx.query.type),
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          ...(await getInstanceCargoAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           fileIds: normalizeArrayParam(ctx.query.file_id),
           documentIds: normalizeArrayParam(ctx.query.document_id),
@@ -95,7 +87,9 @@ export let storeItemController = Controller.create(
         name: 'Get store item by ID',
         description: 'Retrieves a specific item within a store.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .output(storeItemPresenter)
       .do(async ctx => storeItemPresenter.present({ storeItem: ctx.storeItem }))
   }

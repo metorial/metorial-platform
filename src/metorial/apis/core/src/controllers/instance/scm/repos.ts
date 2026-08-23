@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceScmRepositoryService } from '@metorial/module-subspace';
+import { scmRepositoryService } from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { scmRepoPresenter, scmRepoPreviewPresenter } from '../../../presenters';
+import { scmRepoPresenter, scmRepoPreviewPresenter } from '@metorial/presenters';
 
 let scmRepoGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.scmRepositoryId) {
@@ -19,7 +19,7 @@ let scmRepoGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let scmRepo = await subspaceScmRepositoryService.get({
+  let scmRepo = await scmRepositoryService.getScmRepositoryById({
     instance: ctx.instance,
     scmRepositoryId: ctx.params.scmRepositoryId
   });
@@ -56,7 +56,7 @@ export let scmReposController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceScmRepositoryService.list({
+        let paginator = await scmRepositoryService.listScmRepositories({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           customProviderIds: normalizeArrayParam(ctx.query.provider_id),
@@ -98,15 +98,26 @@ export let scmReposController = Controller.create(
           installation_id: v.string({ description: 'SCM installation ID' }),
           external_account_id: v.optional(
             v.string({ description: 'Filter by external account ID' })
+          ),
+          cursor: v.optional(v.string({ description: 'Cursor from a previous repository preview page' })),
+          limit: v.optional(
+            v.number({
+              description: 'Maximum number of repositories to return (defaults to 50)',
+              modifiers: [v.minValue(1), v.maxValue(100)]
+            })
           )
         })
       )
       .output(scmRepoPreviewPresenter)
       .do(async ctx => {
-        let repoPreviews = await subspaceScmRepositoryService.listRepositoryPreviews({
+        let repoPreviews = await scmRepositoryService.listScmRepositoryPreviews({
           instance: ctx.instance,
-          scmConnectionId: ctx.body.installation_id,
-          externalAccountId: ctx.body.external_account_id
+          input: {
+            scmConnectionId: ctx.body.installation_id,
+            externalAccountId: ctx.body.external_account_id,
+            cursor: ctx.body.cursor,
+            limit: ctx.body.limit
+          }
         });
 
         return scmRepoPreviewPresenter.present({
@@ -148,10 +159,12 @@ export let scmReposController = Controller.create(
       .output(scmRepoPresenter)
       .do(async ctx => {
         if ('external_repo_id' in ctx.body) {
-          let scmRepo = await subspaceScmRepositoryService.linkRepository({
+          let scmRepo = await scmRepositoryService.linkScmRepository({
             instance: ctx.instance,
-            scmConnectionId: ctx.body.installation_id,
-            externalId: ctx.body.external_repo_id
+            input: {
+              scmConnectionId: ctx.body.installation_id,
+              externalId: ctx.body.external_repo_id
+            }
           });
 
           return scmRepoPresenter.present({
@@ -159,12 +172,14 @@ export let scmReposController = Controller.create(
           });
         }
 
-        let scmRepo = await subspaceScmRepositoryService.createRepository({
+        let scmRepo = await scmRepositoryService.createScmRepository({
           instance: ctx.instance,
-          scmConnectionId: ctx.body.installation_id,
-          externalAccountId: (ctx.body as any).external_account_id,
-          name: (ctx.body as any).name,
-          isPrivate: !!(ctx.body as any).is_private
+          input: {
+            scmConnectionId: ctx.body.installation_id,
+            externalAccountId: (ctx.body as any).external_account_id,
+            name: (ctx.body as any).name,
+            isPrivate: !!(ctx.body as any).is_private
+          }
         });
 
         return scmRepoPresenter.present({

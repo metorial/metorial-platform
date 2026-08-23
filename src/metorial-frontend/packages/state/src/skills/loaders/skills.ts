@@ -88,6 +88,37 @@ export let useSkills = (
   );
 };
 
+export let allSkillsLoader = createLoader({
+  name: 'allSkills',
+  parents: [skillsLoader],
+  fetch: (
+    i: { instanceId: string } & Omit<
+      DashboardInstanceSkillsListQuery,
+      'after' | 'before' | 'cursor'
+    >
+  ) =>
+    withAuth(sdk =>
+      autoPaginate(cursor =>
+        sdk.skills.list(
+          i.instanceId,
+          normalizeSkillsListQuery({
+            ...i,
+            ...cursor,
+            limit: i.limit ?? 100,
+            order: i.order ?? 'asc'
+          })
+        )
+      )
+    ),
+  mutators: {}
+});
+
+export let useAllSkills = (
+  instanceId: string | null | undefined,
+  query?: Omit<DashboardInstanceSkillsListQuery, 'after' | 'before' | 'cursor'> | null
+) =>
+  allSkillsLoader.use(instanceId && query !== null ? { instanceId, ...(query ?? {}) } : null);
+
 export let skillLoader = createLoader({
   name: 'skill',
   parents: [skillsLoader],

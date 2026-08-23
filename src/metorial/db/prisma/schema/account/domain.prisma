@@ -18,10 +18,6 @@ model AccountDomain {
   status             AccountDomainStatus
   verificationStatus AccountDomainVerificationStatus
 
-  isFixedToVerified Boolean   @default(false)
-  lastCheckedAt     DateTime?
-  lastManualCheckAt DateTime?
-
   accountOid BigInt
   account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
 

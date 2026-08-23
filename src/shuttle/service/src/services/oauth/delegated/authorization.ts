@@ -5,7 +5,11 @@ import { subMinutes } from 'date-fns';
 import type {
   DelegatedOAuthConfig,
   DelegatedOAuthConnection,
-  ServerInstanceConfiguration
+  DelegatedOAuthConnectionSetup,
+  FunctionServer,
+  ServerInstanceConfiguration,
+  ServerOAuthSetup,
+  Tenant
 } from '../../../../prisma/generated/client';
 import { oauthCallbackUrl } from '../../../config';
 import { db } from '../../../db';
@@ -19,6 +23,117 @@ import { serverEventService } from '../serverEvent';
 import { delegatedOAuthConnectionService } from './connection';
 
 class delegatedOauthAuthorizationServiceImpl {
+  private async buildAuthorizationRedirect(d: {
+    setup: DelegatedOAuthConnectionSetup & {
+      tenant: Tenant;
+      connection: DelegatedOAuthConnection & {
+        functionServer: FunctionServer;
+      };
+      serverOAuthSetup?: ServerOAuthSetup | null;
+    };
+    serverInstanceConfiguration?: ServerInstanceConfiguration | null;
+  }) {
+    if (!d.setup.stateIdentifier) {
+      throw new ServiceError(
+        badRequestError({ message: 'OAuth authorization attempt is no longer active' })
+      );
+    }
+
+    let DANGEROUS_unencryptedCredentials =
+      await delegatedOAuthConnectionService.DANGEROUSLY_getCredentials({
+        tenant: d.setup.tenant,
+        connection: d.setup.connection
+      });
+
+    let res = await callFunction(
+      d.setup.connection.functionServer,
+      {
+        enclaveId: d.serverInstanceConfiguration?.enclaveId,
+        egressPolicy:
+          (d.serverInstanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
+      },
+      client =>
+        client.getOauthAuthorizationUrl({
+          authConfig: d.setup.authConfigValue,
+          clientId: DANGEROUS_unencryptedCredentials.clientId,
+          clientSecret: DANGEROUS_unencryptedCredentials.clientSecret!,
+          state: d.setup.stateIdentifier!,
+          redirectUri: d.setup.serverOAuthSetup?.callbackUrlOverride ?? oauthCallbackUrl
+        })
+    );
+
+    let functionInvocation =
+      await functionServerInvocationService.ensureFunctionServerInvocation({
+        functionServer: d.setup.connection.functionServer,
+        tenant: d.setup.tenant,
+        functionInvocationId: res.functionCallId,
+        isError: res.status == 'error' || !res.result
+      });
+
+    if (res.status == 'error' || !res.result) {
+      await db.delegatedOAuthConnectionSetup.update({
+        where: { oid: d.setup.oid },
+        data: {
+          status: 'failed',
+          errorCode: res.error?.code ?? 'authorization_url_failed',
+          errorMessage:
+            res.error?.message ??
+            'Failed to get authorization URL from function server. OAuth not supported by provider.'
+        }
+      });
+
+      if (d.setup.serverOAuthSetup) {
+        await db.serverOAuthSetup.update({
+          where: { oid: d.setup.serverOAuthSetup.oid },
+          data: { status: 'failed' }
+        });
+        await serverEventService.recordServerOAuthSetupEvent({
+          serverOAuthSetup: d.setup.serverOAuthSetup,
+          type: 'oauth_setup_authorization_failed',
+          message:
+            res.error?.message ??
+            'Failed to get authorization URL from function server. OAuth not supported by provider.',
+          payload: {
+            errorCode: res.error?.code ?? 'authorization_url_failed'
+          },
+          functionInvocationId:
+            functionInvocation?.functionBayInvocationId ?? res.functionCallId
+        });
+      }
+
+      throw new ServiceError(
+        badRequestError({
+          message: 'Failed to authenticate with OAuth provider'
+        })
+      );
+    }
+
+    await db.delegatedOAuthConnectionSetup.updateMany({
+      where: { oid: d.setup.oid },
+      data: { authStateValue: res.result.authState ?? undefined }
+    });
+
+    if (d.setup.serverOAuthSetup) {
+      await serverEventService.recordServerOAuthSetupEvent({
+        serverOAuthSetup: d.setup.serverOAuthSetup,
+        type: 'oauth_setup_authorization_url_generated',
+        message: 'Generated delegated OAuth authorization URL',
+        payload: {
+          state: d.setup.stateIdentifier
+        },
+        functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
+      });
+    }
+
+    return {
+      type: 'redirect' as const,
+      setup: d.setup,
+      redirectUrl: normalizeAuthorizationUrl(res.result.authorizationUrl),
+      functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
+    };
+  }
+
   async startAuthorization(d: {
     connection: DelegatedOAuthConnection & {
       config: DelegatedOAuthConfig;
@@ -56,95 +171,29 @@ class delegatedOauthAuthorizationServiceImpl {
       }
     });
 
-    let DANGEROUS_unencryptedCredentials =
-      await delegatedOAuthConnectionService.DANGEROUSLY_getCredentials({
-        tenant: setup.tenant,
-        connection: d.connection
-      });
+    return await this.buildAuthorizationRedirect({
+      setup,
+      serverInstanceConfiguration: d.serverInstanceConfiguration
+    });
+  }
 
-    let res = await callFunction(
-      setup.connection.functionServer,
-      {
-        enclaveId: d.serverInstanceConfiguration?.enclaveId,
-        egressPolicy:
-          (d.serverInstanceConfiguration
-            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
-      },
-      client =>
-        client.getOauthAuthorizationUrl({
-          authConfig: d.authConfig,
-          clientId: DANGEROUS_unencryptedCredentials.clientId,
-          clientSecret: DANGEROUS_unencryptedCredentials.clientSecret!,
-          state: setup.stateIdentifier!,
-          redirectUri: setup.serverOAuthSetup?.callbackUrlOverride ?? oauthCallbackUrl
-        })
-    );
-
-    let functionInvocation =
-      await functionServerInvocationService.ensureFunctionServerInvocation({
-        functionServer: setup.connection.functionServer,
-        tenant: setup.tenant,
-        functionInvocationId: res.functionCallId,
-        isError: res.status == 'error' || !res.result
-      });
-
-    if (res.status == 'error' || !res.result) {
-      await db.delegatedOAuthConnectionSetup.update({
-        where: { oid: setup.oid },
-        data: {
-          status: 'failed',
-          errorCode: res.error?.code ?? 'authorization_url_failed',
-          errorMessage:
-            res.error?.message ??
-            'Failed to get authorization URL from function server. OAuth not supported by provider.'
-        }
-      });
-
-      if (setup.serverOAuthSetup) {
-        await serverEventService.recordServerOAuthSetupEvent({
-          serverOAuthSetup: setup.serverOAuthSetup,
-          type: 'oauth_setup_authorization_failed',
-          message:
-            res.error?.message ??
-            'Failed to get authorization URL from function server. OAuth not supported by provider.',
-          payload: {
-            errorCode: res.error?.code ?? 'authorization_url_failed'
-          },
-          functionInvocationId:
-            functionInvocation?.functionBayInvocationId ?? res.functionCallId
-        });
-      }
-
+  async resumeAuthorization(d: {
+    setup: DelegatedOAuthConnectionSetup & {
+      tenant: Tenant;
+      connection: DelegatedOAuthConnection & {
+        functionServer: FunctionServer;
+      };
+      serverOAuthSetup: ServerOAuthSetup;
+    };
+    serverInstanceConfiguration?: ServerInstanceConfiguration | null;
+  }) {
+    if (d.setup.status != 'pending') {
       throw new ServiceError(
-        badRequestError({
-          message: 'Failed to authenticate with OAuth provider'
-        })
+        badRequestError({ message: 'OAuth authorization attempt is no longer pending' })
       );
     }
 
-    await db.delegatedOAuthConnectionSetup.updateMany({
-      where: { oid: setup.oid },
-      data: { authStateValue: res.result.authState ?? undefined }
-    });
-
-    if (setup.serverOAuthSetup) {
-      await serverEventService.recordServerOAuthSetupEvent({
-        serverOAuthSetup: setup.serverOAuthSetup,
-        type: 'oauth_setup_authorization_url_generated',
-        message: 'Generated delegated OAuth authorization URL',
-        payload: {
-          state: setup.stateIdentifier
-        },
-        functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
-      });
-    }
-
-    return {
-      type: 'redirect' as const,
-      setup,
-      redirectUrl: normalizeAuthorizationUrl(res.result.authorizationUrl),
-      functionInvocationId: functionInvocation?.functionBayInvocationId ?? res.functionCallId
-    };
+    return await this.buildAuthorizationRedirect(d);
   }
 
   async completeAuthorization(d: {

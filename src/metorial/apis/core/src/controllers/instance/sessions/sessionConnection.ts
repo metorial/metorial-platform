@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSessionConnectionService } from '@metorial/module-subspace';
+import { sessionConnectionService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -13,7 +13,7 @@ import {
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceSessionConnectionPresenter } from '../../../presenters';
+import { subspaceSessionConnectionPresenter } from '@metorial/presenters';
 
 let sessionConnectionGroup = instanceGroup
   .use(async ctx => {
@@ -26,7 +26,7 @@ let sessionConnectionGroup = instanceGroup
       );
     }
 
-    let sessionConnection = await subspaceSessionConnectionService.get({
+    let sessionConnection = await sessionConnectionService.getSessionConnectionById({
       instance: ctx.instance,
       sessionConnectionId: ctx.params.sessionConnectionId
     });
@@ -122,7 +122,7 @@ export let sessionConnectionController = Controller.create(
           identityIds: normalizeArrayParam(ctx.query.identity_id)
         });
 
-        let paginator = await subspaceSessionConnectionService.list({
+        let paginator = await sessionConnectionService.listSessionConnections({
           instance: ctx.instance,
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,

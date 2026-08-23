@@ -24,11 +24,25 @@ model SkillTemplate {
   storeId         String?
   storeTemplateId String
 
-  organizationOid BigInt
-  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+  systemIdentifier String? @unique
 
-  instanceOid BigInt
-  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+  storeTemplateOid BigInt?        @unique
+  storeTemplate    StoreTemplate? @relation(fields: [storeTemplateOid], references: [oid], onDelete: Cascade)
+
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -36,6 +50,7 @@ model SkillTemplate {
   accessTagEntities      AccessTagEntity[]
   consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessSkillTemplate")
   consumerAccessListings ConsumerAccessListing[]
+  instantiatedSkills     Skill[]                 @relation("SkillTemplateHierarchy")
 
   @@index([instanceOid, status])
   @@index([instanceOid, storeTemplateId])

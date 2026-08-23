@@ -62,9 +62,6 @@ import {
   MetorialDashboardInstanceNetworksEndpoint,
   MetorialDashboardInstancePortalsAccessEndpoint,
   MetorialDashboardInstancePortalsAccessRequestsEndpoint,
-  MetorialDashboardInstancePortalsAuthAppEndpoint,
-  MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint,
-  MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint,
   MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
   MetorialDashboardInstancePortalsConsumerInvitesEndpoint,
   MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
@@ -120,6 +117,7 @@ import {
   MetorialDashboardInstanceSkillsForkSyncsEndpoint,
   MetorialDashboardInstanceSkillsGroupsEndpoint,
   MetorialDashboardInstanceSkillsGroupsItemsEndpoint,
+  MetorialDashboardInstanceSkillsImportsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint,
@@ -148,6 +146,8 @@ import {
   MetorialDashboardOrganizationsAccessPoliciesEndpoint,
   MetorialDashboardOrganizationsAccessRolesEndpoint,
   MetorialDashboardOrganizationsApiKeysEndpoint,
+  MetorialDashboardOrganizationsAuditLogStreamsEndpoint,
+  MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
@@ -485,6 +485,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         id: string;
         path: string;
       };
+      storeReplace?: boolean;
     }) => {
       let body = new FormData();
       body.append('file', input.file);
@@ -495,53 +496,66 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         body.append('store_id', input.store.id);
         body.append('path', input.store.path);
       }
+      if (input.storeReplace) body.append('store_replace', 'true');
 
       console.log('Uploading file with body:', Object.fromEntries(body.entries()));
 
-      try {
-        let res = await fetch(`${manager.apiHost}files`, {
-          method: 'POST',
-          body,
-          headers: manager.getHeaders(manager.config),
-          credentials: 'include',
-          redirect: 'follow',
-          referrerPolicy: 'no-referrer-when-downgrade',
-          cache: 'no-cache',
-          mode: 'cors'
-        });
+      let base = manager.apiHost;
+      if (!base.endsWith('/')) base += '/';
 
-        let json = await res.json();
+      let tries = 0;
+      while (true) {
+        try {
+          let res = await fetch(`${base}files`, {
+            method: 'POST',
+            body,
+            headers: manager.getHeaders(manager.config),
+            credentials: 'include',
+            redirect: 'follow',
+            referrerPolicy: 'no-referrer-when-downgrade',
+            cache: 'no-cache',
+            mode: 'cors'
+          });
 
-        if (!res.ok) {
-          let errorData: {
-            status: number;
-            code: string;
-            message: string;
-          };
-          try {
-            errorData = json;
-          } catch {
-            errorData = {
-              status: res.status,
-              code: 'file_upload_failed',
-              message: `File upload failed with status ${res.status}`
+          let json = await res.json();
+
+          if (!res.ok) {
+            let errorData: {
+              status: number;
+              code: string;
+              message: string;
             };
+            try {
+              errorData = json;
+            } catch {
+              errorData = {
+                status: res.status,
+                code: 'file_upload_failed',
+                message: `File upload failed with status ${res.status}`
+              };
+            }
+
+            throw new MetorialSDKError(errorData);
           }
 
-          throw new MetorialSDKError(errorData);
+          let mapped = mapDashboardInstanceFilesGetOutput.transformFrom(json);
+
+          return mapped;
+        } catch (error) {
+          if (tries < 2) {
+            console.warn('File upload failed, retrying...', error);
+            tries++;
+            continue;
+          }
+
+          console.error('File upload failed:', error);
+
+          throw new MetorialSDKError({
+            status: 500,
+            code: 'file_upload_failed',
+            message: 'File upload failed due to an unexpected error'
+          });
         }
-
-        let mapped = mapDashboardInstanceFilesGetOutput.transformFrom(json);
-
-        return mapped;
-      } catch (error) {
-        console.error('File upload failed:', error);
-
-        throw new MetorialSDKError({
-          status: 500,
-          code: 'file_upload_failed',
-          message: 'File upload failed due to an unexpected error'
-        });
       }
     }
   }),
@@ -606,6 +620,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   skillExports: new MetorialDashboardInstanceSkillsExportsEndpoint(manager),
+  skillImports: new MetorialDashboardInstanceSkillsImportsEndpoint(manager),
 
   skillSyncs: new MetorialDashboardInstanceSkillsSyncsEndpoint(manager),
 
@@ -639,17 +654,6 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     consumerProfiles: new MetorialDashboardInstancePortalsConsumerProfilesEndpoint(manager),
     consumerInvites: new MetorialDashboardInstancePortalsConsumerInvitesEndpoint(manager),
     providerGroups: new MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint(manager),
-    auth: {
-      app: new MetorialDashboardInstancePortalsAuthAppEndpoint(manager),
-      ssoTenants: Object.assign(
-        new MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint(manager),
-        {
-          connections: new MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint(
-            manager
-          )
-        }
-      )
-    },
     accessRequests: new MetorialDashboardInstancePortalsAccessRequestsEndpoint(manager)
   }),
 
@@ -707,6 +711,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     members: new MetorialDashboardOrganizationsTeamsMembersEndpoint(manager),
     policies: new MetorialDashboardOrganizationsTeamsPoliciesEndpoint(manager)
   }),
+
+  auditLogStreams: Object.assign(
+    new MetorialDashboardOrganizationsAuditLogStreamsEndpoint(manager),
+    {
+      events: new MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint(manager)
+    }
+  ),
 
   customProviders: Object.assign(
     new MetorialDashboardInstanceCustomProvidersEndpoint(manager),

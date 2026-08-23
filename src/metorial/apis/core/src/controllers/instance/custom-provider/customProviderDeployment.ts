@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCustomProviderDeploymentService } from '@metorial/module-subspace';
+import { customProviderDeploymentService } from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -11,7 +11,7 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderDeploymentLogsPresenter,
   subspaceCustomProviderDeploymentPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 let customProviderDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderDeploymentId) {
@@ -23,10 +23,11 @@ let customProviderDeploymentGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let customProviderDeployment = await subspaceCustomProviderDeploymentService.get({
-    instance: ctx.instance,
-    customProviderDeploymentId: ctx.params.customProviderDeploymentId
-  });
+  let customProviderDeployment =
+    await customProviderDeploymentService.getCustomProviderDeploymentById({
+      instance: ctx.instance,
+      customProviderDeploymentId: ctx.params.customProviderDeploymentId
+    });
 
   return { customProviderDeployment };
 });
@@ -73,7 +74,7 @@ export let customProviderDeploymentController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCustomProviderDeploymentService.list({
+        let paginator = await customProviderDeploymentService.listCustomProviderDeployments({
           instance: ctx.instance,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -127,9 +128,9 @@ export let customProviderDeploymentController = Controller.create(
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderDeploymentLogsPresenter)
       .do(async ctx => {
-        let logs = await subspaceCustomProviderDeploymentService.getLogs({
+        let logs = await customProviderDeploymentService.getLogs({
           instance: ctx.instance,
-          customProviderDeploymentId: ctx.customProviderDeployment.id
+          customProviderDeployment: ctx.customProviderDeployment
         });
 
         return subspaceCustomProviderDeploymentLogsPresenter.present({

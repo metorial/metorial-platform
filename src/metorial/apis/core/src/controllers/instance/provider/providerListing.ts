@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderListingService } from '@metorial/module-subspace';
+import { providerListingService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerListingPresenter } from '../../../presenters';
+import { providerListingPresenter } from '@metorial/presenters';
 
 let providerListingGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerListingId) {
@@ -19,7 +19,7 @@ let providerListingGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let providerListing = await subspaceProviderListingService.get({
+  let providerListing = await providerListingService.getProviderListingById({
     instance: ctx.instance,
     providerListingId: ctx.params.providerListingId
   });
@@ -152,7 +152,7 @@ export let providerListingController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderListingService.list({
+        let paginator = await providerListingService.listProviderListings({
           instance: ctx.instance,
           search: ctx.query.search,
 
@@ -196,7 +196,9 @@ export let providerListingController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.listing:read'] }))
       .output(providerListingPresenter)
       .do(async ctx => {
-        return providerListingPresenter.present({ providerListing: ctx.providerListing });
+        return providerListingPresenter.present({
+          providerListing: ctx.providerListing
+        });
       })
   }
 );

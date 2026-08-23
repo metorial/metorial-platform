@@ -17,30 +17,33 @@ model Consumer {
   globalProfileOid BigInt?
   globalProfile    GlobalProfile? @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
 
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+
   isOrganizationMember Boolean @default(false)
   isPortalConsumer     Boolean @default(false)
   isManuallyCreated    Boolean @default(false)
   isPending            Boolean @default(false)
 
-  internalActorIdentifier String?
-  cargoActorId            String?
-  subspaceActorId         String?
-  synthesisActorId        String?
+  cargoActorId     String?
+  synthesisActorId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles             ConsumerProfile[]
-  instanceConsumers    InstanceConsumer[]
-  consumerActors       ConsumerActor[]
-  consumerTokens       ConsumerToken[]
-  integrations         ConsumerIntegration[]
-  integrationEndpoints ConsumerIntegrationEndpoint[]
-  integrationSessions  ConsumerIntegrationSession[]
-  invites              ConsumerInvite[]
-  createdSkills        Skill[]
-  consumerSkills       ConsumerSkill[]
-  workspaceProfiles    WorkspaceProfile[]
+  profiles                   ConsumerProfile[]
+  instanceConsumers          InstanceConsumer[]
+  consumerActors             ConsumerActor[]
+  consumerTokens             ConsumerToken[]
+  integrations               ConsumerIntegration[]
+  integrationEndpoints       ConsumerIntegrationEndpoint[]
+  integrationSessions        ConsumerIntegrationSession[]
+  invites                    ConsumerInvite[]
+  createdSkills              Skill[]
+  consumerSkills             ConsumerSkill[]
+  workspaceProfiles          WorkspaceProfile[]
+  resourceActors             ResourceActor[]
+  consumerOrganizationActors ConsumerOrganizationActor[]
 
   @@unique([email, organizationOid])
 }
@@ -118,8 +121,8 @@ model ConsumerProfile {
   organizationMemberOid BigInt?
   organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: SetNull)
 
-  organizationActorOid BigInt?
-  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+  organizationActorOid BigInt            @unique
+  organizationActor    OrganizationActor @relation(fields: [organizationActorOid], references: [oid], onDelete: Cascade)
 
   personalConsumerGroupOid BigInt        @unique
   personalConsumerGroup    ConsumerGroup @relation("ConsumerProfilePersonalGroup", fields: [personalConsumerGroupOid], references: [oid], onDelete: Cascade)
@@ -143,6 +146,7 @@ model ConsumerProfile {
   invite                         ConsumerInvite?
   createdSkills                  Skill[]
   consumerSkills                 ConsumerSkill[]
+  resourceActors                 ResourceActor[]
   workspaceProfile               WorkspaceProfile?
 
   @@unique([surfaceOid, aresUserId])
@@ -189,6 +193,11 @@ model ConsumerInvite {
   @@unique([surfaceOid, consumerOid])
 }
 
+enum ConsumerProfileGroupAssignedVia {
+  manual
+  sso
+}
+
 model ConsumerProfileGroup {
   oid BigInt @id @default(autoincrement())
 
@@ -198,7 +207,23 @@ model ConsumerProfileGroup {
   groupOid BigInt
   group    ConsumerGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
 
+  assignedVia ConsumerProfileGroupAssignedVia @default(manual)
+
   createdAt DateTime @default(now())
 
   @@unique([profileOid, groupOid])
+}
+
+model ConsumerOrganizationActor {
+  oid BigInt @id @default(autoincrement())
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  organizationActorOid BigInt
+  organizationActor    OrganizationActor @relation(fields: [organizationActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([consumerOid, organizationActorOid])
 }

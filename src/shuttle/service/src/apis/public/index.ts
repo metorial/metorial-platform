@@ -69,6 +69,8 @@ export let publicApp = createHono()
 
     if (setup.state) {
       setCookie(c, STATE_COOKIE_NAME, setup.state, { path: '/' });
+    } else {
+      deleteCookie(c, STATE_COOKIE_NAME, { path: '/' });
     }
 
     return c.redirect(setup.url);

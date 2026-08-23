@@ -1,21 +1,45 @@
-model OrganizationUserConfig {
-  id String @id @default(cuid())
+enum OrganizationConfigOwnership {
+  user
+  organization
+  user_organization
+}
 
-  type String
-  key  String
+model OrganizationConfigType {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
 
-  organizationOid BigInt
-  organization    Organization @relation(fields: [organizationOid], references: [oid])
+  identifier String                      @unique
+  name       String
+  ownership  OrganizationConfigOwnership
 
-  memberOid BigInt
-  member    OrganizationMember @relation(fields: [memberOid], references: [oid])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-  /// [OrganizationUserConfigValue]
+  configs OrganizationConfig[]
+}
+
+model OrganizationConfig {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  typeOid BigInt
+  type    OrganizationConfigType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
+
+  targetHash String
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  /// [OrganizationConfigValue]
   value Json
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  @@unique([memberOid, organizationOid, key, type])
-  @@index([key, type])
+  @@unique([typeOid, targetHash])
+  @@index([userOid])
+  @@index([organizationOid])
 }

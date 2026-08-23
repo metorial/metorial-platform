@@ -5,7 +5,7 @@ import { styled } from 'styled-components';
 import { theme } from '../theme';
 import {
   DialogProvider,
-  preventDialogDismissWhenSelectOpen,
+  preventDialogDismissForSelectInteraction,
   useDialogZIndex
 } from './state';
 import { Close, Content, Overlay } from './styles';
@@ -91,7 +91,9 @@ export let Dialog = {
 
             <Wrapper
               ref={contentRef}
-              onPointerDownOutside={preventDialogDismissWhenSelectOpen}
+              onPointerDownOutside={preventDialogDismissForSelectInteraction}
+              onInteractOutside={preventDialogDismissForSelectInteraction}
+              onFocusOutside={preventDialogDismissForSelectInteraction}
               style={{
                 zIndex: zIndex + 1,
                 maxWidth: width ? width : variant == 'padded' ? 480 : 400,

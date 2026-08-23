@@ -1,0 +1,158 @@
+model ResourceTenant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  /// [EntityImage]
+  image            Json?
+  organizationName String?
+
+  identifier String @unique
+  name       String
+
+  user         User?
+  organization Organization?
+  project      Project?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  groups                ResourceGroup[]
+  actors                ResourceActor[]
+  instances             Instance[]
+  files                 File[]
+  fileLinks             FileLink[]
+  fileReferences        FileReference[]
+  documents             Document[]
+  documentVersions      DocumentVersion[]
+  stores                Store[]
+  storeTemplates        StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
+  skills                Skill[]
+  skillConfigurations   SkillConfiguration[]
+  skillTemplates        SkillTemplate[]
+  skillMarketplaces     SkillMarketplace[]
+  skillPlugins          SkillPlugin[]
+  skillRepositories     SkillRepository[]
+  skillExports          SkillExport[]
+  skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
+  skillMergeRequests    SkillMergeRequest[]
+  skillForkSyncs        SkillForkSync[]
+}
+
+enum ResourceGroupType {
+  development
+  production
+}
+
+model ResourceGroup {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ResourceGroupType
+
+  identifier String
+  name       String
+
+  resourceTenantOid BigInt
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  user         User?
+  organization Organization?
+  project      Project?
+  instance     Instance?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  files                 File[]
+  fileLinks             FileLink[]
+  fileReferences        FileReference[]
+  documents             Document[]
+  documentVersions      DocumentVersion[]
+  stores                Store[]
+  storeTemplates        StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
+  skills                Skill[]
+  skillConfigurations   SkillConfiguration[]
+  skillTemplates        SkillTemplate[]
+  skillMarketplaces     SkillMarketplace[]
+  skillPlugins          SkillPlugin[]
+  skillRepositories     SkillRepository[]
+  skillExports          SkillExport[]
+  skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
+  skillMergeRequests    SkillMergeRequest[]
+  skillForkSyncs        SkillForkSync[]
+
+  @@unique([resourceTenantOid, identifier])
+  @@index([resourceTenantOid])
+}
+
+enum ResourceActorType {
+  external
+  system
+}
+
+model ResourceActor {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ResourceActorType
+
+  identifier String
+  name       String
+
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+
+  consumerOid BigInt?
+  consumer    Consumer? @relation(fields: [consumerOid], references: [oid], onDelete: SetNull)
+
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  documentParticipants      DocumentParticipant[]
+  createdDocuments          Document[]                 @relation("DocumentCreator")
+  createdStores             Store[]                    @relation("StoreCreator")
+  createdSkills             Skill[]                    @relation("SkillCreator")
+  createdFiles              File[]                     @relation("FileCreator")
+  createdFileLinks          FileLink[]                 @relation("FileLinkCreator")
+  createdSkillExports       SkillExport[]              @relation("SkillExportCreator")
+  createdSkillImports       SkillImport[]              @relation("SkillImportCreator")
+  createdMergeRequests      SkillMergeRequest[]        @relation("SkillMergeRequestCreator")
+  createdSkillForkSyncs     SkillForkSync[]            @relation("SkillForkSyncCreator")
+  startedMergeRequests      SkillMergeRequest[]        @relation("SkillMergeRequestMergeStarter")
+  mergedMergeRequests       SkillMergeRequest[]        @relation("SkillMergeRequestMerger")
+  closedMergeRequests       SkillMergeRequest[]        @relation("SkillMergeRequestCloser")
+  rolledBackMergeRequests   SkillMergeRequest[]        @relation("SkillMergeRequestRollbacker")
+  documentVersionEditors    DocumentVersionEditors[]
+  storeParticipants         StoreParticipant[]
+  skillParticipants         SkillParticipant[]
+  resolvedMergeRequestItems SkillMergeRequestItem[]    @relation("SkillMergeRequestItemResolver")
+  skillMergeRequestComments SkillMergeRequestComment[]
+  skillMergeRequestEvents   SkillMergeRequestEvent[]
+  lastModifiedStoreItems    StoreItem[]
+
+  createdProductAssistantConversations     ProductAssistantConversation[]            @relation("ProductAssistantConversationCreator")
+  productAssistantRequests                 ProductAssistantRequest[]
+  productAssistantConversationParticipants ProductAssistantConversationParticipant[]
+
+  @@unique([resourceTenantOid, identifier])
+  @@unique([resourceTenantOid, consumerProfileOid])
+  @@unique([resourceTenantOid, organizationActorOid])
+  @@unique([projectOid, identifier])
+  @@unique([projectOid, consumerProfileOid])
+  @@unique([projectOid, organizationActorOid])
+  @@index([consumerOid])
+  @@index([consumerProfileOid])
+}

@@ -9,7 +9,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { projectIntegrationNamingConfigurationPresenter } from '../../presenters';
+import { projectIntegrationNamingConfigurationPresenter } from '@metorial/presenters';
 
 export let dashboardIntegrationNamingConfigurationController = Controller.create(
   {
@@ -109,8 +109,7 @@ export let dashboardIntegrationNamingConfigurationController = Controller.create
             {
               project,
               organization: ctx.organization,
-              performedBy: ctx.actor,
-              context: ctx.context,
+              auditScope: ctx.auditScope,
               input: {
                 useIntegrationNames: ctx.body.use_integration_name_in_tool_names
               }

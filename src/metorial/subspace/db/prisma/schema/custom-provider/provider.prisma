@@ -1,0 +1,68 @@
+enum CustomProviderType {
+  container
+  function
+  remote
+}
+
+enum CustomProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model CustomProvider {
+  oid BigInt @id
+  id  String @unique
+
+  type   CustomProviderType
+  status CustomProviderStatus @default(active)
+
+  name        String
+  description String?
+  metadata    Json?
+
+  maxVersionIndex Int @default(0)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  providerOid BigInt?   @unique
+  provider    Provider? @relation(fields: [providerOid], references: [oid])
+
+  providerVariantOid BigInt?          @unique
+  providerVariant    ProviderVariant? @relation(fields: [providerVariantOid], references: [oid])
+
+  shuttleCustomServerOid BigInt?              @unique
+  shuttleCustomServer    ShuttleCustomServer? @relation(fields: [shuttleCustomServerOid], references: [oid])
+
+  scmRepoOid BigInt?
+  scmRepo    ScmRepo? @relation(fields: [scmRepoOid], references: [oid])
+
+  draftCodeBucketOid BigInt?
+  draftCodeBucket    CodeBucket? @relation(fields: [draftCodeBucketOid], references: [oid])
+
+  /// [CustomProviderPayload]
+  payload Json
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  customProviderDeployments  CustomProviderDeployment[]
+  customProviderVersions     CustomProviderVersion[]
+  customProviderEnvironments CustomProviderEnvironment[]
+  customProviderCommits      CustomProviderCommit[]
+  upcomingCustomProviders    UpcomingCustomProvider[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([type])
+  @@index([projectOid])
+}

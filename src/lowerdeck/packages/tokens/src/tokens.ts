@@ -162,6 +162,6 @@ export class Tokens {
     if (parts.length < 4) return null;
 
     let dataBase62 = parts[parts.length - 2];
-    return JSON.parse(base62.decode(dataBase62));
+    return JSON.parse(base62.decode(dataBase62!));
   }
 }

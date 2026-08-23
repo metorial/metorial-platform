@@ -3,7 +3,13 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ManagementInstanceScmProvidersGetOutput = {
   object: 'scm.provider';
   id: string;
-  type: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
+  type:
+    | 'github'
+    | 'github_enterprise'
+    | 'gitlab'
+    | 'gitlab_selfhosted'
+    | 'bitbucket'
+    | 'bitbucket_data_center';
   name: string;
   description: string | null;
   apiUrl: string | null;

@@ -26,9 +26,36 @@ let instanceNotFound = new MetorialSDKError({
 });
 
 export let useCurrentOrganization = () => {
-  let boot = useBoot();
+  let bootRaw = useBoot();
 
   let consumerSetup = getConsumerSetupSync();
+
+  let boot = useMemo(() => {
+    if (!bootRaw.data || !consumerSetup) return bootRaw;
+
+    let consumerProfiles = bootRaw.data.consumers.flatMap(c =>
+      c.profiles.map(p => ({ ...p, consumer: c }))
+    );
+    let currentProfile = consumerProfiles.find(p => p.portal?.id === consumerSetup.portalId);
+    if (!currentProfile) return bootRaw;
+
+    return {
+      ...bootRaw,
+      data: {
+        ...bootRaw.data,
+        organizations: [
+          {
+            ...currentProfile.organization,
+            namespaces: currentProfile.portal?.namespaces ?? [],
+            member: undefined
+          }
+        ],
+        instances: [currentProfile.instance],
+        projects: [currentProfile.project]
+      }
+    };
+  }, [bootRaw, consumerSetup?.portalId]);
+
   let params = useParams<{ organizationId: string; projectId: string; instanceId: string }>();
   let [search] = useSearchParams();
 
@@ -179,6 +206,7 @@ export let useCurrentOrganization = () => {
     ...org,
     data: {
       ...foundItem.organization,
+
       projects,
       instances,
 

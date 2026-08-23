@@ -19,6 +19,7 @@ model User {
   name      String
   firstName String?
   lastName  String?
+  timezone  String?
 
   /// [EntityImage]
   image Json
@@ -31,6 +32,12 @@ model User {
   synthesisTenantId        String?
   synthesisEnvironmentId   String?
 
+  resourceTenantOid BigInt?         @unique
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
+
+  resourceGroupOid BigInt?        @unique
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: SetNull)
+
   globalProfileOid BigInt?
   globalProfile    GlobalProfile? @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
 
@@ -38,18 +45,23 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
-  sessions                UserSession[]
-  members                 OrganizationMember[]
-  access                  MachineAccess[]
-  files                   File[]
-  profile                 Profile?
-  uploads                 Upload[]
-  oauthAuthorizations     OAuthAuthorization[]
-  cliDevices              CliDevice[]
-  oauthAuthorizationFlows OAuthAuthorizationFlow[]
-  apiKeyCreatedEmailSends ApiKeyCreatedEmailSend[]
-  apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
-  workspaceProfiles       WorkspaceProfile[]
+  sessions                               UserSession[]
+  members                                OrganizationMember[]
+  access                                 MachineAccess[]
+  files                                  File[]
+  profile                                Profile?
+  uploads                                Upload[]
+  oauthAuthorizations                    OAuthAuthorization[]
+  cliDevices                             CliDevice[]
+  oauthAuthorizationFlows                OAuthAuthorizationFlow[]
+  apiKeyCreatedEmailSends                ApiKeyCreatedEmailSend[]
+  apiKeyExpiredEmailSends                ApiKeyExpiredEmailSend[]
+  workspaceProfiles                      WorkspaceProfile[]
+  organizationNotificationSettings       OrganizationNotificationSetting[]
+  organizationNotificationDigestSettings OrganizationNotificationDigestSetting[]
+  organizationConfigs                    OrganizationConfig[]
+  organizationLayouts                    OrganizationLayout[]
+  consumers                              Consumer[]
 }
 
 model UserSession {

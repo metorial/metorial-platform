@@ -9,15 +9,15 @@ import type {
   ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
 import { safeFetch } from '../../lib/http/fetchSsrf';
-import {
-  EGRESS_POLICY_BLOCKED_CODE,
-  getEgressPolicyErrorMessage,
-  isEgressPolicyError
-} from '../../lib/network/egressPolicy';
 import { safeParse } from '../../lib/safeParse';
 import { fetchEventSource } from '../../lib/sse/fetch';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
+import {
+  HttpResponseError,
+  toConnectionError,
+  type ConnectionErrorPayload
+} from '../utils/connectionError';
 import { ConnectionLogger } from '../utils/logger';
 import { ConnectionMessenger } from '../utils/messenger';
 import { RemoteConnectionAuthManager } from './authManager';
@@ -60,6 +60,9 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
 
     this.#authManager = new RemoteConnectionAuthManager(this.logger, tenant, connection);
 
+    // Initialization failures are reported through the messenger; waiters observe
+    // them via waitForInitialization().
+    this.#initPromise.promise.catch(() => {});
     this.init();
   }
 
@@ -77,23 +80,26 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
 
   async sendMcpMessage(message: JSONRPCMessage) {
     if (this.#exiting) {
-      console.warn(
-        'Attempted to send MCP message connection after server began exiting',
-        message
-      );
+      await this.#emitError({
+        code: 'connection_closed',
+        message: 'The connection to the MCP server is shutting down'
+      });
       return;
     }
 
     if (!this.#endpointUrl) {
-      console.warn('Attempted to send MCP message before connection was initialized', message);
       Sentry.captureException(
         new Error('Attempted to send MCP message before connection was initialized'),
-        { extra: { message } }
+        { extra: { messageId: 'id' in message ? message.id : undefined } }
       );
+      await this.#emitError({
+        code: 'initialize_failed',
+        message: 'The MCP server did not provide an endpoint to send messages to'
+      });
       return;
     }
 
-    await safeFetch(this.#endpointUrl, {
+    let response = await safeFetch(this.#endpointUrl, {
       method: 'POST',
       egressPolicy: this.connection.serverInstanceConfiguration
         ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
@@ -103,6 +109,16 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
       },
       body: JSON.stringify(message)
     });
+
+    if (response.status >= 400) {
+      let body = await response.text().catch(() => '');
+      throw new HttpResponseError(response.status, response.statusText, body.slice(0, 1000));
+    }
+  }
+
+  async #emitError(error: ConnectionErrorPayload) {
+    await this.logger.log('debug.error', `SSE connection error: ${error.message}`);
+    await this.messenger.sendToListeners({ type: 'error', data: error });
   }
 
   waitForInitialization() {
@@ -168,50 +184,22 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
         },
 
         onerror: async err => {
-          console.error('SSE connection error:', err);
-
-          await this.logger.log('debug.error', `SSE connection error: ${err?.message || err}`);
-          await this.messenger.sendToListeners({
-            type: 'error',
-            data: {
-              code: 'connection_error',
-              message: err?.message ?? 'Unknown connection error'
-            }
-          });
-
+          this.#initPromise.reject(err);
+          await this.#emitError(toConnectionError(err));
           await this.terminate();
         },
 
         onclose: () => {
+          this.#initPromise.reject(
+            new Error('SSE stream closed before an endpoint was received')
+          );
           this.messenger.sendToListeners({ type: 'close' });
         }
       });
     } catch (e) {
-      if (isEgressPolicyError(e)) {
-        let message = getEgressPolicyErrorMessage(e);
-
-        this.logger.log('debug.error', `SSE connection error: ${message}`);
-        await this.messenger.sendToListeners({
-          type: 'error',
-          data: {
-            code: EGRESS_POLICY_BLOCKED_CODE,
-            message
-          }
-        });
-
-        this.#initPromise.reject(e);
-        await this.terminate();
-        return;
-      }
-
-      this.logger.log('debug.error', `SSE connection error: ${(e as Error).message || e}`);
-      this.messenger.sendToListeners({
-        type: 'error',
-        data: {
-          code: 'connection_error',
-          message: (e as Error).message || 'Unknown connection error'
-        }
-      });
+      this.#initPromise.reject(e);
+      await this.#emitError(toConnectionError(e));
+      await this.terminate();
     }
   }
 

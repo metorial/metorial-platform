@@ -37,7 +37,7 @@ export class MetorialDocumentsEditTokenEndpoint {
 
   /**
    * @name Get document edit token
-   * @description Returns a short-lived token for establishing a collaborative document editing session.
+   * @description Returns a short-lived read or write token for establishing a live document session.
    *
    * @param `documentId` - string
    * @param `opts` - { headers?: Record<string, string> }

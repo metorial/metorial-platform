@@ -1,0 +1,165 @@
+enum IntegrationInstanceStatus {
+  draft
+  active
+  archived
+  deleted
+}
+
+model IntegrationInstance {
+  oid BigInt @id
+  id  String @unique
+
+  status          IntegrationInstanceStatus
+  isHiddenDraft   Boolean                   @default(false)
+  isParentDeleted Boolean                   @default(false)
+  archivedAt      DateTime?
+
+  isMagicMcpBacking Boolean @default(false)
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  identityActorOid BigInt?
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: Cascade)
+
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
+
+  defaultSessionTemplate SessionTemplate? @relation("defaultSessionTemplateForIntegrationInstance")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  integrationInstanceProviders      IntegrationInstanceProvider[]
+  integrationSetupSessions          IntegrationSetupSession[]
+  providerConfigs                   ProviderConfig[]
+  providerAuthConfigs               ProviderAuthConfig[]
+  identityCredentials               IdentityCredential[]
+  ownedIdentities                   Identity[]                         @relation("ownedIdentities")
+  sessionTemplates                  SessionTemplate[]
+  integrationInstanceGroupSources   IntegrationInstanceGroupSource[]
+  integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
+  magicMcpServerBackings            MagicMcpServerBacking[]
+
+  @@index([tenantOid, solutionOid, environmentOid, status, isHiddenDraft])
+  @@index([integrationOid, status])
+  @@index([status, isHiddenDraft, archivedAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+enum IntegrationInstanceProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model IntegrationInstanceProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status          IntegrationInstanceProviderStatus
+  isParentDeleted Boolean                           @default(false)
+  archivedAt      DateTime?
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  currentVersionOid BigInt?
+  currentVersion    IntegrationInstanceProviderVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid])
+
+  integrationInstanceOid BigInt
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationVersionOid BigInt
+  integrationVersion    IntegrationVersion @relation(fields: [integrationVersionOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
+  providerConfigs                     ProviderConfig[]
+  providerAuthConfigs                 ProviderAuthConfig[]
+  identityCredential                  IdentityCredential?
+  sessionTemplateProviders            SessionTemplateProvider[]
+  integrationInstanceGroupProviders   IntegrationInstanceGroupProvider[]
+  integrationSetupSessionProviders    IntegrationSetupSessionProvider[]
+  magicMcpServerProviders             MagicMcpServerProvider[]
+
+  @@unique([integrationInstanceOid, integrationProviderOid])
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([integrationInstanceOid, status])
+  @@index([integrationProviderOid, status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model IntegrationInstanceProviderVersion {
+  oid BigInt @id
+  id  String @unique
+
+  status IntegrationInstanceProviderStatus
+
+  integrationInstanceProviderOid BigInt
+  integrationInstanceProvider    IntegrationInstanceProvider @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderVersionOid BigInt
+  integrationProviderVersion    IntegrationProviderVersion @relation(fields: [integrationProviderVersionOid], references: [oid], onDelete: Cascade)
+
+  /// [ToolFilter]
+  toolFilter           Json?
+  isOverrideToolFilter Boolean
+
+  configOid BigInt?
+  config    ProviderConfig? @relation(fields: [configOid], references: [oid])
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providers IntegrationInstanceProvider[] @relation("currentVersion")
+}

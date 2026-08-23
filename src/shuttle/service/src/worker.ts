@@ -17,6 +17,11 @@ import {
 } from './queues/deployment/timeout';
 import { discoverRemoteOAuthConfigQueueProcessor } from './queues/discovery/remoteOAuthConfig';
 import { discoverRemoteOAuthConnectionQueueProcessor } from './queues/discovery/remoteOAuthConnection';
+import {
+  retryFailedRegistrationsCron,
+  retryFailedRegistrationsSearchQueueProcessor,
+  retryRegistrationQueueProcessor
+} from './queues/discovery/retryRemoteOAuthConnections';
 import { discoverServerQueueProcessor } from './queues/discovery/server';
 import { deployFunctionServerDiscoverQueueProcessor } from './queues/function/discover';
 import { deployFunctionServerWatchQueueProcessor } from './queues/function/monitor';
@@ -30,6 +35,11 @@ import { serverVersionCreatedQueueProcessor } from './queues/lifecycle/serverVer
 import { repositoryTagCreatedQueueProcessor } from './queues/lifecycle/tag';
 import { delegatedOAuthErrorCheckQueueProcessor } from './queues/oauth/delegatedErrorCheck';
 import { remoteOAuthErrorCheckQueueProcessor } from './queues/oauth/remoteErrorCheck';
+import {
+  promoteRotatedCredentialsQueueProcessor,
+  rotateStaleCredentialsQueueProcessor,
+  rotateStaleCredentialsSearchQueueProcessor
+} from './queues/oauth/rotateRemoteCredentials';
 import { retentionQueues } from './queues/retention';
 import { deployRemoteServerStartQueueProcessor } from './queues/remote/startDeployment';
 import {
@@ -58,6 +68,14 @@ await runQueueProcessors([
 
   discoverRemoteOAuthConfigQueueProcessor,
   discoverRemoteOAuthConnectionQueueProcessor,
+
+  retryFailedRegistrationsCron,
+  retryFailedRegistrationsSearchQueueProcessor,
+  retryRegistrationQueueProcessor,
+
+  rotateStaleCredentialsSearchQueueProcessor,
+  rotateStaleCredentialsQueueProcessor,
+  promoteRotatedCredentialsQueueProcessor,
 
   delegatedOAuthErrorCheckQueueProcessor,
   remoteOAuthErrorCheckQueueProcessor,

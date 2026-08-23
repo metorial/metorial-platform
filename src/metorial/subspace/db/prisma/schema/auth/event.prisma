@@ -1,0 +1,178 @@
+enum ProviderAuthConfigEventStatus {
+  succeeded
+  failed
+}
+
+model ProviderAuthConfigEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type       String
+  sourceType String
+  sourceId   String
+
+  status ProviderAuthConfigEventStatus @default(succeeded)
+
+  providerInvocationId String?
+
+  payload Json?
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
+
+  oauthSetupOid BigInt?
+  oauthSetup    ProviderOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid])
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  errors ProviderAuthConfigError[]
+
+  @@unique([sourceType, sourceId])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([type])
+  @@index([status])
+  @@index([authConfigOid])
+  @@index([authCredentialsOid])
+  @@index([oauthSetupOid])
+  @@index([providerInvocationId])
+  @@index([providerOid, createdAt])
+  @@index([tenantOid])
+  @@index([environmentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model ProviderAuthConfigErrorGlobal {
+  oid BigInt @id
+  id  String @unique
+
+  type String
+
+  code    String
+  message String
+
+  hash String
+
+  firstOccurrenceOid BigInt?
+  firstOccurrence    ProviderAuthConfigError? @relation(fields: [firstOccurrenceOid], references: [oid], name: "ProviderAuthConfigErrorGroupToOccurrence")
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  occurrenceCount Int @default(0)
+
+  instances ProviderAuthConfigError[]
+
+  @@unique([type, hash, tenantOid])
+  @@index([createdAt])
+  @@index([type])
+  @@index([tenantOid])
+  @@index([environmentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model ProviderAuthConfigError {
+  oid BigInt @id
+  id  String @unique
+
+  type       String
+  sourceType String
+  sourceId   String
+
+  isParentDeleted Boolean @default(false)
+  isProcessing    Boolean
+
+  code    String
+  message String
+
+  payload Json?
+
+  providerInvocationId String?
+
+  groupOid BigInt?
+  group    ProviderAuthConfigErrorGlobal? @relation(fields: [groupOid], references: [oid])
+
+  authConfigEventOid BigInt?
+  authConfigEvent    ProviderAuthConfigEvent? @relation(fields: [authConfigEventOid], references: [oid])
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
+
+  oauthSetupOid BigInt?
+  oauthSetup    ProviderOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid])
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+
+  createdAt DateTime @default(now())
+
+  instanceForGroup ProviderAuthConfigErrorGlobal[] @relation(name: "ProviderAuthConfigErrorGroupToOccurrence")
+
+  @@unique([sourceType, sourceId])
+  @@index([createdAt])
+  @@index([type])
+  @@index([groupOid])
+  @@index([authConfigEventOid])
+  @@index([authConfigOid])
+  @@index([authCredentialsOid])
+  @@index([oauthSetupOid])
+  @@index([providerInvocationId])
+  @@index([tenantOid])
+  @@index([environmentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

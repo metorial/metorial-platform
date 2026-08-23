@@ -10,6 +10,7 @@ import type {
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { createBitbucketClientWithInstallation } from '../lib/bitbucket';
 import { createGitHubInstallationClient } from '../lib/githubApp';
 import { createGitLabClientWithInstallation } from '../lib/gitlab';
 import {
@@ -17,16 +18,87 @@ import {
   getGitLabPersonalNamespaceId,
   isGitLabNamespaceError
 } from '../lib/gitlabNamespace';
-import { withScmProviderError, wrapScmProviderError } from '../lib/scmProviderError';
+import {
+  getScmProviderErrorStatus,
+  withScmProviderError,
+  wrapScmProviderError
+} from '../lib/scmProviderError';
 import { createRepoWebhookQueue } from '../queues/scm/createRepoWebhook';
 import { createHandleRepoPushQueue } from '../queues/scm/handleRepoPush';
+import { accelerateRepositorySyncsForProviderEvent } from '../queues/scm/repositorySync/recover';
 import type { ScmAccountPreview, ScmRepoPreview } from '../types';
 
+let defaultRepositoryPreviewLimit = 50;
+
+export let normalizeGitLabDefaultBranch = (value: unknown, fallback = 'main') => {
+  if (typeof value !== 'string') return fallback;
+  let normalized = value.trim();
+  if (!normalized || ['null', 'undefined'].includes(normalized.toLowerCase())) return fallback;
+  return normalized;
+};
+
+export let getGitLabCreateProjectInput = (i: {
+  name: string;
+  description?: string;
+  isPrivate: boolean;
+  namespaceId: number;
+}) => ({
+  name: i.name,
+  description: i.description,
+  visibility: i.isPrivate ? ('private' as const) : ('public' as const),
+  namespaceId: i.namespaceId,
+  initializeWithReadme: true,
+  defaultBranch: 'main'
+});
+
+let decodeRepositoryPreviewCursor = (
+  cursor: string | undefined,
+  externalAccountId: string | undefined
+) => {
+  if (!cursor) return undefined;
+
+  try {
+    let value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+    if (
+      typeof value?.providerCursor != 'string' ||
+      value.externalAccountId !== (externalAccountId ?? null)
+    ) {
+      throw new Error('Invalid cursor');
+    }
+    return value.providerCursor;
+  } catch {
+    throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
+  }
+};
+
+let encodeRepositoryPreviewCursor = (
+  providerCursor: string | undefined,
+  externalAccountId: string | undefined
+) => {
+  if (!providerCursor) return null;
+  return Buffer.from(
+    JSON.stringify({
+      providerCursor,
+      externalAccountId: externalAccountId ?? null
+    })
+  ).toString('base64url');
+};
+
 let getGitLabPersonalNamespaceIdForUser = async (gitlab: any, user: any) => {
-  let namespaces = await withScmProviderError<any[]>('gitlab', 'list personal namespaces', () =>
-    gitlab.Namespaces.all({ ownedOnly: true, perPage: 100 })
+  let namespaces = await withScmProviderError<any[]>(
+    'gitlab',
+    'list personal namespaces',
+    () => gitlab.Namespaces.all({ ownedOnly: true, perPage: 100 })
   );
   return getGitLabPersonalNamespaceId(user, namespaces);
+};
+
+let verifyHmacSignature = (payload: string, signature: string, secret: string) => {
+  let normalized = signature.includes('=') ? signature : `sha256=${signature}`;
+  let digest = `sha256=${crypto.createHmac('sha256', secret).update(payload).digest('hex')}`;
+  let received = Buffer.from(normalized);
+  let expected = Buffer.from(digest);
+  return received.length === expected.length && crypto.timingSafeEqual(received, expected);
 };
 
 class scmRepoServiceImpl {
@@ -39,7 +111,8 @@ class scmRepoServiceImpl {
           provider: i.installation.provider,
           externalId: i.installation.externalAccountId,
           name: i.installation.externalAccountLogin,
-          identifier: `github.com/${i.installation.externalAccountLogin}`
+          identifier: `github.com/${i.installation.externalAccountLogin}`,
+          imageUrl: i.installation.externalAccountImageUrl
         } satisfies ScmAccountPreview
       ];
     }
@@ -61,7 +134,8 @@ class scmRepoServiceImpl {
           provider: i.installation.provider,
           externalId: personalNamespaceId.toString(),
           name: user.username,
-          identifier: `${new URL(i.installation.backend.webUrl).hostname}/${user.username}`
+          identifier: `${new URL(i.installation.backend.webUrl).hostname}/${user.username}`,
+          imageUrl: user.avatar_url != null ? String(user.avatar_url) : null
         } satisfies ScmAccountPreview,
         ...groups.map(
           g =>
@@ -69,10 +143,29 @@ class scmRepoServiceImpl {
               provider: i.installation.provider,
               externalId: g.id.toString(),
               name: g.path,
-              identifier: `${new URL(i.installation.backend.webUrl).hostname}/${g.full_path}`
+              identifier: `${new URL(i.installation.backend.webUrl).hostname}/${g.full_path}`,
+              imageUrl: g.avatar_url != null ? String(g.avatar_url) : null
             }) satisfies ScmAccountPreview
         )
       ];
+    }
+
+    if (i.installation.provider == 'bitbucket') {
+      let client = await createBitbucketClientWithInstallation(i.installation);
+      let accounts = await withScmProviderError('bitbucket', 'list accounts', () =>
+        client.listAccounts()
+      );
+      let hostname = new URL(i.installation.backend.webUrl).hostname;
+      return accounts.map(
+        account =>
+          ({
+            provider: i.installation.provider,
+            externalId: account.id,
+            name: account.name,
+            identifier: `${hostname}/${account.slug}`,
+            imageUrl: account.imageUrl
+          }) satisfies ScmAccountPreview
+      );
     }
 
     throw new ServiceError(badRequestError({ message: 'Unsupported provider' }));
@@ -81,7 +174,12 @@ class scmRepoServiceImpl {
   async listRepositoryPreviews(i: {
     installation: ScmInstallation & { backend: ScmBackend };
     externalAccountId?: string;
+    cursor?: string;
+    limit?: number;
   }) {
+    let limit = Math.min(Math.max(i.limit ?? defaultRepositoryPreviewLimit, 1), 100);
+    let providerCursor = decodeRepositoryPreviewCursor(i.cursor, i.externalAccountId);
+
     if (i.installation.provider == 'github') {
       if (!i.installation.externalInstallationId) {
         throw new ServiceError(badRequestError({ message: 'Installation ID not found' }));
@@ -91,32 +189,28 @@ class scmRepoServiceImpl {
         i.installation.backend
       );
 
-      // For GitHub Apps, use the installation repositories endpoint
-      // This lists all repositories the installation has access to
-      let allRepos: any[] = [];
-      let page = 1;
-
-      while (true) {
-        let response = await withScmProviderError('github', 'list installation repositories', () =>
+      let page = providerCursor ? Number(providerCursor) : 1;
+      if (!Number.isInteger(page) || page < 1) {
+        throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
+      }
+      let response = await withScmProviderError(
+        'github',
+        'list installation repositories',
+        () =>
           octokit.request('GET /installation/repositories', {
-            per_page: 100,
+            per_page: limit,
             page
           })
-        );
-
-        allRepos.push(...response.data.repositories);
-
-        if (response.data.repositories.length < 100) break;
-        page++;
-      }
+      );
 
       // Filter by externalAccountId if provided (to support account-specific filtering in UI)
       let filteredRepos = i.externalAccountId
-        ? allRepos.filter(r => r.owner.id.toString() === i.externalAccountId)
-        : allRepos;
+        ? response.data.repositories.filter(r => r.owner.id.toString() === i.externalAccountId)
+        : response.data.repositories;
 
-      return filteredRepos.map(
-        r =>
+      return {
+        repositories: filteredRepos.map(
+          r =>
           ({
             provider: i.installation.provider,
             name: r.name,
@@ -132,13 +226,17 @@ class scmRepoServiceImpl {
               provider: i.installation.provider
             }
           }) satisfies ScmRepoPreview
-      );
+        ),
+        nextCursor: encodeRepositoryPreviewCursor(
+          response.data.repositories.length === limit ? String(page + 1) : undefined,
+          i.externalAccountId
+        )
+      };
     }
 
     if (i.installation.provider == 'gitlab') {
       let gitlab = await createGitLabClientWithInstallation(i.installation);
 
-      let allProjects: any[] = [];
       let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
         gitlab.Users.showCurrentUser()
       );
@@ -148,26 +246,36 @@ class scmRepoServiceImpl {
 
       // Existing clients can still supply the installation's user ID. New account previews
       // supply the actual personal namespace ID required by GitLab's project APIs.
+      let idAfter = providerCursor ? Number(providerCursor) : undefined;
+      if (idAfter !== undefined && (!Number.isInteger(idAfter) || idAfter < 1)) {
+        throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
+      }
+      let projects: any[];
+      let nextProviderCursor: string | undefined;
       if (
         !i.externalAccountId ||
         i.externalAccountId == personalNamespaceId ||
         i.externalAccountId == i.installation.externalAccountId
       ) {
-        allProjects = await withScmProviderError('gitlab', 'list user projects', () =>
-          gitlab.Users.allProjects(user.id, { perPage: 100 })
+        projects = await withScmProviderError('gitlab', 'list user projects', () =>
+          gitlab.Users.allProjects(user.id, { perPage: limit, idAfter, maxPages: 1 })
         );
+        nextProviderCursor = projects.length === limit ? String(projects.at(-1)?.id) : undefined;
       } else {
         // List projects for a specific group
         let groupId = getGitLabNamespaceId(i.externalAccountId);
-        allProjects = await withScmProviderError('gitlab', 'list group projects', () =>
-          gitlab.Groups.allProjects(groupId, { perPage: 100 })
+        let page = providerCursor ? Number(providerCursor) : 1;
+        projects = await withScmProviderError('gitlab', 'list group projects', () =>
+          gitlab.Groups.allProjects(groupId, { perPage: limit, page })
         );
+        nextProviderCursor = projects.length === limit ? String(page + 1) : undefined;
       }
 
       let hostname = new URL(i.installation.backend.webUrl).hostname;
 
-      return allProjects.map(
-        (p: any) =>
+      return {
+        repositories: projects.map(
+          (p: any) =>
           ({
             provider: i.installation.provider,
             name: p.name,
@@ -183,7 +291,49 @@ class scmRepoServiceImpl {
               provider: i.installation.provider
             }
           }) satisfies ScmRepoPreview
+        ),
+        nextCursor: encodeRepositoryPreviewCursor(
+          nextProviderCursor,
+          i.externalAccountId
+        )
+      };
+    }
+
+    if (i.installation.provider == 'bitbucket') {
+      let client = await createBitbucketClientWithInstallation(i.installation);
+      let accounts = await client.listAccounts();
+      let selected = i.externalAccountId
+        ? accounts.find(account => account.id === i.externalAccountId)
+        : undefined;
+      let page = await withScmProviderError('bitbucket', 'list repositories', () =>
+        client.listRepositoryPage({
+          accountSlug: selected?.slug,
+          cursor: providerCursor,
+          limit
+        })
       );
+      let hostname = new URL(i.installation.backend.webUrl).hostname;
+      return {
+        repositories: page.repositories.map(
+          repo =>
+          ({
+            provider: i.installation.provider,
+            name: repo.name,
+            identifier: `${hostname}/${repo.owner.slug}/${repo.slug}`,
+            externalId: repo.id,
+            createdAt: repo.createdAt ? new Date(repo.createdAt) : new Date(),
+            updatedAt: repo.updatedAt ? new Date(repo.updatedAt) : new Date(),
+            lastPushedAt: repo.updatedAt ? new Date(repo.updatedAt) : null,
+            account: {
+              externalId: repo.owner.id,
+              name: repo.owner.name,
+              identifier: `${hostname}/${repo.owner.slug}`,
+              provider: i.installation.provider
+            }
+          }) satisfies ScmRepoPreview
+        ),
+        nextCursor: encodeRepositoryPreviewCursor(page.nextCursor, i.externalAccountId)
+      };
     }
 
     throw new ServiceError(badRequestError({ message: 'Unsupported provider' }));
@@ -249,6 +399,23 @@ class scmRepoServiceImpl {
           );
         }
         throw wrapScmProviderError('gitlab', error, 'load the repository');
+      }
+    }
+
+    if (i.installation.provider == 'bitbucket') {
+      let client = await createBitbucketClientWithInstallation(i.installation);
+      try {
+        let repo = await client.getRepository(i.owner, i.repo);
+        return { externalId: repo.id, name: repo.name, identifier: repo.webUrl };
+      } catch (error) {
+        if (getScmProviderErrorStatus(error) === 404) {
+          throw new ServiceError(
+            badRequestError({
+              message: `Repository ${i.owner}/${i.repo} not found or installation does not have access`
+            })
+          );
+        }
+        throw wrapScmProviderError('bitbucket', error, 'load the repository');
       }
     }
 
@@ -355,6 +522,66 @@ class scmRepoServiceImpl {
       return repo;
     }
 
+    if (i.installation.provider == 'bitbucket') {
+      let client = await createBitbucketClientWithInstallation(i.installation);
+      let externalRepo = await withScmProviderError('bitbucket', 'load the repository', () =>
+        client.getRepositoryById(i.externalId)
+      );
+      let hostname = new URL(i.installation.backend.webUrl).hostname;
+      let accountData = {
+        name: externalRepo.owner.name,
+        identifier: `${hostname}/${externalRepo.owner.slug}`,
+        provider: i.installation.provider,
+        type: externalRepo.owner.type,
+        externalId: externalRepo.owner.id
+      };
+      let account = await db.scmAccount.upsert({
+        where: {
+          tenantOid_backendOid_externalId: {
+            tenantOid: i.installation.tenantOid,
+            backendOid: i.installation.backendOid,
+            externalId: externalRepo.owner.id
+          }
+        },
+        update: accountData,
+        create: {
+          ...getId('scmAccount'),
+          tenantOid: i.installation.tenantOid,
+          backendOid: i.installation.backendOid,
+          ...accountData
+        }
+      });
+      let repoData = {
+        name: externalRepo.name,
+        identifier: `${hostname}/${externalRepo.owner.slug}/${externalRepo.slug}`,
+        provider: i.installation.provider,
+        externalId: externalRepo.id,
+        tenantOid: i.installation.tenantOid,
+        backendOid: i.installation.backendOid,
+        accountOid: account.oid,
+        installationOid: i.installation.oid,
+        externalIsPrivate: externalRepo.isPrivate,
+        externalName: externalRepo.slug,
+        defaultBranch: externalRepo.defaultBranch,
+        externalOwner: externalRepo.owner.slug,
+        externalUrl: externalRepo.webUrl
+      };
+      let repo = await db.scmRepository.upsert({
+        where: {
+          tenantOid_backendOid_externalId: {
+            tenantOid: i.installation.tenantOid,
+            backendOid: i.installation.backendOid,
+            externalId: externalRepo.id
+          }
+        },
+        update: repoData,
+        create: { ...getId('scmRepository'), ...repoData },
+        include: { account: true }
+      });
+      await createRepoWebhookQueue.add({ repoId: repo.id });
+      return repo;
+    }
+
     if (i.installation.provider == 'gitlab') {
       let gitlab = await createGitLabClientWithInstallation(i.installation);
 
@@ -401,7 +628,9 @@ class scmRepoServiceImpl {
         installationOid: i.installation.oid,
         externalIsPrivate: project.visibility === 'private',
         externalName: String(project.path),
-        defaultBranch: String(project.default_branch),
+        defaultBranch: normalizeGitLabDefaultBranch(
+          project.default_branch ?? project.defaultBranch
+        ),
         externalOwner: String(project.namespace.path),
         externalUrl: String(project.web_url)
       };
@@ -490,6 +719,26 @@ class scmRepoServiceImpl {
       });
     }
 
+    if (i.installation.provider == 'bitbucket') {
+      let client = await createBitbucketClientWithInstallation(i.installation);
+      let accounts = await client.listAccounts();
+      let account = accounts.find(value => value.id === i.externalAccountId);
+      if (!account) {
+        throw new ServiceError(
+          badRequestError({ message: 'The selected Bitbucket account is unavailable' })
+        );
+      }
+      let repo = await withScmProviderError('bitbucket', 'create the repository', () =>
+        client.createRepository({
+          accountSlug: account.slug,
+          name: i.name,
+          description: i.description,
+          isPrivate: i.isPrivate
+        })
+      );
+      return this.linkRepository({ installation: i.installation, externalId: repo.id });
+    }
+
     if (i.installation.provider == 'gitlab') {
       let gitlab = await createGitLabClientWithInstallation(i.installation);
 
@@ -506,12 +755,14 @@ class scmRepoServiceImpl {
 
       let projectRes;
       try {
-        projectRes = await gitlab.Projects.create({
-          name: i.name,
-          description: i.description,
-          visibility: i.isPrivate ? 'private' : 'public',
-          namespaceId
-        });
+        projectRes = await gitlab.Projects.create(
+          getGitLabCreateProjectInput({
+            name: i.name,
+            description: i.description,
+            isPrivate: i.isPrivate,
+            namespaceId
+          })
+        );
       } catch (error: any) {
         if (isGitLabNamespaceError(error)) {
           throw new ServiceError(
@@ -549,6 +800,19 @@ class scmRepoServiceImpl {
     let hostname = url.hostname;
     let pathParts = url.pathname.split('/').filter(p => p);
 
+    let allInstallations = await db.scmInstallation.findMany({
+      where: {
+        tenantOid: i.tenant.oid,
+        ownerActorOid: i.actor.oid
+      },
+      include: {
+        backend: true
+      }
+    });
+    let hostInstallation = allInstallations.find(
+      installation => new URL(installation.backend.webUrl).hostname === hostname
+    );
+
     if (pathParts.length < 2) {
       throw new ServiceError(
         badRequestError({
@@ -559,6 +823,15 @@ class scmRepoServiceImpl {
 
     let ownerName = pathParts[0];
     let repoName = pathParts[1]?.replace(/\.git$/, '');
+    if (hostInstallation?.backend.type === 'bitbucket_data_center') {
+      if (pathParts[0] === 'projects' && pathParts[2] === 'repos') {
+        ownerName = pathParts[1];
+        repoName = pathParts[3]?.replace(/\.git$/, '');
+      } else if (pathParts[0] === 'scm') {
+        ownerName = pathParts[1];
+        repoName = pathParts[2]?.replace(/\.git$/, '');
+      }
+    }
 
     if (!ownerName || !repoName) {
       throw new ServiceError(
@@ -567,30 +840,31 @@ class scmRepoServiceImpl {
     }
 
     // Determine provider from hostname
-    let provider: 'github' | 'gitlab';
-    if (hostname === 'github.com' || hostname.includes('github')) {
+    let provider: 'github' | 'gitlab' | 'bitbucket';
+    if (hostInstallation) {
+      provider = hostInstallation.provider;
+    } else if (hostname === 'github.com' || hostname.includes('github')) {
       provider = 'github';
     } else if (hostname === 'gitlab.com' || hostname.includes('gitlab')) {
       provider = 'gitlab';
+    } else if (hostname === 'bitbucket.org' || hostname.includes('bitbucket')) {
+      provider = 'bitbucket';
     } else {
       throw new ServiceError(
         badRequestError({
-          message: 'Unsupported repository provider. Only GitHub and GitLab are supported.'
+          message:
+            'Unsupported repository provider. Only GitHub, GitLab, and Bitbucket are supported.'
         })
       );
     }
 
     // Find all installations for this tenant, actor, and provider
-    let installations = await db.scmInstallation.findMany({
-      where: {
-        tenantOid: i.tenant.oid,
-        ownerActorOid: i.actor.oid,
-        provider
-      },
-      include: {
-        backend: true
-      }
-    });
+    let installations = allInstallations.filter(
+      installation =>
+        installation.provider === provider &&
+        (new URL(installation.backend.webUrl).hostname === hostname ||
+          ['github.com', 'gitlab.com', 'bitbucket.org'].includes(hostname))
+    );
 
     if (installations.length === 0) {
       throw new ServiceError(
@@ -662,9 +936,7 @@ class scmRepoServiceImpl {
       throw new ServiceError(badRequestError({ message: 'Invalid webhook' }));
     }
 
-    let hmac = crypto.createHmac('sha256', webhook.signingSecret);
-    let digest = 'sha256=' + hmac.update(i.payload).digest('hex');
-    if (!crypto.timingSafeEqual(Buffer.from(i.signature), Buffer.from(digest))) {
+    if (!verifyHmacSignature(i.payload, i.signature, webhook.signingSecret)) {
       throw new ServiceError(badRequestError({ message: 'Invalid signature' }));
     }
 
@@ -685,37 +957,55 @@ class scmRepoServiceImpl {
     };
 
     if (webhook.repo.provider == 'github') {
-      await db.scmRepositoryWebhookReceivedEvent.create({
-        data: {
-          webhookOid: webhook.oid,
-          eventType: i.eventType,
-          payload: i.payload,
-          idempotencyKey: i.idempotencyKey
-        }
-      });
-
       let branchName = event.ref?.replace('refs/heads/', '');
-
-      if (i.eventType == 'push') {
-        let push = await db.scmRepositoryPush.create({
-          data: {
-            ...getId('scmRepositoryPush'),
-            repoOid: webhook.repo.oid,
-            tenantOid: webhook.repo.tenantOid,
-
-            sha: event.after,
-            branchName,
-
-            pusherEmail: event.pusher.email,
-            pusherName: event.pusher.name,
-
-            senderIdentifier: `github.com/${event.sender.login}`,
-            commitMessage: event.commits?.[0]?.message || null
-          }
+      let push: { id: string } | undefined;
+      try {
+        push = await db.$transaction(async tx => {
+          let received = await tx.scmRepositoryWebhookReceivedEvent.create({
+            data: {
+              webhookOid: webhook.oid,
+              eventType: i.eventType,
+              payload: i.payload,
+              idempotencyKey: i.idempotencyKey
+            }
+          });
+          if (i.eventType != 'push') return undefined;
+          return tx.scmRepositoryPush.create({
+            data: {
+              ...getId('scmRepositoryPush'),
+              repoOid: webhook.repo.oid,
+              tenantOid: webhook.repo.tenantOid,
+              webhookReceivedEventOid: received.oid,
+              sha: event.after,
+              branchName,
+              pusherEmail: event.pusher.email,
+              pusherName: event.pusher.name,
+              senderIdentifier: `github.com/${event.sender.login}`,
+              commitMessage: event.commits?.[0]?.message || null
+            },
+            select: { id: true }
+          });
         });
-
-        await createHandleRepoPushQueue.add({ pushId: push.id });
+      } catch (error) {
+        if ((error as { code?: string }).code !== 'P2002') throw error;
+        let received = await db.scmRepositoryWebhookReceivedEvent.findUniqueOrThrow({
+          where: {
+            webhookOid_idempotencyKey: {
+              webhookOid: webhook.oid,
+              idempotencyKey: i.idempotencyKey
+            }
+          },
+          include: { pushes: { select: { id: true }, take: 1 } }
+        });
+        push = received.pushes[0];
       }
+      if (push) await createHandleRepoPushQueue.add({ pushId: push.id }, { id: push.id });
+      let providerPrId = String((event as any).pull_request?.number ?? (event as any).number ?? '');
+      await accelerateRepositorySyncsForProviderEvent({
+        repoOid: webhook.repo.oid,
+        providerPrId: providerPrId || undefined,
+        idempotencyKey: i.idempotencyKey
+      });
 
       return;
     }
@@ -767,40 +1057,182 @@ class scmRepoServiceImpl {
     };
 
     if (webhook.repo.provider == 'gitlab') {
-      await db.scmRepositoryWebhookReceivedEvent.create({
-        data: {
-          webhookOid: webhook.oid,
-          eventType: i.eventType,
-          payload: i.payload,
-          idempotencyKey: i.idempotencyKey
-        }
-      });
-
       let branchName = event.ref?.replace('refs/heads/', '');
+      let push: { id: string } | undefined;
+      try {
+        push = await db.$transaction(async tx => {
+          let received = await tx.scmRepositoryWebhookReceivedEvent.create({
+            data: {
+              webhookOid: webhook.oid,
+              eventType: i.eventType,
+              payload: i.payload,
+              idempotencyKey: i.idempotencyKey
+            }
+          });
+          if (i.eventType != 'Push Hook') return undefined;
+          let hostname = new URL(webhook.repo.installation.backend.webUrl).hostname;
+          return tx.scmRepositoryPush.create({
+            data: {
+              ...getId('scmRepositoryPush'),
+              repoOid: webhook.repo.oid,
+              tenantOid: webhook.repo.tenantOid,
+              webhookReceivedEventOid: received.oid,
+              sha: event.after,
+              branchName,
+              pusherEmail: event.user_email,
+              pusherName: event.user_name,
+              senderIdentifier: `${hostname}/${event.user_username}`,
+              commitMessage: event.commits?.[0]?.message || null
+            },
+            select: { id: true }
+          });
+        });
+      } catch (error) {
+        if ((error as { code?: string }).code !== 'P2002') throw error;
+        let received = await db.scmRepositoryWebhookReceivedEvent.findUniqueOrThrow({
+          where: {
+            webhookOid_idempotencyKey: {
+              webhookOid: webhook.oid,
+              idempotencyKey: i.idempotencyKey
+            }
+          },
+          include: { pushes: { select: { id: true }, take: 1 } }
+        });
+        push = received.pushes[0];
+      }
+      if (push) await createHandleRepoPushQueue.add({ pushId: push.id }, { id: push.id });
+      let providerPrId =
+        event.object_kind === 'merge_request'
+          ? String((event as any).object_attributes?.iid ?? '')
+          : '';
+      await accelerateRepositorySyncsForProviderEvent({
+        repoOid: webhook.repo.oid,
+        providerPrId: providerPrId || undefined,
+        idempotencyKey: i.idempotencyKey
+      });
+    }
+  }
 
-      if (i.eventType == 'Push Hook') {
-        let hostname = new URL(webhook.repo.installation.backend.webUrl).hostname;
+  async receiveBitbucketWebhookEvent(i: {
+    webhookId: string;
+    idempotencyKey: string;
+    eventType: string;
+    payload: string;
+    signature: string;
+  }) {
+    let webhook = await db.scmRepositoryWebhook.findUnique({
+      where: { id: i.webhookId },
+      include: { repo: { include: { installation: { include: { backend: true } } } } }
+    });
+    if (!webhook || webhook.repo.provider !== 'bitbucket') {
+      throw new ServiceError(badRequestError({ message: 'Invalid webhook' }));
+    }
+    if (!verifyHmacSignature(i.payload, i.signature, webhook.signingSecret)) {
+      throw new ServiceError(badRequestError({ message: 'Invalid signature' }));
+    }
 
-        let push = await db.scmRepositoryPush.create({
+    let event = JSON.parse(i.payload) as any;
+    let isCloud = webhook.repo.installation.backend.type === 'bitbucket';
+    let isPush = isCloud ? i.eventType === 'repo:push' : i.eventType === 'repo:refs_changed';
+    let actor = event.actor ?? event.user ?? {};
+    let hostname = new URL(webhook.repo.installation.backend.webUrl).hostname;
+    let changes: any[] = isCloud ? (event.push?.changes ?? []) : (event.changes ?? []);
+    let pushes: {
+      id: string;
+      repoOid: bigint;
+      tenantOid: bigint;
+      sha: string;
+      branchName: string;
+      pusherEmail: string | null;
+      pusherName: string | null;
+      senderIdentifier: string;
+      commitMessage: string | null;
+    }[] = [];
+
+    if (!isPush) changes = [];
+    for (let change of changes) {
+      let isBranch = isCloud
+        ? change?.new?.type === 'branch'
+        : change?.ref?.type === 'BRANCH' || change?.refId?.startsWith('refs/heads/');
+      let isDeletion = isCloud ? change?.new == null : change?.type === 'DELETE';
+      if (!isBranch || isDeletion) continue;
+
+      let branchName = isCloud
+        ? change.new.name
+        : (change?.ref?.displayId ?? change?.refId?.replace('refs/heads/', ''));
+      let sha = isCloud ? change.new.target?.hash : change?.toHash;
+      if (!branchName || !sha || /^0+$/.test(sha)) continue;
+
+      pushes.push({
+        ...getId('scmRepositoryPush'),
+        repoOid: webhook.repo.oid,
+        tenantOid: webhook.repo.tenantOid,
+        sha,
+        branchName,
+        pusherEmail: actor.emailAddress ?? null,
+        pusherName: actor.display_name ?? actor.displayName ?? actor.name ?? null,
+        senderIdentifier: `${hostname}/${actor.nickname ?? actor.name ?? actor.slug ?? 'unknown'}`,
+        commitMessage: isCloud ? (change.new.target?.message ?? null) : null
+      });
+    }
+
+    let persistedPushes: { id: string }[];
+    try {
+      persistedPushes = await db.$transaction(async tx => {
+        let receivedEvent = await tx.scmRepositoryWebhookReceivedEvent.create({
           data: {
-            ...getId('scmRepositoryPush'),
-            repoOid: webhook.repo.oid,
-            tenantOid: webhook.repo.tenantOid,
-
-            sha: event.after,
-            branchName,
-
-            pusherEmail: event.user_email,
-            pusherName: event.user_name,
-
-            senderIdentifier: `${hostname}/${event.user_username}`,
-            commitMessage: event.commits?.[0]?.message || null
+            webhookOid: webhook.oid,
+            eventType: i.eventType,
+            payload: i.payload,
+            idempotencyKey: i.idempotencyKey
           }
         });
-
-        await createHandleRepoPushQueue.add({ pushId: push.id });
-      }
+        let createdPushes: { id: string }[] = [];
+        for (let push of pushes) {
+          createdPushes.push(
+            await tx.scmRepositoryPush.create({
+              data: {
+                ...push,
+                webhookReceivedEventOid: receivedEvent.oid
+              },
+              select: { id: true }
+            })
+          );
+        }
+        return createdPushes;
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'P2002') throw error;
+      let existing = await db.scmRepositoryWebhookReceivedEvent.findUniqueOrThrow({
+        where: {
+          webhookOid_idempotencyKey: {
+            webhookOid: webhook.oid,
+            idempotencyKey: i.idempotencyKey
+          }
+        },
+        include: {
+          pushes: {
+            where: { webhookDispatchedAt: null },
+            select: { id: true }
+          }
+        }
+      });
+      persistedPushes = existing.pushes;
     }
+
+    for (let push of persistedPushes) {
+      await createHandleRepoPushQueue.add({ pushId: push.id }, { id: push.id });
+      await db.scmRepositoryPush.update({
+        where: { id: push.id },
+        data: { webhookDispatchedAt: new Date() }
+      });
+    }
+    let providerPrId = String(event.pullrequest?.id ?? event.pullRequest?.id ?? '');
+    await accelerateRepositorySyncsForProviderEvent({
+      repoOid: webhook.repo.oid,
+      providerPrId: providerPrId || undefined,
+      idempotencyKey: i.idempotencyKey
+    });
   }
 
   async createPushForCurrentCommitOnDefaultBranch(i: {
@@ -915,6 +1347,37 @@ class scmRepoServiceImpl {
         }
 
         throw wrapScmProviderError('gitlab', e, 'load the latest repository commit');
+      }
+    }
+
+    if (i.repo.provider == 'bitbucket') {
+      let installation = await db.scmInstallation.findUniqueOrThrow({
+        where: { oid: i.repo.installationOid },
+        include: { backend: true }
+      });
+      let client = await createBitbucketClientWithInstallation(installation);
+      try {
+        let sha = await client.getBranch(i.repo.externalId, branch);
+        let hostname = new URL(installation.backend.webUrl).hostname;
+        let push = await db.scmRepositoryPush.create({
+          data: {
+            ...getId('scmRepositoryPush'),
+            repoOid: i.repo.oid,
+            tenantOid: i.repo.tenantOid,
+            sha,
+            branchName: branch,
+            pusherEmail: null,
+            pusherName: null,
+            senderIdentifier: `${hostname}/unknown`,
+            commitMessage: null
+          },
+          include: { repo: { include: { account: true } } }
+        });
+        await createHandleRepoPushQueue.add({ pushId: push.id });
+        return push;
+      } catch (error) {
+        if (getScmProviderErrorStatus(error) === 404) return null;
+        throw wrapScmProviderError('bitbucket', error, 'load the latest repository commit');
       }
     }
 

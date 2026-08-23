@@ -25,4 +25,5 @@ export let awaitConfig = async () => {
   return configRef.current!;
 };
 
+export { setNexusManifest, type NexusSlices } from './nexus';
 export * from './paths';

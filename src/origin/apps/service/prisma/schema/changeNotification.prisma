@@ -1,5 +1,6 @@
 enum ChangeNotificationType {
   repo_push
+  repository_sync_status_changed
 }
 
 model ChangeNotification {
@@ -17,5 +18,12 @@ model ChangeNotification {
   repoPushOid BigInt?
   repoPush    ScmRepositoryPush? @relation(fields: [repoPushOid], references: [oid])
 
+  repositorySyncOid BigInt?
+  repositorySync    ScmRepositorySync? @relation("RepositorySyncChangeNotifications", fields: [repositorySyncOid], references: [oid], onDelete: SetNull)
+
+  materialHash String?
+
   createdAt DateTime @default(now())
+
+  @@index([tenantOid, oid])
 }

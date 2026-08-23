@@ -83,6 +83,12 @@ model Instance {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
+
+  resourceGroupOid BigInt?        @unique
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: SetNull)
+
   internalTenantIdentifier      String? @map("subspaceTenantIdentifier")
   internalEnvironmentIdentifier String? @map("subspaceEnvironmentIdentifier")
 
@@ -138,8 +144,29 @@ model Instance {
   oauthAuthorizations                  OAuthAuthorization[]
   oauthAuthorizationFlows              OAuthAuthorizationFlow[]
   internalOAuthTokens                  InternalOAuthToken[]
+  auditLogs                            AuditLog[]
+  events                               Event[]
+
+  fileLinks             FileLink[]
+  fileReferences        FileReference[]
+  documents             Document[]
+  documentVersions      DocumentVersion[]
+  stores                Store[]
+  storeTemplates        StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
+  skillConfigurations   SkillConfiguration[]
+  skillRepositories     SkillRepository[]
+  skillExports          SkillExport[]
+  skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
+  skillMergeRequests    SkillMergeRequest[]
+  skillForkSyncs        SkillForkSync[]
+
+  productAssistantConversations          ProductAssistantConversation[]
+  productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
 
   @@index([previousSlugs])
   @@index([oldSlug])
   @@index([slug])
+  @@index([resourceTenantOid])
 }

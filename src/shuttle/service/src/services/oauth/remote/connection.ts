@@ -65,6 +65,9 @@ class remoteOAuthConnectionServiceImpl {
       clientId?: string;
       clientSecret?: string;
       scopes?: string[];
+
+      // Set when this connection replaces the client of an existing connection.
+      rotatedFromOid?: bigint;
     };
   }) {
     let config = await this.waitForConfig({ config: d.input.config });
@@ -107,7 +110,8 @@ class remoteOAuthConnectionServiceImpl {
           configOid: config.oid,
           secretOid: secret?.oid,
           tenantOid: d.tenant.oid,
-          serverOid: config.serverOid
+          serverOid: config.serverOid,
+          rotatedFromOid: d.input.rotatedFromOid
         }
       });
 

@@ -1,0 +1,27 @@
+{
+  "name": "@metorial/avatar-uploader",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.tsx",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/ui": "^1.0.0",
+    "@remixicon/react": "^4.6.0",
+    "clsx": "^2.1.1",
+    "react": "19.1.1",
+    "react-avatar-editor": "^13.0.2",
+    "react-dropzone": "^14.3.8",
+    "react-use": "^17.6.0",
+    "styled-components": "^6.1.13"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "@types/react-avatar-editor": "^13.0.4",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

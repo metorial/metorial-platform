@@ -342,6 +342,28 @@ export let markdownToYjsUpdate = (markdown: string, origin?: unknown) => {
   }
 };
 
+export let replaceYjsBodyFromMarkdown = (d: {
+  ydoc: Y.Doc;
+  markdown: string;
+  origin?: unknown;
+}) => {
+  let body = d.ydoc.getXmlFragment('body');
+  let editor = new Editor({
+    extensions: buildHeadlessExtensions(),
+    content: d.markdown,
+    editable: false
+  });
+
+  try {
+    d.ydoc.transact(() => {
+      if (body.length > 0) body.delete(0, body.length);
+      prosemirrorJSONToYXmlFragment(editor.schema, editor.getJSON(), body);
+    }, d.origin);
+  } finally {
+    editor.destroy();
+  }
+};
+
 export let yjsUpdateToMarkdown = (update: string) => {
   let ydoc = new Y.Doc();
   try {

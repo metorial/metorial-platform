@@ -27,7 +27,11 @@ export const SlateSpecificationFixtures = (db: PrismaClient) => {
         name: 'Test Spec',
         key: 'test-spec',
         protocolVersion: '1.0',
-        providerInfo: { type: 'provider' as const, id: 'test-provider', name: 'Test Provider' },
+        providerInfo: {
+          type: 'provider' as const,
+          id: 'test-provider',
+          name: 'Test Provider'
+        },
         configSchema: {},
         authMethods: [],
         actions: [],
@@ -69,7 +73,11 @@ export const SlateSpecificationFixtures = (db: PrismaClient) => {
         ? {
             ...baseSpec,
             type: 'action.trigger' as const,
-            invocation: { type: 'webhook' as const, autoRegistration: false, autoUnregistration: false }
+            invocation: {
+              type: 'webhook' as const,
+              autoRegistration: false,
+              autoUnregistration: false
+            }
           }
         : {
             ...baseSpec,
@@ -106,6 +114,20 @@ export const SlateSpecificationFixtures = (db: PrismaClient) => {
     webhookConfig?: {
       autoRegistration?: boolean;
       autoUnregistration?: boolean;
+      http?: {
+        methods?: Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'>;
+        sync?: {
+          mode: 'never' | 'match' | 'always';
+          match?: Array<{
+            method?: string;
+            hasQueryParam?: string;
+            hasHeader?: string;
+            jsonBodyField?: { path: string; equals?: string };
+            formBodyField?: { path: string; equals?: string };
+          }>;
+          timeoutMs?: number;
+        };
+      };
     };
     overrides?: Partial<SlateAction>;
   }): Promise<SlateAction> => {
@@ -127,7 +149,8 @@ export const SlateSpecificationFixtures = (db: PrismaClient) => {
       invocation: {
         type: 'webhook' as const,
         autoRegistration: webhookConfig.autoRegistration ?? false,
-        autoUnregistration: webhookConfig.autoUnregistration ?? false
+        autoUnregistration: webhookConfig.autoUnregistration ?? false,
+        ...(webhookConfig.http ? { http: webhookConfig.http } : {})
       }
     };
 
@@ -173,6 +196,20 @@ export const SlateSpecificationFixtures = (db: PrismaClient) => {
     webhookConfig?: {
       autoRegistration?: boolean;
       autoUnregistration?: boolean;
+      http?: {
+        methods?: Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'>;
+        sync?: {
+          mode: 'never' | 'match' | 'always';
+          match?: Array<{
+            method?: string;
+            hasQueryParam?: string;
+            hasHeader?: string;
+            jsonBodyField?: { path: string; equals?: string };
+            formBodyField?: { path: string; equals?: string };
+          }>;
+          timeoutMs?: number;
+        };
+      };
     };
     actionOverrides?: Partial<SlateAction>;
   }): Promise<SlateAction> => {

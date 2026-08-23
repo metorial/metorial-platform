@@ -5,13 +5,20 @@ enum ConsumerAccessTargetType {
   skill_template
   skill_group
   skill_marketplace
+  skill_plugin
+}
+
+enum ConsumerAccessLevel {
+  read
+  manage
 }
 
 model ConsumerAccess {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  type ConsumerAccessTargetType
+  type        ConsumerAccessTargetType
+  accessLevel ConsumerAccessLevel?
 
   surfaceOid BigInt
   surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
@@ -37,6 +44,9 @@ model ConsumerAccess {
   skillMarketplaceOid BigInt?
   skillMarketplace    SkillMarketplace? @relation("ConsumerAccessSkillMarketplace", fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
 
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation("ConsumerAccessSkillPlugin", fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
   listingOid BigInt?
   listing    ConsumerAccessListing? @relation(fields: [listingOid], references: [oid], onDelete: Cascade)
 
@@ -49,6 +59,7 @@ model ConsumerAccess {
   @@unique([consumerGroupOid, skillTemplateOid])
   @@unique([consumerGroupOid, skillGroupOid])
   @@unique([consumerGroupOid, skillMarketplaceOid])
+  @@unique([consumerGroupOid, skillPluginOid])
 }
 
 model ConsumerAccessListing {
@@ -80,6 +91,9 @@ model ConsumerAccessListing {
   skillMarketplaceOid BigInt?
   skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
 
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -92,4 +106,5 @@ model ConsumerAccessListing {
   @@unique([surfaceOid, skillTemplateOid])
   @@unique([surfaceOid, skillGroupOid])
   @@unique([surfaceOid, skillMarketplaceOid])
+  @@unique([surfaceOid, skillPluginOid])
 }

@@ -1,0 +1,174 @@
+model ProductAssistantConversation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  title String?
+
+  /// [ProductAssistantConversationInput]
+  input Json?
+
+  assistantInstanceOid BigInt
+  assistantInstance    ProductAssistantInstance @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt
+  assistant    ProductAssistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdByResourceActorOid BigInt
+  createdByResourceActor    ResourceActor @relation("ProductAssistantConversationCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: Cascade)
+
+  rootMessageOid BigInt
+  rootMessage    ProductAssistantMessage @relation(fields: [rootMessageOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  runs                              ProductAssistantModelRun[]
+  items                             ProductAssistantConversationItem[]
+  assistantRequests                 ProductAssistantRequest[]
+  assistantConversationParticipants ProductAssistantConversationParticipant[]
+
+  @@index([projectOid, instanceOid])
+  @@index([assistantOid, assistantInstanceOid])
+  @@index([createdByResourceActorOid])
+}
+
+model ProductAssistantConversationParticipant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  conversationOid BigInt
+  conversation    ProductAssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
+
+  resourceActorOid BigInt
+  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([conversationOid, resourceActorOid])
+  @@index([conversationOid])
+  @@index([resourceActorOid])
+}
+
+enum ProductAssistantRequestStatus {
+  pending
+  waiting_for_user
+  completed
+  cancelled
+  failed
+}
+
+model ProductAssistantRequest {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ProductAssistantRequestStatus
+
+  conversationOid BigInt
+  conversation    ProductAssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
+
+  assistantInstanceOid BigInt
+  assistantInstance    ProductAssistantInstance @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt
+  assistant    ProductAssistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  modelOid BigInt
+  model    ProductAssistantModel @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
+
+  messageOid BigInt
+  message    ProductAssistantMessage @relation("ProductAssistantRequestParentMessage", fields: [messageOid], references: [oid], onDelete: Cascade)
+
+  historySize Int?
+
+  resourceActorOid BigInt?
+  resourceActor    ResourceActor? @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  messages ProductAssistantMessage[]
+  runs     ProductAssistantModelRun[]
+
+  @@index([conversationOid, status])
+  @@index([assistantInstanceOid])
+  @@index([resourceActorOid])
+}
+
+enum ProductAssistantMessageType {
+  root
+  user
+  assistant
+}
+
+enum ProductAssistantMessageStatus {
+  pending
+  waiting_for_user
+  completed
+}
+
+model ProductAssistantMessage {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type   ProductAssistantMessageType
+  status ProductAssistantMessageStatus @default(completed)
+
+  runOid BigInt?
+  run    ProductAssistantModelRun? @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  requestOid BigInt?
+  request    ProductAssistantRequest? @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
+
+  assistantInstanceOid BigInt?
+  assistantInstance    ProductAssistantInstance? @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt?
+  assistant    ProductAssistant? @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  parentMessageOid BigInt?
+  parentMessage    ProductAssistantMessage? @relation("ParentMessage", fields: [parentMessageOid], references: [oid], onDelete: Cascade)
+
+  modelOid BigInt?
+  model    ProductAssistantModel? @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
+
+  /// [ProductAssistantMessageStateContent]
+  state Json
+
+  /// [ProductAssistantMessageSerializedContent]
+  serialized Json
+
+  createdAt DateTime @default(now())
+
+  childMessages  ProductAssistantMessage[]          @relation("ParentMessage")
+  childRequests  ProductAssistantRequest[]          @relation("ProductAssistantRequestParentMessage")
+  conversations  ProductAssistantConversationItem[]
+  rootMessageFor ProductAssistantConversation[]
+
+  @@index([runOid])
+  @@index([requestOid])
+  @@index([assistantInstanceOid])
+  @@index([assistantOid])
+  @@index([parentMessageOid])
+}
+
+model ProductAssistantConversationItem {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  conversationOid BigInt
+  conversation    ProductAssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
+
+  messageOid BigInt
+  message    ProductAssistantMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationOid])
+  @@index([messageOid])
+}

@@ -1,5 +1,4 @@
 import type {
-  DashboardInstanceSkillsCreateOutput,
   DashboardInstanceSkillsTemplatesCreateBody,
   DashboardInstanceSkillsTemplatesGetOutput,
   DashboardInstanceSkillsTemplatesItemsCreateBody,
@@ -40,45 +39,6 @@ export let skillTemplatesLoader = createLoader({
 export let useCreateSkillTemplate = skillTemplatesLoader.createExternalMutator(
   (i: DashboardInstanceSkillsTemplatesCreateBody & { instanceId: string }) =>
     withAuth(sdk => sdk.skillTemplates.create(i.instanceId, i))
-);
-
-export let useCreateSkillFromTemplate = skillTemplatesLoader.createExternalMutator(
-  (i: { instanceId: string; skillTemplateId: string; name?: string; description?: string }) =>
-    withAuth(async sdk => {
-      let skillTemplate = await sdk.skillTemplates.get(i.instanceId, i.skillTemplateId);
-      let skill = await sdk.skills.create(i.instanceId, {
-        name: i.name ?? skillTemplate.name,
-        description: i.description ?? skillTemplate.description ?? undefined,
-        metadata: skillTemplate.metadata ?? undefined,
-        templateId: i.skillTemplateId
-      });
-
-      let skillTemplateItems = await autoPaginate(cursor =>
-        sdk.skillTemplates.items.list(i.instanceId, i.skillTemplateId, {
-          ...cursor,
-          limit: 100,
-          order: 'asc'
-        })
-      );
-
-      await Promise.all(
-        skillTemplateItems.map(item =>
-          item.type === 'provider' && item.provider
-            ? sdk.skills.items.create(i.instanceId, skill.id, {
-                type: 'provider',
-                providerId: item.provider.id
-              })
-            : item.type === 'integration' && item.integration
-              ? sdk.skills.items.create(i.instanceId, skill.id, {
-                  type: 'integration',
-                  integrationId: item.integration.id
-                })
-              : Promise.resolve(null)
-        )
-      );
-
-      return skill;
-    }) as Promise<DashboardInstanceSkillsCreateOutput>
 );
 
 export let useSkillTemplates = (

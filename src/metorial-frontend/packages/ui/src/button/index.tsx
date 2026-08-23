@@ -104,7 +104,6 @@ let Content = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.5;
   font-weight: 500;
 `;
 

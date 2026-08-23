@@ -6,6 +6,8 @@ export let userPresenter = async (user: User) => ({
 
   id: user.id,
 
+  signupMethod: user.signupMethod,
+  hasLoggedIn: user.hasLoggedIn,
   email: user.email,
   name: user.name,
   firstName: user.firstName,

@@ -3,11 +3,14 @@ import type {
   SsoConnectionGroup,
   SsoConnectionRole,
   SsoDirectory,
+  SsoDirectoryGroup,
+  SsoDirectoryRole,
   SsoDirectoryUserProfile,
   SsoGroup,
   SsoRole,
   SsoScimOperation,
   SsoTenant,
+  SsoTest,
   SsoUser,
   SsoUserChange,
   SsoUserGroup,
@@ -16,6 +19,8 @@ import type {
   SsoUserProfileRole,
   SsoUserRole
 } from '../../../../prisma/generated/client';
+import { env } from '../../../env';
+import { jackson } from '../../../lib/jackson';
 
 export let ssoTenantRefPresenter = (
   tenant: Pick<SsoTenant, 'id' | 'name' | 'status' | 'clientId' | 'externalId'>
@@ -128,10 +133,23 @@ export let ssoScimOperationPresenter = (operation: SsoScimOperation) => ({
   createdAt: operation.createdAt
 });
 
+export let ssoScimLogPresenter = (operation: SsoScimOperation) => ({
+  ...ssoScimOperationPresenter(operation),
+  query: operation.query,
+  requestBody: operation.requestBody,
+  responseBody: operation.responseBody
+});
+
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
     _count?: { connections?: number };
     app?: { id: string; clientId: string } | null;
+    account?: {
+      id: string;
+      clientId: string;
+      identifier: string;
+      name: string;
+    } | null;
   }
 ) => ({
   object: 'ares#ssoTenant' as const,
@@ -141,8 +159,13 @@ export let ssoTenantPresenter = (
   clientId: tenant.clientId,
   externalId: tenant.externalId,
   metadata: tenant.metadata,
-  isGlobal: tenant.isGlobal,
+  enrollment: tenant.enrollment,
   hideInUI: tenant.hideInUI,
+  entityId: env.sso.SAML_AUDIENCE,
+  replyUrl: jackson.defaultRedirectUrl.saml,
+  redirectUri: jackson.defaultRedirectUrl.oidc,
+  source: tenant.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  isEditable: !tenant.importedDelegationOid,
   counts: {
     connections: tenant._count?.connections ?? 0
   },
@@ -151,6 +174,15 @@ export let ssoTenantPresenter = (
         object: 'ares#app' as const,
         id: tenant.app.id,
         clientId: tenant.app.clientId
+      }
+    : null,
+  account: tenant.account
+    ? {
+        object: 'ares#account' as const,
+        id: tenant.account.id,
+        clientId: tenant.account.clientId,
+        identifier: tenant.account.identifier,
+        name: tenant.account.name
       }
     : null,
   createdAt: tenant.createdAt,
@@ -172,6 +204,9 @@ export let ssoConnectionPresenter = (
   providerType: connection.providerType,
   providerName: connection.providerName,
   metadata: connection.metadata,
+  source: connection.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  sourceId: connection.sourceId,
+  isEditable: !connection.importedDelegationOid,
   tenant: connection.tenant ? ssoTenantRefPresenter(connection.tenant) : null,
   directories: (connection.directories ?? []).map(ssoDirectoryRefPresenter),
   groups: (connection.groups ?? []).map(ssoConnectionGroupRefPresenter),
@@ -197,6 +232,88 @@ export let ssoDirectoryPresenter = (
   connection: directory.connection ? ssoConnectionRefPresenter(directory.connection) : null,
   createdAt: directory.createdAt,
   updatedAt: directory.updatedAt
+});
+
+export let ssoCatalogGroupPresenter = (group: SsoGroup) => ({
+  object: 'ares#ssoCatalogGroup' as const,
+  id: group.id,
+  value: group.value,
+  displayName: group.displayName,
+  metadata: group.metadata,
+  createdAt: group.createdAt,
+  updatedAt: group.updatedAt
+});
+
+export let ssoCatalogRolePresenter = (role: SsoRole) => ({
+  object: 'ares#ssoCatalogRole' as const,
+  id: role.id,
+  value: role.value,
+  displayName: role.displayName,
+  metadata: role.metadata,
+  createdAt: role.createdAt,
+  updatedAt: role.updatedAt
+});
+
+export let ssoCatalogConnectionGroupPresenter = (
+  group: SsoConnectionGroup & {
+    connection: Pick<SsoConnection, 'id'>;
+    rootGroup: Pick<SsoGroup, 'id'> | null;
+  }
+) => ({
+  object: 'ares#ssoCatalogConnectionGroup' as const,
+  id: group.id,
+  connectionId: group.connection.id,
+  groupId: group.rootGroup?.id ?? null,
+  value: group.value,
+  displayName: group.displayName,
+  metadata: group.metadata,
+  createdAt: group.createdAt,
+  updatedAt: group.updatedAt
+});
+
+export let ssoCatalogConnectionRolePresenter = (
+  role: SsoConnectionRole & {
+    connection: Pick<SsoConnection, 'id'>;
+    rootRole: Pick<SsoRole, 'id'> | null;
+  }
+) => ({
+  object: 'ares#ssoCatalogConnectionRole' as const,
+  id: role.id,
+  connectionId: role.connection.id,
+  roleId: role.rootRole?.id ?? null,
+  value: role.value,
+  displayName: role.displayName,
+  metadata: role.metadata,
+  createdAt: role.createdAt,
+  updatedAt: role.updatedAt
+});
+
+export let ssoCatalogDirectoryGroupPresenter = (
+  link: Pick<SsoDirectoryGroup, 'id' | 'createdAt' | 'updatedAt'> & {
+    directory: Pick<SsoDirectory, 'id'>;
+    group: Pick<SsoConnectionGroup, 'id'>;
+  }
+) => ({
+  object: 'ares#ssoCatalogDirectoryGroup' as const,
+  id: link.id,
+  directoryId: link.directory.id,
+  connectionGroupId: link.group.id,
+  createdAt: link.createdAt,
+  updatedAt: link.updatedAt
+});
+
+export let ssoCatalogDirectoryRolePresenter = (
+  link: Pick<SsoDirectoryRole, 'id' | 'createdAt' | 'updatedAt'> & {
+    directory: Pick<SsoDirectory, 'id'>;
+    role: Pick<SsoConnectionRole, 'id'>;
+  }
+) => ({
+  object: 'ares#ssoCatalogDirectoryRole' as const,
+  id: link.id,
+  directoryId: link.directory.id,
+  connectionRoleId: link.role.id,
+  createdAt: link.createdAt,
+  updatedAt: link.updatedAt
 });
 
 export let ssoGroupPresenter = (
@@ -390,6 +507,81 @@ export let ssoUserPresenter = (
   roles: (user.roleLinks ?? []).map(link => ssoRoleRefPresenter(link.role)),
   createdAt: user.createdAt,
   updatedAt: user.updatedAt
+});
+
+export let ssoTestPresenter = (
+  test: SsoTest & { connection?: Pick<SsoConnection, 'id' | 'name' | 'status'> | null }
+) => ({
+  object: 'ares#ssoTest' as const,
+  id: test.id,
+  status: test.status,
+  connectionId: test.connection?.id ?? null,
+  // The captured assertion. Present once the test completes, and held nowhere else.
+  profile:
+    test.status === 'completed'
+      ? {
+          email: test.email,
+          firstName: test.firstName,
+          lastName: test.lastName,
+          uid: test.uid,
+          sub: test.sub,
+          groups: test.groups,
+          roles: test.roles,
+          raw: test.raw
+        }
+      : null,
+  createdAt: test.createdAt,
+  completedAt: test.completedAt
+});
+
+export let ssoUserSyncSnapshotPresenter = (d: {
+  tenant: Pick<SsoTenant, 'id'> & { app: { id: string } };
+  user: SsoUser & {
+    groupLinks: (Pick<SsoUserGroup, 'id'> & { group: Pick<SsoGroup, 'id'> })[];
+    roleLinks: (Pick<SsoUserRole, 'id'> & { role: Pick<SsoRole, 'id'> })[];
+    profiles: (SsoUserProfile & {
+      connection: Pick<SsoConnection, 'id'>;
+      ownerDirectory: Pick<SsoDirectory, 'id'> | null;
+      groupLinks: (Pick<SsoUserProfileGroup, 'id'> & {
+        group: Pick<SsoConnectionGroup, 'id'>;
+      })[];
+      roleLinks: (Pick<SsoUserProfileRole, 'id'> & { role: Pick<SsoConnectionRole, 'id'> })[];
+    })[];
+  };
+}) => ({
+  object: 'ares#ssoUserSyncSnapshot' as const,
+  revision: d.user.syncRevision.toString(),
+  tenant: { id: d.tenant.id, appId: d.tenant.app.id },
+  user: {
+    id: d.user.id,
+    status: d.user.status,
+    email: d.user.email,
+    firstName: d.user.firstName,
+    lastName: d.user.lastName,
+    ownerProfileId:
+      d.user.profiles.find(profile => profile.oid === d.user.ownerProfileOid)?.id ?? null,
+    createdAt: d.user.createdAt,
+    updatedAt: d.user.updatedAt
+  },
+  groups: d.user.groupLinks.map(link => ({ id: link.id, groupId: link.group.id })),
+  roles: d.user.roleLinks.map(link => ({ id: link.id, roleId: link.role.id })),
+  profiles: d.user.profiles.map(profile => ({
+    id: profile.id,
+    connectionId: profile.connection.id,
+    status: profile.status,
+    email: profile.email,
+    uid: profile.uid,
+    sub: profile.sub,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    ownerDirectoryId: profile.ownerDirectory?.id ?? null,
+    attributes: profile.raw,
+    metadata: profile.metadata,
+    groups: profile.groupLinks.map(link => ({ id: link.id, connectionGroupId: link.group.id })),
+    roles: profile.roleLinks.map(link => ({ id: link.id, connectionRoleId: link.role.id })),
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt
+  }))
 });
 
 let sanitizeSsoUserChangeSnapshot = (snapshot: any) => {

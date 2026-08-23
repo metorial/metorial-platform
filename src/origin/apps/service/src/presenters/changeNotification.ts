@@ -3,15 +3,18 @@ import type {
   ScmAccount,
   ScmRepository,
   ScmRepositoryPush,
+  ScmRepositorySync,
   Tenant
 } from '../../prisma/generated/client';
 import { repositoryPresenter } from './repository';
 import { scmRepositoryPushPresenter } from './scmRepositoryPush';
+import { scmRepositorySyncPresenter } from './scmRepositorySync';
 
 export let changeNotificationPresenter = (
   notification: ChangeNotification & {
     repo: ScmRepository & { account: ScmAccount };
     repoPush: ScmRepositoryPush | null;
+    repositorySync: ScmRepositorySync | null;
     tenant: Tenant;
   }
 ) => ({
@@ -26,6 +29,9 @@ export let changeNotificationPresenter = (
         ...notification.repoPush,
         repo: notification.repo
       })
+    : undefined,
+  repositorySync: notification.repositorySync
+    ? scmRepositorySyncPresenter(notification.repositorySync)
     : undefined,
 
   tenantId: notification.tenant.id,

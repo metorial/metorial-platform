@@ -1,11 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspacePublisherService } from '@metorial/module-subspace';
+import { publisherService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { publisherPresenter } from '../../../presenters';
+import { publisherPresenter } from '@metorial/presenters';
 
 let publisherGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.publisherId) {
@@ -17,7 +17,7 @@ let publisherGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let publisher = await subspacePublisherService.get({
+  let publisher = await publisherService.getPublisherById({
     instance: ctx.instance,
     publisherId: ctx.params.publisherId
   });
@@ -42,7 +42,7 @@ export let publisherController = Controller.create(
       .outputList(publisherPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        let paginator = await subspacePublisherService.list({
+        let paginator = await publisherService.listPublishers({
           instance: ctx.instance
         });
 

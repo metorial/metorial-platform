@@ -1,0 +1,27 @@
+import { renderWithLoader } from '@metorial/data-hooks';
+import { useCurrentInstance, useDashboardFlags } from '@metorial/state';
+import { ComingSoon, Upgrade } from '@metorial/empty-state';
+import { CallbacksList } from '../../../scenes/callbacks/list';
+
+export let CallbacksPage = () => {
+  let instance = useCurrentInstance();
+  let flags = useDashboardFlags();
+
+  return renderWithLoader({ instance, flags })(({ flags }) => (
+    <>
+      {!flags.data.flags['callbacks-enabled'] ? (
+        <ComingSoon
+          title="Metorial Callbacks"
+          description="Callbacks let your deployed providers call your application about interesting events, like new messages or status changes."
+        />
+      ) : !flags.data.flags['paid-callbacks'] ? (
+        <Upgrade
+          title="Metorial Callbacks"
+          description="Callbacks let your deployed providers call your application about interesting events, like new messages or status changes."
+        />
+      ) : (
+        <CallbacksList />
+      )}
+    </>
+  ));
+};

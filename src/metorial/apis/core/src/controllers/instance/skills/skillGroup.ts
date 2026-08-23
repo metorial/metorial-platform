@@ -1,15 +1,17 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSkillGroupService } from '@metorial/module-subspace';
+import { skillResourceService } from '@metorial/module-skill';
+import { skillGroupService } from '@metorial/module-skill-groups';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillGroupPresenter } from '../../../presenters';
+import { skillGroupPresenter } from '@metorial/presenters';
 
 export let skillGroupGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillGroupId) {
@@ -21,13 +23,15 @@ export let skillGroupGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use
     );
   }
 
-  let skillGroup = await subspaceSkillGroupService.get({
-    instance: ctx.instance,
+  let access = await getInstanceCargoAccess(ctx);
+  let localGroup = await skillGroupService.getSkillGroupById({
+    project: access.project,
+    instance: access.instance,
     skillGroupId: ctx.params.skillGroupId,
     allowDeleted: true,
-    consumerProfile: ctx.consumerProfile,
-    consumerGroups: ctx.consumerGroups
+    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
   });
+  let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);
 
   return { skillGroup };
 });
@@ -70,22 +74,23 @@ export let skillGroupController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSkillGroupService.list({
-          instance: ctx.instance,
-          consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups,
+        let access = await getInstanceCargoAccess(ctx);
+        let paginator = await skillGroupService.listSkillGroups({
+          project: access.project,
+          instance: access.instance,
           search: ctx.query.search,
-          allowDeleted: true,
-          status: normalizeArrayParam(ctx.query.status),
+          statuses: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           skillIds: normalizeArrayParam(ctx.query.skill_id),
           createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
+          updatedAt: ctx.query.updated_at,
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
         });
 
         let list = await paginator.run(ctx.query);
+        let items = await skillResourceService.hydrateSkillGroups(list.items);
 
-        return Paginator.present(list, skillGroup =>
+        return Paginator.present({ ...list, items }, skillGroup =>
           skillGroupPresenter.present({ skillGroup })
         );
       }),
@@ -120,18 +125,25 @@ export let skillGroupController = Controller.create(
           name: v.string(),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          skill_ids: v.optional(v.array(v.string()))
+          skill_ids: v.optional(v.array(v.string())),
+          allow_consumer_skill_assignment: v.optional(v.boolean())
         })
       )
       .output(skillGroupPresenter)
       .do(async ctx => {
-        let skillGroup = await subspaceSkillGroupService.create({
-          instance: ctx.instance,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          skillIds: ctx.body.skill_ids
+        let access = await getInstanceCargoAccess(ctx);
+        let localGroup = await skillGroupService.createSkillGroup({
+          project: access.project,
+          instance: access.instance,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata as any,
+            skillIds: ctx.body.skill_ids,
+            allowConsumerSkillAssignment: ctx.body.allow_consumer_skill_assignment
+          }
         });
+        let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);
 
         return skillGroupPresenter.present({ skillGroup });
       }),
@@ -149,20 +161,26 @@ export let skillGroupController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
           metadata: v.optional(v.nullable(v.record(v.any()))),
-          skill_ids: v.optional(v.array(v.string()))
+          skill_ids: v.optional(v.array(v.string())),
+          allow_consumer_skill_assignment: v.optional(v.boolean())
         })
       )
       .output(skillGroupPresenter)
       .do(async ctx => {
-        let skillGroup = await subspaceSkillGroupService.update({
-          instance: ctx.instance,
+        let access = await getInstanceCargoAccess(ctx);
+        let localGroup = await skillGroupService.updateSkillGroup({
+          project: access.project,
+          instance: access.instance,
           skillGroupId: ctx.skillGroup.id,
-          allowDeleted: true,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          skillIds: ctx.body.skill_ids
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata as any,
+            skillIds: ctx.body.skill_ids,
+            allowConsumerSkillAssignment: ctx.body.allow_consumer_skill_assignment
+          }
         });
+        let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);
 
         return skillGroupPresenter.present({ skillGroup });
       }),
@@ -176,11 +194,13 @@ export let skillGroupController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .output(skillGroupPresenter)
       .do(async ctx => {
-        let skillGroup = await subspaceSkillGroupService.delete({
-          instance: ctx.instance,
-          skillGroupId: ctx.skillGroup.id,
-          allowDeleted: true
+        let access = await getInstanceCargoAccess(ctx);
+        let localGroup = await skillGroupService.archiveSkillGroup({
+          project: access.project,
+          instance: access.instance,
+          skillGroupId: ctx.skillGroup.id
         });
+        let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);
 
         return skillGroupPresenter.present({ skillGroup });
       })

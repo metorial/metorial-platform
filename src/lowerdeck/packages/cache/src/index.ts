@@ -61,7 +61,10 @@ export let createCachedFunction = <I, O>(opts: {
     })();
 
     active.set(hash, promise);
-    promise.finally(() => active.delete(hash));
+    let clearActive = () => {
+      active.delete(hash);
+    };
+    void promise.then(clearActive, clearActive);
 
     return await promise;
   };
@@ -144,7 +147,10 @@ export let createLocallyCachedFunction = <I, O>(opts: {
     })();
 
     active.set(hash, promise);
-    promise.finally(() => active.delete(hash));
+    let clearActive = () => {
+      active.delete(hash);
+    };
+    void promise.then(clearActive, clearActive);
 
     return await promise;
   };

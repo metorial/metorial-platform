@@ -2,11 +2,11 @@ import { createExecutionContext, provideExecutionContext } from '@lowerdeck/exec
 import { useRequestContext } from '@lowerdeck/hono';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
-import { proxyMcpRequestToSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
 import { authenticateAndResolveInstance } from './getSession';
 import { createConnectionHono } from './hono';
 import { handleMagicMcpRequest } from './magic';
+import { handleMcpRequest } from './mcp';
 
 export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
   let hono = createConnectionHono()
@@ -48,7 +48,9 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         }),
         async () => {
           let { instance } = await authenticateAndResolveInstance(req, url, d.authenticate);
-          return proxyMcpRequestToSubspace(c, instance, sessionId, {
+          return handleMcpRequest(c, {
+            instance,
+            sessionId,
             enforceIngressNetworkPolicy: true,
             ingressIp: context.ip
           });
@@ -75,4 +77,5 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
 
 export { authenticateAndResolveInstance } from './getSession';
 export { handleMagicMcpRequest } from './magic';
+export { handleMcpRequest } from './mcp';
 export * from './portal';

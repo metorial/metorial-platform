@@ -1,14 +1,18 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCustomProviderCommitService } from '@metorial/module-subspace';
+import {
+  customProviderCommitService,
+  customProviderEnvironmentService,
+  customProviderVersionService
+} from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceCustomProviderCommitPresenter } from '../../../presenters';
+import { subspaceCustomProviderCommitPresenter } from '@metorial/presenters';
 
 let customProviderCommitGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderCommitId) {
@@ -20,7 +24,7 @@ let customProviderCommitGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let customProviderCommit = await subspaceCustomProviderCommitService.get({
+  let customProviderCommit = await customProviderCommitService.getCustomProviderCommitById({
     instance: ctx.instance,
     customProviderCommitId: ctx.params.customProviderCommitId
   });
@@ -71,7 +75,7 @@ export let customProviderCommitController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCustomProviderCommitService.list({
+        let paginator = await customProviderCommitService.listCustomProviderCommits({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_id),
@@ -174,21 +178,43 @@ export let customProviderCommitController = Controller.create(
           ctx.body.action.type === 'merge_version_into_environment'
             ? {
                 type: 'merge_version_into_environment' as const,
-                fromEnvironmentId: ctx.body.action.from_environment_id,
-                toEnvironmentId: ctx.body.action.to_environment_id
+                fromEnvironment:
+                  await customProviderEnvironmentService.getCustomProviderEnvironmentById({
+                    instance: ctx.instance,
+                    customProviderEnvironmentId: ctx.body.action.from_environment_id,
+                    includeOtherEnvironments: false
+                  }),
+                toEnvironment:
+                  await customProviderEnvironmentService.getCustomProviderEnvironmentById({
+                    instance: ctx.instance,
+                    customProviderEnvironmentId: ctx.body.action.to_environment_id,
+                    includeUnpublished: true,
+                    includeOtherEnvironments: true
+                  })
               }
             : {
-                type: 'rollback_commit' as const,
-                environmentId: ctx.body.action.environment_id,
-                versionId: ctx.body.action.version_id
+                type: 'rollback_to_version' as const,
+                environment:
+                  await customProviderEnvironmentService.getCustomProviderEnvironmentById({
+                    instance: ctx.instance,
+                    customProviderEnvironmentId: ctx.body.action.environment_id,
+                    includeOtherEnvironments: false
+                  }),
+                version: await customProviderVersionService.getCustomProviderVersionById({
+                  instance: ctx.instance,
+                  customProviderVersionId: ctx.body.action.version_id
+                })
               };
 
-        let customProviderCommit = await subspaceCustomProviderCommitService.create({
-          instance: ctx.instance,
-          organizationActor: ctx.actor!,
-          message: ctx.body.message,
-          action
-        });
+        let customProviderCommit =
+          await customProviderCommitService.createCustomProviderCommit({
+            instance: ctx.instance,
+            organizationActor: ctx.actor!,
+            input: {
+              message: ctx.body.message,
+              action
+            }
+          });
 
         return subspaceCustomProviderCommitPresenter.present({
           customProviderCommit: customProviderCommit

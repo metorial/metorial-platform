@@ -6,7 +6,7 @@ import { Button } from '../button';
 import { theme } from '../theme';
 import {
   DialogProvider,
-  preventDialogDismissWhenSelectOpen,
+  preventDialogDismissForSelectInteraction,
   useDialogZIndex
 } from './state';
 import { ContentSide, Overlay } from './styles';
@@ -44,13 +44,13 @@ let Title = styled(RadixDialogDialog.Title)`
   padding: 0;
   font-size: 20px;
   font-weight: 600;
-  margin-bottom: 4px;
 `;
 
 let Description = styled(RadixDialogDialog.Description)`
   font-size: 14px;
   font-weight: 500;
   color: ${theme.colors.gray600};
+  margin-top: 4px;
 `;
 
 let Actions = styled('div')`
@@ -87,7 +87,9 @@ export let Panel = {
 
             <Wrapper
               ref={contentRef}
-              onPointerDownOutside={preventDialogDismissWhenSelectOpen}
+              onPointerDownOutside={preventDialogDismissForSelectInteraction}
+              onInteractOutside={preventDialogDismissForSelectInteraction}
+              onFocusOutside={preventDialogDismissForSelectInteraction}
               style={{
                 ...style,
 

@@ -1,3 +1,5 @@
+import { htmlEncode } from '../../../lib/htmlEncode';
+
 export let errorHtml = (d: {
   title: string;
   message: string;
@@ -84,11 +86,11 @@ export let errorHtml = (d: {
     <section>
       <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" />
 
-      <h1>${d.title}</h1>
+      <h1>${htmlEncode(d.title)}</h1>
 
-      <p>${d.message}</p>
+      <p>${htmlEncode(d.message)}</p>
 
-      ${d.details ? `<pre>${d.details}</pre>` : ''}
+      ${d.details ? `<pre>${htmlEncode(d.details)}</pre>` : ''}
     </section>
   </main>
 </body>

@@ -7,16 +7,5 @@ export let env = createValidatedEnv({
     SYNTHESIS_HEALTH_PORT: v.number(),
     DATABASE_URL: v.string(),
     REDIS_URL: v.string()
-  },
-
-  subspace: {
-    SUBSPACE_URL: v.string(),
-    SUBSPACE_CONNECTION_URL: v.string(),
-    SUBSPACE_SOLUTION: v.string()
-  },
-
-  scout: {
-    SCOUT_URL: v.optional(v.string()),
-    SCOUT_TOKEN: v.optional(v.string())
   }
 });

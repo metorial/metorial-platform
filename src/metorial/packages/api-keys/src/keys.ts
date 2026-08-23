@@ -37,7 +37,7 @@ const METORIAL_PREFIX = 'metorial';
 
 const SECRET_KEY_LENGTH = 60;
 
-const INSTANCES = ['v2-us1', 'v2-eu1', 'legacy', 'v2-ext'] as const;
+const INSTANCES = ['v2-us1', 'v2-eu1', 'legacy', 'v2-ext', 'v2-dev'] as const;
 type ApiKeyConfig = {
   url: string;
   instance: (typeof INSTANCES)[number];

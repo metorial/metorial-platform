@@ -1,3 +1,9 @@
+enum ScmInstallationSessionStatus {
+  pending
+  pending_approval
+  succeeded
+}
+
 model ScmInstallationSession {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -8,12 +14,24 @@ model ScmInstallationSession {
   ownerActorOid BigInt
   ownerActor    Actor  @relation(fields: [ownerActorOid], references: [oid], onDelete: Cascade)
 
-  installationOid BigInt?          @unique
+  installationOid BigInt?
   installation    ScmInstallation? @relation(fields: [installationOid], references: [oid], onDelete: Cascade)
+
+  selectedBackendOid BigInt?
+  selectedBackend    ScmBackend? @relation("selectedScmBackend", fields: [selectedBackendOid], references: [oid], onDelete: SetNull)
 
   redirectUrl String?
 
-  state String @unique
+  status ScmInstallationSessionStatus @default(pending)
+  state  String                       @unique
+
+  githubInstallationRequestId          String?
+  githubPendingAccountId               String?
+  githubPendingAccountLogin            String?
+  githubPendingAccountType             ScmAccountType?
+  githubPendingRequesterId             String?
+  githubPendingApprovalAt              DateTime?
+  githubInstallationRequestBaselineIds String[]        @default([])
 
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -22,6 +40,9 @@ model ScmInstallationSession {
   backendSetupSessions ScmBackendSetupSession[]
 
   @@index([tenantOid])
+  @@index([installationOid])
+  @@index([selectedBackendOid])
+  @@index([status, selectedBackendOid, githubPendingAccountId])
   @@index([state])
 }
 

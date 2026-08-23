@@ -1,0 +1,51 @@
+enum UpcomingCustomProviderType {
+  create_custom_provider
+  create_custom_provider_version
+}
+
+model UpcomingCustomProvider {
+  oid BigInt @id
+  id  String @unique
+
+  type UpcomingCustomProviderType
+
+  message String?
+
+  customProviderOid BigInt
+  customProvider    CustomProvider @relation(fields: [customProviderOid], references: [oid])
+
+  customProviderDeploymentOid BigInt
+  customProviderDeployment    CustomProviderDeployment @relation(fields: [customProviderDeploymentOid], references: [oid])
+
+  customProviderVersionOid BigInt
+  customProviderVersion    CustomProviderVersion @relation(fields: [customProviderVersionOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  actorOid BigInt
+  actor    TenantActor @relation(fields: [actorOid], references: [oid])
+
+  errorCode    String?
+  errorMessage String?
+
+  /// [UpcomingCustomProviderPayload]
+  payload Json
+
+  createdAt DateTime @default(now())
+
+  @@index([projectOid])
+  @@index([instanceOid])
+}

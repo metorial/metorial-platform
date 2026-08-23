@@ -19,7 +19,9 @@ import { remoteOAuthDiscoveryService } from '../../services';
 import { deployServerFailedQueue } from '../deployment/failed';
 import { deployServerSucceededQueue } from '../deployment/succeeded';
 import { discoverRemoteOAuthConfigQueue } from '../discovery/remoteOAuthConfig';
+import { retryFailedRegistrationsSearchQueue } from '../discovery/retryRemoteOAuthConnections';
 import { serverVersionCreatedQueue } from '../lifecycle/serverVersion';
+import { rotateStaleCredentialsSearchQueue } from '../oauth/rotateRemoteCredentials';
 
 export let deployRemoteServerStartQueue = createQueue<{
   serverDeploymentId: string;
@@ -140,14 +142,11 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
           deployingStep.log(`Name: ${oauthConfig.providerName}`);
           deployingStep.log(`URL: ${oauthConfig.providerUrl}`);
 
-          // If the discovery succeeded, we can update the server to point to the new OAuth config
           await db.server.updateMany({
             where: { oid: server.oid },
             data: { remoteOauthConfigOid: oauthConfig.oid }
           });
 
-          // For backwards compatibility, we need to update all existing
-          // remote connections to use the new config
           await db.remoteOAuthConnection.updateMany({
             where: {
               serverOid: server.oid,
@@ -156,6 +155,32 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
             },
             data: { configOid: oauthConfig.oid }
           });
+
+          let repointed = await db.remoteOAuthConnection.updateMany({
+            where: {
+              serverOid: server.oid,
+              status: { not: 'inactive' },
+              discoveryStatus: 'failed',
+              registrationOid: null,
+              secretOid: null,
+              configOid: { not: oauthConfig.oid }
+            },
+            data: {
+              configOid: oauthConfig.oid,
+              registrationAttemptCount: 0,
+              lastRegistrationAttemptAt: null
+            }
+          });
+
+          if (repointed.count > 0) {
+            deployingStep.log(
+              `Retrying client registration for ${repointed.count} connection(s) that previously failed.`
+            );
+          }
+
+          await retryFailedRegistrationsSearchQueue.add({ serverId: server.id });
+
+          await rotateStaleCredentialsSearchQueue.add({ serverId: server.id });
 
           deployingStep.log(encode(oauthConfig.config));
         }

@@ -28,11 +28,15 @@ model File {
   id     String     @unique
   status FileStatus @default(active)
 
-  storeId String @unique
+  storeId String
 
-  fileName String
-  fileSize Int
-  fileType String
+  isInternal Boolean @default(false)
+
+  fileName          String
+  fileSize          Int
+  fileType          String
+  isReadOnly        Boolean @default(false)
+  isTemplateBacking Boolean @default(false)
 
   purposeOid Int
   purpose    FilePurpose @relation(fields: [purposeOid], references: [oid], onDelete: Cascade)
@@ -46,12 +50,51 @@ model File {
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  createdByResourceActorOid BigInt?
+  createdByResourceActor    ResourceActor? @relation("FileCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: SetNull)
+
   title String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  expiresAt DateTime?
+
+  links                         FileLink[]
+  pendingContent                FilePendingContent?
+  document                      Document?
+  storeItems                    StoreItem[]
+  storeVersionItems             StoreVersionItem[]
+  skillExports                  SkillExport[]
+  skillExportRefs               SkillExportRef[]
+  skillImports                  SkillImport[]
+  mergeRequestItemsAsBaseFile   SkillMergeRequestItem[] @relation("SkillMergeRequestItemBaseFile")
+  mergeRequestItemsAsSourceFile SkillMergeRequestItem[] @relation("SkillMergeRequestItemSourceFile")
+  mergeRequestItemsAsTargetFile SkillMergeRequestItem[] @relation("SkillMergeRequestItemTargetFile")
+
+  @@index([storeId, status])
+  @@index([status, expiresAt, oid])
+}
+
+model FilePendingContent {
+  oid BigInt @id @default(autoincrement())
+
+  fileOid BigInt @unique
+  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  content    Bytes
+  revision   Int      @default(1)
+  flushAfter DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  links FileLink[]
+  @@index([flushAfter])
 }
 
 model FileLink {
@@ -63,10 +106,28 @@ model FileLink {
   fileOid BigInt
   file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
 
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdByResourceActorOid BigInt?
+  createdByResourceActor    ResourceActor? @relation("FileLinkCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime  @default(now())
   expiresAt DateTime?
 
-  references FileReference[]
+  references      FileReference[]
+  skillExportRefs SkillExportRef[]
+  skillExports    SkillExport[]
+  skillImports    SkillImport[]
 }
 
 model FileReference {
@@ -76,8 +137,25 @@ model FileReference {
   fileLinkOid BigInt
   fileLink    FileLink @relation(fields: [fileLinkOid], references: [oid], onDelete: Cascade)
 
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
   entityType String
   entityId   String
 
   createdAt DateTime @default(now())
+
+  storeItems      StoreItem[]
+  skillExports    SkillExport[]
+  skillExportRefs SkillExportRef[]
+  skillImports    SkillImport[]
 }

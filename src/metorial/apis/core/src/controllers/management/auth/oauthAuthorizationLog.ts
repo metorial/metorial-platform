@@ -8,7 +8,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { oauthAuthorizationLogPresenter } from '../../../presenters';
+import { oauthAuthorizationLogPresenter } from '@metorial/presenters';
 
 export let oauthAuthorizationLogManagementController = Controller.create(
   {

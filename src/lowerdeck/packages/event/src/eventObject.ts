@@ -84,7 +84,7 @@ export class EventObject<Actions extends { [key: string]: Action<string, any> } 
   ) {
     this.#fireQueue.add(async () => {
       let sender = this.#getRedisStream(opts?.objectNameOverride ?? this.opts.objectName);
-      let output = this.#actions[name].getObject(input);
+      let output = this.#actions[name]!.getObject(input);
 
       try {
         await sender.send({

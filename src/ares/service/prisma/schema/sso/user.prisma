@@ -19,6 +19,8 @@ model SsoUser {
   ownerProfileOid BigInt?         @unique
   ownerProfile    SsoUserProfile? @relation("SsoUserOwnerProfile", fields: [ownerProfileOid], references: [oid], onDelete: SetNull)
 
+  syncRevision BigInt @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

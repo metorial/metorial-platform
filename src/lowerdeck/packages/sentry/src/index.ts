@@ -7,10 +7,12 @@ let ignoredSentryHttpErrorCodes = new Set([
   'forbidden',
   'invalid_data',
   'not_found',
+  'payment_required',
   'unauthorized'
 ]);
 
 let lowerdeckErrorPrefix = '[@lowerdeck/error]:';
+let metorialErrorPrefix = '[METORIAL ERROR]:';
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -36,19 +38,29 @@ let getMessagePayload = (message: string): Record<string, unknown> | null => {
   }
 };
 
-let isLowerdeckErrorValue = (value: unknown): boolean => {
+let isKnownHttpErrorValue = (value: unknown, includeMetorialSdkErrors: boolean): boolean => {
   let visited = new Set<unknown>();
 
   let visit = (current: unknown): boolean => {
     if (typeof current === 'string') {
-      return current.includes(lowerdeckErrorPrefix);
+      return (
+        current.includes(lowerdeckErrorPrefix) ||
+        (includeMetorialSdkErrors && current.includes(metorialErrorPrefix))
+      );
     }
 
     if (!isRecord(current)) return false;
     if (visited.has(current)) return false;
     visited.add(current);
 
-    if (current.object === 'ServiceError' || current.object === 'ErrorRecord') return true;
+    if (
+      current.object === 'ServiceError' ||
+      current.object === 'ErrorRecord' ||
+      (includeMetorialSdkErrors &&
+        (current.__isMetorialError === true || current.__typename === 'metorial.sdk.error'))
+    ) {
+      return true;
+    }
 
     for (let candidate of [
       current.originalException,
@@ -77,9 +89,11 @@ export let getSentryHttpErrorDetails = (
       let payload = getMessagePayload(current);
       if (payload) return visit(payload);
 
-      let code = current.match(
-        /\b(unauthorized|forbidden|not_found|bad_request|invalid_data)\b/i
-      )?.[1];
+      let code =
+        current.match(/\[METORIAL ERROR\]:\s*([a-z0-9_]+)/i)?.[1] ??
+        current.match(
+          /\b(unauthorized|forbidden|not_found|bad_request|invalid_data|payment_required)\b/i
+        )?.[1];
       if (code) return { status: null, code: code.toLowerCase() };
 
       return null;
@@ -124,8 +138,11 @@ export let setSentry = (sentry: typeof SentryBase) => {
 
 export let getSentry = (): typeof SentryBase => sentryRef.current;
 
-export let shouldIgnoreSentryHttpError = (value: unknown): boolean => {
-  if (!isLowerdeckErrorValue(value)) return false;
+let shouldIgnoreKnownClientError = (
+  value: unknown,
+  includeMetorialSdkErrors: boolean
+): boolean => {
+  if (!isKnownHttpErrorValue(value, includeMetorialSdkErrors)) return false;
 
   let details = getSentryHttpErrorDetails(value);
   if (!details) return false;
@@ -136,3 +153,9 @@ export let shouldIgnoreSentryHttpError = (value: unknown): boolean => {
 
   return details.code ? ignoredSentryHttpErrorCodes.has(details.code) : false;
 };
+
+export let shouldIgnoreSentryHttpError = (value: unknown): boolean =>
+  shouldIgnoreKnownClientError(value, false);
+
+export let shouldIgnoreSentryFrontendError = (value: unknown): boolean =>
+  shouldIgnoreKnownClientError(value, true);

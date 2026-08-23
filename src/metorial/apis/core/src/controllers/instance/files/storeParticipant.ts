@@ -1,12 +1,12 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeParticipantService } from '@metorial/module-file';
+import { storeParticipantService } from '@metorial/module-store';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { storeParticipantPresenter } from '../../../presenters';
+import { storeParticipantPresenter } from '@metorial/presenters';
 import { storeGroup } from './store';
 
 export let storeParticipantGroup = storeGroup.use(async ctx => {
@@ -16,15 +16,10 @@ export let storeParticipantGroup = storeGroup.use(async ctx => {
 
   let storeParticipant = await storeParticipantService.getStoreParticipantById({
     storeParticipantId: ctx.params.storeParticipantId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
-  if (storeParticipant.storeId !== ctx.store.id) {
+  if (storeParticipant.store.id !== ctx.store.id) {
     throw new ServiceError(notFoundError('store.participant', ctx.params.storeParticipantId));
   }
 
@@ -42,18 +37,15 @@ export let storeParticipantController = Controller.create(
         name: 'List store participants',
         description: 'Returns a paginated list of participants for a specific store.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .outputList(storeParticipantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await storeParticipantService.listStoreParticipants({
-          storeId: ctx.store.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx)
+          storeIds: [ctx.store.id],
+          ...(await getInstanceCargoAccess(ctx))
         });
         let list = await paginator.run(ctx.query);
 
@@ -73,7 +65,9 @@ export let storeParticipantController = Controller.create(
           description: 'Retrieves a specific participant within a store.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .output(storeParticipantPresenter)
       .do(async ctx =>
         storeParticipantPresenter.present({ storeParticipant: ctx.storeParticipant })

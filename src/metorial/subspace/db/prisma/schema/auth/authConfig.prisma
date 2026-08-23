@@ -1,0 +1,160 @@
+enum ProviderAuthConfigType {
+  manual
+  oauth_automated
+  oauth_manual
+}
+
+enum ProviderAuthConfigSource {
+  manual
+  setup_session
+  system
+}
+
+enum ProviderAuthConfigStatus {
+  active
+  archived
+  deleted
+}
+
+model ProviderAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  type       ProviderAuthConfigType
+  source     ProviderAuthConfigSource
+  status     ProviderAuthConfigStatus
+  archivedAt DateTime?
+
+  isParentDeleted Boolean @default(false)
+
+  isEphemeral Boolean
+  isDefault   Boolean
+
+  name            String?
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  /// [ProviderAuthScopes]
+  scopes Json @default("[]")
+
+  needsScopeSync Boolean @default(true)
+
+  /// [ToolFilter]
+  toolFilter Json @default("{\"type\":\"v1.allow_all\"}")
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  authMethodOid BigInt
+  authMethod    ProviderAuthMethod @relation(fields: [authMethodOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  backendOid BigInt
+  backend    Backend @relation(fields: [backendOid], references: [oid])
+
+  owningIntegrationInstanceOid BigInt?
+  owningIntegrationInstance    IntegrationInstance? @relation(fields: [owningIntegrationInstanceOid], references: [oid])
+
+  owningIntegrationInstanceProviderOid BigInt?
+  owningIntegrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [owningIntegrationInstanceProviderOid], references: [oid])
+
+  deploymentOid BigInt?
+  deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
+
+  currentVersionOid BigInt?
+  currentVersion    ProviderAuthConfigVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
+
+  providerSetupSession ProviderSetupSession?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerOAuthSetups                 ProviderOAuthSetup[]
+  deploymentAuthConfigs               ProviderDeployment[]                 @relation("defaultAuthConfig")
+  providerAuthExports                 ProviderAuthExport[]
+  providerAuthImports                 ProviderAuthImport[]
+  providerAuthConfigUpdates           ProviderAuthConfigUpdate[]
+  sessionProviders                    SessionProvider[]
+  sessionTemplateProviders            SessionTemplateProvider[]
+  providerAuthConfigVersions          ProviderAuthConfigVersion[]
+  identityCredentials                 IdentityCredential[]
+  authConfigEvents                    ProviderAuthConfigEvent[]
+  authConfigErrors                    ProviderAuthConfigError[]
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([isDefault])
+  @@index([isEphemeral])
+  @@index([status])
+  @@index([archivedAt])
+  @@index([status, archivedAt])
+  @@index([type])
+  @@index([source])
+  @@index([needsScopeSync])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model ProviderAuthConfigVersion {
+  oid BigInt @id
+  id  String @unique
+
+  authConfigOid BigInt
+  authConfig    ProviderAuthConfig @relation(fields: [authConfigOid], references: [oid])
+
+  slateAuthConfigOid BigInt?          @unique
+  slateAuthConfig    SlateAuthConfig? @relation(fields: [slateAuthConfigOid], references: [oid])
+
+  shuttleAuthConfigOid BigInt?            @unique
+  shuttleAuthConfig    ShuttleAuthConfig? @relation(fields: [shuttleAuthConfigOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
+
+  currentVersionForAuthConfig ProviderAuthConfig[] @relation("currentVersion")
+
+  createdAt DateTime @default(now())
+
+  providerAuthConfigUpdates     ProviderAuthConfigUpdate[]     @relation("fromVersion")
+  providerAuthConfigUpdatesTo   ProviderAuthConfigUpdate[]     @relation("toVersion")
+  providerDeploymentConfigPairs ProviderDeploymentConfigPair[]
+}
+
+model ProviderAuthConfigUpdate {
+  oid BigInt @id
+  id  String @unique
+
+  authConfigOid BigInt
+  authConfig    ProviderAuthConfig @relation(fields: [authConfigOid], references: [oid])
+
+  fromVersionOid BigInt?
+  fromVersion    ProviderAuthConfigVersion? @relation(fields: [fromVersionOid], references: [oid], name: "fromVersion")
+
+  toVersionOid BigInt
+  toVersion    ProviderAuthConfigVersion @relation(fields: [toVersionOid], references: [oid], name: "toVersion")
+
+  createdAt DateTime @default(now())
+
+  providerAuthImports ProviderAuthImport[]
+  slateAuthConfigs    SlateAuthConfig[]
+  shuttleAuthConfigs  ShuttleAuthConfig[]
+}

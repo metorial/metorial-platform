@@ -1,17 +1,32 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { portalService } from '@metorial/module-consumer';
+import { namespaceService } from '@metorial/module-organization';
+import { portalService } from '@metorial/module-portal';
+import { portalPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { portalPresenter } from '../../../presenters';
 
 let portalAllowedRedirectUrlFilterValidator = v.object({
   url: v.string()
 });
+
+let presentPortal = async (
+  portal: Parameters<typeof portalPresenter.present>[0]['portal']
+) => {
+  let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
+    portals: [portal]
+  });
+
+  return portalPresenter.present({
+    portal,
+    portalUrl: (await portalService.getPortalHost({ portal })).host,
+    namespaces: namespacesByPortalOid.get(portal.oid) ?? []
+  });
+};
 
 let skillConfigurationValidator = v.object({
   allow_scripts: v.optional(v.boolean()),
@@ -63,20 +78,29 @@ export let portalController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = portalService.listPortals({
+        let paginator = await portalService.listPortals({
           instance: ctx.instance,
           search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
 
         let portalUrls = Object.fromEntries(
-          list.items.map(portal => [portal.id, portalService.getPortalHost({ portal }).host])
+          await Promise.all(
+            list.items.map(async portal => [
+              portal.id,
+              (await portalService.getPortalHost({ portal })).host
+            ])
+          )
         );
+        let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
+          portals: list.items
+        });
 
         return Paginator.present(list, portal =>
           portalPresenter.present({
             portal,
-            portalUrl: portalUrls[portal.id]
+            portalUrl: portalUrls[portal.id],
+            namespaces: namespacesByPortalOid.get(portal.oid) ?? []
           })
         );
       }),
@@ -93,12 +117,7 @@ export let portalController = Controller.create(
       )
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(portalPresenter)
-      .do(async ctx => {
-        return portalPresenter.present({
-          portal: ctx.portal,
-          portalUrl: portalService.getPortalHost({ portal: ctx.portal }).host
-        });
-      }),
+      .do(async ctx => presentPortal(ctx.portal)),
 
     create: instanceGroup
       .post(instancePath('portals', 'portals.create'), {
@@ -140,10 +159,7 @@ export let portalController = Controller.create(
           }
         });
 
-        return portalPresenter.present({
-          portal,
-          portalUrl: portalService.getPortalHost({ portal }).host
-        });
+        return presentPortal(portal);
       }),
 
     update: portalGroup
@@ -193,10 +209,7 @@ export let portalController = Controller.create(
           }
         });
 
-        return portalPresenter.present({
-          portal,
-          portalUrl: portalService.getPortalHost({ portal }).host
-        });
+        return presentPortal(portal);
       }),
 
     delete: portalGroup
@@ -212,10 +225,7 @@ export let portalController = Controller.create(
           portal: ctx.portal
         });
 
-        return portalPresenter.present({
-          portal,
-          portalUrl: portalService.getPortalHost({ portal }).host
-        });
+        return presentPortal(portal);
       })
   }
 );

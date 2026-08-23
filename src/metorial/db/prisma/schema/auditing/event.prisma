@@ -1,0 +1,33 @@
+model Event {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  resource String
+  action   String
+
+  ua String?
+  ip String?
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+
+  actorType     String?
+  actorId       String?
+  actorMetadata Json?
+
+  recordedAt DateTime @default(now())
+
+  auditLogs AuditLog[]
+
+  @@index([actorType, actorId, recordedAt])
+  @@index([resource, action, recordedAt])
+  @@index([organizationOid, recordedAt])
+  @@index([instanceOid, recordedAt])
+  @@index([organizationActorOid, recordedAt])
+}

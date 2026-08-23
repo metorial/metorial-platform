@@ -64,18 +64,16 @@ let CellInner = styled.div`
   align-items: center;
 `;
 
-export let Table = ({
-  padding,
-  headers,
-  data
-}: {
+export type TableProps = {
   headers: string[];
   padding?: { sides: string };
   data: (
     | React.ReactNode[]
     | { data: React.ReactNode[]; href?: string; onClick?: () => void }
   )[];
-}) => {
+};
+
+export let Table = ({ padding, headers, data }: TableProps) => {
   let normalizedData = useMemo(
     () => (data ?? []).map(row => (Array.isArray(row) ? { data: row } : row)),
     [data]

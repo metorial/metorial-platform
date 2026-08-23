@@ -5,7 +5,7 @@ import type {
   DashboardInstancePortalsConsumerProfilesListQuery,
   DashboardInstancePortalsAccessUpdateBody
 } from '@metorial/dashboard-sdk';
-import { createLoader } from '@metorial/data-hooks';
+import { createLoader, useMutation } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -161,3 +161,35 @@ export let usePortalConsumerAccess = (
     deleteMutator: access.useMutator('delete')
   };
 };
+
+let refetchPortalConsumerAccess = () => {
+  allPortalConsumerAccessLoader.refetchAll();
+  portalConsumerAccessLoader.refetchAll();
+};
+
+export let useCreatePortalConsumerAccessQuiet = () =>
+  useMutation(
+    (
+      i: DashboardInstancePortalsAccessCreateBody & {
+        instanceId: string;
+        portalId: string;
+      }
+    ) => withAuth(sdk => sdk.portals.consumerAccess.create(i.instanceId, i.portalId, i)),
+    {
+      onSuccess: refetchPortalConsumerAccess,
+      disableToast: true
+    }
+  );
+
+export let useDeletePortalConsumerAccess = () =>
+  useMutation(
+    (i: { instanceId: string; portalId: string; consumerAccessId: string }) =>
+      withAuth(sdk =>
+        sdk.portals.consumerAccess.delete(i.instanceId, i.portalId, i.consumerAccessId)
+      ),
+    {
+      onSuccess: refetchPortalConsumerAccess,
+      disableToast: true
+    }
+  );
+

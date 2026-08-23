@@ -1,0 +1,109 @@
+enum SessionConnectionStatus {
+  active
+  archived
+  deleted
+}
+
+enum SessionConnectionState {
+  connected
+  disconnected
+}
+
+enum SessionConnectionInitState {
+  pending
+  completed
+}
+
+enum SessionConnectionMcpConnectionTransport {
+  none
+  sse
+  streamable_http
+}
+
+enum SessionConnectionTransport {
+  mcp
+  tool_call
+  metorial_protocol
+  system
+}
+
+model SessionConnection {
+  oid BigInt @id
+  id  String @unique
+
+  token String @unique
+
+  isEphemeral Boolean
+
+  status    SessionConnectionStatus
+  transport SessionConnectionTransport
+
+  isParentDeleted Boolean @default(false)
+  hasErrors       Boolean @default(false)
+  hasWarnings     Boolean @default(false)
+
+  state                SessionConnectionState
+  initState            SessionConnectionInitState
+  isManuallyDisabled   Boolean
+  isReplaced           Boolean
+  isForManualToolCalls Boolean                    @default(false)
+
+  totalProductiveClientMessageCount   Int @default(0)
+  totalProductiveProviderMessageCount Int @default(0)
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
+  participantOid BigInt?
+  participant    SessionParticipant? @relation(fields: [participantOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  /// [SessionConnectionMcpData]
+  mcpData            Json
+  mcpTransport       SessionConnectionMcpConnectionTransport
+  mcpProtocolVersion String?
+
+  privateMetadata Json?
+
+  createdAt DateTime @default(now())
+
+  // When a connection is expired and a client tries to connect to it, 
+  // a new connection is created and the token is passed to the new one
+  expiresAt DateTime
+
+  lastPingAt     DateTime?
+  lastMessageAt  DateTime?
+  lastActiveAt   DateTime?
+  disconnectedAt DateTime?
+
+  sessionEvents    SessionEvent[]
+  providerRuns     ProviderRun[]
+  sessionMessages  SessionMessage[]
+  sessionErrors    SessionError[]
+  sessionWarnings  SessionWarning[]
+  protoGuardRuns   ProtoGuardRun[]
+  protoGuardAlerts ProtoGuardAlert[]
+
+  providerSpecifications SessionConnectionProviderSpecification[]
+
+  @@index([createdAt])
+  @@index([lastActiveAt])
+  @@index([state])
+  @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

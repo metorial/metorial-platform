@@ -1,14 +1,17 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceNetworkPolicyService } from '@metorial/module-subspace';
+import {
+  networkPolicyService,
+  type NetworkPolicyRuleInput
+} from '@metorial-subspace/module-enclave';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { networkInstanceGroup } from './_middleware';
-import { networkPolicyPresenter, networkPolicyRulePresenter } from '../../../presenters';
+import { networkPolicyPresenter, networkPolicyRulePresenter } from '@metorial/presenters';
 import { networkPolicyRuleValidator } from './_validators';
 
 let networkReadScopes = ['instance.network:read'] as const;
@@ -24,7 +27,7 @@ export let networkPolicyGroup = networkInstanceGroup.use(async ctx => {
     );
   }
 
-  let networkPolicy = await subspaceNetworkPolicyService.get({
+  let networkPolicy = await networkPolicyService.getNetworkPolicyById({
     instance: ctx.instance,
     networkPolicyId: ctx.params.networkPolicyId,
     allowDeleted: true
@@ -65,7 +68,7 @@ export let networkPolicyController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceNetworkPolicyService.list({
+        let paginator = await networkPolicyService.listNetworkPolicies({
           instance: ctx.instance,
           allowDeleted: true,
           ids: normalizeArrayParam(ctx.query.id),
@@ -110,11 +113,13 @@ export let networkPolicyController = Controller.create(
       )
       .output(networkPolicyPresenter)
       .do(async ctx => {
-        let networkPolicy = await subspaceNetworkPolicyService.create({
+        let networkPolicy = await networkPolicyService.createNetworkPolicy({
           instance: ctx.instance,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          rules: ctx.body.rules
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            rules: ctx.body.rules as NetworkPolicyRuleInput[] | undefined
+          }
         });
 
         return networkPolicyPresenter.present({ networkPolicy });
@@ -136,12 +141,14 @@ export let networkPolicyController = Controller.create(
       )
       .output(networkPolicyPresenter)
       .do(async ctx => {
-        let networkPolicy = await subspaceNetworkPolicyService.update({
+        let networkPolicy = await networkPolicyService.updateNetworkPolicy({
           instance: ctx.instance,
-          networkPolicyId: ctx.networkPolicy.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          rules: ctx.body.rules
+          networkPolicy: ctx.networkPolicy,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            rules: ctx.body.rules as NetworkPolicyRuleInput[] | undefined
+          }
         });
 
         return networkPolicyPresenter.present({ networkPolicy });
@@ -155,12 +162,12 @@ export let networkPolicyController = Controller.create(
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .output(networkPolicyPresenter)
       .do(async ctx => {
-        await subspaceNetworkPolicyService.delete({
+        await networkPolicyService.archiveNetworkPolicy({
           instance: ctx.instance,
-          networkPolicyId: ctx.networkPolicy.id
+          networkPolicy: ctx.networkPolicy
         });
 
-        let networkPolicy = await subspaceNetworkPolicyService.get({
+        let networkPolicy = await networkPolicyService.getNetworkPolicyById({
           instance: ctx.instance,
           networkPolicyId: ctx.networkPolicy.id,
           allowDeleted: true
@@ -184,10 +191,15 @@ export let networkPolicyController = Controller.create(
       .body('default', networkPolicyRuleValidator)
       .output(networkPolicyRulePresenter)
       .do(async ctx => {
-        let result = await subspaceNetworkPolicyService.addRule({
+        let result = await networkPolicyService.addNetworkPolicyRule({
           instance: ctx.instance,
-          networkPolicyId: ctx.networkPolicy.id,
-          ...ctx.body
+          networkPolicy: ctx.networkPolicy,
+          input: {
+            rule: {
+              ...ctx.body,
+              ports: ctx.body.ports as NetworkPolicyRuleInput['ports']
+            }
+          }
         });
 
         return networkPolicyRulePresenter.present({ rule: result.rule });
@@ -208,11 +220,16 @@ export let networkPolicyController = Controller.create(
       .body('default', networkPolicyRuleValidator)
       .output(networkPolicyRulePresenter)
       .do(async ctx => {
-        let result = await subspaceNetworkPolicyService.updateRule({
+        let result = await networkPolicyService.updateNetworkPolicyRule({
           instance: ctx.instance,
-          networkPolicyId: ctx.networkPolicy.id,
+          networkPolicy: ctx.networkPolicy,
           ruleId: ctx.params.ruleId,
-          ...ctx.body
+          input: {
+            rule: {
+              ...ctx.body,
+              ports: ctx.body.ports as NetworkPolicyRuleInput['ports']
+            }
+          }
         });
 
         return networkPolicyRulePresenter.present({ rule: result.rule });
@@ -232,9 +249,9 @@ export let networkPolicyController = Controller.create(
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .output(networkPolicyPresenter)
       .do(async ctx => {
-        let networkPolicy = await subspaceNetworkPolicyService.removeRule({
+        let networkPolicy = await networkPolicyService.removeNetworkPolicyRule({
           instance: ctx.instance,
-          networkPolicyId: ctx.networkPolicy.id,
+          networkPolicy: ctx.networkPolicy,
           ruleId: ctx.params.ruleId
         });
 

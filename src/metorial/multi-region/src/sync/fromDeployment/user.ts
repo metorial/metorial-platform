@@ -55,7 +55,11 @@ export let syncUserSingleQueueProcessor = syncUserSingleQueue.process(async data
   if (!data.force && multiRegionUser && multiRegionUser.lastEditByOid === (await cell).oid)
     return;
 
-  await upsertUser(user);
+  try {
+    await upsertUser(user);
+  } catch (err: any) {
+    if (err.code !== 'P2002') throw err;
+  }
 });
 
 Fabric.listen('user.updated:after', async event => {

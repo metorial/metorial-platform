@@ -1,17 +1,16 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { ConsumerProfile, Skill } from '@metorial/db';
-import { consumerSkillService } from '@metorial/module-consumer';
-import { subspaceSkillItemService } from '@metorial/module-subspace';
+import { skillItemService, skillService } from '@metorial/module-skill';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillItemPresenter } from '../../../presenters';
+import { skillItemPresenter } from '@metorial/presenters';
 import { skillGroup } from './skill';
 
 let createSkillItemValidator = v.union([
@@ -35,7 +34,7 @@ export let skillItemGroup = skillGroup.use(async ctx => {
     );
   }
 
-  let skillItem = await subspaceSkillItemService.get({
+  let skillItem = await skillItemService.getSkillItemById({
     instance: ctx.instance,
     skillItemId: ctx.params.skillItemId,
     allowDeleted: true
@@ -54,17 +53,21 @@ export let skillItemGroup = skillGroup.use(async ctx => {
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let skillWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
 
-let assertConsumerCanWriteSkillItems = async (ctx: {
-  consumerProfile?: ConsumerProfile;
-  skill: {
-    localSkill: Skill;
-  };
-}) => {
+let assertConsumerCanWriteSkillItems = async (
+  ctx: Parameters<typeof getInstanceCargoAccess>[0] & {
+    skill: {
+      localSkill: Parameters<typeof skillService.assertSkillWriteAccess>[0]['skill'];
+    };
+  }
+) => {
   if (!ctx.consumerProfile) return;
 
-  await consumerSkillService.assertConsumerCanWriteSkill({
+  let access = await getInstanceCargoAccess(ctx);
+  await skillService.assertSkillWriteAccess({
+    project: access.project,
+    instance: access.instance,
     skill: ctx.skill.localSkill,
-    consumerProfile: ctx.consumerProfile
+    authorization: access.authorization
   });
 };
 
@@ -107,7 +110,7 @@ export let skillItemController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSkillItemService.list({
+        let paginator = await skillItemService.listSkillItems({
           instance: ctx.instance,
           allowDeleted: true,
           skillIds: [ctx.skill.id],
@@ -150,21 +153,23 @@ export let skillItemController = Controller.create(
 
         let skillItem =
           ctx.body.type === 'integration'
-            ? await subspaceSkillItemService.create({
+            ? await skillItemService.createSkillItem({
                 instance: ctx.instance,
-                skillId: ctx.skill.id,
-                type: 'integration',
-
-                // @ts-ignore
-                integrationId: ctx.body.integration_id
+                input: {
+                  skillId: ctx.skill.id,
+                  type: 'integration',
+                  // @ts-ignore validation narrows the matching union branch
+                  integrationId: ctx.body.integration_id
+                }
               })
-            : await subspaceSkillItemService.create({
+            : await skillItemService.createSkillItem({
                 instance: ctx.instance,
-                skillId: ctx.skill.id,
-                type: 'provider',
-
-                // @ts-ignore
-                providerId: ctx.body.provider_id
+                input: {
+                  skillId: ctx.skill.id,
+                  type: 'provider',
+                  // @ts-ignore validation narrows the matching union branch
+                  providerId: ctx.body.provider_id
+                }
               });
 
         return skillItemPresenter.present({ skillItem });
@@ -182,10 +187,9 @@ export let skillItemController = Controller.create(
       .do(async ctx => {
         await assertConsumerCanWriteSkillItems(ctx);
 
-        let skillItem = await subspaceSkillItemService.delete({
+        let skillItem = await skillItemService.archiveSkillItem({
           instance: ctx.instance,
-          skillItemId: ctx.skillItem.id,
-          allowDeleted: true
+          skillItem: ctx.skillItem
         });
 
         return skillItemPresenter.present({ skillItem });

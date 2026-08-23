@@ -3,7 +3,7 @@ import { instanceService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
 import { apiGroup } from '../../middleware/apiGroup';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instanceListPresenter, instancePresenter } from '../../presenters';
+import { instanceListPresenter, instancePresenter } from '@metorial/presenters';
 
 let instancesGroup = apiGroup.use(async ctx => {
   if (ctx.auth.type == 'fine_grained') {

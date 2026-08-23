@@ -7,6 +7,7 @@ export type ManagementInstancePortalsConsumerProfilesGetOutput = ({
   email: string;
   imageUrl: string;
   consumerId: string;
+  userId: string | null;
   status: 'active' | 'invited';
   createdAt: Date;
   updatedAt: Date;
@@ -21,7 +22,6 @@ export type ManagementInstancePortalsConsumerProfilesGetOutput = ({
           name: string;
           description: string | null;
           isDefault: boolean;
-          ssoGroupIds: string[];
           createdAt: Date;
           updatedAt: Date;
         };
@@ -64,6 +64,7 @@ export let mapManagementInstancePortalsConsumerProfilesGetOutput = mtMap.union([
       email: mtMap.objectField('email', mtMap.passthrough()),
       imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
       consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
+      userId: mtMap.objectField('user_id', mtMap.passthrough()),
       status: mtMap.objectField('status', mtMap.passthrough()),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -84,10 +85,6 @@ export let mapManagementInstancePortalsConsumerProfilesGetOutput = mtMap.union([
                   mtMap.passthrough()
                 ),
                 isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-                ssoGroupIds: mtMap.objectField(
-                  'sso_group_ids',
-                  mtMap.array(mtMap.passthrough())
-                ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })

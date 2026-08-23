@@ -15,7 +15,16 @@ model Skill {
 
   status SkillStatus @default(active)
 
-  name String
+  name        String
+  slug        String? @unique
+  description String?
+  metadata    Json?
+
+  clientName        String?
+  clientDescription String?
+  clientMetadata    Json?
+  license           String?
+  compatibility     String?
 
   /// [EntityImage]
   image Json?
@@ -28,8 +37,33 @@ model Skill {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  storeOid BigInt? @unique
+  store    Store?  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  parentSkillOid BigInt?
+  parentSkill    Skill?  @relation("SkillHierarchy", fields: [parentSkillOid], references: [oid], onDelete: Cascade)
+  childSkills    Skill[] @relation("SkillHierarchy")
+
+  forkedFromSkillVersionOid BigInt?
+  forkedFromSkillVersion    SkillVersion? @relation("SkillForkBaseVersion", fields: [forkedFromSkillVersionOid], references: [oid], onDelete: SetNull)
+
+  parentSkillTemplateOid BigInt?
+  parentSkillTemplate    SkillTemplate? @relation("SkillTemplateHierarchy", fields: [parentSkillTemplateOid], references: [oid], onDelete: SetNull)
+
+  createdByResourceActorOid BigInt?
+  createdByResourceActor    ResourceActor? @relation("SkillCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: SetNull)
 
   createdByOrganizationActorOid BigInt?
   createdByOrganizationActor    OrganizationActor? @relation(fields: [createdByOrganizationActorOid], references: [oid], onDelete: SetNull)
@@ -50,8 +84,49 @@ model Skill {
   consumerAccessListings ConsumerAccessListing[]
   consumerSkills         ConsumerSkill[]
   skillGroupItems        SkillGroupItem[]
+  skillParticipants      SkillParticipant[]
+  skillVersions          SkillVersion[]
+  skillAgents            SkillAgent[]
+  skillPluginSkills      SkillPluginSkill[]
+  skillDestinationItems  SkillDestinationItem[]
+  managedSkillPlugins    ManagedSkillPlugin[]
+  skillExportRefs        SkillExportRef[]
+  sourceMergeRequests    SkillMergeRequest[]     @relation("SkillMergeRequestSource")
+  targetMergeRequests    SkillMergeRequest[]     @relation("SkillMergeRequestTarget")
+  forkSyncs              SkillForkSync[]         @relation("SkillForkSyncFork")
+  upstreamForkSyncs      SkillForkSync[]         @relation("SkillForkSyncUpstream")
+  skillImportItems       SkillImportItem[]
 
   @@index([instanceOid, status])
   @@index([instanceOid, storeId])
   @@index([createdByConsumerProfileOid])
+  @@index([forkedFromSkillVersionOid])
+  @@index([resourceTenantOid, resourceGroupOid])
+}
+
+model SkillVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  versionNumber Int
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  storeVersionOid BigInt       @unique
+  storeVersion    StoreVersion @relation(fields: [storeVersionOid], references: [oid], onDelete: Cascade)
+
+  forkedSkills                          Skill[]             @relation("SkillForkBaseVersion")
+  mergeRequestsAsBaseSourceVersion      SkillMergeRequest[] @relation("SkillMergeRequestBaseSourceVersion")
+  mergeRequestsAsBaseTargetVersion      SkillMergeRequest[] @relation("SkillMergeRequestBaseTargetVersion")
+  mergeRequestsAsRequestedSourceVersion SkillMergeRequest[] @relation("SkillMergeRequestRequestedSourceVersion")
+  mergeRequestsAsRequestedTargetVersion SkillMergeRequest[] @relation("SkillMergeRequestRequestedTargetVersion")
+  mergeRequestsAsPreMergeTargetVersion  SkillMergeRequest[] @relation("SkillMergeRequestPreMergeTargetVersion")
+  mergeRequestsAsMergedTargetVersion    SkillMergeRequest[] @relation("SkillMergeRequestMergedTargetVersion")
+  mergeRequestsAsRollbackTargetVersion  SkillMergeRequest[] @relation("SkillMergeRequestRollbackTargetVersion")
+
+  createdAt DateTime @default(now())
+
+  @@unique([skillOid, versionNumber])
+  @@index([skillOid, createdAt])
 }

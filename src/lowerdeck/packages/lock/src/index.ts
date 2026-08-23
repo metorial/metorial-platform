@@ -39,7 +39,13 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
 
   let usingLock = async <T>(
     key: string | string[],
-    fn: (controller: { passForNow: () => void }) => Promise<T>
+    fn: (controller: { passForNow: () => void }) => Promise<T>,
+    options?: {
+      durationMs?: number;
+      retryCount?: number;
+      retryDelay?: number;
+      retryJitter?: number;
+    }
   ): Promise<T> => {
     let keyArray = (Array.isArray(key) ? key : [key]).map(k => `l:${nameHash}:${k}`);
 
@@ -49,7 +55,18 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
         passingForNow = true;
       };
 
-      let result = await redlock.using(keyArray, 10_000, () => fn({ passForNow }));
+      let durationMs = options?.durationMs ?? 10_000;
+      let routine = () => fn({ passForNow });
+      let settings = options
+        ? {
+            ...(options.retryCount === undefined ? {} : { retryCount: options.retryCount }),
+            ...(options.retryDelay === undefined ? {} : { retryDelay: options.retryDelay }),
+            ...(options.retryJitter === undefined ? {} : { retryJitter: options.retryJitter })
+          }
+        : undefined;
+      let result = options
+        ? await redlock.using(keyArray, durationMs, settings!, routine)
+        : await redlock.using(keyArray, durationMs, routine);
 
       if (passingForNow) {
         await delay(100);

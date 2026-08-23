@@ -1,11 +1,11 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { assistantService } from '@metorial/module-assistant';
+import { productAssistantService } from '@metorial/module-product-assistant';
 import { requireParam } from '../../../lib/requireParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { assistantPresenter } from '../../../presenters';
+import { assistantPresenter } from '@metorial/presenters';
 
 export let assistantHandlers = {
   listAssistants: instanceGroup
@@ -22,8 +22,8 @@ export let assistantHandlers = {
     .query('default', Paginator.validate(v.object({})))
     .outputList(assistantPresenter)
     .do(async ctx => {
-      let paginator = await assistantService.list({
-        instance: ctx.instance
+      let paginator = await productAssistantService.list({
+        project: ctx.project
       });
       let list = await paginator.run(ctx.query);
 
@@ -45,8 +45,8 @@ export let assistantHandlers = {
     .use(requireConsumerTokenForPublishableKey())
     .output(assistantPresenter)
     .do(async ctx => {
-      let assistant = await assistantService.get({
-        instance: ctx.instance,
+      let assistant = await productAssistantService.get({
+        project: ctx.project,
         assistantId: requireParam(ctx.params, 'assistantId')
       });
 

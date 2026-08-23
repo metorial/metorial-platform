@@ -6,18 +6,29 @@ import {
   Layout,
   Text
 } from '@metorial-platform-systems/relay-client';
-import type { User } from '@sentry/bun';
 import { UAParser } from 'ua-parser-js';
-import type { AuthIntent } from '../../prisma/generated/client';
+import type { User } from '../../prisma/generated/client';
 import { createTemplateSender, emailIdentity, sender } from './client';
 
 export let successfulLoginVerification = createTemplateSender(
   createTemplate({
-    render: async ({ authIntent, user }: { authIntent: AuthIntent; user: User }) => {
-      let ua = authIntent.ua ? new UAParser(authIntent.ua).getResult() : undefined;
-      let geo = await ipInfo.getSafe(authIntent.ip);
+    render: async ({
+      user,
+      method,
+      ip,
+      ua: uaString,
+      createdAt
+    }: {
+      user: User;
+      method: string;
+      ip: string;
+      ua?: string | null;
+      createdAt: Date;
+    }) => {
+      let ua = uaString ? new UAParser(uaString).getResult() : undefined;
+      let geo = await ipInfo.getSafe(ip);
 
-      let localDate = new Date(authIntent.createdAt);
+      let localDate = new Date(createdAt);
 
       try {
         localDate = geo?.timezone
@@ -43,7 +54,7 @@ export let successfulLoginVerification = createTemplateSender(
                 <DataList
                   items={[
                     { label: 'Time', value: localDate.toLocaleString() },
-                    { label: 'IP Address', value: authIntent.ip },
+                    { label: 'IP Address', value: ip },
                     {
                       label: 'Browser',
                       value: ua
@@ -60,7 +71,7 @@ export let successfulLoginVerification = createTemplateSender(
                     },
                     {
                       label: 'Method',
-                      value: authIntent.type == 'email_code' ? 'Email Code' : 'Social Login'
+                      value: method
                     }
                   ]}
                 />

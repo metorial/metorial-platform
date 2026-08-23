@@ -1,0 +1,46 @@
+name = "@metorial/ares"
+group = "oss"
+
+[dev]
+prepare = ["frontend:build"]
+run = ["bun --watch ./src/server.ts"]
+
+[[dev.expose]]
+port = 52120
+
+[[dev.expose]]
+port = 52121
+
+[[dev.expose]]
+port = 52122
+
+[[dev.expose]]
+port = 52123
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
+RELAY_URL = "http://services:52110/metorial-relay"
+ARES_AUTH_URL = "http://{{HOSTNAME}}:52120"
+ARES_ADMIN_URL = "http://{{HOSTNAME}}:52121"
+ARES_SSO_URL = "http://{{HOSTNAME}}:52122"
+EMAIL_NAME = "Ares Dev"
+EMAIL_ADDRESS = "dev@metorial.com"
+SAML_AUDIENCE = "https://saml.dev.metorial.com"
+AUTH_TICKET_SECRET = "dev-secret-change-in-production"
+TURNSTILE_SITE_KEY = true
+TURNSTILE_SECRET_KEY = true
+
+[dev.db.main]
+name = "ares"
+engine = "postgres"
+env = "DATABASE_URL"
+
+[dev.db.sso]
+name = "ares-sso"
+engine = "postgres"
+env = "SSO_DATABASE_URL"

@@ -1,4 +1,4 @@
-import { markdownToYjsUpdate } from '@metorial/docs-editor-schema';
+import { markdownToYjsUpdate, replaceYjsBodyFromMarkdown } from '@metorial/docs-editor-schema';
 import type { SkillSharePanelContext } from '@metorial/scene-skills';
 import {
   DocumentParticipant,
@@ -463,6 +463,7 @@ let mapVersion = (version: StateDocumentVersion): DocumentVersion => ({
   id: version.id,
   content: version.content,
   versionNumber: version.versionNumber,
+  createdAt: version.createdAt,
   previous_version_id: version.previousVersionId ?? undefined,
   editors: version.editors.map(mapVersionEditor)
 });
@@ -636,57 +637,56 @@ let DocumentEditorInner = (p: {
     order: 'desc'
   });
   let user = useUser();
-  let canWrite = !!permissions.data?.permissions.includes('content_write');
-  let requiresEditToken = !!p.currentConsumerId && canWrite;
   let [documentEditToken, setDocumentEditToken] = useState<{
     status: 'idle' | 'loading' | 'ready' | 'error';
-    token: string | null;
+    token: Awaited<ReturnType<typeof getDocumentEditToken>> | null;
   }>({
-    status: requiresEditToken ? 'loading' : 'idle',
+    status: 'loading',
     token: null
   });
   useEffect(() => {
-    if (!requiresEditToken) {
-      setDocumentEditToken({
-        status: 'idle',
-        token: null
-      });
-      return;
-    }
-
     let cancelled = false;
+    let retryTimer: number | null = null;
+    let attempts = 0;
     setDocumentEditToken({
       status: 'loading',
       token: null
     });
 
-    void getDocumentEditToken({
-      instanceId: p.instanceId,
-      documentId: p.documentId
-    })
-      .then(token => {
+    let loadToken = async () => {
+      try {
+        let token = await getDocumentEditToken({
+          instanceId: p.instanceId,
+          documentId: p.documentId
+        });
         if (cancelled) return;
         setDocumentEditToken({
           status: 'ready',
-          token: token.token
+          token
         });
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) return;
         setDocumentEditToken({
           status: 'error',
           token: null
         });
-      });
+        attempts++;
+        retryTimer = window.setTimeout(
+          () => void loadToken(),
+          Math.min(1_000 * 2 ** (attempts - 1), 15_000)
+        );
+      }
+    };
+
+    void loadToken();
 
     return () => {
       cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
     };
-  }, [p.documentId, p.instanceId, requiresEditToken]);
+  }, [p.documentId, p.instanceId]);
   let isEditTokenReady =
-    !requiresEditToken ||
-    documentEditToken.status === 'ready' ||
-    documentEditToken.status === 'error';
+    documentEditToken.status === 'ready' || documentEditToken.status === 'error';
   let isReady = !!document.data && !!permissions.data && !!user.data && isEditTokenReady;
   let [showSkeleton, setShowSkeleton] = useState(true);
 
@@ -747,7 +747,7 @@ let DocumentEditorLoaded = (p: {
   participants: DocumentParticipant[];
   versions: StateDocumentVersion[];
   user: NonNullable<ReturnType<typeof useUser>['data']>;
-  editToken?: string | null;
+  editToken?: Awaited<ReturnType<typeof getDocumentEditToken>> | null;
   currentConsumerId?: string | null;
   onBack?: () => void;
   onSharedSkill?: () => void | Promise<void>;
@@ -807,27 +807,22 @@ let DocumentEditorLoaded = (p: {
     content: initialDocumentState.persistedContent
   });
 
-  let canWrite = p.permissions.permissions.includes('content_write');
-  let readOnly = !canWrite;
-  let requiresEditToken = !!p.currentConsumerId && canWrite;
   let refreshEditToken = useCallback(async () => {
-    if (!p.currentConsumerId || !canWrite) return p.editToken ?? null;
-
-    let refreshed = await getDocumentEditToken({
+    return await getDocumentEditToken({
       instanceId: p.instanceId,
       documentId: p.documentId
     });
-
-    return refreshed.token;
-  }, [canWrite, p.currentConsumerId, p.documentId, p.editToken, p.instanceId]);
+  }, [p.documentId, p.instanceId]);
   let collaboration = useDocumentCollaboration(p.instanceId, p.documentId, {
-    enabled: !requiresEditToken || !!p.editToken,
+    enabled: !!p.editToken,
     editToken: p.editToken ?? null,
     refreshEditToken,
     initialMarkdown: initialDocumentState.body,
     getInitialMarkdown: getInitialMarkdownForCollaboration,
     seedInitialBody: seedYjsBodyFromMarkdown
   });
+  let canWrite = collaboration.canWrite;
+  let readOnly = !canWrite;
   let collaborationMeta = useMemo(
     () => collaboration.ydoc.getMap<string>('meta'),
     [collaboration.ydoc]
@@ -998,19 +993,40 @@ let DocumentEditorLoaded = (p: {
       let text = await file.text();
       let split = splitFrontMatter(text);
       let titleSplit = splitTitleFromBody(split.body);
-      titleRef.current = titleSplit.title || file.name.replace(/\.md$/i, '');
+      let importedTitle = titleSplit.title || file.name.replace(/\.md$/i, '');
+      titleRef.current = importedTitle;
       frontMatterRef.current = split.frontMatter;
       markdownRef.current = titleSplit.body;
-      setTitle(titleSplit.title || file.name.replace(/\.md$/i, ''));
+      setTitle(importedTitle);
       setFrontMatter(split.frontMatter);
       setFrontMatterOpen(split.frontMatter.trim().length > 0);
       setMarkdown(titleSplit.body);
-      setLastUpdatedAt(new Date());
-      setEditorKey(k => k + 1);
+
+      if (collaboration.isFallback) {
+        setEditorKey(k => k + 1);
+      } else {
+        collaboration.ydoc.transact(() => {
+          collaborationMeta.set('title', importedTitle);
+          collaborationMeta.set('frontMatter', split.frontMatter);
+          replaceYjsBodyFromMarkdown({
+            ydoc: collaboration.ydoc,
+            markdown: titleSplit.body
+          });
+        });
+      }
+
+      markChanged();
       e.target.value = '';
       showToast(`Imported ${file.name}`);
     },
-    [readOnly, showToast]
+    [
+      collaboration.isFallback,
+      collaboration.ydoc,
+      collaborationMeta,
+      markChanged,
+      readOnly,
+      showToast
+    ]
   );
 
   let handleRequestLinkEdit = useCallback(() => {
@@ -1264,6 +1280,26 @@ let DocumentEditorLoaded = (p: {
   }, [p.document.content, p.document.id, p.document.title, p.document.updatedAt]);
 
   useEffect(() => {
+    if (!readOnly || !collaboration.isFallback || !collaboration.snapshot) return;
+
+    let nextDocumentState = parseStoredDocumentForEditor(collaboration.snapshot);
+    titleRef.current = collaboration.snapshot.title;
+    frontMatterRef.current = nextDocumentState.frontMatter;
+    markdownRef.current = nextDocumentState.body;
+    setTitle(collaboration.snapshot.title);
+    setFrontMatter(nextDocumentState.frontMatter);
+    setFrontMatterOpen(nextDocumentState.frontMatter.trim().length > 0);
+    setMarkdown(nextDocumentState.body);
+    setLastUpdatedAt(
+      collaboration.snapshot.updatedAt instanceof Date
+        ? collaboration.snapshot.updatedAt
+        : new Date(collaboration.snapshot.updatedAt)
+    );
+    setSaveStatus('saved');
+    setEditorKey(k => k + 1);
+  }, [collaboration.isFallback, collaboration.snapshot, readOnly]);
+
+  useEffect(() => {
     if (!editorReadyForAutosave) return;
     if (!autosaveHydratedRef.current) {
       autosaveHydratedRef.current = true;
@@ -1360,7 +1396,6 @@ let DocumentEditorLoaded = (p: {
           <Shell>
             <Header>
               <HeaderLeft>
-                {p.onBack && <BackButton onClick={p.onBack} />}
                 <TitleButton
                   title={title}
                   readOnly={readOnly}

@@ -39,6 +39,26 @@ export let userController = internalApp.controller({
       return await authUserPresenter(user);
     }),
 
+  getSyncSnapshot: internalApp
+    .handler()
+    .input(v.object({ userId: v.string() }))
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      return await userService.getSyncSnapshot({ user });
+    }),
+
+  applyProjection: internalApp
+    .handler()
+    .input(v.typedAny<any>('ares_user_projection'))
+    .do(async ({ input }) => {
+      let app = await adminService.getApp({ appId: input.appId });
+      let user = await userService.applyProjection({ app, input });
+      return await authUserPresenter({
+        ...user,
+        userEmails: await userService.listUserEmails({ user })
+      });
+    }),
+
   listIdentities: internalApp
     .handler()
     .input(

@@ -667,8 +667,25 @@ let showSkillTemplateItemPickerPanel = (p: {
 
 let AddSkillItemMenu = (p: {
   disabled?: boolean;
+  allowProviders?: boolean;
   onSelect: (kind: SkillItemPickerKind) => void;
 }) => {
+  let allowProviders = p.allowProviders ?? true;
+
+  if (!allowProviders) {
+    return (
+      <Button
+        size="2"
+        iconLeft={<RiAddLine />}
+        disabled={p.disabled}
+        variant="outline"
+        onClick={() => p.onSelect('integration')}
+      >
+        Add Integration
+      </Button>
+    );
+  }
+
   return (
     <Menu
       items={[
@@ -694,6 +711,7 @@ export let SkillLinkProvidersScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
   readOnly?: boolean;
+  allowProviders?: boolean;
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
 }) => {
@@ -754,6 +772,7 @@ export let SkillLinkProvidersScene = (p: {
 
   let openPicker = (kind: SkillItemPickerKind) => {
     if (!p.instanceId || !p.skillId) return;
+    if (kind === 'provider' && p.allowProviders === false) return;
 
     showSkillItemPickerPanel({
       kind,
@@ -813,6 +832,7 @@ export let SkillLinkProvidersScene = (p: {
               !p.readOnly ? (
                 <AddSkillItemMenu
                   disabled={!p.instanceId || !p.skillId}
+                  allowProviders={p.allowProviders}
                   onSelect={openPicker}
                 />
               ) : null

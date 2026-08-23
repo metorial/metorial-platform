@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { useSkillMarketplace, useSkillPlugin } from '@metorial/state';
-import { Button, Input, Spacer, confirm } from '@metorial/ui';
+import { Button, Callout, Input, Select, Spacer, Switch, Text, confirm } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { ResourceImageUploader } from '../components/skillImageUploader';
@@ -18,13 +18,162 @@ let PageStack = styled.div`
 let FormStack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 14px;
 `;
 
 let ActionsRow = styled.div`
   display: flex;
   justify-content: flex-end;
+  margin-top: 10px;
 `;
+
+export let SkillMarketplaceRepositoryAccessSettings = (p: {
+  instanceId: string | null | undefined;
+  skillMarketplaceId: string | null | undefined;
+  boxed?: boolean;
+  onSaveSuccess?: () => void | Promise<void>;
+}) => {
+  let marketplace = useSkillMarketplace(p.instanceId, p.skillMarketplaceId);
+  let updateMutator = marketplace.updateMutator();
+  let repositorySettings = marketplace.data;
+  let form = useForm({
+    initialValues: {
+      repositoryAccessMode: marketplace.data?.repositoryAccessMode ?? 'pull_request',
+      forceMergeOrPush: repositorySettings?.forceMergeOrPush ?? false,
+      mergeBeforeChecksPass: repositorySettings?.mergeBeforeChecksPass ?? false
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      let update = async () => {
+        let [updated] = await updateMutator.mutate({
+          repositoryAccessMode: values.repositoryAccessMode,
+          forceMergeOrPush: values.forceMergeOrPush,
+          mergeBeforeChecksPass: values.mergeBeforeChecksPass
+        });
+        if (updated) await p.onSaveSuccess?.();
+      };
+      let enablingDefaultBranch =
+        marketplace.data?.repositoryAccessMode !== 'default_branch' &&
+        values.repositoryAccessMode === 'default_branch';
+      let enablingForce = !repositorySettings?.forceMergeOrPush && values.forceMergeOrPush;
+      let enablingEarlyMerge =
+        values.repositoryAccessMode === 'pull_request' &&
+        !repositorySettings?.mergeBeforeChecksPass &&
+        values.mergeBeforeChecksPass;
+      let enabledRisks = [
+        enablingDefaultBranch ? 'push directly to default branches' : null,
+        enablingForce
+          ? values.repositoryAccessMode === 'default_branch'
+            ? 'try the strongest safe direct write'
+            : 'try to bypass failed checks or missing reviews'
+          : null,
+        enablingEarlyMerge ? 'merge before required checks pass' : null
+      ].filter((risk): risk is string => risk != null);
+
+      if (enabledRisks.length > 0) {
+        confirm({
+          title: 'Enable repository overrides?',
+          description: `Future marketplace syncs may ${enabledRisks.join(', and ')}.`,
+          confirmText: 'Enable and Save',
+          onConfirm: update
+        });
+        return;
+      }
+      await update();
+    },
+    schema: yup =>
+      yup.object({
+        repositoryAccessMode: yup
+          .mixed<'pull_request' | 'default_branch'>()
+          .oneOf(['pull_request', 'default_branch'])
+          .required(),
+        forceMergeOrPush: yup.boolean().required(),
+        mergeBeforeChecksPass: yup.boolean().required()
+      })
+  });
+
+  return renderWithLoader({ marketplace })(() => {
+    let content = (
+      <form onSubmit={form.handleSubmit}>
+        <FormStack>
+          <Select
+            label="Access Mode"
+            value={form.values.repositoryAccessMode}
+            items={[
+              { id: 'pull_request', label: 'Pull/merge request (recommended)' },
+              { id: 'default_branch', label: 'Default branch' }
+            ]}
+            onChange={value => form.setFieldValue('repositoryAccessMode', value)}
+          />
+
+          <Spacer size={5} />
+
+          <Text color="gray600" size="2">
+            {form.values.repositoryAccessMode === 'default_branch'
+              ? `Push directly to each repository's default branch. Checks and reviews are skipped, and repository rules may block the sync.`
+              : 'Create a pull/merge request and merge after required checks and reviews pass.'}
+          </Text>
+
+          <Spacer size={15} />
+
+          <Switch
+            label="Force merge or push"
+            description={
+              form.values.repositoryAccessMode === 'default_branch'
+                ? 'Try the strongest safe direct write. Branch rules may still block the update.'
+                : 'Try to bypass failed checks or missing reviews. Repository rules may still block the update.'
+            }
+            checked={form.values.forceMergeOrPush}
+            onCheckedChange={checked => form.setFieldValue('forceMergeOrPush', checked)}
+          />
+          <form.RenderError field="forceMergeOrPush" />
+
+          <Spacer size={15} />
+
+          <Switch
+            label="Merge before checks pass"
+            description={
+              form.values.repositoryAccessMode === 'default_branch'
+                ? 'Only applies to pull/merge requests.'
+                : 'Try once while checks are still running.'
+            }
+            checked={
+              form.values.repositoryAccessMode === 'pull_request' &&
+              form.values.mergeBeforeChecksPass
+            }
+            disabled={form.values.repositoryAccessMode === 'default_branch'}
+            onCheckedChange={checked => form.setFieldValue('mergeBeforeChecksPass', checked)}
+          />
+          <form.RenderError field="mergeBeforeChecksPass" />
+
+          <Spacer size={10} />
+
+          <ActionsRow>
+            <Button
+              loading={updateMutator.isLoading}
+              size="2"
+              success={updateMutator.isSuccess}
+              type="submit"
+            >
+              Save
+            </Button>
+          </ActionsRow>
+          <updateMutator.RenderError />
+        </FormStack>
+      </form>
+    );
+
+    return p.boxed === false ? (
+      content
+    ) : (
+      <Box
+        title="Repository Access"
+        description="Choose how marketplace changes are written to linked repositories."
+      >
+        {content}
+      </Box>
+    );
+  });
+};
 
 export let SkillMarketplaceSettingsScene = (p: {
   instanceId: string | null | undefined;
@@ -32,6 +181,8 @@ export let SkillMarketplaceSettingsScene = (p: {
   onDeleteSuccess?: () => void;
 }) => {
   let marketplace = useSkillMarketplace(p.instanceId, p.skillMarketplaceId);
+  let syncMarketplace = marketplace.syncMutator();
+
   let imageUpdateMutator = marketplace.updateMutator();
   let generalUpdateMutator = marketplace.updateMutator();
   let deleteMutator = marketplace.deleteMutator();
@@ -57,6 +208,28 @@ export let SkillMarketplaceSettingsScene = (p: {
 
   return renderWithLoader({ marketplace })(({ marketplace }) => (
     <PageStack>
+      {marketplace.data?.syncStatus !== 'synced' && (
+        <>
+          <Callout color="blue">
+            <span>
+              <strong>Upcoming changes:</strong> Plugins, skills, or configurations linked to
+              this marketplace have changed. Metorial is processing these changes and updating
+              the marketplace. This can take a few minutes.
+            </span>
+            {marketplace.data?.syncStatus === 'pending' && (
+              <Button
+                size="2"
+                loading={syncMarketplace.isLoading}
+                onClick={() => syncMarketplace.mutate({})}
+                style={{ marginLeft: 16 }}
+              >
+                Sync Now
+              </Button>
+            )}
+          </Callout>
+        </>
+      )}
+
       {p.instanceId && (
         <Box
           title="Marketplace Image"
@@ -83,6 +256,8 @@ export let SkillMarketplaceSettingsScene = (p: {
             <Input label="Name" {...form.getFieldProps('name')} />
             <form.RenderError field="name" />
 
+            <Spacer size={10} />
+
             <Input
               as="textarea"
               label="Description"
@@ -90,6 +265,8 @@ export let SkillMarketplaceSettingsScene = (p: {
               {...form.getFieldProps('description')}
             />
             <form.RenderError field="description" />
+
+            <Spacer size={10} />
 
             <ActionsRow>
               <Button
@@ -106,6 +283,11 @@ export let SkillMarketplaceSettingsScene = (p: {
           </FormStack>
         </form>
       </Box>
+
+      <SkillMarketplaceRepositoryAccessSettings
+        instanceId={p.instanceId}
+        skillMarketplaceId={p.skillMarketplaceId}
+      />
 
       <SkillMarketplaceRepositoriesSettingsBox
         instanceId={p.instanceId}

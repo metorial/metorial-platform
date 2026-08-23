@@ -1,6 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type {
-  SlateTriggerReceiverTriggerSource,
+  SlatesWebhookHttp,
+  SlatesWebhookHttpResponse,
+  SlatesWebhookRequestMatcher
+} from '@slates/proto';
+import { SlateTriggerReceiverTriggerSource } from '../../prisma/generated/client';
+import type {
   Slate,
   SlateAction,
   SlateAuthConfig,
@@ -23,7 +28,14 @@ export type TriggerInvocationSpec =
       type: typeof SlateTriggerReceiverTriggerSource.webhook;
       autoRegistration: boolean;
       autoUnregistration: boolean;
+      http?: WebhookHttpCapability;
     };
+
+export type WebhookHttpCapability = SlatesWebhookHttp;
+export type WebhookHttpMethod = NonNullable<SlatesWebhookHttp['methods']>[number];
+export type WebhookRequestMatcher = SlatesWebhookRequestMatcher;
+
+export type WebhookHttpResponse = SlatesWebhookHttpResponse;
 
 export type TriggerActionSpec = {
   type: 'action.trigger';
@@ -77,6 +89,16 @@ export const getTriggerSpec = (action: SlateAction): TriggerActionSpec => {
   }
 
   return spec;
+};
+
+export const webhookTriggerAllowsMethod = (action: SlateAction, requestMethod: string) => {
+  let spec = getTriggerSpec(action);
+  if (spec.invocation.type !== SlateTriggerReceiverTriggerSource.webhook) return false;
+
+  let method = requestMethod.toUpperCase();
+  return (spec.invocation.http?.methods ?? ['POST']).some(
+    allowedMethod => allowedMethod === method
+  );
 };
 
 export const buildInvocationAuth = (auth: {

@@ -1,4 +1,5 @@
-import { v } from '@lowerdeck/validation';
+import { v, type ValidationTypeValue } from '@lowerdeck/validation';
+import { normalizeToolFilters as normalizeProviderToolFilters } from '@metorial-subspace/module-provider-internal';
 
 export let toolFilterValidator = v.union([
   v.object({
@@ -30,3 +31,7 @@ export let toolFilterValidator = v.union([
 export let toolFiltersValidator = v.nullable(
   v.optional(v.union([toolFilterValidator, v.array(toolFilterValidator)]))
 );
+
+export let normalizeToolFilters = (
+  toolFilters: ValidationTypeValue<typeof toolFiltersValidator>
+): PrismaJson.ToolFilter => normalizeProviderToolFilters(toolFilters);

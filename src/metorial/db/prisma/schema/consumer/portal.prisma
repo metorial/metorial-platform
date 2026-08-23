@@ -17,6 +17,8 @@ model Portal {
   /// [PortalAllowedRedirectUrlFilters]
   allowedRedirectUrlFilters Json?
 
+  isDefaultPortal Boolean @default(false)
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -28,10 +30,13 @@ model Portal {
 
   workspace Workspace?
 
+  portalSpecificNamespaceOid BigInt?
+  portalSpecificNamespace    Namespace? @relation("PortalSpecificNamespace", fields: [portalSpecificNamespaceOid], references: [oid], onDelete: SetNull)
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
   deletedAt  DateTime?
 
-  sites Site[]
+  namespaceProperties NamespaceProperty[]
 }

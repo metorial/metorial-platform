@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderRunService } from '@metorial/module-subspace';
+import { providerRunLogsService, providerRunService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerRunLogsPresenter, subspaceProviderRunPresenter } from '../../../presenters';
+import { providerRunLogsPresenter, subspaceProviderRunPresenter } from '@metorial/presenters';
 
 let providerRunGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerRunId) {
@@ -19,7 +19,7 @@ let providerRunGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let providerRun = await subspaceProviderRunService.get({
+  let providerRun = await providerRunService.getProviderRunById({
     instance: ctx.instance,
     providerRunId: ctx.params.providerRunId
   });
@@ -76,7 +76,7 @@ export let providerRunController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderRunService.list({
+        let paginator = await providerRunService.listProviderRuns({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -121,9 +121,14 @@ export let providerRunController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(providerRunLogsPresenter)
       .do(async ctx => {
-        let logs = await subspaceProviderRunService.getLogs({
+        let providerRun = await providerRunService.getProviderRunById({
           instance: ctx.instance,
           providerRunId: ctx.params.providerRunId
+        });
+        let logs = await providerRunLogsService.getProviderRunLogs({
+          instance: ctx.instance,
+          providerRun,
+          inputs: {}
         });
         return providerRunLogsPresenter.present({ logs });
       })

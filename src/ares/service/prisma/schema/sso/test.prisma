@@ -1,0 +1,35 @@
+enum SsoTestStatus {
+  pending
+  completed
+}
+
+model SsoTest {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoTestStatus @default(pending)
+
+  // Keep the public auth ID as an audit value after the temporary auth row is deleted.
+  authId  String   @unique
+  authOid BigInt?  @unique
+  auth    SsoAuth? @relation(fields: [authOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  email     String?
+  firstName String?
+  lastName  String?
+  uid       String?
+  sub       String?
+  groups    String[]
+  roles     String[]
+  raw       Json?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+}

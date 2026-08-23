@@ -1,0 +1,62 @@
+enum SessionEventType {
+  session_created
+  session_started
+  provider_run_started
+  provider_run_stopped
+  message_created
+  message_processed
+  connection_created
+  connection_connected
+  connection_disconnected
+  connection_disabled
+  error_occurred
+  warning_occurred
+}
+
+model SessionEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type            SessionEventType
+  isParentDeleted Boolean          @default(false)
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
+  providerRunOid BigInt?
+  providerRun    ProviderRun? @relation(fields: [providerRunOid], references: [oid])
+
+  messageOid BigInt?
+  message    SessionMessage? @relation(fields: [messageOid], references: [oid])
+
+  connectionOid BigInt?
+  connection    SessionConnection? @relation(fields: [connectionOid], references: [oid])
+
+  errorOid BigInt?
+  error    SessionError? @relation(fields: [errorOid], references: [oid])
+
+  warningOid BigInt?
+  warning    SessionWarning? @relation(fields: [warningOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

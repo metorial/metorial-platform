@@ -2,10 +2,7 @@ import { introspectType, ValidationType } from '@lowerdeck/validation';
 
 export interface PresenterContext {
   // instance: Instance;
-  apiVersion:
-    | 'mt_2026_01_01_magnetar'
-    | 'mt_2025_01_01_dashboard'
-    | 'mt_2026_04_01_consumer';
+  apiVersion: 'mt_2026_01_01_magnetar' | 'mt_2025_01_01_dashboard' | 'mt_2026_04_01_consumer';
   accessType:
     | 'instance_secret'
     | 'instance_publishable'
@@ -100,9 +97,6 @@ export class Presenter<Type extends PresentableType<any, any>, Output extends {}
         //   }
         // }
 
-        // @ts-ignore
-        result.__typename = this.name;
-
         return result;
       }
     };
@@ -183,15 +177,18 @@ export let declarePresenter = <Type extends PresentableType<any, any>>(
   present:
     (input: GetTypeOfPresentable<Type>) =>
     (context: PresenterContext): PresenterResult =>
-      (
-        context.apiVersion == 'mt_2026_04_01_consumer'
-          ? presenters.mt_2026_04_01_consumer ?? presenters.mt_2026_01_01_magnetar
-          : presenters[context.apiVersion]
+      (context.apiVersion == 'mt_2026_04_01_consumer'
+        ? (presenters.mt_2026_04_01_consumer ?? presenters.mt_2026_01_01_magnetar)
+        : presenters[context.apiVersion]
       ).present(input, context),
   introspect: ({ apiVersion }: { apiVersion: string }) =>
     (
       (apiVersion == 'mt_2026_04_01_consumer'
-        ? presenters.mt_2026_04_01_consumer ?? presenters.mt_2026_01_01_magnetar
+        ? (presenters.mt_2026_04_01_consumer ?? presenters.mt_2026_01_01_magnetar)
         : (presenters as any)[apiVersion]) as Presenter<Type, any>
     ).introspect()
 });
+
+export type DeclaredPresenter<Type extends PresentableType<any, any>> = ReturnType<
+  typeof declarePresenter<Type>
+>;

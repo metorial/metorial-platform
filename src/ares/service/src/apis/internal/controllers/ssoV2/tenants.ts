@@ -1,11 +1,21 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { env } from '../../../../env';
+import { getInitialSsoTenantEnrollment } from '../../../../lib/accountPolicy';
 import { adminService } from '../../../../services/admin';
+import { ssoGroupRoleService } from '../../../../services/sso/groupRole';
 import { ssoSetupService } from '../../../../services/sso/setup';
 import { ssoTenantService } from '../../../../services/sso/tenant';
 import { internalApp } from '../../_app';
-import { ssoTenantPresenter } from '../../presenters';
+import {
+  ssoCatalogConnectionGroupPresenter,
+  ssoCatalogConnectionRolePresenter,
+  ssoCatalogDirectoryGroupPresenter,
+  ssoCatalogDirectoryRolePresenter,
+  ssoCatalogGroupPresenter,
+  ssoCatalogRolePresenter,
+  ssoTenantPresenter
+} from '../../presenters';
 import { tenantApp } from './_middleware';
 
 export let ssoTenantsController = internalApp.controller({
@@ -31,6 +41,7 @@ export let ssoTenantsController = internalApp.controller({
       v.object({
         appId: v.string(),
         name: v.string(),
+        enrollment: v.enumOf(['app', 'account']),
         externalId: v.optional(v.string()),
         hideInUI: v.optional(v.boolean()),
         metadata: v.optional(v.record(v.any()))
@@ -44,7 +55,8 @@ export let ssoTenantsController = internalApp.controller({
           name: input.name,
           externalId: input.externalId,
           hideInUI: input.hideInUI,
-          metadata: input.metadata
+          metadata: input.metadata,
+          enrollment: getInitialSsoTenantEnrollment(input.enrollment)
         }
       });
       return ssoTenantPresenter(tenant);
@@ -83,6 +95,29 @@ export let ssoTenantsController = internalApp.controller({
         }
       });
       return ssoTenantPresenter(updated);
+    }),
+
+  getSyncSnapshot: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string()
+      })
+    )
+    .do(async ({ tenant }) => {
+      let catalog = await ssoGroupRoleService.getTenantCatalog({ tenant });
+
+      return {
+        object: 'ares#ssoTenantSyncSnapshot' as const,
+        revision: tenant.syncRevision.toString(),
+        tenant: { id: tenant.id, appId: tenant.app.id },
+        groups: catalog.groups.map(ssoCatalogGroupPresenter),
+        roles: catalog.roles.map(ssoCatalogRolePresenter),
+        connectionGroups: catalog.connectionGroups.map(ssoCatalogConnectionGroupPresenter),
+        connectionRoles: catalog.connectionRoles.map(ssoCatalogConnectionRolePresenter),
+        directoryGroups: catalog.directoryGroups.map(ssoCatalogDirectoryGroupPresenter),
+        directoryRoles: catalog.directoryRoles.map(ssoCatalogDirectoryRolePresenter)
+      };
     }),
 
   createSetup: tenantApp

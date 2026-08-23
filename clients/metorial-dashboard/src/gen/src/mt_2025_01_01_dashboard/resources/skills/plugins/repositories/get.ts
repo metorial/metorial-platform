@@ -8,7 +8,7 @@ export type SkillsPluginsRepositoriesGetOutput = {
   repository: {
     object: 'scm.repository#skill';
     id: string;
-    provider: 'github' | 'gitlab';
+    provider: 'github' | 'gitlab' | 'bitbucket';
     name: string;
     url: string;
     isPrivate: boolean;

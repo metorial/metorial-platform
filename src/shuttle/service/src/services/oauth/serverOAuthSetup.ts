@@ -1,4 +1,5 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
@@ -8,12 +9,18 @@ import type {
   Tenant
 } from '../../../prisma/generated/client';
 import { db } from '../../db';
+import { env } from '../../env';
 import { getId } from '../../id';
 import { validateWithJsonSchema } from '../../lib/jsonSchema/validateData';
 import { delegatedOauthAuthorizationService } from './delegated';
 import { remoteOauthAuthorizationService } from './remote';
 import { serverEventService } from './serverEvent';
 import { serverOAuthCredentialsService } from './serverOAuthCredentials';
+
+let consumeServerOAuthSetupLock = createLock({
+  name: 'shuttle/oauth/setup/consume',
+  redisUrl: env.service.REDIS_URL
+});
 
 let include = {
   server: true,
@@ -171,87 +178,135 @@ class serverOAuthSetupServiceImpl {
   }
 
   async consumeServerOAuthSetup(d: { serverOAuthSetupId: string }) {
-    let setup = await db.serverOAuthSetup.findFirst({
-      where: { id: d.serverOAuthSetupId },
-      include: {
-        serverInstanceConfiguration: true,
-        credentials: {
+    return await consumeServerOAuthSetupLock.usingLock([d.serverOAuthSetupId], async () => {
+      // Force this read onto the primary. A replica can still show the setup as unconsumed
+      // immediately after the first redirect and would defeat the distributed lock.
+      let setup = await db.$transaction(async db => {
+        return await db.serverOAuthSetup.findFirst({
+          where: { id: d.serverOAuthSetupId },
           include: {
-            remoteConnection: { include: { config: true } },
-            delegatedConnection: { include: { config: true } }
+            serverInstanceConfiguration: true,
+            remoteOAuthConnectionSetup: {
+              include: {
+                tenant: true
+              }
+            },
+            delegatedOAuthConnectionSetup: {
+              include: {
+                tenant: true,
+                connection: {
+                  include: { functionServer: true }
+                },
+                serverOAuthSetup: true
+              }
+            },
+            credentials: {
+              include: {
+                remoteConnection: { include: { config: true } },
+                delegatedConnection: { include: { config: true } }
+              }
+            }
           }
-        }
+        });
+      });
+      if (!setup) throw new ServiceError(notFoundError('server_oauth_setup'));
+
+      if (setup.status != 'pending') {
+        return { url: setup.redirectUri, state: null };
       }
+
+      if (setup.type == 'remote') {
+        if (!setup.credentials.remoteConnection) {
+          throw new ServiceError(badRequestError({ message: 'OAuth setup not configured' }));
+        }
+
+        if (setup.remoteOAuthConnectionSetup) {
+          if (setup.remoteOAuthConnectionSetup.status != 'pending') {
+            return { url: setup.redirectUri, state: null };
+          }
+
+          let inner = await remoteOauthAuthorizationService.resumeAuthorization({
+            connection: setup.credentials.remoteConnection,
+            setup: setup.remoteOAuthConnectionSetup,
+            serverOAuthSetup: setup
+          });
+
+          return { url: inner.redirectUrl, state: inner.setup.stateIdentifier };
+        }
+
+        let inner = await remoteOauthAuthorizationService.startAuthorization({
+          connection: setup.credentials.remoteConnection,
+          serverOAuthSetup: setup
+        });
+
+        await db.serverOAuthSetup.update({
+          where: { id: setup.id },
+          data: {
+            remoteOAuthConnectionSetupOid: inner.setup.oid
+          }
+        });
+
+        await serverEventService.recordServerOAuthSetupEvent({
+          serverOAuthSetup: setup,
+          type: 'oauth_setup_authorization_started',
+          message: 'Started OAuth authorization',
+          payload: {
+            state: inner.setup.stateIdentifier
+          }
+        });
+
+        return { url: inner.redirectUrl, state: inner.setup.stateIdentifier };
+      }
+
+      if (setup.type == 'delegated') {
+        if (!setup.credentials.delegatedConnection) {
+          throw new ServiceError(badRequestError({ message: 'OAuth setup not configured' }));
+        }
+
+        if (setup.delegatedOAuthConnectionSetup) {
+          if (setup.delegatedOAuthConnectionSetup.status != 'pending') {
+            return { url: setup.redirectUri, state: null };
+          }
+
+          let inner = await delegatedOauthAuthorizationService.resumeAuthorization({
+            setup: {
+              ...setup.delegatedOAuthConnectionSetup,
+              serverOAuthSetup: setup
+            },
+            serverInstanceConfiguration: setup.serverInstanceConfiguration
+          });
+
+          return { url: inner.redirectUrl, state: inner.setup.stateIdentifier };
+        }
+
+        let inner = await delegatedOauthAuthorizationService.startAuthorization({
+          connection: setup.credentials.delegatedConnection,
+          authConfig: setup.authConfigValue,
+          serverInstanceConfiguration: setup.serverInstanceConfiguration
+        });
+
+        await db.serverOAuthSetup.update({
+          where: { id: setup.id },
+          data: {
+            delegatedOAuthConnectionSetupOid: inner.setup.oid
+          }
+        });
+
+        await serverEventService.recordServerOAuthSetupEvent({
+          serverOAuthSetup: setup,
+          type: 'oauth_setup_authorization_started',
+          message: 'Started OAuth authorization',
+          payload: {
+            state: inner.setup.stateIdentifier
+          },
+          functionInvocationId: inner.functionInvocationId ?? null
+        });
+
+        return { url: inner.redirectUrl, state: inner.setup.stateIdentifier };
+      }
+
+      throw new ServiceError(badRequestError({ message: 'Provider does not support OAuth' }));
     });
-    if (!setup) throw new ServiceError(notFoundError('server_oauth_setup'));
-
-    if (setup.type == 'remote') {
-      if (!setup.credentials.remoteConnection) {
-        throw new ServiceError(badRequestError({ message: 'OAuth setup not configured' }));
-      }
-      if (setup.remoteOAuthConnectionSetupOid) {
-        throw new ServiceError(badRequestError({ message: 'OAuth setup already consumed' }));
-      }
-
-      let inner = await remoteOauthAuthorizationService.startAuthorization({
-        connection: setup.credentials.remoteConnection,
-        serverOAuthSetup: setup
-      });
-
-      await db.serverOAuthSetup.updateMany({
-        where: { id: setup.id },
-        data: {
-          remoteOAuthConnectionSetupOid: inner.setup.oid
-        }
-      });
-
-      await serverEventService.recordServerOAuthSetupEvent({
-        serverOAuthSetup: setup,
-        type: 'oauth_setup_authorization_started',
-        message: 'Started OAuth authorization',
-        payload: {
-          state: inner.setup.stateIdentifier
-        }
-      });
-
-      return { url: inner.redirectUrl, state: inner.setup.stateIdentifier };
-    }
-
-    if (setup.type == 'delegated') {
-      if (!setup.credentials.delegatedConnection) {
-        throw new ServiceError(badRequestError({ message: 'OAuth setup not configured' }));
-      }
-      if (setup.delegatedOAuthConnectionSetupOid) {
-        throw new ServiceError(badRequestError({ message: 'OAuth setup already consumed' }));
-      }
-
-      let inner = await delegatedOauthAuthorizationService.startAuthorization({
-        connection: setup.credentials.delegatedConnection,
-        authConfig: setup.authConfigValue,
-        serverInstanceConfiguration: setup.serverInstanceConfiguration
-      });
-
-      await db.serverOAuthSetup.updateMany({
-        where: { id: setup.id },
-        data: {
-          delegatedOAuthConnectionSetupOid: inner.setup.oid
-        }
-      });
-
-      await serverEventService.recordServerOAuthSetupEvent({
-        serverOAuthSetup: setup,
-        type: 'oauth_setup_authorization_started',
-        message: 'Started OAuth authorization',
-        payload: {
-          state: inner.setup.stateIdentifier
-        },
-        functionInvocationId: inner.functionInvocationId ?? null
-      });
-
-      return { url: inner.redirectUrl, state: inner.setup.stateIdentifier };
-    }
-
-    throw new ServiceError(badRequestError({ message: 'Provider does not support OAuth' }));
   }
 
   async getServerOAuthSetupById(d: { tenant: Tenant; serverOAuthSetupId: string }) {

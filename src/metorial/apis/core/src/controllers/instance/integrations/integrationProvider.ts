@@ -1,14 +1,17 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIntegrationProviderService } from '@metorial/module-subspace';
+import {
+  integrationProviderService,
+  integrationService
+} from '@metorial-subspace/module-integration';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { integrationProviderPresenter } from '../../../presenters';
-import { toolFiltersValidator } from '../sessions/_shared';
+import { integrationProviderPresenter } from '@metorial/presenters';
+import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 let integrationProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.integrationProviderId) {
@@ -20,7 +23,7 @@ let integrationProviderGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let integrationProvider = await subspaceIntegrationProviderService.get({
+  let integrationProvider = await integrationProviderService.getIntegrationProviderById({
     instance: ctx.instance,
     integrationProviderId: ctx.params.integrationProviderId,
     allowDeleted: true
@@ -69,7 +72,7 @@ export let integrationProviderController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIntegrationProviderService.list({
+        let paginator = await integrationProviderService.listIntegrationProviders({
           instance: ctx.instance,
           search: ctx.query.search,
           allowDeleted: true,
@@ -134,18 +137,27 @@ export let integrationProviderController = Controller.create(
       )
       .output(integrationProviderPresenter)
       .do(async ctx => {
-        let integrationProvider = await subspaceIntegrationProviderService.create({
+        let integration = await integrationService.getIntegrationById({
           instance: ctx.instance,
-          integrationId: ctx.body.integration_id,
-          providerId: ctx.body.provider_id,
-          providerDeploymentId: ctx.body.provider_deployment_id,
-          providerAuthMethodId: ctx.body.provider_auth_method_id,
-          providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
-          providerConfigId: ctx.body.provider_config_id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters
+          integrationId: ctx.body.integration_id
+        });
+        let integrationProvider = await integrationProviderService.createIntegrationProvider({
+          instance: ctx.instance,
+          integration,
+          input: {
+            providerId: ctx.body.provider_id,
+            providerDeploymentId: ctx.body.provider_deployment_id,
+            providerAuthMethodId: ctx.body.provider_auth_method_id,
+            providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
+            providerConfigId: ctx.body.provider_config_id,
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            toolFilters:
+              ctx.body.tool_filters === undefined
+                ? undefined
+                : normalizeToolFilters(ctx.body.tool_filters)
+          }
         });
 
         return integrationProviderPresenter.present({ integrationProvider });
@@ -178,18 +190,22 @@ export let integrationProviderController = Controller.create(
       )
       .output(integrationProviderPresenter)
       .do(async ctx => {
-        let integrationProvider = await subspaceIntegrationProviderService.update({
+        let integrationProvider = await integrationProviderService.updateIntegrationProvider({
           instance: ctx.instance,
-          integrationProviderId: ctx.integrationProvider.id,
-          allowDeleted: true,
-          providerDeploymentId: ctx.body.provider_deployment_id,
-          providerAuthMethodId: ctx.body.provider_auth_method_id,
-          providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
-          providerConfigId: ctx.body.provider_config_id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters
+          integrationProvider: ctx.integrationProvider,
+          input: {
+            providerDeploymentId: ctx.body.provider_deployment_id,
+            providerAuthMethodId: ctx.body.provider_auth_method_id,
+            providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
+            providerConfigId: ctx.body.provider_config_id,
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            toolFilters:
+              ctx.body.tool_filters === undefined
+                ? undefined
+                : normalizeToolFilters(ctx.body.tool_filters)
+          }
         });
 
         return integrationProviderPresenter.present({ integrationProvider });
@@ -209,10 +225,9 @@ export let integrationProviderController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(integrationProviderPresenter)
       .do(async ctx => {
-        let integrationProvider = await subspaceIntegrationProviderService.delete({
+        let integrationProvider = await integrationProviderService.archiveIntegrationProvider({
           instance: ctx.instance,
-          integrationProviderId: ctx.integrationProvider.id,
-          allowDeleted: true
+          integrationProvider: ctx.integrationProvider
         });
 
         return integrationProviderPresenter.present({ integrationProvider });

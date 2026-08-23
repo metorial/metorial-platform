@@ -22,6 +22,7 @@ model Cell {
   oauthJwks                         OAuthJwk[]
   globalLeases                      GlobalLease[]
   cellTokens                        CellToken[]
+  hyperplanes                       Hyperplane[]
   workspaces                        Workspace[]
   instances                         Instance[]
   workspaceProfiles                 WorkspaceProfile[]
@@ -43,4 +44,59 @@ model CellToken {
   expiresAt DateTime
 
   createdAt DateTime @default(now())
+}
+
+model Hyperplane {
+  oid        Int    @id @default(autoincrement())
+  identifier String @unique
+
+  cellOid Int?
+  cell    Cell? @relation(fields: [cellOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tokens HyperplaneToken[]
+}
+
+model HyperplaneToken {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  hyperplaneOid Int
+  hyperplane    Hyperplane @relation(fields: [hyperplaneOid], references: [oid])
+
+  token     String
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([hyperplaneOid, expiresAt])
+}
+
+model Horizon {
+  oid        Int    @id @default(autoincrement())
+  identifier String @unique
+
+  endpointUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tokens HorizonToken[]
+}
+
+model HorizonToken {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  horizonOid Int
+  horizon    Horizon @relation(fields: [horizonOid], references: [oid])
+
+  token     String
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([horizonOid, expiresAt])
 }

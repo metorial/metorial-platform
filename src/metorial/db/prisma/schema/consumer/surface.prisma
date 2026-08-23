@@ -7,6 +7,7 @@ enum ConsumerSurfaceStatus {
 enum ConsumerSurfaceType {
   portal
   organization_members
+  cli
 }
 
 model ConsumerSurface {
@@ -41,6 +42,9 @@ model ConsumerSurface {
 
   publishableApiKeyOid BigInt @unique
   publishableApiKey    ApiKey @relation("ConsumerSurfacePublishableApiKey", fields: [publishableApiKeyOid], references: [oid], onDelete: Cascade)
+
+  managedEveryoneGroupOid BigInt?
+  managedEveryoneGroup    ConsumerGroup? @relation("PortalManagedEveryoneGroup", fields: [managedEveryoneGroupOid], references: [oid], onDelete: SetNull)
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt

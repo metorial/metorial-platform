@@ -21,10 +21,8 @@ jobs:
     strategy:
       matrix:
         service:
-          - name: controller
-            dockerfile: ./src/subspace/apps/controller/Dockerfile
           - name: worker
-            dockerfile: ./src/subspace/apps/worker/Dockerfile
+            dockerfile: ./src/metorial/subspace/apps/worker/Dockerfile
 
     steps:
       - name: Checkout repository
@@ -41,33 +39,6 @@ jobs:
         with:
           context: .
           file: ${{ matrix.service.dockerfile }}
-          push: false
-          build-args: |
-            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
-
-  public:
-    name: 'Subspace Public'
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          token: ${{ secrets.GH_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build public Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./src/subspace/apps/public/Dockerfile
           push: false
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -98,31 +69,4 @@ jobs:
       # is needed and local == CI via the same compose-driven setup.
       - name: Run conduit integration tests
         run: bun run test:integration
-        working-directory: src/subspace/packages/conduit
-
-  test:
-    name: 'Subspace Test'
-    permissions:
-      contents: read
-      packages: read
-    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
-    secrets: inherit
-    with:
-      service_directory: src/subspace
-      compose_project_prefix: subspace-ci
-      compose_profiles: 'infra'
-      wait_services: |
-        subspace-postgres
-        subspace-redis
-        subspace-object-storage
-        subspace-forge
-        subspace-function-bay
-        subspace-signal
-        subspace-voyager
-        subspace-slates-registry
-        subspace-slates-hub
-        subspace-shuttle
-        subspace-mcp-test-server
-        subspace-controller-test-service
-      test_container: subspace-controller-test-service
-      test_command: cd /app/src/subspace/apps/controller && set -a && . ./.env.ci && set +a && bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bun run test:ci
+        working-directory: src/metorial/subspace/packages/conduit

@@ -1,0 +1,25 @@
+name = "@metorial-subspace/db"
+group = "oss"
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+INTEGRATIONS_API_URL = "http://{{HOSTNAME}}:4316"
+
+[dev.db.subspace]
+name = "subspace"
+engine = "postgres"
+env = "SUBSPACE_DATABASE_URL"
+
+[dev.db.main]
+name = "metorial-enterprise"
+engine = "postgres"
+env = "DATABASE_URL"
+
+[dev.db.federation]
+name = "metorial-enterprise-federation"
+engine = "postgres"
+env = "FEDERATION_CORE_DATABASE_URL"

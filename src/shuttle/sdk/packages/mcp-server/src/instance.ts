@@ -15,7 +15,7 @@ import {
   registerOAuthConfig,
   setOAuthConfigValue
 } from './auth';
-import { ClientOpts, getClient, handleMcpMessages } from './client';
+import { ClientOpts, handleMcpMessages, withClient } from './client';
 import {
   configs,
   getConfigSchema,
@@ -40,6 +40,7 @@ export type McpServerInstanceOpts = McpServerInstanceServer & {
 
 export class McpServerInstance {
   #server: McpServer;
+  #sessionQueue: Promise<void> = Promise.resolve();
 
   private constructor(private instance: McpServerInstanceOpts) {
     if (instance.config) registerConfig(instance.config);
@@ -56,54 +57,76 @@ export class McpServerInstance {
     return new McpServerInstance(instance);
   }
 
-  async discover() {
-    let client = await getClient(this.#server, async notification => {}, {
-      client: {
-        name: 'Metorial Discovery',
-        version: '1.0.0'
-      },
-      capabilities: {}
-    });
-
-    let info = client.getServerVersion();
-    let capabilities = client.getServerCapabilities();
-    let instructions = client.getInstructions();
-
-    return {
-      server: {
-        info,
-        capabilities,
-        instructions
-      },
-
-      configSchema: this.instance.config ? getConfigSchema(this.instance.config) : null,
-      oauth: this.instance.authConfig
-        ? {
-            status: 'enabled' as const,
-            authConfig: getOAuthConfigSchema(this.instance.authConfig),
-            hasTokenRefresh: !!getOAuthConfigImplementation(this.instance.authConfig)
-              .tokenRefreshHandler
-          }
-        : {
-            status: 'disabled' as const
-          }
-    };
+  #withSession<T>(handler: () => Promise<T>) {
+    let result = this.#sessionQueue.then(handler, handler);
+    this.#sessionQueue = result.then(
+      () => undefined,
+      () => undefined
+    );
+    return result;
   }
 
-  handleMcpMessages(opts: {
+  async discover() {
+    return this.#withSession(() =>
+      withClient(
+        this.#server,
+        async notification => {},
+        {
+          client: {
+            name: 'Metorial Discovery',
+            version: '1.0.0'
+          },
+          capabilities: {}
+        },
+        async client => {
+          let info = client.getServerVersion();
+          let capabilities = client.getServerCapabilities();
+          let instructions = client.getInstructions();
+
+          return {
+            server: {
+              info,
+              capabilities,
+              instructions
+            },
+
+            configSchema: this.instance.config ? getConfigSchema(this.instance.config) : null,
+            oauth: this.instance.authConfig
+              ? {
+                  status: 'enabled' as const,
+                  authConfig: getOAuthConfigSchema(this.instance.authConfig),
+                  hasTokenRefresh: !!getOAuthConfigImplementation(this.instance.authConfig)
+                    .tokenRefreshHandler
+                }
+              : {
+                  status: 'disabled' as const
+                }
+          };
+        }
+      )
+    );
+  }
+
+  async handleMcpMessages(opts: {
     config: any;
     authConfig: any;
     client: ClientOpts;
     message: JSONRPCMessage[];
   }) {
-    if (opts.config && this.instance.config) {
-      setConfigValue(this.instance.config, opts.config);
-    }
-    if (opts.authConfig && this.instance.authConfig) {
-      setOAuthConfigValue(this.instance.authConfig, opts.authConfig);
-    }
+    return this.#withSession(async () => {
+      if (opts.config && this.instance.config) {
+        setConfigValue(this.instance.config, opts.config);
+      }
+      if (opts.authConfig && this.instance.authConfig) {
+        setOAuthConfigValue(this.instance.authConfig, opts.authConfig);
+      }
 
-    return handleMcpMessages(this.#server, opts.client, opts.message);
+      return handleMcpMessages(this.#server, opts.client, opts.message);
+    });
+  }
+
+  async close() {
+    return this.#withSession(() => this.#server.close());
   }
 
   getOauthAuthorizationUrl(d: McpServerOAuthUrlHandlerParams<any>) {

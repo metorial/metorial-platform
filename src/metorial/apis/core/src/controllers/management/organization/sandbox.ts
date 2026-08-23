@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { sandboxPresenter } from '../../../presenters';
+import { sandboxPresenter } from '@metorial/presenters';
 
 let resolveProjectFilter = async (d: {
   organization: Parameters<typeof projectService.getManyProjectsByIds>[0]['organization'];
@@ -147,8 +147,7 @@ export let sandboxManagementController = Controller.create(
           },
           project,
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return sandboxPresenter.present({ sandbox });
@@ -190,8 +189,7 @@ export let sandboxManagementController = Controller.create(
           input: {
             name: ctx.body.name
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return sandboxPresenter.present({ sandbox });

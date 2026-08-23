@@ -1,13 +1,14 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerInviteService } from '@metorial/module-consumer';
+import { consumerInviteService } from '@metorial/module-consumer-core';
+import { portalService } from '@metorial/module-portal';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { consumerInvitePresenter } from '../../../presenters';
+import { consumerInvitePresenter } from '@metorial/presenters';
 import { portalGroup } from './portal';
 
 export let consumerInviteGroup = portalGroup.use(async ctx => {
@@ -74,8 +75,10 @@ export let portalConsumerInviteController = Controller.create(
         });
         let list = await paginator.run(ctx.query);
 
+        let portalUrl = await portalService.getPrimaryPortalUrl({ portal: ctx.portal });
+
         return Paginator.present(list, consumerInvite =>
-          consumerInvitePresenter.present({ consumerInvite })
+          consumerInvitePresenter.present({ consumerInvite, portalUrl })
         );
       }),
 
@@ -110,7 +113,8 @@ export let portalConsumerInviteController = Controller.create(
         });
 
         return consumerInvitePresenter.present({
-          consumerInvite
+          consumerInvite,
+          portalUrl: await portalService.getPrimaryPortalUrl({ portal: ctx.portal })
         });
       }),
 
@@ -130,7 +134,8 @@ export let portalConsumerInviteController = Controller.create(
       .output(consumerInvitePresenter)
       .do(async ctx => {
         return consumerInvitePresenter.present({
-          consumerInvite: ctx.consumerInvite
+          consumerInvite: ctx.consumerInvite,
+          portalUrl: await portalService.getPrimaryPortalUrl({ portal: ctx.portal })
         });
       })
   }

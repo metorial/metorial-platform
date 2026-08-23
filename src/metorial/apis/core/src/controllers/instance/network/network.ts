@@ -3,13 +3,13 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import type { Organization } from '@metorial/db';
 import { flagService } from '@metorial/module-flags';
-import { subspaceEnclaveService, subspaceNetworkService } from '@metorial/module-subspace';
+import { enclaveNetworkLogService, networkService } from '@metorial-subspace/module-enclave';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { networkLogsPresenter, networkPresenter } from '../../../presenters';
+import { networkLogsPresenter, networkPresenter } from '@metorial/presenters';
 import { networkInstanceGroup } from './_middleware';
 
 let networkReadScopes = ['instance.network:read'] as const;
@@ -29,7 +29,7 @@ export let networkGroup = networkInstanceGroup.use(async ctx => {
     );
   }
 
-  let network = await subspaceNetworkService.get({
+  let network = await networkService.getNetworkById({
     instance: ctx.instance,
     networkId: ctx.params.networkId
   });
@@ -63,7 +63,7 @@ export let networkController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceNetworkService.list({
+        let paginator = await networkService.listNetworks({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           firewallIds: normalizeArrayParam(ctx.query.firewall_id),
@@ -117,15 +117,17 @@ export let networkController = Controller.create(
         })
       )
       .do(async ctx => {
-        let logs = await subspaceEnclaveService.listNetworkLogs({
+        let logs = await enclaveNetworkLogService.listNetworkLogs({
           instance: ctx.instance,
           direction: ctx.query.direction,
           enclaveIds: normalizeArrayParam(ctx.query.enclave_id),
-          hostnames: normalizeArrayParam(ctx.query.hostname),
-          ips: normalizeArrayParam(ctx.query.ip),
-          from: ctx.query.from,
-          to: ctx.query.to,
-          intervalMinutes: ctx.query.interval_minutes
+          filters: {
+            hostnames: normalizeArrayParam(ctx.query.hostname),
+            ips: normalizeArrayParam(ctx.query.ip),
+            from: ctx.query.from,
+            to: ctx.query.to,
+            intervalMinutes: ctx.query.interval_minutes
+          }
         });
 
         return networkLogsPresenter.present({ logs });

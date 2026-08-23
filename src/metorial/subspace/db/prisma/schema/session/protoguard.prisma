@@ -1,0 +1,231 @@
+enum ProtoGuardIssueType {
+  instruction_override
+  role_hijack
+  jailbreak_persona
+  prompt_exfiltration
+  tool_call_forgery
+  format_break
+  instruction_block
+  unicode_smuggling
+  encoded_payload
+  typoglycemia
+}
+
+enum ProtoGuardSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+model ProtoGuardFilter {
+  oid BigInt @id
+  id  String @unique
+
+  key         String  @unique
+  name        String
+  description String?
+
+  issueType      ProtoGuardIssueType
+  severity       ProtoGuardSeverity
+  scoreWeight    Float
+  defaultEnabled Boolean             @default(true)
+
+  alertConfidenceThreshold Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tenantFilterSettings ProtoGuardTenantFilterSetting[]
+  alertInstances       ProtoGuardAlertInstance[]
+  monitors             Monitor[]
+
+  @@index([issueType])
+  @@index([severity])
+  @@index([defaultEnabled])
+}
+
+model ProtoGuardTenantSetting {
+  oid BigInt @id
+  id  String @unique
+
+  alertFilterCountThreshold Int
+
+  tenantOid BigInt @unique
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([projectOid])
+}
+
+model ProtoGuardTenantFilterSetting {
+  oid BigInt @id
+  id  String @unique
+
+  enabled                  Boolean
+  alertConfidenceThreshold Float?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  filterOid BigInt
+  filter    ProtoGuardFilter @relation(fields: [filterOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([tenantOid, filterOid])
+  @@index([tenantOid, enabled])
+  @@index([projectOid])
+}
+
+enum ProtoGuardRunStatus {
+  completed
+  failed
+}
+
+model ProtoGuardRun {
+  oid BigInt @id
+  id  String @unique
+
+  status ProtoGuardRunStatus
+
+  score                     Float
+  maxScore                  Float
+  confidence                Float
+  triggeredFilterCount      Int
+  matchedInstanceCount      Int
+  alertFilterCountThreshold Int
+
+  error Json?
+
+  messageOid BigInt         @unique
+  message    SessionMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt?
+  connection    SessionConnection? @relation(fields: [connectionOid], references: [oid])
+
+  providerRunOid BigInt?
+  providerRun    ProviderRun? @relation(fields: [providerRunOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  alert ProtoGuardAlert?
+
+  @@index([createdAt])
+  @@index([tenantOid, createdAt])
+  @@index([sessionOid, createdAt])
+  @@index([status])
+  @@index([confidence])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model ProtoGuardAlert {
+  oid BigInt @id
+  id  String @unique
+
+  sampleMarkdown String
+
+  issueTypes Json
+
+  runOid BigInt        @unique
+  run    ProtoGuardRun @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  messageOid BigInt
+  message    SessionMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt?
+  connection    SessionConnection? @relation(fields: [connectionOid], references: [oid])
+
+  providerRunOid BigInt?
+  providerRun    ProviderRun? @relation(fields: [providerRunOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  instances     ProtoGuardAlertInstance[]
+  monitorAlerts MonitorAlert[]
+
+  @@index([createdAt])
+  @@index([tenantOid, createdAt])
+  @@index([sessionOid, createdAt])
+  @@index([messageOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model ProtoGuardAlertInstance {
+  oid BigInt @id
+  id  String @unique
+
+  issueType ProtoGuardIssueType
+  severity  ProtoGuardSeverity
+
+  path           String
+  startOffset    Int
+  endOffset      Int
+  matchedText    String
+  sampleMarkdown String
+  description    String?
+
+  confidence          Float
+  confidenceThreshold Float
+
+  metadata Json?
+
+  alertOid BigInt
+  alert    ProtoGuardAlert @relation(fields: [alertOid], references: [oid], onDelete: Cascade)
+
+  filterOid BigInt
+  filter    ProtoGuardFilter @relation(fields: [filterOid], references: [oid], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([filterOid, issueType])
+  @@index([severity])
+}

@@ -13,13 +13,16 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
   tls: process.env.REDIS_URL?.startsWith('rediss://')
 });
 
+let started = Date.now();
+
 if (process.env.NODE_ENV === 'production') {
   Bun.serve({
     fetch: async _ => {
       try {
-        await db.emailIdentity.count();
-
-        await redis.ping();
+        if (Date.now() - started > 60_000) {
+          await db.emailIdentity.count();
+          await redis.ping();
+        }
 
         return new Response('OK');
       } catch (e) {

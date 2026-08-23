@@ -1,6 +1,7 @@
 // Original source: https://github.com/Azure/fetch-event-source/blob/main/src/fetch.ts
 // License: https://github.com/Azure/fetch-event-source/blob/main/LICENSE
 
+import { HttpResponseError } from '../../mcp/utils/connectionError';
 import { safeFetch } from '../http/fetchSsrf';
 import { type EventSourceMessage, getBytes, getLines, getMessages } from './parse';
 
@@ -45,16 +46,20 @@ export let fetchEventSource = async (
   });
 
   if (response.status >= 400) {
-    let text = await response.text();
-    let err = new Error(`Error response ${response.status} ${response.statusText}`);
-    onerror?.(err);
+    let text = await response.text().catch(() => '');
+    onerror?.(
+      new HttpResponseError(response.status, response.statusText, text.slice(0, 1000))
+    );
     return;
   }
 
   await inputOnOpen?.(response);
 
   let contentType = response.headers.get('content-type');
-  if (!contentType) return;
+  if (!contentType) {
+    onclose?.();
+    return;
+  }
 
   if (!contentType.startsWith(EventStreamContentType)) {
     if (!handleNonStreamResponses) {

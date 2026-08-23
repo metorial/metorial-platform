@@ -1,0 +1,80 @@
+enum SessionProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model SessionProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status          SessionProviderStatus
+  isEphemeral     Boolean
+  isParentDeleted Boolean               @default(false)
+
+  totalProductiveClientMessageCount   Int @default(0)
+  totalProductiveProviderMessageCount Int @default(0)
+
+  tag          String
+  nameTemplate String?
+
+  /// [ToolFilterChain]
+  toolFilter Json
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  deploymentOid BigInt
+  deployment    ProviderDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  configOid BigInt
+  config    ProviderConfig @relation(fields: [configOid], references: [oid])
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  fromTemplateOid BigInt?
+  fromTemplate    SessionTemplate? @relation(fields: [fromTemplateOid], references: [oid])
+
+  fromTemplateProviderOid BigInt?
+  fromTemplateProvider    SessionTemplateProvider? @relation(fields: [fromTemplateProviderOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  lastMessageAt DateTime?
+
+  sessionProviderInstances SessionProviderInstance[]
+  sessionMessages          SessionMessage[]
+  providerRuns             ProviderRun[]
+  toolCalls                ToolCall[]
+
+  connectionSpecifications SessionConnectionProviderSpecification[]
+
+  @@unique([sessionOid, tag])
+  @@unique([sessionOid, nameTemplate])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([isEphemeral])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

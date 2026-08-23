@@ -1,19 +1,22 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderSpecificationChangeNotificationService } from '@metorial/module-subspace';
+import { providerSpecificationChangeNotificationService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerSpecificationChangeNotificationPresenter } from '../../../presenters';
+import { providerSpecificationChangeNotificationPresenter } from '@metorial/presenters';
 import { getRequiredParam, notificationTargetValidator, stringOrArray } from './_shared';
 
 let providerSpecificationChangeNotificationGroup = instanceGroup.use(async ctx => {
-  let notification = await subspaceProviderSpecificationChangeNotificationService.get({
-    instance: ctx.instance,
-    notificationId: getRequiredParam(ctx.params, 'notificationId')
-  });
+  let notification =
+    await providerSpecificationChangeNotificationService.getProviderSpecificationChangeNotificationById(
+      {
+        instance: ctx.instance,
+        notificationId: getRequiredParam(ctx.params, 'notificationId')
+      }
+    );
 
   return { notification };
 });
@@ -55,15 +58,20 @@ export let providerSpecificationChangeNotificationController = Controller.create
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderSpecificationChangeNotificationService.list({
-          instance: ctx.instance,
-          ids: normalizeArrayParam(ctx.query.id),
-          targets: normalizeArrayParam(ctx.query.target),
-          providerIds: normalizeArrayParam(ctx.query.provider_id),
-          providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
-          providerSpecificationIds: normalizeArrayParam(ctx.query.provider_specification_id),
-          createdAt: ctx.query.created_at
-        });
+        let paginator =
+          await providerSpecificationChangeNotificationService.listProviderSpecificationChangeNotifications(
+            {
+              instance: ctx.instance,
+              ids: normalizeArrayParam(ctx.query.id),
+              targets: normalizeArrayParam(ctx.query.target),
+              providerIds: normalizeArrayParam(ctx.query.provider_id),
+              providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
+              providerSpecificationIds: normalizeArrayParam(
+                ctx.query.provider_specification_id
+              ),
+              createdAt: ctx.query.created_at
+            }
+          );
 
         return Paginator.present(await paginator.run(ctx.query), notification =>
           providerSpecificationChangeNotificationPresenter.present({ notification })

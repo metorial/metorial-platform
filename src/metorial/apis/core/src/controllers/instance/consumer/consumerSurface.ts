@@ -1,12 +1,12 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerSurfaceService } from '@metorial/module-consumer';
+import { consumerSurfaceService } from '@metorial/module-consumer-core';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { consumerSurfacePresenter } from '../../../presenters';
+import { consumerSurfacePresenter } from '@metorial/presenters';
 
 export let consumerSurfaceGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.consumerSurfaceId) {

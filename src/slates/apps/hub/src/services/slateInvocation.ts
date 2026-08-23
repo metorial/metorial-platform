@@ -257,6 +257,7 @@ class slateInvocationServiceImpl {
     headers: Record<string, string>;
     body: { encoding: 'base64'; content: string } | null;
     state: any;
+    registrationDetails?: any;
   }) {
     return await d.stack.invoke('slates/action.trigger.webhook_handle', {
       actionId: d.actionId,
@@ -264,7 +265,8 @@ class slateInvocationServiceImpl {
       method: d.method,
       headers: d.headers,
       body: d.body,
-      state: d.state
+      state: d.state,
+      registrationDetails: d.registrationDetails ?? null
     });
   }
 

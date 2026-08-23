@@ -3,9 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/metorial/metorial/services/code-bucket/gen/rpc"
+	"github.com/metorial/metorial/services/code-bucket/pkg/bitbucket"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
 	"github.com/metorial/metorial/services/code-bucket/pkg/github"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlab"
@@ -15,6 +19,82 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+var (
+	providerHTTPStatusPattern = regexp.MustCompile(`(?i)\bstatus(?: code)?[\s:=()]+(\d{3})\b`)
+	providerJSONSecretPattern = regexp.MustCompile(`(?i)("(?:authorization|private-token|access[_-]?token|refresh[_-]?token)"\s*:\s*")[^"]*(")`)
+	providerSecretPattern     = regexp.MustCompile(`(?i)(authorization|private-token|access[_-]?token|refresh[_-]?token)\s*[:=]\s*[^,\s}"']+`)
+	providerBearerPattern     = regexp.MustCompile(`(?i)bearer\s+[a-z0-9._~+/-]+=*`)
+)
+
+func providerHTTPStatusToGRPCCode(message string) codes.Code {
+	if matches := providerHTTPStatusPattern.FindStringSubmatch(message); len(matches) == 2 {
+		if httpStatus, parseErr := strconv.Atoi(matches[1]); parseErr == nil {
+			switch {
+			case httpStatus == 400 || httpStatus == 422:
+				return codes.InvalidArgument
+			case httpStatus == 401:
+				return codes.Unauthenticated
+			case httpStatus == 403 && isProtectedBranchError(message):
+				return codes.FailedPrecondition
+			case httpStatus == 403:
+				return codes.PermissionDenied
+			case httpStatus == 404:
+				return codes.NotFound
+			case httpStatus == 408 || httpStatus == 504:
+				return codes.DeadlineExceeded
+			case httpStatus == 409:
+				return codes.Aborted
+			case httpStatus == 429:
+				return codes.ResourceExhausted
+			case httpStatus >= 500:
+				return codes.Unavailable
+			}
+		}
+	}
+
+	return codes.Internal
+}
+
+func providerExportError(provider string, err error) error {
+	message := err.Error()
+	return status.Errorf(
+		providerHTTPStatusToGRPCCode(message),
+		"failed to upload to %s: %s",
+		provider,
+		sanitizeProviderError(message),
+	)
+}
+
+func providerImportError(provider string, err error) error {
+	message := err.Error()
+	return status.Errorf(
+		providerHTTPStatusToGRPCCode(message),
+		"failed to download %s repository: %s",
+		provider,
+		sanitizeProviderError(message),
+	)
+}
+
+func isProtectedBranchError(message string) bool {
+	normalized := strings.ToLower(message)
+	return strings.Contains(normalized, "protected branch") ||
+		strings.Contains(normalized, "protected ref") ||
+		strings.Contains(normalized, "not allowed to push into this branch") ||
+		strings.Contains(normalized, "branch restriction") ||
+		strings.Contains(normalized, "pre-receive hook declined")
+}
+
+func sanitizeProviderError(message string) string {
+	const maxLength = 1000
+	message = providerJSONSecretPattern.ReplaceAllString(message, `$1[redacted]$2`)
+	message = providerSecretPattern.ReplaceAllString(message, `$1=[redacted]`)
+	message = providerBearerPattern.ReplaceAllString(message, "Bearer [redacted]")
+	if len(message) > maxLength {
+		return message[:maxLength] + "…"
+	}
+	return message
+}
 
 type RcpService struct {
 	rpc.UnimplementedCodeBucketServer
@@ -42,7 +122,7 @@ func (rs *RcpService) CloneBucket(ctx context.Context, req *rpc.CloneBucketReque
 func (rs *RcpService) CreateBucketFromGithub(ctx context.Context, req *rpc.CreateBucketFromGithubRequest) (*rpc.CreateBucketResponse, error) {
 	iter, err := github.DownloadRepo(req.Owner, req.Repo, req.Path, req.Ref, req.Token)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to download GitHub repository: %v", err)
+		return nil, providerImportError("GitHub", err)
 	}
 	defer iter.Close()
 
@@ -234,7 +314,7 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 			return nil
 		})
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to upload to GitHub: %v", err)
+		return nil, providerExportError("GitHub", err)
 	}
 
 	return &rpc.ExportBucketToGithubResponse{}, nil
@@ -243,7 +323,7 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 func (rs *RcpService) CreateBucketFromGitlab(ctx context.Context, req *rpc.CreateBucketFromGitlabRequest) (*rpc.CreateBucketResponse, error) {
 	iter, err := gitlab.DownloadRepo(req.ProjectId, req.Path, req.Ref, req.Token, req.GitlabApiUrl)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to download GitLab repository: %v", err)
+		return nil, providerImportError("GitLab", err)
 	}
 	defer iter.Close()
 
@@ -268,10 +348,129 @@ func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportB
 			return nil
 		})
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to upload to GitLab: %v", err)
+		return nil, providerExportError("GitLab", err)
 	}
 
 	return &rpc.ExportBucketToGitlabResponse{}, nil
+}
+
+func (rs *RcpService) CreateBucketFromBitbucketCloud(ctx context.Context, req *rpc.CreateBucketFromBitbucketCloudRequest) (*rpc.CreateBucketResponse, error) {
+	iter, cleanup, err := bitbucket.PrepareCloudRepo(
+		ctx,
+		req.Workspace,
+		req.Repo,
+		req.Path,
+		req.Ref,
+		req.Token,
+		req.BitbucketWebUrl,
+	)
+	if err != nil {
+		return nil, providerImportError("Bitbucket Cloud", err)
+	}
+	defer cleanup()
+
+	if err := rs.clearBucket(ctx, req.NewBucketId); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to clear Bitbucket Cloud bucket: %v", err)
+	}
+	if err := iter(func(file bitbucket.FileToUpload) error {
+		return rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, file.Content, "application/octet-stream")
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to import Bitbucket Cloud repository: %v", err)
+	}
+	return &rpc.CreateBucketResponse{}, nil
+}
+
+func (rs *RcpService) ExportBucketToBitbucketCloud(ctx context.Context, req *rpc.ExportBucketToBitbucketCloudRequest) (*rpc.ExportBucketToBitbucketResponse, error) {
+	err := bitbucket.UploadToCloudRepo(
+		req.Workspace,
+		req.Repo,
+		req.Path,
+		req.Branch,
+		req.CommitMessage,
+		req.Token,
+		req.BitbucketApiUrl,
+		req.BitbucketWebUrl,
+		func(yield func(bitbucket.FileToUpload) error) error {
+			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
+				for _, file := range batch {
+					if err := yield(bitbucket.FileToUpload{Path: file.Info.Path, Content: file.Content}); err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+		},
+	)
+	if err != nil {
+		return nil, providerExportError("Bitbucket Cloud", err)
+	}
+	return &rpc.ExportBucketToBitbucketResponse{}, nil
+}
+
+func (rs *RcpService) CreateBucketFromBitbucketDataCenter(ctx context.Context, req *rpc.CreateBucketFromBitbucketDataCenterRequest) (*rpc.CreateBucketResponse, error) {
+	iter, cleanup, err := bitbucket.PrepareDataCenterRepo(
+		ctx,
+		req.CloneUrl,
+		req.Path,
+		req.Ref,
+		req.Username,
+		req.Token,
+	)
+	if err != nil {
+		return nil, providerImportError("Bitbucket Data Center", err)
+	}
+	defer cleanup()
+	if err := rs.clearBucket(ctx, req.NewBucketId); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to clear Bitbucket Data Center bucket: %v", err)
+	}
+	if err := iter(func(file bitbucket.FileToUpload) error {
+		return rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, file.Content, "application/octet-stream")
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to import Bitbucket Data Center repository: %v", err)
+	}
+	return &rpc.CreateBucketResponse{}, nil
+}
+
+func (rs *RcpService) ExportBucketToBitbucketDataCenter(ctx context.Context, req *rpc.ExportBucketToBitbucketDataCenterRequest) (*rpc.ExportBucketToBitbucketResponse, error) {
+	err := bitbucket.UploadToDataCenterRepo(
+		ctx,
+		req.CloneUrl,
+		req.Path,
+		req.Branch,
+		req.CommitMessage,
+		req.Username,
+		req.Token,
+		func(yield func(bitbucket.FileToUpload) error) error {
+			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
+				for _, file := range batch {
+					if err := yield(bitbucket.FileToUpload{Path: file.Info.Path, Content: file.Content}); err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+		},
+	)
+	if err != nil {
+		return nil, providerExportError("Bitbucket Data Center", err)
+	}
+	return &rpc.ExportBucketToBitbucketResponse{}, nil
+}
+
+func (rs *RcpService) clearBucket(ctx context.Context, bucketID string) error {
+	paths := make([]string, 0)
+	if err := rs.fsm.WalkBucketFiles(ctx, bucketID, "", func(file fs.FileInfo) error {
+		paths = append(paths, file.Path)
+		return nil
+	}); err != nil {
+		return err
+	}
+	for _, filePath := range paths {
+		if err := rs.fsm.DeleteBucketFile(ctx, bucketID, filePath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (rs *RcpService) SetBucketFiles(ctx context.Context, req *rpc.SetBucketFilesRequest) (*rpc.SetBucketFilesResponse, error) {

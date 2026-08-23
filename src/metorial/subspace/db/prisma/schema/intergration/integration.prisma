@@ -1,0 +1,193 @@
+enum IntegrationStatus {
+  active
+  archived
+  deleted
+}
+
+model Integration {
+  oid BigInt @id
+  id  String @unique
+
+  status     IntegrationStatus
+  archivedAt DateTime?
+
+  isMagicMcpBacking Boolean @default(false)
+
+  slug            String  @unique
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  canAttachCustomToolFilters    Boolean
+  canAttachCustomProviderConfig Boolean
+  canOverrideToolFilters        Boolean
+
+  useIntegrationNameForSessionProviderNameTemplatesOverride Boolean?
+
+  currentVersionIndex Int
+
+  currentVersionOid BigInt?
+  currentVersion    IntegrationVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providers                         IntegrationProvider[]
+  versions                          IntegrationVersion[]
+  integrationInstances              IntegrationInstance[]
+  integrationSetupSessions          IntegrationSetupSession[]
+  integrationInstanceProviders      IntegrationInstanceProvider[]
+  integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
+  providerTemplateBacking           ProviderTemplateBacking?
+  ownerMagicMcpServerBackings       MagicMcpServerBacking[]            @relation("MagicMcpServerOwnerIntegration")
+  magicMcpServerBacking             MagicMcpServerBacking?             @relation("MagicMcpServerBackingIntegration")
+  skillIntegrations                 SkillIntegration[]
+  skillTemplateItems                SkillTemplateItem[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+enum IntegrationProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model IntegrationProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status     IntegrationProviderStatus
+  archivedAt DateTime?
+
+  name        String
+  description String?
+  metadata    Json?
+
+  currentVersionIndex Int
+
+  /// [ToolFilter]
+  toolFilter Json
+
+  currentVersionOid BigInt?
+  currentVersion    IntegrationProviderVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid])
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  versions                          IntegrationProviderVersion[]
+  integrationInstanceProviders      IntegrationInstanceProvider[]
+  integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
+  integrationSetupSessionProviders  IntegrationSetupSessionProvider[]
+  magicMcpServerProviders           MagicMcpServerProvider[]
+
+  @@unique([integrationOid, providerOid])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model IntegrationProviderVersion {
+  oid BigInt @id
+  id  String @unique
+
+  status IntegrationProviderStatus
+  index  Int
+
+  /// [ToolFilter]
+  toolFilter Json
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
+
+  deploymentOid BigInt
+  deployment    ProviderDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  authMethodOid BigInt?
+  authMethod    ProviderAuthMethod? @relation(fields: [authMethodOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
+
+  configOid BigInt?
+  config    ProviderConfig? @relation(fields: [configOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  currentFor                          IntegrationProvider[]                @relation("currentVersion")
+  usedInVersions                      IntegrationVersionProvider[]
+  integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
+}
+
+model IntegrationVersion {
+  oid BigInt @id
+  id  String @unique
+
+  status IntegrationProviderStatus
+  index  Int
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  providers                    IntegrationVersionProvider[]
+  currentFor                   Integration[]                 @relation("currentVersion")
+  integrationInstanceProviders IntegrationInstanceProvider[]
+}
+
+model IntegrationVersionProvider {
+  oid BigInt @id
+  id  String @unique
+
+  integrationVersionOid BigInt
+  integrationVersion    IntegrationVersion @relation(fields: [integrationVersionOid], references: [oid], onDelete: Cascade)
+
+  integrationProviderVersionOid BigInt
+  integrationProviderVersion    IntegrationProviderVersion @relation(fields: [integrationProviderVersionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

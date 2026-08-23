@@ -141,11 +141,18 @@ model RemoteOAuthConnection {
   registrationOid BigInt?
   registration    RemoteOAuthAutoRegistration? @relation(fields: [registrationOid], references: [oid])
 
+  rotatedFromOid BigInt?
+  rotatedFrom    RemoteOAuthConnection?  @relation("remoteOAuthConnectionRotation", fields: [rotatedFromOid], references: [oid], onDelete: SetNull)
+  rotatedTo      RemoteOAuthConnection[] @relation("remoteOAuthConnectionRotation")
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
   serverOid BigInt
   server    Server @relation(fields: [serverOid], references: [oid])
+
+  registrationAttemptCount  Int       @default(0)
+  lastRegistrationAttemptAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -158,6 +165,9 @@ model RemoteOAuthConnection {
   remoteOAuthConnectionAuthTokens RemoteOAuthConnectionAuthToken[]
   remoteOAuthRegistrationErrors   RemoteOAuthRegistrationError[]
   serverAuthConfigs               ServerAuthConfig[]
+
+  @@index([discoveryStatus, status, lastRegistrationAttemptAt])
+  @@index([rotatedFromOid, status])
 }
 
 enum RemoteOAuthConnectionEventType {
@@ -166,6 +176,7 @@ enum RemoteOAuthConnectionEventType {
   auto_registration_failed
   config_auto_discovered
   config_auto_updated
+  credentials_rotated
 }
 
 model RemoteOAuthConnectionEvent {

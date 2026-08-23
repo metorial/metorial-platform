@@ -1,14 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { documentVersionService } from '@metorial/module-file';
+import { documentVersionService } from '@metorial/module-documents';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { documentVersionPresenter } from '../../../presenters';
+import { documentVersionPresenter } from '@metorial/presenters';
 import { stringArrayFilterSchema } from './_listFilters';
 import { documentGroup } from './document';
 
@@ -19,15 +19,10 @@ export let documentVersionGroup = documentGroup.use(async ctx => {
 
   let documentVersion = await documentVersionService.getDocumentVersionById({
     documentVersionId: ctx.params.documentVersionId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
-  if (documentVersion.documentId !== ctx.document.id) {
+  if (documentVersion.document.id !== ctx.document.id) {
     throw new ServiceError(notFoundError('document.version', ctx.params.documentVersionId));
   }
 
@@ -65,15 +60,10 @@ export let documentVersionController = Controller.create(
       .do(async ctx => {
         let paginator = await documentVersionService.listDocumentVersions({
           documentId: ctx.document.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          ...(await getInstanceCargoAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           createdAt: ctx.query.created_at,
-          lastEditedAt: ctx.query.last_edited_at
+          listEditedAt: ctx.query.last_edited_at
         });
         let list = await paginator.run(ctx.query);
 

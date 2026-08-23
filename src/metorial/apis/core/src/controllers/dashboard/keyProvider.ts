@@ -13,7 +13,7 @@ import {
   keyProviderPresenter,
   keyProviderSetupInfoPresenter,
   keyProviderValidationPresenter
-} from '../../presenters';
+} from '@metorial/presenters';
 
 let keyProviderFlags = hasFlags([
   'paid-key-providers',

@@ -1,24 +1,17 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
-import { skillForkSyncService } from '@metorial/module-file';
+import { skillForkSyncService } from '@metorial/module-skill-merge-requests';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { skillForkSyncPresenter } from '../../../presenters';
+import { skillForkSyncPresenter } from '@metorial/presenters';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
 
-let getAccess = (ctx: any) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  ...getInstanceCargoAccess(ctx)
-});
+let getAccess = (ctx: any) => getInstanceCargoAccess(ctx);
 
 export let skillForkSyncGroup = instanceGroup
   .use(hasFlags(['skills-enabled']))
@@ -33,7 +26,7 @@ export let skillForkSyncGroup = instanceGroup
     }
 
     let skillForkSync = await skillForkSyncService.getSkillForkSyncById({
-      ...getAccess(ctx),
+      ...(await getAccess(ctx)),
       skillForkSyncId: ctx.params.skillForkSyncId
     });
 
@@ -43,7 +36,8 @@ export let skillForkSyncGroup = instanceGroup
 export let skillForkSyncController = Controller.create(
   {
     name: 'Skill Fork Syncs',
-    description: 'Synchronize changes from an upstream skill into a fork.'
+    description: 'Synchronize changes from an upstream skill into a fork.',
+    hideInDocs: true
   },
   {
     create: instanceGroup
@@ -62,7 +56,7 @@ export let skillForkSyncController = Controller.create(
       .output(skillForkSyncPresenter)
       .do(async ctx => {
         let skillForkSync = await skillForkSyncService.createSkillForkSync({
-          ...getAccess(ctx),
+          ...(await getAccess(ctx)),
           forkSkillId: ctx.body.skill_id
         });
 

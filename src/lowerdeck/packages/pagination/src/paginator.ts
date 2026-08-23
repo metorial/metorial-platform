@@ -112,6 +112,29 @@ export class Paginator<T> {
     };
   }
 
+  map<U>(mapper: (item: T) => U | Promise<U>): Paginator<U> {
+    return this.mapAll(items => Promise.all(items.map(item => mapper(item))));
+  }
+
+  mapAll<U>(mapper: (items: T[]) => U[] | Promise<U[]>): Paginator<U> {
+    return Paginator.create(
+      providers => {
+        let inner = this.provider(providers);
+
+        return async input => {
+          let list = await inner(input);
+          let items = await mapper(list.items);
+
+          return {
+            ...list,
+            items
+          };
+        };
+      },
+      this.opts
+    );
+  }
+
   async run(input: PaginatorInput): Promise<PaginatedList<T>> {
     let numberLimit = Number(input.limit);
     if (isNaN(numberLimit)) numberLimit = 20;

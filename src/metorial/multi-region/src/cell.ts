@@ -1,7 +1,10 @@
-import { globalDB } from './db';
+import { ensureGlobalDatabaseReady, globalDB } from './db';
 import { env } from './env';
 
-export let deploymentIdentifier = env.service.METORIAL_REGION ?? 'default';
+export let deploymentIdentifier =
+  !env.service.METORIAL_REGION || env.service.METORIAL_REGION === 'dev'
+    ? 'default'
+    : env.service.METORIAL_REGION;
 
 let getSecureRandomInt = () => {
   let array = new Uint32Array(1);
@@ -9,12 +12,26 @@ let getSecureRandomInt = () => {
   return array[0] & 0x7fffffff;
 };
 
-export let cell = globalDB.cell.upsert({
-  where: { identifier: deploymentIdentifier },
-  create: {
-    identifier: deploymentIdentifier,
-    oid: getSecureRandomInt(),
-    endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT
-  },
-  update: { endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT }
+export let cell = ensureGlobalDatabaseReady().then(async () => {
+  let cell = await globalDB.cell.upsert({
+    where: { identifier: deploymentIdentifier },
+    create: {
+      identifier: deploymentIdentifier,
+      oid: getSecureRandomInt(),
+      endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT
+    },
+    update: { endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT }
+  });
+
+  if (env.service.EXTERNAL_MULTI_REGION_ENDPOINT && process.env.NODE_ENV === 'production') {
+    await globalDB.cell.updateMany({
+      where: {
+        endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT,
+        identifier: { not: deploymentIdentifier }
+      },
+      data: { endpointUrl: null }
+    });
+  }
+
+  return cell;
 });

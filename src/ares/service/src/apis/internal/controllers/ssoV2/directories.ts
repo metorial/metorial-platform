@@ -13,7 +13,13 @@ export let ssoDirectoriesController = tenantApp.controller({
         tenantId: v.string(),
         connectionId: v.string(),
         name: v.string(),
-        type: v.string(),
+        type: v.enumOf([
+          'azure-scim-v2',
+          'onelogin-scim-v2',
+          'okta-scim-v2',
+          'jumpcloud-scim-v2',
+          'generic-scim-v2'
+        ]),
         metadata: v.optional(v.record(v.any()))
       })
     )

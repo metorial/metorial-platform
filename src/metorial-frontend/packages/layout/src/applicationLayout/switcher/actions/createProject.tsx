@@ -24,14 +24,15 @@ export let createProject = (
         name: ''
       },
       onSubmit: async values => {
-        let [res] = await create.mutate(values);
+        let [project] = await create.mutate(values);
 
-        if (res) {
+        if (project) {
           if (!opts?.noRedirect) {
             setTimeout(() => {
               close();
-              window.location.href = Paths.project(org, res);
-            }, 5000);
+              let instance = project.instances[0];
+              window.location.href = Paths.instance(org, project, instance);
+            }, 2000);
           } else {
             close();
           }

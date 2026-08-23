@@ -1,17 +1,20 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
+import { generateCustomId, generatePlainId } from '@lowerdeck/id';
 import { addMinutes, addWeeks } from 'date-fns';
 import type {
+  Account,
   App,
   AuthAttempt,
   AuthDevice,
   AuthDeviceUserSession,
   User
 } from '../../prisma/generated/client';
-import { db, withTransaction } from '../db';
+import { db, type TransactionDB, withTransaction } from '../db';
 import { getId, snowflake } from '../id';
 import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
+import { markAresUserChanged } from '../queues/syncCallback';
+import { userService } from './user';
 
 class DeviceService {
   async getAllUsersForDevice(d: { device: AuthDevice }) {
@@ -50,11 +53,16 @@ class DeviceService {
     return !d.session.loggedOutAt && d.session.expiresAt.getTime() > Date.now();
   }
 
-  async getLoggedInAndLoggedOutUsersForDevice(d: { device: AuthDevice; app: App }) {
+  async getLoggedInAndLoggedOutUsersForDevice(d: {
+    device: AuthDevice;
+    app: App;
+    account?: Account | null;
+  }) {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
         deviceOid: d.device.oid,
-        appOid: d.app.oid
+        appOid: d.app.oid,
+        ...(d.account ? { user: { accountOid: d.account.oid } } : {})
       },
       include: {
         user: { include: { userEmails: true } }
@@ -79,8 +87,15 @@ class DeviceService {
     return [...loggedInSessions, ...loggedOutSessionsUnique];
   }
 
-  async getSessionForLoggedInUser(d: { user: User; device: AuthDevice; app?: App }) {
-    return await db.authDeviceUserSession.findFirst({
+  async getSessionForLoggedInUser(d: {
+    user: User;
+    device: AuthDevice;
+    app?: App;
+    db?: TransactionDB;
+  }) {
+    let tdb = d.db ?? db;
+
+    return await tdb.authDeviceUserSession.findFirst({
       where: {
         userOid: d.user.oid,
         deviceOid: d.device.oid,
@@ -112,25 +127,36 @@ class DeviceService {
         throw new ServiceError(unauthorizedError({ message: 'Invalid auth attempt' }));
       }
 
-      let [device, user] = await Promise.all([
+      let [device, user, account] = await Promise.all([
         db.authDevice.findUniqueOrThrow({
           where: { oid: d.authAttempt.deviceOid }
         }),
         db.user.findUniqueOrThrow({
           where: { oid: d.authAttempt.userOid },
           include: { app: true }
-        })
+        }),
+        d.authAttempt.accountOid
+          ? db.account.findUnique({ where: { oid: d.authAttempt.accountOid } })
+          : null
       ]);
+      if (
+        d.authAttempt.accountOid &&
+        (!account || account.status != 'active' || account.appOid != d.authAttempt.appOid)
+      ) {
+        throw new ServiceError(unauthorizedError({ message: 'Invalid account context' }));
+      }
 
       let existingSession = await this.getSessionForLoggedInUser({
         user,
-        device
+        device,
+        db
       });
       if (existingSession) return existingSession;
 
-      await db.user.updateMany({
-        where: { oid: user.oid },
-        data: { lastLoginAt: new Date() }
+      await userService.recordLogin({
+        user,
+        method: d.authAttempt.loginMethod,
+        db
       });
 
       auditLogService.log({
@@ -237,7 +263,7 @@ class DeviceService {
     return await db.authDevice.create({
       data: {
         ...getId('authDevice'),
-        clientSecret: getId('authDevice').id,
+        clientSecret: generateCustomId('adv_sec_'),
 
         ip: d.context.ip,
         ua: d.context.ua,
@@ -278,7 +304,12 @@ class DeviceService {
     }
 
     if (d.session) {
-      if (d.session.expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 5) {
+      // An owned session gets its expiry pushed in by the owner, so ares must not
+      // slide it here or the two would drift apart.
+      if (
+        !d.session.lifecycleOwner &&
+        d.session.expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 5
+      ) {
         bumpSession = true;
       }
 
@@ -335,6 +366,7 @@ class DeviceService {
             where: { oid: d.session.userOid },
             data: { lastActiveAt: new Date() }
           });
+          await markAresUserChanged({ userOid: d.session.userOid });
 
           await db.authDeviceUserSession.update({
             where: { id: d.session.id },

@@ -8,6 +8,12 @@ import type {
   SkillGroupsForSkillScene as _SkillGroupsForSkillScene,
   SkillGroupSkillsScene as _SkillGroupSkillsScene
 } from './skillGroups';
+export {
+  showPublicSkillImportModal,
+  showSkillImportStatusPanel,
+  useSkillImportActions,
+  validateSkillImportFile
+} from './skillImport';
 import type {
   SkillLinkProvidersScene as _SkillLinkProvidersScene,
   SkillTemplateLinkProvidersScene as _SkillTemplateLinkProvidersScene
@@ -17,6 +23,13 @@ import type {
   SkillMarketplaceSettingsScene as _SkillMarketplaceSettingsScene,
   SkillPluginSettingsScene as _SkillPluginSettingsScene
 } from './skillMarketplaceSettings';
+export { SkillMarketplaceRepositoryAccessSettings } from './skillMarketplaceSettings';
+export {
+  SkillMarketplaceRepositoriesSettingsBox,
+  SkillMarketplaceRepositoriesSettingsContent,
+  SkillMarketplaceRepositoriesSettingsContentScene,
+  useSkillMarketplaceRepositoriesManager
+} from './skillRepositories';
 import type { SkillParticipantsScene as _SkillParticipantsScene } from './skillParticipants';
 import type {
   SkillMergeRequestScene as _SkillMergeRequestScene,
@@ -35,6 +48,7 @@ import type {
 } from './skillStoreFileViewer';
 import type { SkillVersionsScene as _SkillVersionsScene } from './skillVersions';
 import type { SkillWorkspaceLayout as _SkillWorkspaceLayout } from './skillWorkspaceLayout';
+import type { SkillTextFileEditorScene as _SkillTextFileEditorScene } from './skillTextFileEditor';
 
 export type { SkillWorkspaceLayoutProps, SkillWorkspaceRoutes } from './skillWorkspaceLayout';
 
@@ -121,3 +135,7 @@ export let StoreFileViewerScene = dynamicComponent<Parameters<typeof _StoreFileV
 export let SkillWorkspaceLayout = dynamicComponent<Parameters<typeof _SkillWorkspaceLayout>>(
   () => import('./skillWorkspaceLayout').then(m => m.SkillWorkspaceLayout)
 );
+
+export let SkillTextFileEditorScene = dynamicComponent<
+  Parameters<typeof _SkillTextFileEditorScene>
+>(() => import('./skillTextFileEditor').then(m => m.SkillTextFileEditorScene));

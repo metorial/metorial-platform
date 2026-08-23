@@ -3,7 +3,7 @@ import { oauthAuthorizationService } from '@metorial/module-machine-access';
 import { Controller, Path } from '@metorial/rest';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { userGroup } from '../../middleware/userGroup';
-import { oauthAuthorizationRequestPresenter } from '../../presenters';
+import { oauthAuthorizationRequestPresenter } from '@metorial/presenters';
 
 export let dashboardOAuthAuthorizationRequestController = Controller.create(
   {

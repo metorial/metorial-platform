@@ -6,7 +6,7 @@ vi.mock('@lowerdeck/sentry', () => ({
   })
 }));
 
-vi.mock('@metorial/module-consumer', () => ({
+vi.mock('@metorial/module-consumer-entities', () => ({
   consumerIntegrationService: {
     findConsumerTokenByMagicMcpToken: vi.fn()
   },
@@ -30,11 +30,11 @@ vi.mock('@metorial/module-magic', () => ({
   resolveMagicMcpTargetByIdOrAliasSafe: vi.fn()
 }));
 
-vi.mock('@metorial/module-subspace', () => ({
-  proxyMcpRequestToSubspace: vi.fn()
+vi.mock('../src/mcp', () => ({
+  handleMcpRequest: vi.fn()
 }));
 
-import { consumerIntegrationService } from '@metorial/module-consumer';
+import { consumerIntegrationService } from '@metorial/module-consumer-entities';
 import {
   ensureMagicMcpSubspaceSession,
   magicMcpTokenService,

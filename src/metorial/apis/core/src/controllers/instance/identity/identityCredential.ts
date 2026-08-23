@@ -1,14 +1,18 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIdentityCredentialService } from '@metorial/module-subspace';
+import {
+  identityCredentialService,
+  identityDelegationConfigService,
+  identityService
+} from '@metorial-subspace/module-identity';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { identityCredentialPresenter } from '../../../presenters';
+import { identityCredentialPresenter } from '@metorial/presenters';
 
 let identityCredentialGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.identityCredentialId) {
@@ -20,7 +24,7 @@ let identityCredentialGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let identityCredential = await subspaceIdentityCredentialService.get({
+  let identityCredential = await identityCredentialService.getIdentityCredentialById({
     instance: ctx.instance,
     identityCredentialId: ctx.params.identityCredentialId,
     allowDeleted: false
@@ -96,7 +100,7 @@ export let identityCredentialController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIdentityCredentialService.list({
+        let paginator = await identityCredentialService.listIdentityCredentials({
           instance: ctx.instance,
           allowDeleted: true,
 
@@ -180,14 +184,19 @@ export let identityCredentialController = Controller.create(
       )
       .output(identityCredentialPresenter)
       .do(async ctx => {
-        let identityCredential = await subspaceIdentityCredentialService.create({
+        let identity = await identityService.getIdentityById({
           instance: ctx.instance,
-
-          identityId: ctx.body.identity_id,
-          deploymentId: ctx.body.deployment_id,
-          configId: ctx.body.config_id,
-          authConfigId: ctx.body.auth_config_id,
-          delegationConfigId: ctx.body.delegation_config_id
+          identityId: ctx.body.identity_id
+        });
+        let identityCredential = await identityCredentialService.createIdentityCredential({
+          instance: ctx.instance,
+          identity,
+          input: {
+            deploymentId: ctx.body.deployment_id,
+            configId: ctx.body.config_id,
+            authConfigId: ctx.body.auth_config_id,
+            delegationConfigId: ctx.body.delegation_config_id
+          }
         });
 
         return identityCredentialPresenter.present({ identityCredential });
@@ -217,12 +226,15 @@ export let identityCredentialController = Controller.create(
       )
       .output(identityCredentialPresenter)
       .do(async ctx => {
-        let identityCredential = await subspaceIdentityCredentialService.update({
+        let delegationConfig =
+          await identityDelegationConfigService.getIdentityDelegationConfigById({
+            instance: ctx.instance,
+            identityDelegationConfigId: ctx.body.delegation_config_id
+          });
+        let identityCredential = await identityCredentialService.updateIdentityCredential({
           instance: ctx.instance,
-          allowDeleted: false,
-          identityCredentialId: ctx.identityCredential.id,
-
-          delegationConfigId: ctx.body.delegation_config_id
+          identityCredential: ctx.identityCredential,
+          input: { delegationConfig }
         });
 
         return identityCredentialPresenter.present({ identityCredential });
@@ -243,10 +255,9 @@ export let identityCredentialController = Controller.create(
       .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityCredentialPresenter)
       .do(async ctx => {
-        let identityCredential = await subspaceIdentityCredentialService.delete({
+        let identityCredential = await identityCredentialService.archiveIdentityCredential({
           instance: ctx.instance,
-          identityCredentialId: ctx.identityCredential.id,
-          allowDeleted: false
+          identityCredential: ctx.identityCredential
         });
 
         return identityCredentialPresenter.present({ identityCredential });

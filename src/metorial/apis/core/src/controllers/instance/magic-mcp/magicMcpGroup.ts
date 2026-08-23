@@ -9,7 +9,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { magicMcpGroupPresenter } from '../../../presenters';
+import { magicMcpGroupPresenter } from '@metorial/presenters';
 
 export let magicMcpGroupGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpGroupId) {

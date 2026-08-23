@@ -7,7 +7,7 @@ import {
   removeAwarenessStates
 } from 'y-protocols/awareness';
 import * as Y from 'yjs';
-import type { Document, DocumentParticipant } from './documents';
+import type { Document, DocumentEditToken, DocumentParticipant } from './documents';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
 type SnapshotSaveStatus = 'saved' | 'pending' | 'saving' | 'error';
@@ -26,6 +26,10 @@ type CollaborationServerMessage =
           clientId: number;
           update: string;
         }[];
+        access: {
+          permissions: ('content_read' | 'content_write')[];
+          expiresAt: Date;
+        };
       };
     }
   | {
@@ -89,6 +93,14 @@ type CollaborationServerMessage =
       };
     }
   | {
+      type: 'document_token_updated';
+      data: {
+        requestId: string;
+        permissions: ('content_read' | 'content_write')[];
+        expiresAt: Date;
+      };
+    }
+  | {
       type: 'error';
       data: unknown;
     };
@@ -96,6 +108,13 @@ type CollaborationServerMessage =
 type CollaborationClientMessage =
   | {
       type: 'ping';
+    }
+  | {
+      type: 'document_token_update';
+      data: {
+        token: string;
+        requestId: string;
+      };
     }
   | {
       type: 'yjs_update';
@@ -131,6 +150,16 @@ let seedOrigin = { source: 'document-collaboration-seed' };
 let heartbeatMs = 30 * 1000;
 let reconnectBaseDelayMs = 1_000;
 let reconnectMaxDelayMs = 10_000;
+let reconnectMaxAttempts = 6;
+let reconnectJitterRatio = 0.25;
+let reconnectStabilityMs = 30_000;
+let tokenRefreshBufferMs = 60_000;
+let tokenRefreshRetryMaxMs = 15_000;
+
+let deferInitialConnection = (connect: () => void) => {
+  let timer = setTimeout(connect, 0);
+  return () => clearTimeout(timer);
+};
 
 let encodeBase64 = (update: Uint8Array) => {
   let binary = '';
@@ -162,24 +191,7 @@ let getDocumentLiveUrl = (d: {
 }) => {
   let config = getConfig();
   let url = new URL(config.apiUrl);
-
-  if (location.hostname === 'portals-us1.metorial-staging.com') {
-    url.hostname = 'api-us1.metorial-staging.com';
-  } else if (location.hostname === 'portals-us1.metorial.com') {
-    url.hostname = 'api-us1.metorial.com';
-  } else if (location.hostname === 'portals-eu1.metorial.com') {
-    url.hostname = 'api-eu1.metorial.com';
-  }
-
-  let path = url.pathname.replace('/api', '');
-
-  if (path.includes('/dashboard/us1')) {
-    url.hostname = 'api-us1.metorial.com';
-    path = path.replace('/dashboard/us1', '');
-  } else if (path.includes('/dashboard/eu1')) {
-    url.hostname = 'api-eu1.metorial.com';
-    path = path.replace('/dashboard/eu1', '');
-  }
+  let path = url.pathname;
 
   while (path.endsWith('/')) path = path.slice(0, -1);
   path += '/documents-live';
@@ -204,22 +216,44 @@ let getDocumentLiveUrl = (d: {
 let shouldSeedInitialBody = (d: { bodyStateReceived: boolean; initialMarkdown?: string }) =>
   !d.bodyStateReceived && (d.initialMarkdown?.trim().length ?? 0) > 0;
 
+let shouldInitializeCollaboration = (d: {
+  canWrite: boolean;
+  bodyStateReceived: boolean;
+  initialMarkdown?: string;
+}) => d.canWrite && shouldSeedInitialBody(d);
+
 let resolveInitialMarkdown = (d: {
   document: Document;
   initialMarkdown?: string;
   getInitialMarkdown?: (document: Document) => string;
 }) => d.getInitialMarkdown?.(d.document) ?? d.initialMarkdown;
 
-let getReconnectDelayMs = (attempt: number) =>
-  Math.min(reconnectBaseDelayMs * 2 ** Math.max(0, attempt), reconnectMaxDelayMs);
+let getReconnectDelayMs = (attempt: number, random = Math.random) => {
+  let baseDelay = Math.min(
+    reconnectBaseDelayMs * 2 ** Math.max(0, attempt),
+    reconnectMaxDelayMs
+  );
+  let jitter = Math.floor(baseDelay * reconnectJitterRatio * random());
+  return Math.min(baseDelay + jitter, reconnectMaxDelayMs);
+};
+
+let canRetryConnection = (attempt: number) => attempt < reconnectMaxAttempts;
+
+let getTokenRefreshDelayMs = (expiresAt: Date, now = Date.now()) =>
+  Math.max(0, expiresAt.getTime() - now - tokenRefreshBufferMs);
 
 export let __documentCollaborationTestUtils = {
   encodeBase64,
   decodeBase64,
   getDocumentLiveUrl,
   shouldSeedInitialBody,
+  shouldInitializeCollaboration,
   resolveInitialMarkdown,
-  getReconnectDelayMs
+  getReconnectDelayMs,
+  canRetryConnection,
+  getTokenRefreshDelayMs,
+  deferInitialConnection,
+  reconnectMaxAttempts
 };
 
 let sendJson = (ws: WebSocket | null, message: CollaborationClientMessage) => {
@@ -233,8 +267,8 @@ export let useDocumentCollaboration = (
   documentId: string | null | undefined,
   opts?: {
     organizationId?: string | null;
-    editToken?: string | null;
-    refreshEditToken?: () => Promise<string | null | undefined>;
+    editToken?: DocumentEditToken | null;
+    refreshEditToken?: () => Promise<DocumentEditToken>;
     enabled?: boolean;
     initialMarkdown?: string;
     getInitialMarkdown?: (document: Document) => string;
@@ -252,6 +286,7 @@ export let useDocumentCollaboration = (
   let [isFallback, setIsFallback] = useState(false);
   let [initialBodyStateReceived, setInitialBodyStateReceived] = useState(false);
   let [initialBodySeeded, setInitialBodySeeded] = useState(false);
+  let [effectiveCanWrite, setEffectiveCanWrite] = useState(false);
   let [collaborationEpoch, setCollaborationEpoch] = useState(0);
   let wsRef = useRef<WebSocket | null>(null);
   let sessionIdRef = useRef<string | null>(null);
@@ -259,8 +294,14 @@ export let useDocumentCollaboration = (
   let suppressLocalUpdateRef = useRef(false);
   let isReadyForEditorRef = useRef(false);
   let hasConnectedRef = useRef(false);
-  let editTokenRef = useRef<string | null | undefined>(opts?.editToken);
+  let editTokenRef = useRef<DocumentEditToken | null | undefined>(opts?.editToken);
+  let effectiveCanWriteRef = useRef(false);
   let refreshEditTokenRef = useRef(opts?.refreshEditToken);
+  let initialMarkdownRef = useRef(opts?.initialMarkdown);
+  let getInitialMarkdownRef = useRef(opts?.getInitialMarkdown);
+  let seedInitialBodyRef = useRef(opts?.seedInitialBody);
+  let reconnectAttemptsRef = useRef(0);
+  let delayNextConnectionRef = useRef(false);
   let destroyTimerRef = useRef<{
     ydoc: Y.Doc;
     awareness: Awareness;
@@ -269,6 +310,10 @@ export let useDocumentCollaboration = (
 
   let ydoc = useMemo(() => new Y.Doc(), [instanceId, documentId, collaborationEpoch]);
   let awareness = useMemo(() => new Awareness(ydoc), [ydoc]);
+
+  initialMarkdownRef.current = opts?.initialMarkdown;
+  getInitialMarkdownRef.current = opts?.getInitialMarkdown;
+  seedInitialBodyRef.current = opts?.seedInitialBody;
 
   useEffect(() => {
     isReadyForEditorRef.current = isReadyForEditor;
@@ -285,6 +330,11 @@ export let useDocumentCollaboration = (
   useEffect(() => {
     hasConnectedRef.current = false;
   }, [ydoc]);
+
+  useEffect(() => {
+    reconnectAttemptsRef.current = 0;
+    delayNextConnectionRef.current = false;
+  }, [documentId, instanceId]);
 
   useEffect(() => {
     if (destroyTimerRef.current?.ydoc === ydoc) {
@@ -314,6 +364,8 @@ export let useDocumentCollaboration = (
       setIsSynced(false);
       setIsReadyForEditor(false);
       setIsFallback(false);
+      effectiveCanWriteRef.current = false;
+      setEffectiveCanWrite(false);
       return;
     }
 
@@ -322,16 +374,70 @@ export let useDocumentCollaboration = (
       setIsSynced(false);
       setIsReadyForEditor(true);
       setIsFallback(true);
+      effectiveCanWriteRef.current = false;
+      setEffectiveCanWrite(false);
       return;
     }
 
     let closed = false;
     let reconnectTimer: number | null = null;
-    let reconnectAttempts = 0;
+    let cancelInitialConnection: (() => void) | null = null;
     let ws: WebSocket | null = null;
     let heartbeat: number | null = null;
+    let stabilityTimer: number | null = null;
+    let tokenRefreshTimer: number | null = null;
+    let tokenRefreshAttempts = 0;
+    let pendingTokenUpdates = new Map<string, { token: DocumentEditToken; timeout: number }>();
+    let intentionalReconnect = false;
+
+    let applyAccess = (access: {
+      permissions: ('content_read' | 'content_write')[];
+      expiresAt: Date | string;
+    }) => {
+      let writable = access.permissions.includes('content_write');
+      effectiveCanWriteRef.current = writable;
+      setEffectiveCanWrite(writable);
+      scheduleTokenRefresh(new Date(access.expiresAt));
+    };
+
+    let requestTokenRefresh = async () => {
+      if (closed || !refreshEditTokenRef.current) return;
+
+      try {
+        let refreshed = await refreshEditTokenRef.current();
+        if (closed) return;
+
+        let requestId = crypto.randomUUID();
+        if (
+          !sendJson(ws, {
+            type: 'document_token_update',
+            data: { token: refreshed.token, requestId }
+          })
+        ) {
+          throw new Error('Document live socket is not connected');
+        }
+        let timeout = window.setTimeout(() => {
+          if (!pendingTokenUpdates.delete(requestId)) return;
+          tokenRefreshAttempts++;
+          void requestTokenRefresh();
+        }, 10_000);
+        pendingTokenUpdates.set(requestId, { token: refreshed, timeout });
+      } catch (err) {
+        setError(err);
+        tokenRefreshAttempts++;
+        let delay = Math.min(1_000 * 2 ** (tokenRefreshAttempts - 1), tokenRefreshRetryMaxMs);
+        tokenRefreshTimer = window.setTimeout(() => void requestTokenRefresh(), delay);
+      }
+    };
+
+    function scheduleTokenRefresh(expiresAt: Date) {
+      if (tokenRefreshTimer) window.clearTimeout(tokenRefreshTimer);
+      let delay = getTokenRefreshDelayMs(expiresAt);
+      tokenRefreshTimer = window.setTimeout(() => void requestTokenRefresh(), delay);
+    }
 
     let handleDocUpdate = (update: Uint8Array, origin: unknown) => {
+      if (!effectiveCanWriteRef.current) return;
       if (origin === remoteOrigin) return;
       if (origin === seedOrigin) return;
       if (suppressLocalUpdateRef.current) return;
@@ -364,10 +470,22 @@ export let useDocumentCollaboration = (
     };
 
     let cleanupSocket = () => {
+      if (stabilityTimer) {
+        window.clearTimeout(stabilityTimer);
+        stabilityTimer = null;
+      }
       if (heartbeat) {
         window.clearInterval(heartbeat);
         heartbeat = null;
       }
+      if (tokenRefreshTimer) {
+        window.clearTimeout(tokenRefreshTimer);
+        tokenRefreshTimer = null;
+      }
+      for (let pending of pendingTokenUpdates.values()) {
+        window.clearTimeout(pending.timeout);
+      }
+      pendingTokenUpdates.clear();
       if (wsRef.current === ws) wsRef.current = null;
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         ws.close();
@@ -375,9 +493,26 @@ export let useDocumentCollaboration = (
       ws = null;
     };
 
+    let markConnectionUsable = () => {
+      hasConnectedRef.current = true;
+      if (stabilityTimer) return;
+      stabilityTimer = window.setTimeout(() => {
+        stabilityTimer = null;
+        reconnectAttemptsRef.current = 0;
+      }, reconnectStabilityMs);
+    };
+
     let scheduleReconnect = () => {
-      if (closed || reconnectTimer || !hasConnectedRef.current) return;
-      let delay = getReconnectDelayMs(reconnectAttempts++);
+      if (closed || reconnectTimer) return;
+      if (!canRetryConnection(reconnectAttemptsRef.current)) {
+        setConnectionStatus('idle');
+        setIsSynced(false);
+        setIsFallback(true);
+        setIsReadyForEditor(true);
+        return;
+      }
+
+      let delay = getReconnectDelayMs(reconnectAttemptsRef.current++);
       reconnectTimer = window.setTimeout(() => {
         reconnectTimer = null;
         void connect(true);
@@ -390,11 +525,7 @@ export let useDocumentCollaboration = (
       if (isReconnect && refreshEditTokenRef.current) {
         try {
           let refreshedEditToken = await refreshEditTokenRef.current();
-          if (typeof refreshedEditToken == 'string') {
-            editTokenRef.current = refreshedEditToken;
-          } else if (refreshedEditToken === null) {
-            editTokenRef.current = null;
-          }
+          editTokenRef.current = refreshedEditToken;
         } catch (err) {
           setError(err);
         }
@@ -417,7 +548,7 @@ export let useDocumentCollaboration = (
         instanceId,
         documentId,
         organizationId: opts?.organizationId,
-        editToken: editTokenRef.current
+        editToken: editTokenRef.current?.token
       });
       ws = new WebSocket(url);
       wsRef.current = ws;
@@ -428,7 +559,6 @@ export let useDocumentCollaboration = (
 
       ws.onopen = () => {
         if (closed) return;
-        reconnectAttempts = 0;
         setConnectionStatus('connected');
         sendJson(ws, { type: 'ping' });
       };
@@ -439,14 +569,15 @@ export let useDocumentCollaboration = (
         let message = JSON.parse(event.data) as CollaborationServerMessage;
 
         if (message.type === 'collaboration_snapshot') {
+          applyAccess(message.data.access);
           sessionIdRef.current = message.data.sessionId;
           generationRef.current = message.data.generation ?? 0;
           setSnapshot(message.data.document);
           let bodyStateReceived = false;
           let initialMarkdown = resolveInitialMarkdown({
             document: message.data.document,
-            initialMarkdown: opts?.initialMarkdown,
-            getInitialMarkdown: opts?.getInitialMarkdown
+            initialMarkdown: initialMarkdownRef.current,
+            getInitialMarkdown: getInitialMarkdownRef.current
           });
 
           if (message.data.stateUpdate) {
@@ -457,15 +588,16 @@ export let useDocumentCollaboration = (
 
           let seedUpdate: string | null = null;
           if (
-            shouldSeedInitialBody({
+            shouldInitializeCollaboration({
+              canWrite: effectiveCanWriteRef.current,
               bodyStateReceived,
               initialMarkdown
             }) &&
-            opts?.seedInitialBody
+            seedInitialBodyRef.current
           ) {
             suppressLocalUpdateRef.current = true;
             try {
-              seedUpdate = opts.seedInitialBody({
+              seedUpdate = seedInitialBodyRef.current({
                 initialMarkdown: initialMarkdown ?? '',
                 origin: seedOrigin
               });
@@ -491,8 +623,8 @@ export let useDocumentCollaboration = (
           }
 
           if (!didSeedInitialBody) {
-            hasConnectedRef.current = true;
-            setIsFallback(false);
+            markConnectionUsable();
+            setIsFallback(!effectiveCanWriteRef.current && !bodyStateReceived);
             setIsReadyForEditor(true);
             setIsSynced(true);
           }
@@ -502,7 +634,7 @@ export let useDocumentCollaboration = (
         if (message.type === 'yjs_state_initialized') {
           generationRef.current = message.data.generation ?? 0;
           Y.applyUpdate(ydoc, decodeBase64(message.data.update), remoteOrigin);
-          hasConnectedRef.current = true;
+          markConnectionUsable();
           setIsFallback(false);
           setInitialBodyStateReceived(ydoc.getXmlFragment('body').length > 0);
           setIsReadyForEditor(true);
@@ -525,9 +657,32 @@ export let useDocumentCollaboration = (
           generationRef.current = message.data.generation;
           setSnapshot(message.data.document);
           setIsSynced(false);
+
+          if (!effectiveCanWriteRef.current) {
+            markConnectionUsable();
+            setIsFallback(true);
+            setIsReadyForEditor(true);
+            return;
+          }
+
           setIsReadyForEditor(false);
+          intentionalReconnect = true;
           cleanupSocket();
+          delayNextConnectionRef.current = true;
           setCollaborationEpoch(epoch => epoch + 1);
+          return;
+        }
+
+        if (message.type === 'document_token_updated') {
+          let pending = pendingTokenUpdates.get(message.data.requestId);
+          if (!pending) return;
+
+          pendingTokenUpdates.delete(message.data.requestId);
+          window.clearTimeout(pending.timeout);
+          editTokenRef.current = pending.token;
+          tokenRefreshAttempts = 0;
+          setError(null);
+          applyAccess(message.data);
           return;
         }
 
@@ -560,6 +715,26 @@ export let useDocumentCollaboration = (
         if (message.type === 'error') {
           setError(message.data);
           setSnapshotSaveStatus('error');
+
+          if (
+            message.data &&
+            typeof message.data == 'object' &&
+            'code' in message.data &&
+            message.data.code === 'document_token_update_failed' &&
+            'requestId' in message.data &&
+            typeof message.data.requestId == 'string'
+          ) {
+            let pending = pendingTokenUpdates.get(message.data.requestId);
+            if (pending) window.clearTimeout(pending.timeout);
+            pendingTokenUpdates.delete(message.data.requestId);
+            tokenRefreshAttempts++;
+            let delay = Math.min(
+              1_000 * 2 ** (tokenRefreshAttempts - 1),
+              tokenRefreshRetryMaxMs
+            );
+            if (tokenRefreshTimer) window.clearTimeout(tokenRefreshTimer);
+            tokenRefreshTimer = window.setTimeout(() => void requestTokenRefresh(), delay);
+          }
         }
       };
 
@@ -570,7 +745,6 @@ export let useDocumentCollaboration = (
         if (!isReadyForEditorRef.current) {
           setIsFallback(true);
           setIsReadyForEditor(true);
-          return;
         }
       };
 
@@ -578,10 +752,10 @@ export let useDocumentCollaboration = (
         if (closed) return;
         setConnectionStatus('idle');
         setIsSynced(false);
+        if (intentionalReconnect) return;
         if (!isReadyForEditorRef.current) {
           setIsFallback(true);
           setIsReadyForEditor(true);
-          return;
         }
         scheduleReconnect();
       };
@@ -589,30 +763,38 @@ export let useDocumentCollaboration = (
 
     ydoc.on('update', handleDocUpdate);
     awareness.on('update', handleAwarenessUpdate);
-    void connect(false);
+    if (delayNextConnectionRef.current) {
+      delayNextConnectionRef.current = false;
+      scheduleReconnect();
+    } else {
+      cancelInitialConnection = deferInitialConnection(() => {
+        cancelInitialConnection = null;
+        void connect(false);
+      });
+    }
 
     return () => {
       closed = true;
+      cancelInitialConnection?.();
+      cancelInitialConnection = null;
       if (reconnectTimer) {
         window.clearTimeout(reconnectTimer);
         reconnectTimer = null;
       }
+      if (tokenRefreshTimer) {
+        window.clearTimeout(tokenRefreshTimer);
+        tokenRefreshTimer = null;
+      }
+      for (let pending of pendingTokenUpdates.values()) {
+        window.clearTimeout(pending.timeout);
+      }
+      pendingTokenUpdates.clear();
       ydoc.off('update', handleDocUpdate);
       awareness.off('update', handleAwarenessUpdate);
       sessionIdRef.current = null;
       cleanupSocket();
     };
-  }, [
-    awareness,
-    documentId,
-    enabled,
-    instanceId,
-    opts?.getInitialMarkdown,
-    opts?.initialMarkdown,
-    opts?.organizationId,
-    opts?.seedInitialBody,
-    ydoc
-  ]);
+  }, [awareness, documentId, enabled, instanceId, opts?.organizationId, ydoc]);
 
   let saveSnapshot = useCallback((input: { title: string; content: string }) => {
     setSnapshotSaveStatus('saving');
@@ -647,6 +829,7 @@ export let useDocumentCollaboration = (
     isFallback,
     initialBodyStateReceived,
     initialBodySeeded,
+    canWrite: effectiveCanWrite,
     sessionId: sessionIdRef.current,
     saveSnapshot,
     markSnapshotPending

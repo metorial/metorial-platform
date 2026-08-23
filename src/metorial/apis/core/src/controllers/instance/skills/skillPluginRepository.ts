@@ -1,12 +1,15 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillPluginRepositoryService, skillPluginService } from '@metorial/module-file';
+import {
+  skillPluginRepositoryService,
+  skillPluginService
+} from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
-import { bucketEditorTokenPresenter, skillPluginRepositoryPresenter } from '../../../presenters';
+import { bucketEditorTokenPresenter, skillPluginRepositoryPresenter } from '@metorial/presenters';
 import { getSkillPluginAccess, skillPluginGroup } from './skillPlugin';
 
 let readScopes = ['instance.skill:read'] as const;
@@ -36,8 +39,8 @@ export let skillPluginRepositoryController = Controller.create(
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await skillPluginRepositoryService.listSkillPluginRepositories({
-          ...getSkillPluginAccess(ctx),
-          skillPlugin: ctx.skillPlugin
+          ...(await getSkillPluginAccess(ctx)),
+          skillPluginId: ctx.skillPlugin.id
         });
         let list = await paginator.run(ctx.query);
 
@@ -64,8 +67,8 @@ export let skillPluginRepositoryController = Controller.create(
       .do(async ctx => {
         let skillPluginRepository =
           await skillPluginRepositoryService.getSkillPluginRepositoryById({
-            ...getSkillPluginAccess(ctx),
-            skillPlugin: ctx.skillPlugin,
+            ...(await getSkillPluginAccess(ctx)),
+            skillPluginId: ctx.skillPlugin.id,
             skillPluginRepositoryId: ctx.params.skillPluginRepositoryId
           });
 
@@ -96,8 +99,8 @@ export let skillPluginRepositoryController = Controller.create(
       .do(async ctx => {
         let skillPluginRepository =
           await skillPluginRepositoryService.createSkillPluginRepository({
-            ...getSkillPluginAccess(ctx),
-            skillPlugin: ctx.skillPlugin,
+            ...(await getSkillPluginAccess(ctx)),
+            skillPluginId: ctx.skillPlugin.id,
             repoId: ctx.body.repo_id
           });
 
@@ -122,8 +125,8 @@ export let skillPluginRepositoryController = Controller.create(
       .do(async ctx => {
         let skillPluginRepository =
           await skillPluginRepositoryService.deleteSkillPluginRepository({
-            ...getSkillPluginAccess(ctx),
-            skillPlugin: ctx.skillPlugin,
+            ...(await getSkillPluginAccess(ctx)),
+            skillPluginId: ctx.skillPlugin.id,
             skillPluginRepositoryId: ctx.params.skillPluginRepositoryId
           });
 
@@ -146,14 +149,14 @@ export let skillPluginRepositoryController = Controller.create(
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
         let token = await skillPluginService.getSkillPluginEditorUrl({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           skillPlugin: ctx.skillPlugin,
           isReadOnly: true
         });
 
         return bucketEditorTokenPresenter.present({
           token: {
-            id: ctx.skillPlugin.backing.id,
+            id: ctx.skillPlugin.id,
             url: token.url,
             expiresAt: token.expiresAt
           }

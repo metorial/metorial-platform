@@ -1,0 +1,31 @@
+model CodeBucket {
+  oid BigInt @id
+  id  String @unique
+
+  isImmutable Boolean
+  isReadOnly  Boolean
+  isSynced    Boolean
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  scmRepoOid  BigInt?
+  scmRepo     ScmRepo? @relation(fields: [scmRepoOid], references: [oid])
+  scmRepoPath String?
+
+  createdAt DateTime @default(now())
+
+  customProviders           CustomProvider[]
+  customProviderDeployments CustomProviderDeployment[]
+  customProviderVersions    CustomProviderVersion[]
+
+  @@index([createdAt])
+  @@index([tenantOid])
+  @@index([projectOid])
+}

@@ -2,11 +2,17 @@ import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
 export let ID = createIdGenerator({
-  app: idType.sorted('app_'),
+  app: idType.sorted('ssap_'),
   tenant: idType.sorted('atn_'),
 
   app_clientId: idType.key('app_client_'),
   tenant_clientId: idType.key('ten_client_'),
+
+  account: idType.sorted('acc_'),
+  account_clientId: idType.key('account_'),
+  accountDomain: idType.sorted('acd_'),
+  accountDomainSsoTenant: idType.sorted('adt_'),
+  accountDomainSsoConnection: idType.sorted('adc_'),
 
   authIntent: idType.sorted('ain_'),
   authIntentStep: idType.sorted('ast_'),
@@ -28,16 +34,18 @@ export let ID = createIdGenerator({
 
   oauthProvider: idType.sorted('oap_'),
   userIdentityProvider: idType.sorted('uip_'),
+  syncListener: idType.sorted('usl_'),
 
   emailDomain: idType.sorted('emd_'),
 
   ssoTenant: idType.sorted('stn_'),
   ssoTenant_clientId: idType.key('sso_tenant_'),
-  ssoTenantDomain: idType.sorted('std_'),
   ssoConnection: idType.sorted('scn_'),
   ssoConnectionSetup: idType.sorted('scs_'),
   ssoConnectionSetup_clientSecret: idType.key('sso_setup_'),
   ssoDirectory: idType.sorted('sdr_'),
+  ssoDirectoryGroup: idType.sorted('sdg_'),
+  ssoDirectoryRole: idType.sorted('sdrt_'),
   ssoScimOperation: idType.sorted('sop_'),
   ssoGroup: idType.sorted('sgr_'),
   ssoRole: idType.sorted('sro_'),
@@ -53,6 +61,16 @@ export let ID = createIdGenerator({
   ssoUserProfile: idType.sorted('sup_'),
   ssoAuth: idType.sorted('sau_'),
   ssoAuth_clientSecret: idType.key('sso_auth_'),
+  ssoTest: idType.sorted('sst_'),
+  aresInstance: idType.sorted('ari_'),
+  remoteAresInstance: idType.sorted('rai_'),
+  ssoExportedDelegation: idType.sorted('sed_'),
+  ssoExportedDelegation_clientId: idType.key('sso_del_client_'),
+  ssoExportedDelegation_clientSecret: idType.key('sso_del_secret_'),
+  ssoImportedDelegation: idType.sorted('sid_'),
+  ssoDelegationAuthRequest: idType.sorted('sda_'),
+  ssoDelegationAuthorizationCode: idType.sorted('sdc_'),
+  ssoDelegationToken: idType.sorted('sdt_'),
 
   appOAuthProvider: idType.sorted('aop_'),
 

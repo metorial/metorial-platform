@@ -6,16 +6,22 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 )
 
-const maxGitlabCommitPayloadBytes = 8 * 1024 * 1024
+const (
+	maxGitlabCommitPayloadBytes = 8 * 1024 * 1024
+	maxGitlabFileInfoAttempts   = 4
+)
 
 func DownloadRepo(projectID int64, repoPath, ref, token, gitlabAPIURL string) (*zipImporter.ZipFileIterator, error) {
 	// GitLab API endpoint for downloading repository archive
@@ -50,6 +56,15 @@ type gitlabCommitRequest struct {
 	Branch        string             `json:"branch"`
 	CommitMessage string             `json:"commit_message"`
 	Actions       []gitlabFileAction `json:"actions"`
+}
+
+type gitlabCommitError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *gitlabCommitError) Error() string {
+	return fmt.Sprintf("failed to create commit (status %d): %s", e.StatusCode, e.Body)
 }
 
 func UploadToRepo(projectID int64, targetPath, branch, commitMessage, token, gitlabAPIURL string, files []FileToUpload) error {
@@ -90,7 +105,20 @@ func UploadToRepoIter(projectID int64, targetPath, branch, commitMessage, token,
 			message = fmt.Sprintf("%s (batch %d)", commitMessage, batch)
 		}
 		if err := createCommit(client, projectID, branch, message, token, gitlabAPIURL, actions); err != nil {
-			return err
+			var commitErr *gitlabCommitError
+			if !errors.As(err, &commitErr) || !commitErr.isFileActionConflict() {
+				return err
+			}
+
+			reconciledActions, reconcileErr := reconcileActions(client, projectID, branch, token, gitlabAPIURL, actions)
+			if reconcileErr != nil {
+				return fmt.Errorf("failed to reconcile GitLab commit after conflict: %w", reconcileErr)
+			}
+			if len(reconciledActions) > 0 {
+				if retryErr := createCommit(client, projectID, branch, message, token, gitlabAPIURL, reconciledActions); retryErr != nil {
+					return fmt.Errorf("failed to retry GitLab commit after conflict: %w", retryErr)
+				}
+			}
 		}
 
 		actions = nil
@@ -148,6 +176,45 @@ func UploadToRepoIter(projectID int64, targetPath, branch, commitMessage, token,
 	return flush()
 }
 
+func (e *gitlabCommitError) isFileActionConflict() bool {
+	if e.StatusCode != http.StatusBadRequest {
+		return false
+	}
+
+	body := strings.ToLower(e.Body)
+	return strings.Contains(body, "already exists") || strings.Contains(body, "does not exist")
+}
+
+func reconcileActions(client *http.Client, projectID int64, branch, token, gitlabAPIURL string, actions []gitlabFileAction) ([]gitlabFileAction, error) {
+	reconciled := make([]gitlabFileAction, 0, len(actions))
+
+	for _, action := range actions {
+		fileInfo, err := getFileInfo(client, projectID, action.FilePath, branch, token, gitlabAPIURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file info for %s: %w", action.FilePath, err)
+		}
+
+		if !fileInfo.Exists {
+			action.Action = "create"
+			reconciled = append(reconciled, action)
+			continue
+		}
+
+		content, err := base64.StdEncoding.DecodeString(action.Content)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode content for %s: %w", action.FilePath, err)
+		}
+		if fileInfo.ContentSHA256 == sha256Hex(content) {
+			continue
+		}
+
+		action.Action = "update"
+		reconciled = append(reconciled, action)
+	}
+
+	return reconciled, nil
+}
+
 func createCommit(client *http.Client, projectID int64, branch, commitMessage, token, gitlabAPIURL string, actions []gitlabFileAction) error {
 	commitReq := gitlabCommitRequest{
 		Branch:        branch,
@@ -179,7 +246,7 @@ func createCommit(client *http.Client, projectID int64, branch, commitMessage, t
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("failed to create commit (status %d): %s", resp.StatusCode, string(body))
+		return &gitlabCommitError{StatusCode: resp.StatusCode, Body: string(body)}
 	}
 
 	return nil
@@ -197,39 +264,67 @@ func sha256Hex(content []byte) string {
 
 // Helper function to get file metadata in the repository
 func getFileInfo(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string) (gitlabFileInfo, error) {
-	fileURL := fmt.Sprintf("%s/projects/%d/repository/files/%s?ref=%s",
+	return getFileInfoWithRetry(client, projectID, filePath, branch, token, gitlabAPIURL, func(attempt int) {
+		time.Sleep(250 * time.Millisecond * time.Duration(1<<(attempt-1)))
+	})
+}
+
+func getFileInfoWithRetry(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string, wait func(int)) (gitlabFileInfo, error) {
+	fileURL, err := url.Parse(fmt.Sprintf("%s/projects/%d/repository/files/%s",
 		gitlabAPIURL,
 		projectID,
-		strings.ReplaceAll(filePath, "/", "%2F"), // URL encode the file path
-		branch,
-	)
-
-	req, err := http.NewRequest("GET", fileURL, nil)
+		url.PathEscape(filePath),
+	))
 	if err != nil {
 		return gitlabFileInfo{}, err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	query := fileURL.Query()
+	query.Set("ref", branch)
+	fileURL.RawQuery = query.Encode()
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return gitlabFileInfo{}, err
+	for attempt := 1; attempt <= maxGitlabFileInfoAttempts; attempt++ {
+		if attempt > 1 {
+			wait(attempt - 1)
+		}
+
+		req, err := http.NewRequest("GET", fileURL.String(), nil)
+		if err != nil {
+			return gitlabFileInfo{}, err
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+		resp, err := client.Do(req)
+		if err != nil {
+			if attempt < maxGitlabFileInfoAttempts {
+				continue
+			}
+			return gitlabFileInfo{}, err
+		}
+
+		if (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= http.StatusInternalServerError) && attempt < maxGitlabFileInfoAttempts {
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusNotFound {
+			return gitlabFileInfo{Exists: false}, nil
+		}
+
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata (status %d): %s", resp.StatusCode, string(body))
+		}
+
+		var info gitlabFileInfo
+		if err := json.Unmarshal(body, &info); err != nil {
+			return gitlabFileInfo{}, err
+		}
+		info.Exists = true
+
+		return info, nil
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
-		return gitlabFileInfo{Exists: false}, nil
-	}
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	var info gitlabFileInfo
-	if err := json.Unmarshal(body, &info); err != nil {
-		return gitlabFileInfo{}, err
-	}
-	info.Exists = true
-
-	return info, nil
+	return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata after %d attempts", maxGitlabFileInfoAttempts)
 }

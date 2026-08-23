@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerProfileService } from '@metorial/module-consumer';
+import { consumerProfileService } from '@metorial/module-consumer-core';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { consumerProfilePresenter } from '../../../presenters';
+import { consumerProfilePresenter } from '@metorial/presenters';
 import { portalGroup } from './portal';
 
 export let consumerProfileGroup = portalGroup.use(async ctx => {

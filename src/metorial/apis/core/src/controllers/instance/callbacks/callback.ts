@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCallbackService } from '@metorial/module-subspace';
+import { callbackService } from '@metorial-subspace/module-callback';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { callbackPresenter } from '../../../presenters';
+import { callbackPresenter } from '@metorial/presenters';
 
 export let callbackGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.callbackId) {
@@ -19,9 +19,10 @@ export let callbackGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let callback = await subspaceCallbackService.get({
+  let callback = await callbackService.getCallbackById({
     instance: ctx.instance,
-    callbackId: ctx.params.callbackId
+    callbackId: ctx.params.callbackId,
+    allowDeleted: false
   });
 
   return { callback };
@@ -65,7 +66,7 @@ export let callbackController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCallbackService.list({
+        let paginator = await callbackService.listCallbacks({
           instance: ctx.instance,
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
@@ -172,18 +173,22 @@ export let callbackController = Controller.create(
       )
       .output(callbackPresenter)
       .do(async ctx => {
-        let callback = await subspaceCallbackService.create({
+        let callback = await callbackService.createCallback({
           instance: ctx.instance,
-          providerDeploymentId: ctx.body.provider_deployment_id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          pollIntervalSecondsOverride: ctx.body.poll_interval_seconds_override,
-          destinationIds: ctx.body.destination_ids ?? [],
-          triggers: (ctx.body.triggers ?? []).map(trigger => ({
-            triggerId: trigger.trigger_id,
-            eventTypes: trigger.event_types
-          }))
+          providerDeployment: {
+            id: ctx.body.provider_deployment_id
+          },
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            pollIntervalSecondsOverride: ctx.body.poll_interval_seconds_override,
+            destinationIds: ctx.body.destination_ids ?? [],
+            triggers: (ctx.body.triggers ?? []).map(trigger => ({
+              triggerId: trigger.trigger_id,
+              eventTypes: trigger.event_types
+            }))
+          }
         });
 
         return callbackPresenter.present({ callback });
@@ -262,18 +267,20 @@ export let callbackController = Controller.create(
       )
       .output(callbackPresenter)
       .do(async ctx => {
-        let callback = await subspaceCallbackService.update({
+        let callback = await callbackService.updateCallback({
           instance: ctx.instance,
-          callbackId: ctx.callback.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          pollIntervalSecondsOverride: ctx.body.poll_interval_seconds_override,
-          destinationIds: ctx.body.destination_ids,
-          triggers: ctx.body.triggers?.map(trigger => ({
-            triggerId: trigger.trigger_id,
-            eventTypes: trigger.event_types
-          }))
+          callback: ctx.callback,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            pollIntervalSecondsOverride: ctx.body.poll_interval_seconds_override,
+            destinationIds: ctx.body.destination_ids,
+            triggers: ctx.body.triggers?.map(trigger => ({
+              triggerId: trigger.trigger_id,
+              eventTypes: trigger.event_types
+            }))
+          }
         });
 
         return callbackPresenter.present({ callback });
@@ -287,9 +294,9 @@ export let callbackController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .output(callbackPresenter)
       .do(async ctx => {
-        let callback = await subspaceCallbackService.archive({
+        let callback = await callbackService.archiveCallback({
           instance: ctx.instance,
-          callbackId: ctx.callback.id
+          callback: ctx.callback
         });
 
         return callbackPresenter.present({ callback });

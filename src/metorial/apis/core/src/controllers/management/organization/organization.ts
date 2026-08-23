@@ -3,7 +3,7 @@ import { organizationService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { organizationGroup } from '../../../middleware/organizationGroup';
-import { organizationPresenter } from '../../../presenters';
+import { organizationPresenter } from '@metorial/presenters';
 
 export let organizationManagementController = Controller.create(
   {
@@ -45,8 +45,7 @@ export let organizationManagementController = Controller.create(
             imageFileId: ctx.body.image_file_id
           },
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return organizationPresenter.present({ organization });

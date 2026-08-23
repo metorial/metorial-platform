@@ -55,6 +55,14 @@ const invocationMocks = vi.hoisted(() => ({
   unregisterWebhook: vi.fn()
 }));
 
+const lockMocks = vi.hoisted(() => ({
+  usingLock: vi.fn(async (_key: string, callback: () => Promise<unknown>) => callback())
+}));
+
+vi.mock('@lowerdeck/lock', () => ({
+  createLock: vi.fn(() => ({ usingLock: lockMocks.usingLock }))
+}));
+
 vi.mock('../../../queues/trigger/eventQueues', () => ({
   slateTriggerEventProcessQueue: {
     addManyWithOps: queueMocks.processAddMany,
@@ -300,6 +308,10 @@ describe('slate:trigger webhook E2E', () => {
     invocationMocks.handleWebhookRequest.mockReset();
     invocationMocks.invokeTriggerMapper.mockReset();
     invocationMocks.pollTriggerForEvents.mockReset();
+    lockMocks.usingLock.mockClear();
+    lockMocks.usingLock.mockImplementation(
+      async (_key: string, callback: () => Promise<unknown>) => callback()
+    );
   });
 
   const setupWebhookScenario = async (options?: {
@@ -307,6 +319,20 @@ describe('slate:trigger webhook E2E', () => {
     receiverStatus?: SlateTriggerReceiverStatus;
     receiverEventTypes?: string[];
     specAuthMethods?: any[];
+    http?: {
+      methods?: Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'>;
+      sync?: {
+        mode: 'never' | 'match' | 'always';
+        match?: Array<{
+          method?: string;
+          hasQueryParam?: string;
+          hasHeader?: string;
+          jsonBodyField?: { path: string; equals?: string };
+          formBodyField?: { path: string; equals?: string };
+        }>;
+        timeoutMs?: number;
+      };
+    };
   }) => {
     const tenant = await f.tenant.withIdentifier('tenant-slates');
 
@@ -345,7 +371,8 @@ describe('slate:trigger webhook E2E', () => {
       slateOid: slate.oid,
       specificationOid: slate.currentVersion.specification.oid,
       identifier: 'trigger.test',
-      key: 'trigger.test'
+      key: 'trigger.test',
+      webhookConfig: options?.http ? { http: options.http } : undefined
     });
 
     // Update to polling if requested
@@ -457,6 +484,562 @@ describe('slate:trigger webhook E2E', () => {
     method: requestRecord.method,
     headers: requestRecord.headers as Record<string, string>,
     body: requestRecord.body as { encoding: 'base64'; content: string } | null
+  });
+
+  it('returns a matched receiver webhook response synchronously and finalizes its audit row', async () => {
+    const { tenant, receiver, receiverTrigger, deployment, bucket } =
+      await setupWebhookScenario({
+        http: {
+          methods: ['POST'],
+          sync: {
+            mode: 'match',
+            match: [{ jsonBodyField: { path: 'type', equals: 'url_verification' } }]
+          }
+        }
+      });
+
+    await testDb.slateTriggerReceiverTrigger.update({
+      where: { oid: receiverTrigger.oid },
+      data: { registrationDetails: { signingSecret: 'registered-secret' } }
+    });
+
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_sync_webhook_response'
+    });
+
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: {
+        inputs: [],
+        response: {
+          status: 200,
+          headers: {
+            'content-type': 'text/plain',
+            'x-provider-response': 'present',
+            'set-cookie': 'secret=value'
+          },
+          body: {
+            encoding: 'base64',
+            content: Buffer.from('challenge-value').toString('base64')
+          }
+        }
+      }
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'url_verification', challenge: 'challenge-value' })
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('challenge-value');
+    expect(response.headers.get('content-type')).toContain('text/plain');
+    expect(response.headers.get('x-provider-response')).toBe('present');
+    expect(response.headers.get('set-cookie')).toBeNull();
+    expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        registrationDetails: { signingSecret: 'registered-secret' }
+      })
+    );
+
+    const requestRecord = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+      where: { receiverId: receiver.id }
+    });
+    expect(requestRecord.processedAt).not.toBeNull();
+    expect(requestRecord.body).toBeNull();
+
+    const triggerInvocation = await testDb.slateTriggerInvocation.findFirstOrThrow({
+      where: { receiverTriggerOid: receiverTrigger.oid }
+    });
+    expect(triggerInvocation.hasResponse).toBe(true);
+
+    const paginator = await slateTriggerInvocationService.listTriggerInvocations({
+      tenant,
+      receiverTriggerIds: [receiverTrigger.id]
+    });
+    expect((await paginator.run({ limit: 10 })).items).toHaveLength(1);
+  });
+
+  it('normalizes an informational provider response without retrying processed work', async () => {
+    const { receiver, deployment, bucket } = await setupWebhookScenario({
+      http: { methods: ['POST'], sync: { mode: 'always' } }
+    });
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_sync_informational_response'
+    });
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: {
+        inputs: [],
+        response: {
+          status: 103,
+          headers: { 'content-type': 'text/plain' },
+          body: {
+            encoding: 'base64',
+            content: Buffer.from('early hints').toString('base64')
+          }
+        }
+      }
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), { method: 'POST' })
+    );
+
+    expect(response.status).toBe(502);
+    expect((await response.arrayBuffer()).byteLength).toBe(0);
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
+    expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
+    expect(
+      await testDb.slateTriggerWebhookRequest.findFirst({
+        where: { receiverId: receiver.id }
+      })
+    ).toMatchObject({ processedAt: expect.any(Date) });
+  });
+
+  it('keeps matcher misses on the queued path', async () => {
+    const { receiver } = await setupWebhookScenario({
+      http: {
+        sync: {
+          mode: 'match',
+          match: [{ jsonBodyField: { path: 'type', equals: 'url_verification' } }]
+        }
+      }
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'event_callback' })
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: 'queued' });
+    expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
+    expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
+  });
+
+  it('routes matching URL-encoded form verification requests synchronously', async () => {
+    const { receiver, deployment, bucket } = await setupWebhookScenario({
+      http: {
+        methods: ['POST'],
+        sync: {
+          mode: 'match',
+          match: [{ formBodyField: { path: 'mode', equals: 'subscribe' } }]
+        }
+      }
+    });
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_sync_form_body'
+    });
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: {
+        inputs: [],
+        response: {
+          status: 200,
+          headers: { 'content-type': 'text/plain' },
+          body: {
+            encoding: 'base64',
+            content: Buffer.from('form-challenge').toString('base64')
+          }
+        }
+      }
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: 'mode=subscribe&challenge=form-challenge'
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('form-challenge');
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
+    expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes declared GET webhooks synchronously and rejects undeclared GET methods', async () => {
+    const allowed = await setupWebhookScenario({
+      http: {
+        methods: ['GET', 'POST'],
+        sync: { mode: 'always' }
+      }
+    });
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: allowed.deployment.oid,
+      bucketOid: allowed.bucket.oid,
+      providerInvocationId: 'inv_sync_get'
+    });
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: {
+        inputs: [],
+        response: {
+          status: 200,
+          headers: { 'content-type': 'text/plain' },
+          body: {
+            encoding: 'base64',
+            content: Buffer.from('get-challenge').toString('base64')
+          }
+        }
+      }
+    });
+
+    const allowedResponse = await hubApp.fetch(
+      new Request(`${buildReceiverWebhookUrl(allowed.receiver.id)}?challenge=abc`, {
+        method: 'GET'
+      })
+    );
+    expect(allowedResponse.status).toBe(200);
+    expect(await allowedResponse.text()).toBe('get-challenge');
+
+    await cleanDatabase();
+    queueMocks.webhookAdd.mockClear();
+    invocationMocks.handleWebhookRequest.mockReset();
+    const denied = await setupWebhookScenario();
+    const deniedResponse = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(denied.receiver.id), { method: 'GET' })
+    );
+
+    expect(deniedResponse.status).toBe(405);
+    expect(deniedResponse.headers.get('allow')).toBe('POST');
+    expect(queueMocks.webhookAdd).not.toHaveBeenCalled();
+    expect(
+      await testDb.slateTriggerWebhookRequest.findFirst({
+        where: { receiverId: denied.receiver.id }
+      })
+    ).toMatchObject({ method: 'GET', processedAt: expect.any(Date) });
+  });
+
+  it('selects only method-compatible triggers for synchronous receiver fanout', async () => {
+    const { receiver, receiverTrigger, slate, deployment, bucket } =
+      await setupWebhookScenario({
+        http: { methods: ['GET'], sync: { mode: 'always' } }
+      });
+    const postAction = await f.slateSpecification.withTriggerAction({
+      slateOid: slate.oid,
+      specificationOid: slate.currentVersion.specification.oid,
+      identifier: 'trigger.post-only',
+      key: 'trigger.post-only',
+      webhookConfig: { http: { methods: ['POST'], sync: { mode: 'always' } } }
+    });
+    await f.slateTriggerReceiver.createTrigger({
+      receiverOid: receiver.oid,
+      actionOid: postAction.oid,
+      source: SlateTriggerReceiverTriggerSource.webhook
+    });
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_sync_mixed_methods'
+    });
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: {
+        inputs: [],
+        response: {
+          status: 200,
+          headers: { 'content-type': 'text/plain' },
+          body: {
+            encoding: 'base64',
+            content: Buffer.from('get-only').toString('base64')
+          }
+        }
+      }
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), { method: 'GET' })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('get-only');
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ actionId: 'trigger.test' })
+    );
+    expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
+    expect(queueMocks.webhookAdd.mock.invocationCallOrder[0]).toBeLessThan(
+      invocationMocks.handleWebhookRequest.mock.invocationCallOrder[0]!
+    );
+    expect(
+      await testDb.slateTriggerInvocation.findFirst({
+        where: { receiverTriggerOid: receiverTrigger.oid }
+      })
+    ).toBeTruthy();
+  });
+
+  it('fans queued receiver requests out only to method-compatible triggers', async () => {
+    const { receiver, slate, deployment, bucket } = await setupWebhookScenario({
+      http: { methods: ['GET'], sync: { mode: 'never' } }
+    });
+    const postAction = await f.slateSpecification.withTriggerAction({
+      slateOid: slate.oid,
+      specificationOid: slate.currentVersion.specification.oid,
+      identifier: 'trigger.queued-post-only',
+      key: 'trigger.queued-post-only',
+      webhookConfig: { http: { methods: ['POST'], sync: { mode: 'never' } } }
+    });
+    await f.slateTriggerReceiver.createTrigger({
+      receiverOid: receiver.oid,
+      actionOid: postAction.oid,
+      source: SlateTriggerReceiverTriggerSource.webhook
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), { method: 'GET' })
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: 'queued' });
+    expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
+
+    const requestRecord = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+      where: { receiverId: receiver.id }
+    });
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_queued_mixed_methods'
+    });
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: { inputs: [] }
+    });
+
+    await slateTriggerReceiverService.handleReceiverWebhook({
+      receiverId: receiver.id,
+      request: webhookRequestPayload(requestRecord)
+    });
+
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ actionId: 'trigger.test' })
+    );
+  });
+
+  it('falls back to the queue when a synchronous provider invocation errors', async () => {
+    const { receiver, deployment, bucket } = await setupWebhookScenario({
+      http: { sync: { mode: 'always' } }
+    });
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_sync_error'
+    });
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'error',
+      invocation: { oid: webhookInvocation.oid },
+      error: { code: 'provider_error', message: 'Provider failed' }
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), { method: 'POST' })
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; webhookRequestId: string };
+    expect(body.status).toBe('queued');
+    expect(queueMocks.webhookAdd).toHaveBeenCalledWith({
+      webhookRequestId: body.webhookRequestId,
+      excludeReceiverTriggerIds: undefined
+    });
+  });
+
+  it('schedules a durable queue owner when the synchronous invocation does not settle', async () => {
+    const { receiver } = await setupWebhookScenario({
+      http: { sync: { mode: 'always', timeoutMs: 1 } }
+    });
+    invocationMocks.handleWebhookRequest.mockImplementationOnce(
+      () => new Promise(() => undefined)
+    );
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), { method: 'POST' })
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; webhookRequestId: string };
+    expect(body.status).toBe('queued');
+    expect(queueMocks.webhookAdd).toHaveBeenCalledWith(
+      { webhookRequestId: body.webhookRequestId },
+      {
+        delay: expect.any(Number),
+        id: `sync-fallback-${body.webhookRequestId}`
+      }
+    );
+    expect(queueMocks.webhookAdd.mock.calls[0]?.[1]?.delay).toBeGreaterThan(15 * 60 * 1_000);
+    // The queued response settles before the background owner reaches the provider RPC.
+    await vi.waitFor(() =>
+      expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1)
+    );
+  });
+
+  it('lets a late synchronous invocation finish once and finalize without a queue race', async () => {
+    const { receiver, deployment, bucket } = await setupWebhookScenario({
+      http: { sync: { mode: 'always', timeoutMs: 1 } }
+    });
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_sync_late_settlement'
+    });
+    let resolveInvocation!: (value: any) => void;
+    invocationMocks.handleWebhookRequest.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveInvocation = resolve;
+        })
+    );
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), { method: 'POST' })
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; webhookRequestId: string };
+    expect(body.status).toBe('queued');
+    expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
+
+    // Wait for the background owner to invoke the provider so resolveInvocation is assigned.
+    await vi.waitFor(() =>
+      expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1)
+    );
+    resolveInvocation({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: { inputs: [] }
+    });
+
+    await vi.waitFor(async () => {
+      const requestRecord = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+        where: { id: body.webhookRequestId }
+      });
+      expect(requestRecord.processedAt).not.toBeNull();
+    });
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
+    expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the first synchronous fanout response and queues the unprocessed remainder', async () => {
+    const { receiver, receiverTrigger, slate, deployment, bucket } =
+      await setupWebhookScenario({
+        http: { sync: { mode: 'always' } }
+      });
+    const secondAction = await f.slateSpecification.withTriggerAction({
+      slateOid: slate.oid,
+      specificationOid: slate.currentVersion.specification.oid,
+      identifier: 'trigger.sync.second',
+      key: 'trigger.sync.second',
+      webhookConfig: { http: { sync: { mode: 'always' } } }
+    });
+    const secondTrigger = await f.slateTriggerReceiver.createTrigger({
+      receiverOid: receiver.oid,
+      actionOid: secondAction.oid,
+      source: SlateTriggerReceiverTriggerSource.webhook
+    });
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_sync_first_wins'
+    });
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: {
+        inputs: [],
+        response: {
+          status: 202,
+          headers: { 'x-winner': 'first' },
+          body: {
+            encoding: 'base64',
+            content: Buffer.from('first').toString('base64')
+          }
+        }
+      }
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), { method: 'POST' })
+    );
+
+    expect(response.status).toBe(202);
+    expect(await response.text()).toBe('first');
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
+    expect(queueMocks.webhookAdd).toHaveBeenCalledWith({
+      webhookRequestId: expect.any(String),
+      excludeReceiverTriggerIds: [receiverTrigger.id]
+    });
+    expect(secondTrigger.id).not.toBe(receiverTrigger.id);
+
+    const requestRecord = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+      where: { receiverId: receiver.id }
+    });
+    expect(requestRecord.processedAt).toBeNull();
+  });
+
+  it('keeps CORS preflight unchanged and routes declared non-preflight OPTIONS', async () => {
+    const { receiver, deployment, bucket } = await setupWebhookScenario({
+      http: {
+        methods: ['POST', 'OPTIONS'],
+        sync: { mode: 'match', match: [{ method: 'OPTIONS' }] }
+      }
+    });
+
+    const preflight = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), {
+        method: 'OPTIONS',
+        headers: { 'access-control-request-method': 'POST' }
+      })
+    );
+    expect(preflight.status).toBe(200);
+    expect(await preflight.text()).toBe('');
+    expect(queueMocks.webhookAdd).not.toHaveBeenCalled();
+
+    const webhookInvocation = await f.slateInvocation.succeeded({
+      deploymentOid: deployment.oid,
+      bucketOid: bucket.oid,
+      providerInvocationId: 'inv_sync_options'
+    });
+    invocationMocks.handleWebhookRequest.mockResolvedValueOnce({
+      status: 'success',
+      invocation: { oid: webhookInvocation.oid },
+      data: {
+        inputs: [],
+        response: {
+          status: 200,
+          headers: { 'webhook-allowed-origin': 'https://origin.test' },
+          body: null
+        }
+      }
+    });
+
+    const actual = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), { method: 'OPTIONS' })
+    );
+    expect(actual.status).toBe(200);
+    expect(actual.headers.get('webhook-allowed-origin')).toBe('https://origin.test');
+    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
+    expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
   });
 
   it('creates a signal event and stores the signalEventId for webhook-triggered events', async () => {
@@ -846,7 +1429,8 @@ describe('slate:trigger webhook E2E', () => {
 
     const res = await hubApp.fetch(
       new Request(buildWebhookUrl(receiverTriggerId), {
-        method: 'OPTIONS'
+        method: 'OPTIONS',
+        headers: { 'access-control-request-method': 'POST' }
       })
     );
 

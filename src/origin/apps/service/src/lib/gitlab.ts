@@ -3,18 +3,13 @@ import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/err
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
 import { db } from '../db';
 import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
+import { usingScmTokenRefreshLock } from './scmTokenRefreshLock';
 
-type GitLabClient = InstanceType<typeof Gitlab>;
 type GitLabInstallation = ScmInstallation & { backend: ScmBackend };
-type GitLabCredentials = {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-};
 
-let tokenRefreshes = new Map<bigint, Promise<GitLabCredentials>>();
+let tokenRefreshes = new Map<bigint, Promise<string>>();
 
-export let createGitLabClient = (backend?: ScmBackend): GitLabClient => {
+export let createGitLabClient = (backend?: ScmBackend) => {
   let host = backend?.webUrl ?? 'https://gitlab.com';
   let oauthToken = undefined; // Will be set when we have a token
 
@@ -24,10 +19,7 @@ export let createGitLabClient = (backend?: ScmBackend): GitLabClient => {
   });
 };
 
-export let createGitLabClientWithToken = (
-  token: string,
-  backend?: ScmBackend
-): GitLabClient => {
+export let createGitLabClientWithToken = (token: string, backend?: ScmBackend) => {
   let host = backend?.webUrl ?? 'https://gitlab.com';
 
   return new Gitlab({
@@ -150,9 +142,7 @@ export let refreshGitLabAccessToken = async (i: {
   };
 };
 
-export let createGitLabClientWithInstallation = async (
-  installation: GitLabInstallation
-): Promise<GitLabClient> => {
+export let createGitLabClientWithInstallation = async (installation: GitLabInstallation) => {
   let accessToken = await getGitLabAccessTokenWithInstallation(installation);
   return createGitLabClientWithToken(accessToken, installation.backend);
 };
@@ -164,54 +154,56 @@ let tokenNeedsRefresh = (expiresAt: Date | null) => {
 
 let refreshGitLabInstallationCredentials = async (
   installation: GitLabInstallation
-): Promise<GitLabCredentials> => {
-  if (!installation.refreshToken) {
-    throw new ServiceError(
-      unauthorizedError({
-        message: 'GitLab authentication expired. Reconnect the GitLab integration.'
-      })
-    );
-  }
-
-  try {
-    let refreshed = await refreshGitLabAccessToken({
-      backend: installation.backend,
-      refreshToken: installation.refreshToken
-    });
-
-    await db.scmInstallation.update({
-      where: { oid: installation.oid },
-      data: {
-        accessToken: refreshed.accessToken,
-        refreshToken: refreshed.refreshToken,
-        accessTokenExpiresAt: refreshed.expiresAt
-      }
-    });
-
-    return refreshed;
-  } catch (error) {
-    // GitLab rotates refresh tokens. A concurrent worker may have refreshed first,
-    // making this request's refresh token invalid. Prefer the winner's credentials.
-    let current = await db.scmInstallation.findUnique({
+): Promise<string> =>
+  usingScmTokenRefreshLock('gitlab', installation.oid, async () => {
+    let persisted = await db.scmInstallation.findUnique({
       where: { oid: installation.oid }
     });
-    if (
-      current?.accessToken &&
-      current.refreshToken &&
-      !tokenNeedsRefresh(current.accessTokenExpiresAt) &&
-      (current.accessToken !== installation.accessToken ||
-        current.refreshToken !== installation.refreshToken)
-    ) {
-      return {
-        accessToken: current.accessToken,
-        refreshToken: current.refreshToken,
-        expiresAt: current.accessTokenExpiresAt!
-      };
+    let current = persisted ? { ...installation, ...persisted } : installation;
+
+    if (current.accessToken && !tokenNeedsRefresh(current.accessTokenExpiresAt)) {
+      return current.accessToken;
+    }
+    if (!current.refreshToken) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'GitLab authentication expired. Reconnect the GitLab integration.'
+        })
+      );
     }
 
-    throw error;
-  }
-};
+    try {
+      let refreshed = await refreshGitLabAccessToken({
+        backend: current.backend,
+        refreshToken: current.refreshToken
+      });
+
+      await db.scmInstallation.update({
+        where: { oid: current.oid },
+        data: {
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken,
+          accessTokenExpiresAt: refreshed.expiresAt
+        }
+      });
+
+      return refreshed.accessToken;
+    } catch (error) {
+      let winner = await db.scmInstallation.findUnique({
+        where: { oid: current.oid }
+      });
+      if (
+        winner?.accessToken &&
+        !tokenNeedsRefresh(winner.accessTokenExpiresAt) &&
+        (winner.accessToken !== current.accessToken ||
+          winner.refreshToken !== current.refreshToken)
+      ) {
+        return winner.accessToken;
+      }
+
+      throw error;
+    }
+  });
 
 export let getGitLabAccessTokenWithInstallation = async (
   installation: GitLabInstallation
@@ -234,5 +226,5 @@ export let getGitLabAccessTokenWithInstallation = async (
     void refresh.then(clearRefresh, clearRefresh);
   }
 
-  return (await refresh).accessToken;
+  return await refresh;
 };

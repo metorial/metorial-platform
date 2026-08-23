@@ -308,6 +308,33 @@ describe('request', () => {
     });
   });
 
+  test('distinguishes malformed RPC responses from connection failures', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response('not-json', {
+          status: 200,
+          headers: { 'content-type': 'text/plain' }
+        })
+    );
+
+    let request = await importRequest('single-route-malformed');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        context: {}
+      })
+    ).rejects.toMatchObject({
+      data: {
+        message: 'Invalid response from server http://localhost/rpc for health:check'
+      }
+    });
+  });
+
   test('batches browser requests and keeps the batch envelope for multi-call flushes', async () => {
     (globalThis as any).window = {};
 
@@ -486,8 +513,7 @@ describe('request', () => {
       headers: {}
     }));
 
-    let createClient = await importClientBuilder('client-disable-batching');
-    createClient = createClient(requestSpy);
+    let createClient = (await importClientBuilder('client-disable-batching'))(requestSpy);
 
     let client = createClient<{
       test: {
@@ -533,8 +559,7 @@ describe('request', () => {
       headers: {}
     }));
 
-    let createClient = await importClientBuilder('client-direct-route');
-    createClient = createClient(requestSpy);
+    let createClient = (await importClientBuilder('client-direct-route'))(requestSpy);
 
     let client = createClient<{
       test: {
@@ -557,6 +582,186 @@ describe('request', () => {
     );
   });
 
+  test('aborts a hanging call once the timeout elapses', async () => {
+    let observedSignals: (AbortSignal | undefined | null)[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (_input, init) =>
+        await new Promise((_resolve, reject) => {
+          observedSignals.push(init?.signal);
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        })
+    );
+
+    let request = await importRequest('timeout-abort');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        timeoutMs: 30,
+        context: {}
+      })
+    ).rejects.toMatchObject({ data: { status: 504 } });
+
+    expect(observedSignals[0]).toBeInstanceOf(AbortSignal);
+  });
+
+  test('stops retrying once the deadline passes instead of burning every try', async () => {
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      throw new Error('connection refused');
+    });
+
+    let request = await importRequest('timeout-retry-cap');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        timeoutMs: 45,
+        context: {}
+      })
+    ).rejects.toMatchObject({ data: { status: 504 } });
+
+    expect(fetchSpy.mock.calls.length).toBeLessThan(6);
+  });
+
+  test('rejects immediately when the caller signal is already aborted', async () => {
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      throw new Error('should not be called');
+    });
+
+    let request = await importRequest('timeout-pre-aborted');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        signal: AbortSignal.abort(),
+        context: {}
+      })
+    ).rejects.toMatchObject({ data: { status: 504 } });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  test('honours a caller signal aborted mid-flight', async () => {
+    let controller = new AbortController();
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (_input, init) =>
+        await new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+          setTimeout(() => controller.abort(), 10);
+        })
+    );
+
+    let request = await importRequest('timeout-mid-flight');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        signal: controller.signal,
+        context: {}
+      })
+    ).rejects.toMatchObject({ data: { status: 504 } });
+  });
+
+  test('keeps a signalled call out of the browser batch', async () => {
+    (globalThis as any).window = {};
+
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      let body = JSON.parse(init?.body as string);
+      return createBatchResponse([{ id: body.calls[0].id, result: 'unbatched' }]);
+    });
+
+    let request = await importRequest('timeout-no-batch');
+
+    let single = request({
+      endpoint: 'http://localhost/rpc',
+      name: 'test:signalled',
+      payload: {},
+      headers: {},
+      signal: new AbortController().signal,
+      context: {}
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    await expect(single).resolves.toMatchObject({ data: 'unbatched', status: 200 });
+  });
+
+  test('does not abort a call that has no timeout or signal', async () => {
+    let observedSignal: AbortSignal | undefined | null = null;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      observedSignal = init?.signal;
+
+      return new Response(serialize.encode({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    });
+
+    let request = await importRequest('timeout-absent');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        context: {}
+      })
+    ).resolves.toMatchObject({ status: 200 });
+
+    expect(observedSignal).toBeUndefined();
+  });
+
+  test('threads client and per-call timeouts through to the requester', async () => {
+    let requestSpy = vi.fn(async call => ({
+      data: { timeoutMs: call.timeoutMs ?? null },
+      status: 200,
+      headers: {}
+    }));
+
+    let createClient = (await importClientBuilder('client-timeout'))(requestSpy);
+
+    let client = createClient<{
+      test: {
+        call: (
+          input: { value: string },
+          opts?: { timeoutMs?: number; signal?: AbortSignal }
+        ) => Promise<{ timeoutMs: number | null }>;
+      };
+    }>({
+      endpoint: 'http://localhost/rpc',
+      timeoutMs: 1500
+    });
+
+    await expect(client.test.call({ value: 'default' })).resolves.toEqual({ timeoutMs: 1500 });
+    await expect(client.test.call({ value: 'override' }, { timeoutMs: 400 })).resolves.toEqual(
+      {
+        timeoutMs: 400
+      }
+    );
+
+    let signal = new AbortController().signal;
+    await client.test.call({ value: 'signal' }, { signal });
+
+    expect(requestSpy).toHaveBeenLastCalledWith(expect.objectContaining({ signal }));
+  });
+
   test('forwards referrerPolicy to fetch', async () => {
     let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
       expect(init?.referrerPolicy).toBe('unsafe-url');
@@ -565,8 +770,9 @@ describe('request', () => {
       return createBatchResponse([{ id: body.calls[0].id, result: { ok: true } }]);
     });
 
-    let createClient = await importClientBuilder('client-referrer-policy');
-    createClient = createClient(await importRequest('client-referrer-policy-request'));
+    let createClient = (await importClientBuilder('client-referrer-policy'))(
+      await importRequest('client-referrer-policy-request')
+    );
 
     let client = createClient<{
       test: {

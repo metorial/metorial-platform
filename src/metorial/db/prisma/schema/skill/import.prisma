@@ -1,0 +1,105 @@
+enum SkillImportSourceType {
+  public_repository
+  origin_repository
+  uploaded_file
+}
+
+enum SkillImportFileFormat {
+  zip
+  markdown
+}
+
+enum SkillImportStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum SkillImportItemStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model SkillImport {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  sourceType SkillImportSourceType
+  status     SkillImportStatus     @default(pending)
+
+  repositoryUrl    String?
+  repositoryId     String?
+  repositoryName   String?
+  ref              String?
+  path             String?
+  sourceFileName   String?
+  sourceFileFormat SkillImportFileFormat?
+  codeBucketId     String?
+  error            String?
+
+  sourceFileOid BigInt?
+  sourceFile    File?   @relation(fields: [sourceFileOid], references: [oid], onDelete: SetNull)
+
+  sourceFileReferenceOid BigInt?
+  sourceFileReference    FileReference? @relation(fields: [sourceFileReferenceOid], references: [oid], onDelete: SetNull)
+
+  sourceFileLinkOid BigInt?
+  sourceFileLink    FileLink? @relation(fields: [sourceFileLinkOid], references: [oid], onDelete: SetNull)
+
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  creatorResourceActorOid BigInt?
+  creatorResourceActor    ResourceActor? @relation("SkillImportCreator", fields: [creatorResourceActorOid], references: [oid], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  items SkillImportItem[]
+
+  @@index([resourceTenantOid, resourceGroupOid, createdAt])
+  @@index([instanceOid, createdAt])
+  @@index([creatorResourceActorOid, createdAt])
+  @@index([status, updatedAt])
+}
+
+model SkillImportItem {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status        SkillImportItemStatus @default(pending)
+  path          String
+  error         String?
+  targetSkillId String                @unique
+
+  skillImportOid BigInt
+  skillImport    SkillImport @relation(fields: [skillImportOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: SetNull)
+
+  createdAt          DateTime  @default(now())
+  startedAt          DateTime?
+  heartbeatAt        DateTime?
+  completedAt        DateTime?
+  cleanupCompletedAt DateTime?
+  updatedAt          DateTime  @default(now()) @updatedAt
+
+  @@unique([skillImportOid, path])
+  @@index([skillImportOid, status])
+  @@index([skillOid])
+}

@@ -10,6 +10,20 @@ export type AssignedRole = {
   displayName: string | null;
 };
 
+export type SsoUserProfileSnapshot = {
+  id: string;
+  connectionId: string;
+  status: string;
+  email: string;
+  uid: string;
+  sub: string | null;
+  firstName: string;
+  lastName: string;
+  ownerDirectoryId: string | null;
+  groups: AssignedGroup[];
+  roles: AssignedRole[];
+};
+
 export type SsoUserChangeSnapshot = {
   user: {
     id: string;
@@ -31,6 +45,7 @@ export type SsoUserChangeSnapshot = {
   } | null;
   assignedGroups: AssignedGroup[];
   assignedRoles: AssignedRole[];
+  profiles?: SsoUserProfileSnapshot[];
 };
 
 export let byValueThenId = <T extends { id: string; value: string }>(a: T, b: T) => {
@@ -40,7 +55,15 @@ export let byValueThenId = <T extends { id: string; value: string }>(a: T, b: T)
   return a.id.localeCompare(b.id);
 };
 
+export let byId = <T extends { id: string }>(a: T, b: T) => a.id.localeCompare(b.id);
+
 let stableJson = (value: unknown) => JSON.stringify(value);
+
+let profileAttributesOf = (profiles: SsoUserProfileSnapshot[]) =>
+  profiles.map(({ groups, roles, ...attributes }) => attributes);
+
+let profileMembershipsOf = (profiles: SsoUserProfileSnapshot[]) =>
+  profiles.map(({ id, groups, roles }) => ({ id, groups, roles }));
 
 export let getChangedSsoUserFields = (
   prev: SsoUserChangeSnapshot | null,
@@ -53,8 +76,10 @@ export let getChangedSsoUserFields = (
       'firstName',
       'lastName',
       'ownerProfile',
+      'profiles',
       'assignedGroups',
-      'assignedRoles'
+      'assignedRoles',
+      'profileMemberships'
     ];
   }
 
@@ -70,12 +95,25 @@ export let getChangedSsoUserFields = (
     changedFields.push('ownerProfile');
   }
 
+  let prevProfiles = prev.profiles ?? [];
+  let nextProfiles = next.profiles ?? [];
+
+  if (stableJson(profileAttributesOf(prevProfiles)) !== stableJson(profileAttributesOf(nextProfiles))) {
+    changedFields.push('profiles');
+  }
+
   if (stableJson(prev.assignedGroups) !== stableJson(next.assignedGroups)) {
     changedFields.push('assignedGroups');
   }
 
   if (stableJson(prev.assignedRoles) !== stableJson(next.assignedRoles)) {
     changedFields.push('assignedRoles');
+  }
+
+  if (
+    stableJson(profileMembershipsOf(prevProfiles)) !== stableJson(profileMembershipsOf(nextProfiles))
+  ) {
+    changedFields.push('profileMemberships');
   }
 
   return changedFields;

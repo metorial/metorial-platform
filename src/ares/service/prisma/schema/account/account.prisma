@@ -1,0 +1,89 @@
+enum AccountStatus {
+  active
+  deleting
+}
+
+model Account {
+  oid BigInt @id
+  id  String @unique
+
+  clientId   String @unique
+  identifier String @unique
+  name       String
+
+  status           AccountStatus @default(active)
+  allowEmailLogin  Boolean       @default(true)
+  allowSocialLogin Boolean       @default(true)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  users          User[]
+  ssoTenants     SsoTenant[]
+  accountDomains AccountDomain[]
+  authIntents    AuthIntent[]
+  authAttempts   AuthAttempt[]
+  ssoAuths       SsoAuth[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([appOid, identifier])
+  @@index([appOid, status])
+}
+
+model AccountDomain {
+  oid BigInt @id
+  id  String @unique
+
+  domain String
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  allowedTenants     AccountDomainSsoTenant[]
+  allowedConnections AccountDomainSsoConnection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([appOid, domain])
+  @@index([accountOid])
+}
+
+model AccountDomainSsoTenant {
+  oid BigInt @id
+  id  String @unique
+
+  domainOid BigInt
+  domain    AccountDomain @relation(fields: [domainOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([domainOid, tenantOid])
+  @@index([tenantOid])
+}
+
+model AccountDomainSsoConnection {
+  oid BigInt @id
+  id  String @unique
+
+  domainOid BigInt
+  domain    AccountDomain @relation(fields: [domainOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([domainOid, connectionOid])
+  @@index([connectionOid])
+}

@@ -19,6 +19,8 @@ export interface Call {
   referrerPolicy?: RequestInit['referrerPolicy'];
   disableBatching?: boolean;
   useDirectMethodRoute?: boolean;
+  timeoutMs?: number;
+  signal?: AbortSignal;
   signature?:
     | string
     | {

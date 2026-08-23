@@ -1,6 +1,13 @@
 enum SsoTenantStatus {
   pending
   completed
+  disabled
+}
+
+enum SsoTenantEnrollment {
+  app
+  account
+  disabled
 }
 
 model SsoTenant {
@@ -16,11 +23,19 @@ model SsoTenant {
   /// [JsonObject]
   metadata Json?
 
-  isGlobal Boolean @default(false)
-  hideInUI Boolean @default(false)
+  enrollment SsoTenantEnrollment @default(app)
+  hideInUI   Boolean             @default(false)
 
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: Restrict)
+
+  importedDelegationOid BigInt?                @unique
+  importedDelegation    SsoImportedDelegation? @relation(fields: [importedDelegationOid], references: [oid], onDelete: Cascade)
+
+  syncRevision BigInt @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -33,25 +48,12 @@ model SsoTenant {
   groups           SsoGroup[]
   roles            SsoRole[]
   auths            SsoAuth[]
+  tests            SsoTest[]
 
-  identityProvider UserIdentityProvider?
-  ssoTenantDomain  SsoTenantDomain[]
-}
+  identityProvider      UserIdentityProvider?
+  allowedAccountDomains AccountDomainSsoTenant[]
+  exportedDelegations   SsoExportedDelegation[]
 
-model SsoTenantDomain {
-  oid BigInt @id
-  id  String @unique
-
-  domain String
-
-  tenantOid BigInt
-  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
-
-  appOid BigInt
-  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  @@unique([appOid, domain])
+  @@index([appOid, enrollment])
+  @@index([accountOid, status])
 }

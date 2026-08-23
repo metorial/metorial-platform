@@ -54,7 +54,8 @@ export let ssoController = internalApp.controller({
         input: {
           name: input.name,
           externalId: input.externalId,
-          hideInUI: input.hideInUI
+          hideInUI: input.hideInUI,
+          enrollment: 'app'
         }
       });
       return ssoTenantPresenter(tenant);

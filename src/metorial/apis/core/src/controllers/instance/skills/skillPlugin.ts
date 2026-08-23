@@ -1,7 +1,11 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillPluginService } from '@metorial/module-file';
+import {
+  getArchivableSkillPluginIds,
+  getWritableSkillPluginIds,
+  skillPluginService
+} from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -10,14 +14,12 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillPluginPresenter } from '../../../presenters';
-import {
-  getConsumerAccessibleSkillMarketplaceIds,
-  getReadSkillMarketplaceFilter
-} from './_marketplaceAccess';
+import { skillPluginPresenter } from '@metorial/presenters';
+import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write'] as const;
+let consumerWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
 
 let skillPluginInput = {
   name: v.optional(v.string()),
@@ -28,53 +30,43 @@ let skillPluginInput = {
   skill_configuration_id: v.optional(v.nullable(v.string()))
 };
 
-export let getSkillPluginAccess = (
-  ctx: Parameters<typeof getInstanceCargoAccess>[0] & any
-) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  ...getInstanceCargoAccess(ctx)
-});
+export let getSkillPluginAccess = (ctx: Parameters<typeof getInstanceCargoAccess>[0] & any) =>
+  getInstanceCargoAccess(ctx);
 
-export let skillPluginGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
-  if (!ctx.params.skillPluginId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'skillPluginId is required',
-        description: 'The skillPluginId path parameter is required.'
-      })
-    );
-  }
-
-  if (hasInstanceConsumerAccess(ctx)) {
-    let accessibleMarketplaceIds = await getConsumerAccessibleSkillMarketplaceIds({
-      instance: ctx.instance,
-      consumerGroups: ctx.consumerGroups
-    });
-    let paginator = await skillPluginService.listSkillPlugins({
-      ...getSkillPluginAccess(ctx),
-      ids: [ctx.params.skillPluginId],
-      skillMarketplaceIds: accessibleMarketplaceIds
-    });
-    let list = await paginator.run({ limit: 1 });
-    let skillPlugin = list.items[0];
-    if (!skillPlugin) {
-      throw new ServiceError(notFoundError('skill.plugin', ctx.params.skillPluginId));
+export let skillPluginGroup = instanceGroup
+  .use(hasFlags(['skills-enabled']))
+  .use(async ctx => {
+    if (!ctx.params.skillPluginId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'skillPluginId is required',
+          description: 'The skillPluginId path parameter is required.'
+        })
+      );
     }
 
+    if (hasInstanceConsumerAccess(ctx)) {
+      let paginator = await skillPluginService.listSkillPlugins({
+        ...(await getSkillPluginAccess(ctx)),
+        ids: [ctx.params.skillPluginId],
+        ...getSkillMarketplaceAccessInput(ctx)
+      });
+      let list = await paginator.run({ limit: 1 });
+      let skillPlugin = list.items[0];
+      if (!skillPlugin) {
+        throw new ServiceError(notFoundError('skill.plugin', ctx.params.skillPluginId));
+      }
+
+      return { skillPlugin };
+    }
+
+    let skillPlugin = await skillPluginService.getSkillPluginById({
+      ...(await getSkillPluginAccess(ctx)),
+      skillPluginId: ctx.params.skillPluginId
+    });
+
     return { skillPlugin };
-  }
-
-  let skillPlugin = await skillPluginService.getSkillPluginById({
-    ...getSkillPluginAccess(ctx),
-    skillPluginId: ctx.params.skillPluginId
   });
-
-  return { skillPlugin };
-});
 
 export let skillPluginController = Controller.create(
   {
@@ -112,19 +104,11 @@ export let skillPluginController = Controller.create(
         )
       )
       .do(async ctx => {
-        let marketplaceFilter = await getReadSkillMarketplaceFilter(ctx);
-        let queryMarketplaceIds = normalizeArrayParam(ctx.query.skill_marketplace_id);
-        let skillMarketplaceIds =
-          marketplaceFilter == null
-            ? queryMarketplaceIds
-            : queryMarketplaceIds?.length
-              ? queryMarketplaceIds.filter(id => marketplaceFilter.includes(id))
-              : marketplaceFilter;
-
         let paginator = await skillPluginService.listSkillPlugins({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
+          ...getSkillMarketplaceAccessInput(ctx),
           ids: normalizeArrayParam(ctx.query.id),
-          skillMarketplaceIds,
+          skillMarketplaceIds: normalizeArrayParam(ctx.query.skill_marketplace_id),
           statuses: normalizeArrayParam(ctx.query.status),
           category: ctx.query.category,
           search: ctx.query.search,
@@ -133,9 +117,27 @@ export let skillPluginController = Controller.create(
           updatedAt: ctx.query.updated_at
         });
         let list = await paginator.run(ctx.query);
+        let accessInput = getSkillMarketplaceAccessInput(ctx);
+        let [writablePluginIds, archivablePluginIds] = await Promise.all([
+          getWritableSkillPluginIds({
+            plugins: list.items,
+            ...accessInput
+          }),
+          getArchivableSkillPluginIds({
+            plugins: list.items,
+            ...accessInput
+          })
+        ]);
 
         return Paginator.present(list, skillPlugin =>
-          skillPluginPresenter.present({ skillPlugin })
+          skillPluginPresenter.present({
+            skillPlugin,
+            ...accessInput,
+            pluginAccess: {
+              canUpdate: writablePluginIds.has(skillPlugin.id),
+              canDelete: archivablePluginIds.has(skillPlugin.id)
+            }
+          })
         );
       }),
 
@@ -148,7 +150,12 @@ export let skillPluginController = Controller.create(
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPluginPresenter)
-      .do(async ctx => skillPluginPresenter.present({ skillPlugin: ctx.skillPlugin })),
+      .do(async ctx =>
+        skillPluginPresenter.present({
+          skillPlugin: ctx.skillPlugin,
+          ...getSkillMarketplaceAccessInput(ctx)
+        })
+      ),
 
     create: instanceGroup
       .post(instancePath('skill-plugins', 'skills.plugins.create'), {
@@ -156,12 +163,31 @@ export let skillPluginController = Controller.create(
         description: 'Creates a skill plugin.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body('default', v.object({ ...skillPluginInput, name: v.string() }))
+      .use(checkAccess({ possibleScopes: [...consumerWriteScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .body(
+        'default',
+        v.object({
+          ...skillPluginInput,
+          name: v.string(),
+          skill_marketplace_id: v.optional(v.string())
+        })
+      )
       .output(skillPluginPresenter)
       .do(async ctx => {
+        let accessInput = getSkillMarketplaceAccessInput(ctx);
+        if (accessInput.accessTags && !ctx.body.skill_marketplace_id) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'skill_marketplace_id is required to create a skill plugin.'
+            })
+          );
+        }
+
         let skillPlugin = await skillPluginService.createSkillPlugin({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
+          ...accessInput,
+          skillMarketplaceId: ctx.body.skill_marketplace_id,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -172,7 +198,10 @@ export let skillPluginController = Controller.create(
           }
         });
 
-        return skillPluginPresenter.present({ skillPlugin });
+        return skillPluginPresenter.present({
+          skillPlugin,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     update: skillPluginGroup
@@ -181,12 +210,15 @@ export let skillPluginController = Controller.create(
         description: 'Updates a skill plugin.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(checkAccess({ possibleScopes: [...consumerWriteScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
       .body('default', v.object(skillPluginInput))
       .output(skillPluginPresenter)
       .do(async ctx => {
+        let accessInput = getSkillMarketplaceAccessInput(ctx);
         let skillPlugin = await skillPluginService.updateSkillPlugin({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
+          ...accessInput,
           skillPlugin: ctx.skillPlugin,
           input: {
             name: ctx.body.name,
@@ -198,7 +230,10 @@ export let skillPluginController = Controller.create(
           }
         });
 
-        return skillPluginPresenter.present({ skillPlugin });
+        return skillPluginPresenter.present({
+          skillPlugin,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     archive: skillPluginGroup
@@ -207,15 +242,21 @@ export let skillPluginController = Controller.create(
         description: 'Archives a skill plugin.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(checkAccess({ possibleScopes: [...consumerWriteScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
       .output(skillPluginPresenter)
       .do(async ctx => {
+        let accessInput = getSkillMarketplaceAccessInput(ctx);
         let skillPlugin = await skillPluginService.archiveSkillPlugin({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
+          ...accessInput,
           skillPlugin: ctx.skillPlugin
         });
 
-        return skillPluginPresenter.present({ skillPlugin });
+        return skillPluginPresenter.present({
+          skillPlugin,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     sync: skillPluginGroup
@@ -229,11 +270,14 @@ export let skillPluginController = Controller.create(
       .output(skillPluginPresenter)
       .do(async ctx => {
         let skillPlugin = await skillPluginService.forceSkillPluginSync({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           skillPlugin: ctx.skillPlugin
         });
 
-        return skillPluginPresenter.present({ skillPlugin });
+        return skillPluginPresenter.present({
+          skillPlugin,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       })
   }
 );

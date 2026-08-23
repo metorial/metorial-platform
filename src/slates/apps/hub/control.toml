@@ -1,0 +1,41 @@
+name = "@metorial/slates"
+group = "oss"
+
+[dev]
+prepare = ["admin:build"]
+run = ["bun --watch ./src/server.ts"]
+
+[[dev.expose]]
+port = 52045
+
+[[dev.expose]]
+port = 52046
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
+ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
+FUNCTION_BAY_API_URL = "http://localhost:52030/metorial-function-bay"
+FUNCTION_BAY_TENANT_IDENTIFIER = "dev-tenant"
+FUNCTION_BAY_DEFAULT_MEMORY_MB = "512"
+FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS = "60"
+SIGNAL_API_URL = "http://localhost:52050/metorial-signal"
+SIGNAL_SENDER_IDENTIFIER = "dev-slates-hub"
+OBJECT_STORAGE_URL = "http://services:52010"
+INVOCATIONS_BUCKET_NAME = "dev-invocations"
+SLATES_HUB_INSTANCE_IDENTIFIER = "dev-slates-hub"
+SERVICE_PUBLIC_URL = "http://{{HOSTNAME}}:52045"
+SUPPORTS_PREBUILT_SLATES = "true"
+NEBULA_API_URL = "http://localhost:52170/metorial-nebula"
+NEBULA_CONSUMER_IDENTIFIER = "dev-slates-hub"
+NEBULA_CONSUMER_TOKEN = "local-dev-nebula-slates-registration-secret"
+SLATES_DELEGATE_SECRETS_TO_NEBULA = "true"
+
+[dev.db.main]
+name = "slates-hub"
+engine = "postgres"
+env = "DATABASE_URL"

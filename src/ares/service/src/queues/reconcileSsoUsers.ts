@@ -9,7 +9,6 @@ import {
 import { ssoGroupRoleService } from '../services/sso/groupRole';
 
 let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-let isUniqueConstraintError = (error: unknown) => (error as any)?.code === 'P2002';
 
 export let reconcileSsoUsersCron = createCron(
   {
@@ -95,11 +94,15 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
         }
       });
 
-      await tdb.ssoUserGroup.deleteMany({ where: { userOid: user.oid } });
-      await tdb.ssoUserRole.deleteMany({ where: { userOid: user.oid } });
+      if (ownerProfile.status === 'deprovisioned') {
+        await tdb.ssoUserGroup.deleteMany({ where: { userOid: user.oid } });
+        await tdb.ssoUserRole.deleteMany({ where: { userOid: user.oid } });
+        return;
+      }
 
-      if (ownerProfile.status === 'deprovisioned') return;
-
+      // Upserting on the membership pair keeps link ids stable across reconciles, which
+      // downstream mirrors rely on to avoid unique constraint collisions.
+      let groupOids: bigint[] = [];
       for (let profileGroup of ownerProfile.groupLinks) {
         let { rootGroup } =
           profileGroup.group.rootGroup
@@ -108,19 +111,24 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
                 group: profileGroup.group
               });
 
-        try {
-          await tdb.ssoUserGroup.create({
-            data: {
-              ...getId('ssoUserGroup'),
-              userOid: user.oid,
-              groupOid: rootGroup.oid
-            }
-          });
-        } catch (error) {
-          if (!isUniqueConstraintError(error)) throw error;
-        }
+        groupOids.push(rootGroup.oid);
+
+        await tdb.ssoUserGroup.upsert({
+          where: { userOid_groupOid: { userOid: user.oid, groupOid: rootGroup.oid } },
+          create: {
+            ...getId('ssoUserGroup'),
+            userOid: user.oid,
+            groupOid: rootGroup.oid
+          },
+          update: {}
+        });
       }
 
+      await tdb.ssoUserGroup.deleteMany({
+        where: { userOid: user.oid, groupOid: { notIn: groupOids } }
+      });
+
+      let roleOids: bigint[] = [];
       for (let profileRole of ownerProfile.roleLinks) {
         let { rootRole } =
           profileRole.role.rootRole
@@ -129,18 +137,22 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
                 role: profileRole.role
               });
 
-        try {
-          await tdb.ssoUserRole.create({
-            data: {
-              ...getId('ssoUserRole'),
-              userOid: user.oid,
-              roleOid: rootRole.oid
-            }
-          });
-        } catch (error) {
-          if (!isUniqueConstraintError(error)) throw error;
-        }
+        roleOids.push(rootRole.oid);
+
+        await tdb.ssoUserRole.upsert({
+          where: { userOid_roleOid: { userOid: user.oid, roleOid: rootRole.oid } },
+          create: {
+            ...getId('ssoUserRole'),
+            userOid: user.oid,
+            roleOid: rootRole.oid
+          },
+          update: {}
+        });
       }
+
+      await tdb.ssoUserRole.deleteMany({
+        where: { userOid: user.oid, roleOid: { notIn: roleOids } }
+      });
     });
 
     await enqueueSsoUserChange({

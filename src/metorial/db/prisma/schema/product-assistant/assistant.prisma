@@ -1,0 +1,79 @@
+model ProductAssistantImplementation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+  slug String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  assistants ProductAssistant[]
+}
+
+enum ProductAssistantOwner {
+  metorial
+  tenant
+}
+
+model ProductAssistant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  ownerType ProductAssistantOwner
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  implementationOid BigInt
+  implementation    ProductAssistantImplementation @relation(fields: [implementationOid], references: [oid], onDelete: Cascade)
+
+  name             String
+  slug             String  @unique
+  systemIdentifier String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  assistantInstances     ProductAssistantInstance[]
+  assistantConversations ProductAssistantConversation[]
+  assistantRequests      ProductAssistantRequest[]
+  assistantMessages      ProductAssistantMessage[]
+  modelRuns              ProductAssistantModelRun[]
+
+  @@index([projectOid])
+  @@index([implementationOid])
+}
+
+model ProductAssistantConfig {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  projectOid BigInt  @unique
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model ProductAssistantInstance {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  assistantOid BigInt
+  assistant    ProductAssistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  assistantConversations ProductAssistantConversation[]
+  assistantRequests      ProductAssistantRequest[]
+  assistantMessages      ProductAssistantMessage[]
+  modelRuns              ProductAssistantModelRun[]
+
+  @@unique([assistantOid, projectOid])
+  @@index([projectOid])
+}

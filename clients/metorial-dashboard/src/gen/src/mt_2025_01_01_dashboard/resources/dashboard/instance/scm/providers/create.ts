@@ -3,13 +3,25 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceScmProvidersCreateOutput = {
   object: 'scm.provider.setup_session';
   id: string;
-  type: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
+  type:
+    | 'github'
+    | 'github_enterprise'
+    | 'gitlab'
+    | 'gitlab_selfhosted'
+    | 'bitbucket'
+    | 'bitbucket_data_center';
   url: string;
   status: 'pending' | 'completed' | 'expired';
   provider: {
     object: 'scm.provider';
     id: string;
-    type: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
+    type:
+      | 'github'
+      | 'github_enterprise'
+      | 'gitlab'
+      | 'gitlab_selfhosted'
+      | 'bitbucket'
+      | 'bitbucket_data_center';
     name: string;
     description: string | null;
     apiUrl: string | null;
@@ -49,7 +61,7 @@ export let mapDashboardInstanceScmProvidersCreateOutput =
   });
 
 export type DashboardInstanceScmProvidersCreateBody = {
-  type: 'github_enterprise' | 'gitlab_selfhosted';
+  type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center';
 };
 
 export let mapDashboardInstanceScmProvidersCreateBody =

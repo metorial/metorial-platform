@@ -1,13 +1,19 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
+import {
+  providerAuthCredentialsService,
+  providerSetupSessionService
+} from '@metorial-subspace/module-auth';
+import { providerService } from '@metorial-subspace/module-catalog';
+import { providerDeploymentService } from '@metorial-subspace/module-deployment';
+import { identityService } from '@metorial-subspace/module-identity';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerSetupSessionPresenter } from '../../../presenters';
+import { providerSetupSessionPresenter } from '@metorial/presenters';
 
 let providerSetupSessionConfigurationValidator = v.optional(
   v.object({
@@ -41,7 +47,7 @@ let providerSetupSessionGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let setupSession = await subspaceProviderSetupSessionService.get({
+  let setupSession = await providerSetupSessionService.getProviderSetupSessionById({
     instance: ctx.instance,
     providerSetupSessionId: ctx.params.providerSetupSessionId
   });
@@ -102,7 +108,7 @@ export let providerSetupSessionController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderSetupSessionService.list({
+        let paginator = await providerSetupSessionService.listProviderSetupSessions({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -215,53 +221,82 @@ export let providerSetupSessionController = Controller.create(
       )
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
-        let setupSession = await subspaceProviderSetupSessionService.create({
+        let provider = ctx.body.provider_id
+          ? await providerService.getProviderById({
+              instance: ctx.instance,
+              providerId: ctx.body.provider_id
+            })
+          : undefined;
+        let providerDeployment = ctx.body.provider_deployment_id
+          ? await providerDeploymentService.getProviderDeploymentById({
+              instance: ctx.instance,
+              providerDeploymentId: ctx.body.provider_deployment_id
+            })
+          : undefined;
+        let credentials = ctx.body.provider_auth_credentials_id
+          ? await providerAuthCredentialsService.getProviderAuthCredentialsById({
+              instance: ctx.instance,
+              providerAuthCredentialsId: ctx.body.provider_auth_credentials_id
+            })
+          : undefined;
+        let identity = ctx.body.identity_id
+          ? await identityService.getIdentityById({
+              instance: ctx.instance,
+              identityId: ctx.body.identity_id
+            })
+          : undefined;
+
+        let setupSession = await providerSetupSessionService.createProviderSetupSession({
           instance: ctx.instance,
-          providerId: ctx.body.provider_id ?? undefined,
-          providerDeploymentId: ctx.body.provider_deployment_id,
-          providerAuthMethodId: ctx.body.provider_auth_method_id,
-          providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
+          provider,
+          providerDeployment,
+          credentials,
+          identity,
           consumerId: ctx.body.consumer_id,
-          identityId: ctx.body.identity_id,
-          configuration: (ctx.body.configuration
-            ? {
-                providerSearch: ctx.body.configuration.provider_search
-                  ? {
-                      groups: ctx.body.configuration.provider_search.groups?.map(group => ({
-                        groupId: group.group_id
-                      })),
-                      collections: ctx.body.configuration.provider_search.collections?.map(
-                        collection => ({
-                          collectionId: collection.collection_id
-                        })
-                      ),
-                      categories: ctx.body.configuration.provider_search.categories?.map(
-                        category => ({
-                          categoryId: category.category_id
-                        })
-                      )
-                    }
-                  : undefined,
-                toolFilters: ctx.body.configuration.tool_filters
-                  ? { enabled: ctx.body.configuration.tool_filters.enabled }
-                  : undefined,
-                ui: ctx.body.configuration.ui
-                  ? {
-                      layout: ctx.body.configuration.ui.layout
-                    }
-                  : undefined
-              }
-            : undefined) as any,
-          name: ctx.body.name ?? 'Setup Session',
-          description: ctx.body.description,
-          uiMode: 'metorial_elements',
-          type:
-            ctx.body.type ??
-            (ctx.apiVersion === 'mt_2025_01_01_dashboard' ? 'auth_only' : 'auto'),
-          ip: ctx.context.ip,
-          ua: ctx.context.ua ?? '',
-          redirectUrl: ctx.body.redirect_url,
-          metadata: ctx.body.metadata
+          import: {
+            ip: ctx.context.ip,
+            ua: ctx.context.ua ?? ''
+          },
+          input: {
+            authMethodId: ctx.body.provider_auth_method_id,
+            configuration: (ctx.body.configuration
+              ? {
+                  providerSearch: ctx.body.configuration.provider_search
+                    ? {
+                        groups: ctx.body.configuration.provider_search.groups?.map(group => ({
+                          groupId: group.group_id
+                        })),
+                        collections: ctx.body.configuration.provider_search.collections?.map(
+                          collection => ({
+                            collectionId: collection.collection_id
+                          })
+                        ),
+                        categories: ctx.body.configuration.provider_search.categories?.map(
+                          category => ({
+                            categoryId: category.category_id
+                          })
+                        )
+                      }
+                    : undefined,
+                  toolFilters: ctx.body.configuration.tool_filters
+                    ? { enabled: ctx.body.configuration.tool_filters.enabled }
+                    : undefined,
+                  ui: ctx.body.configuration.ui
+                    ? {
+                        layout: ctx.body.configuration.ui.layout
+                      }
+                    : undefined
+                }
+              : undefined) as any,
+            name: ctx.body.name ?? 'Setup Session',
+            description: ctx.body.description,
+            uiMode: 'metorial_elements',
+            type:
+              ctx.body.type ??
+              (ctx.apiVersion === 'mt_2025_01_01_dashboard' ? 'auth_only' : 'auto'),
+            redirectUrl: ctx.body.redirect_url,
+            metadata: ctx.body.metadata
+          }
         });
 
         return providerSetupSessionPresenter.present({
@@ -304,13 +339,21 @@ export let providerSetupSessionController = Controller.create(
       )
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
-        let setupSession = await subspaceProviderSetupSessionService.update({
+        let identity = ctx.body.identity_id
+          ? await identityService.getIdentityById({
+              instance: ctx.instance,
+              identityId: ctx.body.identity_id
+            })
+          : undefined;
+        let setupSession = await providerSetupSessionService.updateProviderSetupSession({
           instance: ctx.instance,
-          providerSetupSessionId: ctx.setupSession.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          identityId: ctx.body.identity_id
+          providerSetupSession: ctx.setupSession,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            identity
+          }
         });
 
         return providerSetupSessionPresenter.present({

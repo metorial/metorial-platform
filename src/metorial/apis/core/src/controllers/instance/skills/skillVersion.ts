@@ -1,15 +1,13 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import type { Instance, Organization } from '@metorial/db';
-import { skillVersionService } from '@metorial/module-file';
-import type { SubspaceSkill } from '@metorial/module-subspace';
+import { skillVersionService, type SkillResource } from '@metorial/module-skill';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { skillVersionPresenter, skillVersionSnapshotPresenter } from '../../../presenters';
+import { skillVersionPresenter, skillVersionSnapshotPresenter } from '@metorial/presenters';
 import { skillGroup } from './skill';
 
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
@@ -17,18 +15,12 @@ let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as
 type SkillVersionContext = Parameters<typeof getInstanceCargoAccess>[0] & {
   instance: Instance;
   organization: Organization;
-  skill: SubspaceSkill;
+  skill: SkillResource;
 };
 
-let getSkillVersionInput = (ctx: SkillVersionContext) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  skillId: ctx.skill.id,
-  storeId: ctx.skill.storeId,
-  ...getInstanceCargoAccess(ctx)
+let getSkillVersionInput = async (ctx: SkillVersionContext) => ({
+  skill: ctx.skill,
+  ...(await getInstanceCargoAccess(ctx))
 });
 
 export let skillVersionGroup = skillGroup.use(async ctx => {
@@ -37,13 +29,9 @@ export let skillVersionGroup = skillGroup.use(async ctx => {
   }
 
   let skillVersion = await skillVersionService.getSkillVersionById({
-    ...getSkillVersionInput(ctx),
+    ...(await getSkillVersionInput(ctx)),
     skillVersionId: ctx.params.skillVersionId
   });
-
-  if (skillVersion.skillId !== ctx.skill.id) {
-    throw new ServiceError(notFoundError('skill.version', ctx.params.skillVersionId));
-  }
 
   return { skillVersion };
 });
@@ -64,7 +52,9 @@ export let skillVersionController = Controller.create(
       .outputList(skillVersionPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        let paginator = await skillVersionService.listSkillVersions(getSkillVersionInput(ctx));
+        let paginator = await skillVersionService.listSkillVersions(
+          await getSkillVersionInput(ctx)
+        );
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, skillVersion =>
@@ -98,7 +88,7 @@ export let skillVersionController = Controller.create(
       .output(skillVersionSnapshotPresenter)
       .do(async ctx => {
         let snapshot = await skillVersionService.getSkillVersionSnapshot({
-          ...getSkillVersionInput(ctx),
+          ...(await getSkillVersionInput(ctx)),
           skillVersionId: ctx.skillVersion.id
         });
 

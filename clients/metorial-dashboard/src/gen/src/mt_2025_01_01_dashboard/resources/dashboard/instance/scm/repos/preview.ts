@@ -4,11 +4,12 @@ export type DashboardInstanceScmReposPreviewOutput = {
   object: 'scm.repository.list#preview';
   repos: {
     object: 'scm.repository.item#preview';
-    provider: 'github' | 'gitlab';
+    provider: 'github' | 'gitlab' | 'bitbucket';
     externalId: string;
     name: string;
     identifier: string;
   }[];
+  nextCursor?: string | undefined;
 };
 
 export let mapDashboardInstanceScmReposPreviewOutput =
@@ -25,12 +26,15 @@ export let mapDashboardInstanceScmReposPreviewOutput =
           identifier: mtMap.objectField('identifier', mtMap.passthrough())
         })
       )
-    )
+    ),
+    nextCursor: mtMap.objectField('next_cursor', mtMap.passthrough())
   });
 
 export type DashboardInstanceScmReposPreviewBody = {
   installationId: string;
   externalAccountId?: string | undefined;
+  cursor?: string | undefined;
+  limit?: number | undefined;
 };
 
 export let mapDashboardInstanceScmReposPreviewBody =
@@ -39,6 +43,8 @@ export let mapDashboardInstanceScmReposPreviewBody =
     externalAccountId: mtMap.objectField(
       'external_account_id',
       mtMap.passthrough()
-    )
+    ),
+    cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+    limit: mtMap.objectField('limit', mtMap.passthrough())
   });
 

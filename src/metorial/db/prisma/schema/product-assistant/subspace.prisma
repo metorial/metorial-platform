@@ -1,0 +1,43 @@
+model ProductAssistantSubspaceMcpConnection {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  sessionId        String
+  solutionId       String
+  subspaceTenantId String
+  connectionId     String   @unique
+  connectionToken  String
+  lastUsedAt       DateTime
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([instanceOid, sessionId])
+  @@index([projectOid, instanceOid])
+  @@index([lastUsedAt])
+  @@index([createdAt])
+}
+
+model ProductAssistantSubspaceMcpToolCache {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  connectionId String @unique
+
+  /// [ProductAssistantSubspaceMcpToolList]
+  tools Json
+
+  cachedAt  DateTime
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([expiresAt])
+}

@@ -27,10 +27,25 @@ model App {
   emailDomains           EmailDomain[]
   userEmails             UserEmail[]
   oauthProviders         AppOAuthProvider[]
+  accounts               Account[]
+  accountDomains         AccountDomain[]
   ssoTenants             SsoTenant[]
   auditLogs              AuditLog[]
   accessGroups           AccessGroup[]
   accessGroupAssignments AccessGroupAssignment[]
-  ssoTenantDomain        SsoTenantDomain[]
   ssoScimOperations      SsoScimOperation[]
+  importedSsoDelegations SsoImportedDelegation[]
+}
+
+model SyncListener {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  callbackUrl String
+  secret      String
+  eventTypes  String[] @default(["user.changed"])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

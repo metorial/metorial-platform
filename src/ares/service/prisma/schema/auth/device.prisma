@@ -49,4 +49,13 @@ model AuthDeviceUserSession {
   loggedOutAt  DateTime?
   lastActiveAt DateTime?
   expiresAt    DateTime
+
+  lifecycleOwner          String?
+  lifecycleOwnerSessionId String?
+  lifecycleOwnerRevision  BigInt?
+  lifecycleOwnerLogoutUrl String?
+  lifecycleClaimedAt      DateTime?
+  lifecycleSyncedAt       DateTime?
+
+  @@index([lifecycleOwner, lifecycleOwnerSessionId])
 }

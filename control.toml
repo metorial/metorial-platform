@@ -1,0 +1,3 @@
+# Workspace-wide preparation (prisma generate/push and `bun run build`) is
+# handled by Control itself before package-local prepare commands.
+mode = "oss"

@@ -3,8 +3,10 @@ import { isServiceError } from '@lowerdeck/error';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { getSentry, shouldIgnoreSentryHttpError } from '@lowerdeck/sentry';
 import { MetorialDashboardSDK, MetorialUser } from '@metorial/dashboard-sdk';
+import { awaitConfig } from '@metorial/frontend-config';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { withDashboardSDK } from '../../sdk';
+import { isAuthRoute } from './isAuthRoute';
 import { redirectToAuth } from './redirect';
 
 let ignoredSDKAuthErrorCodes = new Set([
@@ -29,6 +31,11 @@ export let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) =>
   if (typeof window === 'undefined') return new Promise(() => {}) as Promise<R>;
 
   if (window.location.pathname.startsWith('/auth/')) {
+    return new Promise(() => {}) as Promise<R>;
+  }
+
+  let config = await awaitConfig();
+  if (isAuthRoute(window.location.href, config.auth)) {
     return new Promise(() => {}) as Promise<R>;
   }
 
@@ -82,8 +89,12 @@ export let fetchUserSpecial = () => {
   return redirectToAuthIfNotAuthenticated(async () => {
     await delay(1);
 
-    if ((window as any).enterpriseUserPromise) {
-      await (window as any).enterpriseUserPromise;
+    let enterpriseUserPromise = (window as any).enterpriseUserPromise;
+    if (enterpriseUserPromise) {
+      let user = (await enterpriseUserPromise) as MetorialUser;
+      if (!firstUserPromise.value) firstUserPromise.resolve(user);
+
+      return user;
     }
 
     return await withDashboardSDK(async sdk => {

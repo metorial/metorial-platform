@@ -1,9 +1,9 @@
 import { v } from '@lowerdeck/validation';
 import { accessService } from '@metorial/module-access';
-import { consumerOAuthTestAuthorizationService } from '@metorial/module-consumer';
+import { consumerOAuthTestAuthorizationService } from '@metorial/module-consumer-oauth';
 import { Controller, Path } from '@metorial/rest';
 import { apiGroup } from '../../middleware/apiGroup';
-import { consumerOAuthTestAuthorizationPresenter } from '../../presenters';
+import { consumerOAuthTestAuthorizationPresenter } from '@metorial/presenters';
 
 export let testHelperConsumerOAuthController = Controller.create(
   {

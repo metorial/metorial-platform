@@ -1,7 +1,9 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { createAuditScope } from '@metorial/audit-scope';
 import { getConsumerAccessContextForConsumerProfile } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
-import { consumerProfileService } from '@metorial/module-consumer';
+import { consumerProfileService } from '@metorial/module-consumer-core';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
 
@@ -24,6 +26,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
       },
       organization: ctx.auth.restrictions.organization,
       project: ctx.auth.restrictions.instance.project,
+      resourceActor: undefined,
+      auditScope: ctx.auth.auditScope,
       accessTagGrants: ctx.auth.restrictions.accessTagGrants,
       member: undefined,
       ...consumerPlaceholder
@@ -38,7 +42,10 @@ export let instanceGroup = apiGroup.use(async ctx => {
         organization: ctx.auth.restrictions.organization
       },
       organization: ctx.auth.restrictions.organization,
+      project: ctx.auth.restrictions.instance.project,
       actor: ctx.auth.restrictions.actor,
+      resourceActor: ctx.auth.restrictions.resourceActor,
+      auditScope: ctx.auth.auditScope,
       member: undefined,
       ...consumerPlaceholder
     };
@@ -72,6 +79,10 @@ export let instanceGroup = apiGroup.use(async ctx => {
     authInfo: ctx.auth,
     instanceId
   });
+  let organizationActor = res.actor;
+  if (!organizationActor) {
+    throw new Error('Instance access did not resolve an organization actor');
+  }
 
   let consumerId = ctx.headers['metorial-consumer-profile-id'];
 
@@ -80,10 +91,23 @@ export let instanceGroup = apiGroup.use(async ctx => {
       instance: res.instance,
       consumerProfileId: consumerId
     });
+    if (consumerProfile.surface.type != 'portal' || !consumerProfile.surface.portal) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only portal consumer profiles can be used as restricted resources.'
+        })
+      );
+    }
 
     let consumerRes = await getConsumerAccessContextForConsumerProfile({
       profile: consumerProfile
     });
+    let resourceActor =
+      consumerProfile.resourceActors.find(actor => actor.projectOid == res.project.oid) ??
+      (await resourceActorService.ensureConsumerProfileActor({
+        project: res.project,
+        consumerProfile
+      }));
 
     return Object.assign(res, consumerPlaceholder, {
       consumerGroups: consumerRes.consumerGroups,
@@ -91,11 +115,33 @@ export let instanceGroup = apiGroup.use(async ctx => {
 
       consumerSurface: consumerProfile.surface,
       portal: consumerProfile.surface.portal,
-      consumerProfile: consumerProfile
+      consumerProfile: consumerProfile,
+      resourceActor,
+      auditScope: createAuditScope({
+        organization: res.organization,
+        instance: res.instance,
+        actor: {
+          type: 'consumer_profile',
+          id: consumerProfile.id
+        },
+        context: ctx.context
+      }),
+      member: undefined
     });
   }
 
-  return Object.assign(res, consumerPlaceholder);
+  return Object.assign(res, consumerPlaceholder, {
+    auditScope: createAuditScope({
+      organization: res.organization,
+      instance: res.instance,
+      organizationActor,
+      actor: {
+        type: 'org_actor',
+        id: organizationActor.id
+      },
+      context: ctx.context
+    })
+  });
 });
 
 export let instancePath = (path: string, sdkPath: string) => [

@@ -1,5 +1,10 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
-import { internalServerError, isServiceError, ServiceError } from '@lowerdeck/error';
+import {
+  internalServerError,
+  isServiceError,
+  ServiceError,
+  timeoutError
+} from '@lowerdeck/error';
 import { createRpcSignatureHeader, rpcSignatureHeader } from '@lowerdeck/rpc-signature';
 import { serialize } from '@lowerdeck/serialize';
 import { generateRequestId } from './shared/requester';
@@ -41,6 +46,47 @@ let decodeResponseBody = (body: string) => {
   }
 
   return serialize.decode(parsed);
+};
+
+class InvalidRpcResponseError extends Error {
+  constructor(cause: unknown) {
+    super('Invalid RPC response', { cause });
+    this.name = 'InvalidRpcResponseError';
+  }
+}
+
+let decodeRpcResponse = (body: string) => {
+  try {
+    return decodeResponseBody(body);
+  } catch (error) {
+    throw new InvalidRpcResponseError(error);
+  }
+};
+
+let toRequestError = (call: Call, error: unknown) => {
+  if (
+    (error instanceof Error && error.name === 'AbortError') ||
+    (call.signal && call.signal.aborted)
+  ) {
+    return new ServiceError(
+      timeoutError({ message: `Request timed out: ${call.name} on ${call.endpoint}` })
+    );
+  }
+
+  let message =
+    error instanceof InvalidRpcResponseError
+      ? `Invalid response from server ${call.endpoint} for ${call.name}`
+      : `Unable to reach server ${call.endpoint} for ${call.name}`;
+
+  return new ServiceError(
+    internalServerError({
+      message,
+      inner:
+        verbose && error instanceof Error
+          ? { name: error.name, message: error.message, stack: error.stack }
+          : undefined
+    })
+  );
 };
 
 let createBatchUrl = (call: Call) => {
@@ -106,12 +152,13 @@ let runCalls = async (
     body,
     credentials: 'include',
     referrerPolicy: c[0]!.call.referrerPolicy,
+    signal: c[0]!.call.signal,
 
     // @ts-ignore
     keepalive: false
   })
     .then(async res => ({
-      res: decodeResponseBody(await res.text()),
+      res: decodeRpcResponse(await res.text()),
       headers: res.headers,
       status: res.status
     }))
@@ -162,29 +209,12 @@ let runCalls = async (
         console.error(e);
       }
 
-      c.forEach(x =>
-        x.reject(
-          new ServiceError(
-            internalServerError({
-              message:
-                typeof (globalThis as any).window != 'undefined'
-                  ? 'Unable to reach server'
-                  : `Unable to reach server ${call.endpoint}`,
-
-              inner: verbose
-                ? e instanceof Error
-                  ? { message: e.message, stack: e.stack }
-                  : { error: e }
-                : undefined
-            })
-          )
-        )
-      );
+      c.forEach(x => x.reject(toRequestError(x.call, e)));
     });
 };
 
 let performRequest = (call: Call) => {
-  if (call.disableBatching) {
+  if (call.disableBatching || call.signal) {
     return new Promise((resolve, reject) => {
       runCalls(call, [{ call, resolve, reject }]).catch(reject);
     });
@@ -218,6 +248,54 @@ let performRequest = (call: Call) => {
   return promise;
 };
 
+let abortedError = (call: { name: string; endpoint: string }) =>
+  new ServiceError(
+    timeoutError({
+      message:
+        typeof (globalThis as any).window != 'undefined'
+          ? `Request timed out: ${call.name}`
+          : `Request timed out: ${call.name} on ${call.endpoint}`
+    })
+  );
+
+let abortableDelay = (ms: number, signal: AbortSignal) =>
+  new Promise<void>(resolve => {
+    if (signal.aborted) return resolve();
+
+    let onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    let timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+
+let createDeadlineSignal = (call: { timeoutMs?: number; signal?: AbortSignal }) => {
+  if (call.timeoutMs == null && !call.signal) return { signal: undefined, release: () => {} };
+
+  let controller = new AbortController();
+  let onExternalAbort = () => controller.abort();
+  let timer =
+    call.timeoutMs == null ? null : setTimeout(() => controller.abort(), call.timeoutMs);
+
+  if (call.signal) {
+    if (call.signal.aborted) controller.abort();
+    else call.signal.addEventListener('abort', onExternalAbort, { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    release: () => {
+      if (timer) clearTimeout(timer);
+      call.signal?.removeEventListener('abort', onExternalAbort);
+    }
+  };
+};
+
 let requesterInternal: Requester = async call => {
   let id = generateRequestId();
   log(`[call:${call.name.replace(':', '-')}:${id}] Queued`, call);
@@ -238,40 +316,56 @@ let requesterInternal: Requester = async call => {
   let maxTries = typeof (globalThis as any).window === 'undefined' ? 6 : 3;
   let retryDelay = typeof (globalThis as any).window === 'undefined' ? 20 : 1000;
 
-  while (tries < maxTries) {
-    try {
-      return (await performRequest({
-        ...(call as any),
-        id
-      }).then(
-        res => {
-          if (!isServer) {
-            log(`[call:${call.name.replace(':', '-')}:${id}] Success`, res);
+  let deadline = createDeadlineSignal(call);
+
+  try {
+    while (tries < maxTries) {
+      if (deadline.signal?.aborted) throw error ?? abortedError(call);
+
+      try {
+        return (await performRequest({
+          ...(call as any),
+          id,
+          signal: deadline.signal
+        }).then(
+          res => {
+            if (!isServer) {
+              log(`[call:${call.name.replace(':', '-')}:${id}] Success`, res);
+            }
+
+            return res;
+          },
+          err => {
+            if (isServer) {
+              log(`[call:${call.name.replace(':', '-')}:${id}] Queued`, call);
+            }
+
+            log(`[call:${call.name.replace(':', '-')}:${id}] Error`, err);
+
+            throw err;
           }
+        )) as any;
+      } catch (e: any) {
+        error = e;
 
-          return res;
-        },
-        err => {
-          if (isServer) {
-            log(`[call:${call.name.replace(':', '-')}:${id}] Queued`, call);
-          }
+        if (deadline.signal?.aborted) throw abortedError(call);
 
-          log(`[call:${call.name.replace(':', '-')}:${id}] Error`, err);
-
-          throw err;
+        if (isServiceError(e)) {
+          // 400 errors are not retried
+          if (e.data.status < 500) throw e;
         }
-      )) as any;
-    } catch (e: any) {
-      error = e;
+      }
 
-      if (isServiceError(e)) {
-        // 400 errors are not retried
-        if (e.data.status < 500) throw e;
+      tries += 1;
+      if (deadline.signal) {
+        await abortableDelay(tries * retryDelay, deadline.signal);
+        if (deadline.signal.aborted) throw abortedError(call);
+      } else {
+        await new Promise(r => setTimeout(r, tries * retryDelay));
       }
     }
-
-    tries += 1;
-    await new Promise(r => setTimeout(r, tries * retryDelay));
+  } finally {
+    deadline.release();
   }
 
   if (error) throw error;

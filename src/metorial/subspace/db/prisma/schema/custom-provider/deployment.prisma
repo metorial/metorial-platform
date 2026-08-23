@@ -1,0 +1,74 @@
+enum CustomProviderDeploymentStatus {
+  queued
+  deploying
+  succeeded
+  failed
+}
+
+enum CustomProviderDeploymentTrigger {
+  manual
+  system
+  scm
+}
+
+model CustomProviderDeployment {
+  oid BigInt @id
+  id  String @unique
+
+  status  CustomProviderDeploymentStatus
+  trigger CustomProviderDeploymentTrigger
+
+  creatorActorOid BigInt
+  creatorActor    TenantActor @relation(fields: [creatorActorOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  customProviderOid BigInt
+  customProvider    CustomProvider @relation(fields: [customProviderOid], references: [oid])
+
+  sourceEnvironmentOid BigInt?
+  sourceEnvironment    CustomProviderEnvironment? @relation(fields: [sourceEnvironmentOid], references: [oid])
+
+  commitOid BigInt?               @unique
+  commit    CustomProviderCommit? @relation(fields: [commitOid], references: [oid])
+
+  shuttleServerVersionOid BigInt?               @unique
+  shuttleServerVersion    ShuttleServerVersion? @relation(fields: [shuttleServerVersionOid], references: [oid])
+
+  shuttleCustomServerOid BigInt?
+  shuttleCustomServer    ShuttleCustomServer? @relation(fields: [shuttleCustomServerOid], references: [oid])
+
+  shuttleCustomServerDeploymentOid BigInt?                        @unique
+  shuttleCustomServerDeployment    ShuttleCustomServerDeployment? @relation(fields: [shuttleCustomServerDeploymentOid], references: [oid])
+
+  scmRepoOid BigInt?
+  scmRepo    ScmRepo? @relation(fields: [scmRepoOid], references: [oid])
+
+  immutableCodeBucketOid BigInt?
+  immutableCodeBucket    CodeBucket? @relation(fields: [immutableCodeBucketOid], references: [oid])
+
+  scmRepoPushOid BigInt?
+  scmRepoPush    ScmRepoPush? @relation(fields: [scmRepoPushOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  customProviderVersion   CustomProviderVersion?
+  upcomingCustomProviders UpcomingCustomProvider[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([status])
+  @@index([trigger])
+  @@index([shuttleCustomServerOid])
+  @@index([projectOid])
+}

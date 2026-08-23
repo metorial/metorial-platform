@@ -1,56 +1,69 @@
-enum NamespaceVariant {
-  fixed_domain
-  custom_subdomain
+enum NamespaceCompartmentType {
+  managed
 }
 
-model NamespaceType {
+model NamespaceCompartment {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  variant NamespaceVariant
+  type NamespaceCompartmentType @default(managed)
 
-  identifier String @unique
+  priority Int
 
-  createdAt DateTime @default(now())
+  systemIdentifier String? @unique
+  value            String  @unique
 
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @default(now()) @updatedAt
   namespaces Namespace[]
+}
+
+enum NamespacePurpose {
+  metorial_platform
+  metorial_portal
+  metorial_portal_single
 }
 
 model Namespace {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  slug String @unique
+  value    String
+  purposes NamespacePurpose[]
 
-  domainIdentifier String?
-  isDefault        Boolean @default(false)
+  compartmentOid BigInt
+  compartment    NamespaceCompartment @relation(fields: [compartmentOid], references: [oid])
 
   accountOid BigInt
   account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
 
-  typeOid BigInt
-  type    NamespaceType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @default(now()) @updatedAt
+  namespaceProperties NamespaceProperty[]
+  portalsSpecificTo   Portal[]            @relation("PortalSpecificNamespace")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  compartments Site[]
-
-  @@unique([domainIdentifier, typeOid])
+  @@unique([value, compartmentOid])
 }
 
-model Site {
+enum NamespacePropertyType {
+  portal
+  organization
+}
+
+model NamespaceProperty {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  slug           String  @unique
-  pathIdentifier String?
+  type NamespacePropertyType
 
   namespaceOid BigInt
   namespace    Namespace @relation(fields: [namespaceOid], references: [oid], onDelete: Cascade)
 
-  workspaceOid BigInt    @unique
-  workspace    Workspace @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+  workspaceOid BigInt?
+  workspace    Workspace? @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
 
   organizationOid BigInt?
   organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
@@ -62,5 +75,6 @@ model Site {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([namespaceOid, workspaceOid])
-  @@unique([namespaceOid, pathIdentifier])
+  @@unique([namespaceOid, organizationOid])
+  @@unique([namespaceOid, portalOid])
 }

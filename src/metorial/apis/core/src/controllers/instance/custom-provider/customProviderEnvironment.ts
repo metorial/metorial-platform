@@ -1,14 +1,14 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCustomProviderEnvironmentService } from '@metorial/module-subspace';
+import { customProviderEnvironmentService } from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceCustomProviderEnvironmentPresenter } from '../../../presenters';
+import { subspaceCustomProviderEnvironmentPresenter } from '@metorial/presenters';
 
 let customProviderEnvironmentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderEnvironmentId) {
@@ -20,10 +20,11 @@ let customProviderEnvironmentGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let customProviderEnvironment = await subspaceCustomProviderEnvironmentService.get({
-    instance: ctx.instance,
-    customProviderEnvironmentId: ctx.params.customProviderEnvironmentId
-  });
+  let customProviderEnvironment =
+    await customProviderEnvironmentService.getCustomProviderEnvironmentById({
+      instance: ctx.instance,
+      customProviderEnvironmentId: ctx.params.customProviderEnvironmentId
+    });
 
   return { customProviderEnvironment };
 });
@@ -64,7 +65,7 @@ export let customProviderEnvironmentController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCustomProviderEnvironmentService.list({
+        let paginator = await customProviderEnvironmentService.listCustomProviderEnvironments({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           customProviderVersionIds: normalizeArrayParam(ctx.query.custom_provider_version_id),

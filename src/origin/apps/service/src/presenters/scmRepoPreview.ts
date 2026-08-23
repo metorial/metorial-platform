@@ -26,5 +26,6 @@ export let scmAccountPreviewPresenter = (preview: ScmAccountPreview) => ({
   provider: preview.provider,
   externalId: preview.externalId,
   name: preview.name,
-  identifier: preview.identifier
+  identifier: preview.identifier,
+  imageUrl: preview.imageUrl
 });

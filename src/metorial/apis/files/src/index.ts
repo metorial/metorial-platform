@@ -1,19 +1,20 @@
-import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
-import { getFileDownloadUrl } from '@metorial-platform-systems/cargo-client';
 import { authenticate } from '@metorial/auth';
-import { generatePlainId } from '@metorial/id';
+import { createDocumentLiveApi } from '@metorial/module-documents/live';
 import {
-  documentService,
+  getCargoFileContent,
   purposeSlugs,
   resolveCargoAccess,
   uploadCargoFile
 } from '@metorial/module-file';
-import { upgradeWebSocket, websocket } from 'hono/bun';
-import { resolveDocumentsLiveTarget } from './documentsLiveAuth';
+import { generatePlainId } from '@metorial/id';
+import { websocket } from 'hono/bun';
+import { resolveDocumentsLiveToken } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
+import { parseStoreReplace } from './uploadForm';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
 
@@ -48,6 +49,7 @@ let createFileUploadHandler =
         let instanceId = body.get('instance_id');
         let attachedStoreId = body.get('store_id');
         let attachedStorePath = body.get('path');
+        let storeReplaceValue = body.get('store_replace');
         let title = (body.get('title') || undefined) as string | undefined;
 
         if (!file || !purpose) {
@@ -58,7 +60,28 @@ let createFileUploadHandler =
           );
         }
 
-        if (!purposeSlugs.includes(purpose)) {
+        let fileNameFromStorePath =
+          typeof attachedStorePath == 'string'
+            ? attachedStorePath.split('/').filter(Boolean).at(-1)?.trim()
+            : undefined;
+        let fileName =
+          typeof file.name == 'string' && file.name.trim()
+            ? file.name.trim()
+            : fileNameFromStorePath
+              ? fileNameFromStorePath
+              : typeof title == 'string' && title.trim()
+                ? title.trim()
+                : null;
+
+        if (!fileName) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Missing file name'
+            })
+          );
+        }
+
+        if (!purposeSlugs.includes(purpose as (typeof purposeSlugs)[number])) {
           throw new ServiceError(
             badRequestError({
               message: 'Invalid purpose'
@@ -74,6 +97,11 @@ let createFileUploadHandler =
           );
         }
 
+        let storeReplace = parseStoreReplace(
+          storeReplaceValue,
+          !!attachedStoreId && !!attachedStorePath
+        );
+
         let target = await resolveUploadTarget({
           auth,
           instanceId: typeof instanceId == 'string' ? instanceId : null,
@@ -88,18 +116,25 @@ let createFileUploadHandler =
           );
         }
 
-        let createdFile = await uploadCargoFile({
+        let access = await resolveCargoAccess({
           owner: target.owner,
+          ...target.cargoAccess
+        });
+        let createdFile = await uploadCargoFile({
+          ...access.scope,
           purpose,
           file,
           title,
-          fileName: file.name,
-          ...target.cargoAccess,
+          fileName,
+          authorization: access.authorization,
+          defaultPermissions: access.defaultPermissions,
+          overridePermissions: access.overridePermissions,
           store:
             typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
               ? {
                   id: attachedStoreId,
-                  path: attachedStorePath
+                  path: attachedStorePath,
+                  replace: storeReplace
                 }
               : undefined
         });
@@ -127,40 +162,19 @@ let createFileUploadHandler =
       }
     );
 
-let getCargoHttpBaseUrl = () => {
-  if (!process.env.CARGO_API_URL) {
-    throw new Error('CARGO_API_URL is required');
-  }
-
-  let url = new URL(process.env.CARGO_API_URL);
-
-  if (url.pathname.endsWith('/metorial-cargo')) {
-    url.pathname = url.pathname.slice(0, -'/metorial-cargo'.length) || '/';
-  }
-
-  url.search = '';
-
-  return url;
+let getServedContentType = (contentType?: string | null) => {
+  if (contentType?.startsWith('image/')) return contentType;
+  return 'application/octet-stream';
 };
 
-let getCargoContentEndpoint = () => {
-  if (process.env.CARGO_CONTENT_URL) {
-    return process.env.CARGO_CONTENT_URL.replace(/\/$/, '');
-  }
+let getDocumentContentType = (contentType?: string | null) =>
+  contentType && contentType !== 'application/octet-stream'
+    ? contentType
+    : 'text/plain; charset=utf-8';
 
-  let url = getCargoHttpBaseUrl();
-
-  if (url.hostname === 'cargo') {
-    url.hostname = 'cargo-content';
-    url.port = '52151';
-  } else if (
-    (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
-    url.port === '52150'
-  ) {
-    url.port = '52151';
-  }
-
-  return url.toString().replace(/\/$/, '');
+let getContentDispositionHeader = (fileName: string, disposition: 'inline' | 'attachment') => {
+  let fallbackName = fileName.replace(/["\\\r\n]/g, '_').replace(/[^\x20-\x7e]/g, '_');
+  return `${disposition}; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 };
 
 let getFileContentHandler = async (c: Context) => {
@@ -174,31 +188,29 @@ let getFileContentHandler = async (c: Context) => {
     );
   }
 
-  let url = new URL(c.req.url);
-  let response = await fetch(
-    getFileDownloadUrl({
-      contentEndpoint: getCargoContentEndpoint(),
-      fileId,
-      key,
-      download: url.searchParams.has('download')
-    }),
-    {
-      headers: {
-        ...(c.req.header('Authorization')
-          ? { Authorization: c.req.header('Authorization')! }
-          : {}),
-        ...(c.req.header('sentry-trace')
-          ? { 'sentry-trace': c.req.header('sentry-trace')! }
-          : {}),
-        ...(c.req.header('baggage') ? { baggage: c.req.header('baggage')! } : {})
-      }
-    }
-  );
+  let { file, link, content, metadata } = await getCargoFileContent({
+    fileId,
+    key
+  });
+  let shouldDownload = new URL(c.req.url).searchParams.has('download');
+  let fileName = file.fileName?.trim();
+  let contentDisposition = fileName
+    ? getContentDispositionHeader(fileName, shouldDownload ? 'attachment' : 'inline')
+    : undefined;
 
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers
+  return new Response(content as any, {
+    headers: {
+      'Content-Type':
+        metadata.source === 'document'
+          ? getDocumentContentType(metadata.contentType)
+          : getServedContentType(metadata.contentType),
+      'Cache-Control':
+        metadata.source === 'document' || metadata.source === 'database' || link.expiresAt
+          ? 'private, no-store'
+          : 'public, max-age=31536000, immutable',
+      'X-Content-Type-Options': 'nosniff',
+      ...(contentDisposition ? { 'Content-Disposition': contentDisposition } : {})
+    }
   });
 };
 
@@ -211,30 +223,15 @@ let getQueryParam = (url: URL, keys: string[]) => {
   return null;
 };
 
-let getCargoDocumentLiveUrl = (d: { actorId: string; documentId: string }) => {
-  let url = getCargoHttpBaseUrl();
-
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  url.pathname = `${url.pathname.replace(/\/$/, '')}/document-live`;
-  url.search = '';
-  url.searchParams.set('actorId', d.actorId);
-  url.searchParams.set('documentId', d.documentId);
-
-  return url.toString();
-};
-
-let createDocumentsLiveHandler = (
-  authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>
-) =>
+let createDocumentsLiveHandler = () =>
   createHono()
     .use(async (c, next) => {
       c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
       c.res.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
       c.res.headers.set(
         'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-consumer-profile-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret'
+        'Content-Type, baggage, sentry-trace, metorial-client'
       );
-      c.res.headers.set('Access-Control-Allow-Credentials', 'true');
       c.res.headers.set('Access-Control-Max-Age', '86400');
 
       if (c.req.method === 'OPTIONS') {
@@ -244,157 +241,54 @@ let createDocumentsLiveHandler = (
       await next();
     })
     .options('*', c => c.text(''))
-    .get(
-      '/documents-live',
-      upgradeWebSocket(async c =>
-        provideExecutionContext(
-          createExecutionContext({
-            contextId: `req_${generatePlainId(20)}`,
-            type: 'request',
-            ip: extractIp(c.req.raw.headers as any) ?? '0.0.0.0',
-            userAgent: c.req.raw.headers.get('user-agent') ?? 'unknown'
-          }),
-          async () => {
-            let url = new URL(c.req.url);
-            let documentId = getQueryParam(url, ['documentId', 'document_id']);
-            let instanceId = getQueryParam(url, ['instanceId', 'instance_id']);
-            let organizationId = getQueryParam(url, ['organizationId', 'organization_id']);
-            let editToken = getQueryParam(url, ['editToken', 'edit_token']);
+    .route(
+      '/',
+      createDocumentLiveApi({
+        path: '/documents-live',
+        resolveConnection: async ({ request, url }) => {
+          return await provideExecutionContext(
+            createExecutionContext({
+              contextId: `req_${generatePlainId(20)}`,
+              type: 'request',
+              ip: extractIp(request.headers as any) ?? '0.0.0.0',
+              userAgent: request.headers.get('user-agent') ?? 'unknown'
+            }),
+            async () => {
+              let documentId = getQueryParam(url, ['documentId', 'document_id']);
+              let instanceId = getQueryParam(url, ['instanceId', 'instance_id']);
+              let organizationId = getQueryParam(url, ['organizationId', 'organization_id']);
+              let editToken = getQueryParam(url, ['editToken', 'edit_token']);
 
-            if (!documentId) {
-              throw new ServiceError(
-                badRequestError({
-                  message: 'Missing documentId query parameter'
-                })
-              );
-            }
-
-            let target = await resolveDocumentsLiveTarget({
-              req: c.req.raw,
-              url,
-              documentId,
-              instanceId,
-              organizationId,
-              editToken,
-              authenticateRequest
-            });
-
-            if (!target.cargoAccess?.accessActor) {
-              throw new ServiceError(
-                forbiddenError({
-                  message: 'Actor context is required',
-                  description:
-                    'Live document connections require an organization actor or consumer actor context.'
-                })
-              );
-            }
-
-            await documentService.getDocumentById({
-              owner: target.owner,
-              documentId,
-              ...target.cargoAccess
-            });
-
-            let { actorId } = await resolveCargoAccess({
-              owner: target.owner,
-              ...target.cargoAccess
-            });
-            if (!actorId) {
-              throw new ServiceError(
-                forbiddenError({
-                  message: 'Actor context is required'
-                })
-              );
-            }
-
-            let upstreamUrl = getCargoDocumentLiveUrl({
-              actorId,
-              documentId
-            });
-            let upstream: WebSocket | null = null;
-            let clientWs: any = null;
-            let pendingMessages: string[] = [];
-
-            let flushPendingMessages = () => {
-              if (!upstream || upstream.readyState !== WebSocket.OPEN) return;
-
-              for (let message of pendingMessages) {
-                upstream.send(message);
+              if (!documentId) {
+                throw new ServiceError(
+                  badRequestError({
+                    message: 'Missing documentId query parameter'
+                  })
+                );
               }
-              pendingMessages = [];
-            };
-
-            return {
-              onOpen: async (_, ws) => {
-                clientWs = ws;
-                upstream = new WebSocket(upstreamUrl);
-
-                upstream.onopen = () => {
-                  flushPendingMessages();
-                };
-
-                upstream.onmessage = event => {
-                  ws.send(typeof event.data === 'string' ? event.data : event.data.toString());
-                };
-
-                upstream.onerror = () => {
-                  pendingMessages = [];
-                  try {
-                    ws.close(1011, 'upstream_error');
-                  } catch {}
-                };
-
-                upstream.onclose = event => {
-                  pendingMessages = [];
-                  try {
-                    ws.close(event.code || 1000, event.reason);
-                  } catch {}
-                };
-              },
-
-              onMessage: async event => {
-                let message = event.data.toString();
-
-                if (upstream?.readyState === WebSocket.OPEN) {
-                  upstream.send(message);
-                  return;
-                }
-
-                if (!upstream || upstream.readyState === WebSocket.CONNECTING) {
-                  pendingMessages.push(message);
-                  return;
-                }
-
-                try {
-                  clientWs?.close(1011, 'upstream_unavailable');
-                } catch {}
-              },
-
-              onClose: async () => {
-                pendingMessages = [];
-                if (!upstream) return;
-                if (
-                  upstream.readyState === WebSocket.OPEN ||
-                  upstream.readyState === WebSocket.CONNECTING
-                ) {
-                  upstream.close();
-                }
-              },
-
-              onError: async () => {
-                pendingMessages = [];
-                if (!upstream) return;
-                if (
-                  upstream.readyState === WebSocket.OPEN ||
-                  upstream.readyState === WebSocket.CONNECTING
-                ) {
-                  upstream.close();
-                }
+              if (!editToken) {
+                throw new ServiceError(
+                  badRequestError({ message: 'Missing edit_token query parameter' })
+                );
               }
-            };
-          }
-        )
-      )
+
+              return await resolveDocumentsLiveToken({
+                editToken,
+                documentId,
+                instanceId,
+                organizationId
+              });
+            }
+          );
+        },
+        resolveToken: async ({ token, documentId, instanceId, organizationId }) =>
+          await resolveDocumentsLiveToken({
+            editToken: token,
+            documentId,
+            instanceId,
+            organizationId
+          })
+      })
     );
 
 export let createFileUploadApi = (d?: FileApiOptions) => {
@@ -419,10 +313,7 @@ export let createFileUploadApi = (d?: FileApiOptions) => {
     .post('/files', createFileUploadHandler(authenticateRequest));
 };
 
-export let createDocumentsLiveApi = (d?: FileApiOptions) => {
-  let authenticateRequest = d?.authenticateRequest ?? authenticate;
-  return createDocumentsLiveHandler(authenticateRequest);
-};
+export let createDocumentsLiveApi = () => createDocumentsLiveHandler();
 
 export let createFileContentApi = () =>
   createHono()

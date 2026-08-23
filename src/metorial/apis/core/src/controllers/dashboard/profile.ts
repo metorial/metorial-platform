@@ -4,7 +4,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { profilePresenter } from '../../presenters';
+import { profilePresenter } from '@metorial/presenters';
 
 export let profileController = Controller.create(
   {

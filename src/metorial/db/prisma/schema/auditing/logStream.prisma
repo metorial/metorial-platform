@@ -1,0 +1,95 @@
+enum AuditLogStreamStatus {
+  active
+  inactive
+}
+
+enum AuditLogStreamProvider {
+  datadog
+  splunk
+}
+
+enum AuditLogStreamAccessStatus {
+  ok
+  error
+}
+
+model AuditLogStream {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider     AuditLogStreamProvider
+  status       AuditLogStreamStatus
+  accessStatus AuditLogStreamAccessStatus
+
+  isPausedDueToError    Boolean @default(false)
+  errorMessage          String?
+  consecutiveErrorCount Int     @default(0)
+  isStarted             Boolean @default(false)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  providerDataRedacted  Json
+  encryptedProviderData String
+  lastEventId           String?
+  lastAuditLogOid       BigInt?
+
+  events AuditLogStreamEvent[]
+  runs   AuditLogStreamRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum AuditLogStreamEventType {
+  created
+  started
+  error
+  error_paused
+  recovered
+  disabled
+  enabled
+}
+
+model AuditLogStreamEvent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type         AuditLogStreamEventType
+  message      String?
+  errorDetails Json?
+
+  auditLogStreamOid BigInt
+  auditLogStream    AuditLogStream @relation(fields: [auditLogStreamOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum AuditLogStreamRunStatus {
+  running
+  success
+  error
+}
+
+model AuditLogStreamRun {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status               AuditLogStreamRunStatus
+  batchIdentifier      String
+  batchNumber          Int
+  successfulBatchCount Int
+  recordsSynced        Int
+  errorMessage         String?
+
+  auditLogStreamOid BigInt
+  auditLogStream    AuditLogStream @relation(fields: [auditLogStreamOid], references: [oid], onDelete: Cascade)
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  @@index([auditLogStreamOid, createdAt])
+  @@index([status, createdAt])
+  @@index([batchIdentifier])
+}

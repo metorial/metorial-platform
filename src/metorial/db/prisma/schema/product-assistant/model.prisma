@@ -1,0 +1,88 @@
+model ProductAssistantModel {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+  slug String
+
+  contextWindow              Int
+  inputCostPerMillionTokens  Float
+  outputCostPerMillionTokens Float
+
+  providerOid BigInt
+  provider    ProductAssistantModelProvider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  messages          ProductAssistantMessage[]
+  assistantRequests ProductAssistantRequest[]
+  modelRuns         ProductAssistantModelRun[]
+
+  @@unique([slug, providerOid])
+  @@index([providerOid])
+}
+
+model ProductAssistantModelProvider {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  slug     String @unique
+  name     String
+  imageUrl String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  models ProductAssistantModel[]
+}
+
+enum ProductAssistantRunStatus {
+  pending
+  running
+  waiting_for_user
+  completed
+  cancelled
+  failed
+}
+
+model ProductAssistantModelRun {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ProductAssistantRunStatus
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  requestOid BigInt?
+  request    ProductAssistantRequest? @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
+
+  conversationOid BigInt?
+  conversation    ProductAssistantConversation? @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
+
+  assistantInstanceOid BigInt?
+  assistantInstance    ProductAssistantInstance? @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
+
+  assistantOid BigInt?
+  assistant    ProductAssistant? @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+
+  modelOid BigInt
+  model    ProductAssistantModel @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
+
+  /// [ProductAssistantRunCost]
+  cost Json
+
+  /// [ProductAssistantRunMetadata]
+  metadata Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  messages ProductAssistantMessage[]
+
+  @@index([requestOid])
+  @@index([conversationOid, status])
+  @@index([assistantInstanceOid])
+  @@index([projectOid])
+}

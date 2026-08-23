@@ -1,0 +1,43 @@
+model SessionUsageRecord {
+  id String @id @default(uuid())
+
+  clientMessageIncrement   Int
+  providerMessageIncrement Int
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([projectOid])
+}
+
+model ProviderRunUsageRecord {
+  id String @id @default(uuid())
+
+  providerRunOid BigInt
+  providerRun    ProviderRun @relation(fields: [providerRunOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([projectOid])
+}

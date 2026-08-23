@@ -1,0 +1,45 @@
+enum OrganizationLayoutOwnership {
+  user
+  organization
+  user_organization
+}
+
+model OrganizationLayoutType {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  identifier String                      @unique
+  name       String
+  ownership  OrganizationLayoutOwnership
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  layouts OrganizationLayout[]
+}
+
+model OrganizationLayout {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  typeOid BigInt
+  type    OrganizationLayoutType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
+
+  targetHash String
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  /// [OrganizationLayoutValue]
+  value Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([typeOid, targetHash])
+  @@index([userOid])
+  @@index([organizationOid])
+}

@@ -1,12 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { env } from '../../../env';
+import { getAccountSsoClientId } from '../../../lib/accountPolicy';
 import { tickets } from '../../../lib/tickets';
 import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';
-import { resolveApp } from '../lib/resolveApp';
+import { resolveClient } from '../lib/resolveApp';
 import { deviceApp } from '../middleware/device';
 import { authAttemptPresenter, authIntentPresenter, deviceUserPresenter } from '../presenters';
 
@@ -19,14 +20,31 @@ export let authenticationController = publicApp.controller({
       })
     )
     .do(async ({ device, input }) => {
-      let app = await resolveApp(input.clientId);
+      let { app, account } = await resolveClient(input.clientId);
 
-      let users = await deviceService.getLoggedInAndLoggedOutUsersForDevice({ device, app });
+      let users = await deviceService.getLoggedInAndLoggedOutUsersForDevice({
+        device,
+        app,
+        account
+      });
 
-      let { options } = await authService.getAuthOptions({ app });
+      let { options } = await authService.getAuthOptions({ app, account });
 
       return {
         options,
+        client: {
+          type: account ? ('account' as const) : ('app' as const),
+          clientId: input.clientId,
+          account: account
+            ? {
+                id: account.id,
+                name: account.name,
+                identifier: account.identifier,
+                allowEmailLogin: account.allowEmailLogin,
+                allowSocialLogin: account.allowSocialLogin
+              }
+            : null
+        },
 
         captcha: env.turnstile.TURNSTILE_SITE_KEY
           ? {
@@ -38,6 +56,38 @@ export let authenticationController = publicApp.controller({
         defaultRedirectUrl: app.defaultRedirectUrl,
 
         users: await Promise.all(users.map(deviceUserPresenter))
+      };
+    }),
+
+  userSelect: deviceApp
+    .handler()
+    .input(
+      v.object({
+        clientId: v.string(),
+        email: v.string({ modifiers: [v.maxLength(320)] })
+      })
+    )
+    .do(async ({ input }) => {
+      let { app, account: clientAccount } = await resolveClient(input.clientId);
+      let { options, account } = await authService.getUserAuthOptions({
+        app,
+        account: clientAccount,
+        email: input.email
+      });
+
+      return {
+        email: input.email.trim().toLowerCase(),
+        options,
+        clientId: getAccountSsoClientId(input.clientId, account?.clientId),
+        account: account
+          ? {
+              id: account.id,
+              name: account.name,
+              identifier: account.identifier,
+              allowEmailLogin: account.allowEmailLogin,
+              allowSocialLogin: account.allowSocialLogin
+            }
+          : null
       };
     }),
 
@@ -62,6 +112,8 @@ export let authenticationController = publicApp.controller({
           type: v.literal('sso'),
           clientId: v.string(),
           ssoTenantId: v.string(),
+          ssoConnectionId: v.optional(v.string()),
+          email: v.optional(v.string()),
           redirectUrl: v.string()
         }),
         v.object({
@@ -73,7 +125,7 @@ export let authenticationController = publicApp.controller({
       ])
     )
     .do(async ({ context, device, input }) => {
-      let app = await resolveApp(input.clientId);
+      let { app, account } = await resolveClient(input.clientId);
 
       validateRedirectUrl(input.redirectUrl, app.redirectDomains);
 
@@ -83,7 +135,8 @@ export let authenticationController = publicApp.controller({
         if (input.type == 'session') {
           let sessions = await deviceService.getLoggedInAndLoggedOutUsersForDevice({
             device,
-            app
+            app,
+            account
           });
           let session = sessions.find(
             s => s.id == input.userOrSessionId || s.user.id == input.userOrSessionId
@@ -106,7 +159,8 @@ export let authenticationController = publicApp.controller({
           email,
           redirectUrl: input.redirectUrl,
           captchaToken: input.type == 'email' ? input.captchaToken : undefined,
-          app
+          app,
+          account
         });
 
         if (res.type == 'hook') {
@@ -114,12 +168,29 @@ export let authenticationController = publicApp.controller({
             type: 'hook' as const,
             url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso/${await tickets.encode({
               type: 'sso',
-              appClientId: app.clientId,
+              appClientId: getAccountSsoClientId(input.clientId, res.account?.clientId),
               deviceId: device.id,
               ssoTenantId: res.ssoTenant.id,
+              ssoConnectionId: res.ssoConnection.id,
               redirectUrl: input.redirectUrl,
               email: res.email
             })}`
+          };
+        } else if (res.type == 'selection') {
+          return {
+            type: 'selection' as const,
+            clientId: res.account?.clientId ?? input.clientId,
+            email: res.email,
+            account: res.account
+              ? {
+                  id: res.account.id,
+                  name: res.account.name,
+                  identifier: res.account.identifier,
+                  allowEmailLogin: res.account.allowEmailLogin,
+                  allowSocialLogin: res.account.allowSocialLogin
+                }
+              : null,
+            options: res.options
           };
         } else if (res.type == 'auth_attempt') {
           return {
@@ -144,7 +215,7 @@ export let authenticationController = publicApp.controller({
           type: 'hook' as const,
           url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/oauth/${await tickets.encode({
             type: 'oauth',
-            appClientId: app.clientId,
+            appClientId: input.clientId,
             provider: input.provider,
             deviceId: device.id,
             redirectUrl: input.redirectUrl
@@ -153,13 +224,22 @@ export let authenticationController = publicApp.controller({
       }
 
       if (input.type == 'sso') {
+        let { connection } = await authService.resolveSsoConnection({
+          app,
+          account,
+          tenantId: input.ssoTenantId,
+          connectionId: input.ssoConnectionId,
+          email: input.email
+        });
         return {
           type: 'hook' as const,
           url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso/${await tickets.encode({
             type: 'sso',
-            appClientId: app.clientId,
+            appClientId: input.clientId,
             deviceId: device.id,
             ssoTenantId: input.ssoTenantId,
+            ssoConnectionId: connection?.id,
+            email: input.email,
             redirectUrl: input.redirectUrl
           })}`
         };

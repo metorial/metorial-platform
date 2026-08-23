@@ -1,22 +1,20 @@
 import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { consumerAccessRequestService } from '@metorial/module-consumer-access';
 import {
-  consumerAccessRequestService,
-  consumerOAuthDashboardService,
   consumerProfileService,
+  consumerSurfaceProviderGroupService
+} from '@metorial/module-consumer-core';
+import {
   ConsumerProviderCatalogEntry,
   ConsumerProviderCatalogItem,
   consumerProviderCatalogService,
   consumerProviderDeploymentService,
-  consumerProviderSetupSessionService,
-  consumerSurfaceProviderGroupService
-} from '@metorial/module-consumer';
+  consumerProviderSetupSessionService
+} from '@metorial/module-consumer-entities';
+import { consumerOAuthDashboardService } from '@metorial/module-consumer-oauth';
 import { magicMcpServerService } from '@metorial/module-magic';
-import { Controller } from '@metorial/rest';
-import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
-import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
-import { hasFlags } from '../../middleware/hasFlags';
 import {
   consumerAccessRequestPresenter,
   consumerProviderPresenter,
@@ -25,7 +23,11 @@ import {
   magicMcpServerPresenter,
   portalOAuthAuthorizationPresenter,
   portalOAuthClientPresenter
-} from '../../presenters';
+} from '@metorial/presenters';
+import { Controller } from '@metorial/rest';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
+import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
+import { hasFlags } from '../../middleware/hasFlags';
 
 let consumerProviderItemGroup = consumerGroup.use(async ctx => {
   if (!ctx.params.catalogItemId) {
@@ -120,6 +122,7 @@ let portalOAuthAuthorizationGroup = consumerGroup.use(async ctx => {
   let portalOAuthAuthorization =
     await consumerOAuthDashboardService.getConsumerAuthAuthorizationForConsumer({
       instance: ctx.instance,
+      project: ctx.project,
       consumerSurface: ctx.consumerSurface,
       consumerProfile: ctx.consumerProfile,
       portalAuthAttemptId: ctx.params.portalAuthAttemptId
@@ -413,6 +416,7 @@ export let consumerProviderController = Controller.create(
           consumerSurface: ctx.consumerSurface,
           consumerProfile: ctx.consumerProfile,
           providerTemplateId: consumerProvider.providerTemplate.id,
+          requestOrigin: ctx.headers['origin'],
           input: {
             providerAuthMethodId: ctx.body.provider_auth_method_id
           }

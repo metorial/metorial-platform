@@ -18,69 +18,11 @@ model AccountDomain {
   status             AccountDomainStatus
   verificationStatus AccountDomainVerificationStatus
 
-  isFixedToVerified Boolean @default(false)
-
   accountId String
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @default(now()) @updatedAt
-  lastCheckedAt     DateTime?
-  lastManualCheckAt DateTime?
-
-  verifications AccountDomainVerification[]
-  statusChanges AccountDomainVerificationStatusChange[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([accountId, status, id])
   @@index([status, domain])
-}
-
-enum AccountDomainVerificationType {
-  dns
-  email
-}
-
-enum AccountDomainVerificationInnerStatus {
-  unverified
-  verified
-}
-
-model AccountDomainVerification {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
-
-  type   AccountDomainVerificationType
-  status AccountDomainVerificationInnerStatus
-
-  verificationCode String
-
-  accountDomainOid BigInt
-  accountDomain    AccountDomain @relation(fields: [accountDomainOid], references: [oid], onDelete: Cascade)
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  lastCheckedAt DateTime?
-
-  statusChanges AccountDomainVerificationStatusChange[]
-
-  @@unique([accountDomainOid, type])
-  @@index([accountDomainOid, type, status])
-}
-
-model AccountDomainVerificationStatusChange {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
-
-  accountDomainVerificationOid BigInt
-  accountDomainVerification    AccountDomainVerification @relation(fields: [accountDomainVerificationOid], references: [oid], onDelete: Cascade)
-
-  accountDomainOid BigInt
-  accountDomain    AccountDomain @relation(fields: [accountDomainOid], references: [oid], onDelete: Cascade)
-
-  oldStatus AccountDomainVerificationInnerStatus
-  newStatus AccountDomainVerificationInnerStatus
-
-  createdAt DateTime @default(now())
-
-  @@index([accountDomainVerificationOid, createdAt(sort: Desc)])
-  @@index([accountDomainOid, createdAt(sort: Desc)])
 }

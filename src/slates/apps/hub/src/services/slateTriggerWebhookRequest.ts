@@ -10,6 +10,7 @@ class slateTriggerWebhookRequestServiceImpl {
     receiverTriggerId?: string;
     receiverId?: string;
     request: TriggerWebhookRequestPayload;
+    enqueue?: boolean;
   }) {
     if (Boolean(d.receiverTriggerId) === Boolean(d.receiverId)) {
       throw new ServiceError(
@@ -51,11 +52,134 @@ class slateTriggerWebhookRequestServiceImpl {
       }
     });
 
-    await slateTriggerWebhookQueue.add({
-      webhookRequestId: record.id
-    });
+    if (d.enqueue !== false) {
+      await this.enqueueWebhookRequest({ webhookRequestId: record.id });
+    }
 
     return record;
+  }
+
+  async enqueueWebhookRequest(d: {
+    webhookRequestId: string;
+    excludeReceiverTriggerIds?: string[];
+    delayMs?: number;
+    jobId?: string;
+  }) {
+    let { delayMs, jobId, ...payload } = d;
+    if (delayMs !== undefined || jobId !== undefined) {
+      await slateTriggerWebhookQueue.add(payload, { delay: delayMs, id: jobId });
+    } else {
+      await slateTriggerWebhookQueue.add(payload);
+    }
+  }
+
+  async claimSyncOwnership(d: {
+    webhookRequestId: string;
+    ownerToken: string;
+    expiresAt: Date;
+  }) {
+    let result = await db.slateTriggerWebhookRequest.updateMany({
+      where: {
+        id: d.webhookRequestId,
+        processedAt: null,
+        syncOwnerToken: null
+      },
+      data: {
+        syncOwnerToken: d.ownerToken,
+        syncOwnerExpiresAt: d.expiresAt,
+        syncOwnerCommitStartedAt: null
+      }
+    });
+    return result.count === 1;
+  }
+
+  async ownsSyncContinuation(d: { webhookRequestId: string; ownerToken: string }) {
+    return Boolean(
+      await db.slateTriggerWebhookRequest.findFirst({
+        where: {
+          id: d.webhookRequestId,
+          processedAt: null,
+          syncOwnerToken: d.ownerToken,
+          syncOwnerExpiresAt: { gt: new Date() },
+          syncOwnerCommitStartedAt: null
+        },
+        select: { id: true }
+      })
+    );
+  }
+
+  async enterSyncCommit(d: { webhookRequestId: string; ownerToken: string }) {
+    let result = await db.slateTriggerWebhookRequest.updateMany({
+      where: {
+        id: d.webhookRequestId,
+        processedAt: null,
+        syncOwnerToken: d.ownerToken,
+        syncOwnerExpiresAt: { gt: new Date() },
+        syncOwnerCommitStartedAt: null
+      },
+      data: {
+        syncOwnerCommitStartedAt: new Date()
+      }
+    });
+    return result.count === 1;
+  }
+
+  async completeSyncTriggerCommit(d: {
+    webhookRequestId: string;
+    ownerToken: string;
+    receiverTriggerId: string;
+    continueRpc: boolean;
+  }) {
+    let result = await db.slateTriggerWebhookRequest.updateMany({
+      where: {
+        id: d.webhookRequestId,
+        processedAt: null,
+        syncOwnerToken: d.ownerToken,
+        syncOwnerCommitStartedAt: { not: null },
+        NOT: { syncCompletedReceiverTriggerIds: { has: d.receiverTriggerId } }
+      },
+      data: {
+        syncCompletedReceiverTriggerIds: { push: d.receiverTriggerId },
+        ...(d.continueRpc ? { syncOwnerCommitStartedAt: null } : {})
+      }
+    });
+    return result.count === 1;
+  }
+
+  async recordSyncTriggerSkipped(d: {
+    webhookRequestId: string;
+    ownerToken: string;
+    receiverTriggerId: string;
+  }) {
+    let result = await db.slateTriggerWebhookRequest.updateMany({
+      where: {
+        id: d.webhookRequestId,
+        processedAt: null,
+        syncOwnerToken: d.ownerToken,
+        syncOwnerExpiresAt: { gt: new Date() },
+        syncOwnerCommitStartedAt: null,
+        NOT: { syncCompletedReceiverTriggerIds: { has: d.receiverTriggerId } }
+      },
+      data: {
+        syncCompletedReceiverTriggerIds: { push: d.receiverTriggerId }
+      }
+    });
+    return result.count === 1;
+  }
+
+  async releaseSyncOwnership(d: { webhookRequestId: string; ownerToken: string }) {
+    await db.slateTriggerWebhookRequest.updateMany({
+      where: {
+        id: d.webhookRequestId,
+        processedAt: null,
+        syncOwnerToken: d.ownerToken
+      },
+      data: {
+        syncOwnerToken: null,
+        syncOwnerExpiresAt: null,
+        syncOwnerCommitStartedAt: null
+      }
+    });
   }
 }
 
