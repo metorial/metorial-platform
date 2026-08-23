@@ -10,6 +10,8 @@ let ensureFilePurpose = async (d: {
     input: d
   });
 
+export let chatMessageAttachmentFilePurposeSlug = 'chat_message_attachment';
+
 export let purposes = {
   user_image: ensureFilePurpose({
     name: 'User Image',
@@ -49,6 +51,13 @@ export let purposes = {
   generic: ensureFilePurpose({
     name: 'Generic',
     slug: 'generic',
+    ownerType: 'instance',
+    canHaveLinks: true
+  }),
+
+  chat_message_attachment: ensureFilePurpose({
+    name: 'Chat Message Attachment',
+    slug: chatMessageAttachmentFilePurposeSlug,
     ownerType: 'instance',
     canHaveLinks: true
   })
