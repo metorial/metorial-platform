@@ -3,7 +3,8 @@ import { readReplicas } from '@prisma/extension-read-replicas';
 import type {
   SlatesAction as ProtoSlatesAction,
   SlateAuthenticationMethod,
-  SlatesMessageProviderIdentifyResponse
+  SlatesMessageProviderIdentifyResponse,
+  SlatesTriggerGroup
 } from '@slates/proto';
 import { PrismaClient } from '../prisma/generated/client';
 
@@ -81,9 +82,11 @@ declare global {
 
     type SlateAuthMethod = SlateAuthenticationMethod;
     type SlateAction = ProtoSlatesAction;
+    type SlateTriggerGroup = SlatesTriggerGroup;
 
     type SlateAuthMethods = SlateAuthenticationMethod[];
     type SlateActions = ProtoSlatesAction[];
+    type SlateTriggerGroups = SlatesTriggerGroup[];
 
     type AnyRecord = Record<string, any>;
 

@@ -10,13 +10,15 @@ let include = {
   fromSpecification: {
     include: {
       slateAuthMethods: { include: { authMethod: true } },
-      slateActions: { include: { action: true } }
+      slateActions: { include: { action: { include: { triggerGroup: true } } } },
+      slateTriggerGroups: { include: { triggerGroup: true } }
     }
   },
   toSpecification: {
     include: {
       slateAuthMethods: { include: { authMethod: true } },
-      slateActions: { include: { action: true } }
+      slateActions: { include: { action: { include: { triggerGroup: true } } } },
+      slateTriggerGroups: { include: { triggerGroup: true } }
     }
   }
 };

@@ -227,73 +227,8 @@ class slateInvocationServiceImpl {
     });
   }
 
-  async invokeTriggerMapper(d: {
-    stack: SlateInvocationStack;
-    actionId: string;
-    input: Record<string, any>;
-  }) {
-    return await d.stack.invoke('slates/action.trigger.map_event', {
-      actionId: d.actionId,
-      input: d.input
-    });
-  }
-
-  async pollTriggerForEvents(d: {
-    stack: SlateInvocationStack;
-    actionId: string;
-    state: any;
-  }) {
-    return await d.stack.invoke('slates/action.trigger.poll_events', {
-      actionId: d.actionId,
-      state: d.state
-    });
-  }
-
-  async handleWebhookRequest(d: {
-    stack: SlateInvocationStack;
-    actionId: string;
-    url: string;
-    method: string;
-    headers: Record<string, string>;
-    body: { encoding: 'base64'; content: string } | null;
-    state: any;
-    registrationDetails?: any;
-  }) {
-    return await d.stack.invoke('slates/action.trigger.webhook_handle', {
-      actionId: d.actionId,
-      url: d.url,
-      method: d.method,
-      headers: d.headers,
-      body: d.body,
-      state: d.state,
-      registrationDetails: d.registrationDetails ?? null
-    });
-  }
-
-  async registerWebhook(d: {
-    stack: SlateInvocationStack;
-    actionId: string;
-    webhookBaseUrl: string;
-  }) {
-    return await d.stack.invoke('slates/action.trigger.webhook_register', {
-      actionId: d.actionId,
-      webhookBaseUrl: d.webhookBaseUrl
-    });
-  }
-
-  async unregisterWebhook(d: {
-    stack: SlateInvocationStack;
-    actionId: string;
-    webhookBaseUrl: string;
-    registrationDetails: any;
-    state?: any;
-  }) {
-    return await d.stack.invoke('slates/action.trigger.webhook_unregister', {
-      actionId: d.actionId,
-      webhookBaseUrl: d.webhookBaseUrl,
-      registrationDetails: d.registrationDetails,
-      state: d.state
-    });
+  async listTriggerGroups(d: { stack: SlateInvocationStack }) {
+    return await d.stack.invoke('slates/trigger_groups.list', {});
   }
 
   async DANGEROUSLY_getSlateInvocationById(d: { id: string }) {

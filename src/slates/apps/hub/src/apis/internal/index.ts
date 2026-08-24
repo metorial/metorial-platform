@@ -1,7 +1,6 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
-import { callbackRegistrationController } from './callbackRegistration';
 import { changeNotificationController } from './changeNotification';
 import { registryController } from './registry';
 import { secretController } from './secret';
@@ -22,10 +21,6 @@ import { slateSessionController } from './slateSession';
 import { slateSessionToolCallController } from './slateSessionToolCall';
 import { slateSpecificationController } from './slateSpecification';
 import { slateSpecificationChangeController } from './slateSpecificationChange';
-import { slateTriggerEventController } from './slateTriggerEvent';
-import { slateTriggerEventInputController } from './slateTriggerEventInput';
-import { slateTriggerInvocationController } from './slateTriggerInvocation';
-import { slateTriggerReceiverController } from './slateTriggerReceiver';
 import { slateVersionController } from './slateVersion';
 import { slateVersionDiscoveryController } from './slateVersionDiscovery';
 import { tenantController } from './tenant';
@@ -33,7 +28,6 @@ import { tenantController } from './tenant';
 export let rootController = app.controller({
   tenant: tenantController,
   secret: secretController,
-  callbackRegistration: callbackRegistrationController,
 
   registry: registryController,
 
@@ -57,10 +51,6 @@ export let rootController = app.controller({
   slateSession: slateSessionController,
   slateSessionToolCall: slateSessionToolCallController,
 
-  slateTriggerReceiver: slateTriggerReceiverController,
-  slateTriggerEvent: slateTriggerEventController,
-  slateTriggerEventInput: slateTriggerEventInputController,
-  slateTriggerInvocation: slateTriggerInvocationController,
   slateVersionDiscovery: slateVersionDiscoveryController,
   slateSpecificationChange: slateSpecificationChangeController
 });

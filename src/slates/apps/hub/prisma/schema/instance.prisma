@@ -26,9 +26,6 @@ model SlateInstance {
   oAuthSetups             SlateInstanceOAuthSetup[]
   usedAuthConfig          SlateAuthConfigUsedForInstance[]
   slateSessions           SlateSession[]
-  slateTriggerReceivers   SlateTriggerReceiver[]
-  slateTriggerEvents      SlateTriggerEvent[]
-  slateTriggerEventInputs SlateTriggerEventInput[]
   slateErrors             SlateError[]
 }
 
@@ -180,7 +177,6 @@ model SlateAuthConfig {
   usingInstances                SlateAuthConfigUsedForInstance[]
   slateAuthConfigEvents         SlateAuthConfigEvent[]
   slateAuthConfigManualDecrypts SlateAuthConfigManualDecrypt[]
-  slateTriggerReceivers         SlateTriggerReceiver[]
   slateErrors                   SlateError[]
 }
 

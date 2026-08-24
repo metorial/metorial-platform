@@ -41,9 +41,7 @@ model Slate {
   slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
   slateAuthConfigs          SlateAuthConfig[]
   slateSessions             SlateSession[]
-  slateTriggerReceivers     SlateTriggerReceiver[]
-  slateTriggerEvents        SlateTriggerEvent[]
-  slateTriggerEventInputs   SlateTriggerEventInput[]
+  slateTriggerGroups        SlateTriggerGroup[]
   changeNotifications       ChangeNotification[]
   slateErrors               SlateError[]
 
@@ -226,13 +224,15 @@ model SlateAction {
   mostRecentSpecificationOid BigInt
   mostRecentSpecification    SlateSpecification @relation(fields: [mostRecentSpecificationOid], references: [oid])
 
+  // Nullable: actions discovered before trigger groups existed have no group yet.
+  // Only trigger actions with a resolved triggerGroupOid are usable for event handling.
+  triggerGroupOid BigInt?
+  triggerGroup    SlateTriggerGroup? @relation(fields: [triggerGroupOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
-  slateSpecifications          SlateSpecificationAction[]
-  slateSessionToolCalls        SlateSessionToolCall[]
-  slateTriggerReceiverTriggers SlateTriggerReceiverTrigger[]
-  slateTriggerEvents           SlateTriggerEvent[]
-  slateTriggerEventInputs      SlateTriggerEventInput[]
+  slateSpecifications   SlateSpecificationAction[]
+  slateSessionToolCalls SlateSessionToolCall[]
 
   @@index([key])
 }
@@ -249,6 +249,47 @@ model SlateSpecificationAction {
   createdAt DateTime @default(now())
 
   @@unique([specificationOid, actionOid])
+}
+
+model SlateTriggerGroup {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  hash       String
+
+  key  String
+  name String
+
+  /// [SlateTriggerGroup]
+  spec Json
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  mostRecentSpecificationOid BigInt
+  mostRecentSpecification    SlateSpecification @relation(fields: [mostRecentSpecificationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  slateSpecifications SlateSpecificationTriggerGroup[]
+  slateActions        SlateAction[]
+
+  @@index([key])
+}
+
+model SlateSpecificationTriggerGroup {
+  oid BigInt @id
+
+  specificationOid BigInt
+  specification    SlateSpecification @relation(fields: [specificationOid], references: [oid])
+
+  triggerGroupOid BigInt
+  triggerGroup    SlateTriggerGroup  @relation(fields: [triggerGroupOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([specificationOid, triggerGroupOid])
 }
 
 model SlateSpecification {
@@ -281,6 +322,9 @@ model SlateSpecification {
   /// [SlateActions]
   actions Json
 
+  /// [SlateTriggerGroups]
+  triggerGroups Json
+
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])
 
@@ -289,16 +333,18 @@ model SlateSpecification {
 
   createdAt DateTime @default(now())
 
-  slateVersions                   SlateVersion[]
-  slateVersionDiscoveries         SlateVersionDiscovery[]
-  slateAuthMethods                SlateSpecificationAuthMethod[]
-  slateConfigSchemas              SlateSpecificationConfigSchema[]
-  slateSpecificationChanges1      SlateSpecificationChange[]       @relation("fromSpecification")
-  slateSpecificationChanges2      SlateSpecificationChange[]       @relation("toSpecification")
-  slateActions                    SlateSpecificationAction[]
-  mostRecentForSlateAuthMethods   SlateAuthMethod[]
-  mostRecentForSlateConfigSchemas SlateConfigSchema[]
-  mostRecentForSlateActions       SlateAction[]
+  slateVersions                    SlateVersion[]
+  slateVersionDiscoveries          SlateVersionDiscovery[]
+  slateAuthMethods                 SlateSpecificationAuthMethod[]
+  slateConfigSchemas               SlateSpecificationConfigSchema[]
+  slateSpecificationChanges1       SlateSpecificationChange[]       @relation("fromSpecification")
+  slateSpecificationChanges2       SlateSpecificationChange[]       @relation("toSpecification")
+  slateActions                     SlateSpecificationAction[]
+  slateTriggerGroups               SlateSpecificationTriggerGroup[]
+  mostRecentForSlateAuthMethods    SlateAuthMethod[]
+  mostRecentForSlateConfigSchemas  SlateConfigSchema[]
+  mostRecentForSlateActions        SlateAction[]
+  mostRecentForSlateTriggerGroups  SlateTriggerGroup[]
 }
 
 enum SlateVersionDiscoveryStatus {

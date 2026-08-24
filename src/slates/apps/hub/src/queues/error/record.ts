@@ -18,8 +18,6 @@ export let recordSlateErrorQueue = createQueue<{
   authConfigOid: string | null;
   instanceConfigOid: string | null;
   oauthSetupOid: string | null;
-  triggerReceiverOid: string | null;
-  triggerEventInputOid: string | null;
 }>({
   name: 'shub/err/record',
   redisUrl: env.service.REDIS_URL
@@ -34,9 +32,7 @@ export let recordSlateErrorQueueProcessor = recordSlateErrorQueue.process(async 
         type: data.type,
         tenantOid: data.tenantOid,
         slateOid: data.slateOid,
-        slateInstanceOid: data.slateInstanceOid,
-        triggerReceiverOid: data.triggerReceiverOid,
-        triggerEventInputOid: data.triggerEventInputOid
+        slateInstanceOid: data.slateInstanceOid
       });
       return;
     }

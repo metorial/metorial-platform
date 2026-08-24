@@ -22,6 +22,7 @@ export let ID = createIdGenerator({
   slateAction: idType.sorted('shac'),
   slateConfigSchema: idType.sorted('shcs'),
   slateAuthMethod: idType.sorted('sham'),
+  slateTriggerGroup: idType.sorted('sttg'),
 
   slateInstance: idType.sorted('shin'),
   slateInstanceConfig: idType.sorted('shic'),
@@ -37,13 +38,6 @@ export let ID = createIdGenerator({
   slateOAuthCredentials: idType.sorted('shoc'),
   slateToolCall: idType.sorted('shtc'),
   slateSession: idType.sorted('shses'),
-
-  slateTriggerReceiver: idType.sorted('shtr'),
-  slateTriggerReceiverTrigger: idType.sorted('shtrt'),
-  slateTriggerInvocation: idType.sorted('shtiv'),
-  slateTriggerEventInput: idType.sorted('shtin'),
-  slateTriggerEvent: idType.sorted('shte'),
-  slateTriggerWebhookRequest: idType.sorted('shtwr'),
 
   changeNotification: idType.sorted('shcn'),
 

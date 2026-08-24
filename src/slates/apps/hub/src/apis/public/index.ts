@@ -2,9 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { env } from '../../env';
-import { createSanitizedWebhookResponse } from '../../lib/triggerWebhookSync';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
-import { slateTriggerWebhookSyncService } from '../../services/slateTriggerWebhookSync';
 
 let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';
 
@@ -14,61 +12,6 @@ let cookieOpts = {
   sameSite: 'lax' as const,
   path: '/'
 };
-
-let getWebhookRequestPayload = async (c: any) => {
-  let headers = Object.fromEntries(c.req.raw.headers.entries());
-  let bodyBuffer = await c.req.arrayBuffer();
-  let body =
-    bodyBuffer.byteLength > 0
-      ? {
-          encoding: 'base64' as const,
-          content: Buffer.from(bodyBuffer).toString('base64')
-        }
-      : null;
-
-  return {
-    url: c.req.url,
-    method: c.req.method,
-    headers,
-    body
-  };
-};
-
-let handleTriggerWebhookRequest =
-  (targetType: 'receiverTrigger' | 'receiver') => async (c: any) => {
-    if (c.req.method === 'OPTIONS' && c.req.header('access-control-request-method')) {
-      return c.text('');
-    }
-
-    let targetId = c.req.param(
-      targetType === 'receiverTrigger' ? 'receiverTriggerId' : 'receiverId'
-    );
-    if (!targetId) return c.text('Missing trigger receiver ID', 400);
-
-    let result = await slateTriggerWebhookSyncService.handleWebhookRequest({
-      receiverTriggerId: targetType === 'receiverTrigger' ? targetId : undefined,
-      receiverId: targetType === 'receiver' ? targetId : undefined,
-      request: await getWebhookRequestPayload(c)
-    });
-
-    if (result.type === 'methodNotAllowed') {
-      return new Response('Method Not Allowed', {
-        status: 405,
-        headers: { Allow: result.allowedMethods.join(', ') }
-      });
-    }
-
-    if (result.type === 'response') {
-      return createSanitizedWebhookResponse(result.response);
-    }
-
-    return c.json({
-      status: 'queued',
-      webhookRequestId: result.webhookRequestId
-    });
-  };
-
-let WEBHOOK_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
 export let hubApp = createHono()
   .use(async (c, next) => {
@@ -130,15 +73,5 @@ export let hubApp = createHono()
 
     return c.redirect(res.redirectUrl);
   })
-  .on(
-    WEBHOOK_METHODS,
-    '/slates-hub/triggers/webhook/:receiverTriggerId/:key*?',
-    handleTriggerWebhookRequest('receiverTrigger')
-  )
-  .on(
-    WEBHOOK_METHODS,
-    '/slates-hub/triggers/receiver-webhook/:receiverId/:key*?',
-    handleTriggerWebhookRequest('receiver')
-  )
   .options('*', c => c.text(''))
   .get('/ping', c => c.text('OK'));
