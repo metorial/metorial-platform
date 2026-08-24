@@ -1,9 +1,9 @@
-import { Button, Flex, Input, Select, Spacer, Text, Title } from '@metorial-io/ui';
+import { Button, Flex, Input, MultiSelect, Select, Spacer, Text, Title } from '@metorial-io/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackLink } from '../../components/BackLink.js';
 import { FormWrapper } from '../../components/styled.js';
-import { createGlobalWebhook, useSlates } from '../../state/index.js';
+import { createGlobalWebhook, useSlateAuthMethods, useSlates } from '../../state/index.js';
 
 let parseJsonObject = (value: string, label: string): Record<string, any> => {
   if (!value.trim()) return {};
@@ -31,6 +31,8 @@ export let WebhookCreate = () => {
   let [description, setDescription] = useState('');
   let [metadataText, setMetadataText] = useState('');
   let [userConfigText, setUserConfigText] = useState('{}');
+  let [authRouting, setAuthRouting] = useState<'any' | 'restricted_method'>('any');
+  let [authMethodIds, setAuthMethodIds] = useState<string[]>([]);
   let [error, setError] = useState<string | null>(null);
   let [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,6 +40,12 @@ export let WebhookCreate = () => {
   let slateItems = (slates.data?.items ?? []).map(slate => ({
     id: slate.id,
     label: slate.name || slate.identifier
+  }));
+
+  let authMethods = useSlateAuthMethods(slateId);
+  let authMethodItems = (authMethods.data ?? []).map(method => ({
+    id: method.id,
+    label: method.name || method.key
   }));
 
   let submit = async () => {
@@ -49,6 +57,10 @@ export let WebhookCreate = () => {
     }
     if (!name.trim()) {
       setError('Name is required.');
+      return;
+    }
+    if (authRouting === 'restricted_method' && authMethodIds.length === 0) {
+      setError('Select at least one auth method, or switch auth routing to "Any".');
       return;
     }
 
@@ -69,7 +81,9 @@ export let WebhookCreate = () => {
         name: name.trim(),
         description: description.trim() || undefined,
         metadata: Object.keys(metadata).length ? metadata : undefined,
-        userConfig
+        userConfig,
+        authRouting: authMethodItems.length ? authRouting : undefined,
+        authMethodIds: authMethodIds.length ? authMethodIds : undefined
       });
 
       navigate(`/webhooks/${webhook.id}`);
@@ -110,13 +124,39 @@ export let WebhookCreate = () => {
             label="Provider"
             placeholder="Select a provider"
             value={slateId}
-            onChange={setSlateId}
+            onChange={id => {
+              setSlateId(id);
+              setAuthRouting('any');
+              setAuthMethodIds([]);
+            }}
             items={
               slateItems.length
                 ? slateItems
                 : [{ id: '', label: 'No matching providers', disabled: true }]
             }
           />
+
+          {authMethodItems.length > 0 && (
+            <>
+              <Select
+                label="Auth routing"
+                value={authRouting}
+                onChange={value => setAuthRouting(value as 'any' | 'restricted_method')}
+                items={[
+                  { id: 'any', label: 'Any auth method' },
+                  { id: 'restricted_method', label: 'Restricted to selected methods' }
+                ]}
+              />
+
+              <MultiSelect
+                label="Auth methods"
+                description="Which auth methods this webhook may use."
+                value={authMethodIds}
+                onChange={setAuthMethodIds}
+                items={authMethodItems}
+              />
+            </>
+          )}
 
           <Input label="Name" value={name} onInput={setName} placeholder="e.g. GitHub" />
 

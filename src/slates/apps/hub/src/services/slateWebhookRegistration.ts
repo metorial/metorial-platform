@@ -4,6 +4,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
   Slate,
+  SlateWebhookRegistrationAuthRouting,
   SlateTriggerGroup,
   SlateWebhookRegistration,
   SlateWebhookRegistrationOwner,
@@ -12,7 +13,7 @@ import type {
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
-import { getId } from '../id';
+import { getId, snowflake } from '../id';
 import { getActiveSlateVersion } from '../lib/slateVersion';
 import { validateJsonSchema } from '../lib/validateJsonSchema';
 import { getWebhookUrl } from '../lib/webhookUrl';
@@ -26,7 +27,9 @@ let include = {
   instanceConfig: true,
   authConfig: true,
   slate: true,
-  triggerGroup: true
+  triggerGroup: true,
+  authMethods: { include: { authMethod: true as const } },
+  oauthCredentials: { include: { oauthCredentials: true as const } }
 };
 
 let getRegion = () => {
@@ -116,10 +119,32 @@ class slateWebhookRegistrationServiceImpl {
       name: string;
       description?: string;
       metadata?: Record<string, any>;
+      authRouting?: SlateWebhookRegistrationAuthRouting;
+      authMethodIds?: string[];
+      slateOAuthCredentialsIds?: string[];
     };
   }) {
     let { slate, triggerGroup } = await this.resolveManualWebhookTriggerGroup({
       slateId: d.input.slateId
+    });
+
+    let authRouting = d.input.authRouting ?? 'any';
+    let authMethods = d.input.authMethodIds?.length
+      ? await this.resolveAuthMethods({ slate, authMethodIds: d.input.authMethodIds })
+      : [];
+    let oauthCredentials = d.input.slateOAuthCredentialsIds?.length
+      ? await this.resolveOAuthCredentials({
+          tenant: d.tenant,
+          slate,
+          credentialIds: d.input.slateOAuthCredentialsIds
+        })
+      : [];
+
+    this.assertAuthRouting({
+      authRouting,
+      methodCount: authMethods.length,
+      credentialCount: oauthCredentials.length,
+      allowCredentials: true
     });
 
     let urlKey = generateWebhookRegistrationUrlKey('tenant');
@@ -146,7 +171,26 @@ class slateWebhookRegistrationServiceImpl {
         tenantOid: d.tenant.oid,
         slateOid: slate.oid,
         triggerGroupOid: triggerGroup.oid,
-        secretOid
+        secretOid,
+
+        authRouting,
+        authMethods: authMethods.length
+          ? {
+              createMany: {
+                data: authMethods.map(m => ({ oid: snowflake.nextId(), authMethodOid: m.oid }))
+              }
+            }
+          : undefined,
+        oauthCredentials: oauthCredentials.length
+          ? {
+              createMany: {
+                data: oauthCredentials.map(c => ({
+                  oid: snowflake.nextId(),
+                  oauthCredentialsOid: c.oid
+                }))
+              }
+            }
+          : undefined
       },
       include
     });
@@ -191,10 +235,24 @@ class slateWebhookRegistrationServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       userConfig: Record<string, any>;
+      authRouting?: SlateWebhookRegistrationAuthRouting;
+      authMethodIds?: string[];
     };
   }) {
     let { slate, triggerGroup } = await this.resolveManualWebhookTriggerGroup({
       slateId: d.input.slateId
+    });
+
+    let authRouting = d.input.authRouting ?? 'any';
+    let authMethods = d.input.authMethodIds?.length
+      ? await this.resolveAuthMethods({ slate, authMethodIds: d.input.authMethodIds })
+      : [];
+
+    this.assertAuthRouting({
+      authRouting,
+      methodCount: authMethods.length,
+      credentialCount: 0,
+      allowCredentials: false
     });
 
     let urlKey = generateWebhookRegistrationUrlKey('global');
@@ -229,7 +287,16 @@ class slateWebhookRegistrationServiceImpl {
 
         slateOid: slate.oid,
         triggerGroupOid: triggerGroup.oid,
-        secretOid
+        secretOid,
+
+        authRouting,
+        authMethods: authMethods.length
+          ? {
+              createMany: {
+                data: authMethods.map(m => ({ oid: snowflake.nextId(), authMethodOid: m.oid }))
+              }
+            }
+          : undefined
       },
       include
     });
@@ -327,6 +394,79 @@ class slateWebhookRegistrationServiceImpl {
       where: { oid: d.registration.oid },
       data: { status: 'deleted' }
     });
+  }
+
+  private async resolveAuthMethods(d: { slate: Slate; authMethodIds: string[] }) {
+    let methods = await slateService.listCurrentAuthMethods({ slate: d.slate });
+
+    let resolved = methods.filter(m => d.authMethodIds.includes(m.id));
+    let missing = d.authMethodIds.filter(id => !resolved.some(m => m.id === id));
+    if (missing.length) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'invalid_auth_method_id',
+          message: `Unknown auth method id(s): ${missing.join(', ')}`
+        })
+      );
+    }
+
+    return resolved;
+  }
+
+  private async resolveOAuthCredentials(d: {
+    tenant: Tenant;
+    slate: Slate;
+    credentialIds: string[];
+  }) {
+    let credentials = await db.slateOAuthCredentials.findMany({
+      where: { tenantOid: d.tenant.oid, slateOid: d.slate.oid, id: { in: d.credentialIds } }
+    });
+
+    let missing = d.credentialIds.filter(id => !credentials.some(c => c.id === id));
+    if (missing.length) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'invalid_oauth_credentials_id',
+          message: `Unknown or inaccessible OAuth credentials id(s): ${missing.join(', ')}`
+        })
+      );
+    }
+
+    return credentials;
+  }
+
+  private assertAuthRouting(d: {
+    authRouting: SlateWebhookRegistrationAuthRouting;
+    methodCount: number;
+    credentialCount: number;
+    allowCredentials: boolean;
+  }) {
+    if (d.authRouting === 'restricted_method' && d.methodCount === 0) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'authRouting is "restricted_method" but no authMethodIds were provided.'
+        })
+      );
+    }
+
+    if (d.authRouting === 'restricted_credential') {
+      if (!d.allowCredentials) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'authRouting "restricted_credential" is not supported for global registrations.'
+          })
+        );
+      }
+      if (d.credentialCount === 0) {
+        throw new ServiceError(
+          badRequestError({
+            message:
+              'authRouting is "restricted_credential" but no slateOAuthCredentialsIds were provided.'
+          })
+        );
+      }
+    }
   }
 
   private async resolveManualWebhookTriggerGroup(d: { slateId: string }) {

@@ -29,3 +29,13 @@ export let slateStatsLoader = createLoader({
 
 export let useSlateStats = (slateId: string | undefined) =>
   slateStatsLoader.use(slateId || null);
+
+export let slateAuthMethodsLoader = createLoader({
+  name: 'slateAuthMethods',
+  fetch: (slateId: string) => withAuthRedirect(() => adminClient.slate.authMethods({ slateId })),
+  mutators: {},
+  parents: [slateLoader]
+});
+
+export let useSlateAuthMethods = (slateId: string | undefined) =>
+  slateAuthMethodsLoader.use(slateId || null);

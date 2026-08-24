@@ -144,6 +144,11 @@ let WebhookDetailContent = ({
                   </Flex>
                 )
               },
+              { label: 'Auth routing', value: webhook.authRouting },
+              {
+                label: 'Auth methods',
+                value: webhook.authMethodIds.length ? webhook.authMethodIds.join(', ') : '-'
+              },
               { label: 'Created', value: <RenderDate date={webhook.createdAt} /> },
               { label: 'Updated', value: <RenderDate date={webhook.updatedAt} /> }
             ]}

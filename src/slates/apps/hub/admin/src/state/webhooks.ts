@@ -29,6 +29,8 @@ export let createGlobalWebhook = (input: {
   description?: string;
   metadata?: Record<string, any>;
   userConfig: Record<string, any>;
+  authRouting?: 'any' | 'restricted_method';
+  authMethodIds?: string[];
 }) => withAuthRedirect(() => adminClient.webhook.create(input));
 
 export let updateGlobalWebhook = (input: {

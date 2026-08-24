@@ -14,6 +14,12 @@ enum SlateWebhookRegistrationStatus {
   deleted
 }
 
+enum SlateWebhookRegistrationAuthRouting {
+  any
+  restricted_method
+  restricted_credential
+}
+
 model SlateWebhookRegistration {
   oid    BigInt                         @id
   id     String                         @unique
@@ -34,7 +40,7 @@ model SlateWebhookRegistration {
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
   slateOid BigInt
-  slate    Slate @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
 
   triggerGroupOid BigInt
   triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid], onDelete: Cascade)
@@ -53,11 +59,43 @@ model SlateWebhookRegistration {
   authConfigOid BigInt?
   authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: Cascade)
 
+  authRouting SlateWebhookRegistrationAuthRouting @default(any)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  webhookEvents SlateWebhookEvent[]
+  webhookEvents    SlateWebhookEvent[]
+  authMethods      SlateWebhookRegistrationAuthMethod[]
+  oauthCredentials SlateWebhookRegistrationOAuthCredentials[]
 
   @@index([tenantOid, createdAt])
   @@index([instanceOid])
+}
+
+model SlateWebhookRegistrationAuthMethod {
+  oid BigInt @id
+
+  registrationOid BigInt
+  registration    SlateWebhookRegistration @relation(fields: [registrationOid], references: [oid], onDelete: Cascade)
+
+  authMethodOid BigInt
+  authMethod    SlateAuthMethod @relation(fields: [authMethodOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([registrationOid, authMethodOid])
+}
+
+model SlateWebhookRegistrationOAuthCredentials {
+  oid BigInt @id
+
+  registrationOid BigInt
+  registration    SlateWebhookRegistration @relation(fields: [registrationOid], references: [oid], onDelete: Cascade)
+
+  oauthCredentialsOid BigInt
+  oauthCredentials    SlateOAuthCredentials @relation(fields: [oauthCredentialsOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([registrationOid, oauthCredentialsOid])
 }

@@ -1,10 +1,14 @@
 import type {
   Slate,
   SlateAuthConfig,
+  SlateAuthMethod,
   SlateInstance,
   SlateInstanceConfig,
+  SlateOAuthCredentials,
   SlateTriggerGroup,
-  SlateWebhookRegistration
+  SlateWebhookRegistration,
+  SlateWebhookRegistrationAuthMethod,
+  SlateWebhookRegistrationOAuthCredentials
 } from '../../prisma/generated/client';
 import { getWebhookUrl } from '../lib/webhookUrl';
 
@@ -15,6 +19,10 @@ export let slateWebhookRegistrationPresenter = (
     authConfig: SlateAuthConfig | null;
     slate: Slate;
     triggerGroup: SlateTriggerGroup;
+    authMethods: (SlateWebhookRegistrationAuthMethod & { authMethod: SlateAuthMethod })[];
+    oauthCredentials: (SlateWebhookRegistrationOAuthCredentials & {
+      oauthCredentials: SlateOAuthCredentials;
+    })[];
   }
 ) => ({
   object: 'slate.webhook_registration',
@@ -37,6 +45,10 @@ export let slateWebhookRegistrationPresenter = (
   slateInstanceId: registration.instance?.id ?? null,
   slateInstanceConfigId: registration.instanceConfig?.id ?? null,
   slateAuthConfigId: registration.authConfig?.id ?? null,
+
+  authRouting: registration.authRouting,
+  authMethodIds: registration.authMethods.map(m => m.authMethod.id),
+  slateOAuthCredentialsIds: registration.oauthCredentials.map(c => c.oauthCredentials.id),
 
   createdAt: registration.createdAt,
   updatedAt: registration.updatedAt

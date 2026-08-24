@@ -45,7 +45,10 @@ export let webhookController = authedApp.controller({
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
 
-        userConfig: v.record(v.any())
+        userConfig: v.record(v.any()),
+
+        authRouting: v.optional(v.enumOf(['any', 'restricted_method'])),
+        authMethodIds: v.optional(v.array(v.string()))
       })
     )
     .do(async ctx => {
@@ -55,7 +58,9 @@ export let webhookController = authedApp.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          userConfig: ctx.input.userConfig
+          userConfig: ctx.input.userConfig,
+          authRouting: ctx.input.authRouting,
+          authMethodIds: ctx.input.authMethodIds
         }
       });
 

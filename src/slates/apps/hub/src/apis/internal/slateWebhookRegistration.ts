@@ -50,7 +50,13 @@ export let slateWebhookRegistrationController = app.controller({
 
         name: v.string(),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+
+        authRouting: v.optional(
+          v.enumOf(['any', 'restricted_method', 'restricted_credential'])
+        ),
+        authMethodIds: v.optional(v.array(v.string())),
+        slateOAuthCredentialsIds: v.optional(v.array(v.string()))
       })
     )
     .do(async ctx => {
@@ -60,7 +66,10 @@ export let slateWebhookRegistrationController = app.controller({
           slateId: ctx.input.slateId,
           name: ctx.input.name,
           description: ctx.input.description,
-          metadata: ctx.input.metadata
+          metadata: ctx.input.metadata,
+          authRouting: ctx.input.authRouting,
+          authMethodIds: ctx.input.authMethodIds,
+          slateOAuthCredentialsIds: ctx.input.slateOAuthCredentialsIds
         }
       });
 

@@ -20,14 +20,14 @@ model SlateInstance {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  configs                 SlateInstanceConfig[]
-  authConfigs             SlateAuthConfig[]
-  events                  SlateInstanceEvent[]
-  oAuthSetups             SlateInstanceOAuthSetup[]
-  usedAuthConfig          SlateAuthConfigUsedForInstance[]
-  slateSessions           SlateSession[]
-  slateErrors             SlateError[]
-  webhookRegistrations    SlateWebhookRegistration[]
+  configs              SlateInstanceConfig[]
+  authConfigs          SlateAuthConfig[]
+  events               SlateInstanceEvent[]
+  oAuthSetups          SlateInstanceOAuthSetup[]
+  usedAuthConfig       SlateAuthConfigUsedForInstance[]
+  slateSessions        SlateSession[]
+  slateErrors          SlateError[]
+  webhookRegistrations SlateWebhookRegistration[]
 }
 
 model SlateInstanceConfiguration {
@@ -98,7 +98,7 @@ model SlateInstanceConfig {
 
   createdAt DateTime @default(now())
 
-  currentConfigForInstances SlateInstance[] @relation(name: "currentConfig")
+  currentConfigForInstances SlateInstance[]            @relation(name: "currentConfig")
   slateErrors               SlateError[]
   webhookRegistrations      SlateWebhookRegistration[]
 }
@@ -122,8 +122,9 @@ model SlateOAuthCredentials {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  authConfigs SlateAuthConfig[]
-  oAuthSetups SlateInstanceOAuthSetup[]
+  authConfigs          SlateAuthConfig[]
+  oAuthSetups          SlateInstanceOAuthSetup[]
+  webhookRegistrations SlateWebhookRegistrationOAuthCredentials[]
 }
 
 enum SlateAuthConfigType {

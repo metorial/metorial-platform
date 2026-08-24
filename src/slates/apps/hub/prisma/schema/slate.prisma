@@ -144,6 +144,7 @@ model SlateAuthMethod {
   slateSpecifications      SlateSpecificationAuthMethod[]
   slateAuthConfigs         SlateAuthConfig[]
   slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
+  webhookRegistrations     SlateWebhookRegistrationAuthMethod[]
 }
 
 model SlateSpecificationAuthMethod {
@@ -287,7 +288,7 @@ model SlateSpecificationTriggerGroup {
   specification    SlateSpecification @relation(fields: [specificationOid], references: [oid])
 
   triggerGroupOid BigInt
-  triggerGroup    SlateTriggerGroup  @relation(fields: [triggerGroupOid], references: [oid])
+  triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid])
 
   createdAt DateTime @default(now())
 
@@ -335,18 +336,18 @@ model SlateSpecification {
 
   createdAt DateTime @default(now())
 
-  slateVersions                    SlateVersion[]
-  slateVersionDiscoveries          SlateVersionDiscovery[]
-  slateAuthMethods                 SlateSpecificationAuthMethod[]
-  slateConfigSchemas               SlateSpecificationConfigSchema[]
-  slateSpecificationChanges1       SlateSpecificationChange[]       @relation("fromSpecification")
-  slateSpecificationChanges2       SlateSpecificationChange[]       @relation("toSpecification")
-  slateActions                     SlateSpecificationAction[]
-  slateTriggerGroups               SlateSpecificationTriggerGroup[]
-  mostRecentForSlateAuthMethods    SlateAuthMethod[]
-  mostRecentForSlateConfigSchemas  SlateConfigSchema[]
-  mostRecentForSlateActions        SlateAction[]
-  mostRecentForSlateTriggerGroups  SlateTriggerGroup[]
+  slateVersions                   SlateVersion[]
+  slateVersionDiscoveries         SlateVersionDiscovery[]
+  slateAuthMethods                SlateSpecificationAuthMethod[]
+  slateConfigSchemas              SlateSpecificationConfigSchema[]
+  slateSpecificationChanges1      SlateSpecificationChange[]       @relation("fromSpecification")
+  slateSpecificationChanges2      SlateSpecificationChange[]       @relation("toSpecification")
+  slateActions                    SlateSpecificationAction[]
+  slateTriggerGroups              SlateSpecificationTriggerGroup[]
+  mostRecentForSlateAuthMethods   SlateAuthMethod[]
+  mostRecentForSlateConfigSchemas SlateConfigSchema[]
+  mostRecentForSlateActions       SlateAction[]
+  mostRecentForSlateTriggerGroups SlateTriggerGroup[]
 }
 
 enum SlateVersionDiscoveryStatus {
