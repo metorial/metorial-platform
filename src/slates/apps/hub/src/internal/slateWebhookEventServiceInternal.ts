@@ -11,9 +11,6 @@ import { getId } from '../id';
 let include = {
   webhookRegistration: {
     include: {
-      instance: true,
-      instanceConfig: true,
-      authConfig: { include: { authMethod: true } },
       slate: true,
       triggerGroup: true,
       tenant: true

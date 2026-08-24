@@ -27,7 +27,7 @@ model SlateInstance {
   usedAuthConfig       SlateAuthConfigUsedForInstance[]
   slateSessions        SlateSession[]
   slateErrors          SlateError[]
-  webhookRegistrations SlateWebhookRegistration[]
+  triggerRegistrations TriggerRegistration[]
 }
 
 model SlateInstanceConfiguration {
@@ -98,9 +98,9 @@ model SlateInstanceConfig {
 
   createdAt DateTime @default(now())
 
-  currentConfigForInstances SlateInstance[]            @relation(name: "currentConfig")
+  currentConfigForInstances SlateInstance[]       @relation(name: "currentConfig")
   slateErrors               SlateError[]
-  webhookRegistrations      SlateWebhookRegistration[]
+  triggerRegistrations      TriggerRegistration[]
 }
 
 model SlateOAuthCredentials {
@@ -181,7 +181,7 @@ model SlateAuthConfig {
   slateAuthConfigEvents         SlateAuthConfigEvent[]
   slateAuthConfigManualDecrypts SlateAuthConfigManualDecrypt[]
   slateErrors                   SlateError[]
-  webhookRegistrations          SlateWebhookRegistration[]
+  triggerRegistrations          TriggerRegistration[]
 }
 
 model SlateAuthConfigManualDecrypt {

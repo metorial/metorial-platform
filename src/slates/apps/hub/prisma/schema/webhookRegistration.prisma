@@ -48,17 +48,6 @@ model SlateWebhookRegistration {
   secretOid BigInt
   secret    Secret @relation(fields: [secretOid], references: [oid])
 
-  // Only set for automated registrations.
-  instanceOid BigInt?
-  instance    SlateInstance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
-
-  instanceConfigOid BigInt?
-  instanceConfig    SlateInstanceConfig? @relation(fields: [instanceConfigOid], references: [oid], onDelete: Cascade)
-
-  // Only set for automated registrations when the provider supports authentication.
-  authConfigOid BigInt?
-  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: Cascade)
-
   authRouting SlateWebhookRegistrationAuthRouting @default(any)
 
   createdAt DateTime @default(now())
@@ -69,7 +58,6 @@ model SlateWebhookRegistration {
   oauthCredentials SlateWebhookRegistrationOAuthCredentials[]
 
   @@index([tenantOid, createdAt])
-  @@index([instanceOid])
 }
 
 model SlateWebhookRegistrationAuthMethod {

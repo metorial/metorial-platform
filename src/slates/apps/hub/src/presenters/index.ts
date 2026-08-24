@@ -28,3 +28,4 @@ export * from './slateVersion';
 export * from './slateVersionDiscovery';
 export * from './slateWebhookRegistration';
 export * from './tenant';
+export * from './triggerRegistration';

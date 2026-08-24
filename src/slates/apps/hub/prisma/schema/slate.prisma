@@ -45,6 +45,7 @@ model Slate {
   changeNotifications       ChangeNotification[]
   slateErrors               SlateError[]
   slateWebhookRegistrations SlateWebhookRegistration[]
+  triggerRegistrations      TriggerRegistration[]
 
   @@unique([registryOid, slateIdOnRegistry])
   @@unique([registryOid, slateFullIdentifierOnRegistry])
@@ -274,9 +275,10 @@ model SlateTriggerGroup {
 
   createdAt DateTime @default(now())
 
-  slateSpecifications  SlateSpecificationTriggerGroup[]
-  slateActions         SlateAction[]
-  webhookRegistrations SlateWebhookRegistration[]
+  slateSpecifications          SlateSpecificationTriggerGroup[]
+  slateActions                 SlateAction[]
+  webhookRegistrations         SlateWebhookRegistration[]
+  triggerRegistrationInstances TriggerRegistrationInstance[]
 
   @@index([key])
 }

@@ -1,9 +1,6 @@
 import type {
   Slate,
-  SlateAuthConfig,
   SlateAuthMethod,
-  SlateInstance,
-  SlateInstanceConfig,
   SlateOAuthCredentials,
   SlateTriggerGroup,
   SlateWebhookRegistration,
@@ -14,9 +11,6 @@ import { getWebhookUrl } from '../lib/webhookUrl';
 
 export let slateWebhookRegistrationPresenter = (
   registration: SlateWebhookRegistration & {
-    instance: SlateInstance | null;
-    instanceConfig: SlateInstanceConfig | null;
-    authConfig: SlateAuthConfig | null;
     slate: Slate;
     triggerGroup: SlateTriggerGroup;
     authMethods: (SlateWebhookRegistrationAuthMethod & { authMethod: SlateAuthMethod })[];
@@ -41,10 +35,6 @@ export let slateWebhookRegistrationPresenter = (
 
   slateId: registration.slate.id,
   triggerGroupId: registration.triggerGroup.id,
-
-  slateInstanceId: registration.instance?.id ?? null,
-  slateInstanceConfigId: registration.instanceConfig?.id ?? null,
-  slateAuthConfigId: registration.authConfig?.id ?? null,
 
   authRouting: registration.authRouting,
   authMethodIds: registration.authMethods.map(m => m.authMethod.id),

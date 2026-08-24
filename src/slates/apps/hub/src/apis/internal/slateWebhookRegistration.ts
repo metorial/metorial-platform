@@ -24,15 +24,13 @@ export let slateWebhookRegistrationController = app.controller({
     .input(
       Paginator.validate(
         v.object({
-          tenantId: v.string(),
-          slateInstanceIds: v.optional(v.array(v.string()))
+          tenantId: v.string()
         })
       )
     )
     .do(async ctx => {
       let paginator = await slateWebhookRegistrationService.listWebhookRegistrations({
         tenant: ctx.tenant,
-        slateInstanceIds: ctx.input.slateInstanceIds,
         type: 'manual'
       });
 

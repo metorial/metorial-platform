@@ -276,6 +276,13 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async pollTriggerGroup(d: { stack: SlateInvocationStack; triggerGroupId: string; state: any }) {
+    return await d.stack.invoke('slates/trigger_group.polling.poll', {
+      triggerGroupId: d.triggerGroupId,
+      state: d.state
+    });
+  }
+
   async DANGEROUSLY_getSlateInvocationById(d: { id: string }) {
     let slateInvocation = await db.slateInvocation.findFirst({
       where: {

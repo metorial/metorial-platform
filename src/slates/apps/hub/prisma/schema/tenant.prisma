@@ -26,4 +26,5 @@ model Tenant {
   slateErrors                 SlateError[]
   slateInstanceConfigurations SlateInstanceConfiguration[]
   slateWebhookRegistrations   SlateWebhookRegistration[]
+  triggerRegistrations        TriggerRegistration[]
 }

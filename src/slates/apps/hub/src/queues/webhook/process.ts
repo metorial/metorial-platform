@@ -30,33 +30,11 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
       note: `webhook-process:${event.id}:${attempt}`
     });
 
-    let stack = registration.instanceOid
-      ? await slateInvocationService.createInvocationWithState({
-          participants: [],
-          slateVersion: version,
-          tenant,
-          session: { id: event.id, state: {} },
-          config: registration.instanceConfig?.value ?? {},
-          auth: registration.authConfig
-            ? {
-                authenticationMethodId: registration.authConfig.authMethod.key,
-                data:
-                  (
-                    await secretService.DANGEROUSLY_decryptSecret({
-                      secretOid: registration.authConfig.secretOid,
-                      purpose: 'slate_authentication_configuration',
-                      tenant,
-                      note: `webhook-process-auth:${event.id}:${attempt}`
-                    })
-                  ).output ?? {}
-              }
-            : null
-        })
-      : await slateInvocationService.createInvocation({
-          participants: [],
-          slateVersion: version,
-          tenant
-        });
+    let stack = await slateInvocationService.createInvocation({
+      participants: [],
+      slateVersion: version,
+      tenant
+    });
 
     let result = await slateInvocationService.processWebhookRequest({
       stack,

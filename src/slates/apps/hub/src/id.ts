@@ -37,6 +37,11 @@ export let ID = createIdGenerator({
   slateWebhookEvent: idType.sorted('wev'),
   slateWebhookEventInvocation: idType.sorted('wei'),
 
+  triggerRegistration: idType.sorted('sttr'),
+  triggerRegistrationInstance: idType.sorted('sttri'),
+  triggerRegistrationSchedule: idType.sorted('sttrs'),
+  triggerPollingRun: idType.sorted('sttrp'),
+
   slateInvocation: idType.sorted('shiv'),
 
   slateOAuthCredentials: idType.sorted('shoc'),

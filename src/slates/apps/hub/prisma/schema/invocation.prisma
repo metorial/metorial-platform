@@ -29,6 +29,7 @@ model SlateInvocation {
   slateInvocationAttachment     SlateInvocationAttachment[]
   slateErrors                   SlateError[]
   slateWebhookEventInvocations  SlateWebhookEventInvocation[]
+  triggerPollingRuns            TriggerPollingRun[]
 
   @@index([deploymentOid, createdAt])
 }

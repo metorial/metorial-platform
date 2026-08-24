@@ -23,9 +23,6 @@ import { slateInvocationService } from './slateInvocation';
 import { globalTenant } from './tenant';
 
 let include = {
-  instance: true,
-  instanceConfig: true,
-  authConfig: true,
   slate: true,
   triggerGroup: true,
   authMethods: { include: { authMethod: true as const } },
@@ -81,17 +78,7 @@ class slateWebhookRegistrationServiceImpl {
     return registration;
   }
 
-  async listWebhookRegistrations(d: {
-    tenant: Tenant;
-    slateInstanceIds?: string[];
-    type?: SlateWebhookRegistrationType;
-  }) {
-    let slateInstances = d.slateInstanceIds
-      ? await db.slateInstance.findMany({
-          where: { id: { in: d.slateInstanceIds }, tenantOid: d.tenant.oid }
-        })
-      : undefined;
-
+  async listWebhookRegistrations(d: { tenant: Tenant; type?: SlateWebhookRegistrationType }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -101,10 +88,7 @@ class slateWebhookRegistrationServiceImpl {
               tenantOid: d.tenant.oid,
               owner: 'tenant',
               status: { not: 'deleted' },
-              type: d.type,
-              instanceOid: slateInstances
-                ? { in: slateInstances.map(si => si.oid) }
-                : undefined
+              type: d.type
             },
             include
           })

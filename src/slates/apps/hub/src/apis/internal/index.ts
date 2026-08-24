@@ -25,6 +25,7 @@ import { slateVersionController } from './slateVersion';
 import { slateVersionDiscoveryController } from './slateVersionDiscovery';
 import { slateWebhookRegistrationController } from './slateWebhookRegistration';
 import { tenantController } from './tenant';
+import { triggerRegistrationController } from './triggerRegistration';
 
 export let rootController = app.controller({
   tenant: tenantController,
@@ -54,7 +55,8 @@ export let rootController = app.controller({
 
   slateVersionDiscovery: slateVersionDiscoveryController,
   slateSpecificationChange: slateSpecificationChangeController,
-  slateWebhookRegistration: slateWebhookRegistrationController
+  slateWebhookRegistration: slateWebhookRegistrationController,
+  triggerRegistration: triggerRegistrationController
 });
 
 export let slatesHubRPC = createServer({})(rootController);
