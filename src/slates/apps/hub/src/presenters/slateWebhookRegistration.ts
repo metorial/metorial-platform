@@ -6,21 +6,22 @@ import type {
   SlateTriggerGroup,
   SlateWebhookRegistration
 } from '../../prisma/generated/client';
-import { env } from '../env';
+import { getWebhookUrl } from '../lib/webhookUrl';
 
 export let slateWebhookRegistrationPresenter = (
   registration: SlateWebhookRegistration & {
     instance: SlateInstance | null;
     instanceConfig: SlateInstanceConfig | null;
     authConfig: SlateAuthConfig | null;
-    slate: Slate | null;
-    triggerGroup: SlateTriggerGroup | null;
+    slate: Slate;
+    triggerGroup: SlateTriggerGroup;
   }
 ) => ({
   object: 'slate.webhook_registration',
 
   id: registration.id,
   type: registration.type,
+  owner: registration.owner,
   status: registration.status,
 
   name: registration.name,
@@ -28,10 +29,10 @@ export let slateWebhookRegistrationPresenter = (
   metadata: registration.metadata ?? {},
 
   urlKey: registration.urlKey,
-  receiveUrl: `${env.service.SERVICE_PUBLIC_URL}/receive/${registration.urlKey}`,
+  receiveUrl: getWebhookUrl(registration),
 
-  slateId: registration.slate?.id ?? null,
-  triggerGroupId: registration.triggerGroup?.id ?? null,
+  slateId: registration.slate.id,
+  triggerGroupId: registration.triggerGroup.id,
 
   slateInstanceId: registration.instance?.id ?? null,
   slateInstanceConfigId: registration.instanceConfig?.id ?? null,

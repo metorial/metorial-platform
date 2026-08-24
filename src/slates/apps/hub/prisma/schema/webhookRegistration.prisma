@@ -3,6 +3,11 @@ enum SlateWebhookRegistrationType {
   manual
 }
 
+enum SlateWebhookRegistrationOwner {
+  tenant
+  global
+}
+
 enum SlateWebhookRegistrationStatus {
   awaiting_setup
   active
@@ -13,6 +18,7 @@ model SlateWebhookRegistration {
   oid    BigInt                         @id
   id     String                         @unique
   type   SlateWebhookRegistrationType
+  owner  SlateWebhookRegistrationOwner
   status SlateWebhookRegistrationStatus @default(active)
 
   urlKey String @unique
@@ -23,8 +29,9 @@ model SlateWebhookRegistration {
   /// [AnyRecord]
   metadata Json?
 
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+  // Not set for global registrations, which aren't linked to any tenant.
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
   slateOid BigInt
   slate    Slate @relation(fields: [slateOid], references: [oid], onDelete: Cascade)

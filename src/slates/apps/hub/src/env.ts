@@ -45,7 +45,8 @@ export let env = createValidatedEnv({
 
   slates: {
     SLATES_HUB_INSTANCE_IDENTIFIER: v.string(),
-    SLATES_WEBHOOK_SYNC_TIMEOUT_MS: v.optional(v.number())
+    SLATES_WEBHOOK_SYNC_TIMEOUT_MS: v.optional(v.number()),
+    SLATES_WEBHOOK_TRIGGER_HOST: v.optional(v.string())
   },
 
   nebula: {

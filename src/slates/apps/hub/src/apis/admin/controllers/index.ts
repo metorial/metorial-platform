@@ -6,6 +6,7 @@ import { slateDeploymentController } from './slateDeployment';
 import { slateDiscoveryController } from './slateDiscovery';
 import { slateEventController } from './slateEvent';
 import { slateVersionController } from './slateVersion';
+import { webhookController } from './webhook';
 
 export let rootController = app.controller({
   auth: authController,
@@ -13,7 +14,8 @@ export let rootController = app.controller({
   slateVersion: slateVersionController,
   slateDeployment: slateDeploymentController,
   slateEvent: slateEventController,
-  slateDiscovery: slateDiscoveryController
+  slateDiscovery: slateDiscoveryController,
+  webhook: webhookController
 });
 
 export let slatesHubAdminRPC = createServer({})(rootController);
