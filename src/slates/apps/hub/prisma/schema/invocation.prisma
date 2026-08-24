@@ -28,6 +28,7 @@ model SlateInvocation {
   slateSessionToolCalls         SlateSessionToolCall[]
   slateInvocationAttachment     SlateInvocationAttachment[]
   slateErrors                   SlateError[]
+  slateWebhookEventInvocations  SlateWebhookEventInvocation[]
 
   @@index([deploymentOid, createdAt])
 }

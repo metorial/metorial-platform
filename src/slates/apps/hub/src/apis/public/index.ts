@@ -1,9 +1,62 @@
-import { badRequestError, goneError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  createError,
+  goneError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
 import { type Context, createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { env } from '../../env';
+import { slateWebhookEventServiceInternal } from '../../internal';
+import { subscribeToWebhookEvent, waitForSignalOrTimeout } from '../../lib/webhookEventBus';
+import { processWebhookEventQueue } from '../../queues/webhook/process';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
 import { slateWebhookRegistrationService } from '../../services/slateWebhookRegistration';
+
+let MAX_WEBHOOK_BODY_BYTES = 2 * 1024 * 1024;
+let DEFAULT_WEBHOOK_SYNC_TIMEOUT_MS = 60_000;
+
+let payloadTooLargeError = createError({
+  status: 413,
+  code: 'payload_too_large',
+  message: `The webhook payload exceeds the ${MAX_WEBHOOK_BODY_BYTES} byte limit.`
+});
+
+let readBodyWithLimit = async (request: Request, maxBytes: number) => {
+  if (!request.body) return new Uint8Array(0);
+
+  let reader = request.body.getReader();
+  let chunks: Uint8Array[] = [];
+  let size = 0;
+
+  while (true) {
+    let { done, value } = await reader.read();
+    if (done) break;
+
+    size += value!.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new ServiceError(payloadTooLargeError);
+    }
+
+    chunks.push(value!);
+  }
+
+  let out = new Uint8Array(size);
+  let offset = 0;
+  for (let chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+};
+
+let toHttpResponse = (response: PrismaJson.SlatesWebhookHttpResponse) =>
+  new Response(response.body ? Buffer.from(response.body.content, 'base64') : null, {
+    status: response.status,
+    headers: response.headers
+  });
 
 let handleWebhookReceive = async (c: Context, next: () => Promise<void>) => {
   // Let the CORS preflight and default-404 handling registered further down take over.
@@ -33,7 +86,53 @@ let handleWebhookReceive = async (c: Context, next: () => Promise<void>) => {
     );
   }
 
-  return c.json({ received: true, webhookRegistrationId: registration.id });
+  let bodyBytes = await readBodyWithLimit(c.req.raw, MAX_WEBHOOK_BODY_BYTES);
+  let body =
+    bodyBytes.byteLength > 0
+      ? { encoding: 'base64' as const, content: Buffer.from(bodyBytes).toString('base64') }
+      : null;
+
+  let event = await slateWebhookEventServiceInternal.createPendingEvent({
+    registration,
+    request: {
+      method: c.req.method,
+      url: c.req.url,
+      headers: Object.fromEntries(c.req.raw.headers.entries()),
+      body
+    }
+  });
+
+  let timeoutMs = env.slates.SLATES_WEBHOOK_SYNC_TIMEOUT_MS ?? DEFAULT_WEBHOOK_SYNC_TIMEOUT_MS;
+
+  let subscription = await subscribeToWebhookEvent(event.id);
+  try {
+    await processWebhookEventQueue.add({ webhookEventId: event.id });
+    await waitForSignalOrTimeout(subscription, timeoutMs);
+  } finally {
+    await subscription.close();
+  }
+
+  let final = await slateWebhookEventServiceInternal.getById({ id: event.id });
+
+  if (!final.slateResponse && !final.responseOverride) {
+    await slateWebhookEventServiceInternal.trySetResponseOverride({
+      eventOid: final.oid,
+      override: {
+        webhookEventId: final.id,
+        warning: {
+          code: 'deadline_exceeded',
+          message: `No response within ${timeoutMs}ms.`
+        }
+      }
+    });
+    final = await slateWebhookEventServiceInternal.getById({ id: event.id });
+  }
+
+  if (final.slateResponse) return toHttpResponse(final.slateResponse);
+
+  let override = final.responseOverride ?? { webhookEventId: final.id };
+  let status = 'error' in override ? override.error.status : 200;
+  return c.json(override, status as any);
 };
 
 let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';

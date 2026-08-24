@@ -34,7 +34,10 @@ export type SlatesRequestTrace = z.infer<typeof slatesRequestTrace>;
 export interface InvocationError {
   code: string;
   message: string;
-  [key: string]: string;
+  kind?: string;
+  retryable?: boolean;
+  status?: number;
+  [key: string]: unknown;
 }
 
 export type InvocationResult<Key extends keyof typeof slatesResponsesByMethod = any> =

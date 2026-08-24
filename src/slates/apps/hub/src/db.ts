@@ -4,7 +4,8 @@ import type {
   SlatesAction as ProtoSlatesAction,
   SlateAuthenticationMethod,
   SlatesMessageProviderIdentifyResponse,
-  SlatesTriggerGroup
+  SlatesTriggerGroup,
+  SlatesWebhookHttpResponse as SlatesWebhookHttpResponseImport
 } from '@slates/proto';
 import { PrismaClient } from '../prisma/generated/client';
 
@@ -99,5 +100,19 @@ declare global {
       imageUrl?: string;
       [key: string]: any;
     };
+
+    type SlateWebhookEventRequest = {
+      method: string;
+      url: string;
+      headers: Record<string, string>;
+      body: { encoding: 'base64'; content: string } | null;
+    };
+
+    type SlatesWebhookHttpResponse = SlatesWebhookHttpResponseImport;
+
+    type SlateWebhookEventResponseOverride =
+      | { webhookEventId: string }
+      | { webhookEventId: string; warning: { code: string; message: string } }
+      | { webhookEventId: string; error: { code: string; message: string; status: number } };
   }
 }

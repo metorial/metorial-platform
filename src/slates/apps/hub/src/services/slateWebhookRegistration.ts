@@ -13,6 +13,7 @@ import type {
 import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
+import { getActiveSlateVersion } from '../lib/slateVersion';
 import { validateJsonSchema } from '../lib/validateJsonSchema';
 import { getWebhookUrl } from '../lib/webhookUrl';
 import { secretService } from './secret';
@@ -352,15 +353,13 @@ class slateWebhookRegistrationServiceImpl {
     return { slate, triggerGroup: manualWebhookTriggerGroups[0]! };
   }
 
-  // Calls the provider's manual-setup handshake and stashes the resulting
-  // partial payload in a secret, ready to be completed by finishWebhookSetup.
   private async startWebhookSetup(d: {
     tenant: Tenant;
     slate: Slate;
     triggerGroup: SlateTriggerGroup;
     urlKey: string;
   }) {
-    let version = await this.getVersion({ slate: d.slate });
+    let version = await getActiveSlateVersion({ slate: d.slate });
 
     let setupRes = await slateInvocationService.startManualWebhookRegistration({
       stack: await slateInvocationService.createInvocation({
@@ -389,8 +388,6 @@ class slateWebhookRegistrationServiceImpl {
     return { secretOid: secret.oid, webhookSetupDocument: setupRes.data.webhookSetupDocument };
   }
 
-  // Validates the user-supplied config, finishes the provider handshake, and
-  // replaces the secret's partial payload with the full one.
   private async finishWebhookSetup(d: {
     tenant: Tenant;
     slate: Slate;
@@ -422,7 +419,7 @@ class slateWebhookRegistrationServiceImpl {
       note: `webhook-manual-finish:${d.urlKey}`
     });
 
-    let version = await this.getVersion({ slate: d.slate });
+    let version = await getActiveSlateVersion({ slate: d.slate });
 
     let finishRes = await slateInvocationService.finishManualWebhookRegistration({
       stack: await slateInvocationService.createInvocation({
@@ -450,25 +447,6 @@ class slateWebhookRegistrationServiceImpl {
       tenant: d.tenant,
       secretData: { payload: finishRes.data.webhookRegistrationPayload }
     });
-  }
-
-  private async getVersion(d: { slate: Slate }) {
-    if (!d.slate.currentVersionOid) {
-      throw new ServiceError(
-        badRequestError({ message: 'Provider does not have a current version set.' })
-      );
-    }
-
-    let fullVersion = await db.slateVersion.findFirstOrThrow({
-      where: { slateOid: d.slate.oid, oid: d.slate.currentVersionOid }
-    });
-    if (fullVersion.status !== 'active' || !fullVersion.activeDeploymentOid) {
-      throw new ServiceError(
-        badRequestError({ message: 'Provider version has not been deployed yet.' })
-      );
-    }
-
-    return fullVersion;
   }
 }
 

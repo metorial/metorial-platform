@@ -257,6 +257,25 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async processWebhookRequest(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body: { encoding: 'base64'; content: string } | null;
+    webhookRegistrationPayload: any;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.webhook.process', {
+      triggerGroupId: d.triggerGroupId,
+      url: d.url,
+      method: d.method,
+      headers: d.headers,
+      body: d.body,
+      webhookRegistrationPayload: d.webhookRegistrationPayload
+    });
+  }
+
   async DANGEROUSLY_getSlateInvocationById(d: { id: string }) {
     let slateInvocation = await db.slateInvocation.findFirst({
       where: {

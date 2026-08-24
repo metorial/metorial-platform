@@ -56,6 +56,8 @@ model SlateWebhookRegistration {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  webhookEvents SlateWebhookEvent[]
+
   @@index([tenantOid, createdAt])
   @@index([instanceOid])
 }
