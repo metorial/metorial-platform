@@ -104,10 +104,15 @@ export type SecretSlateAuthConfig = {
   output?: Record<string, any>;
 };
 
+export type SecretSlateWebhookRegistrationPayload = {
+  payload: any;
+};
+
 export type SecretTypes = {
   slate_oauth_setup: SecretSlateInstanceOauthSetup;
   slate_oauth_credentials: SecretSlateOAuthCredentials;
   slate_authentication_configuration: SecretSlateAuthConfig;
+  slate_webhook_registration_payload: SecretSlateWebhookRegistrationPayload;
 };
 
 class secretServiceImpl {

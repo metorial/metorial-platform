@@ -231,6 +231,32 @@ class slateInvocationServiceImpl {
     return await d.stack.invoke('slates/trigger_groups.list', {});
   }
 
+  async startManualWebhookRegistration(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    webhookUrl: string;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.webhook.manual_setup', {
+      triggerGroupId: d.triggerGroupId,
+      webhookUrl: d.webhookUrl
+    });
+  }
+
+  async finishManualWebhookRegistration(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    webhookUrl: string;
+    partialWebhookRegistrationPayload: any;
+    userWebhookRegistrationPayload: any;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.webhook.manual_finish', {
+      triggerGroupId: d.triggerGroupId,
+      webhookUrl: d.webhookUrl,
+      partialWebhookRegistrationPayload: d.partialWebhookRegistrationPayload,
+      userWebhookRegistrationPayload: d.userWebhookRegistrationPayload
+    });
+  }
+
   async DANGEROUSLY_getSlateInvocationById(d: { id: string }) {
     let slateInvocation = await db.slateInvocation.findFirst({
       where: {

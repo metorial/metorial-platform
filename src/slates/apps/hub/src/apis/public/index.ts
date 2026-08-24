@@ -1,4 +1,4 @@
-import { badRequestError, goneError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, goneError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { type Context, createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { env } from '../../env';
@@ -20,6 +20,15 @@ let handleWebhookReceive = async (c: Context, next: () => Promise<void>) => {
     throw new ServiceError(
       goneError({
         message: 'This webhook registration has been deleted and no longer accepts requests.'
+      })
+    );
+  }
+
+  if (registration.status === 'awaiting_setup') {
+    throw new ServiceError(
+      preconditionFailedError({
+        message:
+          'This webhook registration has not finished being set up yet and cannot accept requests.'
       })
     );
   }

@@ -41,6 +41,54 @@ export let slateWebhookRegistrationController = app.controller({
       return Paginator.presentLight(list, slateWebhookRegistrationPresenter);
     }),
 
+  create: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateId: v.string(),
+
+        name: v.string(),
+        description: v.optional(v.string()),
+        metadata: v.optional(v.record(v.any()))
+      })
+    )
+    .do(async ctx => {
+      let res = await slateWebhookRegistrationService.createManualWebhookSetup({
+        tenant: ctx.tenant,
+        input: {
+          slateId: ctx.input.slateId,
+          name: ctx.input.name,
+          description: ctx.input.description,
+          metadata: ctx.input.metadata
+        }
+      });
+
+      return {
+        webhookRegistration: slateWebhookRegistrationPresenter(res.registration),
+        webhookSetupDocument: res.webhookSetupDocument
+      };
+    }),
+
+  setup: slateWebhookRegistrationApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        webhookRegistrationId: v.string(),
+        userConfig: v.record(v.any())
+      })
+    )
+    .do(async ctx => {
+      let res = await slateWebhookRegistrationService.finishManualWebhookSetup({
+        tenant: ctx.tenant,
+        registration: ctx.webhookRegistration,
+        input: { userConfig: ctx.input.userConfig }
+      });
+
+      return slateWebhookRegistrationPresenter(res);
+    }),
+
   get: slateWebhookRegistrationApp
     .handler()
     .input(
