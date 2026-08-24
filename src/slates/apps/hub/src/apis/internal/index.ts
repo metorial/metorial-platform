@@ -23,6 +23,7 @@ import { slateSpecificationController } from './slateSpecification';
 import { slateSpecificationChangeController } from './slateSpecificationChange';
 import { slateVersionController } from './slateVersion';
 import { slateVersionDiscoveryController } from './slateVersionDiscovery';
+import { slateWebhookRegistrationController } from './slateWebhookRegistration';
 import { tenantController } from './tenant';
 
 export let rootController = app.controller({
@@ -52,7 +53,8 @@ export let rootController = app.controller({
   slateSessionToolCall: slateSessionToolCallController,
 
   slateVersionDiscovery: slateVersionDiscoveryController,
-  slateSpecificationChange: slateSpecificationChangeController
+  slateSpecificationChange: slateSpecificationChangeController,
+  slateWebhookRegistration: slateWebhookRegistrationController
 });
 
 export let slatesHubRPC = createServer({})(rootController);

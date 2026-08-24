@@ -18,9 +18,11 @@ export let slateSpecificationPresenter = (
 
     slateAuthMethods: (SlateSpecificationAuthMethod & { authMethod: SlateAuthMethod })[];
     slateActions: (SlateSpecificationAction & {
-      action: SlateAction & { triggerGroup?: SlateTriggerGroup | null };
+      action: SlateAction & { triggerGroup: SlateTriggerGroup | null };
     })[];
-    slateTriggerGroups: (SlateSpecificationTriggerGroup & { triggerGroup: SlateTriggerGroup })[];
+    slateTriggerGroups: (SlateSpecificationTriggerGroup & {
+      triggerGroup: SlateTriggerGroup;
+    })[];
   }
 ) => ({
   object: 'slate.specification',

@@ -32,6 +32,7 @@ export let ID = createIdGenerator({
   slateInstanceOAuthSetup: idType.sorted('shios'),
   slateAuthConfigEvent: idType.sorted('shace'),
   slateInstanceOAuthSetupEvent: idType.sorted('shiose'),
+  slateWebhookRegistration: idType.sorted('shwr'),
 
   slateInvocation: idType.sorted('shiv'),
 

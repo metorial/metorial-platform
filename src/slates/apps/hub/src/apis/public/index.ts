@@ -1,8 +1,31 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
+import { badRequestError, goneError, ServiceError } from '@lowerdeck/error';
+import { type Context, createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { env } from '../../env';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
+import { slateWebhookRegistrationService } from '../../services/slateWebhookRegistration';
+
+let handleWebhookReceive = async (c: Context, next: () => Promise<void>) => {
+  // Let the CORS preflight and default-404 handling registered further down take over.
+  if (c.req.method === 'HEAD' || c.req.method === 'OPTIONS') return next();
+
+  let urlKey = c.req.param('urlKey');
+  if (!urlKey) throw new ServiceError(badRequestError({ message: 'urlKey is required' }));
+
+  let registration = await slateWebhookRegistrationService.getWebhookRegistrationByUrlKey({
+    urlKey
+  });
+
+  if (registration.status === 'deleted') {
+    throw new ServiceError(
+      goneError({
+        message: 'This webhook registration has been deleted and no longer accepts requests.'
+      })
+    );
+  }
+
+  return c.json({ received: true, webhookRegistrationId: registration.id });
+};
 
 let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';
 
@@ -73,5 +96,7 @@ export let hubApp = createHono()
 
     return c.redirect(res.redirectUrl);
   })
+  .all('/receive/:urlKey', handleWebhookReceive)
+  .all('/receive/:urlKey/*', handleWebhookReceive)
   .options('*', c => c.text(''))
   .get('/ping', c => c.text('OK'));

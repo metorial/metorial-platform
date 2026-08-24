@@ -25,4 +25,5 @@ export * from './slateSpecificationChange';
 export * from './slateTriggerGroup';
 export * from './slateVersion';
 export * from './slateVersionDiscovery';
+export * from './slateWebhookRegistration';
 export * from './tenant';

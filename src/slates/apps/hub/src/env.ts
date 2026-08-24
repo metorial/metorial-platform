@@ -7,7 +7,8 @@ export let env = createValidatedEnv({
     DATABASE_URL: v.string(),
 
     SERVICE_PUBLIC_URL: v.string(),
-    METORIAL_ENV: v.enumOf(['development', 'staging', 'production'])
+    METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
+    METORIAL_REGION: v.optional(v.string())
   },
 
   functionBay: {

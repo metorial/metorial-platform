@@ -1,0 +1,44 @@
+enum SlateWebhookRegistrationType {
+  automated
+  manual
+}
+
+enum SlateWebhookRegistrationStatus {
+  active
+  deleted
+}
+
+model SlateWebhookRegistration {
+  oid    BigInt                         @id
+  id     String                         @unique
+  type   SlateWebhookRegistrationType
+  status SlateWebhookRegistrationStatus @default(active)
+
+  urlKey String @unique
+
+  name        String
+  description String?
+
+  /// [AnyRecord]
+  metadata Json?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  // Only set for automated registrations.
+  instanceOid BigInt?
+  instance    SlateInstance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  instanceConfigOid BigInt?
+  instanceConfig    SlateInstanceConfig? @relation(fields: [instanceConfigOid], references: [oid], onDelete: Cascade)
+
+  // Only set for automated registrations when the provider supports authentication.
+  authConfigOid BigInt?
+  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([tenantOid, createdAt])
+  @@index([instanceOid])
+}
