@@ -43,6 +43,7 @@ type ResolvedStoreItemFile = {
   oid: bigint;
   id: string;
   status: 'active' | 'deleted';
+  fileSize: number;
   purpose: {
     canHaveLinks: boolean;
   };
@@ -1005,8 +1006,7 @@ class StoreItemMutationServiceImpl {
         await this.cleanupFileReference(d.item.reference);
         await applyStoreByteSizeDelta({
           storeOid: d.store.oid,
-          delta:
-            BigInt(d.target!.file.fileSize ?? 0) - BigInt(d.item.file?.fileSize ?? 0)
+          delta: BigInt(d.target!.file.fileSize) - BigInt(d.item.file?.fileSize ?? 0)
         });
       }
 
@@ -1093,7 +1093,7 @@ class StoreItemMutationServiceImpl {
       if (createResult.count === 1) {
         await applyStoreByteSizeDelta({
           storeOid: d.store.oid,
-          delta: BigInt(d.target.file.fileSize ?? 0)
+          delta: BigInt(d.target.file.fileSize)
         });
 
         return {
