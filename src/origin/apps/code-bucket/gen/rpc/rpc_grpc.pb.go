@@ -37,6 +37,7 @@ const (
 	CodeBucket_SetBucketFile_FullMethodName                       = "/rpc.rpc.CodeBucket/SetBucketFile"
 	CodeBucket_DeleteBucketFile_FullMethodName                    = "/rpc.rpc.CodeBucket/DeleteBucketFile"
 	CodeBucket_DeleteBucketPath_FullMethodName                    = "/rpc.rpc.CodeBucket/DeleteBucketPath"
+	CodeBucket_PruneBucketPath_FullMethodName                     = "/rpc.rpc.CodeBucket/PruneBucketPath"
 	CodeBucket_ExportBucketToGithub_FullMethodName                = "/rpc.rpc.CodeBucket/ExportBucketToGithub"
 	CodeBucket_ExportBucketToGitlab_FullMethodName                = "/rpc.rpc.CodeBucket/ExportBucketToGitlab"
 	CodeBucket_ExportBucketToBitbucketCloud_FullMethodName        = "/rpc.rpc.CodeBucket/ExportBucketToBitbucketCloud"
@@ -65,6 +66,7 @@ type CodeBucketClient interface {
 	SetBucketFile(ctx context.Context, in *SetBucketFileRequest, opts ...grpc.CallOption) (*SetBucketFileResponse, error)
 	DeleteBucketFile(ctx context.Context, in *DeleteBucketFileRequest, opts ...grpc.CallOption) (*DeleteBucketFileResponse, error)
 	DeleteBucketPath(ctx context.Context, in *DeleteBucketPathRequest, opts ...grpc.CallOption) (*DeleteBucketPathResponse, error)
+	PruneBucketPath(ctx context.Context, in *PruneBucketPathRequest, opts ...grpc.CallOption) (*PruneBucketPathResponse, error)
 	ExportBucketToGithub(ctx context.Context, in *ExportBucketToGithubRequest, opts ...grpc.CallOption) (*ExportBucketToGithubResponse, error)
 	ExportBucketToGitlab(ctx context.Context, in *ExportBucketToGitlabRequest, opts ...grpc.CallOption) (*ExportBucketToGitlabResponse, error)
 	ExportBucketToBitbucketCloud(ctx context.Context, in *ExportBucketToBitbucketCloudRequest, opts ...grpc.CallOption) (*ExportBucketToBitbucketResponse, error)
@@ -277,6 +279,16 @@ func (c *codeBucketClient) DeleteBucketPath(ctx context.Context, in *DeleteBucke
 	return out, nil
 }
 
+func (c *codeBucketClient) PruneBucketPath(ctx context.Context, in *PruneBucketPathRequest, opts ...grpc.CallOption) (*PruneBucketPathResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PruneBucketPathResponse)
+	err := c.cc.Invoke(ctx, CodeBucket_PruneBucketPath_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *codeBucketClient) ExportBucketToGithub(ctx context.Context, in *ExportBucketToGithubRequest, opts ...grpc.CallOption) (*ExportBucketToGithubResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ExportBucketToGithubResponse)
@@ -339,6 +351,7 @@ type CodeBucketServer interface {
 	SetBucketFile(context.Context, *SetBucketFileRequest) (*SetBucketFileResponse, error)
 	DeleteBucketFile(context.Context, *DeleteBucketFileRequest) (*DeleteBucketFileResponse, error)
 	DeleteBucketPath(context.Context, *DeleteBucketPathRequest) (*DeleteBucketPathResponse, error)
+	PruneBucketPath(context.Context, *PruneBucketPathRequest) (*PruneBucketPathResponse, error)
 	ExportBucketToGithub(context.Context, *ExportBucketToGithubRequest) (*ExportBucketToGithubResponse, error)
 	ExportBucketToGitlab(context.Context, *ExportBucketToGitlabRequest) (*ExportBucketToGitlabResponse, error)
 	ExportBucketToBitbucketCloud(context.Context, *ExportBucketToBitbucketCloudRequest) (*ExportBucketToBitbucketResponse, error)
@@ -406,6 +419,9 @@ func (UnimplementedCodeBucketServer) DeleteBucketFile(context.Context, *DeleteBu
 }
 func (UnimplementedCodeBucketServer) DeleteBucketPath(context.Context, *DeleteBucketPathRequest) (*DeleteBucketPathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteBucketPath not implemented")
+}
+func (UnimplementedCodeBucketServer) PruneBucketPath(context.Context, *PruneBucketPathRequest) (*PruneBucketPathResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PruneBucketPath not implemented")
 }
 func (UnimplementedCodeBucketServer) ExportBucketToGithub(context.Context, *ExportBucketToGithubRequest) (*ExportBucketToGithubResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExportBucketToGithub not implemented")
@@ -750,6 +766,24 @@ func _CodeBucket_DeleteBucketPath_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CodeBucket_PruneBucketPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PruneBucketPathRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeBucketServer).PruneBucketPath(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeBucket_PruneBucketPath_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeBucketServer).PruneBucketPath(ctx, req.(*PruneBucketPathRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CodeBucket_ExportBucketToGithub_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ExportBucketToGithubRequest)
 	if err := dec(in); err != nil {
@@ -892,6 +926,10 @@ var CodeBucket_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteBucketPath",
 			Handler:    _CodeBucket_DeleteBucketPath_Handler,
+		},
+		{
+			MethodName: "PruneBucketPath",
+			Handler:    _CodeBucket_PruneBucketPath_Handler,
 		},
 		{
 			MethodName: "ExportBucketToGithub",

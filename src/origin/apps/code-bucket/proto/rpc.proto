@@ -25,6 +25,7 @@ service CodeBucket {
   rpc SetBucketFile(SetBucketFileRequest) returns (SetBucketFileResponse);
   rpc DeleteBucketFile(DeleteBucketFileRequest) returns (DeleteBucketFileResponse);
   rpc DeleteBucketPath(DeleteBucketPathRequest) returns (DeleteBucketPathResponse);
+  rpc PruneBucketPath(PruneBucketPathRequest) returns (PruneBucketPathResponse);
 
   rpc ExportBucketToGithub(ExportBucketToGithubRequest) returns (ExportBucketToGithubResponse);
   rpc ExportBucketToGitlab(ExportBucketToGitlabRequest) returns (ExportBucketToGitlabResponse);
@@ -155,6 +156,19 @@ message DeleteBucketPathRequest {
 }
 
 message DeleteBucketPathResponse {}
+
+// Deletes everything under prefix that is not in keep_paths and not under one
+// of exclude_prefixes. Used to remove files a writer no longer produces.
+message PruneBucketPathRequest {
+  string bucket_id = 1;
+  string prefix = 2;
+  repeated string keep_paths = 3;
+  repeated string exclude_prefixes = 4;
+}
+
+message PruneBucketPathResponse {
+  repeated string deleted_paths = 1;
+}
 
 message ExportBucketToGithubRequest {
   string bucket_id = 1;

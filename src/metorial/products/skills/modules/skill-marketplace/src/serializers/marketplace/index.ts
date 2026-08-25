@@ -4,6 +4,7 @@ import { db } from '@metorial/db';
 import semver from 'semver';
 import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { getMarketplacePruneScope } from '../_lib/paths';
 
 let json = (data: any) => JSON.stringify(data, null, 2);
 
@@ -99,6 +100,8 @@ export let applyMarketplace = createApplicator(
     };
   },
   {
+    getPruneScope: getMarketplacePruneScope,
+
     getHash: async (_input, { hash }) => hash,
 
     apply: async (input, context, { plugins, project, hash, legacyHash }) => {

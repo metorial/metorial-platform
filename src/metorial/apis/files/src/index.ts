@@ -5,6 +5,7 @@ import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
 import { createDocumentLiveApi } from '@metorial/module-documents/live';
 import {
+  fileUploadService,
   getCargoFileContent,
   purposeSlugs,
   resolveCargoAccess,
@@ -15,6 +16,7 @@ import { websocket } from 'hono/bun';
 import { resolveDocumentsLiveToken } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
 import { parseStoreReplace } from './uploadForm';
+import { parseUploadMode, parseUploadRequest } from './uploadRequest';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
 
@@ -29,6 +31,257 @@ type FileApiOptions = {
 
 export { websocket };
 
+type AuthInfo = FileApiAuthResult['auth'];
+
+let presentFile = (file: {
+  id: string;
+  status: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  title: string | null;
+  purpose: { name: string; slug: string };
+  createdAt: Date;
+  updatedAt: Date;
+}) => ({
+  object: 'file',
+
+  id: file.id,
+  status: file.status,
+
+  file_name: file.fileName,
+  file_size: file.fileSize,
+  file_type: file.fileType,
+
+  title: file.title,
+
+  purpose: {
+    name: file.purpose.name,
+    identifier: file.purpose.slug
+  },
+
+  created_at: file.createdAt,
+  updated_at: file.updatedAt
+});
+
+let presentFileUpload = (
+  upload: {
+    id: string;
+    status: string;
+    fileName: string;
+    fileSize: number;
+    fileType: string;
+    title: string | null;
+    purpose: { name: string; slug: string };
+    uploadUrlExpiresAt: Date;
+    expiresAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  uploadUrl: string
+) => ({
+  object: 'file_upload',
+
+  id: upload.id,
+  status: upload.status,
+
+  file_name: upload.fileName,
+  file_size: upload.fileSize,
+  file_type: upload.fileType,
+
+  title: upload.title,
+
+  purpose: {
+    name: upload.purpose.name,
+    identifier: upload.purpose.slug
+  },
+
+  upload: {
+    url: uploadUrl,
+    method: 'PUT',
+    expires_at: upload.uploadUrlExpiresAt
+  },
+
+  expires_at: upload.expiresAt,
+  created_at: upload.createdAt,
+  updated_at: upload.updatedAt
+});
+
+let handleDirectUpload = async (c: Context, auth: AuthInfo) => {
+  let body = await c.req.formData();
+
+  parseUploadMode(body.get('mode'));
+
+  let file = body.get('file') as File;
+  let purpose = body.get('purpose') as string;
+  let organizationId = body.get('organization_id');
+  let instanceId = body.get('instance_id');
+  let attachedStoreId = body.get('store_id');
+  let attachedStorePath = body.get('path');
+  let storeReplaceValue = body.get('store_replace');
+  let title = (body.get('title') || undefined) as string | undefined;
+
+  if (!file || !purpose) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Missing file or purpose'
+      })
+    );
+  }
+
+  let fileNameFromStorePath =
+    typeof attachedStorePath == 'string'
+      ? attachedStorePath.split('/').filter(Boolean).at(-1)?.trim()
+      : undefined;
+  let fileName =
+    typeof file.name == 'string' && file.name.trim()
+      ? file.name.trim()
+      : fileNameFromStorePath
+        ? fileNameFromStorePath
+        : typeof title == 'string' && title.trim()
+          ? title.trim()
+          : null;
+
+  if (!fileName) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Missing file name'
+      })
+    );
+  }
+
+  if (!purposeSlugs.includes(purpose as (typeof purposeSlugs)[number])) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Invalid purpose'
+      })
+    );
+  }
+
+  if (!!attachedStoreId !== !!attachedStorePath) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'store_id and path must be provided together'
+      })
+    );
+  }
+
+  let storeReplace = parseStoreReplace(
+    storeReplaceValue,
+    !!attachedStoreId && !!attachedStorePath
+  );
+
+  let target = await resolveUploadTarget({
+    auth,
+    instanceId: typeof instanceId == 'string' ? instanceId : null,
+    organizationId: typeof organizationId == 'string' ? organizationId : null
+  });
+
+  if ((attachedStoreId || attachedStorePath) && !target.isInstanceOwner) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Files can only be attached to stores when uploading to an instance'
+      })
+    );
+  }
+
+  let access = await resolveCargoAccess({
+    owner: target.owner,
+    ...target.cargoAccess
+  });
+  let createdFile = await uploadCargoFile({
+    ...access.scope,
+    purpose,
+    file,
+    title,
+    fileName,
+    authorization: access.authorization,
+    defaultPermissions: access.defaultPermissions,
+    overridePermissions: access.overridePermissions,
+    store:
+      typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
+        ? {
+            id: attachedStoreId,
+            path: attachedStorePath,
+            replace: storeReplace
+          }
+        : undefined
+  });
+
+  return c.json(presentFile(createdFile));
+};
+
+let handleJsonUpload = async (c: Context, auth: AuthInfo) => {
+  let raw: unknown;
+
+  try {
+    raw = await c.req.json();
+  } catch {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Invalid JSON body'
+      })
+    );
+  }
+
+  let body = parseUploadRequest(raw);
+
+  let target = await resolveUploadTarget({
+    auth,
+    instanceId: body.instance_id ?? null,
+    organizationId: body.organization_id ?? null
+  });
+
+  let access = await resolveCargoAccess({
+    owner: target.owner,
+    ...target.cargoAccess
+  });
+
+  if (body.mode === 'complete') {
+    let file = await fileUploadService.completePendingUpload({
+      ...access.scope,
+      uploadId: body.file_upload_id,
+      authorization: access.authorization,
+      defaultPermissions: access.defaultPermissions,
+      overridePermissions: access.overridePermissions
+    });
+
+    return c.json(presentFile(file));
+  }
+
+  if (body.store_id && !target.isInstanceOwner) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Files can only be attached to stores when uploading to an instance'
+      })
+    );
+  }
+
+  let { upload, uploadUrl } = await fileUploadService.createPendingUpload({
+    ...access.scope,
+    purpose: body.purpose,
+    authorization: access.authorization,
+    defaultPermissions: access.defaultPermissions,
+    overridePermissions: access.overridePermissions,
+    input: {
+      name: body.file_name,
+      size: body.file_size,
+      mimeType: body.file_type,
+      title: body.title,
+      store:
+        body.store_id && body.path
+          ? {
+              id: body.store_id,
+              path: body.path,
+              replace: body.store_replace ?? false
+            }
+          : undefined
+    }
+  });
+
+  return c.json(presentFileUpload(upload, uploadUrl));
+};
+
 let createFileUploadHandler =
   (authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>) =>
   async (c: Context) =>
@@ -42,123 +295,9 @@ let createFileUploadHandler =
       async () => {
         let { auth } = await authenticateRequest(c.req.raw, new URL(c.req.url));
 
-        let body = await c.req.formData();
-        let file = body.get('file') as File;
-        let purpose = body.get('purpose') as string;
-        let organizationId = body.get('organization_id');
-        let instanceId = body.get('instance_id');
-        let attachedStoreId = body.get('store_id');
-        let attachedStorePath = body.get('path');
-        let storeReplaceValue = body.get('store_replace');
-        let title = (body.get('title') || undefined) as string | undefined;
-
-        if (!file || !purpose) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Missing file or purpose'
-            })
-          );
-        }
-
-        let fileNameFromStorePath =
-          typeof attachedStorePath == 'string'
-            ? attachedStorePath.split('/').filter(Boolean).at(-1)?.trim()
-            : undefined;
-        let fileName =
-          typeof file.name == 'string' && file.name.trim()
-            ? file.name.trim()
-            : fileNameFromStorePath
-              ? fileNameFromStorePath
-              : typeof title == 'string' && title.trim()
-                ? title.trim()
-                : null;
-
-        if (!fileName) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Missing file name'
-            })
-          );
-        }
-
-        if (!purposeSlugs.includes(purpose as (typeof purposeSlugs)[number])) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Invalid purpose'
-            })
-          );
-        }
-
-        if (!!attachedStoreId !== !!attachedStorePath) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'store_id and path must be provided together'
-            })
-          );
-        }
-
-        let storeReplace = parseStoreReplace(
-          storeReplaceValue,
-          !!attachedStoreId && !!attachedStorePath
-        );
-
-        let target = await resolveUploadTarget({
-          auth,
-          instanceId: typeof instanceId == 'string' ? instanceId : null,
-          organizationId: typeof organizationId == 'string' ? organizationId : null
-        });
-
-        if ((attachedStoreId || attachedStorePath) && !target.isInstanceOwner) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Files can only be attached to stores when uploading to an instance'
-            })
-          );
-        }
-
-        let access = await resolveCargoAccess({
-          owner: target.owner,
-          ...target.cargoAccess
-        });
-        let createdFile = await uploadCargoFile({
-          ...access.scope,
-          purpose,
-          file,
-          title,
-          fileName,
-          authorization: access.authorization,
-          defaultPermissions: access.defaultPermissions,
-          overridePermissions: access.overridePermissions,
-          store:
-            typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
-              ? {
-                  id: attachedStoreId,
-                  path: attachedStorePath,
-                  replace: storeReplace
-                }
-              : undefined
-        });
-
-        return c.json({
-          object: 'file',
-
-          id: createdFile.id,
-          status: createdFile.status,
-
-          file_name: createdFile.fileName,
-          file_size: createdFile.fileSize,
-          file_type: createdFile.fileType,
-
-          title: createdFile.title,
-
-          purpose: {
-            name: createdFile.purpose.name,
-            identifier: createdFile.purpose.slug
-          },
-
-          created_at: createdFile.createdAt,
-          updated_at: createdFile.updatedAt
-        });
+        return c.req.header('Content-Type')?.includes('multipart/form-data')
+          ? await handleDirectUpload(c, auth)
+          : await handleJsonUpload(c, auth);
       }
     );
 

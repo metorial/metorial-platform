@@ -5,7 +5,7 @@ import { createQueue } from '@metorial/queue';
 import path from 'path';
 import { BatchProcessor } from '../../lib/batchProcessor';
 import { CargoSkillLimitError } from '../../lib/limits';
-import type { SerializerContext } from '../../serializers/_lib/types';
+import type { PruneScope, SerializerContext } from '../../serializers/_lib/types';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin, getPluginPath } from '../../serializers/plugin';
 import { applySkill, getSkillPath } from '../../serializers/skill';
@@ -115,12 +115,49 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let basePathRef = { current: '' };
   let hashRef = { current: null as string | null };
+  let pruneScopeRef = { current: null as PruneScope | null };
+  let writtenPaths = new Set<string>();
 
   let deleteBucketPath = async (prefix: string | undefined) => {
     await codeBucketClient.deleteBucketPath({
       bucketId: sync.destination.codeBucketId,
       path: normalizeBucketPath(prefix ?? '')
     });
+  };
+
+  // Removes everything in the serializer's scope that this run did not write.
+  let pruneStaleFiles = async () => {
+    let scope = pruneScopeRef.current;
+    if (!scope) return;
+
+    let keepPaths = [...writtenPaths];
+
+    // The RPC rejects an empty keep set, and rightly so: a serializer that
+    // wrote nothing gives us no evidence its subtree should be emptied.
+    if (keepPaths.length === 0) return;
+
+    let { deletedPaths } = await codeBucketClient.pruneBucketPath({
+      bucketId: sync.destination.codeBucketId,
+      prefix: normalizeBucketPath(scope.prefix),
+      keepPaths,
+      excludePrefixes: scope.excludePrefixes.map(exclude =>
+        normalizeBucketPath(path.join(scope.prefix, exclude))
+      )
+    });
+
+    if (deletedPaths.length === 0) return;
+
+    let listed = deletedPaths.slice(0, 10).join(', ');
+    let remaining = deletedPaths.length - 10;
+
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      `Removed ${deletedPaths.length} file${
+        deletedPaths.length === 1 ? '' : 's'
+      } that are no longer part of the sync: ${listed}${
+        remaining > 0 ? ` and ${remaining} more` : ''
+      }.`
+    );
   };
 
   let fileProcessor = new BatchProcessor<{
@@ -139,6 +176,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
   let context: SerializerContext = {
     async setFile(inPath: string, content: string | Buffer | ArrayBuffer) {
       let resultPath = basePathRef.current ? path.join(basePathRef.current, inPath) : inPath;
+      writtenPaths.add(normalizeBucketPath(resultPath));
       await fileProcessor.put({ path: resultPath, content });
     },
 
@@ -157,6 +195,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     serializer: {
       init: (input: Input) => Promise<InitResult>;
       getHash: (input: Input, initResult: InitResult) => Promise<string>;
+      getPruneScope?: (input: Input) => PruneScope;
       apply: (
         input: Input,
         context: SerializerContext,
@@ -167,6 +206,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
   ) => {
     let initResult: InitResult;
     let hash: string;
+
+    pruneScopeRef.current = serializer.getPruneScope?.(input) ?? null;
 
     try {
       initResult = await serializer.init(input);
@@ -341,6 +382,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       taskChanged = applied === 'applied';
       await fileProcessor.flush();
 
+      if (applied === 'applied') await pruneStaleFiles();
+
       if (hashRef.current) {
         await setDestinationItemHash({
           hash: hashRef.current,
@@ -391,6 +434,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       taskChanged = applied === 'applied';
       await fileProcessor.flush();
 
+      if (applied === 'applied') await pruneStaleFiles();
+
       if (hashRef.current) {
         await setDestinationItemHash({
           hash: hashRef.current,
@@ -409,6 +454,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     if (!applied) return;
     taskChanged = applied === 'applied';
     await fileProcessor.flush();
+
+    if (applied === 'applied') await pruneStaleFiles();
 
     if (hashRef.current) {
       await setDestinationItemHash({

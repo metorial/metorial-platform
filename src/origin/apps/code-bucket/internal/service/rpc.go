@@ -565,3 +565,22 @@ func (rs *RcpService) DeleteBucketPath(ctx context.Context, req *rpc.DeleteBucke
 
 	return &rpc.DeleteBucketPathResponse{}, nil
 }
+
+func (rs *RcpService) PruneBucketPath(ctx context.Context, req *rpc.PruneBucketPathRequest) (*rpc.PruneBucketPathResponse, error) {
+	if req.BucketId == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "bucket_id is required")
+	}
+
+	// A prune always follows a set of writes. An empty keep set therefore means
+	// the caller is broken, and honouring it would wipe the whole subtree.
+	if len(req.KeepPaths) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "keep_paths must not be empty")
+	}
+
+	deletedPaths, err := rs.fsm.PruneBucketPath(ctx, req.BucketId, req.Prefix, req.KeepPaths, req.ExcludePrefixes)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to prune path: %v", err)
+	}
+
+	return &rpc.PruneBucketPathResponse{DeletedPaths: deletedPaths}, nil
+}

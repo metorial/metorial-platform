@@ -50,6 +50,23 @@ export interface SerializerContext {
   setBasePath: (path: string | undefined) => void;
 }
 
+/**
+ * The subtree a serializer owns. After it runs, anything under `prefix` that it
+ * did not write is stale and gets removed, except under `excludePrefixes`,
+ * which are owned by a different serializer. Both are relative to the bucket
+ * root; `excludePrefixes` are relative to `prefix`.
+ */
+export interface PruneScope {
+  prefix: string;
+  excludePrefixes: string[];
+}
+
+export type PruneScopeFunction<Input> = (input: Input) => PruneScope;
+
+export type GetPruneScopeByType<Type extends Serializer['type']> = PruneScopeFunction<
+  SerializerInputByType<Type>
+>;
+
 export type Applicator<Input, InitResult> = (
   input: Input,
   context: SerializerContext,
@@ -88,6 +105,7 @@ export type SkillSerializer<InitResult = any> = {
   init: Initializer<'skill', InitResult>;
   apply: GetApplicatorByType<'skill', InitResult>;
   getHash: GetHashFunctionByType<'skill', InitResult>;
+  getPruneScope?: GetPruneScopeByType<'skill'>;
 };
 
 export type PluginSerializer<InitResult = any> = {
@@ -95,6 +113,7 @@ export type PluginSerializer<InitResult = any> = {
   init: Initializer<'plugin', InitResult>;
   apply: GetApplicatorByType<'plugin', InitResult>;
   getHash: GetHashFunctionByType<'plugin', InitResult>;
+  getPruneScope?: GetPruneScopeByType<'plugin'>;
 };
 
 export type MarketplaceSerializer<InitResult = any> = {
@@ -102,6 +121,7 @@ export type MarketplaceSerializer<InitResult = any> = {
   init: Initializer<'marketplace', InitResult>;
   apply: GetApplicatorByType<'marketplace', InitResult>;
   getHash: GetHashFunctionByType<'marketplace', InitResult>;
+  getPruneScope?: GetPruneScopeByType<'marketplace'>;
 };
 
 export type Serializer = SkillSerializer | PluginSerializer | MarketplaceSerializer;

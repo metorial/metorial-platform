@@ -19,8 +19,9 @@ model FilePurpose {
   slug String @unique
   name String
 
-  createdAt DateTime @default(now())
-  files     File[]
+  createdAt   DateTime     @default(now())
+  files       File[]
+  fileUploads FileUpload[]
 }
 
 model File {
@@ -67,6 +68,7 @@ model File {
 
   links                         FileLink[]
   pendingContent                FilePendingContent?
+  fileUpload                    FileUpload?
   document                      Document?
   storeItems                    StoreItem[]
   storeVersionItems             StoreVersionItem[]

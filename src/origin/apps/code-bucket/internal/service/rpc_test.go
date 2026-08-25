@@ -1,13 +1,43 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
 
+	rpc "github.com/metorial/metorial/services/code-bucket/gen/rpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func TestPruneBucketPathRejectsEmptyKeepPaths(t *testing.T) {
+	// A prune always follows writes, so an empty keep set means a caller bug and
+	// would otherwise empty the whole subtree. The nil fsm proves we reject
+	// before touching storage.
+	service := &RcpService{}
+
+	_, err := service.PruneBucketPath(context.Background(), &rpc.PruneBucketPathRequest{
+		BucketId: "bkt_1",
+		Prefix:   "/plugins/acme",
+	})
+
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("expected gRPC code InvalidArgument, got %s", got)
+	}
+}
+
+func TestPruneBucketPathRequiresBucketId(t *testing.T) {
+	service := &RcpService{}
+
+	_, err := service.PruneBucketPath(context.Background(), &rpc.PruneBucketPathRequest{
+		KeepPaths: []string{"/plugins/acme/plugin.json"},
+	})
+
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("expected gRPC code InvalidArgument, got %s", got)
+	}
+}
 
 func TestProviderExportErrorMapsProviderFailures(t *testing.T) {
 	tests := []struct {

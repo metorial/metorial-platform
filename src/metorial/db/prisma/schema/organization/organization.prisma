@@ -57,7 +57,7 @@ model Organization {
   files                                  File[]
   secrets                                Secret[]
   profile                                Profile?
-  uploads                                Upload[]
+  fileUploads                            FileUpload[]
   accessLimiters                         AccessLimiter[]
   team                                   Team[]
   accessTagPolicies                      AccessTagPolicy[]

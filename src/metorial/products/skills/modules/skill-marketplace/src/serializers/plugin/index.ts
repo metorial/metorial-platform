@@ -7,10 +7,9 @@ import semver from 'semver';
 import { internalImageService } from '@metorial/skills-images';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
-import type { PluginSerializerInput } from '../_lib/types';
+import { getPluginPath, getPluginPruneScope } from '../_lib/paths';
 
-export let getPluginPath = (d: PluginSerializerInput) =>
-  d.skillMarketplacePlugin ? `plugins/${d.skillMarketplacePlugin.pluginSlug}` : undefined;
+export { getPluginPath };
 
 let json = (data: any) => JSON.stringify(data, null, 2);
 
@@ -120,6 +119,8 @@ export let applyPlugin = createApplicator(
     };
   },
   {
+    getPruneScope: getPluginPruneScope,
+
     getHash: async (_input, { hash }) => hash,
 
     apply: async (input, context, { project, agents, image, hash, legacyHash }) => {

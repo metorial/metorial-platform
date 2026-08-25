@@ -206,6 +206,44 @@ let fetchWithRetryAndLogging = async (
   }
 };
 
+export type MetorialFileUploadMode = 'direct' | 'presigned';
+
+let presignedUploadHostSuffixes = [
+  '.metorial.com',
+  '.metorial.app',
+  '.metorial.net',
+  '.metorial.cloud',
+  '.metorial-staging.com'
+];
+
+/**
+ * Presigned uploads require the API to be backed by an object store that can sign PUT
+ * URLs, which is only guaranteed on Metorial-operated hosts. Everything else (including
+ * self-hosted deployments) keeps streaming the bytes through the API service.
+ */
+export let supportsPresignedUpload = (apiHost: string) => {
+  try {
+    let hostname = new URL(apiHost).hostname.toLowerCase();
+    return presignedUploadHostSuffixes.some(suffix => hostname.endsWith(suffix));
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Multipart uploads let the API derive the name from the form file, but the presigned
+ * flow has to declare it up front. Mirrors the server's fallback order.
+ */
+export let getUploadFileName = (input: {
+  file: File | Blob;
+  title?: string;
+  store?: { path: string };
+}) =>
+  (input.file as File).name?.trim() ||
+  input.store?.path.split('/').filter(Boolean).at(-1)?.trim() ||
+  input.title?.trim() ||
+  '';
+
 export type AssistantRequestDeltaEvent = {
   event: string;
   data: unknown;
@@ -486,69 +524,121 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         path: string;
       };
       storeReplace?: boolean;
+      mode?: MetorialFileUploadMode;
     }) => {
-      let body = new FormData();
-      body.append('file', input.file);
-      body.append('purpose', input.purpose);
-      body.append('instance_id', input.instanceId);
-      if (input.title) body.append('title', input.title);
-      if (input.store) {
-        body.append('store_id', input.store.id);
-        body.append('path', input.store.path);
-      }
-      if (input.storeReplace) body.append('store_replace', 'true');
-
-      console.log('Uploading file with body:', Object.fromEntries(body.entries()));
-
       let base = manager.apiHost;
       if (!base.endsWith('/')) base += '/';
 
-      let tries = 0;
+      let mode = input.mode ?? (supportsPresignedUpload(base) ? 'presigned' : 'direct');
+
+      let postFiles = async (body: FormData | string) => {
+        let res = await fetch(`${base}files`, {
+          method: 'POST',
+          body,
+          headers: {
+            ...manager.getHeaders(manager.config),
+            ...(typeof body == 'string' ? { 'Content-Type': 'application/json' } : {})
+          },
+          credentials: 'include',
+          redirect: 'follow',
+          referrerPolicy: 'no-referrer-when-downgrade',
+          cache: 'no-cache',
+          mode: 'cors'
+        });
+
+        let json = await res.json();
+
+        if (!res.ok) {
+          throw new MetorialSDKError(
+            json?.code
+              ? json
+              : {
+                  status: res.status,
+                  code: 'file_upload_failed',
+                  message: `File upload failed with status ${res.status}`
+                }
+          );
+        }
+
+        return json;
+      };
+
+      let directUpload = async () => {
+        let body = new FormData();
+        body.append('file', input.file);
+        body.append('purpose', input.purpose);
+        body.append('instance_id', input.instanceId);
+        if (input.title) body.append('title', input.title);
+        if (input.store) {
+          body.append('store_id', input.store.id);
+          body.append('path', input.store.path);
+        }
+        if (input.storeReplace) body.append('store_replace', 'true');
+
+        return await postFiles(body);
+      };
+
+      let presignedUpload = async () => {
+        let pending = await postFiles(
+          JSON.stringify({
+            mode: 'get_upload_url',
+            instance_id: input.instanceId,
+            purpose: input.purpose,
+            file_name: getUploadFileName(input),
+            file_size: input.file.size,
+            ...(input.file.type ? { file_type: input.file.type } : {}),
+            ...(input.title ? { title: input.title } : {}),
+            ...(input.store ? { store_id: input.store.id, path: input.store.path } : {}),
+            ...(input.storeReplace ? { store_replace: true } : {})
+          })
+        );
+
+        let uploaded = await fetch(pending.upload.url, {
+          method: pending.upload.method ?? 'PUT',
+          body: input.file,
+          ...(input.file.type ? { headers: { 'Content-Type': input.file.type } } : {}),
+          cache: 'no-cache',
+          mode: 'cors'
+        });
+
+        if (!uploaded.ok) {
+          throw new Error(`Object store rejected the upload with status ${uploaded.status}`);
+        }
+
+        return await postFiles(
+          JSON.stringify({
+            mode: 'complete',
+            instance_id: input.instanceId,
+            file_upload_id: pending.id
+          })
+        );
+      };
+
+      console.log('Uploading file:', {
+        mode,
+        name: getUploadFileName(input),
+        size: input.file.size,
+        purpose: input.purpose
+      });
+
+      let attempt = 0;
       while (true) {
         try {
-          let res = await fetch(`${base}files`, {
-            method: 'POST',
-            body,
-            headers: manager.getHeaders(manager.config),
-            credentials: 'include',
-            redirect: 'follow',
-            referrerPolicy: 'no-referrer-when-downgrade',
-            cache: 'no-cache',
-            mode: 'cors'
-          });
+          let json = mode == 'presigned' ? await presignedUpload() : await directUpload();
 
-          let json = await res.json();
-
-          if (!res.ok) {
-            let errorData: {
-              status: number;
-              code: string;
-              message: string;
-            };
-            try {
-              errorData = json;
-            } catch {
-              errorData = {
-                status: res.status,
-                code: 'file_upload_failed',
-                message: `File upload failed with status ${res.status}`
-              };
-            }
-
-            throw new MetorialSDKError(errorData);
-          }
-
-          let mapped = mapDashboardInstanceFilesGetOutput.transformFrom(json);
-
-          return mapped;
+          return mapDashboardInstanceFilesGetOutput.transformFrom(json);
         } catch (error) {
-          if (tries < 2) {
+          // A rejection from the API is deterministic, so only transport failures are
+          // worth re-uploading the file for.
+          if (!(error instanceof MetorialSDKError) && attempt < 2) {
             console.warn('File upload failed, retrying...', error);
-            tries++;
+            attempt++;
             continue;
           }
 
           console.error('File upload failed:', error);
+
+          if (error instanceof MetorialSDKError) throw error;
 
           throw new MetorialSDKError({
             status: 500,

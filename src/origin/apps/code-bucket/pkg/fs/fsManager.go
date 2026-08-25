@@ -29,6 +29,7 @@ const (
 	maxRedisCacheSize  = 1 * 1024 * 1024
 	maxFileBatchSize   = 8 * 1024 * 1024
 	zipStreamChunkSize = 64 * 1024
+	deleteBatchSize    = 1000
 )
 
 func canonicalFilePath(filePath string) string {
@@ -223,6 +224,21 @@ func pathMatchesPrefix(filePath, prefix string) bool {
 	normalizedPath := normalizeSeenPath(filePath)
 	normalizedPrefix := normalizeSeenPath(prefix)
 	return strings.HasPrefix(normalizedPath, normalizedPrefix)
+}
+
+// pathWithinPrefix reports whether filePath is prefix itself or lives beneath
+// it. Unlike pathMatchesPrefix it only matches on directory boundaries, so
+// "skills/foo" does not also capture "skills/foobar". Deletions use this;
+// listings keep the looser prefix semantics.
+func pathWithinPrefix(filePath, prefix string) bool {
+	normalizedPrefix := strings.TrimSuffix(normalizeSeenPath(prefix), "/")
+	if normalizedPrefix == "" {
+		return true
+	}
+
+	normalizedPath := normalizeSeenPath(filePath)
+	return normalizedPath == normalizedPrefix ||
+		strings.HasPrefix(normalizedPath, normalizedPrefix+"/")
 }
 
 func (a *contentBatchAccumulator) Add(item FileContentItem) error {
@@ -531,57 +547,228 @@ func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, fi
 	return fsm.objectStorage.DeleteObject(fsm.bucketName, objectStorageKey(bucketID, filePath))
 }
 
-func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) error {
-	if !strings.HasPrefix(filePath, "/") {
-		filePath = "/" + filePath
-	}
+// deleteRedisKeysUnderPrefix removes the buffered copies of every file at or
+// beneath filePath, along with their pending-flush markers.
+func (fsm *FileSystemManager) deleteRedisKeysUnderPrefix(ctx context.Context, bucketID, filePath string) error {
+	redisPrefix := fmt.Sprintf("bucket:%s:file:", bucketID)
+	keys := make([]string, 0)
 
-	filePrefix := filePath
-	if !strings.HasSuffix(filePrefix, "/") {
-		filePrefix += "/"
-	}
-
-	queue := memoryQueue.NewBlockingJobQueue(15)
-
-	pattern := fmt.Sprintf("bucket:%s:file:*", bucketID)
-	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
+	iter := fsm.redis.Scan(ctx, 0, redisPrefix+"*", 100).Iterator()
 	for iter.Next(ctx) {
 		key := iter.Val()
-		path := strings.TrimPrefix(key, fmt.Sprintf("bucket:%s:file:", bucketID))
-		if path != filePath && !strings.HasPrefix(path, filePrefix) {
+
+		// Older writes stored the path without a leading slash, so compare
+		// normalized on both sides.
+		if !pathWithinPrefix(strings.TrimPrefix(key, redisPrefix), filePath) {
 			continue
 		}
 
-		redisKey := key
-		queue.AddAndBlockIfFull(func() error {
-			fileKey := strings.TrimPrefix(redisKey, "bucket:")
-			flushKey := "flush:" + fileKey
-			return fsm.redis.Del(ctx, redisKey, flushKey).Err()
-		})
+		keys = append(keys, key, "flush:"+strings.TrimPrefix(key, "bucket:"))
 	}
 	if err := iter.Err(); err != nil {
 		return err
 	}
 
-	objectPrefix := fmt.Sprintf("%s/%s", bucketID, filePath)
+	for start := 0; start < len(keys); start += deleteBatchSize {
+		end := start + deleteBatchSize
+		if end > len(keys) {
+			end = len(keys)
+		}
+
+		if err := fsm.redis.Del(ctx, keys[start:end]...).Err(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// listObjectKeysUnderPrefix returns the object-storage keys at or beneath
+// filePath. The listing prefix is not anchored on a directory boundary, so the
+// results are filtered afterwards.
+func (fsm *FileSystemManager) listObjectKeysUnderPrefix(bucketID, filePath string) ([]string, error) {
+	objectPrefix := objectStorageKey(bucketID, filePath)
+
 	objects, err := fsm.objectStorage.ListObjects(fsm.bucketName, &objectPrefix, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	keys := make([]string, 0, len(objects))
+	for _, obj := range objects {
+		if !pathWithinPrefix(strings.TrimPrefix(obj.Key, bucketID+"/"), filePath) {
+			continue
+		}
+
+		keys = append(keys, obj.Key)
+	}
+
+	return keys, nil
+}
+
+func (fsm *FileSystemManager) deleteObjectKeys(keys []string) error {
+	for start := 0; start < len(keys); start += deleteBatchSize {
+		end := start + deleteBatchSize
+		if end > len(keys) {
+			end = len(keys)
+		}
+
+		results, err := fsm.objectStorage.DeleteObjects(fsm.bucketName, keys[start:end])
+		if err != nil {
+			return err
+		}
+
+		for _, result := range results {
+			if result.Deleted {
+				continue
+			}
+
+			message := "unknown error"
+			if result.Error != nil {
+				message = *result.Error
+			}
+			return fmt.Errorf("failed to delete %s: %s", result.Key, message)
+		}
+	}
+
+	return nil
+}
+
+func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) error {
+	filePath = canonicalFilePath(filePath)
+
+	if err := fsm.deleteRedisKeysUnderPrefix(ctx, bucketID, filePath); err != nil {
+		return err
+	}
+
+	objectKeys, err := fsm.listObjectKeysUnderPrefix(bucketID, filePath)
 	if err != nil {
 		return err
 	}
 
-	for _, obj := range objects {
-		objectKey := obj.Key
-		fileObjectPath := strings.TrimPrefix(objectKey, bucketID+"/")
-		if fileObjectPath != filePath && !strings.HasPrefix(fileObjectPath, filePrefix) {
+	return fsm.deleteObjectKeys(objectKeys)
+}
+
+// prunePlan decides which files inside a prune scope are stale.
+type prunePlan struct {
+	prefix          string
+	keep            map[string]struct{}
+	excludePrefixes []string
+}
+
+func newPrunePlan(prefix string, keepPaths, excludePrefixes []string) prunePlan {
+	keep := make(map[string]struct{}, len(keepPaths))
+	for _, path := range keepPaths {
+		keep[normalizeSeenPath(path)] = struct{}{}
+	}
+
+	return prunePlan{prefix: prefix, keep: keep, excludePrefixes: excludePrefixes}
+}
+
+func (p prunePlan) shouldDelete(filePath string) bool {
+	if !pathWithinPrefix(filePath, p.prefix) {
+		return false
+	}
+
+	normalized := normalizeSeenPath(filePath)
+	if _, ok := p.keep[normalized]; ok {
+		return false
+	}
+
+	// Excluded subtrees belong to another writer, which prunes them itself.
+	for _, excluded := range p.excludePrefixes {
+		if pathWithinPrefix(normalized, excluded) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// PruneBucketPath deletes every file under prefix except those in keepPaths and
+// those beneath one of excludePrefixes. Returns the paths it removed.
+//
+// Callers own the subtree they prune, minus the excluded ones. An empty
+// keepPaths is rejected by the RPC layer, since a prune always follows writes.
+func (fsm *FileSystemManager) PruneBucketPath(
+	ctx context.Context,
+	bucketID string,
+	prefix string,
+	keepPaths []string,
+	excludePrefixes []string,
+) ([]string, error) {
+	plan := newPrunePlan(prefix, keepPaths, excludePrefixes)
+
+	deletedPaths := make([]string, 0)
+	redisKeys := make([]string, 0)
+	redisPrefix := fmt.Sprintf("bucket:%s:file:", bucketID)
+
+	iter := fsm.redis.Scan(ctx, 0, redisPrefix+"*", 100).Iterator()
+	for iter.Next(ctx) {
+		key := iter.Val()
+		filePath := strings.TrimPrefix(key, redisPrefix)
+
+		if !plan.shouldDelete(filePath) {
 			continue
 		}
 
-		queue.AddAndBlockIfFull(func() error {
-			return fsm.objectStorage.DeleteObject(fsm.bucketName, objectKey)
-		})
+		redisKeys = append(redisKeys, key, "flush:"+strings.TrimPrefix(key, "bucket:"))
+		deletedPaths = append(deletedPaths, canonicalFilePath(filePath))
+	}
+	if err := iter.Err(); err != nil {
+		return nil, err
 	}
 
-	return queue.Wait()
+	objectKeys, err := fsm.listObjectKeysUnderPrefix(bucketID, prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	toDelete := make([]string, 0, len(objectKeys))
+	for _, objectKey := range objectKeys {
+		filePath := strings.TrimPrefix(objectKey, bucketID+"/")
+		if !plan.shouldDelete(filePath) {
+			continue
+		}
+
+		toDelete = append(toDelete, objectKey)
+		deletedPaths = append(deletedPaths, canonicalFilePath(filePath))
+	}
+
+	for start := 0; start < len(redisKeys); start += deleteBatchSize {
+		end := start + deleteBatchSize
+		if end > len(redisKeys) {
+			end = len(redisKeys)
+		}
+
+		if err := fsm.redis.Del(ctx, redisKeys[start:end]...).Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := fsm.deleteObjectKeys(toDelete); err != nil {
+		return nil, err
+	}
+
+	return dedupePaths(deletedPaths), nil
+}
+
+// A file buffered in Redis that has already been flushed shows up in both
+// listings.
+func dedupePaths(paths []string) []string {
+	seen := make(map[string]struct{}, len(paths))
+	unique := make([]string, 0, len(paths))
+
+	for _, path := range paths {
+		if _, ok := seen[path]; ok {
+			continue
+		}
+
+		seen[path] = struct{}{}
+		unique = append(unique, path)
+	}
+
+	return unique
 }
 
 func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, prefix string) ([]FileInfo, error) {

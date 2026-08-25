@@ -160,6 +160,21 @@ export interface DeleteBucketPathRequest {
 export interface DeleteBucketPathResponse {
 }
 
+/**
+ * Deletes everything under prefix that is not in keep_paths and not under one
+ * of exclude_prefixes. Used to remove files a writer no longer produces.
+ */
+export interface PruneBucketPathRequest {
+  bucketId: string;
+  prefix: string;
+  keepPaths: string[];
+  excludePrefixes: string[];
+}
+
+export interface PruneBucketPathResponse {
+  deletedPaths: string[];
+}
+
 export interface ExportBucketToGithubRequest {
   bucketId: string;
   owner: string;
@@ -2379,6 +2394,190 @@ export const DeleteBucketPathResponse: MessageFns<DeleteBucketPathResponse> = {
   },
 };
 
+function createBasePruneBucketPathRequest(): PruneBucketPathRequest {
+  return { bucketId: "", prefix: "", keepPaths: [], excludePrefixes: [] };
+}
+
+export const PruneBucketPathRequest: MessageFns<PruneBucketPathRequest> = {
+  encode(message: PruneBucketPathRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bucketId !== "") {
+      writer.uint32(10).string(message.bucketId);
+    }
+    if (message.prefix !== "") {
+      writer.uint32(18).string(message.prefix);
+    }
+    for (const v of message.keepPaths) {
+      writer.uint32(26).string(v!);
+    }
+    for (const v of message.excludePrefixes) {
+      writer.uint32(34).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PruneBucketPathRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePruneBucketPathRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.prefix = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.keepPaths.push(reader.string());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.excludePrefixes.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PruneBucketPathRequest {
+    return {
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : isSet(object.bucket_id)
+        ? globalThis.String(object.bucket_id)
+        : "",
+      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : "",
+      keepPaths: globalThis.Array.isArray(object?.keepPaths)
+        ? object.keepPaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.keep_paths)
+        ? object.keep_paths.map((e: any) => globalThis.String(e))
+        : [],
+      excludePrefixes: globalThis.Array.isArray(object?.excludePrefixes)
+        ? object.excludePrefixes.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.exclude_prefixes)
+        ? object.exclude_prefixes.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: PruneBucketPathRequest): unknown {
+    const obj: any = {};
+    if (message.bucketId !== "") {
+      obj.bucketId = message.bucketId;
+    }
+    if (message.prefix !== "") {
+      obj.prefix = message.prefix;
+    }
+    if (message.keepPaths?.length) {
+      obj.keepPaths = message.keepPaths;
+    }
+    if (message.excludePrefixes?.length) {
+      obj.excludePrefixes = message.excludePrefixes;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<PruneBucketPathRequest>): PruneBucketPathRequest {
+    return PruneBucketPathRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<PruneBucketPathRequest>): PruneBucketPathRequest {
+    const message = createBasePruneBucketPathRequest();
+    message.bucketId = object.bucketId ?? "";
+    message.prefix = object.prefix ?? "";
+    message.keepPaths = object.keepPaths?.map((e) => e) || [];
+    message.excludePrefixes = object.excludePrefixes?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBasePruneBucketPathResponse(): PruneBucketPathResponse {
+  return { deletedPaths: [] };
+}
+
+export const PruneBucketPathResponse: MessageFns<PruneBucketPathResponse> = {
+  encode(message: PruneBucketPathResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.deletedPaths) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PruneBucketPathResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePruneBucketPathResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.deletedPaths.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PruneBucketPathResponse {
+    return {
+      deletedPaths: globalThis.Array.isArray(object?.deletedPaths)
+        ? object.deletedPaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_paths)
+        ? object.deleted_paths.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: PruneBucketPathResponse): unknown {
+    const obj: any = {};
+    if (message.deletedPaths?.length) {
+      obj.deletedPaths = message.deletedPaths;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<PruneBucketPathResponse>): PruneBucketPathResponse {
+    return PruneBucketPathResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<PruneBucketPathResponse>): PruneBucketPathResponse {
+    const message = createBasePruneBucketPathResponse();
+    message.deletedPaths = object.deletedPaths?.map((e) => e) || [];
+    return message;
+  },
+};
+
 function createBaseExportBucketToGithubRequest(): ExportBucketToGithubRequest {
   return { bucketId: "", owner: "", repo: "", path: "", token: "", branch: "", commitMessage: "" };
 }
@@ -3898,6 +4097,17 @@ export const CodeBucketService = {
       Buffer.from(DeleteBucketPathResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteBucketPathResponse => DeleteBucketPathResponse.decode(value),
   },
+  pruneBucketPath: {
+    path: "/rpc.rpc.CodeBucket/PruneBucketPath" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: PruneBucketPathRequest): Buffer =>
+      Buffer.from(PruneBucketPathRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): PruneBucketPathRequest => PruneBucketPathRequest.decode(value),
+    responseSerialize: (value: PruneBucketPathResponse): Buffer =>
+      Buffer.from(PruneBucketPathResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): PruneBucketPathResponse => PruneBucketPathResponse.decode(value),
+  },
   exportBucketToGithub: {
     path: "/rpc.rpc.CodeBucket/ExportBucketToGithub" as const,
     requestStream: false as const,
@@ -3970,6 +4180,7 @@ export interface CodeBucketServer extends UntypedServiceImplementation {
   setBucketFile: handleUnaryCall<SetBucketFileRequest, SetBucketFileResponse>;
   deleteBucketFile: handleUnaryCall<DeleteBucketFileRequest, DeleteBucketFileResponse>;
   deleteBucketPath: handleUnaryCall<DeleteBucketPathRequest, DeleteBucketPathResponse>;
+  pruneBucketPath: handleUnaryCall<PruneBucketPathRequest, PruneBucketPathResponse>;
   exportBucketToGithub: handleUnaryCall<ExportBucketToGithubRequest, ExportBucketToGithubResponse>;
   exportBucketToGitlab: handleUnaryCall<ExportBucketToGitlabRequest, ExportBucketToGitlabResponse>;
   exportBucketToBitbucketCloud: handleUnaryCall<ExportBucketToBitbucketCloudRequest, ExportBucketToBitbucketResponse>;
@@ -4237,6 +4448,21 @@ export interface CodeBucketClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteBucketPathResponse) => void,
+  ): ClientUnaryCall;
+  pruneBucketPath(
+    request: PruneBucketPathRequest,
+    callback: (error: ServiceError | null, response: PruneBucketPathResponse) => void,
+  ): ClientUnaryCall;
+  pruneBucketPath(
+    request: PruneBucketPathRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: PruneBucketPathResponse) => void,
+  ): ClientUnaryCall;
+  pruneBucketPath(
+    request: PruneBucketPathRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: PruneBucketPathResponse) => void,
   ): ClientUnaryCall;
   exportBucketToGithub(
     request: ExportBucketToGithubRequest,

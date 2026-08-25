@@ -1377,6 +1377,120 @@ func (*DeleteBucketPathResponse) Descriptor() ([]byte, []int) {
 	return file_rpc_proto_rawDescGZIP(), []int{26}
 }
 
+// Deletes everything under prefix that is not in keep_paths and not under one
+// of exclude_prefixes. Used to remove files a writer no longer produces.
+type PruneBucketPathRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	BucketId        string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
+	Prefix          string                 `protobuf:"bytes,2,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	KeepPaths       []string               `protobuf:"bytes,3,rep,name=keep_paths,json=keepPaths,proto3" json:"keep_paths,omitempty"`
+	ExcludePrefixes []string               `protobuf:"bytes,4,rep,name=exclude_prefixes,json=excludePrefixes,proto3" json:"exclude_prefixes,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *PruneBucketPathRequest) Reset() {
+	*x = PruneBucketPathRequest{}
+	mi := &file_rpc_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PruneBucketPathRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PruneBucketPathRequest) ProtoMessage() {}
+
+func (x *PruneBucketPathRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PruneBucketPathRequest.ProtoReflect.Descriptor instead.
+func (*PruneBucketPathRequest) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *PruneBucketPathRequest) GetBucketId() string {
+	if x != nil {
+		return x.BucketId
+	}
+	return ""
+}
+
+func (x *PruneBucketPathRequest) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
+func (x *PruneBucketPathRequest) GetKeepPaths() []string {
+	if x != nil {
+		return x.KeepPaths
+	}
+	return nil
+}
+
+func (x *PruneBucketPathRequest) GetExcludePrefixes() []string {
+	if x != nil {
+		return x.ExcludePrefixes
+	}
+	return nil
+}
+
+type PruneBucketPathResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeletedPaths  []string               `protobuf:"bytes,1,rep,name=deleted_paths,json=deletedPaths,proto3" json:"deleted_paths,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PruneBucketPathResponse) Reset() {
+	*x = PruneBucketPathResponse{}
+	mi := &file_rpc_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PruneBucketPathResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PruneBucketPathResponse) ProtoMessage() {}
+
+func (x *PruneBucketPathResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PruneBucketPathResponse.ProtoReflect.Descriptor instead.
+func (*PruneBucketPathResponse) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *PruneBucketPathResponse) GetDeletedPaths() []string {
+	if x != nil {
+		return x.DeletedPaths
+	}
+	return nil
+}
+
 type ExportBucketToGithubRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BucketId      string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
@@ -1392,7 +1506,7 @@ type ExportBucketToGithubRequest struct {
 
 func (x *ExportBucketToGithubRequest) Reset() {
 	*x = ExportBucketToGithubRequest{}
-	mi := &file_rpc_proto_msgTypes[27]
+	mi := &file_rpc_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1404,7 +1518,7 @@ func (x *ExportBucketToGithubRequest) String() string {
 func (*ExportBucketToGithubRequest) ProtoMessage() {}
 
 func (x *ExportBucketToGithubRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[27]
+	mi := &file_rpc_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1417,7 +1531,7 @@ func (x *ExportBucketToGithubRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportBucketToGithubRequest.ProtoReflect.Descriptor instead.
 func (*ExportBucketToGithubRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{27}
+	return file_rpc_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ExportBucketToGithubRequest) GetBucketId() string {
@@ -1477,7 +1591,7 @@ type ExportBucketToGithubResponse struct {
 
 func (x *ExportBucketToGithubResponse) Reset() {
 	*x = ExportBucketToGithubResponse{}
-	mi := &file_rpc_proto_msgTypes[28]
+	mi := &file_rpc_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1489,7 +1603,7 @@ func (x *ExportBucketToGithubResponse) String() string {
 func (*ExportBucketToGithubResponse) ProtoMessage() {}
 
 func (x *ExportBucketToGithubResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[28]
+	mi := &file_rpc_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1502,7 +1616,7 @@ func (x *ExportBucketToGithubResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportBucketToGithubResponse.ProtoReflect.Descriptor instead.
 func (*ExportBucketToGithubResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{28}
+	return file_rpc_proto_rawDescGZIP(), []int{30}
 }
 
 type CreateBucketFromGitlabRequest struct {
@@ -1519,7 +1633,7 @@ type CreateBucketFromGitlabRequest struct {
 
 func (x *CreateBucketFromGitlabRequest) Reset() {
 	*x = CreateBucketFromGitlabRequest{}
-	mi := &file_rpc_proto_msgTypes[29]
+	mi := &file_rpc_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1531,7 +1645,7 @@ func (x *CreateBucketFromGitlabRequest) String() string {
 func (*CreateBucketFromGitlabRequest) ProtoMessage() {}
 
 func (x *CreateBucketFromGitlabRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[29]
+	mi := &file_rpc_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1544,7 +1658,7 @@ func (x *CreateBucketFromGitlabRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateBucketFromGitlabRequest.ProtoReflect.Descriptor instead.
 func (*CreateBucketFromGitlabRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{29}
+	return file_rpc_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *CreateBucketFromGitlabRequest) GetNewBucketId() string {
@@ -1604,7 +1718,7 @@ type ExportBucketToGitlabRequest struct {
 
 func (x *ExportBucketToGitlabRequest) Reset() {
 	*x = ExportBucketToGitlabRequest{}
-	mi := &file_rpc_proto_msgTypes[30]
+	mi := &file_rpc_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1616,7 +1730,7 @@ func (x *ExportBucketToGitlabRequest) String() string {
 func (*ExportBucketToGitlabRequest) ProtoMessage() {}
 
 func (x *ExportBucketToGitlabRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[30]
+	mi := &file_rpc_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1629,7 +1743,7 @@ func (x *ExportBucketToGitlabRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportBucketToGitlabRequest.ProtoReflect.Descriptor instead.
 func (*ExportBucketToGitlabRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{30}
+	return file_rpc_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ExportBucketToGitlabRequest) GetBucketId() string {
@@ -1689,7 +1803,7 @@ type ExportBucketToGitlabResponse struct {
 
 func (x *ExportBucketToGitlabResponse) Reset() {
 	*x = ExportBucketToGitlabResponse{}
-	mi := &file_rpc_proto_msgTypes[31]
+	mi := &file_rpc_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1701,7 +1815,7 @@ func (x *ExportBucketToGitlabResponse) String() string {
 func (*ExportBucketToGitlabResponse) ProtoMessage() {}
 
 func (x *ExportBucketToGitlabResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[31]
+	mi := &file_rpc_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1714,7 +1828,7 @@ func (x *ExportBucketToGitlabResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportBucketToGitlabResponse.ProtoReflect.Descriptor instead.
 func (*ExportBucketToGitlabResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{31}
+	return file_rpc_proto_rawDescGZIP(), []int{33}
 }
 
 type CreateBucketFromBitbucketCloudRequest struct {
@@ -1732,7 +1846,7 @@ type CreateBucketFromBitbucketCloudRequest struct {
 
 func (x *CreateBucketFromBitbucketCloudRequest) Reset() {
 	*x = CreateBucketFromBitbucketCloudRequest{}
-	mi := &file_rpc_proto_msgTypes[32]
+	mi := &file_rpc_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1744,7 +1858,7 @@ func (x *CreateBucketFromBitbucketCloudRequest) String() string {
 func (*CreateBucketFromBitbucketCloudRequest) ProtoMessage() {}
 
 func (x *CreateBucketFromBitbucketCloudRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[32]
+	mi := &file_rpc_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1757,7 +1871,7 @@ func (x *CreateBucketFromBitbucketCloudRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use CreateBucketFromBitbucketCloudRequest.ProtoReflect.Descriptor instead.
 func (*CreateBucketFromBitbucketCloudRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{32}
+	return file_rpc_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *CreateBucketFromBitbucketCloudRequest) GetNewBucketId() string {
@@ -1823,7 +1937,7 @@ type CreateBucketFromBitbucketDataCenterRequest struct {
 
 func (x *CreateBucketFromBitbucketDataCenterRequest) Reset() {
 	*x = CreateBucketFromBitbucketDataCenterRequest{}
-	mi := &file_rpc_proto_msgTypes[33]
+	mi := &file_rpc_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1835,7 +1949,7 @@ func (x *CreateBucketFromBitbucketDataCenterRequest) String() string {
 func (*CreateBucketFromBitbucketDataCenterRequest) ProtoMessage() {}
 
 func (x *CreateBucketFromBitbucketDataCenterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[33]
+	mi := &file_rpc_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1848,7 +1962,7 @@ func (x *CreateBucketFromBitbucketDataCenterRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use CreateBucketFromBitbucketDataCenterRequest.ProtoReflect.Descriptor instead.
 func (*CreateBucketFromBitbucketDataCenterRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{33}
+	return file_rpc_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *CreateBucketFromBitbucketDataCenterRequest) GetNewBucketId() string {
@@ -1910,7 +2024,7 @@ type ExportBucketToBitbucketCloudRequest struct {
 
 func (x *ExportBucketToBitbucketCloudRequest) Reset() {
 	*x = ExportBucketToBitbucketCloudRequest{}
-	mi := &file_rpc_proto_msgTypes[34]
+	mi := &file_rpc_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1922,7 +2036,7 @@ func (x *ExportBucketToBitbucketCloudRequest) String() string {
 func (*ExportBucketToBitbucketCloudRequest) ProtoMessage() {}
 
 func (x *ExportBucketToBitbucketCloudRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[34]
+	mi := &file_rpc_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1935,7 +2049,7 @@ func (x *ExportBucketToBitbucketCloudRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ExportBucketToBitbucketCloudRequest.ProtoReflect.Descriptor instead.
 func (*ExportBucketToBitbucketCloudRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{34}
+	return file_rpc_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ExportBucketToBitbucketCloudRequest) GetBucketId() string {
@@ -2016,7 +2130,7 @@ type ExportBucketToBitbucketDataCenterRequest struct {
 
 func (x *ExportBucketToBitbucketDataCenterRequest) Reset() {
 	*x = ExportBucketToBitbucketDataCenterRequest{}
-	mi := &file_rpc_proto_msgTypes[35]
+	mi := &file_rpc_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2028,7 +2142,7 @@ func (x *ExportBucketToBitbucketDataCenterRequest) String() string {
 func (*ExportBucketToBitbucketDataCenterRequest) ProtoMessage() {}
 
 func (x *ExportBucketToBitbucketDataCenterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[35]
+	mi := &file_rpc_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2041,7 +2155,7 @@ func (x *ExportBucketToBitbucketDataCenterRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use ExportBucketToBitbucketDataCenterRequest.ProtoReflect.Descriptor instead.
 func (*ExportBucketToBitbucketDataCenterRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{35}
+	return file_rpc_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ExportBucketToBitbucketDataCenterRequest) GetBucketId() string {
@@ -2101,7 +2215,7 @@ type ExportBucketToBitbucketResponse struct {
 
 func (x *ExportBucketToBitbucketResponse) Reset() {
 	*x = ExportBucketToBitbucketResponse{}
-	mi := &file_rpc_proto_msgTypes[36]
+	mi := &file_rpc_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2113,7 +2227,7 @@ func (x *ExportBucketToBitbucketResponse) String() string {
 func (*ExportBucketToBitbucketResponse) ProtoMessage() {}
 
 func (x *ExportBucketToBitbucketResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[36]
+	mi := &file_rpc_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2126,7 +2240,7 @@ func (x *ExportBucketToBitbucketResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportBucketToBitbucketResponse.ProtoReflect.Descriptor instead.
 func (*ExportBucketToBitbucketResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{36}
+	return file_rpc_proto_rawDescGZIP(), []int{38}
 }
 
 var File_rpc_proto protoreflect.FileDescriptor
@@ -2214,7 +2328,15 @@ const file_rpc_proto_rawDesc = "" +
 	"\x17DeleteBucketPathRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\"\x1a\n" +
-	"\x18DeleteBucketPathResponse\"\xcd\x01\n" +
+	"\x18DeleteBucketPathResponse\"\x97\x01\n" +
+	"\x16PruneBucketPathRequest\x12\x1b\n" +
+	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x16\n" +
+	"\x06prefix\x18\x02 \x01(\tR\x06prefix\x12\x1d\n" +
+	"\n" +
+	"keep_paths\x18\x03 \x03(\tR\tkeepPaths\x12)\n" +
+	"\x10exclude_prefixes\x18\x04 \x03(\tR\x0fexcludePrefixes\">\n" +
+	"\x17PruneBucketPathResponse\x12#\n" +
+	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xcd\x01\n" +
 	"\x1bExportBucketToGithubRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
@@ -2275,7 +2397,7 @@ const file_rpc_proto_rawDesc = "" +
 	"\x0ecommit_message\x18\x05 \x01(\tR\rcommitMessage\x12\x1a\n" +
 	"\busername\x18\x06 \x01(\tR\busername\x12\x14\n" +
 	"\x05token\x18\a \x01(\tR\x05token\"!\n" +
-	"\x1fExportBucketToBitbucketResponse2\xf5\x10\n" +
+	"\x1fExportBucketToBitbucketResponse2\xcb\x11\n" +
 	"\n" +
 	"CodeBucket\x12I\n" +
 	"\vCloneBucket\x12\x1b.rpc.rpc.CloneBucketRequest\x1a\x1d.rpc.rpc.CreateBucketResponse\x12c\n" +
@@ -2295,7 +2417,8 @@ const file_rpc_proto_rawDesc = "" +
 	"\x0eSetBucketFiles\x12\x1e.rpc.rpc.SetBucketFilesRequest\x1a\x1f.rpc.rpc.SetBucketFilesResponse\x12N\n" +
 	"\rSetBucketFile\x12\x1d.rpc.rpc.SetBucketFileRequest\x1a\x1e.rpc.rpc.SetBucketFileResponse\x12W\n" +
 	"\x10DeleteBucketFile\x12 .rpc.rpc.DeleteBucketFileRequest\x1a!.rpc.rpc.DeleteBucketFileResponse\x12W\n" +
-	"\x10DeleteBucketPath\x12 .rpc.rpc.DeleteBucketPathRequest\x1a!.rpc.rpc.DeleteBucketPathResponse\x12c\n" +
+	"\x10DeleteBucketPath\x12 .rpc.rpc.DeleteBucketPathRequest\x1a!.rpc.rpc.DeleteBucketPathResponse\x12T\n" +
+	"\x0fPruneBucketPath\x12\x1f.rpc.rpc.PruneBucketPathRequest\x1a .rpc.rpc.PruneBucketPathResponse\x12c\n" +
 	"\x14ExportBucketToGithub\x12$.rpc.rpc.ExportBucketToGithubRequest\x1a%.rpc.rpc.ExportBucketToGithubResponse\x12c\n" +
 	"\x14ExportBucketToGitlab\x12$.rpc.rpc.ExportBucketToGitlabRequest\x1a%.rpc.rpc.ExportBucketToGitlabResponse\x12v\n" +
 	"\x1cExportBucketToBitbucketCloud\x12,.rpc.rpc.ExportBucketToBitbucketCloudRequest\x1a(.rpc.rpc.ExportBucketToBitbucketResponse\x12\x80\x01\n" +
@@ -2313,7 +2436,7 @@ func file_rpc_proto_rawDescGZIP() []byte {
 	return file_rpc_proto_rawDescData
 }
 
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_rpc_proto_goTypes = []any{
 	(*FileInfo)(nil),                                   // 0: rpc.rpc.FileInfo
 	(*FileContent)(nil),                                // 1: rpc.rpc.FileContent
@@ -2342,21 +2465,23 @@ var file_rpc_proto_goTypes = []any{
 	(*DeleteBucketFileResponse)(nil),                   // 24: rpc.rpc.DeleteBucketFileResponse
 	(*DeleteBucketPathRequest)(nil),                    // 25: rpc.rpc.DeleteBucketPathRequest
 	(*DeleteBucketPathResponse)(nil),                   // 26: rpc.rpc.DeleteBucketPathResponse
-	(*ExportBucketToGithubRequest)(nil),                // 27: rpc.rpc.ExportBucketToGithubRequest
-	(*ExportBucketToGithubResponse)(nil),               // 28: rpc.rpc.ExportBucketToGithubResponse
-	(*CreateBucketFromGitlabRequest)(nil),              // 29: rpc.rpc.CreateBucketFromGitlabRequest
-	(*ExportBucketToGitlabRequest)(nil),                // 30: rpc.rpc.ExportBucketToGitlabRequest
-	(*ExportBucketToGitlabResponse)(nil),               // 31: rpc.rpc.ExportBucketToGitlabResponse
-	(*CreateBucketFromBitbucketCloudRequest)(nil),      // 32: rpc.rpc.CreateBucketFromBitbucketCloudRequest
-	(*CreateBucketFromBitbucketDataCenterRequest)(nil), // 33: rpc.rpc.CreateBucketFromBitbucketDataCenterRequest
-	(*ExportBucketToBitbucketCloudRequest)(nil),        // 34: rpc.rpc.ExportBucketToBitbucketCloudRequest
-	(*ExportBucketToBitbucketDataCenterRequest)(nil),   // 35: rpc.rpc.ExportBucketToBitbucketDataCenterRequest
-	(*ExportBucketToBitbucketResponse)(nil),            // 36: rpc.rpc.ExportBucketToBitbucketResponse
-	nil,                                                // 37: rpc.rpc.CreateBucketFromZipRequest.HeadersEntry
+	(*PruneBucketPathRequest)(nil),                     // 27: rpc.rpc.PruneBucketPathRequest
+	(*PruneBucketPathResponse)(nil),                    // 28: rpc.rpc.PruneBucketPathResponse
+	(*ExportBucketToGithubRequest)(nil),                // 29: rpc.rpc.ExportBucketToGithubRequest
+	(*ExportBucketToGithubResponse)(nil),               // 30: rpc.rpc.ExportBucketToGithubResponse
+	(*CreateBucketFromGitlabRequest)(nil),              // 31: rpc.rpc.CreateBucketFromGitlabRequest
+	(*ExportBucketToGitlabRequest)(nil),                // 32: rpc.rpc.ExportBucketToGitlabRequest
+	(*ExportBucketToGitlabResponse)(nil),               // 33: rpc.rpc.ExportBucketToGitlabResponse
+	(*CreateBucketFromBitbucketCloudRequest)(nil),      // 34: rpc.rpc.CreateBucketFromBitbucketCloudRequest
+	(*CreateBucketFromBitbucketDataCenterRequest)(nil), // 35: rpc.rpc.CreateBucketFromBitbucketDataCenterRequest
+	(*ExportBucketToBitbucketCloudRequest)(nil),        // 36: rpc.rpc.ExportBucketToBitbucketCloudRequest
+	(*ExportBucketToBitbucketDataCenterRequest)(nil),   // 37: rpc.rpc.ExportBucketToBitbucketDataCenterRequest
+	(*ExportBucketToBitbucketResponse)(nil),            // 38: rpc.rpc.ExportBucketToBitbucketResponse
+	nil,                                                // 39: rpc.rpc.CreateBucketFromZipRequest.HeadersEntry
 }
 var file_rpc_proto_depIdxs = []int32{
 	0,  // 0: rpc.rpc.FileContent.file_info:type_name -> rpc.rpc.FileInfo
-	37, // 1: rpc.rpc.CreateBucketFromZipRequest.headers:type_name -> rpc.rpc.CreateBucketFromZipRequest.HeadersEntry
+	39, // 1: rpc.rpc.CreateBucketFromZipRequest.headers:type_name -> rpc.rpc.CreateBucketFromZipRequest.HeadersEntry
 	4,  // 2: rpc.rpc.CreateBucketFromContentsRequest.contents:type_name -> rpc.rpc.FileContentsBase
 	1,  // 3: rpc.rpc.GetBucketFileResponse.content:type_name -> rpc.rpc.FileContent
 	0,  // 4: rpc.rpc.GetBucketFilesResponse.files:type_name -> rpc.rpc.FileInfo
@@ -2367,9 +2492,9 @@ var file_rpc_proto_depIdxs = []int32{
 	5,  // 9: rpc.rpc.CodeBucket.CreateBucketFromContents:input_type -> rpc.rpc.CreateBucketFromContentsRequest
 	3,  // 10: rpc.rpc.CodeBucket.CreateBucketFromZip:input_type -> rpc.rpc.CreateBucketFromZipRequest
 	6,  // 11: rpc.rpc.CodeBucket.CreateBucketFromGithub:input_type -> rpc.rpc.CreateBucketFromGithubRequest
-	29, // 12: rpc.rpc.CodeBucket.CreateBucketFromGitlab:input_type -> rpc.rpc.CreateBucketFromGitlabRequest
-	32, // 13: rpc.rpc.CodeBucket.CreateBucketFromBitbucketCloud:input_type -> rpc.rpc.CreateBucketFromBitbucketCloudRequest
-	33, // 14: rpc.rpc.CodeBucket.CreateBucketFromBitbucketDataCenter:input_type -> rpc.rpc.CreateBucketFromBitbucketDataCenterRequest
+	31, // 12: rpc.rpc.CodeBucket.CreateBucketFromGitlab:input_type -> rpc.rpc.CreateBucketFromGitlabRequest
+	34, // 13: rpc.rpc.CodeBucket.CreateBucketFromBitbucketCloud:input_type -> rpc.rpc.CreateBucketFromBitbucketCloudRequest
+	35, // 14: rpc.rpc.CodeBucket.CreateBucketFromBitbucketDataCenter:input_type -> rpc.rpc.CreateBucketFromBitbucketDataCenterRequest
 	8,  // 15: rpc.rpc.CodeBucket.GetBucketToken:input_type -> rpc.rpc.GetBucketTokenRequest
 	10, // 16: rpc.rpc.CodeBucket.GetBucketFile:input_type -> rpc.rpc.GetBucketFileRequest
 	12, // 17: rpc.rpc.CodeBucket.GetBucketFiles:input_type -> rpc.rpc.GetBucketFilesRequest
@@ -2381,34 +2506,36 @@ var file_rpc_proto_depIdxs = []int32{
 	21, // 23: rpc.rpc.CodeBucket.SetBucketFile:input_type -> rpc.rpc.SetBucketFileRequest
 	23, // 24: rpc.rpc.CodeBucket.DeleteBucketFile:input_type -> rpc.rpc.DeleteBucketFileRequest
 	25, // 25: rpc.rpc.CodeBucket.DeleteBucketPath:input_type -> rpc.rpc.DeleteBucketPathRequest
-	27, // 26: rpc.rpc.CodeBucket.ExportBucketToGithub:input_type -> rpc.rpc.ExportBucketToGithubRequest
-	30, // 27: rpc.rpc.CodeBucket.ExportBucketToGitlab:input_type -> rpc.rpc.ExportBucketToGitlabRequest
-	34, // 28: rpc.rpc.CodeBucket.ExportBucketToBitbucketCloud:input_type -> rpc.rpc.ExportBucketToBitbucketCloudRequest
-	35, // 29: rpc.rpc.CodeBucket.ExportBucketToBitbucketDataCenter:input_type -> rpc.rpc.ExportBucketToBitbucketDataCenterRequest
-	7,  // 30: rpc.rpc.CodeBucket.CloneBucket:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 31: rpc.rpc.CodeBucket.CreateBucketFromContents:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 32: rpc.rpc.CodeBucket.CreateBucketFromZip:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 33: rpc.rpc.CodeBucket.CreateBucketFromGithub:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 34: rpc.rpc.CodeBucket.CreateBucketFromGitlab:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 35: rpc.rpc.CodeBucket.CreateBucketFromBitbucketCloud:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 36: rpc.rpc.CodeBucket.CreateBucketFromBitbucketDataCenter:output_type -> rpc.rpc.CreateBucketResponse
-	9,  // 37: rpc.rpc.CodeBucket.GetBucketToken:output_type -> rpc.rpc.GetBucketTokenResponse
-	11, // 38: rpc.rpc.CodeBucket.GetBucketFile:output_type -> rpc.rpc.GetBucketFileResponse
-	13, // 39: rpc.rpc.CodeBucket.GetBucketFiles:output_type -> rpc.rpc.GetBucketFilesResponse
-	14, // 40: rpc.rpc.CodeBucket.GetBucketFilesWithContent:output_type -> rpc.rpc.GetBucketFilesWithContentResponse
-	15, // 41: rpc.rpc.CodeBucket.GetBucketFilesWithContentStream:output_type -> rpc.rpc.GetBucketFilesWithContentChunk
-	17, // 42: rpc.rpc.CodeBucket.GetBucketFilesAsZip:output_type -> rpc.rpc.GetBucketFilesAsZipResponse
-	18, // 43: rpc.rpc.CodeBucket.GetBucketFilesAsZipStream:output_type -> rpc.rpc.GetBucketFilesAsZipChunk
-	20, // 44: rpc.rpc.CodeBucket.SetBucketFiles:output_type -> rpc.rpc.SetBucketFilesResponse
-	22, // 45: rpc.rpc.CodeBucket.SetBucketFile:output_type -> rpc.rpc.SetBucketFileResponse
-	24, // 46: rpc.rpc.CodeBucket.DeleteBucketFile:output_type -> rpc.rpc.DeleteBucketFileResponse
-	26, // 47: rpc.rpc.CodeBucket.DeleteBucketPath:output_type -> rpc.rpc.DeleteBucketPathResponse
-	28, // 48: rpc.rpc.CodeBucket.ExportBucketToGithub:output_type -> rpc.rpc.ExportBucketToGithubResponse
-	31, // 49: rpc.rpc.CodeBucket.ExportBucketToGitlab:output_type -> rpc.rpc.ExportBucketToGitlabResponse
-	36, // 50: rpc.rpc.CodeBucket.ExportBucketToBitbucketCloud:output_type -> rpc.rpc.ExportBucketToBitbucketResponse
-	36, // 51: rpc.rpc.CodeBucket.ExportBucketToBitbucketDataCenter:output_type -> rpc.rpc.ExportBucketToBitbucketResponse
-	30, // [30:52] is the sub-list for method output_type
-	8,  // [8:30] is the sub-list for method input_type
+	27, // 26: rpc.rpc.CodeBucket.PruneBucketPath:input_type -> rpc.rpc.PruneBucketPathRequest
+	29, // 27: rpc.rpc.CodeBucket.ExportBucketToGithub:input_type -> rpc.rpc.ExportBucketToGithubRequest
+	32, // 28: rpc.rpc.CodeBucket.ExportBucketToGitlab:input_type -> rpc.rpc.ExportBucketToGitlabRequest
+	36, // 29: rpc.rpc.CodeBucket.ExportBucketToBitbucketCloud:input_type -> rpc.rpc.ExportBucketToBitbucketCloudRequest
+	37, // 30: rpc.rpc.CodeBucket.ExportBucketToBitbucketDataCenter:input_type -> rpc.rpc.ExportBucketToBitbucketDataCenterRequest
+	7,  // 31: rpc.rpc.CodeBucket.CloneBucket:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 32: rpc.rpc.CodeBucket.CreateBucketFromContents:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 33: rpc.rpc.CodeBucket.CreateBucketFromZip:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 34: rpc.rpc.CodeBucket.CreateBucketFromGithub:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 35: rpc.rpc.CodeBucket.CreateBucketFromGitlab:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 36: rpc.rpc.CodeBucket.CreateBucketFromBitbucketCloud:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 37: rpc.rpc.CodeBucket.CreateBucketFromBitbucketDataCenter:output_type -> rpc.rpc.CreateBucketResponse
+	9,  // 38: rpc.rpc.CodeBucket.GetBucketToken:output_type -> rpc.rpc.GetBucketTokenResponse
+	11, // 39: rpc.rpc.CodeBucket.GetBucketFile:output_type -> rpc.rpc.GetBucketFileResponse
+	13, // 40: rpc.rpc.CodeBucket.GetBucketFiles:output_type -> rpc.rpc.GetBucketFilesResponse
+	14, // 41: rpc.rpc.CodeBucket.GetBucketFilesWithContent:output_type -> rpc.rpc.GetBucketFilesWithContentResponse
+	15, // 42: rpc.rpc.CodeBucket.GetBucketFilesWithContentStream:output_type -> rpc.rpc.GetBucketFilesWithContentChunk
+	17, // 43: rpc.rpc.CodeBucket.GetBucketFilesAsZip:output_type -> rpc.rpc.GetBucketFilesAsZipResponse
+	18, // 44: rpc.rpc.CodeBucket.GetBucketFilesAsZipStream:output_type -> rpc.rpc.GetBucketFilesAsZipChunk
+	20, // 45: rpc.rpc.CodeBucket.SetBucketFiles:output_type -> rpc.rpc.SetBucketFilesResponse
+	22, // 46: rpc.rpc.CodeBucket.SetBucketFile:output_type -> rpc.rpc.SetBucketFileResponse
+	24, // 47: rpc.rpc.CodeBucket.DeleteBucketFile:output_type -> rpc.rpc.DeleteBucketFileResponse
+	26, // 48: rpc.rpc.CodeBucket.DeleteBucketPath:output_type -> rpc.rpc.DeleteBucketPathResponse
+	28, // 49: rpc.rpc.CodeBucket.PruneBucketPath:output_type -> rpc.rpc.PruneBucketPathResponse
+	30, // 50: rpc.rpc.CodeBucket.ExportBucketToGithub:output_type -> rpc.rpc.ExportBucketToGithubResponse
+	33, // 51: rpc.rpc.CodeBucket.ExportBucketToGitlab:output_type -> rpc.rpc.ExportBucketToGitlabResponse
+	38, // 52: rpc.rpc.CodeBucket.ExportBucketToBitbucketCloud:output_type -> rpc.rpc.ExportBucketToBitbucketResponse
+	38, // 53: rpc.rpc.CodeBucket.ExportBucketToBitbucketDataCenter:output_type -> rpc.rpc.ExportBucketToBitbucketResponse
+	31, // [31:54] is the sub-list for method output_type
+	8,  // [8:31] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -2425,7 +2552,7 @@ func file_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rpc_proto_rawDesc), len(file_rpc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   38,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

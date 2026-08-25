@@ -7,11 +7,10 @@ import { db } from '@metorial/db';
 import PQueue from 'p-queue';
 import { stringify } from 'yaml';
 import { combineConfigs } from '../../lib/combineConfigs';
-import { scriptsFolder } from '../../lib/files';
 import { assertSkillStoreFileLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { getSkillPath, getSkillPruneScope } from '../_lib/paths';
 import type { SkillSerializerInput } from '../_lib/types';
-import { getPluginPath } from '../plugin';
 import {
   getEffectiveAllowedFileExtensions,
   isAllowedBySkillConfig,
@@ -20,14 +19,7 @@ import {
 } from './config';
 import { parseSkillDocumentFrontmatter } from './frontmatter';
 
-export let getSkillPath = (d: SkillSerializerInput) => {
-  let inner = `skills/${d.skillPluginSkill.pluginSkillSlug}`;
-
-  let pluginPath = getPluginPath(d);
-  if (pluginPath) return `${pluginPath}/${inner}`;
-
-  return inner;
-};
+export { getSkillPath };
 
 let storeItemInclude = {
   document: {
@@ -133,6 +125,8 @@ export let applySkill = createApplicator(
     };
   },
   {
+    getPruneScope: getSkillPruneScope,
+
     getHash: async (input, { skillStore, config, effectiveAllowedFileExtensions }) => {
       return await Hash.sha256(
         canonicalize({
@@ -161,9 +155,8 @@ export let applySkill = createApplicator(
     apply: async (input, context, { skillStore, config }) => {
       context.setBasePath(getSkillPath(input));
 
-      if (!config.allowScripts) {
-        await context.deletePath(scriptsFolder);
-      }
+      // Disallowed scripts are simply never written, so the prune that follows
+      // removes any that a previous sync left behind.
 
       let q = new PQueue({ concurrency: 10 });
       let cursor: string | null = null;
