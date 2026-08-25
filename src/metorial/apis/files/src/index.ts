@@ -15,7 +15,7 @@ import { generatePlainId } from '@metorial/id';
 import { websocket } from 'hono/bun';
 import { resolveDocumentsLiveToken } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
-import { parseStoreReplace } from './uploadForm';
+import { assertDirectUploadBodySize, parseStoreReplace } from './uploadForm';
 import { parseUploadMode, parseUploadRequest } from './uploadRequest';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
@@ -108,6 +108,8 @@ let presentFileUpload = (
 });
 
 let handleDirectUpload = async (c: Context, auth: AuthInfo) => {
+  assertDirectUploadBodySize(c.req.header('Content-Length'));
+
   let body = await c.req.formData();
 
   parseUploadMode(body.get('mode'));

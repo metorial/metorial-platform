@@ -1,5 +1,31 @@
-import { describe, expect, it } from 'vitest';
-import { parseStoreReplace } from './uploadForm';
+import { describe, expect, it, vi } from 'vitest';
+
+let maxBodySize = 50 * 1024 * 1024 + 1024 * 1024;
+
+vi.mock('@metorial/module-file', () => ({
+  maxDirectUploadBodySize: 50 * 1024 * 1024 + 1024 * 1024
+}));
+
+import { assertDirectUploadBodySize, parseStoreReplace } from './uploadForm';
+
+describe('direct upload body size guard', () => {
+  it('allows bodies up to the limit', () => {
+    expect(() => assertDirectUploadBodySize('1')).not.toThrow();
+    expect(() => assertDirectUploadBodySize(String(maxBodySize))).not.toThrow();
+  });
+
+  it('rejects bodies above the limit', () => {
+    expect(() => assertDirectUploadBodySize(String(maxBodySize + 1))).toThrow(
+      /must be at most/
+    );
+  });
+
+  it('defers to the per-file check when the length is missing or unusable', () => {
+    expect(() => assertDirectUploadBodySize(undefined)).not.toThrow();
+    expect(() => assertDirectUploadBodySize('')).not.toThrow();
+    expect(() => assertDirectUploadBodySize('not-a-number')).not.toThrow();
+  });
+});
 
 describe('store_replace upload field', () => {
   it('defaults to false and accepts explicit booleans', () => {
