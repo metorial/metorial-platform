@@ -25,7 +25,12 @@ const (
 	// LFS instead of the blobs API. The blobs API takes base64 inside a JSON body
 	// and starts answering 422 "input was too large to process" well below its
 	// documented 100MB ceiling.
-	DefaultLFSThresholdBytes int64 = 40 << 20
+	//
+	// The threshold is well under that ceiling because the blobs API is also the
+	// expensive path for memory: a file is held raw, then base64-encoded at 4/3
+	// the size, then copied again into the JSON body, so the peak is roughly
+	// three times the file. LFS uploads the raw bytes once instead.
+	DefaultLFSThresholdBytes int64 = 8 << 20
 
 	// DefaultMaxFileBytes is the largest single file the exporter accepts. File
 	// contents are held fully in memory, so this has to stay within the service

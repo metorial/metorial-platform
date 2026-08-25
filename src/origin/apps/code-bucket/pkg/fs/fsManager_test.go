@@ -1,13 +1,20 @@
 package fs
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/go-redis/redis/v8"
 	objectstorage "github.com/metorial/object-storage/clients/go"
 )
 
@@ -251,6 +258,171 @@ func TestDeleteObjectKeysReportsPartialFailures(t *testing.T) {
 	}
 }
 
+type copyRequest struct {
+	DestBucket   string
+	DestKey      string
+	SourceBucket string `json:"source_bucket"`
+	SourceKey    string `json:"source_key"`
+}
+
+// newStubCopyObjectStorage serves the object-store copy endpoint and records
+// every copy it is asked to perform.
+func newStubCopyObjectStorage(t *testing.T, missingKeys map[string]bool) (*objectstorage.Client, func() []copyRequest) {
+	t.Helper()
+
+	var copies []copyRequest
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// /buckets/{bucket}/copy-object/{key...}
+		parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/buckets/"), "/copy-object/", 2)
+		if len(parts) != 2 {
+			t.Errorf("unexpected copy path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		var req copyRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("failed to decode copy request: %v", err)
+		}
+		req.DestBucket = parts[0]
+		req.DestKey = parts[1]
+
+		if missingKeys[req.SourceKey] {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		copies = append(copies, req)
+		json.NewEncoder(w).Encode(map[string]any{
+			"key": req.DestKey, "size": 1, "etag": "e",
+			"last_modified": "", "metadata": map[string]string{},
+		})
+	}))
+	t.Cleanup(server.Close)
+
+	return objectstorage.NewClient(server.URL), func() []copyRequest {
+		sort.Slice(copies, func(i, j int) bool { return copies[i].DestKey < copies[j].DestKey })
+		return copies
+	}
+}
+
+func newTestRedis(t *testing.T) (*redis.Client, *miniredis.Miniredis) {
+	t.Helper()
+
+	server := miniredis.RunT(t)
+	return redis.NewClient(&redis.Options{Addr: server.Addr()}), server
+}
+
+func TestCopyBucketFilesWritesCanonicalObjectKeys(t *testing.T) {
+	client, copies := newStubCopyObjectStorage(t, nil)
+	redisClient, _ := newTestRedis(t)
+
+	fsm := &FileSystemManager{
+		objectStorage: client,
+		bucketName:    "code-buckets",
+		redis:         redisClient,
+	}
+
+	copied, err := fsm.CopyBucketFiles(context.Background(), "bkt_1", []CopyFileSource{
+		{Path: "skills/demo/asset.bin", SourceBucket: "files", SourceKey: "str_a"},
+		{Path: "/skills/demo/other.bin", SourceBucket: "files", SourceKey: "str_b"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Paths come back canonicalized so callers can feed them straight into the
+	// prune keep set.
+	sort.Strings(copied)
+	expectedPaths := []string{"/skills/demo/asset.bin", "/skills/demo/other.bin"}
+	if !reflect.DeepEqual(copied, expectedPaths) {
+		t.Fatalf("expected %#v, got %#v", expectedPaths, copied)
+	}
+
+	expected := []copyRequest{
+		{
+			DestBucket: "code-buckets", DestKey: "bkt_1/skills/demo/asset.bin",
+			SourceBucket: "files", SourceKey: "str_a",
+		},
+		{
+			DestBucket: "code-buckets", DestKey: "bkt_1/skills/demo/other.bin",
+			SourceBucket: "files", SourceKey: "str_b",
+		},
+	}
+	if !reflect.DeepEqual(copies(), expected) {
+		t.Fatalf("expected %#v, got %#v", expected, copies())
+	}
+}
+
+func TestCopyBucketFilesClearsStaleRedisBuffers(t *testing.T) {
+	client, _ := newStubCopyObjectStorage(t, nil)
+	redisClient, server := newTestRedis(t)
+
+	// A previous small write left a buffered copy behind. If it survived, reads
+	// would keep serving the old bytes.
+	staleKeys := []string{
+		"bucket:bkt_1:file:/skills/demo/asset.bin",
+		"flush:bkt_1:/skills/demo/asset.bin",
+		"bucket:bkt_1:file:skills/demo/asset.bin",
+		"flush:bkt_1:skills/demo/asset.bin",
+	}
+	for _, key := range staleKeys {
+		server.Set(key, "stale")
+	}
+
+	fsm := &FileSystemManager{
+		objectStorage: client,
+		bucketName:    "code-buckets",
+		redis:         redisClient,
+	}
+
+	_, err := fsm.CopyBucketFiles(context.Background(), "bkt_1", []CopyFileSource{
+		{Path: "skills/demo/asset.bin", SourceBucket: "files", SourceKey: "str_a"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, key := range staleKeys {
+		if server.Exists(key) {
+			t.Fatalf("expected stale redis key %q to be cleared", key)
+		}
+	}
+}
+
+func TestCopyBucketFilesSurfacesSourceFailures(t *testing.T) {
+	client, _ := newStubCopyObjectStorage(t, map[string]bool{"missing": true})
+	redisClient, _ := newTestRedis(t)
+
+	fsm := &FileSystemManager{
+		objectStorage: client,
+		bucketName:    "code-buckets",
+		redis:         redisClient,
+	}
+
+	_, err := fsm.CopyBucketFiles(context.Background(), "bkt_1", []CopyFileSource{
+		{Path: "a.bin", SourceBucket: "files", SourceKey: "missing"},
+	})
+	if err == nil {
+		t.Fatal("expected a missing source object to surface as an error")
+	}
+}
+
+func TestCopyBucketFilesEmptyIsNoop(t *testing.T) {
+	fsm := &FileSystemManager{}
+
+	copied, err := fsm.CopyBucketFiles(context.Background(), "bkt_1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(copied) != 0 {
+		t.Fatalf("expected no copies, got %#v", copied)
+	}
+}
+
 func TestContentBatchAccumulatorFlushesByCombinedSize(t *testing.T) {
 	var batches [][]string
 	accumulator := &contentBatchAccumulator{
@@ -284,5 +456,179 @@ func TestContentBatchAccumulatorFlushesByCombinedSize(t *testing.T) {
 	expected := [][]string{{"a", "b"}, {"c"}, {"d"}}
 	if !reflect.DeepEqual(batches, expected) {
 		t.Fatalf("expected %#v, got %#v", expected, batches)
+	}
+}
+
+func TestPutSignedURLFromReaderSetsExplicitContentLength(t *testing.T) {
+	var (
+		gotContentLength int64
+		gotContentType   string
+		gotBody          []byte
+		gotMethod        string
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotContentLength = r.ContentLength
+		gotContentType = r.Header.Get("Content-Type")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	fsm := &FileSystemManager{httpClient: server.Client()}
+	body := []byte("zip-bytes")
+
+	err := fsm.putSignedURLFromReader(
+		context.Background(),
+		server.URL,
+		bytes.NewReader(body),
+		int64(len(body)),
+		"application/zip",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if gotMethod != http.MethodPut {
+		t.Fatalf("expected PUT, got %s", gotMethod)
+	}
+
+	// A presigned signature does not cover chunked encoding, so the length has to
+	// be declared rather than left to the transport.
+	if gotContentLength != int64(len(body)) {
+		t.Fatalf("expected content length %d, got %d", len(body), gotContentLength)
+	}
+	if gotContentType != "application/zip" {
+		t.Fatalf("expected application/zip, got %s", gotContentType)
+	}
+	if !bytes.Equal(gotBody, body) {
+		t.Fatalf("expected body %q, got %q", body, gotBody)
+	}
+}
+
+func TestPutSignedURLFromReaderSurfacesRejection(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("SignatureDoesNotMatch"))
+	}))
+	defer server.Close()
+
+	fsm := &FileSystemManager{httpClient: server.Client()}
+
+	err := fsm.putSignedURLFromReader(
+		context.Background(),
+		server.URL,
+		bytes.NewReader([]byte("x")),
+		1,
+		"application/zip",
+	)
+	if err == nil {
+		t.Fatal("expected an error for a rejected signed upload")
+	}
+	if !strings.Contains(err.Error(), "SignatureDoesNotMatch") {
+		t.Fatalf("expected the provider message to be surfaced, got %v", err)
+	}
+}
+
+func TestPutSignedURLFromReaderAcceptsNonOK2xx(t *testing.T) {
+	// S3 answers a successful PUT with 200, but other providers use 201/204.
+	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusNoContent} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(code)
+		}))
+
+		fsm := &FileSystemManager{httpClient: server.Client()}
+		err := fsm.putSignedURLFromReader(
+			context.Background(),
+			server.URL,
+			bytes.NewReader([]byte("x")),
+			1,
+			"application/zip",
+		)
+		server.Close()
+
+		if err != nil {
+			t.Fatalf("expected status %d to be accepted, got %v", code, err)
+		}
+	}
+}
+
+func TestByteAdmissionBoundsWorkInFlight(t *testing.T) {
+	admission := newByteAdmission(100)
+	ctx := context.Background()
+
+	if err := admission.acquire(ctx, 60); err != nil {
+		t.Fatal(err)
+	}
+
+	// A second 60-byte item would take the total to 120, so it has to wait.
+	acquired := make(chan struct{})
+	go func() {
+		if err := admission.acquire(ctx, 60); err != nil {
+			t.Error(err)
+			return
+		}
+		close(acquired)
+	}()
+
+	select {
+	case <-acquired:
+		t.Fatal("expected the second acquire to block while the budget is full")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	admission.release(60)
+
+	select {
+	case <-acquired:
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected the second acquire to proceed once the budget freed up")
+	}
+}
+
+func TestByteAdmissionAdmitsSmallItemsTogether(t *testing.T) {
+	admission := newByteAdmission(100)
+	ctx := context.Background()
+
+	for i := 0; i < 10; i++ {
+		if err := admission.acquire(ctx, 10); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if admission.inFlight != 100 {
+		t.Fatalf("expected 100 bytes in flight, got %d", admission.inFlight)
+	}
+}
+
+func TestByteAdmissionAdmitsAnOversizedItemAlone(t *testing.T) {
+	admission := newByteAdmission(100)
+	ctx := context.Background()
+
+	// An item bigger than the whole budget must not deadlock.
+	done := make(chan struct{})
+	go func() {
+		if err := admission.acquire(ctx, 5_000); err != nil {
+			t.Error(err)
+			return
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected an oversized item to be admitted on its own")
+	}
+}
+
+func TestByteAdmissionRespectsCancellation(t *testing.T) {
+	admission := newByteAdmission(100)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if err := admission.acquire(ctx, 10); err == nil {
+		t.Fatal("expected acquire to refuse a cancelled context")
 	}
 }

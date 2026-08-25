@@ -127,6 +127,29 @@ export interface GetBucketFilesAsZipChunk {
   content: Uint8Array;
 }
 
+/**
+ * Builds the archive and uploads it directly to the caller's destination, so
+ * the archive bytes never travel through the caller. Exactly one destination
+ * must be set: a presigned PUT url, or an object-store bucket and key for
+ * backends that cannot presign.
+ */
+export interface ExportBucketFilesAsZipToUploadRequest {
+  bucketId: string;
+  /** Optional filter */
+  prefix: string;
+  uploadUrl: string;
+  uploadBucket: string;
+  uploadKey: string;
+  /** Optional, defaults to application/zip */
+  contentType: string;
+}
+
+export interface ExportBucketFilesAsZipToUploadResponse {
+  byteSize: Long;
+  sha256: string;
+  fileCount: Long;
+}
+
 export interface SetBucketFilesRequest {
   bucketId: string;
   files: FileContentsBase[];
@@ -142,6 +165,25 @@ export interface SetBucketFileRequest {
 }
 
 export interface SetBucketFileResponse {
+}
+
+/**
+ * Copies objects straight from object storage into the bucket. The caller only
+ * ever names the source, so file bytes never pass through it.
+ */
+export interface CopyBucketFileSource {
+  path: string;
+  sourceBucket: string;
+  sourceKey: string;
+}
+
+export interface CopyBucketFilesRequest {
+  bucketId: string;
+  files: CopyBucketFileSource[];
+}
+
+export interface CopyBucketFilesResponse {
+  copiedPaths: string[];
 }
 
 export interface DeleteBucketFileRequest {
@@ -1886,6 +1928,270 @@ export const GetBucketFilesAsZipChunk: MessageFns<GetBucketFilesAsZipChunk> = {
   },
 };
 
+function createBaseExportBucketFilesAsZipToUploadRequest(): ExportBucketFilesAsZipToUploadRequest {
+  return { bucketId: "", prefix: "", uploadUrl: "", uploadBucket: "", uploadKey: "", contentType: "" };
+}
+
+export const ExportBucketFilesAsZipToUploadRequest: MessageFns<ExportBucketFilesAsZipToUploadRequest> = {
+  encode(message: ExportBucketFilesAsZipToUploadRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bucketId !== "") {
+      writer.uint32(10).string(message.bucketId);
+    }
+    if (message.prefix !== "") {
+      writer.uint32(18).string(message.prefix);
+    }
+    if (message.uploadUrl !== "") {
+      writer.uint32(26).string(message.uploadUrl);
+    }
+    if (message.uploadBucket !== "") {
+      writer.uint32(34).string(message.uploadBucket);
+    }
+    if (message.uploadKey !== "") {
+      writer.uint32(42).string(message.uploadKey);
+    }
+    if (message.contentType !== "") {
+      writer.uint32(50).string(message.contentType);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportBucketFilesAsZipToUploadRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportBucketFilesAsZipToUploadRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.prefix = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.uploadUrl = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.uploadBucket = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.uploadKey = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.contentType = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExportBucketFilesAsZipToUploadRequest {
+    return {
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : isSet(object.bucket_id)
+        ? globalThis.String(object.bucket_id)
+        : "",
+      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : "",
+      uploadUrl: isSet(object.uploadUrl)
+        ? globalThis.String(object.uploadUrl)
+        : isSet(object.upload_url)
+        ? globalThis.String(object.upload_url)
+        : "",
+      uploadBucket: isSet(object.uploadBucket)
+        ? globalThis.String(object.uploadBucket)
+        : isSet(object.upload_bucket)
+        ? globalThis.String(object.upload_bucket)
+        : "",
+      uploadKey: isSet(object.uploadKey)
+        ? globalThis.String(object.uploadKey)
+        : isSet(object.upload_key)
+        ? globalThis.String(object.upload_key)
+        : "",
+      contentType: isSet(object.contentType)
+        ? globalThis.String(object.contentType)
+        : isSet(object.content_type)
+        ? globalThis.String(object.content_type)
+        : "",
+    };
+  },
+
+  toJSON(message: ExportBucketFilesAsZipToUploadRequest): unknown {
+    const obj: any = {};
+    if (message.bucketId !== "") {
+      obj.bucketId = message.bucketId;
+    }
+    if (message.prefix !== "") {
+      obj.prefix = message.prefix;
+    }
+    if (message.uploadUrl !== "") {
+      obj.uploadUrl = message.uploadUrl;
+    }
+    if (message.uploadBucket !== "") {
+      obj.uploadBucket = message.uploadBucket;
+    }
+    if (message.uploadKey !== "") {
+      obj.uploadKey = message.uploadKey;
+    }
+    if (message.contentType !== "") {
+      obj.contentType = message.contentType;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ExportBucketFilesAsZipToUploadRequest>): ExportBucketFilesAsZipToUploadRequest {
+    return ExportBucketFilesAsZipToUploadRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExportBucketFilesAsZipToUploadRequest>): ExportBucketFilesAsZipToUploadRequest {
+    const message = createBaseExportBucketFilesAsZipToUploadRequest();
+    message.bucketId = object.bucketId ?? "";
+    message.prefix = object.prefix ?? "";
+    message.uploadUrl = object.uploadUrl ?? "";
+    message.uploadBucket = object.uploadBucket ?? "";
+    message.uploadKey = object.uploadKey ?? "";
+    message.contentType = object.contentType ?? "";
+    return message;
+  },
+};
+
+function createBaseExportBucketFilesAsZipToUploadResponse(): ExportBucketFilesAsZipToUploadResponse {
+  return { byteSize: Long.ZERO, sha256: "", fileCount: Long.ZERO };
+}
+
+export const ExportBucketFilesAsZipToUploadResponse: MessageFns<ExportBucketFilesAsZipToUploadResponse> = {
+  encode(message: ExportBucketFilesAsZipToUploadResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (!message.byteSize.equals(Long.ZERO)) {
+      writer.uint32(8).int64(message.byteSize.toString());
+    }
+    if (message.sha256 !== "") {
+      writer.uint32(18).string(message.sha256);
+    }
+    if (!message.fileCount.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.fileCount.toString());
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportBucketFilesAsZipToUploadResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportBucketFilesAsZipToUploadResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.byteSize = Long.fromString(reader.int64().toString());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.sha256 = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.fileCount = Long.fromString(reader.int64().toString());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExportBucketFilesAsZipToUploadResponse {
+    return {
+      byteSize: isSet(object.byteSize)
+        ? Long.fromValue(object.byteSize)
+        : isSet(object.byte_size)
+        ? Long.fromValue(object.byte_size)
+        : Long.ZERO,
+      sha256: isSet(object.sha256) ? globalThis.String(object.sha256) : "",
+      fileCount: isSet(object.fileCount)
+        ? Long.fromValue(object.fileCount)
+        : isSet(object.file_count)
+        ? Long.fromValue(object.file_count)
+        : Long.ZERO,
+    };
+  },
+
+  toJSON(message: ExportBucketFilesAsZipToUploadResponse): unknown {
+    const obj: any = {};
+    if (!message.byteSize.equals(Long.ZERO)) {
+      obj.byteSize = (message.byteSize || Long.ZERO).toString();
+    }
+    if (message.sha256 !== "") {
+      obj.sha256 = message.sha256;
+    }
+    if (!message.fileCount.equals(Long.ZERO)) {
+      obj.fileCount = (message.fileCount || Long.ZERO).toString();
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ExportBucketFilesAsZipToUploadResponse>): ExportBucketFilesAsZipToUploadResponse {
+    return ExportBucketFilesAsZipToUploadResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExportBucketFilesAsZipToUploadResponse>): ExportBucketFilesAsZipToUploadResponse {
+    const message = createBaseExportBucketFilesAsZipToUploadResponse();
+    message.byteSize = (object.byteSize !== undefined && object.byteSize !== null)
+      ? Long.fromValue(object.byteSize)
+      : Long.ZERO;
+    message.sha256 = object.sha256 ?? "";
+    message.fileCount = (object.fileCount !== undefined && object.fileCount !== null)
+      ? Long.fromValue(object.fileCount)
+      : Long.ZERO;
+    return message;
+  },
+};
+
 function createBaseSetBucketFilesRequest(): SetBucketFilesRequest {
   return { bucketId: "", files: [] };
 }
@@ -2144,6 +2450,252 @@ export const SetBucketFileResponse: MessageFns<SetBucketFileResponse> = {
   },
   fromPartial(_: DeepPartial<SetBucketFileResponse>): SetBucketFileResponse {
     const message = createBaseSetBucketFileResponse();
+    return message;
+  },
+};
+
+function createBaseCopyBucketFileSource(): CopyBucketFileSource {
+  return { path: "", sourceBucket: "", sourceKey: "" };
+}
+
+export const CopyBucketFileSource: MessageFns<CopyBucketFileSource> = {
+  encode(message: CopyBucketFileSource, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.path !== "") {
+      writer.uint32(10).string(message.path);
+    }
+    if (message.sourceBucket !== "") {
+      writer.uint32(18).string(message.sourceBucket);
+    }
+    if (message.sourceKey !== "") {
+      writer.uint32(26).string(message.sourceKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CopyBucketFileSource {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCopyBucketFileSource();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.sourceBucket = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.sourceKey = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CopyBucketFileSource {
+    return {
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      sourceBucket: isSet(object.sourceBucket)
+        ? globalThis.String(object.sourceBucket)
+        : isSet(object.source_bucket)
+        ? globalThis.String(object.source_bucket)
+        : "",
+      sourceKey: isSet(object.sourceKey)
+        ? globalThis.String(object.sourceKey)
+        : isSet(object.source_key)
+        ? globalThis.String(object.source_key)
+        : "",
+    };
+  },
+
+  toJSON(message: CopyBucketFileSource): unknown {
+    const obj: any = {};
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (message.sourceBucket !== "") {
+      obj.sourceBucket = message.sourceBucket;
+    }
+    if (message.sourceKey !== "") {
+      obj.sourceKey = message.sourceKey;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CopyBucketFileSource>): CopyBucketFileSource {
+    return CopyBucketFileSource.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CopyBucketFileSource>): CopyBucketFileSource {
+    const message = createBaseCopyBucketFileSource();
+    message.path = object.path ?? "";
+    message.sourceBucket = object.sourceBucket ?? "";
+    message.sourceKey = object.sourceKey ?? "";
+    return message;
+  },
+};
+
+function createBaseCopyBucketFilesRequest(): CopyBucketFilesRequest {
+  return { bucketId: "", files: [] };
+}
+
+export const CopyBucketFilesRequest: MessageFns<CopyBucketFilesRequest> = {
+  encode(message: CopyBucketFilesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bucketId !== "") {
+      writer.uint32(10).string(message.bucketId);
+    }
+    for (const v of message.files) {
+      CopyBucketFileSource.encode(v!, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CopyBucketFilesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCopyBucketFilesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.files.push(CopyBucketFileSource.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CopyBucketFilesRequest {
+    return {
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : isSet(object.bucket_id)
+        ? globalThis.String(object.bucket_id)
+        : "",
+      files: globalThis.Array.isArray(object?.files)
+        ? object.files.map((e: any) => CopyBucketFileSource.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: CopyBucketFilesRequest): unknown {
+    const obj: any = {};
+    if (message.bucketId !== "") {
+      obj.bucketId = message.bucketId;
+    }
+    if (message.files?.length) {
+      obj.files = message.files.map((e) => CopyBucketFileSource.toJSON(e));
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CopyBucketFilesRequest>): CopyBucketFilesRequest {
+    return CopyBucketFilesRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CopyBucketFilesRequest>): CopyBucketFilesRequest {
+    const message = createBaseCopyBucketFilesRequest();
+    message.bucketId = object.bucketId ?? "";
+    message.files = object.files?.map((e) => CopyBucketFileSource.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseCopyBucketFilesResponse(): CopyBucketFilesResponse {
+  return { copiedPaths: [] };
+}
+
+export const CopyBucketFilesResponse: MessageFns<CopyBucketFilesResponse> = {
+  encode(message: CopyBucketFilesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.copiedPaths) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CopyBucketFilesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCopyBucketFilesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.copiedPaths.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CopyBucketFilesResponse {
+    return {
+      copiedPaths: globalThis.Array.isArray(object?.copiedPaths)
+        ? object.copiedPaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.copied_paths)
+        ? object.copied_paths.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: CopyBucketFilesResponse): unknown {
+    const obj: any = {};
+    if (message.copiedPaths?.length) {
+      obj.copiedPaths = message.copiedPaths;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CopyBucketFilesResponse>): CopyBucketFilesResponse {
+    return CopyBucketFilesResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CopyBucketFilesResponse>): CopyBucketFilesResponse {
+    const message = createBaseCopyBucketFilesResponse();
+    message.copiedPaths = object.copiedPaths?.map((e) => e) || [];
     return message;
   },
 };
@@ -4054,6 +4606,19 @@ export const CodeBucketService = {
       Buffer.from(GetBucketFilesAsZipChunk.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetBucketFilesAsZipChunk => GetBucketFilesAsZipChunk.decode(value),
   },
+  exportBucketFilesAsZipToUpload: {
+    path: "/rpc.rpc.CodeBucket/ExportBucketFilesAsZipToUpload" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ExportBucketFilesAsZipToUploadRequest): Buffer =>
+      Buffer.from(ExportBucketFilesAsZipToUploadRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ExportBucketFilesAsZipToUploadRequest =>
+      ExportBucketFilesAsZipToUploadRequest.decode(value),
+    responseSerialize: (value: ExportBucketFilesAsZipToUploadResponse): Buffer =>
+      Buffer.from(ExportBucketFilesAsZipToUploadResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ExportBucketFilesAsZipToUploadResponse =>
+      ExportBucketFilesAsZipToUploadResponse.decode(value),
+  },
   setBucketFiles: {
     path: "/rpc.rpc.CodeBucket/SetBucketFiles" as const,
     requestStream: false as const,
@@ -4074,6 +4639,17 @@ export const CodeBucketService = {
     responseSerialize: (value: SetBucketFileResponse): Buffer =>
       Buffer.from(SetBucketFileResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SetBucketFileResponse => SetBucketFileResponse.decode(value),
+  },
+  copyBucketFiles: {
+    path: "/rpc.rpc.CodeBucket/CopyBucketFiles" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CopyBucketFilesRequest): Buffer =>
+      Buffer.from(CopyBucketFilesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CopyBucketFilesRequest => CopyBucketFilesRequest.decode(value),
+    responseSerialize: (value: CopyBucketFilesResponse): Buffer =>
+      Buffer.from(CopyBucketFilesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CopyBucketFilesResponse => CopyBucketFilesResponse.decode(value),
   },
   deleteBucketFile: {
     path: "/rpc.rpc.CodeBucket/DeleteBucketFile" as const,
@@ -4176,8 +4752,13 @@ export interface CodeBucketServer extends UntypedServiceImplementation {
   getBucketFilesWithContentStream: handleServerStreamingCall<GetBucketFilesRequest, GetBucketFilesWithContentChunk>;
   getBucketFilesAsZip: handleUnaryCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipResponse>;
   getBucketFilesAsZipStream: handleServerStreamingCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipChunk>;
+  exportBucketFilesAsZipToUpload: handleUnaryCall<
+    ExportBucketFilesAsZipToUploadRequest,
+    ExportBucketFilesAsZipToUploadResponse
+  >;
   setBucketFiles: handleUnaryCall<SetBucketFilesRequest, SetBucketFilesResponse>;
   setBucketFile: handleUnaryCall<SetBucketFileRequest, SetBucketFileResponse>;
+  copyBucketFiles: handleUnaryCall<CopyBucketFilesRequest, CopyBucketFilesResponse>;
   deleteBucketFile: handleUnaryCall<DeleteBucketFileRequest, DeleteBucketFileResponse>;
   deleteBucketPath: handleUnaryCall<DeleteBucketPathRequest, DeleteBucketPathResponse>;
   pruneBucketPath: handleUnaryCall<PruneBucketPathRequest, PruneBucketPathResponse>;
@@ -4389,6 +4970,21 @@ export interface CodeBucketClient extends Client {
     metadata?: Metadata,
     options?: Partial<CallOptions>,
   ): ClientReadableStream<GetBucketFilesAsZipChunk>;
+  exportBucketFilesAsZipToUpload(
+    request: ExportBucketFilesAsZipToUploadRequest,
+    callback: (error: ServiceError | null, response: ExportBucketFilesAsZipToUploadResponse) => void,
+  ): ClientUnaryCall;
+  exportBucketFilesAsZipToUpload(
+    request: ExportBucketFilesAsZipToUploadRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ExportBucketFilesAsZipToUploadResponse) => void,
+  ): ClientUnaryCall;
+  exportBucketFilesAsZipToUpload(
+    request: ExportBucketFilesAsZipToUploadRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ExportBucketFilesAsZipToUploadResponse) => void,
+  ): ClientUnaryCall;
   setBucketFiles(
     request: SetBucketFilesRequest,
     callback: (error: ServiceError | null, response: SetBucketFilesResponse) => void,
@@ -4418,6 +5014,21 @@ export interface CodeBucketClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: SetBucketFileResponse) => void,
+  ): ClientUnaryCall;
+  copyBucketFiles(
+    request: CopyBucketFilesRequest,
+    callback: (error: ServiceError | null, response: CopyBucketFilesResponse) => void,
+  ): ClientUnaryCall;
+  copyBucketFiles(
+    request: CopyBucketFilesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CopyBucketFilesResponse) => void,
+  ): ClientUnaryCall;
+  copyBucketFiles(
+    request: CopyBucketFilesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CopyBucketFilesResponse) => void,
   ): ClientUnaryCall;
   deleteBucketFile(
     request: DeleteBucketFileRequest,

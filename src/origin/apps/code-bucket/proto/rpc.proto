@@ -20,9 +20,11 @@ service CodeBucket {
   rpc GetBucketFilesWithContentStream(GetBucketFilesRequest) returns (stream GetBucketFilesWithContentChunk);
   rpc GetBucketFilesAsZip(GetBucketFilesAsZipRequest) returns (GetBucketFilesAsZipResponse);
   rpc GetBucketFilesAsZipStream(GetBucketFilesAsZipRequest) returns (stream GetBucketFilesAsZipChunk);
+  rpc ExportBucketFilesAsZipToUpload(ExportBucketFilesAsZipToUploadRequest) returns (ExportBucketFilesAsZipToUploadResponse);
 
   rpc SetBucketFiles(SetBucketFilesRequest) returns (SetBucketFilesResponse);
   rpc SetBucketFile(SetBucketFileRequest) returns (SetBucketFileResponse);
+  rpc CopyBucketFiles(CopyBucketFilesRequest) returns (CopyBucketFilesResponse);
   rpc DeleteBucketFile(DeleteBucketFileRequest) returns (DeleteBucketFileResponse);
   rpc DeleteBucketPath(DeleteBucketPathRequest) returns (DeleteBucketPathResponse);
   rpc PruneBucketPath(PruneBucketPathRequest) returns (PruneBucketPathResponse);
@@ -128,6 +130,26 @@ message GetBucketFilesAsZipChunk {
   bytes content = 1;
 }
 
+// Builds the archive and uploads it directly to the caller's destination, so
+// the archive bytes never travel through the caller. Exactly one destination
+// must be set: a presigned PUT url, or an object-store bucket and key for
+// backends that cannot presign.
+message ExportBucketFilesAsZipToUploadRequest {
+  string bucket_id = 1;
+  string prefix = 2; // Optional filter
+
+  string upload_url = 3;
+  string upload_bucket = 4;
+  string upload_key = 5;
+  string content_type = 6; // Optional, defaults to application/zip
+}
+
+message ExportBucketFilesAsZipToUploadResponse {
+  int64 byte_size = 1;
+  string sha256 = 2;
+  int64 file_count = 3;
+}
+
 message SetBucketFilesRequest {
   string bucket_id = 1;
   repeated FileContentsBase files = 2;
@@ -142,6 +164,23 @@ message SetBucketFileRequest {
 }
 
 message SetBucketFileResponse {}
+
+// Copies objects straight from object storage into the bucket. The caller only
+// ever names the source, so file bytes never pass through it.
+message CopyBucketFileSource {
+  string path = 1;
+  string source_bucket = 2;
+  string source_key = 3;
+}
+
+message CopyBucketFilesRequest {
+  string bucket_id = 1;
+  repeated CopyBucketFileSource files = 2;
+}
+
+message CopyBucketFilesResponse {
+  repeated string copied_paths = 1;
+}
 
 message DeleteBucketFileRequest {
   string bucket_id = 1;

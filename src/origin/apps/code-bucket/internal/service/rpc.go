@@ -248,6 +248,38 @@ func (rs *RcpService) GetBucketFilesAsZip(ctx context.Context, req *rpc.GetBucke
 	}, nil
 }
 
+func (rs *RcpService) ExportBucketFilesAsZipToUpload(ctx context.Context, req *rpc.ExportBucketFilesAsZipToUploadRequest) (*rpc.ExportBucketFilesAsZipToUploadResponse, error) {
+	if req.BucketId == "" {
+		return nil, status.Error(codes.InvalidArgument, "bucket_id is required")
+	}
+
+	hasURL := req.UploadUrl != ""
+	hasObject := req.UploadBucket != "" && req.UploadKey != ""
+
+	if hasURL == hasObject {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"exactly one of upload_url or upload_bucket/upload_key is required",
+		)
+	}
+
+	result, err := rs.fsm.ExportBucketFilesAsZipToUpload(ctx, req.BucketId, req.Prefix, fs.ZipUploadDestination{
+		URL:         req.UploadUrl,
+		Bucket:      req.UploadBucket,
+		Key:         req.UploadKey,
+		ContentType: req.ContentType,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpc.ExportBucketFilesAsZipToUploadResponse{
+		ByteSize:  result.ByteSize,
+		Sha256:    result.Sha256,
+		FileCount: result.FileCount,
+	}, nil
+}
+
 func (rs *RcpService) GetBucketFilesAsZipStream(req *rpc.GetBucketFilesAsZipRequest, stream rpc.CodeBucket_GetBucketFilesAsZipStreamServer) error {
 	err := rs.fsm.StreamBucketFilesAsZip(stream.Context(), req.BucketId, req.Prefix, func(chunk []byte) error {
 		return stream.Send(&rpc.GetBucketFilesAsZipChunk{
@@ -294,6 +326,19 @@ func (rs *RcpService) GetBucketFilesWithContentStream(req *rpc.GetBucketFilesReq
 	return nil
 }
 
+// releaseBatchItem hands a batch entry to the caller and drops the batch's own
+// reference to its content.
+//
+// Without this the batch pins every file it holds until the whole batch has been
+// uploaded. Dropping the reference as each file is handed over means the peak is
+// one file rather than one batch, which matters because the batch accumulator
+// admits a single oversized file on its own.
+func releaseBatchItem(batch []fs.FileContentItem, i int) fs.FileContentItem {
+	item := batch[i]
+	batch[i].Content = nil
+	return item
+}
+
 func fileContentItemToRPC(file fs.FileContentItem) *rpc.FileContent {
 	return &rpc.FileContent{
 		FileInfo: &rpc.FileInfo{
@@ -318,7 +363,9 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 
 	if err := github.UploadToRepoIter(ctx, opts, func(yield func(github.FileToUpload) error) error {
 		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
-			for _, file := range batch {
+			for i := range batch {
+				file := releaseBatchItem(batch, i)
+
 				if err := yield(github.FileToUpload{
 					Path:    file.Info.Path,
 					Content: file.Content,
@@ -352,7 +399,9 @@ func (rs *RcpService) CreateBucketFromGitlab(ctx context.Context, req *rpc.Creat
 func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportBucketToGitlabRequest) (*rpc.ExportBucketToGitlabResponse, error) {
 	if err := gitlab.UploadToRepoIter(req.ProjectId, req.Path, req.Branch, req.CommitMessage, req.Token, req.GitlabApiUrl, func(yield func(gitlab.FileToUpload) error) error {
 		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
-			for _, file := range batch {
+			for i := range batch {
+				file := releaseBatchItem(batch, i)
+
 				if err := yield(gitlab.FileToUpload{
 					Path:    file.Info.Path,
 					Content: file.Content,
@@ -407,7 +456,9 @@ func (rs *RcpService) ExportBucketToBitbucketCloud(ctx context.Context, req *rpc
 		req.BitbucketWebUrl,
 		func(yield func(bitbucket.FileToUpload) error) error {
 			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
-				for _, file := range batch {
+				for i := range batch {
+					file := releaseBatchItem(batch, i)
+
 					if err := yield(bitbucket.FileToUpload{Path: file.Info.Path, Content: file.Content}); err != nil {
 						return err
 					}
@@ -457,7 +508,9 @@ func (rs *RcpService) ExportBucketToBitbucketDataCenter(ctx context.Context, req
 		req.Token,
 		func(yield func(bitbucket.FileToUpload) error) error {
 			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
-				for _, file := range batch {
+				for i := range batch {
+					file := releaseBatchItem(batch, i)
+
 					if err := yield(bitbucket.FileToUpload{Path: file.Info.Path, Content: file.Content}); err != nil {
 						return err
 					}
@@ -513,6 +566,41 @@ func (rs *RcpService) SetBucketFiles(ctx context.Context, req *rpc.SetBucketFile
 	}
 
 	return &rpc.SetBucketFilesResponse{}, nil
+}
+
+func (rs *RcpService) CopyBucketFiles(ctx context.Context, req *rpc.CopyBucketFilesRequest) (*rpc.CopyBucketFilesResponse, error) {
+	if req.BucketId == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "bucket_id is required")
+	}
+
+	if len(req.Files) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "at least one file is required")
+	}
+
+	sources := make([]fs.CopyFileSource, 0, len(req.Files))
+	for _, f := range req.Files {
+		if f.Path == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "file path cannot be empty")
+		}
+		if f.SourceBucket == "" || f.SourceKey == "" {
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"source_bucket and source_key are required for %s", f.Path,
+			)
+		}
+		sources = append(sources, fs.CopyFileSource{
+			Path:         f.Path,
+			SourceBucket: f.SourceBucket,
+			SourceKey:    f.SourceKey,
+		})
+	}
+
+	copiedPaths, err := rs.fsm.CopyBucketFiles(ctx, req.BucketId, sources)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to copy files: %v", err)
+	}
+
+	return &rpc.CopyBucketFilesResponse{CopiedPaths: copiedPaths}, nil
 }
 
 func (rs *RcpService) SetBucketFile(ctx context.Context, req *rpc.SetBucketFileRequest) (*rpc.SetBucketFileResponse, error) {

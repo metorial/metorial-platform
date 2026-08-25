@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -30,6 +31,16 @@ const (
 	maxFileBatchSize   = 8 * 1024 * 1024
 	zipStreamChunkSize = 64 * 1024
 	deleteBatchSize    = 1000
+	// Copies are metadata operations in object storage, so the only cost is the
+	// round trip. Nothing is buffered, so this bound is about the store, not memory.
+	copyConcurrency = 16
+	// A clone batch only carries paths, so this bounds the walk's bookkeeping
+	// rather than any content.
+	cloneBatchSize = 500
+	// Ceiling on the zip content held in flight during an import. Entries are
+	// decompressed into memory, so admitting by size rather than by count keeps a
+	// zip of large entries from being far more expensive than one of small ones.
+	maxImportBytesInFlight int64 = 32 * 1024 * 1024
 )
 
 func canonicalFilePath(filePath string) string {
@@ -84,6 +95,14 @@ type FileSystemManager struct {
 type FileContentsBase struct {
 	Path    string `json:"path"`
 	Content []byte `json:"content"`
+}
+
+// CopyFileSource names an object to copy into a bucket. It carries no content,
+// which is the whole point: callers move files without reading them.
+type CopyFileSource struct {
+	Path         string
+	SourceBucket string
+	SourceKey    string
 }
 
 type FileContentItem struct {
@@ -503,12 +522,7 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 			return err
 		}
 
-		fsm.redis.Del(ctx,
-			redisFileKey(bucketID, filePath),
-			redisFlushKey(bucketID, filePath),
-			fmt.Sprintf("bucket:%s:file:%s", bucketID, strings.TrimPrefix(filePath, "/")),
-			fmt.Sprintf("flush:%s:%s", bucketID, strings.TrimPrefix(filePath, "/")),
-		)
+		fsm.deleteRedisFileKeys(ctx, bucketID, filePath)
 		return nil
 	}
 
@@ -534,14 +548,92 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 	return nil
 }
 
-func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, filePath string) error {
-	filePath = canonicalFilePath(filePath)
+// deleteRedisFileKeys drops the buffered copy of a single file along with its
+// pending-flush marker. Both the canonical and the legacy unprefixed key shapes
+// are removed so a stale buffer can never shadow object storage.
+func (fsm *FileSystemManager) deleteRedisFileKeys(ctx context.Context, bucketID, filePath string) {
 	fsm.redis.Del(ctx,
 		redisFileKey(bucketID, filePath),
 		redisFlushKey(bucketID, filePath),
 		fmt.Sprintf("bucket:%s:file:%s", bucketID, strings.TrimPrefix(filePath, "/")),
 		fmt.Sprintf("flush:%s:%s", bucketID, strings.TrimPrefix(filePath, "/")),
 	)
+}
+
+// CopyBucketFiles writes files into the bucket by copying them inside object
+// storage. Nothing here ever holds file contents, so callers can move arbitrarily
+// large files by naming them. Copied files always bypass the Redis tier, matching
+// how PutBucketFile treats anything above maxRedisCacheSize.
+func (fsm *FileSystemManager) CopyBucketFiles(ctx context.Context, bucketID string, files []CopyFileSource) ([]string, error) {
+	if len(files) == 0 {
+		return []string{}, nil
+	}
+
+	type result struct {
+		index int
+		path  string
+		err   error
+	}
+
+	results := make([]result, len(files))
+	sem := make(chan struct{}, copyConcurrency)
+	var wg sync.WaitGroup
+
+	for i, file := range files {
+		wg.Add(1)
+
+		go func(index int, file CopyFileSource) {
+			defer wg.Done()
+
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			if err := ctx.Err(); err != nil {
+				results[index] = result{index: index, err: err}
+				return
+			}
+
+			filePath := canonicalFilePath(file.Path)
+			destKey := objectStorageKey(bucketID, filePath)
+
+			_, err := fsm.objectStorage.CopyObject(
+				fsm.bucketName,
+				destKey,
+				file.SourceBucket,
+				file.SourceKey,
+			)
+			if err != nil {
+				results[index] = result{
+					index: index,
+					err: fmt.Errorf(
+						"failed to copy %s/%s into %s: %w",
+						file.SourceBucket, file.SourceKey, filePath, err,
+					),
+				}
+				return
+			}
+
+			fsm.deleteRedisFileKeys(ctx, bucketID, filePath)
+			results[index] = result{index: index, path: filePath}
+		}(i, file)
+	}
+
+	wg.Wait()
+
+	copied := make([]string, 0, len(files))
+	for _, r := range results {
+		if r.err != nil {
+			return nil, r.err
+		}
+		copied = append(copied, r.path)
+	}
+
+	return copied, nil
+}
+
+func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, filePath string) error {
+	filePath = canonicalFilePath(filePath)
+	fsm.deleteRedisFileKeys(ctx, bucketID, filePath)
 
 	_ = fsm.objectStorage.DeleteObject(fsm.bucketName, fmt.Sprintf("%s/%s", bucketID, filePath))
 	return fsm.objectStorage.DeleteObject(fsm.bucketName, objectStorageKey(bucketID, filePath))
@@ -837,6 +929,138 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	return &url, &expiresAt, nil
 }
 
+// ZipUploadDestination says where a generated archive should be written.
+// Exactly one of URL or Bucket/Key is set.
+type ZipUploadDestination struct {
+	URL         string
+	Bucket      string
+	Key         string
+	ContentType string
+}
+
+type ZipUploadResult struct {
+	ByteSize  int64
+	Sha256    string
+	FileCount int64
+}
+
+// ExportBucketFilesAsZipToUpload builds the archive and PUTs it to the caller's
+// destination, so the archive never passes through the caller.
+//
+// The archive is spooled to a temp file rather than streamed: a presigned PUT
+// needs a known Content-Length, and the signature does not cover chunked
+// encoding. Fargate provides 20GB of ephemeral storage by default.
+func (fsm *FileSystemManager) ExportBucketFilesAsZipToUpload(
+	ctx context.Context,
+	bucketId, prefix string,
+	destination ZipUploadDestination,
+) (*ZipUploadResult, error) {
+	tmpFile, err := os.CreateTemp("", "bucket-zip-upload-*.zip")
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	hash := sha256.New()
+	zipWriter := zip.NewWriter(io.MultiWriter(tmpFile, hash))
+
+	var fileCount int64
+
+	err = fsm.WalkBucketFiles(ctx, bucketId, prefix, func(file FileInfo) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
+		if err != nil {
+			// Matches the other zip paths: a file that vanished mid-walk is
+			// skipped rather than failing the whole export.
+			return nil
+		}
+
+		entry, err := zipWriter.Create(file.Path)
+		if err != nil {
+			return fmt.Errorf("failed to create zip entry %s: %w", file.Path, err)
+		}
+
+		if _, err := entry.Write(data.Content); err != nil {
+			return fmt.Errorf("failed to write zip entry %s: %w", file.Path, err)
+		}
+
+		fileCount++
+		return nil
+	})
+	if err != nil {
+		zipWriter.Close()
+		return nil, status.Errorf(codes.Internal, "failed to build zip: %v", err)
+	}
+
+	if err := zipWriter.Close(); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to close zip: %v", err)
+	}
+
+	byteSize, err := tmpFile.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to measure zip: %v", err)
+	}
+
+	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to rewind zip: %v", err)
+	}
+
+	contentType := destination.ContentType
+	if contentType == "" {
+		contentType = "application/zip"
+	}
+
+	if destination.URL != "" {
+		err = fsm.putSignedURLFromReader(ctx, destination.URL, tmpFile, byteSize, contentType)
+	} else {
+		err = fsm.putObjectFromReader(destination.Bucket, destination.Key, tmpFile, &contentType, nil)
+	}
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upload zip: %v", err)
+	}
+
+	return &ZipUploadResult{
+		ByteSize:  byteSize,
+		Sha256:    fmt.Sprintf("%x", hash.Sum(nil)),
+		FileCount: fileCount,
+	}, nil
+}
+
+// putSignedURLFromReader streams a body to a presigned PUT url. ContentLength is
+// set explicitly because presigned signatures do not cover chunked encoding.
+func (fsm *FileSystemManager) putSignedURLFromReader(
+	ctx context.Context,
+	url string,
+	reader io.Reader,
+	size int64,
+	contentType string,
+) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, reader)
+	if err != nil {
+		return err
+	}
+
+	req.ContentLength = size
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := fsm.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("signed upload failed (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 func (fsm *FileSystemManager) StreamBucketFilesAsZip(ctx context.Context, bucketId, prefix string, send ZipChunkSender) error {
 	zipWriter := zip.NewWriter(&zipStreamWriter{
 		ctx:  ctx,
@@ -887,29 +1111,42 @@ func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBuck
 		return ctx.Err()
 	}
 
-	queue := memoryQueue.NewBlockingJobQueue(15)
+	// Both buckets are logical prefixes in the same physical bucket, so this is a
+	// server-side copy: content is never read into this process, and a bucket of
+	// large assets costs the same memory as a bucket of small ones.
+	batch := make([]CopyFileSource, 0, cloneBatchSize)
+
+	flush := func() error {
+		if len(batch) == 0 {
+			return nil
+		}
+
+		if _, err := fsm.CopyBucketFiles(ctx, newBucketId, batch); err != nil {
+			return err
+		}
+
+		batch = batch[:0]
+		return nil
+	}
 
 	err := fsm.WalkBucketFiles(ctx, sourceBucketId, "", func(file FileInfo) error {
-		f := file
-		queue.AddAndBlockIfFull(func() error {
-			info, content, err := fsm.GetBucketFile(ctx, sourceBucketId, f.Path)
-			if err != nil && !strings.Contains(err.Error(), "not found") {
-				return err
-			}
-			if err != nil {
-				return nil
-			}
-
-			return fsm.PutBucketFile(ctx, newBucketId, f.Path, content.Content, info.ContentType)
-
+		batch = append(batch, CopyFileSource{
+			Path:         file.Path,
+			SourceBucket: fsm.bucketName,
+			SourceKey:    objectStorageKey(sourceBucketId, file.Path),
 		})
-		return nil
+
+		if len(batch) < cloneBatchSize {
+			return nil
+		}
+
+		return flush()
 	})
 	if err != nil {
 		return status.Errorf(codes.NotFound, "source bucket not found: %v", err)
 	}
 
-	return queue.Wait()
+	return flush()
 }
 
 func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string, iterator zipImporter.Importer) error {
@@ -920,7 +1157,19 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 		return ctx.Err()
 	}
 
-	queue := memoryQueue.NewBlockingJobQueue(15)
+	// Admission is by bytes rather than by job count: fifteen concurrent 100MB
+	// entries would be 1.5GB in flight, while fifteen small ones are nothing.
+	admission := newByteAdmission(maxImportBytesInFlight)
+
+	var (
+		wg       sync.WaitGroup
+		firstErr error
+		errOnce  sync.Once
+	)
+
+	fail := func(err error) {
+		errOnce.Do(func() { firstErr = err })
+	}
 
 	for {
 		file, ok := iterator.Next()
@@ -928,17 +1177,84 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 			break
 		}
 
-		queue.AddAndBlockIfFull(func() error {
-			fsm.PutBucketFile(ctx, newBucketId, file.Path, file.Content, "application/octet-stream")
+		size := int64(len(file.Content))
+		if err := admission.acquire(ctx, size); err != nil {
+			fail(err)
+			break
+		}
 
-			return nil
-		})
+		wg.Add(1)
+		go func(file zipImporter.ZipFileItem, size int64) {
+			defer wg.Done()
+			defer admission.release(size)
+
+			if err := fsm.PutBucketFile(
+				ctx,
+				newBucketId,
+				file.Path,
+				file.Content,
+				"application/octet-stream",
+			); err != nil {
+				fail(err)
+			}
+		}(*file, size)
 	}
+
+	wg.Wait()
+
 	if err := iterator.Err(); err != nil {
 		return err
 	}
 
-	return queue.Wait()
+	return firstErr
+}
+
+// byteAdmission bounds the total size of the work in flight.
+//
+// An item larger than the whole budget is admitted alone rather than deadlocking,
+// which matches how the batch accumulator treats an oversized file.
+type byteAdmission struct {
+	mu        sync.Mutex
+	cond      *sync.Cond
+	budget    int64
+	inFlight  int64
+	waiterCnt int
+}
+
+func newByteAdmission(budget int64) *byteAdmission {
+	a := &byteAdmission{budget: budget}
+	a.cond = sync.NewCond(&a.mu)
+	return a
+}
+
+func (a *byteAdmission) acquire(ctx context.Context, size int64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	for a.inFlight > 0 && a.inFlight+size > a.budget {
+		a.waiterCnt++
+		a.cond.Wait()
+		a.waiterCnt--
+
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+
+	a.inFlight += size
+	return nil
+}
+
+func (a *byteAdmission) release(size int64) {
+	a.mu.Lock()
+	a.inFlight -= size
+	a.mu.Unlock()
+
+	a.cond.Broadcast()
 }
 
 func (fsm *FileSystemManager) ImportContents(ctx context.Context, newBucketId string, contents []*FileContentsBase) error {
