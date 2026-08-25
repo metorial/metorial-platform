@@ -69,15 +69,21 @@ let matchManualWebhookRegistration = async (instance: {
     }
   });
 
-  let byRouting = (routing: SlateWebhookRegistrationAuthRouting) =>
-    candidates.find(c => c.authRouting === routing);
-
   let hasAuthConfig = !!registration.authConfigOid;
+  let findMatch = (pool: typeof candidates) => {
+    let byRouting = (routing: SlateWebhookRegistrationAuthRouting) =>
+      pool.find(c => c.authRouting === routing);
+    return (
+      (hasAuthConfig && byRouting('restricted_credential')) ||
+      (hasAuthConfig && byRouting('restricted_method')) ||
+      byRouting('any') ||
+      null
+    );
+  };
+
   let match =
-    (hasAuthConfig && byRouting('restricted_credential')) ||
-    (hasAuthConfig && byRouting('restricted_method')) ||
-    byRouting('any') ||
-    null;
+    findMatch(candidates.filter(c => c.owner === 'tenant')) ||
+    findMatch(candidates.filter(c => c.owner === 'global'));
 
   if (!match) {
     await createTriggerRegistrationInstanceError({

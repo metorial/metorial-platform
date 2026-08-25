@@ -432,9 +432,19 @@ class slateWebhookRegistrationServiceImpl {
 
   private async resolveManualWebhookTriggerGroup(d: { slateId: string }) {
     let slate = await slateService.getSlateById({ id: d.slateId });
+    let version = await getActiveSlateVersion({ slate });
+
+    if (!version.specificationOid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Provider version has no specification set.' })
+      );
+    }
 
     let triggerGroups = await db.slateTriggerGroup.findMany({
-      where: { slateOid: slate.oid }
+      where: {
+        slateOid: slate.oid,
+        slateSpecifications: { some: { specificationOid: version.specificationOid } }
+      }
     });
     let manualWebhookTriggerGroups = triggerGroups.filter(
       tg => getManualWebhookRegistrationSpec(tg) !== null
