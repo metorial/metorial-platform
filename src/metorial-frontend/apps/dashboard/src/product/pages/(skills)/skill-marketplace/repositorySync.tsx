@@ -160,10 +160,11 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
     isLoading: syncs.isLoading && !stableSyncData,
     error: stableSyncData ? null : syncs.error
   };
+  let refreshRepositorySyncBox = () => Promise.all([syncs.refetch(), marketplace.refetch()]);
   let repositoryManager = useSkillMarketplaceRepositoriesManager({
     instanceId: instance.data?.id,
     skillMarketplaceId: p.skillMarketplaceId,
-    onChange: syncs.refetch
+    onChange: refreshRepositorySyncBox
   });
   let settingsProps = {
     instanceId: instance.data?.id,
@@ -192,7 +193,12 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
   };
 
   if (repositories.length === 0) {
-    return <SkillMarketplaceRepositoriesSettingsBox {...settingsProps} />;
+    return (
+      <SkillMarketplaceRepositoriesSettingsBox
+        {...settingsProps}
+        onChange={refreshRepositorySyncBox}
+      />
+    );
   }
 
   return (
@@ -219,9 +225,11 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
               if (item === 'force_sync') forceSync();
               if (item === 'link') repositoryManager.openPicker();
               if (item === 'access') {
-                showRepositoryAccessSettings(settingsProps, syncs.refetch);
+                showRepositoryAccessSettings(settingsProps, refreshRepositorySyncBox);
               }
-              if (item === 'manage') showManageRepositories(settingsProps, syncs.refetch);
+              if (item === 'manage') {
+                showManageRepositories(settingsProps, refreshRepositorySyncBox);
+              }
               if (item === 'preview') showMarketplacePreview(settingsProps);
               if (item === 'history') openSyncHistory();
             }}

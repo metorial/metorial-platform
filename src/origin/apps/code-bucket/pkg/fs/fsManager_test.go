@@ -33,6 +33,27 @@ func TestNormalizeSeenPathDedupesRedisAndObjectPaths(t *testing.T) {
 	}
 }
 
+func TestObjectStorageKeyStripsLeadingSlash(t *testing.T) {
+	if objectStorageKey("bucket", "/plugins/a.bin") != "bucket/plugins/a.bin" {
+		t.Fatal("expected object key without a double slash")
+	}
+	if objectStorageKey("bucket", "plugins/a.bin") != "bucket/plugins/a.bin" {
+		t.Fatal("expected object key to match for paths without a leading slash")
+	}
+}
+
+func TestShouldBufferInRedisSkipsMegabyteFiles(t *testing.T) {
+	if !shouldBufferInRedis(maxRedisCacheSize - 1) {
+		t.Fatal("expected files under 1MB to buffer in redis")
+	}
+	if shouldBufferInRedis(maxRedisCacheSize) {
+		t.Fatal("expected 1MB files to skip redis and write to object storage immediately")
+	}
+	if shouldBufferInRedis(maxRedisCacheSize + 1) {
+		t.Fatal("expected files larger than 1MB to skip redis")
+	}
+}
+
 func TestContentBatchAccumulatorFlushesByCombinedSize(t *testing.T) {
 	var batches [][]string
 	accumulator := &contentBatchAccumulator{

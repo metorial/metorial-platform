@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -28,6 +30,32 @@ const (
 	maxFileBatchSize   = 8 * 1024 * 1024
 	zipStreamChunkSize = 64 * 1024
 )
+
+func canonicalFilePath(filePath string) string {
+	if filePath == "" {
+		return "/"
+	}
+	if !strings.HasPrefix(filePath, "/") {
+		return "/" + filePath
+	}
+	return filePath
+}
+
+func redisFileKey(bucketID, filePath string) string {
+	return fmt.Sprintf("bucket:%s:file:%s", bucketID, canonicalFilePath(filePath))
+}
+
+func redisFlushKey(bucketID, filePath string) string {
+	return fmt.Sprintf("flush:%s:%s", bucketID, canonicalFilePath(filePath))
+}
+
+func objectStorageKey(bucketID, filePath string) string {
+	return bucketID + "/" + strings.TrimPrefix(filePath, "/")
+}
+
+func shouldBufferInRedis(size int) bool {
+	return size < maxRedisCacheSize
+}
 
 type FileInfo struct {
 	Path        string    `json:"path"`
@@ -116,13 +144,15 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		util.Must(redis.ParseURL(options.RedisURL)),
 	)
 
-	objectStorageClient := objectstorage.NewClient(options.ObjectStorageEndpoint)
+	httpClient := newDebugObjectStorageHTTPClient(30 * time.Minute)
+	objectStorageClient := objectstorage.NewClientWithHTTP(options.ObjectStorageEndpoint, httpClient)
+	log.Printf("[object-storage debug] client ready endpoint=%s bucket=%s timeout=%s", options.ObjectStorageEndpoint, options.ObjectStorageBucket, 30*time.Minute)
 
 	fsm := &FileSystemManager{
 		redis:            rdb,
 		objectStorage:    objectStorageClient,
 		objectStorageURL: options.ObjectStorageEndpoint,
-		httpClient:       &http.Client{Timeout: 30 * time.Minute},
+		httpClient:       httpClient,
 		bucketName:       options.ObjectStorageBucket,
 		flushTicker:      time.NewTicker(60 * time.Second),
 		importSemaphore:  make(chan struct{}, 15),
@@ -132,6 +162,53 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 	go fsm.cleanupZipFiles()
 
 	return fsm
+}
+
+func newDebugObjectStorageHTTPClient(timeout time.Duration) *http.Client {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			started := time.Now()
+			log.Printf("[object-storage debug] dial start network=%s addr=%s", network, addr)
+			conn, err := dialer.DialContext(ctx, network, addr)
+			if err != nil {
+				log.Printf("[object-storage debug] dial failed network=%s addr=%s duration=%s err=%v", network, addr, time.Since(started), err)
+				return nil, err
+			}
+			log.Printf("[object-storage debug] dial ok network=%s addr=%s local=%s remote=%s duration=%s", network, addr, conn.LocalAddr(), conn.RemoteAddr(), time.Since(started))
+			return conn, nil
+		},
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: &debugRoundTripper{base: transport},
+	}
+}
+
+type debugRoundTripper struct {
+	base http.RoundTripper
+}
+
+func (t *debugRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	started := time.Now()
+	log.Printf("[object-storage debug] http start method=%s url=%s content_length=%d host=%s", req.Method, req.URL.String(), req.ContentLength, req.URL.Host)
+	resp, err := t.base.RoundTrip(req)
+	if err != nil {
+		log.Printf("[object-storage debug] http failed method=%s url=%s content_length=%d duration=%s err=%v", req.Method, req.URL.String(), req.ContentLength, time.Since(started), err)
+		return nil, err
+	}
+	log.Printf("[object-storage debug] http done method=%s url=%s content_length=%d status=%d duration=%s", req.Method, req.URL.String(), req.ContentLength, resp.StatusCode, time.Since(started))
+	return resp, nil
 }
 
 func normalizeSeenPath(filePath string) string {
@@ -274,6 +351,7 @@ func (fsm *FileSystemManager) WalkBucketFiles(ctx context.Context, bucketID, pre
 
 func (fsm *FileSystemManager) putObjectFromReader(bucket, key string, reader io.Reader, contentType *string, metadata map[string]string) error {
 	urlPath := fmt.Sprintf("%s/buckets/%s/objects/%s", fsm.objectStorageURL, bucket, key)
+	log.Printf("[object-storage debug] putObjectFromReader start bucket=%s key=%s url=%s", bucket, key, urlPath)
 	req, err := http.NewRequest("PUT", urlPath, reader)
 	if err != nil {
 		return err
@@ -329,9 +407,14 @@ func (fsm *FileSystemManager) WalkBucketFileContentBatches(ctx context.Context, 
 }
 
 func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, error) {
-	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
+	filePath = canonicalFilePath(filePath)
+	redisKey := redisFileKey(bucketID, filePath)
 
 	result, err := fsm.redis.Get(ctx, redisKey).Result()
+	if err != nil {
+		legacyRedisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, strings.TrimPrefix(filePath, "/"))
+		result, err = fsm.redis.Get(ctx, legacyRedisKey).Result()
+	}
 	if err == nil {
 		var fileData FileData
 		if err := json.Unmarshal([]byte(result), &fileData); err == nil {
@@ -347,8 +430,10 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 		}
 	}
 
-	objectKey := fmt.Sprintf("%s/%s", bucketID, filePath)
-	obj, err := fsm.objectStorage.GetObject(fsm.bucketName, objectKey)
+	obj, err := fsm.objectStorage.GetObject(fsm.bucketName, objectStorageKey(bucketID, filePath))
+	if err != nil {
+		obj, err = fsm.objectStorage.GetObject(fsm.bucketName, fmt.Sprintf("%s/%s", bucketID, filePath))
+	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("file not found")
 	}
@@ -374,7 +459,7 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 		ModifiedAt:  modifiedAt,
 	}
 
-	if len(content) <= maxRedisCacheSize {
+	if shouldBufferInRedis(len(content)) {
 		if data, err := json.Marshal(fileData); err == nil {
 			fsm.redis.Set(ctx, redisKey, data, redisFlushDelay*2)
 		}
@@ -391,17 +476,27 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 }
 
 func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, filePath string, content []byte, contentType string) error {
-	if len(content) > maxRedisCacheSize {
-		objectKey := fmt.Sprintf("%s/%s", bucketID, filePath)
+	filePath = canonicalFilePath(filePath)
+
+	if !shouldBufferInRedis(len(content)) {
+		objectKey := objectStorageKey(bucketID, filePath)
+		log.Printf("[object-storage debug] PutBucketFile direct-put bucket_id=%s path=%s key=%s size=%d content_type=%s", bucketID, filePath, objectKey, len(content), contentType)
 		_, err := fsm.objectStorage.PutObject(fsm.bucketName, objectKey, content, &contentType, nil)
-		return err
+		if err != nil {
+			log.Printf("[object-storage debug] PutBucketFile direct-put failed bucket_id=%s path=%s key=%s size=%d err=%v", bucketID, filePath, objectKey, len(content), err)
+			return err
+		}
+
+		fsm.redis.Del(ctx,
+			redisFileKey(bucketID, filePath),
+			redisFlushKey(bucketID, filePath),
+			fmt.Sprintf("bucket:%s:file:%s", bucketID, strings.TrimPrefix(filePath, "/")),
+			fmt.Sprintf("flush:%s:%s", bucketID, strings.TrimPrefix(filePath, "/")),
+		)
+		return nil
 	}
 
-	if !strings.HasPrefix(filePath, "/") {
-		filePath = "/" + filePath
-	}
-
-	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
+	redisKey := redisFileKey(bucketID, filePath)
 	fileData := FileData{
 		Content:     content,
 		ContentType: contentType,
@@ -418,24 +513,22 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 		return err
 	}
 
-	flushKey := fmt.Sprintf("flush:%s:%s", bucketID, filePath)
-	fsm.redis.Set(ctx, flushKey, time.Now().Unix(), redisFlushDelay*2)
+	fsm.redis.Set(ctx, redisFlushKey(bucketID, filePath), time.Now().Unix(), redisFlushDelay*2)
 
 	return nil
 }
 
 func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, filePath string) error {
-	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
-	exists := fsm.redis.Exists(ctx, redisKey).Val()
+	filePath = canonicalFilePath(filePath)
+	fsm.redis.Del(ctx,
+		redisFileKey(bucketID, filePath),
+		redisFlushKey(bucketID, filePath),
+		fmt.Sprintf("bucket:%s:file:%s", bucketID, strings.TrimPrefix(filePath, "/")),
+		fmt.Sprintf("flush:%s:%s", bucketID, strings.TrimPrefix(filePath, "/")),
+	)
 
-	if exists != 0 {
-		fsm.redis.Del(ctx, redisKey)
-	}
-
-	objectKey := fmt.Sprintf("%s/%s", bucketID, filePath)
-	err := fsm.objectStorage.DeleteObject(fsm.bucketName, objectKey)
-
-	return err
+	_ = fsm.objectStorage.DeleteObject(fsm.bucketName, fmt.Sprintf("%s/%s", bucketID, filePath))
+	return fsm.objectStorage.DeleteObject(fsm.bucketName, objectStorageKey(bucketID, filePath))
 }
 
 func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) error {

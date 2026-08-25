@@ -2,7 +2,7 @@ import { delay } from '@lowerdeck/delay';
 import { env } from './env';
 import { ObjectStorageClient } from 'object-storage-client';
 
-export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL);
+export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL, 1000 * 60 * 10);
 
 export let getCargoFilesBucketName = () => env.storage.FILES_BUCKET_NAME;
 export let getStorage = () => storage;

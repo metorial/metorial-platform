@@ -13,6 +13,9 @@ export let createCodeBucketClient = (opts: {
     {
       ...opts.options,
 
+      'grpc.max_receive_message_length': 500 * 1024 * 1024,
+      'grpc.max_send_message_length': 500 * 1024 * 1024,
+
       'grpc.keepalive_time_ms': 60000, // 60s between pings (when idle)
       'grpc.keepalive_timeout_ms': 20000, // 20s to wait for ping ACK
       'grpc.keepalive_permit_without_calls': 0, // Don't ping if no RPC is active
