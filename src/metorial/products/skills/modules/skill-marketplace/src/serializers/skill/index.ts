@@ -7,7 +7,7 @@ import { db } from '@metorial/db';
 import PQueue from 'p-queue';
 import { stringify } from 'yaml';
 import { combineConfigs } from '../../lib/combineConfigs';
-import { assertSkillStoreFileLimit } from '../../lib/limits';
+import { assertSkillStoreByteLimit, assertSkillStoreFileLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import { getSkillPath, getSkillPruneScope } from '../_lib/paths';
 import type { SkillSerializerInput } from '../_lib/types';
@@ -95,6 +95,9 @@ export let applySkill = createApplicator(
       where: { oid: input.skill.storeOid! }
     });
     await assertSkillStoreFileLimit({
+      storeOid: skillStore.oid
+    });
+    await assertSkillStoreByteLimit({
       storeOid: skillStore.oid
     });
 
@@ -191,13 +194,9 @@ export let applySkill = createApplicator(
           } else if (item.kind === 'file' && item.file) {
             if (!isAllowedBySkillConfig(item.path, config)) continue;
 
-            q.add(async () => {
-              let content = await fileService.downloadFileContent({
-                file: item.file!
-              });
-
-              await context.setFile(item.path, content);
-            });
+            // Handed over by identity: unchanged files are skipped and changed
+            // ones are copied storage-side, so a large asset is never read here.
+            q.add(async () => await context.setFileFromStorage(item.path, item.file!));
           }
         }
 

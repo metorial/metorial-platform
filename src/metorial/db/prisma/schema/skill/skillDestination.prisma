@@ -18,10 +18,37 @@ model SkillDestination {
   skillMarketplace      SkillMarketplace?
   skillPlugin           SkillPlugin?
   skillDestinationItems SkillDestinationItem[]
+  skillDestinationFiles SkillDestinationFile[]
 
   @@index([isDirty])
   @@index([shouldFlushAt])
   @@index([mustFlushAt])
+}
+
+/// What a sync last wrote to each path in the destination bucket.
+///
+/// A sync compares the signature it is about to write against the recorded one
+/// and skips the upload when they match, so an unchanged 100MB asset is never
+/// read or transferred again. Unchanged paths are still passed to the prune as
+/// keep paths, so skipping a write never makes a file look stale.
+model SkillDestinationFile {
+  oid BigInt @id @default(autoincrement())
+
+  destinationOid BigInt
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  /// Bucket-absolute, normalized path.
+  path String
+
+  /// Identifies the content without necessarily hashing it: `file:<fileOid>`
+  /// for immutable stored files, `sha256:<hex>` for generated content.
+  signature String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([destinationOid, path])
+  @@index([destinationOid])
 }
 
 model SkillDestinationItem {

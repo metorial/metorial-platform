@@ -1,16 +1,26 @@
 import { env } from '../../env';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
-import { db } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import path from 'path';
 import { BatchProcessor } from '../../lib/batchProcessor';
 import { CargoSkillLimitError } from '../../lib/limits';
-import type { PruneScope, SerializerContext } from '../../serializers/_lib/types';
+import { fileService } from '@metorial/module-file';
+import type {
+  PruneScope,
+  SerializerContext,
+  StorageBackedFile
+} from '../../serializers/_lib/types';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin, getPluginPath } from '../../serializers/plugin';
 import { applySkill, getSkillPath } from '../../serializers/skill';
 import { getSyncTaskItemWhere } from './_lib/item';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
+import {
+  DestinationManifest,
+  signatureForBytes,
+  signatureForStoredFile
+} from './_lib/manifest';
 import { type SyncTask } from './_lib/task';
 import { syncFinishQueue } from './finish';
 import { syncPropagateStartQueue } from './propagate';
@@ -32,6 +42,15 @@ let normalizeBucketPath = (inPath: string) => {
 
   return `/${normalized.join('/')}`;
 };
+
+/**
+ * Ceiling on the content one setBucketFiles call carries.
+ *
+ * Only content this process has already materialized takes this path --
+ * rendered documents and small unflushed files -- but a batch of them still has
+ * to be bounded, since the whole batch is held in memory and encoded at once.
+ */
+let maxInlineBatchBytes = 8 * 1024 * 1024;
 
 let contentToBytes = (content: string | Buffer | ArrayBuffer) => {
   if (typeof content === 'string') return Buffer.from(content, 'utf-8');
@@ -116,25 +135,45 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
   let basePathRef = { current: '' };
   let hashRef = { current: null as string | null };
   let pruneScopeRef = { current: null as PruneScope | null };
-  let writtenPaths = new Set<string>();
+
+  let manifest = new DestinationManifest(
+    await db.skillDestinationFile.findMany({
+      where: { destinationOid: sync.destinationOid },
+      select: { path: true, signature: true }
+    })
+  );
+  let skippedPathCount = 0;
 
   let deleteBucketPath = async (prefix: string | undefined) => {
+    let normalized = normalizeBucketPath(prefix ?? '');
+
     await codeBucketClient.deleteBucketPath({
       bucketId: sync.destination.codeBucketId,
-      path: normalizeBucketPath(prefix ?? '')
+      path: normalized
+    });
+
+    // Signatures for content that no longer exists would make a later sync skip
+    // rewriting it.
+    await db.skillDestinationFile.deleteMany({
+      where: {
+        destinationOid: sync.destinationOid,
+        OR: [{ path: normalized }, { path: { startsWith: `${normalized}/` } }]
+      }
     });
   };
 
-  // Removes everything in the serializer's scope that this run did not write.
-  let pruneStaleFiles = async () => {
+  // Removes everything in the serializer's scope that this run did not want.
+  // The keep set covers skipped paths too, so an unchanged file that was
+  // deliberately not rewritten is not mistaken for a stale one.
+  let pruneStaleFiles = async (): Promise<string[]> => {
     let scope = pruneScopeRef.current;
-    if (!scope) return;
+    if (!scope) return [];
 
-    let keepPaths = [...writtenPaths];
+    let keepPaths = manifest.keepPaths();
 
     // The RPC rejects an empty keep set, and rightly so: a serializer that
     // wrote nothing gives us no evidence its subtree should be emptied.
-    if (keepPaths.length === 0) return;
+    if (keepPaths.length === 0) return [];
 
     let { deletedPaths } = await codeBucketClient.pruneBucketPath({
       bucketId: sync.destination.codeBucketId,
@@ -145,7 +184,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       )
     });
 
-    if (deletedPaths.length === 0) return;
+    if (deletedPaths.length === 0) return [];
 
     let listed = deletedPaths.slice(0, 10).join(', ');
     let remaining = deletedPaths.length - 10;
@@ -158,31 +197,99 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         remaining > 0 ? ` and ${remaining} more` : ''
       }.`
     );
+
+    return deletedPaths;
   };
 
   let fileProcessor = new BatchProcessor<{
     path: string;
     content: string | Buffer | ArrayBuffer;
+  }>(
+    async files => {
+      await codeBucketClient.setBucketFiles({
+        bucketId: sync.destination.codeBucketId,
+        files: files.map(file => ({
+          path: normalizeBucketPath(file.path),
+          content: contentToBytes(file.content)
+        }))
+      });
+    },
+    5,
+    {
+      maxBytes: maxInlineBatchBytes,
+      getBytes: file => contentToBytes(file.content).byteLength
+    }
+  );
+
+  // Copies carry only identifiers, so they batch by count alone.
+  let copyProcessor = new BatchProcessor<{
+    path: string;
+    sourceBucket: string;
+    sourceKey: string;
   }>(async files => {
-    await codeBucketClient.setBucketFiles({
+    await codeBucketClient.copyBucketFiles({
       bucketId: sync.destination.codeBucketId,
       files: files.map(file => ({
         path: normalizeBucketPath(file.path),
-        content: contentToBytes(file.content)
+        sourceBucket: file.sourceBucket,
+        sourceKey: file.sourceKey
       }))
     });
-  }, 5);
+  }, 25);
+
+  let flushWrites = async () => {
+    await fileProcessor.flush();
+    await copyProcessor.flush();
+  };
+
+  let resolvePath = (inPath: string) =>
+    normalizeBucketPath(
+      basePathRef.current ? path.join(basePathRef.current, inPath) : inPath
+    );
 
   let context: SerializerContext = {
     async setFile(inPath: string, content: string | Buffer | ArrayBuffer) {
-      let resultPath = basePathRef.current ? path.join(basePathRef.current, inPath) : inPath;
-      writtenPaths.add(normalizeBucketPath(resultPath));
-      await fileProcessor.put({ path: resultPath, content });
+      let resultPath = resolvePath(inPath);
+      let bytes = contentToBytes(content);
+
+      let { shouldWrite } = manifest.register(resultPath, signatureForBytes(bytes));
+      if (!shouldWrite) {
+        skippedPathCount++;
+        return;
+      }
+
+      await fileProcessor.put({ path: resultPath, content: bytes });
+    },
+
+    async setFileFromStorage(inPath: string, file: StorageBackedFile) {
+      let resultPath = resolvePath(inPath);
+
+      // Stored files are immutable, so identity is enough to tell whether this
+      // path is already correct -- no read, no transfer, whatever the size.
+      let { shouldWrite } = manifest.register(resultPath, signatureForStoredFile(file.oid));
+      if (!shouldWrite) {
+        skippedPathCount++;
+        return;
+      }
+
+      let source = await fileService.resolveFileContentSource({ file });
+
+      if (source.type === 'inline') {
+        await fileProcessor.put({ path: resultPath, content: source.content });
+        return;
+      }
+
+      await copyProcessor.put({
+        path: resultPath,
+        sourceBucket: source.bucket,
+        sourceKey: source.key
+      });
     },
 
     async deletePath(inPath: string) {
-      await fileProcessor.flush();
-      let resultPath = basePathRef.current ? path.join(basePathRef.current, inPath) : inPath;
+      await flushWrites();
+      let resultPath = resolvePath(inPath);
+      manifest.forgetPrefix(resultPath);
       await deleteBucketPath(resultPath);
     },
 
@@ -306,6 +413,53 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     };
   };
 
+  /**
+   * Records what the bucket now holds, so the next sync can skip these paths.
+   *
+   * Only called after the prune has succeeded: if we recorded first and the
+   * prune then failed, a later sync would trust signatures for files that had
+   * been removed and skip rewriting them.
+   */
+  let persistManifest = async (prunedPaths: string[]) => {
+    let entries = manifest.entries();
+    let removedPaths = manifest.removedPaths(prunedPaths);
+
+    await withTransaction(async db => {
+      for (let entry of entries) {
+        await db.skillDestinationFile.upsert({
+          where: {
+            destinationOid_path: {
+              destinationOid: sync.destinationOid,
+              path: entry.path
+            }
+          },
+          create: {
+            destinationOid: sync.destinationOid,
+            path: entry.path,
+            signature: entry.signature
+          },
+          update: { signature: entry.signature }
+        });
+      }
+
+      if (removedPaths.length > 0) {
+        await db.skillDestinationFile.deleteMany({
+          where: {
+            destinationOid: sync.destinationOid,
+            path: { in: removedPaths }
+          }
+        });
+      }
+    });
+
+    if (skippedPathCount > 0) {
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        `Reused ${skippedPathCount} unchanged file${skippedPathCount === 1 ? '' : 's'}.`
+      );
+    }
+  };
+
   let setDestinationItemHash = async (d: {
     hash: string;
     skillMarketplaceOid?: bigint;
@@ -380,9 +534,9 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       });
       if (!applied) return;
       taskChanged = applied === 'applied';
-      await fileProcessor.flush();
+      await flushWrites();
 
-      if (applied === 'applied') await pruneStaleFiles();
+      if (applied === 'applied') await persistManifest(await pruneStaleFiles());
 
       if (hashRef.current) {
         await setDestinationItemHash({
@@ -432,9 +586,9 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       });
       if (!applied) return;
       taskChanged = applied === 'applied';
-      await fileProcessor.flush();
+      await flushWrites();
 
-      if (applied === 'applied') await pruneStaleFiles();
+      if (applied === 'applied') await persistManifest(await pruneStaleFiles());
 
       if (hashRef.current) {
         await setDestinationItemHash({
@@ -453,9 +607,9 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     let applied = await applySerializer(applyMarketplace, { skillMarketplace });
     if (!applied) return;
     taskChanged = applied === 'applied';
-    await fileProcessor.flush();
+    await flushWrites();
 
-    if (applied === 'applied') await pruneStaleFiles();
+    if (applied === 'applied') await persistManifest(await pruneStaleFiles());
 
     if (hashRef.current) {
       await setDestinationItemHash({
