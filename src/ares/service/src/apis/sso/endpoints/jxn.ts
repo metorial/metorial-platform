@@ -1,21 +1,22 @@
 import { createHono } from '@lowerdeck/hono';
+import { getSentry } from '@lowerdeck/sentry';
 import * as Cookies from 'cookie';
 import { db } from '../../../db';
 import { getRequestContext } from '../../../lib/context';
-import { getSamlConnectionDefaultRedirectUrl } from '../../../lib/ssoRedirect';
+import { jackson } from '../../../lib/jackson';
 import {
   buildIdpInitiatedDelegationRedirect,
   resolveIdpInitiatedSamlCompletion
 } from '../../../lib/ssoDelegationProtocol';
+import { getSamlConnectionDefaultRedirectUrl } from '../../../lib/ssoRedirect';
 import { deviceService } from '../../../services/device';
+import { ssoDelegationService } from '../../../services/sso/delegation';
 import {
   SsoDomainNotAllowedError,
   ssoDomainPolicyService
 } from '../../../services/sso/domainPolicy';
 import { ssoIdentityService } from '../../../services/sso/identity';
 import { ssoLoginService } from '../../../services/sso/login';
-import { ssoDelegationService } from '../../../services/sso/delegation';
-import { jackson } from '../../../lib/jackson';
 import {
   baseCookieOpts,
   DEVICE_TOKEN_COOKIE_NAME,
@@ -24,6 +25,8 @@ import {
 } from '../../auth/middleware/device';
 import { ssoDomainNotAllowedHtml } from '../pages/domain-not-allowed';
 import { errorHtml } from '../pages/error';
+
+let Sentry = getSentry();
 
 export let jxnApp = createHono()
   .post('/saml/callback', async c => {
@@ -37,6 +40,8 @@ export let jxnApp = createHono()
       SAMLResponse: SAMLResponse as string
     });
     if (res.error) {
+      Sentry.captureException(res.error);
+
       return c.html(
         errorHtml({
           title: 'Authentication Error',
@@ -62,7 +67,7 @@ export let jxnApp = createHono()
       let code = c.req.query('code');
       let tenantId = c.req.query('tenant_id');
       let connectionId = c.req.query('connection_id');
-      if (!code || (!!tenantId !== !!connectionId)) {
+      if (!code || !!tenantId !== !!connectionId) {
         return c.html(
           errorHtml({
             title: 'Authentication Error',
@@ -172,7 +177,7 @@ export let jxnApp = createHono()
       });
 
       let delegatedCompletion = resolveIdpInitiatedSamlCompletion({
-        exportedDelegations: connection.tenant.exportedDelegations
+        exportedDelegations: connection.tenant.exportedDelegations as any
       });
       if (delegatedCompletion.type === 'delegated') {
         let result = await ssoDelegationService.completeIdpInitiatedExport({
@@ -230,6 +235,8 @@ export let jxnApp = createHono()
       );
       return res;
     } catch (error) {
+      Sentry.captureException(error);
+
       if (error instanceof SsoDomainNotAllowedError) {
         return c.html(ssoDomainNotAllowedHtml(error), 403);
       }
@@ -251,6 +258,8 @@ export let jxnApp = createHono()
       state: state
     });
     if (res.error) {
+      Sentry.captureException(res.error);
+
       return c.html(
         errorHtml({
           title: 'Authentication Error',
