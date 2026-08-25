@@ -9,7 +9,12 @@ import {
   shouldBufferFileContent
 } from './pendingFileContent';
 import { getCargoFilesBucketName, getStorage } from '../storage';
-import { isValidDirectUploadSize, maxDirectUploadSize } from './uploadPolicy';
+import {
+  describeInvalidUploadSize,
+  isValidDirectUploadSize,
+  maxDirectUploadSize,
+  useUploadUrlHint
+} from './uploadPolicy';
 
 export let uploadCargoFile = async (
   d: CargoOwnerScope & {
@@ -33,7 +38,8 @@ export let uploadCargoFile = async (
   if (!isValidDirectUploadSize(d.file.size)) {
     throw new ServiceError(
       badRequestError({
-        message: `Files uploaded through the API must be at most ${maxDirectUploadSize} bytes. Use mode "get_upload_url" to upload larger files directly to object storage.`
+        message: describeInvalidUploadSize({ size: d.file.size, max: maxDirectUploadSize }),
+        hint: useUploadUrlHint
       })
     );
   }

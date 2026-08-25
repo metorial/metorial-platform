@@ -1,5 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { maxDirectUploadBodySize } from '@metorial/module-file';
+import {
+  formatByteSize,
+  maxDirectUploadBodySize,
+  maxDirectUploadSize,
+  useUploadUrlHint
+} from '@metorial/module-file';
 
 /**
  * Rejects oversized multipart uploads before the body is buffered into memory. The exact
@@ -11,7 +16,8 @@ export let assertDirectUploadBodySize = (contentLength: string | undefined) => {
 
   throw new ServiceError(
     badRequestError({
-      message: `Uploads sent through the API must be at most ${maxDirectUploadBodySize} bytes. Use mode "get_upload_url" to upload larger files directly to object storage.`
+      message: `Uploads sent through the API can be at most ${formatByteSize(maxDirectUploadSize)}.`,
+      hint: useUploadUrlHint
     })
   );
 };

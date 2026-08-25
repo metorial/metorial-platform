@@ -15,7 +15,11 @@ export let getUploadUrlRequestSchema = v.object({
 
   purpose: purposeValidator,
   file_name: v.string(),
-  file_size: v.number({ modifiers: [v.positive(), v.integer()] }),
+  /**
+   * Deliberately unvalidated: the size is checked when the upload is created so that
+   * callers get an explanation of the limit instead of a schema error.
+   */
+  file_size: v.any({ description: 'The size of the file in bytes' }),
   file_type: v.optional(v.string()),
   title: v.optional(v.string()),
 

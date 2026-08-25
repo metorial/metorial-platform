@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-let maxBodySize = 50 * 1024 * 1024 + 1024 * 1024;
+let maxBodySize = 100 * 1024 * 1024 + 1024 * 1024;
 
 vi.mock('@metorial/module-file', () => ({
-  maxDirectUploadBodySize: 50 * 1024 * 1024 + 1024 * 1024
+  maxDirectUploadBodySize: 100 * 1024 * 1024 + 1024 * 1024,
+  maxDirectUploadSize: 100 * 1024 * 1024,
+  formatByteSize: (bytes: number) => `${bytes} bytes`,
+  useUploadUrlHint: 'hint'
 }));
 
 import { assertDirectUploadBodySize, parseStoreReplace } from './uploadForm';
@@ -16,7 +19,7 @@ describe('direct upload body size guard', () => {
 
   it('rejects bodies above the limit', () => {
     expect(() => assertDirectUploadBodySize(String(maxBodySize + 1))).toThrow(
-      /must be at most/
+      /can be at most/
     );
   });
 

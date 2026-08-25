@@ -9,6 +9,7 @@ import { ObjectStorageError, PublicUrlPurpose } from 'object-storage-client';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { requireInstanceScope } from '../lib/instanceScope';
 import {
+  describeInvalidUploadSize,
   doesUploadedObjectMatch,
   getPendingUploadExpiresAt,
   getUploadUrlExpiresAt,
@@ -137,7 +138,7 @@ class FileUploadServiceImpl {
     if (!isValidUploadSize(d.input.size)) {
       throw new ServiceError(
         badRequestError({
-          message: `File size must be a positive integer of at most ${maxUploadSize} bytes`
+          message: describeInvalidUploadSize({ size: d.input.size, max: maxUploadSize })
         })
       );
     }

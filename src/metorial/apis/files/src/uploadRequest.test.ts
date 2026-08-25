@@ -63,14 +63,12 @@ describe('get_upload_url requests', () => {
     });
   });
 
-  it('requires a file size', () => {
-    expect(() => parseUploadRequest(getUploadUrlBody({ file_size: undefined }))).toThrow();
-  });
-
-  it('rejects non-positive and fractional file sizes', () => {
-    expect(() => parseUploadRequest(getUploadUrlBody({ file_size: 0 }))).toThrow();
-    expect(() => parseUploadRequest(getUploadUrlBody({ file_size: -1 }))).toThrow();
-    expect(() => parseUploadRequest(getUploadUrlBody({ file_size: 1.5 }))).toThrow();
+  it('passes any file size through so the upload service can explain the limit', () => {
+    for (let file_size of [undefined, 0, -1, 1.5, 'huge', 2 ** 40]) {
+      expect(parseUploadRequest(getUploadUrlBody({ file_size }))).toMatchObject({
+        mode: 'get_upload_url'
+      });
+    }
   });
 
   it('rejects unknown purposes', () => {
