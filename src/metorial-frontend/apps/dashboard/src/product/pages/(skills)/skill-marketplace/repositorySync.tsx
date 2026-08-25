@@ -160,7 +160,8 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
     isLoading: syncs.isLoading && !stableSyncData,
     error: stableSyncData ? null : syncs.error
   };
-  let refreshRepositorySyncBox = () => Promise.all([syncs.refetch(), marketplace.refetch()]);
+  let refreshRepositorySyncBox = () =>
+    Promise.all([syncs.refetch(), marketplace.refetch()]).then(() => {});
   let repositoryManager = useSkillMarketplaceRepositoriesManager({
     instanceId: instance.data?.id,
     skillMarketplaceId: p.skillMarketplaceId,
