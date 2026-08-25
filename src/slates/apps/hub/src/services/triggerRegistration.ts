@@ -1,9 +1,10 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Tenant } from '../../prisma/generated/client';
+import type { Tenant, TriggerRegistration } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { triggerRegistrationCleanupQueue } from '../queues/trigger/registrationCleanup';
 import { triggerRegistrationInstanceSetupQueue } from '../queues/trigger/setup';
 import { slateService } from './slate';
 
@@ -133,8 +134,11 @@ class triggerRegistrationServiceImpl {
       select: { id: true }
     });
     if (instances.length > 0) {
-      await triggerRegistrationInstanceSetupQueue.addMany(
-        instances.map(instance => ({ triggerRegistrationInstanceId: instance.id }))
+      await triggerRegistrationInstanceSetupQueue.addManyWithOps(
+        instances.map(instance => ({
+          data: { triggerRegistrationInstanceId: instance.id },
+          opts: { id: instance.id }
+        }))
       );
     }
 
@@ -144,25 +148,20 @@ class triggerRegistrationServiceImpl {
     });
   }
 
-  async deleteTriggerRegistration(d: {
-    tenant: Tenant;
-    registration: { oid: bigint; tenantOid: bigint };
-  }) {
+  async deleteTriggerRegistration(d: { tenant: Tenant; registration: TriggerRegistration }) {
     if (d.registration.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('trigger_registration'));
     }
 
-    await db.$transaction(async db => {
-      await db.triggerRegistration.update({
-        where: { oid: d.registration.oid },
-        data: { status: 'deleted' }
-      });
-
-      await db.triggerRegistrationSchedule.updateMany({
-        where: { triggerRegistrationInstance: { triggerRegistrationOid: d.registration.oid } },
-        data: { isDisabled: true }
-      });
+    await db.triggerRegistration.update({
+      where: { oid: d.registration.oid },
+      data: { status: 'deleted' }
     });
+
+    await triggerRegistrationCleanupQueue.add(
+      { triggerRegistrationId: d.registration.id },
+      { id: d.registration.id }
+    );
   }
 }
 

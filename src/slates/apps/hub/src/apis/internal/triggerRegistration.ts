@@ -1,7 +1,13 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { triggerRegistrationPresenter } from '../../presenters';
-import { triggerRegistrationService } from '../../services';
+import {
+  triggerRegistrationInstanceErrorPresenter,
+  triggerRegistrationPresenter
+} from '../../presenters';
+import {
+  triggerRegistrationInstanceErrorService,
+  triggerRegistrationService
+} from '../../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
@@ -85,5 +91,45 @@ export let triggerRegistrationController = app.controller({
       });
 
       return { success: true };
+    }),
+
+  errorsList: triggerRegistrationApp
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          tenantId: v.string(),
+          triggerRegistrationId: v.string()
+        })
+      )
+    )
+    .do(async ctx => {
+      let paginator = await triggerRegistrationInstanceErrorService.listErrors({
+        tenant: ctx.tenant,
+        registration: ctx.triggerRegistration
+      });
+
+      let list = await paginator.run(ctx.input);
+
+      return Paginator.presentLight(list, triggerRegistrationInstanceErrorPresenter);
+    }),
+
+  errorsGet: triggerRegistrationApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        triggerRegistrationId: v.string(),
+        errorId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let error = await triggerRegistrationInstanceErrorService.getErrorById({
+        tenant: ctx.tenant,
+        registration: ctx.triggerRegistration,
+        id: ctx.input.errorId
+      });
+
+      return triggerRegistrationInstanceErrorPresenter(error);
     })
 });

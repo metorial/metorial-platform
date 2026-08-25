@@ -41,6 +41,9 @@ export let ID = createIdGenerator({
   triggerRegistrationInstance: idType.sorted('sttri'),
   triggerRegistrationSchedule: idType.sorted('sttrs'),
   triggerPollingRun: idType.sorted('sttrp'),
+  triggerWebhookTarget: idType.sorted('sttwt'),
+  triggerWebhookTargetRegistrationAttempt: idType.sorted('sttwa'),
+  triggerRegistrationInstanceError: idType.sorted('sttre'),
 
   slateInvocation: idType.sorted('shiv'),
 

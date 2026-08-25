@@ -35,7 +35,7 @@ model SlateWebhookRegistration {
   /// [AnyRecord]
   metadata Json?
 
-  // Not set for global registrations, which aren't linked to any tenant.
+  // Not set for global registrations
   tenantOid BigInt?
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
@@ -48,14 +48,18 @@ model SlateWebhookRegistration {
   secretOid BigInt
   secret    Secret @relation(fields: [secretOid], references: [oid])
 
+  registrationIdentifier String?
+
   authRouting SlateWebhookRegistrationAuthRouting @default(any)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  webhookEvents    SlateWebhookEvent[]
-  authMethods      SlateWebhookRegistrationAuthMethod[]
-  oauthCredentials SlateWebhookRegistrationOAuthCredentials[]
+  webhookEvents               SlateWebhookEvent[]
+  authMethods                 SlateWebhookRegistrationAuthMethod[]
+  oauthCredentials            SlateWebhookRegistrationOAuthCredentials[]
+  triggerWebhookTarget        TriggerWebhookTarget?
+  triggerRegistrationWebhooks TriggerRegistrationWebhook[]
 
   @@index([tenantOid, createdAt])
 }

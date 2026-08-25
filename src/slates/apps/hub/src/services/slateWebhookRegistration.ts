@@ -4,16 +4,16 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
   Slate,
-  SlateWebhookRegistrationAuthRouting,
   SlateTriggerGroup,
   SlateWebhookRegistration,
+  SlateWebhookRegistrationAuthRouting,
   SlateWebhookRegistrationOwner,
   SlateWebhookRegistrationType,
   Tenant
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
-import { getId, snowflake } from '../id';
+import { triggerWebhookRegistrationServiceInternal } from '../internal';
 import { getActiveSlateVersion } from '../lib/slateVersion';
 import { validateJsonSchema } from '../lib/validateJsonSchema';
 import { getWebhookUrl } from '../lib/webhookUrl';
@@ -133,16 +133,19 @@ class slateWebhookRegistrationServiceImpl {
 
     let urlKey = generateWebhookRegistrationUrlKey('tenant');
 
-    let { secretOid, webhookSetupDocument } = await this.startWebhookSetup({
-      tenant: d.tenant,
-      slate,
-      triggerGroup,
-      urlKey
-    });
+    let { partialWebhookRegistrationPayload, webhookSetupDocument } =
+      await this.startWebhookSetup({
+        tenant: d.tenant,
+        slate,
+        triggerGroup,
+        urlKey
+      });
 
-    let registration = await db.slateWebhookRegistration.create({
-      data: {
-        ...getId('slateWebhookRegistration'),
+    let registration =
+      await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
+        tenant: d.tenant,
+        slate,
+        triggerGroup,
         type: 'manual',
         owner: 'tenant',
         status: 'awaiting_setup',
@@ -152,32 +155,10 @@ class slateWebhookRegistrationServiceImpl {
         description: d.input.description,
         metadata: d.input.metadata,
 
-        tenantOid: d.tenant.oid,
-        slateOid: slate.oid,
-        triggerGroupOid: triggerGroup.oid,
-        secretOid,
-
-        authRouting,
-        authMethods: authMethods.length
-          ? {
-              createMany: {
-                data: authMethods.map(m => ({ oid: snowflake.nextId(), authMethodOid: m.oid }))
-              }
-            }
-          : undefined,
-        oauthCredentials: oauthCredentials.length
-          ? {
-              createMany: {
-                data: oauthCredentials.map(c => ({
-                  oid: snowflake.nextId(),
-                  oauthCredentialsOid: c.oid
-                }))
-              }
-            }
-          : undefined
-      },
-      include
-    });
+        webhookRegistrationPayload: partialWebhookRegistrationPayload,
+        authMethods,
+        oauthCredentials
+      });
 
     return { registration, webhookSetupDocument };
   }
@@ -196,19 +177,26 @@ class slateWebhookRegistrationServiceImpl {
       );
     }
 
-    await this.finishWebhookSetup({
+    let partial = await secretService.DANGEROUSLY_decryptSecret({
+      secretOid: d.registration.secretOid,
+      purpose: 'slate_webhook_registration_payload',
+      tenant: d.tenant,
+      note: `webhook-manual-finish:${d.registration.urlKey}`
+    });
+
+    let webhookRegistrationPayload = await this.callManualFinishRpc({
       tenant: d.tenant,
       slate: d.registration.slate,
       triggerGroup: d.registration.triggerGroup,
       urlKey: d.registration.urlKey,
-      secretOid: d.registration.secretOid,
+      partialWebhookRegistrationPayload: partial.payload,
       userConfig: d.input.userConfig
     });
 
-    return db.slateWebhookRegistration.update({
-      where: { oid: d.registration.oid },
-      data: { status: 'active' },
-      include
+    return triggerWebhookRegistrationServiceInternal.finalizeWebhookRegistration({
+      tenant: d.tenant,
+      registration: d.registration,
+      webhookRegistrationPayload
     });
   }
 
@@ -241,48 +229,37 @@ class slateWebhookRegistrationServiceImpl {
 
     let urlKey = generateWebhookRegistrationUrlKey('global');
 
-    let { secretOid } = await this.startWebhookSetup({
+    let { partialWebhookRegistrationPayload } = await this.startWebhookSetup({
       tenant: globalTenant,
       slate,
       triggerGroup,
       urlKey
     });
 
-    await this.finishWebhookSetup({
+    let webhookRegistrationPayload = await this.callManualFinishRpc({
       tenant: globalTenant,
       slate,
       triggerGroup,
       urlKey,
-      secretOid,
+      partialWebhookRegistrationPayload,
       userConfig: d.input.userConfig
     });
 
-    return db.slateWebhookRegistration.create({
-      data: {
-        ...getId('slateWebhookRegistration'),
-        type: 'manual',
-        owner: 'global',
-        status: 'active',
-        urlKey,
+    return triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
+      tenant: globalTenant,
+      slate,
+      triggerGroup,
+      type: 'manual',
+      owner: 'global',
+      status: 'active',
+      urlKey,
 
-        name: d.input.name,
-        description: d.input.description,
-        metadata: d.input.metadata,
+      name: d.input.name,
+      description: d.input.description,
+      metadata: d.input.metadata,
 
-        slateOid: slate.oid,
-        triggerGroupOid: triggerGroup.oid,
-        secretOid,
-
-        authRouting,
-        authMethods: authMethods.length
-          ? {
-              createMany: {
-                data: authMethods.map(m => ({ oid: snowflake.nextId(), authMethodOid: m.oid }))
-              }
-            }
-          : undefined
-      },
-      include
+      webhookRegistrationPayload,
+      authMethods
     });
   }
 
@@ -428,8 +405,7 @@ class slateWebhookRegistrationServiceImpl {
     if (d.authRouting === 'restricted_method' && d.methodCount === 0) {
       throw new ServiceError(
         badRequestError({
-          message:
-            'authRouting is "restricted_method" but no authMethodIds were provided.'
+          message: 'authRouting is "restricted_method" but no authMethodIds were provided.'
         })
       );
     }
@@ -438,7 +414,8 @@ class slateWebhookRegistrationServiceImpl {
       if (!d.allowCredentials) {
         throw new ServiceError(
           badRequestError({
-            message: 'authRouting "restricted_credential" is not supported for global registrations.'
+            message:
+              'authRouting "restricted_credential" is not supported for global registrations.'
           })
         );
       }
@@ -503,21 +480,18 @@ class slateWebhookRegistrationServiceImpl {
       );
     }
 
-    let secret = await secretService.createSecret({
-      tenant: d.tenant,
-      purpose: 'slate_webhook_registration_payload',
-      secretData: { payload: setupRes.data.partialWebhookRegistrationPayload }
-    });
-
-    return { secretOid: secret.oid, webhookSetupDocument: setupRes.data.webhookSetupDocument };
+    return {
+      partialWebhookRegistrationPayload: setupRes.data.partialWebhookRegistrationPayload,
+      webhookSetupDocument: setupRes.data.webhookSetupDocument
+    };
   }
 
-  private async finishWebhookSetup(d: {
+  private async callManualFinishRpc(d: {
     tenant: Tenant;
     slate: Slate;
     triggerGroup: SlateTriggerGroup;
     urlKey: string;
-    secretOid: bigint;
+    partialWebhookRegistrationPayload: any;
     userConfig: Record<string, any>;
   }) {
     let registrationSpec = getManualWebhookRegistrationSpec(d.triggerGroup);
@@ -536,13 +510,6 @@ class slateWebhookRegistrationServiceImpl {
       message: 'Invalid webhook setup configuration.'
     });
 
-    let partial = await secretService.DANGEROUSLY_decryptSecret({
-      secretOid: d.secretOid,
-      purpose: 'slate_webhook_registration_payload',
-      tenant: d.tenant,
-      note: `webhook-manual-finish:${d.urlKey}`
-    });
-
     let version = await getActiveSlateVersion({ slate: d.slate });
 
     let finishRes = await slateInvocationService.finishManualWebhookRegistration({
@@ -553,7 +520,7 @@ class slateWebhookRegistrationServiceImpl {
       }),
       triggerGroupId: d.triggerGroup.key,
       webhookUrl: getWebhookUrl({ urlKey: d.urlKey }),
-      partialWebhookRegistrationPayload: partial.payload,
+      partialWebhookRegistrationPayload: d.partialWebhookRegistrationPayload,
       userWebhookRegistrationPayload: userConfig
     });
 
@@ -565,12 +532,7 @@ class slateWebhookRegistrationServiceImpl {
       );
     }
 
-    await secretService.DANGEROUSLY_updateSecret({
-      secretOid: d.secretOid,
-      purpose: 'slate_webhook_registration_payload',
-      tenant: d.tenant,
-      secretData: { payload: finishRes.data.webhookRegistrationPayload }
-    });
+    return finishRes.data.webhookRegistrationPayload;
   }
 }
 

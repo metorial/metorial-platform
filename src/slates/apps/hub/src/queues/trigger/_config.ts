@@ -13,3 +13,5 @@ export let triggerPollWorkerOpts = {
     duration: 10_000
   }
 };
+
+export let TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS = 5;

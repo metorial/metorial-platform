@@ -279,6 +279,7 @@ model SlateTriggerGroup {
   slateActions                 SlateAction[]
   webhookRegistrations         SlateWebhookRegistration[]
   triggerRegistrationInstances TriggerRegistrationInstance[]
+  triggerWebhookTargets        TriggerWebhookTarget[]
 
   @@index([key])
 }

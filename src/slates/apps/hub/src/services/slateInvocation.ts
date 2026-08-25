@@ -276,10 +276,53 @@ class slateInvocationServiceImpl {
     });
   }
 
-  async pollTriggerGroup(d: { stack: SlateInvocationStack; triggerGroupId: string; state: any }) {
+  async pollTriggerGroup(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    state: any;
+  }) {
     return await d.stack.invoke('slates/trigger_group.polling.poll', {
       triggerGroupId: d.triggerGroupId,
       state: d.state
+    });
+  }
+
+  async listWebhookTargets(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    pageToken?: any;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.webhook.targets_list', {
+      triggerGroupId: d.triggerGroupId,
+      pageToken: d.pageToken ?? null
+    });
+  }
+
+  async registerWebhook(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    webhookTargetIdentifier: string;
+    webhookTargetPayload: any;
+    webhookUrl: string;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.webhook.register', {
+      triggerGroupId: d.triggerGroupId,
+      webhookTargetIdentifier: d.webhookTargetIdentifier,
+      webhookTargetPayload: d.webhookTargetPayload,
+      webhookUrl: d.webhookUrl
+    });
+  }
+
+  async unregisterWebhook(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    webhookRegistrationIdentifier: string;
+    webhookRegistrationPayload: any;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.webhook.unregister', {
+      triggerGroupId: d.triggerGroupId,
+      webhookRegistrationIdentifier: d.webhookRegistrationIdentifier,
+      webhookRegistrationPayload: d.webhookRegistrationPayload
     });
   }
 

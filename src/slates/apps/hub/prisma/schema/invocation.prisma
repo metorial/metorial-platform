@@ -22,14 +22,15 @@ model SlateInvocation {
 
   createdAt DateTime @default(now())
 
-  slateVersionDiscoveries       SlateVersionDiscovery[]
-  slateInstanceOAuthSetupEvents SlateInstanceOAuthSetupEvent[]
-  slateAuthConfigEvents         SlateAuthConfigEvent[]
-  slateSessionToolCalls         SlateSessionToolCall[]
-  slateInvocationAttachment     SlateInvocationAttachment[]
-  slateErrors                   SlateError[]
-  slateWebhookEventInvocations  SlateWebhookEventInvocation[]
-  triggerPollingRuns            TriggerPollingRun[]
+  slateVersionDiscoveries                  SlateVersionDiscovery[]
+  slateInstanceOAuthSetupEvents            SlateInstanceOAuthSetupEvent[]
+  slateAuthConfigEvents                    SlateAuthConfigEvent[]
+  slateSessionToolCalls                    SlateSessionToolCall[]
+  slateInvocationAttachment                SlateInvocationAttachment[]
+  slateErrors                              SlateError[]
+  slateWebhookEventInvocations             SlateWebhookEventInvocation[]
+  triggerPollingRuns                       TriggerPollingRun[]
+  triggerWebhookTargetRegistrationAttempts TriggerWebhookTargetRegistrationAttempt[]
 
   @@index([deploymentOid, createdAt])
 }
