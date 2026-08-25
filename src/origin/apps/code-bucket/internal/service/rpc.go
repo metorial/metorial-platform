@@ -120,7 +120,13 @@ func (rs *RcpService) CloneBucket(ctx context.Context, req *rpc.CloneBucketReque
 }
 
 func (rs *RcpService) CreateBucketFromGithub(ctx context.Context, req *rpc.CreateBucketFromGithubRequest) (*rpc.CreateBucketResponse, error) {
-	iter, err := github.DownloadRepo(req.Owner, req.Repo, req.Path, req.Ref, req.Token)
+	iter, err := github.DownloadRepo(ctx, github.DownloadOptions{
+		Owner: req.Owner,
+		Repo:  req.Repo,
+		Path:  req.Path,
+		Ref:   req.Ref,
+		Token: req.Token,
+	})
 	if err != nil {
 		return nil, providerImportError("GitHub", err)
 	}
@@ -301,7 +307,16 @@ func fileContentItemToRPC(file fs.FileContentItem) *rpc.FileContent {
 }
 
 func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportBucketToGithubRequest) (*rpc.ExportBucketToGithubResponse, error) {
-	if err := github.UploadToRepoIter(req.Owner, req.Repo, req.Path, req.Branch, req.CommitMessage, req.Token, func(yield func(github.FileToUpload) error) error {
+	opts := github.UploadOptions{
+		Owner:         req.Owner,
+		Repo:          req.Repo,
+		TargetPath:    req.Path,
+		Branch:        req.Branch,
+		CommitMessage: req.CommitMessage,
+		Token:         req.Token,
+	}
+
+	if err := github.UploadToRepoIter(ctx, opts, func(yield func(github.FileToUpload) error) error {
 		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
 			for _, file := range batch {
 				if err := yield(github.FileToUpload{

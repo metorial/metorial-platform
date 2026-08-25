@@ -725,7 +725,7 @@ func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBuck
 	return queue.Wait()
 }
 
-func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string, iterator *zipImporter.ZipFileIterator) error {
+func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string, iterator zipImporter.Importer) error {
 	select {
 	case fsm.importSemaphore <- struct{}{}:
 		defer func() { <-fsm.importSemaphore }()

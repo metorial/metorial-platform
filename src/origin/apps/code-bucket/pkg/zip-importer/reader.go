@@ -2,6 +2,7 @@ package zipImporter
 
 import (
 	"archive/zip"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,13 +22,17 @@ var httpClient = &http.Client{
 }
 
 func DownloadZip(url, path string, headers map[string]string) (*ZipFileIterator, error) {
+	return DownloadZipContext(context.Background(), url, path, headers)
+}
+
+func DownloadZipContext(ctx context.Context, url, path string, headers map[string]string) (*ZipFileIterator, error) {
 	tmpDir, err := os.MkdirTemp("", "gh-zip-*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}
 
 	zipPath := filepath.Join(tmpDir, "repo.zip")
-	if err := downloadFile(url, zipPath, headers); err != nil {
+	if err := downloadFile(ctx, url, zipPath, headers); err != nil {
 		return nil, fmt.Errorf("failed to download zip: %w", err)
 	}
 
@@ -46,8 +51,11 @@ func DownloadZip(url, path string, headers map[string]string) (*ZipFileIterator,
 	return NewZipFileIterator(targetPath), nil
 }
 
-func downloadFile(url, dest string, headers map[string]string) error {
-	req, _ := http.NewRequest("GET", url, nil)
+func downloadFile(ctx context.Context, url, dest string, headers map[string]string) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return err
+	}
 	req.Header.Set("User-Agent", "Metorial CodeBucket (https://metorial.com)")
 
 	for key, value := range headers {
@@ -66,7 +74,7 @@ func downloadFile(url, dest string, headers map[string]string) error {
 
 	if resp.StatusCode == http.StatusFound {
 		loc := resp.Header.Get("Location")
-		return downloadFile(loc, dest, headers)
+		return downloadFile(ctx, loc, dest, headers)
 	}
 
 	out, err := os.Create(dest)
