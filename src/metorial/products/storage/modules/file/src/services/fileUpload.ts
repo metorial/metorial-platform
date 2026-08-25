@@ -101,6 +101,14 @@ class FileUploadServiceImpl {
     }
   }
 
+  private async discardUploadedObject(upload: Pick<FileUploadRecord, 'storeId'>) {
+    try {
+      await getStorage().deleteObject(getCargoFilesBucketName(), upload.storeId);
+    } catch (error) {
+      if (!isObjectMissingError(error)) throw error;
+    }
+  }
+
   async createPendingUpload(
     d: CargoOwnerScope & {
       purpose: string;
@@ -230,6 +238,10 @@ class FileUploadServiceImpl {
     let object = await this.headUploadedObject(upload);
 
     if (!doesUploadedObjectMatch({ declaredSize: upload.fileSize, actualSize: object.size })) {
+      // Content that does not match what was declared is never reachable through a file,
+      // so drop it instead of paying to store it until the cleanup cron runs.
+      await this.discardUploadedObject(upload);
+
       throw new ServiceError(
         badRequestError({
           message: `Uploaded content is ${object.size} bytes but ${upload.fileSize} bytes were declared`

@@ -1,3 +1,4 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import type { StoreParticipantPermissions } from '@metorial/db';
 import type { CargoOwnerScope } from '../internal/ownerScope';
@@ -8,6 +9,7 @@ import {
   shouldBufferFileContent
 } from './pendingFileContent';
 import { getCargoFilesBucketName, getStorage } from '../storage';
+import { isValidDirectUploadSize, maxDirectUploadSize } from './uploadPolicy';
 
 export let uploadCargoFile = async (
   d: CargoOwnerScope & {
@@ -28,6 +30,14 @@ export let uploadCargoFile = async (
     };
   }
 ) => {
+  if (!isValidDirectUploadSize(d.file.size)) {
+    throw new ServiceError(
+      badRequestError({
+        message: `Files uploaded through the API must be at most ${maxDirectUploadSize} bytes. Use mode "get_upload_url" to upload larger files directly to object storage.`
+      })
+    );
+  }
+
   let storeId = d.storeId ?? generatePlainId(20);
   let mimeType = d.mimeType || d.file.type || 'application/octet-stream';
 
