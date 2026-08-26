@@ -43,6 +43,8 @@ import {
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSurface,
+  File,
+  FileUpload,
   Instance,
   InstanceConsumer,
   MachineAccess,
@@ -342,6 +344,12 @@ export type AuditServiceAccount = ServiceAccount & {
 export type AuditOAuthApplication = OAuthApplication & {
   organization: Organization | null;
   clientSecrets?: OAuthApplicationClientSecret[] | null;
+};
+
+export type FileFabricOwner = {
+  instance?: { oid: bigint };
+  organization?: { oid: bigint };
+  fileSize: number;
 };
 
 // prettier-ignore
@@ -738,6 +746,15 @@ export interface FabricEvents {
   'skill.marketplace.created:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.archived:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.deleted:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
+
+  'file.upload.created:before': FileFabricOwner;
+  'file.upload.created:after': FileFabricOwner & { fileUpload: FileUpload };
+  'file.upload.completed:before': FileFabricOwner & { fileUpload: FileUpload };
+  'file.upload.completed:after': FileFabricOwner & { fileUpload: FileUpload; file: File };
+
+  'file.created:before': FileFabricOwner;
+  'file.created:after': FileFabricOwner & { file: File };
+  'file.deleted:after': FileFabricOwner & { file: File };
 
   'provider.deployment.created:before': ProviderEventBase;
   'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };

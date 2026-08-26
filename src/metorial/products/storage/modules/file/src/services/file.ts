@@ -25,6 +25,7 @@ import type {
   StoreParticipantPermissions
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -39,6 +40,7 @@ import {
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { PublicUrlPurpose } from 'object-storage-client';
+import { fileFabricOwnerFromFile, fileFabricOwnerFromScope } from '../internal/fabric';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { requireInstanceScope } from '../lib/instanceScope';
 import { canDeleteDisplacedFile } from '../lib/fileReplacement';
@@ -123,6 +125,9 @@ class FileServiceImpl {
           isInternal: true,
           isReadOnly: true,
           isTemplateBacking: true,
+          fileSize: true,
+          instanceOid: true,
+          organizationOid: true,
           document: { select: { id: true } },
           links: {
             select: {
@@ -180,6 +185,11 @@ class FileServiceImpl {
 
       await db.filePendingContent.deleteMany({
         where: { fileOid: file.oid }
+      });
+
+      await Fabric.fire('file.deleted:after', {
+        ...fileFabricOwnerFromFile(file),
+        file: file as File
       });
 
       return hadPendingContent ? null : file.id;
@@ -362,6 +372,8 @@ class FileServiceImpl {
         return await this.withEffectiveStoreId(updatedFile);
       }
 
+      await Fabric.fire('file.created:before', fileFabricOwnerFromScope(d, d.input.size));
+
       let createdFile = await db.file.create({
         data: {
           id: d.input.id ?? (await ID.generateId('file')),
@@ -380,6 +392,11 @@ class FileServiceImpl {
         include
       });
       await this.persistFileContent(createdFile.oid, d.internal?.contentPersistence);
+
+      await Fabric.fire('file.created:after', {
+        ...fileFabricOwnerFromScope(d, createdFile.fileSize),
+        file: createdFile
+      });
 
       if (d.input.store) {
         let scope = requireInstanceScope(d, 'Attaching a file to a store');
@@ -846,6 +863,11 @@ class FileServiceImpl {
     if (document) {
       await internalDocumentDraftService.clearDocumentState(document.id);
     }
+
+    await Fabric.fire('file.deleted:after', {
+      ...fileFabricOwnerFromFile(file),
+      file
+    });
 
     return file;
   }

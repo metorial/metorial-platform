@@ -3,9 +3,11 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeAccessService, storeWritePermission } from '@metorial/module-store';
 import { ObjectStorageError, PublicUrlPurpose } from 'object-storage-client';
+import { fileFabricOwnerFromScope } from '../internal/fabric';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { env } from '../env';
 import { requireInstanceScope } from '../lib/instanceScope';
@@ -203,6 +205,10 @@ class FileUploadServiceImpl {
     let uploadId = await ID.generateId('fileUpload');
     let fileType = d.input.mimeType?.trim() || 'application/octet-stream';
     let uploadUrlExpiresAt = getUploadUrlExpiresAt();
+    let fabricOwner = fileFabricOwnerFromScope(d, d.input.size);
+
+    await Fabric.fire('file.upload.created:before', fabricOwner);
+
     let uploadUrl = await this.createSignedUploadUrl({
       uploadId,
       storeId,
@@ -211,24 +217,33 @@ class FileUploadServiceImpl {
       expiresAt: uploadUrlExpiresAt
     });
 
-    let upload = await db.fileUpload.create({
-      data: {
-        id: uploadId,
-        ...cargoFileScope(d),
-        purposeOid: purpose.oid,
-        storeId,
-        fileName,
-        fileSize: d.input.size,
-        fileType,
-        title: d.input.title,
-        attachStoreId: d.input.store?.id,
-        attachPath: d.input.store?.path,
-        attachReplace: d.input.store?.replace ?? false,
-        createdByResourceActorOid: d.authorization.resourceActor?.oid,
-        uploadUrlExpiresAt,
-        expiresAt: getPendingUploadExpiresAt()
-      },
-      include
+    let upload = await withTransaction(async db => {
+      let created = await db.fileUpload.create({
+        data: {
+          id: uploadId,
+          ...cargoFileScope(d),
+          purposeOid: purpose.oid,
+          storeId,
+          fileName,
+          fileSize: d.input.size,
+          fileType,
+          title: d.input.title,
+          attachStoreId: d.input.store?.id,
+          attachPath: d.input.store?.path,
+          attachReplace: d.input.store?.replace ?? false,
+          createdByResourceActorOid: d.authorization.resourceActor?.oid,
+          uploadUrlExpiresAt,
+          expiresAt: getPendingUploadExpiresAt()
+        },
+        include
+      });
+
+      await Fabric.fire('file.upload.created:after', {
+        ...fabricOwner,
+        fileUpload: created
+      });
+
+      return created;
     });
 
     return { upload, uploadUrl };
@@ -283,6 +298,13 @@ class FileUploadServiceImpl {
         })
       );
     }
+
+    let fabricOwner = fileFabricOwnerFromScope(scope, upload.fileSize);
+
+    await Fabric.fire('file.upload.completed:before', {
+      ...fabricOwner,
+      fileUpload: upload
+    });
 
     return await withTransaction(async tdb => {
       let claimed = await tdb.fileUpload.updateMany({
@@ -345,6 +367,12 @@ class FileUploadServiceImpl {
       await tdb.fileUpload.update({
         where: { oid: upload.oid },
         data: { fileOid: file.oid }
+      });
+
+      await Fabric.fire('file.upload.completed:after', {
+        ...fabricOwner,
+        fileUpload: upload,
+        file
       });
 
       return file;
