@@ -29,6 +29,8 @@ type OptimisticStoreItem = {
   id: string;
   path: string;
   kind: 'file' | 'document' | 'directory';
+  fileSize?: number;
+  uploadProgress?: number;
 };
 
 let buildTree = (items: StoreItem[], optimisticItems: OptimisticStoreItem[]) => {
@@ -55,6 +57,8 @@ let buildTree = (items: StoreItem[], optimisticItems: OptimisticStoreItem[]) => 
     fileId?: string;
     fileType?: string;
     isPending?: boolean;
+    fileSize?: number;
+    uploadProgress?: number;
   }) => {
     let existing = nodeMap.get(p.path);
     if (existing) {
@@ -64,6 +68,8 @@ let buildTree = (items: StoreItem[], optimisticItems: OptimisticStoreItem[]) => 
       existing.fileId = p.fileId ?? existing.fileId;
       existing.fileType = p.fileType ?? existing.fileType;
       existing.isPending = p.isPending ?? existing.isPending;
+      existing.fileSize = p.fileSize ?? existing.fileSize;
+      existing.uploadProgress = p.uploadProgress ?? existing.uploadProgress;
       return existing;
     }
 
@@ -78,6 +84,8 @@ let buildTree = (items: StoreItem[], optimisticItems: OptimisticStoreItem[]) => 
       fileId: p.fileId,
       fileType: p.fileType,
       isPending: p.isPending,
+      fileSize: p.fileSize,
+      uploadProgress: p.uploadProgress,
       children: []
     };
 
@@ -139,7 +147,9 @@ let buildTree = (items: StoreItem[], optimisticItems: OptimisticStoreItem[]) => 
         name: part,
         parentPath,
         kind: isLeaf ? item.kind : 'directory',
-        isPending: isLeaf
+        isPending: isLeaf,
+        fileSize: isLeaf ? item.fileSize : undefined,
+        uploadProgress: isLeaf ? item.uploadProgress : undefined
       });
 
       parentPath = currentPath;
@@ -250,6 +260,12 @@ export let SkillStoreFileTree = (p: {
     setOptimisticItems(current => current.filter(item => item.id != id));
   };
 
+  let updateOptimisticProgress = (id: string, uploadProgress: number) => {
+    setOptimisticItems(current =>
+      current.map(item => (item.id == id ? { ...item, uploadProgress } : item))
+    );
+  };
+
   let createStoreItem = async (
     parentPath: string,
     kind: SkillFileTreeCreateKind,
@@ -338,7 +354,13 @@ export let SkillStoreFileTree = (p: {
     let shouldCreateDocument = shouldCreateDocumentForFileName(file.name);
     let optimisticId = addOptimisticItem({
       path,
-      kind: shouldCreateDocument ? 'document' : 'file'
+      kind: shouldCreateDocument ? 'document' : 'file',
+      ...(shouldCreateDocument
+        ? {}
+        : {
+            fileSize: file.size,
+            uploadProgress: 0
+          })
     });
 
     try {
@@ -363,6 +385,7 @@ export let SkillStoreFileTree = (p: {
           ]
         });
       } else {
+        let lastPercent = -1;
         await uploadFile.mutate({
           instanceId: p.instanceId,
           file,
@@ -371,6 +394,12 @@ export let SkillStoreFileTree = (p: {
           store: {
             id: p.storeId,
             path
+          },
+          onProgress: progress => {
+            let percent = Math.round(progress.ratio * 100);
+            if (percent == lastPercent) return;
+            lastPercent = percent;
+            updateOptimisticProgress(optimisticId, progress.ratio);
           }
         });
       }

@@ -28,6 +28,8 @@ export type SkillFileTreeNode = {
   fileId?: string;
   fileType?: string;
   isPending?: boolean;
+  fileSize?: number;
+  uploadProgress?: number;
   children: SkillFileTreeNode[];
 };
 
@@ -244,6 +246,16 @@ let TreeSpinnerWrap = styled.div`
   flex: 0 0 auto;
 `;
 
+let TreeProgress = styled.div`
+  flex: 0 0 auto;
+  min-width: 32px;
+  color: ${theme.colors.gray700};
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
+`;
+
 let TreeName = styled.div`
   flex: 1;
   min-width: 0;
@@ -301,6 +313,21 @@ let CreateInputWrap = styled.div`
 `;
 
 export type SkillFileTreeCreateKind = 'file' | 'document' | 'directory';
+
+let LARGE_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+let TreePendingIndicator = (p: { node: SkillFileTreeNode }) => {
+  let showPercent = p.node.fileSize != null && p.node.fileSize > LARGE_UPLOAD_BYTES;
+  if (!showPercent) {
+    return (
+      <TreeSpinnerWrap>
+        <Spinner size={14} />
+      </TreeSpinnerWrap>
+    );
+  }
+
+  return <TreeProgress>{Math.round((p.node.uploadProgress ?? 0) * 100)}%</TreeProgress>;
+};
 
 let TreeIcon = (p: { kind: SkillFileTreeNode['kind']; open?: boolean }) => {
   if (p.kind == 'directory') {
@@ -766,9 +793,7 @@ let SkillFileTreeRow = (p: {
           </TreeLabel>
         )}
         {p.node.isPending ? (
-          <TreeSpinnerWrap>
-            <Spinner size={14} />
-          </TreeSpinnerWrap>
+          <TreePendingIndicator node={p.node} />
         ) : canDelete ? (
           <Menu
             label={`Actions for ${p.node.name}`}
