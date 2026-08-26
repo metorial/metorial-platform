@@ -10,7 +10,7 @@ const maxGRPCMessageSize = 500 * 1024 * 1024
 
 func NewGrpcServer(serviceName string) *grpc.Server {
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(RecoveryInterceptor),
+		grpc.ChainUnaryInterceptor(RecoveryInterceptor, LoggingInterceptor),
 		grpc.MaxRecvMsgSize(maxGRPCMessageSize),
 		grpc.MaxSendMsgSize(maxGRPCMessageSize),
 	)

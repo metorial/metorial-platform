@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -406,6 +407,88 @@ func TestOpenBucketFileReportsMissingFiles(t *testing.T) {
 
 	if _, _, err := fsm.OpenBucketFile(context.Background(), "bkt_1", "missing.txt"); err == nil {
 		t.Fatal("expected an error for a missing file")
+	}
+}
+
+// readZipEntries decodes an archive built by copyBucketFileToZip.
+func readZipEntries(t *testing.T, archive []byte) map[string]string {
+	t.Helper()
+
+	reader, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
+	if err != nil {
+		t.Fatalf("open zip: %v", err)
+	}
+
+	entries := map[string]string{}
+	for _, file := range reader.File {
+		body, err := file.Open()
+		if err != nil {
+			t.Fatalf("open zip entry %s: %v", file.Name, err)
+		}
+		content, err := io.ReadAll(body)
+		body.Close()
+		if err != nil {
+			t.Fatalf("read zip entry %s: %v", file.Name, err)
+		}
+		entries[file.Name] = string(content)
+	}
+
+	return entries
+}
+
+// The zip paths used to load each file whole before writing it, so peak memory
+// tracked the largest file in the bucket. They stream through OpenBucketFile now.
+func TestCopyBucketFileToZipWritesTheStreamedEntry(t *testing.T) {
+	content := []byte("first halfsecond half")
+	storage, _ := newFileObjectStorage(t, content, nil)
+	fsm := newTestFileSystemManager(t, storage)
+
+	var archive bytes.Buffer
+	zipWriter := zip.NewWriter(&archive)
+
+	skipped, err := fsm.copyBucketFileToZip(context.Background(), zipWriter, "bkt_1", "docs/big.bin")
+	if err != nil {
+		t.Fatalf("copy: %v", err)
+	}
+	if skipped {
+		t.Fatal("a readable file was skipped")
+	}
+	if err := zipWriter.Close(); err != nil {
+		t.Fatalf("close zip: %v", err)
+	}
+
+	entries := readZipEntries(t, archive.Bytes())
+	if got := entries["docs/big.bin"]; got != string(content) {
+		t.Fatalf("zip entry = %q, want %q", got, content)
+	}
+}
+
+// A file can be deleted between being listed and being read. The archive is
+// still worth producing without it.
+func TestCopyBucketFileToZipSkipsFilesItCannotOpen(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	fsm := newTestFileSystemManager(t, objectstorage.NewClient(server.URL))
+
+	var archive bytes.Buffer
+	zipWriter := zip.NewWriter(&archive)
+
+	skipped, err := fsm.copyBucketFileToZip(context.Background(), zipWriter, "bkt_1", "gone.bin")
+	if err != nil {
+		t.Fatalf("expected a missing file to be skipped, got %v", err)
+	}
+	if !skipped {
+		t.Fatal("expected the file to be reported as skipped")
+	}
+	if err := zipWriter.Close(); err != nil {
+		t.Fatalf("close zip: %v", err)
+	}
+
+	if entries := readZipEntries(t, archive.Bytes()); len(entries) != 0 {
+		t.Fatalf("expected an empty archive, got %#v", entries)
 	}
 }
 

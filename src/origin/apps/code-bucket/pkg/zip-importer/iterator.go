@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/util"
 )
 
@@ -36,15 +37,39 @@ func (it *ZipFileIterator) Next() (*ZipFileItem, bool) {
 		return nil, false
 	}
 
+	relative := util.MustOrFallback(filePath)(filepath.Rel(it.tempDir, filePath))
+
+	info, err := os.Stat(filePath)
+	if err != nil {
+		it.setErr(fmt.Errorf("failed to inspect extracted file %s: %w", relative, err))
+		return nil, false
+	}
+	if info.Size() > filelimit.MaxBufferedFileBytes {
+		it.setErr(filelimit.FileTooLargeError(
+			"zip", relative, info.Size(), filelimit.MaxBufferedFileBytes,
+		))
+		return nil, false
+	}
+
 	content, err := os.ReadFile(filePath)
 	if err != nil {
+		it.setErr(fmt.Errorf("failed to read extracted file %s: %w", relative, err))
 		return nil, false
 	}
 
 	return &ZipFileItem{
 		Content: content,
-		Path:    util.MustOrFallback(filePath)(filepath.Rel(it.tempDir, filePath)),
+		Path:    relative,
 	}, true
+}
+
+func (it *ZipFileIterator) setErr(err error) {
+	it.mutex.Lock()
+	defer it.mutex.Unlock()
+
+	if it.err == nil {
+		it.err = err
+	}
 }
 
 func (it *ZipFileIterator) Err() error {

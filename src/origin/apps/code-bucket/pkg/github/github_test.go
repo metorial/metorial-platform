@@ -16,6 +16,7 @@ import (
 	"testing"
 	"testing/iotest"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
 )
 
@@ -441,6 +442,72 @@ func TestUploadRejectsOversizedFilesWithoutReadingThem(t *testing.T) {
 	}
 }
 
+func TestUploadRejectionCarriesTheSizeSentinel(t *testing.T) {
+	fake := newFakeGitHub(t)
+	opts := fake.uploadOptions()
+	opts.MaxFileBytes = 32
+
+	err := UploadToRepo(context.Background(), opts, []FileToUpload{
+		ContentFile("huge.bin", bytes.Repeat([]byte("w"), 64)),
+	})
+	if !errors.Is(err, filelimit.ErrFileTooLarge) {
+		t.Fatalf("callers cannot classify this as a permanent failure: %v", err)
+	}
+}
+
+// The old ceiling was 100 MiB, sized to how much content the exporter held in
+// memory. Files above the LFS threshold are streamed now, so the ceiling tracks
+// GitHub's LFS limit instead and files well past 100 MiB have to get through the
+// size gate. Reaching the read stage is what proves the gate let it by, and it
+// is far cheaper than materialising 200 MiB.
+func TestUploadNoLongerRejectsFilesAboveTheOldMemoryCeiling(t *testing.T) {
+	fake := newFakeGitHub(t)
+	opts := fake.uploadOptions()
+	opts.MaxFileBytes = DefaultMaxFileBytes
+
+	file := FileToUpload{
+		Path: "assets/large.bin",
+		Size: 200 << 20,
+		Open: func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader([]byte("short"))), nil
+		},
+	}
+
+	err := UploadToRepo(context.Background(), opts, []FileToUpload{file})
+	if errors.Is(err, filelimit.ErrFileTooLarge) {
+		t.Fatalf("a 200 MiB file was refused on size: %v", err)
+	}
+	if err == nil || !strings.Contains(err.Error(), "changed while exporting") {
+		t.Fatalf("expected the file to reach the read stage, got %v", err)
+	}
+}
+
+func TestUploadRejectsAnOversizedGitattributes(t *testing.T) {
+	fake := newFakeGitHub(t)
+
+	// .gitattributes declares the LFS tracking, so it can never be a pointer and
+	// is always buffered. It gets its own ceiling rather than the LFS one.
+	file := FileToUpload{
+		Path: ".gitattributes",
+		Size: maxGitattributesBytes + 1,
+		Open: func() (io.ReadCloser, error) {
+			t.Error("content was opened for a file that should have been refused")
+			return nil, errors.New("unreachable")
+		},
+	}
+
+	err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{file})
+	if !errors.Is(err, filelimit.ErrFileTooLarge) {
+		t.Fatalf("expected an oversized .gitattributes to be refused, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "1.0 MiB") {
+		t.Fatalf("expected the .gitattributes ceiling in the error, got %v", err)
+	}
+	if fake.commits != 0 {
+		t.Fatalf("expected no commit, got %d", fake.commits)
+	}
+}
+
 func TestUploadRejectsFilesThatChangeSizeWhileExporting(t *testing.T) {
 	fake := newFakeGitHub(t)
 
@@ -584,6 +651,42 @@ func TestDownloadRepoFailsWhenPointerCannotBeResolved(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "big.bin") {
 		t.Fatalf("expected the error to name the path, got %v", err)
+	}
+}
+
+// The import path buffers each file, so a pointer declaring more than it can
+// hold has to be refused on the strength of the pointer alone. Fetching it first
+// is what exhausts memory.
+func TestDownloadRepoRefusesPointersTooLargeToBuffer(t *testing.T) {
+	fake := newFakeGitHub(t)
+	oversized := filelimit.MaxBufferedFileBytes + 1
+	pointer := gitlfs.FormatPointer(strings.Repeat("a", 64), oversized)
+
+	fake.zipball = buildZipball(t, map[string][]byte{"repo-main/huge.bin": pointer})
+
+	iter, err := DownloadRepo(context.Background(), DownloadOptions{
+		Owner:       "o",
+		Repo:        "r",
+		Ref:         "main",
+		Token:       "token",
+		BaseURL:     fake.server.URL,
+		LFSEndpoint: fake.server.URL + "/info/lfs",
+	})
+	if err != nil {
+		t.Fatalf("download repo: %v", err)
+	}
+	defer iter.Close()
+
+	for {
+		if _, ok := iter.Next(); !ok {
+			break
+		}
+	}
+
+	// The object was never registered with the fake, so any attempt to fetch it
+	// would have surfaced as a transfer error instead of the sentinel.
+	if err := iter.Err(); !errors.Is(err, filelimit.ErrFileTooLarge) {
+		t.Fatalf("expected the pointer to be refused on its declared size, got %v", err)
 	}
 }
 

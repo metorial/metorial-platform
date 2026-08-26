@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
+
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -95,6 +97,12 @@ func PrepareDataCenterRepo(
 			relativePath, err := filepath.Rel(root, filePath)
 			if err != nil {
 				return err
+			}
+			if info.Size() > filelimit.MaxBufferedFileBytes {
+				return filelimit.FileTooLargeError(
+					"Bitbucket", filepath.ToSlash(relativePath),
+					info.Size(), filelimit.MaxBufferedFileBytes,
+				)
 			}
 			content, err := os.ReadFile(filePath)
 			if err != nil {

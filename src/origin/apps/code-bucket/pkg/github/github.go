@@ -9,12 +9,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"path"
 	"strings"
 	"time"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
+	"github.com/metorial/metorial/services/code-bucket/pkg/util"
 )
 
 const (
@@ -22,7 +25,9 @@ const (
 
 	DefaultLFSThresholdBytes int64 = 8 << 20
 
-	DefaultMaxFileBytes int64 = 100 << 20
+	DefaultMaxFileBytes int64 = 2 << 30
+
+	maxGitattributesBytes int64 = 1 << 20
 
 	apiTimeout      = 2 * time.Minute
 	transferTimeout = 30 * time.Minute
@@ -259,14 +264,27 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		fullPath = strings.TrimPrefix(fullPath, "/")
 
 		size := file.Size
-		if size > opts.MaxFileBytes {
-			return fmt.Errorf(
-				"file %s is %s, which exceeds the %s per-file limit for GitHub export",
-				fullPath, humanBytes(size), humanBytes(opts.MaxFileBytes),
-			)
-		}
 
 		useLFS := size >= opts.LFSThresholdBytes && fullPath != gitattributesPath
+
+		limit := opts.MaxFileBytes
+		if fullPath == gitattributesPath {
+			limit = maxGitattributesBytes
+		}
+
+		if size > limit {
+			log.Printf(
+				"[github export] rejected repo=%s/%s branch=%s path=%s size=%d limit=%d",
+				opts.Owner, opts.Repo, opts.Branch, fullPath, size, limit,
+			)
+			return filelimit.FileTooLargeError("GitHub", fullPath, size, limit)
+		}
+
+		log.Printf(
+			"[github export] file repo=%s/%s branch=%s path=%s size=%d route=%s",
+			opts.Owner, opts.Repo, opts.Branch, fullPath, size,
+			util.Ternary(useLFS, "lfs", "blob"),
+		)
 
 		var content []byte
 		var oid string
@@ -279,7 +297,7 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 			if hashedSize != size {
 				return fmt.Errorf(
 					"file %s changed while exporting: listed as %s, read %s",
-					fullPath, humanBytes(size), humanBytes(hashedSize),
+					fullPath, filelimit.HumanBytes(size), filelimit.HumanBytes(hashedSize),
 				)
 			}
 
@@ -303,9 +321,27 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		}
 
 		if useLFS {
+			started := time.Now()
+			log.Printf(
+				"[github export] lfs upload start repo=%s/%s path=%s size=%d oid=%s",
+				opts.Owner, opts.Repo, fullPath, size, oid,
+			)
+
 			if err := lfs.Upload(ctx, lfsRef, oid, size, file.Open); err != nil {
-				return fmt.Errorf("failed to upload %s (%s) to Git LFS: %w", fullPath, humanBytes(size), err)
+				log.Printf(
+					"[github export] lfs upload failed repo=%s/%s path=%s size=%d oid=%s took=%s err=%v",
+					opts.Owner, opts.Repo, fullPath, size, oid, time.Since(started), err,
+				)
+				return fmt.Errorf(
+					"failed to upload %s (%s) to Git LFS: %w",
+					fullPath, filelimit.HumanBytes(size), err,
+				)
 			}
+
+			log.Printf(
+				"[github export] lfs upload done repo=%s/%s path=%s size=%d oid=%s took=%s",
+				opts.Owner, opts.Repo, fullPath, size, oid, time.Since(started),
+			)
 		}
 
 		blobSHA, err := createBlob(ctx, repoURL, opts.Token, content)

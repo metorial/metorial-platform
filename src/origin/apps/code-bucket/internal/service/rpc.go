@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/metorial/metorial/services/code-bucket/gen/rpc"
 	"github.com/metorial/metorial/services/code-bucket/pkg/bitbucket"
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
 	"github.com/metorial/metorial/services/code-bucket/pkg/github"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlab"
@@ -20,6 +23,24 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+const maxInlineBucketContentBytes int64 = 25 << 20
+
+var errBucketTooLargeForInlineContent = errors.New("bucket content exceeds the inline response limit")
+
+type inlineContentBudget struct {
+	limit int64
+	used  int64
+}
+
+func (b *inlineContentBudget) take(size int64) error {
+	b.used += size
+	if b.used > b.limit {
+		return errBucketTooLargeForInlineContent
+	}
+
+	return nil
+}
 
 var (
 	providerHTTPStatusPattern = regexp.MustCompile(`(?i)\bstatus(?: code)?[\s:=()]+(\d{3})\b`)
@@ -57,10 +78,18 @@ func providerHTTPStatusToGRPCCode(message string) codes.Code {
 	return codes.Internal
 }
 
+func providerErrorCode(err error, message string) codes.Code {
+	if errors.Is(err, filelimit.ErrFileTooLarge) {
+		return codes.FailedPrecondition
+	}
+
+	return providerHTTPStatusToGRPCCode(message)
+}
+
 func providerExportError(provider string, err error) error {
 	message := err.Error()
 	return status.Errorf(
-		providerHTTPStatusToGRPCCode(message),
+		providerErrorCode(err, message),
 		"failed to upload to %s: %s",
 		provider,
 		sanitizeProviderError(message),
@@ -70,7 +99,7 @@ func providerExportError(provider string, err error) error {
 func providerImportError(provider string, err error) error {
 	message := err.Error()
 	return status.Errorf(
-		providerHTTPStatusToGRPCCode(message),
+		providerErrorCode(err, message),
 		"failed to download %s repository: %s",
 		provider,
 		sanitizeProviderError(message),
@@ -296,12 +325,29 @@ func (rs *RcpService) GetBucketFilesAsZipStream(req *rpc.GetBucketFilesAsZipRequ
 
 func (rs *RcpService) GetBucketFilesWithContent(ctx context.Context, req *rpc.GetBucketFilesRequest) (*rpc.GetBucketFilesWithContentResponse, error) {
 	var pbFiles []*rpc.FileContent
+	budget := inlineContentBudget{limit: maxInlineBucketContentBytes}
+
 	err := rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, req.Prefix, 0, func(batch []fs.FileContentItem) error {
 		for _, file := range batch {
+			if err := budget.take(int64(len(file.Content))); err != nil {
+				return err
+			}
+
 			pbFiles = append(pbFiles, fileContentItemToRPC(file))
 		}
 		return nil
 	})
+	if errors.Is(err, errBucketTooLargeForInlineContent) {
+		log.Printf(
+			"[code-bucket] inline content refused bucket=%s prefix=%q limit=%d",
+			req.BucketId, req.Prefix, maxInlineBucketContentBytes,
+		)
+		return nil, status.Errorf(
+			codes.FailedPrecondition,
+			"bucket %s holds more than %s of content; use GetBucketFilesWithContentStream instead",
+			req.BucketId, filelimit.HumanBytes(maxInlineBucketContentBytes),
+		)
+	}
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get files with content: %v", err)
 	}
@@ -390,6 +436,10 @@ func (rs *RcpService) CreateBucketFromGitlab(ctx context.Context, req *rpc.Creat
 }
 
 func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportBucketToGitlabRequest) (*rpc.ExportBucketToGitlabResponse, error) {
+	if err := rs.ensureBucketFitsBufferedExport(ctx, "GitLab", req.BucketId); err != nil {
+		return nil, providerExportError("GitLab", err)
+	}
+
 	if err := gitlab.UploadToRepoIter(req.ProjectId, req.Path, req.Branch, req.CommitMessage, req.Token, req.GitlabApiUrl, func(yield func(gitlab.FileToUpload) error) error {
 		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
 			for i := range batch {
@@ -438,6 +488,10 @@ func (rs *RcpService) CreateBucketFromBitbucketCloud(ctx context.Context, req *r
 }
 
 func (rs *RcpService) ExportBucketToBitbucketCloud(ctx context.Context, req *rpc.ExportBucketToBitbucketCloudRequest) (*rpc.ExportBucketToBitbucketResponse, error) {
+	if err := rs.ensureBucketFitsBufferedExport(ctx, "Bitbucket Cloud", req.BucketId); err != nil {
+		return nil, providerExportError("Bitbucket Cloud", err)
+	}
+
 	err := bitbucket.UploadToCloudRepo(
 		req.Workspace,
 		req.Repo,
@@ -491,6 +545,10 @@ func (rs *RcpService) CreateBucketFromBitbucketDataCenter(ctx context.Context, r
 }
 
 func (rs *RcpService) ExportBucketToBitbucketDataCenter(ctx context.Context, req *rpc.ExportBucketToBitbucketDataCenterRequest) (*rpc.ExportBucketToBitbucketResponse, error) {
+	if err := rs.ensureBucketFitsBufferedExport(ctx, "Bitbucket Data Center", req.BucketId); err != nil {
+		return nil, providerExportError("Bitbucket Data Center", err)
+	}
+
 	err := bitbucket.UploadToDataCenterRepo(
 		ctx,
 		req.CloneUrl,
@@ -516,6 +574,25 @@ func (rs *RcpService) ExportBucketToBitbucketDataCenter(ctx context.Context, req
 		return nil, providerExportError("Bitbucket Data Center", err)
 	}
 	return &rpc.ExportBucketToBitbucketResponse{}, nil
+}
+
+func (rs *RcpService) ensureBucketFitsBufferedExport(
+	ctx context.Context,
+	provider, bucketID string,
+) error {
+	return rs.fsm.WalkBucketFiles(ctx, bucketID, "", func(file fs.FileInfo) error {
+		if file.Size <= filelimit.MaxBufferedFileBytes {
+			return nil
+		}
+
+		log.Printf(
+			"[scm export] rejected provider=%s bucket=%s path=%s size=%d limit=%d",
+			provider, bucketID, file.Path, file.Size, filelimit.MaxBufferedFileBytes,
+		)
+		return filelimit.FileTooLargeError(
+			provider, file.Path, file.Size, filelimit.MaxBufferedFileBytes,
+		)
+	})
 }
 
 func (rs *RcpService) clearBucket(ctx context.Context, bucketID string) error {

@@ -3,7 +3,9 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
 	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 )
@@ -32,6 +34,17 @@ func (it *RepoIterator) Next() (*zipImporter.ZipFileItem, bool) {
 	pointer, isPointer := gitlfs.ParsePointer(item.Content)
 	if !isPointer {
 		return item, true
+	}
+
+	if pointer.Size > filelimit.MaxBufferedFileBytes {
+		log.Printf(
+			"[github import] rejected path=%s oid=%s size=%d limit=%d",
+			item.Path, pointer.OID, pointer.Size, filelimit.MaxBufferedFileBytes,
+		)
+		it.err = filelimit.FileTooLargeError(
+			"GitHub", item.Path, pointer.Size, filelimit.MaxBufferedFileBytes,
+		)
+		return nil, false
 	}
 
 	content, err := it.lfs.Download(it.ctx, "", pointer)

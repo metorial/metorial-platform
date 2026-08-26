@@ -121,6 +121,7 @@ export let markRepositorySyncFailed = async (syncId: string, error: unknown) => 
     errorMessage: message,
     completedAt: new Date(),
     attemptCount: { increment: 1 },
+    nextPollAt: null,
     logs: {
       push: [Date.now(), 'Repository update failed.'] satisfies RepositorySyncLogEntry
     }

@@ -327,6 +327,87 @@ func TestDownloadVerifiesDigest(t *testing.T) {
 	}
 }
 
+// downloadServer serves one object, with hooks for the ways a server can lie
+// about what it is sending.
+func downloadServer(t *testing.T, oid string, declaredSize int64, body func() []byte) *Client {
+	t.Helper()
+
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	mux.HandleFunc("/info/lfs/objects/batch", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprintf(w, `{"transfer":"basic","objects":[{"oid":%q,"size":%d,"actions":{"download":{"href":%q}}}]}`,
+			oid, declaredSize, server.URL+"/storage/"+oid)
+	})
+	mux.HandleFunc("/storage/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(body())
+	})
+
+	return NewClient(server.URL+"/info/lfs", "", "token", server.Client())
+}
+
+func TestDownloadToStreamsIntoTheWriter(t *testing.T) {
+	content := bytes.Repeat([]byte("streamed"), 1024)
+	oid := OIDFor(content)
+	client := downloadServer(t, oid, int64(len(content)), func() []byte { return content })
+
+	var got bytes.Buffer
+	err := client.DownloadTo(
+		context.Background(), "",
+		&Pointer{OID: oid, Size: int64(len(content))},
+		&got,
+	)
+	if err != nil {
+		t.Fatalf("download: %v", err)
+	}
+	if !bytes.Equal(got.Bytes(), content) {
+		t.Fatal("the writer did not receive the object")
+	}
+}
+
+func TestDownloadToRejectsADigestMismatch(t *testing.T) {
+	content := []byte("the real object")
+	oid := OIDFor(content)
+	client := downloadServer(t, oid, int64(len(content)), func() []byte {
+		return []byte("a different one")
+	})
+
+	err := client.DownloadTo(
+		context.Background(), "",
+		&Pointer{OID: oid, Size: int64(len(content))},
+		io.Discard,
+	)
+	if err == nil || !strings.Contains(err.Error(), "digest mismatch") {
+		t.Fatalf("expected a digest mismatch, got %v", err)
+	}
+}
+
+func TestDownloadToRejectsASizeMismatch(t *testing.T) {
+	content := []byte("the real object")
+	oid := OIDFor(content)
+
+	for name, body := range map[string][]byte{
+		"short": content[:4],
+		// A server sending more than it declared must not be silently truncated
+		// to the declared length and accepted.
+		"long": append(append([]byte{}, content...), " and extra"...),
+	} {
+		t.Run(name, func(t *testing.T) {
+			client := downloadServer(t, oid, int64(len(content)), func() []byte { return body })
+
+			err := client.DownloadTo(
+				context.Background(), "",
+				&Pointer{OID: oid, Size: int64(len(content))},
+				io.Discard,
+			)
+			if err == nil {
+				t.Fatal("expected the size mismatch to fail the download")
+			}
+		})
+	}
+}
+
 func TestDownloadWithoutActionsIsNotFound(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprint(w, `{"transfer":"basic","objects":[{"oid":"a","size":1}]}`)

@@ -880,6 +880,29 @@ func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, pref
 	return files, err
 }
 
+func (fsm *FileSystemManager) copyBucketFileToZip(
+	ctx context.Context,
+	zipWriter *zip.Writer,
+	bucketID, filePath string,
+) (bool, error) {
+	body, _, err := fsm.OpenBucketFile(ctx, bucketID, filePath)
+	if err != nil {
+		return true, nil
+	}
+	defer body.Close()
+
+	entry, err := zipWriter.Create(filePath)
+	if err != nil {
+		return false, fmt.Errorf("failed to create zip entry %s: %w", filePath, err)
+	}
+
+	if _, err := io.Copy(entry, body); err != nil {
+		return false, fmt.Errorf("failed to write zip entry %s: %w", filePath, err)
+	}
+
+	return false, nil
+}
+
 func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId, prefix string) (*string, *time.Time, error) {
 	tmpFile, err := os.CreateTemp("", "bucket-zip-*.zip")
 	if err != nil {
@@ -894,17 +917,7 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	zipWriter := zip.NewWriter(multiWriter)
 
 	err = fsm.WalkBucketFiles(ctx, bucketId, prefix, func(file FileInfo) error {
-		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
-		if err != nil {
-			return nil
-		}
-
-		f, err := zipWriter.Create(file.Path)
-		if err != nil {
-			return nil
-		}
-
-		_, err = f.Write(data.Content)
+		_, err := fsm.copyBucketFileToZip(ctx, zipWriter, bucketId, file.Path)
 		return err
 	})
 	if err != nil {
@@ -971,21 +984,13 @@ func (fsm *FileSystemManager) ExportBucketFilesAsZipToUpload(
 			return err
 		}
 
-		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
+		skipped, err := fsm.copyBucketFileToZip(ctx, zipWriter, bucketId, file.Path)
 		if err != nil {
-			return nil
+			return err
 		}
-
-		entry, err := zipWriter.Create(file.Path)
-		if err != nil {
-			return fmt.Errorf("failed to create zip entry %s: %w", file.Path, err)
+		if !skipped {
+			fileCount++
 		}
-
-		if _, err := entry.Write(data.Content); err != nil {
-			return fmt.Errorf("failed to write zip entry %s: %w", file.Path, err)
-		}
-
-		fileCount++
 		return nil
 	})
 	if err != nil {
@@ -1070,20 +1075,9 @@ func (fsm *FileSystemManager) StreamBucketFilesAsZip(ctx context.Context, bucket
 		default:
 		}
 
-		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
-		if err != nil {
-			return nil
-		}
-
-		f, err := zipWriter.Create(file.Path)
-		if err != nil {
+		if _, err := fsm.copyBucketFileToZip(ctx, zipWriter, bucketId, file.Path); err != nil {
 			zipWriter.Close()
-			return status.Errorf(codes.Internal, "failed to create zip entry: %v", err)
-		}
-
-		if _, err := f.Write(data.Content); err != nil {
-			zipWriter.Close()
-			return status.Errorf(codes.Internal, "failed to write zip entry: %v", err)
+			return status.Errorf(codes.Internal, "%v", err)
 		}
 		return nil
 	})

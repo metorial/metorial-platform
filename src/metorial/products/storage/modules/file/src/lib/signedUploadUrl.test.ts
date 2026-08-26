@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  base62Decode,
-  base62Encode,
   getCloudFrontUploadUrl,
   signUploadToken,
   uploadTokenPrefix,
@@ -19,22 +17,17 @@ let payload: SignedUploadTokenPayload = {
   m: ['PUT']
 };
 
-describe('base62', () => {
-  it('round-trips bytes including leading zeros', () => {
-    let bytes = Buffer.from([0, 0, 1, 255, 10]);
-    expect(Buffer.from(base62Decode(base62Encode(bytes)))).toEqual(bytes);
-  });
-
-  it('uses the 0-9A-Za-z alphabet', () => {
-    expect(base62Encode(Buffer.from('hello'))).toMatch(/^[0-9A-Za-z]+$/);
-  });
-});
-
 describe('upload tokens', () => {
   it('signs with the fup_tok_ prefix and a trailing signature', () => {
     let token = signUploadToken({ secret, payload });
     expect(token.startsWith(uploadTokenPrefix)).toBe(true);
-    expect(token.slice(uploadTokenPrefix.length).includes('_')).toBe(true);
+    expect(token.slice(uploadTokenPrefix.length).includes('.')).toBe(true);
+  });
+
+  it('does not start the payload segment with the base64url JSON tell (eyJ)', () => {
+    let token = signUploadToken({ secret, payload });
+    expect(token.startsWith('fup_tok_eyJ')).toBe(false);
+    expect(token.startsWith('fup_tok_mtupx')).toBe(true);
   });
 
   it('verifies a token it just signed', () => {

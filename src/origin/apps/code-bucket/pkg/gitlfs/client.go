@@ -15,6 +15,8 @@ import (
 
 const contentType = "application/vnd.git-lfs+json"
 
+const maxPreallocateBytes int64 = 32 << 20
+
 const DefaultUsername = "x-access-token"
 
 type Client struct {
@@ -110,47 +112,59 @@ func (c *Client) Upload(ctx context.Context, ref, oid string, size int64, open C
 	return c.verifyObject(ctx, obj.Actions.Verify, oid, size)
 }
 
-func (c *Client) Download(ctx context.Context, ref string, pointer *Pointer) ([]byte, error) {
+func (c *Client) DownloadTo(ctx context.Context, ref string, pointer *Pointer, w io.Writer) error {
 	obj, err := c.batchOne(ctx, "download", ref, pointer.OID, pointer.Size)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if obj.Actions == nil || obj.Actions.Download == nil {
-		return nil, fmt.Errorf("Git LFS server returned no download action for object %s: %w", pointer.OID, ErrObjectNotFound)
+		return fmt.Errorf("Git LFS server returned no download action for object %s: %w", pointer.OID, ErrObjectNotFound)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, obj.Actions.Download.Href, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	applyActionHeaders(req, obj.Actions.Download.Header)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Git LFS download for object %s: %w", pointer.OID, err)
+		return fmt.Errorf("Git LFS download for object %s: %w", pointer.OID, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return nil, newError("Git LFS download", obj.Actions.Download.Href, resp.StatusCode, string(body))
+		return newError("Git LFS download", obj.Actions.Download.Href, resp.StatusCode, string(body))
 	}
 
-	content, err := io.ReadAll(io.LimitReader(resp.Body, pointer.Size+1))
+	digest := sha256.New()
+	written, err := io.Copy(io.MultiWriter(w, digest), io.LimitReader(resp.Body, pointer.Size+1))
 	if err != nil {
-		return nil, fmt.Errorf("Git LFS download for object %s: %w", pointer.OID, err)
+		return fmt.Errorf("Git LFS download for object %s: %w", pointer.OID, err)
 	}
-	if int64(len(content)) != pointer.Size {
-		return nil, fmt.Errorf("Git LFS object %s: expected %d bytes, got %d", pointer.OID, pointer.Size, len(content))
+	if written != pointer.Size {
+		return fmt.Errorf("Git LFS object %s: expected %d bytes, got %d", pointer.OID, pointer.Size, written)
 	}
-
-	sum := sha256.Sum256(content)
-	if got := hex.EncodeToString(sum[:]); got != pointer.OID {
-		return nil, fmt.Errorf("Git LFS object %s: content digest mismatch (got %s)", pointer.OID, got)
+	if got := hex.EncodeToString(digest.Sum(nil)); got != pointer.OID {
+		return fmt.Errorf("Git LFS object %s: content digest mismatch (got %s)", pointer.OID, got)
 	}
 
-	return content, nil
+	return nil
+}
+
+func (c *Client) Download(ctx context.Context, ref string, pointer *Pointer) ([]byte, error) {
+	var buf bytes.Buffer
+	if pointer.Size > 0 && pointer.Size <= maxPreallocateBytes {
+		buf.Grow(int(pointer.Size))
+	}
+
+	if err := c.DownloadTo(ctx, ref, pointer, &buf); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func (c *Client) batchOne(ctx context.Context, operation, ref, oid string, size int64) (*batchObject, error) {
