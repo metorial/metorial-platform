@@ -327,13 +327,6 @@ func (rs *RcpService) GetBucketFilesWithContentStream(req *rpc.GetBucketFilesReq
 	return nil
 }
 
-// releaseBatchItem hands a batch entry to the caller and drops the batch's own
-// reference to its content.
-//
-// Without this the batch pins every file it holds until the whole batch has been
-// uploaded. Dropping the reference as each file is handed over means the peak is
-// one file rather than one batch, which matters because the batch accumulator
-// admits a single oversized file on its own.
 func releaseBatchItem(batch []fs.FileContentItem, i int) fs.FileContentItem {
 	item := batch[i]
 	batch[i].Content = nil
@@ -362,9 +355,6 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 		Token:         req.Token,
 	}
 
-	// The walk yields paths and sizes only. Content is opened lazily by the
-	// exporter, which streams anything large enough to go to LFS, so a big file
-	// is never held in this process.
 	if err := github.UploadToRepoIter(ctx, opts, func(yield func(github.FileToUpload) error) error {
 		return rs.fsm.WalkBucketFiles(ctx, req.BucketId, "", func(file fs.FileInfo) error {
 			path := file.Path
@@ -662,8 +652,6 @@ func (rs *RcpService) PruneBucketPath(ctx context.Context, req *rpc.PruneBucketP
 		return nil, status.Errorf(codes.InvalidArgument, "bucket_id is required")
 	}
 
-	// A prune always follows a set of writes. An empty keep set therefore means
-	// the caller is broken, and honouring it would wipe the whole subtree.
 	if len(req.KeepPaths) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "keep_paths must not be empty")
 	}

@@ -48,32 +48,14 @@ export interface MarketplaceSerializerInput {
 export interface SerializerContext {
   setFile: (path: string, content: string | Buffer | ArrayBuffer) => Promise<void>;
 
-  /**
-   * Writes a path from a file that already lives in object storage.
-   *
-   * Prefer this over reading the file and calling `setFile`: stored files are
-   * immutable, so an unchanged path is detected from the file's identity alone,
-   * and a changed one is copied storage-side rather than passing through this
-   * process. Content that has not been flushed to object storage yet is handled
-   * transparently, and is small by construction.
-   */
   setFileFromStorage: (path: string, file: StorageBackedFile) => Promise<void>;
 
   deletePath: (path: string) => Promise<void>;
   setBasePath: (path: string | undefined) => void;
 }
 
-export type StorageBackedFile = Pick<
-  MetorialFile,
-  'oid' | 'status' | 'storeId' | 'fileSize'
->;
+export type StorageBackedFile = Pick<MetorialFile, 'oid' | 'status' | 'storeId' | 'fileSize'>;
 
-/**
- * The subtree a serializer owns. After it runs, anything under `prefix` that it
- * did not write is stale and gets removed, except under `excludePrefixes`,
- * which are owned by a different serializer. Both are relative to the bucket
- * root; `excludePrefixes` are relative to `prefix`.
- */
 export interface PruneScope {
   prefix: string;
   excludePrefixes: string[];

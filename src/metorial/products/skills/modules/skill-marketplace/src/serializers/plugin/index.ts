@@ -81,9 +81,6 @@ export let applyPlugin = createApplicator(
       ].join(':')
     );
 
-    // Hash only values that affect generated files. In particular, exclude
-    // updatedAt and the generated version to make repository round-trips
-    // idempotent.
     let hash = await Hash.sha256(
       canonicalize({
         serializerVersion: 2,
@@ -138,8 +135,6 @@ export let applyPlugin = createApplicator(
           data: {
             versionHash: hash,
             version: nextVersion,
-
-            // Force updatedAt not to change
             updatedAt: input.skillPlugin.updatedAt
           }
         });
@@ -227,8 +222,6 @@ export let applyPlugin = createApplicator(
       });
       await context.setFile('.codex-plugin/plugin.json', codexPlugin);
 
-      // Standalone plugins are a single-plugin marketplace, so we still need to
-      // create the marketplace files for them.
       if (!input.skillMarketplace) {
         let codexMarketplace = json({
           name: baseInfo.name,

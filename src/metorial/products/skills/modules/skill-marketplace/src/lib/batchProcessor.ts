@@ -1,12 +1,5 @@
 type BatchProcessorFn<T> = (batch: T[]) => void | Promise<void>;
 
-/**
- * An optional ceiling on the bytes held in one batch.
- *
- * A count alone does not bound memory when items vary in size, so callers that
- * carry content can cap the batch by weight as well. An item larger than the
- * budget still goes out, alone, rather than being rejected.
- */
 type BatchByteBudget<T> = {
   maxBytes: number;
   getBytes: (item: T) => number;
@@ -26,8 +19,6 @@ export class BatchProcessor<T> {
 
     let bytes = this.byteBudget?.getBytes(data) ?? 0;
 
-    // Flush before adding, so a batch never exceeds the budget except when a
-    // single item does.
     if (
       this.byteBudget &&
       this.batch.length > 0 &&

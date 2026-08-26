@@ -70,9 +70,6 @@ export let applyMarketplace = createApplicator(
       ].join(':')
     );
 
-    // Hash only values that affect generated files. Timestamps and the generated
-    // version are deliberately excluded so importing our own version-only commit
-    // cannot schedule another version-only sync.
     let hash = await Hash.sha256(
       canonicalize({
         serializerVersion: 2,
@@ -119,8 +116,6 @@ export let applyMarketplace = createApplicator(
           data: {
             versionHash: hash,
             version: nextVersion,
-
-            // Force updatedAt not to change
             updatedAt: input.skillMarketplace.updatedAt
           }
         });

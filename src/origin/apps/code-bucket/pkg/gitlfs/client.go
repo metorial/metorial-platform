@@ -15,12 +15,8 @@ import (
 
 const contentType = "application/vnd.git-lfs+json"
 
-// DefaultUsername is what GitHub expects in the Basic auth user field when the
-// password is an access token. The server ignores it for classic tokens.
 const DefaultUsername = "x-access-token"
 
-// Client talks the Git LFS Batch API over HTTP. It is provider-neutral: the
-// batch protocol is a spec, not a GitHub feature.
 type Client struct {
 	endpoint string
 	username string
@@ -28,8 +24,6 @@ type Client struct {
 	http     *http.Client
 }
 
-// NewClient builds a client for an LFS server root such as
-// https://github.com/owner/repo.git/info/lfs.
 func NewClient(endpoint, username, token string, httpClient *http.Client) *Client {
 	if username == "" {
 		username = DefaultUsername
@@ -88,34 +82,20 @@ type batchResponse struct {
 	Objects  []batchObject `json:"objects"`
 }
 
-// ContentOpener returns a fresh reader over an object's content.
-//
-// It is an opener rather than a reader because the content may have to be read
-// more than once — the batch protocol needs the digest before it will hand out
-// an upload URL — and because streaming it twice still costs less memory than
-// holding a large object once.
 type ContentOpener func() (io.ReadCloser, error)
 
-// OpenerForBytes adapts content that is already in memory, for callers whose
-// files are small enough that streaming them would be pointless.
 func OpenerForBytes(content []byte) ContentOpener {
 	return func() (io.ReadCloser, error) {
 		return io.NopCloser(bytes.NewReader(content)), nil
 	}
 }
 
-// Upload stores content on the LFS server. It is a no-op when the server
-// already holds the object, which is how LFS deduplicates across commits.
-//
-// Content is streamed from the opener, so peak memory does not scale with the
-// object's size.
 func (c *Client) Upload(ctx context.Context, ref, oid string, size int64, open ContentOpener) error {
 	obj, err := c.batchOne(ctx, "upload", ref, oid, size)
 	if err != nil {
 		return err
 	}
 
-	// An object without actions is one the server already has.
 	if obj.Actions == nil || obj.Actions.Upload == nil {
 		return nil
 	}
@@ -130,8 +110,6 @@ func (c *Client) Upload(ctx context.Context, ref, oid string, size int64, open C
 	return c.verifyObject(ctx, obj.Actions.Verify, oid, size)
 }
 
-// Download fetches the content a pointer refers to, checking the returned bytes
-// against the pointer's size and digest.
 func (c *Client) Download(ctx context.Context, ref string, pointer *Pointer) ([]byte, error) {
 	obj, err := c.batchOne(ctx, "download", ref, pointer.OID, pointer.Size)
 	if err != nil {
@@ -159,7 +137,6 @@ func (c *Client) Download(ctx context.Context, ref string, pointer *Pointer) ([]
 		return nil, newError("Git LFS download", obj.Actions.Download.Href, resp.StatusCode, string(body))
 	}
 
-	// One extra byte so an oversized body is detected rather than silently cut.
 	content, err := io.ReadAll(io.LimitReader(resp.Body, pointer.Size+1))
 	if err != nil {
 		return nil, fmt.Errorf("Git LFS download for object %s: %w", pointer.OID, err)
@@ -247,11 +224,7 @@ func (c *Client) putObject(ctx context.Context, action *batchAction, size int64,
 	if err != nil {
 		return err
 	}
-	// Set explicitly: the body is an opaque reader, so without this Go would
-	// send it chunked, which presigned storage URLs reject.
 	req.ContentLength = size
-	// Only the headers the server handed back may be sent: presigned storage
-	// URLs sign a specific header set, and extras invalidate the signature.
 	applyActionHeaders(req, action.Header)
 
 	resp, err := c.http.Do(req)

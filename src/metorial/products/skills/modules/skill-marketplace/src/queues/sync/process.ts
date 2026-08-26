@@ -152,8 +152,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       path: normalized
     });
 
-    // Signatures for content that no longer exists would make a later sync skip
-    // rewriting it.
     await db.skillDestinationFile.deleteMany({
       where: {
         destinationOid: sync.destinationOid,
@@ -162,17 +160,12 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     });
   };
 
-  // Removes everything in the serializer's scope that this run did not want.
-  // The keep set covers skipped paths too, so an unchanged file that was
-  // deliberately not rewritten is not mistaken for a stale one.
   let pruneStaleFiles = async (): Promise<string[]> => {
     let scope = pruneScopeRef.current;
     if (!scope) return [];
 
     let keepPaths = manifest.keepPaths();
 
-    // The RPC rejects an empty keep set, and rightly so: a serializer that
-    // wrote nothing gives us no evidence its subtree should be emptied.
     if (keepPaths.length === 0) return [];
 
     let { deletedPaths } = await codeBucketClient.pruneBucketPath({
@@ -221,7 +214,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     }
   );
 
-  // Copies carry only identifiers, so they batch by count alone.
   let copyProcessor = new BatchProcessor<{
     path: string;
     sourceBucket: string;
@@ -243,9 +235,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
   };
 
   let resolvePath = (inPath: string) =>
-    normalizeBucketPath(
-      basePathRef.current ? path.join(basePathRef.current, inPath) : inPath
-    );
+    normalizeBucketPath(basePathRef.current ? path.join(basePathRef.current, inPath) : inPath);
 
   let context: SerializerContext = {
     async setFile(inPath: string, content: string | Buffer | ArrayBuffer) {
@@ -264,8 +254,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     async setFileFromStorage(inPath: string, file: StorageBackedFile) {
       let resultPath = resolvePath(inPath);
 
-      // Stored files are immutable, so identity is enough to tell whether this
-      // path is already correct -- no read, no transfer, whatever the size.
       let { shouldWrite } = manifest.register(resultPath, signatureForStoredFile(file.oid));
       if (!shouldWrite) {
         skippedPathCount++;

@@ -130,10 +130,6 @@ message GetBucketFilesAsZipChunk {
   bytes content = 1;
 }
 
-// Builds the archive and uploads it directly to the caller's destination, so
-// the archive bytes never travel through the caller. Exactly one destination
-// must be set: a presigned PUT url, or an object-store bucket and key for
-// backends that cannot presign.
 message ExportBucketFilesAsZipToUploadRequest {
   string bucket_id = 1;
   string prefix = 2; // Optional filter
@@ -165,8 +161,6 @@ message SetBucketFileRequest {
 
 message SetBucketFileResponse {}
 
-// Copies objects straight from object storage into the bucket. The caller only
-// ever names the source, so file bytes never pass through it.
 message CopyBucketFileSource {
   string path = 1;
   string source_bucket = 2;

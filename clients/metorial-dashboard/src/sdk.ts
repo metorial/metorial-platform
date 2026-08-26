@@ -631,7 +631,10 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         return json;
       };
 
-      let postFiles = async (body: FormData | string, onProgress?: typeof input.onProgress) => {
+      let postFiles = async (
+        body: FormData | string,
+        onProgress?: typeof input.onProgress
+      ) => {
         let res =
           typeof body != 'string' && onProgress
             ? await sendWithUploadProgress({
@@ -747,8 +750,6 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
           return mapDashboardInstanceFilesGetOutput.transformFrom(json);
         } catch (error) {
-          // A rejection from the API is deterministic, so only transport failures are
-          // worth re-uploading the file for.
           if (!(error instanceof MetorialSDKError) && attempt < 2) {
             console.warn('File upload failed, retrying...', error);
             attempt++;

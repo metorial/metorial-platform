@@ -26,21 +26,14 @@ import (
 )
 
 const (
-	redisFlushDelay    = 5 * time.Minute
-	zipExpiration      = 3 * 24 * time.Hour
-	maxRedisCacheSize  = 1 * 1024 * 1024
-	maxFileBatchSize   = 8 * 1024 * 1024
-	zipStreamChunkSize = 64 * 1024
-	deleteBatchSize    = 1000
-	// Copies are metadata operations in object storage, so the only cost is the
-	// round trip. Nothing is buffered, so this bound is about the store, not memory.
-	copyConcurrency = 16
-	// A clone batch only carries paths, so this bounds the walk's bookkeeping
-	// rather than any content.
-	cloneBatchSize = 500
-	// Ceiling on the zip content held in flight during an import. Entries are
-	// decompressed into memory, so admitting by size rather than by count keeps a
-	// zip of large entries from being far more expensive than one of small ones.
+	redisFlushDelay              = 5 * time.Minute
+	zipExpiration                = 3 * 24 * time.Hour
+	maxRedisCacheSize            = 1 * 1024 * 1024
+	maxFileBatchSize             = 8 * 1024 * 1024
+	zipStreamChunkSize           = 64 * 1024
+	deleteBatchSize              = 1000
+	copyConcurrency              = 16
+	cloneBatchSize               = 500
 	maxImportBytesInFlight int64 = 32 * 1024 * 1024
 )
 
@@ -98,8 +91,6 @@ type FileContentsBase struct {
 	Content []byte `json:"content"`
 }
 
-// CopyFileSource names an object to copy into a bucket. It carries no content,
-// which is the whole point: callers move files without reading them.
 type CopyFileSource struct {
 	Path         string
 	SourceBucket string
@@ -246,10 +237,6 @@ func pathMatchesPrefix(filePath, prefix string) bool {
 	return strings.HasPrefix(normalizedPath, normalizedPrefix)
 }
 
-// pathWithinPrefix reports whether filePath is prefix itself or lives beneath
-// it. Unlike pathMatchesPrefix it only matches on directory boundaries, so
-// "skills/foo" does not also capture "skills/foobar". Deletions use this;
-// listings keep the looser prefix semantics.
 func pathWithinPrefix(filePath, prefix string) bool {
 	normalizedPrefix := strings.TrimSuffix(normalizeSeenPath(prefix), "/")
 	if normalizedPrefix == "" {
@@ -442,9 +429,6 @@ func (fsm *FileSystemManager) WalkBucketFileContentBatches(ctx context.Context, 
 	return accumulator.Flush()
 }
 
-// getRedisFile returns a file still buffered in Redis, before it has been
-// flushed to object storage. Only files under maxRedisCacheSize are ever kept
-// there, so this never holds a large object.
 func (fsm *FileSystemManager) getRedisFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, bool) {
 	result, err := fsm.redis.Get(ctx, redisFileKey(bucketID, filePath)).Result()
 	if err != nil {
@@ -468,13 +452,6 @@ func (fsm *FileSystemManager) getRedisFile(ctx context.Context, bucketID, filePa
 	}, &fileData, true
 }
 
-// OpenBucketFile returns a reader over a file's content instead of its bytes,
-// so the caller's memory use does not scale with the file's size. The caller
-// owns the reader and must close it.
-//
-// GetBucketFile is still the right choice for files that are small and needed
-// in memory anyway; this is for large files and for content being forwarded
-// somewhere else.
 func (fsm *FileSystemManager) OpenBucketFile(ctx context.Context, bucketID, filePath string) (io.ReadCloser, *FileInfo, error) {
 	filePath = canonicalFilePath(filePath)
 
@@ -601,9 +578,6 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 	return nil
 }
 
-// deleteRedisFileKeys drops the buffered copy of a single file along with its
-// pending-flush marker. Both the canonical and the legacy unprefixed key shapes
-// are removed so a stale buffer can never shadow object storage.
 func (fsm *FileSystemManager) deleteRedisFileKeys(ctx context.Context, bucketID, filePath string) {
 	fsm.redis.Del(ctx,
 		redisFileKey(bucketID, filePath),
@@ -613,10 +587,6 @@ func (fsm *FileSystemManager) deleteRedisFileKeys(ctx context.Context, bucketID,
 	)
 }
 
-// CopyBucketFiles writes files into the bucket by copying them inside object
-// storage. Nothing here ever holds file contents, so callers can move arbitrarily
-// large files by naming them. Copied files always bypass the Redis tier, matching
-// how PutBucketFile treats anything above maxRedisCacheSize.
 func (fsm *FileSystemManager) CopyBucketFiles(ctx context.Context, bucketID string, files []CopyFileSource) ([]string, error) {
 	if len(files) == 0 {
 		return []string{}, nil
@@ -692,8 +662,6 @@ func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, fi
 	return fsm.objectStorage.DeleteObject(fsm.bucketName, objectStorageKey(bucketID, filePath))
 }
 
-// deleteRedisKeysUnderPrefix removes the buffered copies of every file at or
-// beneath filePath, along with their pending-flush markers.
 func (fsm *FileSystemManager) deleteRedisKeysUnderPrefix(ctx context.Context, bucketID, filePath string) error {
 	redisPrefix := fmt.Sprintf("bucket:%s:file:", bucketID)
 	keys := make([]string, 0)
@@ -702,8 +670,6 @@ func (fsm *FileSystemManager) deleteRedisKeysUnderPrefix(ctx context.Context, bu
 	for iter.Next(ctx) {
 		key := iter.Val()
 
-		// Older writes stored the path without a leading slash, so compare
-		// normalized on both sides.
 		if !pathWithinPrefix(strings.TrimPrefix(key, redisPrefix), filePath) {
 			continue
 		}
@@ -728,9 +694,6 @@ func (fsm *FileSystemManager) deleteRedisKeysUnderPrefix(ctx context.Context, bu
 	return nil
 }
 
-// listObjectKeysUnderPrefix returns the object-storage keys at or beneath
-// filePath. The listing prefix is not anchored on a directory boundary, so the
-// results are filtered afterwards.
 func (fsm *FileSystemManager) listObjectKeysUnderPrefix(bucketID, filePath string) ([]string, error) {
 	objectPrefix := objectStorageKey(bucketID, filePath)
 
@@ -794,7 +757,6 @@ func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, fi
 	return fsm.deleteObjectKeys(objectKeys)
 }
 
-// prunePlan decides which files inside a prune scope are stale.
 type prunePlan struct {
 	prefix          string
 	keep            map[string]struct{}
@@ -820,7 +782,6 @@ func (p prunePlan) shouldDelete(filePath string) bool {
 		return false
 	}
 
-	// Excluded subtrees belong to another writer, which prunes them itself.
 	for _, excluded := range p.excludePrefixes {
 		if pathWithinPrefix(normalized, excluded) {
 			return false
@@ -830,11 +791,6 @@ func (p prunePlan) shouldDelete(filePath string) bool {
 	return true
 }
 
-// PruneBucketPath deletes every file under prefix except those in keepPaths and
-// those beneath one of excludePrefixes. Returns the paths it removed.
-//
-// Callers own the subtree they prune, minus the excluded ones. An empty
-// keepPaths is rejected by the RPC layer, since a prune always follows writes.
 func (fsm *FileSystemManager) PruneBucketPath(
 	ctx context.Context,
 	bucketID string,
@@ -898,8 +854,6 @@ func (fsm *FileSystemManager) PruneBucketPath(
 	return dedupePaths(deletedPaths), nil
 }
 
-// A file buffered in Redis that has already been flushed shows up in both
-// listings.
 func dedupePaths(paths []string) []string {
 	seen := make(map[string]struct{}, len(paths))
 	unique := make([]string, 0, len(paths))
@@ -982,8 +936,6 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	return &url, &expiresAt, nil
 }
 
-// ZipUploadDestination says where a generated archive should be written.
-// Exactly one of URL or Bucket/Key is set.
 type ZipUploadDestination struct {
 	URL         string
 	Bucket      string
@@ -997,12 +949,6 @@ type ZipUploadResult struct {
 	FileCount int64
 }
 
-// ExportBucketFilesAsZipToUpload builds the archive and PUTs it to the caller's
-// destination, so the archive never passes through the caller.
-//
-// The archive is spooled to a temp file rather than streamed: a presigned PUT
-// needs a known Content-Length, and the signature does not cover chunked
-// encoding. Fargate provides 20GB of ephemeral storage by default.
 func (fsm *FileSystemManager) ExportBucketFilesAsZipToUpload(
 	ctx context.Context,
 	bucketId, prefix string,
@@ -1027,8 +973,6 @@ func (fsm *FileSystemManager) ExportBucketFilesAsZipToUpload(
 
 		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
 		if err != nil {
-			// Matches the other zip paths: a file that vanished mid-walk is
-			// skipped rather than failing the whole export.
 			return nil
 		}
 
@@ -1083,8 +1027,6 @@ func (fsm *FileSystemManager) ExportBucketFilesAsZipToUpload(
 	}, nil
 }
 
-// putSignedURLFromReader streams a body to a presigned PUT url. ContentLength is
-// set explicitly because presigned signatures do not cover chunked encoding.
 func (fsm *FileSystemManager) putSignedURLFromReader(
 	ctx context.Context,
 	url string,
@@ -1164,9 +1106,6 @@ func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBuck
 		return ctx.Err()
 	}
 
-	// Both buckets are logical prefixes in the same physical bucket, so this is a
-	// server-side copy: content is never read into this process, and a bucket of
-	// large assets costs the same memory as a bucket of small ones.
 	batch := make([]CopyFileSource, 0, cloneBatchSize)
 
 	flush := func() error {
@@ -1210,8 +1149,6 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 		return ctx.Err()
 	}
 
-	// Admission is by bytes rather than by job count: fifteen concurrent 100MB
-	// entries would be 1.5GB in flight, while fifteen small ones are nothing.
 	admission := newByteAdmission(maxImportBytesInFlight)
 
 	var (
@@ -1262,10 +1199,6 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 	return firstErr
 }
 
-// byteAdmission bounds the total size of the work in flight.
-//
-// An item larger than the whole budget is admitted alone rather than deadlocking,
-// which matches how the batch accumulator treats an oversized file.
 type byteAdmission struct {
 	mu        sync.Mutex
 	cond      *sync.Cond

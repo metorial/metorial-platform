@@ -374,9 +374,6 @@ class SkillExportServiceImpl {
     let purpose = await this.ensureExportFilePurpose();
     let expiresAt = getExportExpiresAt();
 
-    // The archive is written straight from code-bucket into object storage. It
-    // never passes through this worker, so export size is bounded by
-    // code-bucket's disk rather than by this process's heap.
     let { storeId, destination } = await fileService.createPendingUploadForStream();
 
     await codeBucketClient.exportBucketFilesAsZipToUpload({

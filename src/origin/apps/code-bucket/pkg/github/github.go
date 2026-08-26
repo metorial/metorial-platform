@@ -18,23 +18,10 @@ import (
 )
 
 const (
-	// DefaultBaseURL is the REST API root for github.com.
 	DefaultBaseURL = "https://api.github.com"
 
-	// DefaultLFSThresholdBytes is the size at which a file is routed through Git
-	// LFS instead of the blobs API. The blobs API takes base64 inside a JSON body
-	// and starts answering 422 "input was too large to process" well below its
-	// documented 100MB ceiling.
-	//
-	// The threshold is well under that ceiling because the blobs API is also the
-	// expensive path for memory: a file is held raw, then base64-encoded at 4/3
-	// the size, then copied again into the JSON body, so the peak is roughly
-	// three times the file. LFS uploads the raw bytes once instead.
 	DefaultLFSThresholdBytes int64 = 8 << 20
 
-	// DefaultMaxFileBytes is the largest single file the exporter accepts. File
-	// contents are held fully in memory, so this has to stay within the service
-	// memory limit.
 	DefaultMaxFileBytes int64 = 100 << 20
 
 	apiTimeout      = 2 * time.Minute
@@ -46,8 +33,6 @@ var (
 	transferClient = &http.Client{Timeout: transferTimeout}
 )
 
-// DefaultLFSEndpoint returns the Git LFS server for a github.com repository.
-// Note that LFS lives on github.com, not on api.github.com.
 func DefaultLFSEndpoint(owner, repo string) string {
 	return fmt.Sprintf("https://github.com/%s/%s.git/info/lfs", owner, repo)
 }
@@ -60,15 +45,11 @@ type UploadOptions struct {
 	CommitMessage string
 	Token         string
 
-	// BaseURL overrides the REST API root. Empty means github.com.
-	BaseURL string
-	// LFSEndpoint overrides the Git LFS server. Empty derives it from the repo.
+	BaseURL     string
 	LFSEndpoint string
 
-	// LFSThresholdBytes routes files of at least this size through Git LFS.
 	LFSThresholdBytes int64
-	// MaxFileBytes rejects files larger than this outright.
-	MaxFileBytes int64
+	MaxFileBytes      int64
 }
 
 func (o UploadOptions) withDefaults() UploadOptions {
@@ -99,9 +80,7 @@ type DownloadOptions struct {
 	Ref   string
 	Token string
 
-	// BaseURL overrides the REST API root. Empty means github.com.
-	BaseURL string
-	// LFSEndpoint overrides the Git LFS server. Empty derives it from the repo.
+	BaseURL     string
 	LFSEndpoint string
 }
 
@@ -121,19 +100,12 @@ func normalizeBaseURL(baseURL string) string {
 	return strings.TrimSuffix(baseURL, "/")
 }
 
-// FileToUpload is one file in an export.
-//
-// Content is described by a size and an opener rather than carried as bytes, so
-// a file large enough to go through LFS is streamed and never held whole. Open
-// may be called more than once for the same file.
 type FileToUpload struct {
 	Path string
 	Size int64
 	Open gitlfs.ContentOpener
 }
 
-// ContentFile builds an upload entry from bytes already in memory, for callers
-// whose files are small enough that streaming them would be pointless.
 func ContentFile(path string, content []byte) FileToUpload {
 	return FileToUpload{
 		Path: path,
@@ -210,8 +182,6 @@ type githubUpdateRefRequest struct {
 	Force bool   `json:"force"`
 }
 
-// openAndRead buffers a file's content. Callers must have established that the
-// file is small enough for that to be safe.
 func openAndRead(file FileToUpload) ([]byte, error) {
 	body, err := file.Open()
 	if err != nil {
@@ -222,8 +192,6 @@ func openAndRead(file FileToUpload) ([]byte, error) {
 	return io.ReadAll(body)
 }
 
-// openAndHash streams a file to compute its LFS object id and size without
-// buffering it.
 func openAndHash(file FileToUpload) (string, int64, error) {
 	body, err := file.Open()
 	if err != nil {
@@ -287,13 +255,9 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 			return err
 		}
 
-		// Normalize the path by joining targetPath with file.Path
 		fullPath := path.Join(opts.TargetPath, file.Path)
-		// Clean up any double slashes or leading slashes
 		fullPath = strings.TrimPrefix(fullPath, "/")
 
-		// Checked before anything is read: the size comes from the listing, so
-		// an oversized file is rejected without ever being fetched.
 		size := file.Size
 		if size > opts.MaxFileBytes {
 			return fmt.Errorf(
@@ -302,21 +266,12 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 			)
 		}
 
-		// Above the threshold the content goes to LFS storage and only a ~130
-		// byte pointer is committed, keeping the oversized payload away from the
-		// blobs API, which answers 422 for bodies this large.
-		//
-		// .gitattributes is what declares the LFS tracking in the first place,
-		// so it is committed as real content whatever its size.
 		useLFS := size >= opts.LFSThresholdBytes && fullPath != gitattributesPath
 
 		var content []byte
 		var oid string
 
 		if useLFS {
-			// Hashing streams the file rather than buffering it. That means
-			// reading it twice for an upload, which is the trade for never
-			// holding a large object in memory.
 			hashed, hashedSize, err := openAndHash(file)
 			if err != nil {
 				return fmt.Errorf("failed to read %s: %w", fullPath, err)
@@ -332,8 +287,6 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 			content = gitlfs.FormatPointer(oid, size)
 			lfsPaths = append(lfsPaths, fullPath)
 		} else {
-			// Below the LFS threshold the blobs API needs the bytes anyway, and
-			// the threshold is what bounds this read.
 			var err error
 			content, err = openAndRead(file)
 			if err != nil {
@@ -345,9 +298,6 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 			exportedAttributes = content
 		}
 
-		// Dedupe against what the branch already has. For LFS files this compares
-		// pointer against pointer; comparing raw content would re-upload every
-		// large file on every export.
 		if existingBlobShas[fullPath] == gitBlobSHA(content) {
 			return nil
 		}

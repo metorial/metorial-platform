@@ -6,27 +6,13 @@ import (
 	"net/http"
 )
 
-// Git LFS failures that callers need to distinguish from a generic transport
-// error, because the operator action differs for each.
 var (
-	// ErrForbidden covers a server that refuses the operation outright: LFS
-	// disabled on the repository, or a token without write access.
-	ErrForbidden = errors.New("Git LFS refused the request; the repository may have LFS disabled or the token may lack write access")
-
-	// ErrQuotaExceeded covers exhausted LFS storage or bandwidth, which GitHub
-	// reports as 429 rather than a dedicated status.
-	ErrQuotaExceeded = errors.New("Git LFS quota exceeded or rate limited; check the account's LFS storage and bandwidth allowance")
-
-	// ErrUnauthorized covers a missing or rejected credential.
-	ErrUnauthorized = errors.New("Git LFS rejected the credentials")
-
-	// ErrObjectNotFound is returned when a download references an object the
-	// server does not hold.
+	ErrForbidden      = errors.New("Git LFS refused the request; the repository may have LFS disabled or the token may lack write access")
+	ErrQuotaExceeded  = errors.New("Git LFS quota exceeded or rate limited; check the account's LFS storage and bandwidth allowance")
+	ErrUnauthorized   = errors.New("Git LFS rejected the credentials")
 	ErrObjectNotFound = errors.New("Git LFS object not found on the server")
 )
 
-// Error carries the HTTP context of a failed Git LFS call alongside a sentinel
-// that callers can match with errors.Is.
 type Error struct {
 	Op         string
 	URL        string

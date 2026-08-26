@@ -147,15 +147,11 @@ func TestUploadStreamsFromTheOpener(t *testing.T) {
 	})
 
 	mux.HandleFunc("/storage/", func(w http.ResponseWriter, r *http.Request) {
-		// A presigned storage URL signs a specific header set and rejects a
-		// chunked body, so the upload has to declare its length.
 		contentLength = r.ContentLength
 		uploaded, _ = io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// An opener that is not a byte slice: nothing may assume the content is
-	// already in memory or seekable.
 	open := func() (io.ReadCloser, error) {
 		opened++
 		return io.NopCloser(iotest.OneByteReader(bytes.NewReader(content))), nil
@@ -197,8 +193,6 @@ func TestUploadDoesNotOpenContentTheServerAlreadyHas(t *testing.T) {
 		t.Fatalf("upload: %v", err)
 	}
 
-	// Deduplication is the whole point of the batch call: an object the server
-	// already holds must not be read out of storage at all.
 	if opened != 0 {
 		t.Fatalf("opened content %d times, want 0", opened)
 	}

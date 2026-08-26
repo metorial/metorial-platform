@@ -1,10 +1,3 @@
-/**
- * Ceiling on a downloaded logo.
- *
- * Logos are kilobytes in practice, but the URL can point at an arbitrary
- * uploaded file, and a sync that embeds one holds it in memory. The cap is
- * generous enough that no real logo hits it.
- */
 export let maxDownloadedImageBytes = 8 * 1024 * 1024;
 
 export class ImageTooLargeError extends Error {
@@ -14,12 +7,6 @@ export class ImageTooLargeError extends Error {
   }
 }
 
-/**
- * Reads a response body, refusing to buffer more than `maxBytes`.
- *
- * The declared length is only a hint, so the body is also measured as it
- * arrives: a wrong or absent Content-Length must not become an unbounded read.
- */
 export let readBoundedResponse = async (
   response: Response,
   maxBytes: number

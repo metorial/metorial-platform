@@ -6,10 +6,6 @@ import {
   useUploadUrlHint
 } from '@metorial/module-file';
 
-/**
- * Rejects oversized multipart uploads before the body is buffered into memory. The exact
- * per-file limit is still enforced once the form has been parsed.
- */
 export let assertDirectUploadBodySize = (contentLength: string | undefined) => {
   let length = contentLength ? Number(contentLength) : Number.NaN;
   if (!Number.isFinite(length) || length <= maxDirectUploadBodySize) return;

@@ -158,9 +158,6 @@ export let applySkill = createApplicator(
     apply: async (input, context, { skillStore, config }) => {
       context.setBasePath(getSkillPath(input));
 
-      // Disallowed scripts are simply never written, so the prune that follows
-      // removes any that a previous sync left behind.
-
       let q = new PQueue({ concurrency: 10 });
       let cursor: string | null = null;
       let limit = 25;
@@ -194,8 +191,6 @@ export let applySkill = createApplicator(
           } else if (item.kind === 'file' && item.file) {
             if (!isAllowedBySkillConfig(item.path, config)) continue;
 
-            // Handed over by identity: unchanged files are skipped and changed
-            // ones are copied storage-side, so a large asset is never read here.
             q.add(async () => await context.setFileFromStorage(item.path, item.file!));
           }
         }

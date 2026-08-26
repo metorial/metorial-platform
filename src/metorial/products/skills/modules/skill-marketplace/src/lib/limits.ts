@@ -57,17 +57,10 @@ let formatBytes = (bytes: bigint) => {
   return mb >= 1024 ? `${(mb / 1024).toFixed(2)}GB` : `${mb.toFixed(2)}MB`;
 };
 
-/**
- * Caps the total size of a skill store. Everything downstream -- syncs, zip
- * exports, SCM exports -- streams rather than buffers, so this is a backstop
- * against runaway stores rather than a memory guard.
- */
 export let assertSkillStoreByteLimit = async (d: {
   storeOid: bigint;
   additionalBytes?: bigint;
 }) => {
-  // Always recomputed: a document edit changes its file size without touching
-  // any store item, so the cached value on the store can lag.
   let currentBytes = await refreshStoreByteSize({ storeOid: d.storeOid });
   let projectedBytes = currentBytes + (d.additionalBytes ?? 0n);
 

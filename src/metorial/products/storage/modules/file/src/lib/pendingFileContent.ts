@@ -39,10 +39,6 @@ export let getStoredFileContent = async (d: { file: { oid: bigint; storeId: stri
   };
 };
 
-/**
- * Same as getStoredFileContent, but hands back a stream for object-backed content
- * so that serving a file costs a chunk of memory rather than its full size.
- */
 export let getStoredFileContentStream = async (d: {
   file: { oid: bigint; storeId: string };
 }) => {
@@ -76,8 +72,6 @@ export let getStoredFileContentStream = async (d: {
   };
 };
 
-/// True while a file's content still lives in the database and has not been
-/// flushed to object storage, meaning it cannot be served from a signed URL.
 export let hasPendingFileContent = async (fileOid: bigint) =>
   (await db.filePendingContent.count({ where: { fileOid } })) > 0;
 

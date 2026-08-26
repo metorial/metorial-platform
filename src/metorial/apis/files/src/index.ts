@@ -3,6 +3,7 @@ import { createExecutionContext, provideExecutionContext } from '@lowerdeck/exec
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
+import { generatePlainId } from '@metorial/id';
 import { createDocumentLiveApi } from '@metorial/module-documents/live';
 import {
   fileRouterResolutionHeader,
@@ -17,7 +18,6 @@ import {
   uploadCargoFile,
   type FileRouterResolution
 } from '@metorial/module-file';
-import { generatePlainId } from '@metorial/id';
 import { websocket } from 'hono/bun';
 import { resolveDocumentsLiveToken } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
@@ -324,11 +324,6 @@ let getContentDispositionHeader = (fileName: string, disposition: 'inline' | 'at
   return `${disposition}; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 };
 
-/**
- * The headers a file is served with, wherever the bytes come from. The router
- * replays these verbatim onto its own response, so this stays the single place
- * that decides content type, disposition and cacheability.
- */
 let getFileContentHeaders = (d: {
   fileName?: string | null;
   contentType?: string | null;
@@ -347,8 +342,6 @@ let getFileContentHeaders = (d: {
       d.source === 'document'
         ? getDocumentContentType(d.contentType)
         : getServedContentType(d.contentType),
-    // Streamed bodies would otherwise be chunked, leaving clients without a
-    // total size to show progress against.
     ...(d.size !== undefined ? { 'Content-Length': String(d.size) } : {}),
     'Cache-Control':
       d.source === 'document' || d.source === 'database' || d.isExpiring
@@ -372,8 +365,6 @@ let getFileContentHandler = async (c: Context) => {
 
   let shouldDownload = new URL(c.req.url).searchParams.has('download');
 
-  // The router still forwards every request here first, so the link is checked
-  // on each hit; it only takes over transferring the bytes.
   if (isFileRouterRequest(c.req.header(fileRouterSecretHeader))) {
     let resolved = await getCargoFileSignedDownload({ fileId, key });
 
@@ -396,7 +387,6 @@ let getFileContentHandler = async (c: Context) => {
       return Response.json(resolution, {
         headers: {
           [fileRouterResolutionHeader]: fileRouterResolutionValue,
-          // The body carries a signed URL; it must not be stored anywhere.
           'Cache-Control': 'private, no-store'
         }
       });

@@ -15,10 +15,6 @@ const (
 	lfsAttributes     = "filter=lfs diff=lfs merge=lfs -text"
 )
 
-// trackLFSPaths makes sure every path stored in LFS has a matching
-// .gitattributes entry, merging into whatever the repository already has rather
-// than replacing it. Without this, clones get the pointer text instead of the
-// file.
 func trackLFSPaths(
 	ctx context.Context,
 	repoURL, token string,
@@ -31,8 +27,6 @@ func trackLFSPaths(
 		return nil
 	}
 
-	// A .gitattributes coming from the bucket wins over the one on the branch,
-	// since it is what this export is about to commit anyway.
 	base := exportedAttributes
 	if base == nil {
 		if sha := existingBlobShas[gitattributesPath]; sha != "" {
@@ -70,9 +64,6 @@ func trackLFSPaths(
 	return nil
 }
 
-// mergeGitattributes appends one exact-path LFS rule per untracked path. Exact
-// paths are used rather than guessed globs so the rules cannot pull unrelated
-// files into LFS.
 func mergeGitattributes(existing []byte, lfsPaths []string) []byte {
 	var lines []string
 	if len(existing) > 0 {
@@ -102,8 +93,6 @@ func mergeGitattributes(existing []byte, lfsPaths []string) []byte {
 	return []byte(strings.Join(lines, "\n") + "\n")
 }
 
-// gitattributesPattern returns the pattern of an attribute line, skipping
-// comments and blank lines.
 func gitattributesPattern(line string) (string, bool) {
 	trimmed := strings.TrimSpace(line)
 	if trimmed == "" || strings.HasPrefix(trimmed, "#") {
@@ -111,7 +100,6 @@ func gitattributesPattern(line string) (string, bool) {
 	}
 
 	if strings.HasPrefix(trimmed, `"`) {
-		// Quoted patterns may contain escaped quotes, so scan to the closing one.
 		for i := 1; i < len(trimmed); i++ {
 			if trimmed[i] == '\\' {
 				i++
@@ -129,8 +117,6 @@ func gitattributesPattern(line string) (string, bool) {
 	return pattern, pattern != ""
 }
 
-// quoteGitattributesPattern wraps a path in C-style quotes when it contains
-// whitespace, which would otherwise be read as the start of the attribute list.
 func quoteGitattributesPattern(path string) string {
 	needsQuoting := strings.ContainsAny(path, `"\`)
 	if !needsQuoting {

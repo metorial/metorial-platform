@@ -8,15 +8,10 @@ import (
 	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 )
 
-// RepoIterator yields repository files with Git LFS pointers resolved back into
-// their real contents. The zipball only ever contains the pointer text, so
-// without this an exported large file would come back as ~130 bytes.
 type RepoIterator struct {
 	inner *zipImporter.ZipFileIterator
 	lfs   *gitlfs.Client
 
-	// ctx is held rather than passed because the Importer interface has no place
-	// for it. The iterator is consumed by a single caller for a single import.
 	ctx context.Context
 	err error
 }
@@ -31,8 +26,6 @@ func (it *RepoIterator) Next() (*zipImporter.ZipFileItem, bool) {
 		return nil, false
 	}
 
-	// Pointers are tiny, so the size check rules out almost every file before
-	// the parse runs.
 	if !gitlfs.LooksLikePointer(item.Content) {
 		return item, true
 	}
@@ -43,8 +36,6 @@ func (it *RepoIterator) Next() (*zipImporter.ZipFileItem, bool) {
 
 	content, err := it.lfs.Download(it.ctx, "", pointer)
 	if err != nil {
-		// Storing the pointer would silently corrupt the bucket, so stop here and
-		// let the caller surface the failure.
 		it.err = fmt.Errorf("failed to resolve Git LFS object for %s: %w", item.Path, err)
 		return nil, false
 	}

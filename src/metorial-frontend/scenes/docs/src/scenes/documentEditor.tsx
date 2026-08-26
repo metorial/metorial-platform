@@ -73,6 +73,7 @@ let HeaderLeft = styled(HeaderSection)`
   flex: 1 1 0;
   justify-content: flex-start;
   min-width: 0;
+  overflow: hidden;
 `;
 
 let HeaderCenter = styled.div`
@@ -88,6 +89,19 @@ let HeaderRight = styled(HeaderSection)`
   flex: 1 1 0;
   justify-content: flex-end;
   min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Actions never shrink individually -- once the row can't fit them all,
+     it scrolls horizontally instead of squeezing (or overlapping) items. */
+  & > * {
+    flex-shrink: 0;
+  }
 `;
 
 let Segmented = styled.div`

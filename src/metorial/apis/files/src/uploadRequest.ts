@@ -15,10 +15,6 @@ export let getUploadUrlRequestSchema = v.object({
 
   purpose: purposeValidator,
   file_name: v.string(),
-  /**
-   * Deliberately unvalidated: the size is checked when the upload is created so that
-   * callers get an explanation of the limit instead of a schema error.
-   */
   file_size: v.any({ description: 'The size of the file in bytes' }),
   file_type: v.optional(v.string()),
   title: v.optional(v.string()),
@@ -54,10 +50,6 @@ export let parseUploadMode = (value: unknown): UploadMode => {
   return value as UploadMode;
 };
 
-/**
- * Validates a JSON upload request. `mode` is resolved first so that a malformed
- * payload reports the errors of the mode it asked for rather than of every mode.
- */
 export let parseUploadRequest = (body: unknown) => {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     throw new ServiceError(
@@ -89,7 +81,10 @@ export let parseUploadRequest = (body: unknown) => {
     );
   }
 
-  if (result.value.mode === 'get_upload_url' && !!result.value.store_id !== !!result.value.path) {
+  if (
+    result.value.mode === 'get_upload_url' &&
+    !!result.value.store_id !== !!result.value.path
+  ) {
     throw new ServiceError(
       badRequestError({
         message: 'store_id and path must be provided together'

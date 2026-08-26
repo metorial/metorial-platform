@@ -45,11 +45,6 @@ export let listAbandonedFileUploads = async (d: { cursor?: string; limit: number
     take: d.limit
   });
 
-/**
- * Expires an abandoned upload and drops whatever bytes the client may have already
- * pushed to the presigned URL. Uploads that produced a file are left untouched, since
- * their object now backs a live file.
- */
 export let cleanupFileUpload = async (d: { fileUploadId: string }) => {
   let upload = await db.fileUpload.findUnique({
     where: { id: d.fileUploadId },
@@ -92,7 +87,6 @@ export let cleanupFileUpload = async (d: { fileUploadId: string }) => {
   try {
     await getStorage().deleteObject(getCargoFilesBucketName(), upload.storeId);
   } catch (error) {
-    // The client may never have uploaded anything.
     if (!(error instanceof ObjectStorageError && error.statusCode === 404)) throw error;
   }
 

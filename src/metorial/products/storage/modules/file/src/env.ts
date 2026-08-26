@@ -8,8 +8,6 @@ export let env = createValidatedEnv({
     SIGNED_DOWNLOAD_URL_TOKEN_SECRET: v.string(),
     UPLOAD_HOST: v.optional(v.string()),
     SIGNED_UPLOAD_URL_TOKEN_SECRET: v.optional(v.string()),
-    /// Shared with the file router worker. When unset, the worker handshake is
-    /// disabled and every download is served straight from this API.
     FILE_ROUTER_SECRET: v.optional(v.string())
   },
   storage: {

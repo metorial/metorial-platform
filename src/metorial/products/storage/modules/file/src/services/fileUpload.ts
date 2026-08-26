@@ -182,8 +182,6 @@ class FileUploadServiceImpl {
       );
     }
 
-    // Checked here as well as on completion so that a permission problem surfaces
-    // before the client spends time transferring content.
     if (d.input.store) {
       let scope = requireInstanceScope(d, 'Attaching a file to a store');
       let store = await storeAccessService.getStoreById({
@@ -264,7 +262,6 @@ class FileUploadServiceImpl {
 
     let upload = await this.getPendingUploadById({ ...scope, uploadId });
 
-    // Completing twice must not create a second file.
     if (upload.status === 'completed' && upload.file) {
       return await fileService.getFileById({
         ...scope,
@@ -278,8 +275,6 @@ class FileUploadServiceImpl {
     let object = await this.headUploadedObject(upload);
 
     if (!doesUploadedObjectMatch({ declaredSize: upload.fileSize, actualSize: object.size })) {
-      // Content that does not match what was declared is never reachable through a file,
-      // so drop it instead of paying to store it until the cleanup cron runs.
       await this.discardUploadedObject(upload);
 
       throw new ServiceError(
@@ -289,8 +284,6 @@ class FileUploadServiceImpl {
       );
     }
 
-    // The claim, the file creation and the link share one transaction, so a failure
-    // anywhere leaves the upload pending and the client can retry.
     return await withTransaction(async tdb => {
       let claimed = await tdb.fileUpload.updateMany({
         where: {

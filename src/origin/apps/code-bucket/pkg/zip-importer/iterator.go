@@ -23,9 +23,6 @@ type ZipFileItem struct {
 	Content []byte
 }
 
-// Importer yields the files of an archive. Close is deliberately absent: the
-// call site owns the lifetime of the underlying resources, so importers only
-// need to produce items and report failures.
 type Importer interface {
 	Next() (*ZipFileItem, bool)
 	Err() error

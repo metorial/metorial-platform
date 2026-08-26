@@ -24,8 +24,6 @@ const (
 	baseTreeSHA   = "basetree"
 )
 
-// fakeGitHub stands in for the Git Data API and the Git LFS server, which both
-// live behind the same test server so a single base URL configures the export.
 type fakeGitHub struct {
 	t      *testing.T
 	server *httptest.Server
@@ -87,8 +85,6 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 	return f
 }
 
-// withExistingFile seeds the branch's tree so dedupe and .gitattributes merging
-// have something to work against.
 func (f *fakeGitHub) withExistingFile(path string, content []byte) *fakeGitHub {
 	sha := gitBlobSHA(content)
 	f.blobs[sha] = content
@@ -394,8 +390,6 @@ func TestUploadRejectsFilesOverTheCeiling(t *testing.T) {
 	}
 }
 
-// streamedFile builds an upload entry whose content can only be read through
-// the opener, and counts how often that happens.
 func streamedFile(path string, content []byte) (FileToUpload, *int) {
 	opens := 0
 	return FileToUpload{
@@ -422,8 +416,6 @@ func TestUploadStreamsLargeFilesThroughTheOpener(t *testing.T) {
 		t.Fatal("Git LFS received the wrong bytes")
 	}
 
-	// Twice: once to hash the content into a pointer, once to upload it. The
-	// file is never held in memory, which is the trade being made here.
 	if *opens != 2 {
 		t.Fatalf("opened content %d times, want 2", *opens)
 	}
@@ -441,8 +433,6 @@ func TestUploadRejectsOversizedFilesWithoutReadingThem(t *testing.T) {
 		t.Fatal("expected an error for an oversized file")
 	}
 
-	// The point of checking the listed size first: an oversized file must be
-	// rejected without being pulled into this process.
 	if *opens != 0 {
 		t.Fatalf("opened content %d times, want 0", *opens)
 	}
@@ -454,9 +444,6 @@ func TestUploadRejectsOversizedFilesWithoutReadingThem(t *testing.T) {
 func TestUploadRejectsFilesThatChangeSizeWhileExporting(t *testing.T) {
 	fake := newFakeGitHub(t)
 
-	// The listing says 64 bytes but the content is 32, which is what a file
-	// rewritten mid-export looks like. Committing a pointer with the wrong size
-	// would produce a repository nobody can check out.
 	file := FileToUpload{
 		Path: "big.bin",
 		Size: 64,
@@ -477,8 +464,6 @@ func TestUploadRejectsFilesThatChangeSizeWhileExporting(t *testing.T) {
 func TestUploadCommitsGitattributesAsContentEvenWhenLarge(t *testing.T) {
 	fake := newFakeGitHub(t)
 
-	// .gitattributes is what declares the LFS tracking, so it can never be
-	// committed as a pointer regardless of how big it grows.
 	existing := []byte("# padding\n" + strings.Repeat("*.tmp text\n", 8))
 	if int64(len(existing)) <= fake.uploadOptions().LFSThresholdBytes {
 		t.Fatalf("fixture is too small to exercise the threshold: %d bytes", len(existing))
@@ -572,7 +557,6 @@ func TestDownloadRepoFailsWhenPointerCannotBeResolved(t *testing.T) {
 	content := bytes.Repeat([]byte("m"), 64)
 	pointer := gitlfs.FormatPointer(gitlfs.OIDFor(content), int64(len(content)))
 
-	// The object is deliberately absent from LFS storage.
 	fake.zipball = buildZipball(t, map[string][]byte{"repo-main/big.bin": pointer})
 
 	iter, err := DownloadRepo(context.Background(), DownloadOptions{

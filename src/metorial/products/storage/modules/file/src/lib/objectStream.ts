@@ -3,11 +3,6 @@ import { ObjectStorageError } from 'object-storage-client';
 export let objectStreamUrl = (d: { baseUrl: string; bucket: string; key: string }) =>
   `${d.baseUrl.replace(/\/$/, '')}/buckets/${d.bucket}/objects/${d.key}`;
 
-/**
- * Reads an object without materialising it. The storage client's getObject()
- * buffers the whole body, which cannot hold for the multi-gigabyte files that
- * uploads accept.
- */
 export let readObjectStream = async (d: {
   baseUrl: string;
   bucket: string;

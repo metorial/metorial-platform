@@ -14,8 +14,6 @@ import type {
   SkillSerializerInput
 } from './types';
 
-// Mirrors the normalization process.ts applies before sending a prune to the
-// code bucket.
 let normalizeBucketPath = (inPath: string) => {
   if (!inPath) return '/';
 
@@ -72,7 +70,6 @@ describe('serializer prune scopes', () => {
     expect(scope.prefix).toBe('/plugins/acme');
     expect(scope.excludePrefixes).toEqual(['/plugins/acme/skills']);
 
-    // The skills a plugin's skill tasks write must sit inside the exclusion.
     let skillPath = normalizeBucketPath(getSkillPath(skillInput));
     expect(skillPath.startsWith(`${scope.excludePrefixes[0]}/`)).toBe(true);
   });
