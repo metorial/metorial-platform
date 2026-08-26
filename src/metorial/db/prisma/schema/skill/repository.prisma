@@ -17,6 +17,10 @@ model SkillRepository {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  /// Newest deletion tombstone this repository has propagated. Deletions
+  /// created at or before this point have already been applied.
+  deletionsAppliedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

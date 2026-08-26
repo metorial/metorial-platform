@@ -399,6 +399,7 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 		Branch:        req.Branch,
 		CommitMessage: req.CommitMessage,
 		Token:         req.Token,
+		DeletePaths:   req.DeletePaths,
 	}
 
 	if err := github.UploadToRepoIter(ctx, opts, func(yield func(github.FileToUpload) error) error {
@@ -440,7 +441,17 @@ func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportB
 		return nil, providerExportError("GitLab", err)
 	}
 
-	if err := gitlab.UploadToRepoIter(req.ProjectId, req.Path, req.Branch, req.CommitMessage, req.Token, req.GitlabApiUrl, func(yield func(gitlab.FileToUpload) error) error {
+	gitlabOpts := gitlab.UploadOptions{
+		ProjectID:     req.ProjectId,
+		TargetPath:    req.Path,
+		Branch:        req.Branch,
+		CommitMessage: req.CommitMessage,
+		Token:         req.Token,
+		GitlabAPIURL:  req.GitlabApiUrl,
+		DeletePaths:   req.DeletePaths,
+	}
+
+	if err := gitlab.UploadToRepoIter(gitlabOpts, func(yield func(gitlab.FileToUpload) error) error {
 		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
 			for i := range batch {
 				file := releaseBatchItem(batch, i)
@@ -493,14 +504,18 @@ func (rs *RcpService) ExportBucketToBitbucketCloud(ctx context.Context, req *rpc
 	}
 
 	err := bitbucket.UploadToCloudRepo(
-		req.Workspace,
-		req.Repo,
-		req.Path,
-		req.Branch,
-		req.CommitMessage,
-		req.Token,
-		req.BitbucketApiUrl,
-		req.BitbucketWebUrl,
+		bitbucket.CloudUploadOptions{
+			Workspace:           req.Workspace,
+			Repo:                req.Repo,
+			TargetPath:          req.Path,
+			Branch:              req.Branch,
+			CommitMessage:       req.CommitMessage,
+			Token:               req.Token,
+			APIURL:              req.BitbucketApiUrl,
+			WebURL:              req.BitbucketWebUrl,
+			DeletePaths:         req.DeletePaths,
+			ExplicitDeletesOnly: req.ExplicitDeletesOnly,
+		},
 		func(yield func(bitbucket.FileToUpload) error) error {
 			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
 				for i := range batch {
@@ -551,12 +566,16 @@ func (rs *RcpService) ExportBucketToBitbucketDataCenter(ctx context.Context, req
 
 	err := bitbucket.UploadToDataCenterRepo(
 		ctx,
-		req.CloneUrl,
-		req.Path,
-		req.Branch,
-		req.CommitMessage,
-		req.Username,
-		req.Token,
+		bitbucket.DataCenterUploadOptions{
+			CloneURL:            req.CloneUrl,
+			TargetPath:          req.Path,
+			Branch:              req.Branch,
+			CommitMessage:       req.CommitMessage,
+			Username:            req.Username,
+			Token:               req.Token,
+			DeletePaths:         req.DeletePaths,
+			ExplicitDeletesOnly: req.ExplicitDeletesOnly,
+		},
 		func(yield func(bitbucket.FileToUpload) error) error {
 			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
 				for i := range batch {

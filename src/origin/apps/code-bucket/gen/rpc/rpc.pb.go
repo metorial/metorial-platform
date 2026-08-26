@@ -1017,10 +1017,6 @@ func (x *GetBucketFilesAsZipChunk) GetContent() []byte {
 	return nil
 }
 
-// Builds the archive and uploads it directly to the caller's destination, so
-// the archive bytes never travel through the caller. Exactly one destination
-// must be set: a presigned PUT url, or an object-store bucket and key for
-// backends that cannot presign.
 type ExportBucketFilesAsZipToUploadRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BucketId      string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
@@ -1349,8 +1345,6 @@ func (*SetBucketFileResponse) Descriptor() ([]byte, []int) {
 	return file_rpc_proto_rawDescGZIP(), []int{24}
 }
 
-// Copies objects straight from object storage into the bucket. The caller only
-// ever names the source, so file bytes never pass through it.
 type CopyBucketFileSource struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
@@ -1806,8 +1800,14 @@ type ExportBucketToGithubRequest struct {
 	Token         string                 `protobuf:"bytes,5,opt,name=token,proto3" json:"token,omitempty"`
 	Branch        string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
 	CommitMessage string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Bucket-relative paths to remove from the repository.
+	DeletePaths []string `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
+	// When set, only delete_paths are removed and no deletion is inferred from
+	// paths missing in the bucket. Callers owning a subset of path need this so
+	// unmanaged files survive.
+	ExplicitDeletesOnly bool `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ExportBucketToGithubRequest) Reset() {
@@ -1887,6 +1887,20 @@ func (x *ExportBucketToGithubRequest) GetCommitMessage() string {
 		return x.CommitMessage
 	}
 	return ""
+}
+
+func (x *ExportBucketToGithubRequest) GetDeletePaths() []string {
+	if x != nil {
+		return x.DeletePaths
+	}
+	return nil
+}
+
+func (x *ExportBucketToGithubRequest) GetExplicitDeletesOnly() bool {
+	if x != nil {
+		return x.ExplicitDeletesOnly
+	}
+	return false
 }
 
 type ExportBucketToGithubResponse struct {
@@ -2018,8 +2032,13 @@ type ExportBucketToGitlabRequest struct {
 	GitlabApiUrl  string                 `protobuf:"bytes,5,opt,name=gitlab_api_url,json=gitlabApiUrl,proto3" json:"gitlab_api_url,omitempty"`
 	Branch        string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
 	CommitMessage string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Bucket-relative paths to remove from the repository.
+	DeletePaths []string `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
+	// When set, only delete_paths are removed and no deletion is inferred from
+	// paths missing in the bucket.
+	ExplicitDeletesOnly bool `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ExportBucketToGitlabRequest) Reset() {
@@ -2099,6 +2118,20 @@ func (x *ExportBucketToGitlabRequest) GetCommitMessage() string {
 		return x.CommitMessage
 	}
 	return ""
+}
+
+func (x *ExportBucketToGitlabRequest) GetDeletePaths() []string {
+	if x != nil {
+		return x.DeletePaths
+	}
+	return nil
+}
+
+func (x *ExportBucketToGitlabRequest) GetExplicitDeletesOnly() bool {
+	if x != nil {
+		return x.ExplicitDeletesOnly
+	}
+	return false
 }
 
 type ExportBucketToGitlabResponse struct {
@@ -2324,8 +2357,13 @@ type ExportBucketToBitbucketCloudRequest struct {
 	Token           string                 `protobuf:"bytes,7,opt,name=token,proto3" json:"token,omitempty"`
 	BitbucketApiUrl string                 `protobuf:"bytes,8,opt,name=bitbucket_api_url,json=bitbucketApiUrl,proto3" json:"bitbucket_api_url,omitempty"`
 	BitbucketWebUrl string                 `protobuf:"bytes,9,opt,name=bitbucket_web_url,json=bitbucketWebUrl,proto3" json:"bitbucket_web_url,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Bucket-relative paths to remove from the repository.
+	DeletePaths []string `protobuf:"bytes,10,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
+	// When set, only delete_paths are removed instead of mirroring path, so files
+	// under path that the bucket does not manage are left alone.
+	ExplicitDeletesOnly bool `protobuf:"varint,11,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ExportBucketToBitbucketCloudRequest) Reset() {
@@ -2421,6 +2459,20 @@ func (x *ExportBucketToBitbucketCloudRequest) GetBitbucketWebUrl() string {
 	return ""
 }
 
+func (x *ExportBucketToBitbucketCloudRequest) GetDeletePaths() []string {
+	if x != nil {
+		return x.DeletePaths
+	}
+	return nil
+}
+
+func (x *ExportBucketToBitbucketCloudRequest) GetExplicitDeletesOnly() bool {
+	if x != nil {
+		return x.ExplicitDeletesOnly
+	}
+	return false
+}
+
 type ExportBucketToBitbucketDataCenterRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BucketId      string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
@@ -2430,8 +2482,12 @@ type ExportBucketToBitbucketDataCenterRequest struct {
 	CommitMessage string                 `protobuf:"bytes,5,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	Username      string                 `protobuf:"bytes,6,opt,name=username,proto3" json:"username,omitempty"`
 	Token         string                 `protobuf:"bytes,7,opt,name=token,proto3" json:"token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Bucket-relative paths to remove from the repository.
+	DeletePaths []string `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
+	// When set, only delete_paths are removed instead of mirroring path.
+	ExplicitDeletesOnly bool `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ExportBucketToBitbucketDataCenterRequest) Reset() {
@@ -2511,6 +2567,20 @@ func (x *ExportBucketToBitbucketDataCenterRequest) GetToken() string {
 		return x.Token
 	}
 	return ""
+}
+
+func (x *ExportBucketToBitbucketDataCenterRequest) GetDeletePaths() []string {
+	if x != nil {
+		return x.DeletePaths
+	}
+	return nil
+}
+
+func (x *ExportBucketToBitbucketDataCenterRequest) GetExplicitDeletesOnly() bool {
+	if x != nil {
+		return x.ExplicitDeletesOnly
+	}
+	return false
 }
 
 type ExportBucketToBitbucketResponse struct {
@@ -2666,7 +2736,7 @@ const file_rpc_proto_rawDesc = "" +
 	"keep_paths\x18\x03 \x03(\tR\tkeepPaths\x12)\n" +
 	"\x10exclude_prefixes\x18\x04 \x03(\tR\x0fexcludePrefixes\">\n" +
 	"\x17PruneBucketPathResponse\x12#\n" +
-	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xcd\x01\n" +
+	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xa4\x02\n" +
 	"\x1bExportBucketToGithubRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
@@ -2674,7 +2744,9 @@ const file_rpc_proto_rawDesc = "" +
 	"\x04path\x18\x04 \x01(\tR\x04path\x12\x14\n" +
 	"\x05token\x18\x05 \x01(\tR\x05token\x12\x16\n" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12%\n" +
-	"\x0ecommit_message\x18\a \x01(\tR\rcommitMessage\"\x1e\n" +
+	"\x0ecommit_message\x18\a \x01(\tR\rcommitMessage\x12!\n" +
+	"\fdelete_paths\x18\b \x03(\tR\vdeletePaths\x122\n" +
+	"\x15explicit_deletes_only\x18\t \x01(\bR\x13explicitDeletesOnly\"\x1e\n" +
 	"\x1cExportBucketToGithubResponse\"\xc4\x01\n" +
 	"\x1dCreateBucketFromGitlabRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x1d\n" +
@@ -2683,7 +2755,7 @@ const file_rpc_proto_rawDesc = "" +
 	"\x04path\x18\x03 \x01(\tR\x04path\x12\x10\n" +
 	"\x03ref\x18\x04 \x01(\tR\x03ref\x12\x14\n" +
 	"\x05token\x18\x05 \x01(\tR\x05token\x12$\n" +
-	"\x0egitlab_api_url\x18\x06 \x01(\tR\fgitlabApiUrl\"\xe8\x01\n" +
+	"\x0egitlab_api_url\x18\x06 \x01(\tR\fgitlabApiUrl\"\xbf\x02\n" +
 	"\x1bExportBucketToGitlabRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x1d\n" +
 	"\n" +
@@ -2692,7 +2764,9 @@ const file_rpc_proto_rawDesc = "" +
 	"\x05token\x18\x04 \x01(\tR\x05token\x12$\n" +
 	"\x0egitlab_api_url\x18\x05 \x01(\tR\fgitlabApiUrl\x12\x16\n" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12%\n" +
-	"\x0ecommit_message\x18\a \x01(\tR\rcommitMessage\"\x1e\n" +
+	"\x0ecommit_message\x18\a \x01(\tR\rcommitMessage\x12!\n" +
+	"\fdelete_paths\x18\b \x03(\tR\vdeletePaths\x122\n" +
+	"\x15explicit_deletes_only\x18\t \x01(\bR\x13explicitDeletesOnly\"\x1e\n" +
 	"\x1cExportBucketToGitlabResponse\"\xe5\x01\n" +
 	"%CreateBucketFromBitbucketCloudRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x1c\n" +
@@ -2708,7 +2782,7 @@ const file_rpc_proto_rawDesc = "" +
 	"\x04path\x18\x03 \x01(\tR\x04path\x12\x10\n" +
 	"\x03ref\x18\x04 \x01(\tR\x03ref\x12\x1a\n" +
 	"\busername\x18\x05 \x01(\tR\busername\x12\x14\n" +
-	"\x05token\x18\x06 \x01(\tR\x05token\"\xb5\x02\n" +
+	"\x05token\x18\x06 \x01(\tR\x05token\"\x8c\x03\n" +
 	"#ExportBucketToBitbucketCloudRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x1c\n" +
 	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12\x12\n" +
@@ -2718,7 +2792,10 @@ const file_rpc_proto_rawDesc = "" +
 	"\x0ecommit_message\x18\x06 \x01(\tR\rcommitMessage\x12\x14\n" +
 	"\x05token\x18\a \x01(\tR\x05token\x12*\n" +
 	"\x11bitbucket_api_url\x18\b \x01(\tR\x0fbitbucketApiUrl\x12*\n" +
-	"\x11bitbucket_web_url\x18\t \x01(\tR\x0fbitbucketWebUrl\"\xe9\x01\n" +
+	"\x11bitbucket_web_url\x18\t \x01(\tR\x0fbitbucketWebUrl\x12!\n" +
+	"\fdelete_paths\x18\n" +
+	" \x03(\tR\vdeletePaths\x122\n" +
+	"\x15explicit_deletes_only\x18\v \x01(\bR\x13explicitDeletesOnly\"\xc0\x02\n" +
 	"(ExportBucketToBitbucketDataCenterRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x1b\n" +
 	"\tclone_url\x18\x02 \x01(\tR\bcloneUrl\x12\x12\n" +
@@ -2726,7 +2803,9 @@ const file_rpc_proto_rawDesc = "" +
 	"\x06branch\x18\x04 \x01(\tR\x06branch\x12%\n" +
 	"\x0ecommit_message\x18\x05 \x01(\tR\rcommitMessage\x12\x1a\n" +
 	"\busername\x18\x06 \x01(\tR\busername\x12\x14\n" +
-	"\x05token\x18\a \x01(\tR\x05token\"!\n" +
+	"\x05token\x18\a \x01(\tR\x05token\x12!\n" +
+	"\fdelete_paths\x18\b \x03(\tR\vdeletePaths\x122\n" +
+	"\x15explicit_deletes_only\x18\t \x01(\bR\x13explicitDeletesOnly\"!\n" +
 	"\x1fExportBucketToBitbucketResponse2\xa5\x13\n" +
 	"\n" +
 	"CodeBucket\x12I\n" +

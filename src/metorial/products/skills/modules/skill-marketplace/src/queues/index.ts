@@ -12,7 +12,10 @@ import {
 import { skillExportQueueProcessor } from './export';
 import { lifecycleQueues } from './lifecycle';
 import { searchQueues } from './search';
-import { skillDestinationSyncCleanupCron } from './sync/cleanup';
+import {
+  skillDestinationDeletedFileCleanupCron,
+  skillDestinationSyncCleanupCron
+} from './sync/cleanup';
 import { syncCollectQueueProcessor } from './sync/collect';
 import { syncFinishQueueProcessor } from './sync/finish';
 import {
@@ -27,6 +30,7 @@ import {
   syncPropagateStartQueueProcessor,
   syncPropagateWaitQueueProcessor
 } from './sync/propagate';
+import { syncReconcileQueueProcessor } from './sync/reconcile';
 import { syncStartQueueProcessor } from './sync/start';
 
 export * from './lifecycle';
@@ -43,6 +47,7 @@ export let skillMarketplaceQueueProcessor = combineQueueProcessors([
   syncStartQueueProcessor,
   syncCollectQueueProcessor,
   syncProcessQueueProcessor,
+  syncReconcileQueueProcessor,
   syncPropagateStartQueueProcessor,
   syncPropagatePerformQueueProcessor,
   syncPropagateWaitQueueProcessor,
@@ -52,5 +57,6 @@ export let skillMarketplaceQueueProcessor = combineQueueProcessors([
   originChangeRepairCron,
   syncFinishQueueProcessor,
   skillDestinationSyncCleanupCron,
+  skillDestinationDeletedFileCleanupCron,
   skillExportQueueProcessor
 ]);

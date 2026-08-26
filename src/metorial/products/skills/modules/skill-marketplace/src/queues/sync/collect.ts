@@ -8,7 +8,7 @@ import { getSyncItemKey, getSyncTaskItemKey } from './_lib/item';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { createTaskManager, type SyncTask } from './_lib/task';
 import { syncProcessQueue } from './process';
-import { syncPropagateStartQueue } from './propagate';
+import { syncReconcileQueue } from './reconcile';
 
 export let syncCollectQueue = createQueue<{
   skillDestinationSyncId: string;
@@ -375,23 +375,9 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
 
   let tasks = taskManager.getTasks();
 
-  if (tasks.length === 0 && !data.skillRepositoryId) {
-    await db.skillDestinationSync.updateMany({
-      where: {
-        oid: sync.oid,
-        status: 'processing'
-      },
-      data: {
-        status: 'canceled',
-        completedAt: new Date()
-      }
-    });
-    await appendSkillDestinationSyncLog(
-      data.skillDestinationSyncId,
-      'Sync canceled because there were no content updates.'
-    );
-    return;
-  }
+  // Even with no item updates the sync continues to the reconcile stage, since
+  // files left behind by items that no longer exist still have to be removed.
+  // Reconcile cancels the sync when it finds nothing to do either.
 
   let names = await getSyncTaskNames(tasks);
   let prMetadata = getSyncPrMetadata({
@@ -407,12 +393,9 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   });
 
   if (tasks.length === 0) {
-    await appendSkillDestinationSyncLog(
-      data.skillDestinationSyncId,
-      'No content updates were needed; continuing with repository updates.'
-    );
-    await syncPropagateStartQueue.add({
+    await syncReconcileQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId,
+      hasChanges: false,
       skillRepositoryId: data.skillRepositoryId
     });
     return;

@@ -8,14 +8,33 @@ export let signatureForStoredFile = (fileOid: bigint): ContentSignature =>
 export let signatureForBytes = (content: Uint8Array): ContentSignature =>
   `sha256:${createHash('sha256').update(content).digest('hex')}`;
 
+export interface DestinationManifestEntry {
+  path: string;
+  signature: ContentSignature;
+  itemKey?: string | null;
+}
+
 export class DestinationManifest {
   private previous: Map<string, ContentSignature>;
   private desired = new Map<string, ContentSignature>();
   private explicitlyRemoved = new Set<string>();
 
-  constructor(entries: Iterable<{ path: string; signature: ContentSignature }> = []) {
+  /**
+   * Paths the item being applied held before this run. Used to catch removals
+   * the code bucket prune cannot see, either because they sit outside the
+   * item's prune scope or because the prune was skipped.
+   */
+  private owned = new Set<string>();
+
+  constructor(
+    entries: Iterable<DestinationManifestEntry> = [],
+    private itemKey?: string | null
+  ) {
     this.previous = new Map();
-    for (let entry of entries) this.previous.set(entry.path, entry.signature);
+    for (let entry of entries) {
+      this.previous.set(entry.path, entry.signature);
+      if (itemKey && entry.itemKey === itemKey) this.owned.add(entry.path);
+    }
   }
 
   register(path: string, signature: ContentSignature): { shouldWrite: boolean } {
@@ -45,8 +64,21 @@ export class DestinationManifest {
     return [...this.desired].map(([path, signature]) => ({ path, signature }));
   }
 
+  /**
+   * Paths the current item used to own and no longer writes. The caller has to
+   * delete these from the bucket itself, since the prune only covers the item's
+   * own scope.
+   */
+  abandonedPaths(): string[] {
+    return [...this.owned].filter(path => !this.desired.has(path));
+  }
+
   removedPaths(prunedPaths: string[]): string[] {
-    let removed = new Set([...prunedPaths, ...this.explicitlyRemoved]);
+    let removed = new Set([
+      ...prunedPaths,
+      ...this.explicitlyRemoved,
+      ...this.abandonedPaths()
+    ]);
 
     for (let path of this.desired.keys()) removed.delete(path);
 

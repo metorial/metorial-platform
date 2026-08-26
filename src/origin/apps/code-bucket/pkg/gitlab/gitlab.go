@@ -45,6 +45,29 @@ type FileToUpload struct {
 
 type FileIterator func(func(FileToUpload) error) error
 
+type UploadOptions struct {
+	ProjectID     int64
+	TargetPath    string
+	Branch        string
+	CommitMessage string
+	Token         string
+	GitlabAPIURL  string
+
+	// Bucket-relative paths to remove from the repository. Paths that are not
+	// in the branch are ignored.
+	DeletePaths []string
+}
+
+func (o UploadOptions) withDefaults() UploadOptions {
+	if o.Branch == "" {
+		o.Branch = "main"
+	}
+	if o.CommitMessage == "" {
+		o.CommitMessage = "Upload files"
+	}
+	return o
+}
+
 type gitlabFileAction struct {
 	Action   string `json:"action"`
 	FilePath string `json:"file_path"`
@@ -67,8 +90,8 @@ func (e *gitlabCommitError) Error() string {
 	return fmt.Sprintf("failed to create commit (status %d): %s", e.StatusCode, e.Body)
 }
 
-func UploadToRepo(projectID int64, targetPath, branch, commitMessage, token, gitlabAPIURL string, files []FileToUpload) error {
-	return UploadToRepoIter(projectID, targetPath, branch, commitMessage, token, gitlabAPIURL, func(yield func(FileToUpload) error) error {
+func UploadToRepo(opts UploadOptions, files []FileToUpload) error {
+	return UploadToRepoIter(opts, func(yield func(FileToUpload) error) error {
 		for _, file := range files {
 			if err := yield(file); err != nil {
 				return err
@@ -78,44 +101,44 @@ func UploadToRepo(projectID int64, targetPath, branch, commitMessage, token, git
 	})
 }
 
-func UploadToRepoIter(projectID int64, targetPath, branch, commitMessage, token, gitlabAPIURL string, iter FileIterator) error {
-	if token == "" {
+func UploadToRepoIter(opts UploadOptions, iter FileIterator) error {
+	if opts.Token == "" {
 		return fmt.Errorf("GitLab token is required")
 	}
+	opts = opts.withDefaults()
 
 	client := &http.Client{}
-	if branch == "" {
-		branch = "main"
-	}
-	if commitMessage == "" {
-		commitMessage = "Upload files"
-	}
 
 	actions := make([]gitlabFileAction, 0)
 	payloadBytes := 0
 	batch := 1
+
+	// Every path the bucket still holds, including ones skipped because their
+	// content is unchanged. A stale delete request for such a path must not
+	// remove a file that is still part of the export.
+	writtenPaths := map[string]struct{}{}
 
 	flush := func() error {
 		if len(actions) == 0 {
 			return nil
 		}
 
-		message := commitMessage
+		message := opts.CommitMessage
 		if batch > 1 {
-			message = fmt.Sprintf("%s (batch %d)", commitMessage, batch)
+			message = fmt.Sprintf("%s (batch %d)", opts.CommitMessage, batch)
 		}
-		if err := createCommit(client, projectID, branch, message, token, gitlabAPIURL, actions); err != nil {
+		if err := createCommit(client, opts.ProjectID, opts.Branch, message, opts.Token, opts.GitlabAPIURL, actions); err != nil {
 			var commitErr *gitlabCommitError
 			if !errors.As(err, &commitErr) || !commitErr.isFileActionConflict() {
 				return err
 			}
 
-			reconciledActions, reconcileErr := reconcileActions(client, projectID, branch, token, gitlabAPIURL, actions)
+			reconciledActions, reconcileErr := reconcileActions(client, opts.ProjectID, opts.Branch, opts.Token, opts.GitlabAPIURL, actions)
 			if reconcileErr != nil {
 				return fmt.Errorf("failed to reconcile GitLab commit after conflict: %w", reconcileErr)
 			}
 			if len(reconciledActions) > 0 {
-				if retryErr := createCommit(client, projectID, branch, message, token, gitlabAPIURL, reconciledActions); retryErr != nil {
+				if retryErr := createCommit(client, opts.ProjectID, opts.Branch, message, opts.Token, opts.GitlabAPIURL, reconciledActions); retryErr != nil {
 					return fmt.Errorf("failed to retry GitLab commit after conflict: %w", retryErr)
 				}
 			}
@@ -127,18 +150,36 @@ func UploadToRepoIter(projectID int64, targetPath, branch, commitMessage, token,
 		return nil
 	}
 
+	addAction := func(action gitlabFileAction, size int) error {
+		if len(actions) > 0 && payloadBytes+size > maxGitlabCommitPayloadBytes {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+
+		actions = append(actions, action)
+		payloadBytes += size
+
+		if payloadBytes >= maxGitlabCommitPayloadBytes {
+			return flush()
+		}
+
+		return nil
+	}
+
 	if err := iter(func(file FileToUpload) error {
 		// Normalize the path by joining targetPath with file.Path
-		fullPath := path.Join(targetPath, file.Path)
+		fullPath := path.Join(opts.TargetPath, file.Path)
 		// Clean up any double slashes or leading slashes
 		fullPath = strings.TrimPrefix(fullPath, "/")
+		writtenPaths[fullPath] = struct{}{}
 
 		// Encode content to base64
 		encodedContent := base64.StdEncoding.EncodeToString(file.Content)
 
 		// Check if file exists to determine action
 		action := "create"
-		fileInfo, err := getFileInfo(client, projectID, fullPath, branch, token, gitlabAPIURL)
+		fileInfo, err := getFileInfo(client, opts.ProjectID, fullPath, opts.Branch, opts.Token, opts.GitlabAPIURL)
 		if err != nil {
 			return fmt.Errorf("failed to get file info for %s: %w", fullPath, err)
 		}
@@ -149,28 +190,41 @@ func UploadToRepoIter(projectID int64, targetPath, branch, commitMessage, token,
 			action = "update"
 		}
 
-		encodedBytes := len(encodedContent) + len(fullPath)
-		if len(actions) > 0 && payloadBytes+encodedBytes > maxGitlabCommitPayloadBytes {
-			if err := flush(); err != nil {
-				return err
-			}
-		}
-
-		actions = append(actions, gitlabFileAction{
+		return addAction(gitlabFileAction{
 			Action:   action,
 			FilePath: fullPath,
 			Content:  encodedContent,
 			Encoding: "base64",
-		})
-		payloadBytes += encodedBytes
-
-		if payloadBytes >= maxGitlabCommitPayloadBytes {
-			return flush()
-		}
-
-		return nil
+		}, len(encodedContent)+len(fullPath))
 	}); err != nil {
 		return err
+	}
+
+	for _, deletePath := range opts.DeletePaths {
+		fullPath := strings.TrimPrefix(path.Join(opts.TargetPath, deletePath), "/")
+
+		// A path the export just wrote is not a deletion; the caller may have
+		// recreated it since the removal was recorded.
+		if _, written := writtenPaths[fullPath]; written {
+			continue
+		}
+
+		// Deleting a path that is not on the branch fails the whole commit, so
+		// existence is checked rather than assumed.
+		fileInfo, err := getFileInfo(client, opts.ProjectID, fullPath, opts.Branch, opts.Token, opts.GitlabAPIURL)
+		if err != nil {
+			return fmt.Errorf("failed to get file info for %s: %w", fullPath, err)
+		}
+		if !fileInfo.Exists {
+			continue
+		}
+
+		if err := addAction(gitlabFileAction{
+			Action:   "delete",
+			FilePath: fullPath,
+		}, len(fullPath)); err != nil {
+			return err
+		}
 	}
 
 	return flush()
@@ -192,6 +246,16 @@ func reconcileActions(client *http.Client, projectID int64, branch, token, gitla
 		fileInfo, err := getFileInfo(client, projectID, action.FilePath, branch, token, gitlabAPIURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get file info for %s: %w", action.FilePath, err)
+		}
+
+		// A delete is either still valid or already satisfied; it must never be
+		// rewritten into a create or update, which would restore the file with
+		// the action's empty content.
+		if action.Action == "delete" {
+			if fileInfo.Exists {
+				reconciled = append(reconciled, action)
+			}
+			continue
 		}
 
 		if !fileInfo.Exists {

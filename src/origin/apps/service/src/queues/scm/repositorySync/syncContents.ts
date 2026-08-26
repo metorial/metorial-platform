@@ -70,20 +70,31 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
         repo: sync.repo.externalName,
         codeBucketId: sync.codeBucket.id,
         path,
-        branchName: sync.branchName
+        branchName: sync.branchName,
+        deletePathCount: sync.deletePaths.length,
+        explicitDeletesOnly: sync.explicitDeletesOnly
       });
 
       let isDirectPush = sync.repositoryAccessMode === 'default_branch';
       let previousBranchSha = isDirectPush
         ? await getRepositorySyncBranchSha(sync, sync.branchName)
         : null;
-      await appendRepositorySyncLog(sync.id, 'Writing the latest files.');
+      await appendRepositorySyncLog(
+        sync.id,
+        sync.deletePaths.length > 0
+          ? `Writing the latest files and removing ${sync.deletePaths.length} file${
+              sync.deletePaths.length === 1 ? '' : 's'
+            }.`
+          : 'Writing the latest files.'
+      );
       await codeBucketService.exportCodeBucketToRepoNow({
         codeBucket: sync.codeBucket,
         repo: sync.repo,
         path,
         branchName: sync.branchName,
-        commitMessage: sync.title
+        commitMessage: sync.title,
+        deletePaths: sync.deletePaths,
+        explicitDeletesOnly: sync.explicitDeletesOnly
       });
       await appendRepositorySyncLog(sync.id, 'Finished writing files.');
       logRepositorySyncQueueEvent('syncContents', 'exported code bucket to repo', {

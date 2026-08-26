@@ -144,4 +144,60 @@ describe('DestinationManifest', () => {
       expect(manifest.removedPaths([])).toEqual([]);
     });
   });
+
+  describe('abandonedPaths', () => {
+    it('reports a path the item stopped writing, even outside the prune scope', () => {
+      // This is the case a prune cannot catch: the item renamed its output, so
+      // the old path is no longer under the prefix the prune scans.
+      let manifest = new DestinationManifest(
+        [
+          { path: '/old/a.md', signature: 'sha256:aaa', itemKey: 'skill:s_1:p_1' },
+          { path: '/new/a.md', signature: 'sha256:aaa', itemKey: 'skill:s_1:p_1' }
+        ],
+        'skill:s_1:p_1'
+      );
+
+      manifest.register('/new/a.md', 'sha256:aaa');
+
+      expect(manifest.abandonedPaths()).toEqual(['/old/a.md']);
+      expect(manifest.removedPaths([])).toEqual(['/old/a.md']);
+    });
+
+    it('does not claim paths owned by another item', () => {
+      let manifest = new DestinationManifest(
+        [
+          { path: '/mine/a.md', signature: 'sha256:aaa', itemKey: 'skill:s_1:p_1' },
+          { path: '/theirs/b.md', signature: 'sha256:bbb', itemKey: 'skill:s_2:p_1' }
+        ],
+        'skill:s_1:p_1'
+      );
+
+      manifest.register('/mine/a.md', 'sha256:aaa');
+
+      expect(manifest.abandonedPaths()).toEqual([]);
+    });
+
+    it('does not claim unattributed paths', () => {
+      // Rows written before attribution existed cannot be judged; they are
+      // re-attributed the next time their item is applied.
+      let manifest = new DestinationManifest(
+        [{ path: '/legacy/a.md', signature: 'sha256:aaa' }],
+        'skill:s_1:p_1'
+      );
+
+      expect(manifest.abandonedPaths()).toEqual([]);
+    });
+
+    it('keeps a path the item still writes unchanged', () => {
+      let manifest = new DestinationManifest(
+        [{ path: '/a.md', signature: 'sha256:aaa', itemKey: 'plugin:p_1' }],
+        'plugin:p_1'
+      );
+
+      // Registered but skipped as unchanged; it is still ours.
+      manifest.register('/a.md', 'sha256:aaa');
+
+      expect(manifest.abandonedPaths()).toEqual([]);
+    });
+  });
 });

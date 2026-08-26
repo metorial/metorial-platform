@@ -7,6 +7,7 @@ import {
   isRepositorySyncRetrying
 } from '../../lib/repositorySyncStatus';
 import { createSkillSyncBranchName, normalizeSkillSyncBranchName } from './_lib/branchName';
+import { getPendingDestinationFileDeletions } from './_lib/deletions';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncFinishQueue } from './finish';
 
@@ -168,6 +169,12 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
           repositoryAccessMode,
           forceMergeOrPush,
           mergeBeforeChecksPass,
+
+          // Fixing the upper bound here means deletions recorded while this
+          // propagation is in flight are left for the next one, instead of
+          // being marked applied without ever having been pushed.
+          deletionsUpTo: new Date(),
+
           skillDestinationSyncOid: sync.oid,
           skillRepositoryOid: link.skillRepository.oid,
           branchName: createSkillSyncBranchName({
@@ -272,10 +279,34 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           `Starting update for ${repositoryName}.`
         );
 
+        // Every deletion this repository has not applied yet, not just the ones
+        // from this sync, so a repository that missed earlier propagations
+        // catches up here.
+        let deletePaths = await getPendingDestinationFileDeletions({
+          destinationOid: sync.destinationOid,
+          appliedAt: propagation.skillRepository.deletionsAppliedAt,
+          upTo: propagation.deletionsUpTo ?? new Date()
+        });
+
+        if (deletePaths.length > 0) {
+          await appendSkillDestinationSyncLog(
+            data.skillDestinationSyncId,
+            `Removing ${deletePaths.length} file${
+              deletePaths.length === 1 ? '' : 's'
+            } from ${repositoryName}.`
+          );
+        }
+
         let originSyncInput = {
           tenantId: originTenant.id,
           scmRepositoryId: propagation.skillRepository.repoId,
           codeBucketId: sync.destination.codeBucketId,
+          deletePaths,
+
+          // Skill destinations own only the paths they write, so the exporter
+          // must never infer deletions from what is missing in the bucket.
+          explicitDeletesOnly: true,
+
           repositoryAccessMode: propagation.repositoryAccessMode,
           forceMergeOrPush: propagation.forceMergeOrPush,
           mergeBeforeChecksPass: propagation.mergeBeforeChecksPass,
@@ -434,6 +465,21 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
         }
       });
       if (updated.count > 0) {
+        // The repository now reflects every deletion this propagation carried,
+        // so it no longer has to replay them.
+        if (propagation.deletionsUpTo) {
+          await db.skillRepository.updateMany({
+            where: {
+              oid: propagation.skillRepositoryOid,
+              OR: [
+                { deletionsAppliedAt: null },
+                { deletionsAppliedAt: { lt: propagation.deletionsUpTo } }
+              ]
+            },
+            data: { deletionsAppliedAt: propagation.deletionsUpTo }
+          });
+        }
+
         await appendSkillDestinationSyncLog(
           data.skillDestinationSyncId,
           `Repository update completed for ${repositoryName}.`

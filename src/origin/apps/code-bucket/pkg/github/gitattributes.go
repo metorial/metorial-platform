@@ -48,12 +48,7 @@ func trackLFSPaths(
 		return fmt.Errorf("failed to create blob for %s: %w", gitattributesPath, err)
 	}
 
-	entry := githubTreeEntry{
-		Path: gitattributesPath,
-		Mode: "100644",
-		Type: "blob",
-		SHA:  blobSHA,
-	}
+	entry := blobEntry(gitattributesPath, blobSHA)
 	for i := range *treeEntries {
 		if (*treeEntries)[i].Path == gitattributesPath {
 			(*treeEntries)[i] = entry

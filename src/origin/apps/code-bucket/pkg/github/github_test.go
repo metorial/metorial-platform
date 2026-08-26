@@ -132,7 +132,7 @@ func (f *fakeGitHub) handleGetTree(w http.ResponseWriter, r *http.Request) {
 	entries := make([]sizedEntry, 0, len(f.baseTree)+len(f.treeSizes))
 	for path, sha := range f.baseTree {
 		entries = append(entries, sizedEntry{
-			githubTreeEntry: githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: sha},
+			githubTreeEntry: blobEntry(path, sha),
 			Size:            f.treeSizes[path],
 		})
 	}
@@ -143,7 +143,7 @@ func (f *fakeGitHub) handleGetTree(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		entries = append(entries, sizedEntry{
-			githubTreeEntry: githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: "sha-" + path},
+			githubTreeEntry: blobEntry(path, "sha-"+path),
 			Size:            size,
 		})
 	}
@@ -285,10 +285,14 @@ func (f *fakeGitHub) treeEntry(path string) (githubTreeEntry, bool) {
 	return githubTreeEntry{}, false
 }
 
-func (f *fakeGitHub) blobContent(sha string) []byte {
+func (f *fakeGitHub) blobContent(sha *string) []byte {
+	if sha == nil {
+		return nil
+	}
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.blobs[sha]
+	return f.blobs[*sha]
 }
 
 func TestUploadCommitsPointerForLargeFile(t *testing.T) {
@@ -589,6 +593,112 @@ func TestUploadCommitsGitattributesAsContentEvenWhenLarge(t *testing.T) {
 	want := string(existing) + "big.bin " + lfsAttributes + "\n"
 	if committed != want {
 		t.Fatalf("unexpected .gitattributes:\n%q\nwant:\n%q", committed, want)
+	}
+}
+
+func TestUploadDeletesRequestedPathWithNullSha(t *testing.T) {
+	fake := newFakeGitHub(t).withExistingFile("skills/gone/a.md", []byte("old"))
+
+	opts := fake.uploadOptions()
+	opts.DeletePaths = []string{"skills/gone/a.md"}
+
+	err := UploadToRepo(context.Background(), opts, []FileToUpload{
+		ContentFile("skills/kept/b.md", []byte("new")),
+	})
+	if err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	entry, ok := fake.treeEntry("skills/gone/a.md")
+	if !ok {
+		t.Fatal("expected a tree entry for the deleted path")
+	}
+	if entry.SHA != nil {
+		t.Fatalf("expected a null sha for a deletion, got %q", *entry.SHA)
+	}
+
+	// A null sha only removes the path if it actually reaches GitHub as null.
+	encoded, err := json.Marshal(entry)
+	if err != nil {
+		t.Fatalf("marshal tree entry: %v", err)
+	}
+	if !strings.Contains(string(encoded), `"sha":null`) {
+		t.Fatalf("expected the entry to marshal with a null sha, got %s", encoded)
+	}
+}
+
+func TestUploadDeletesWithoutOtherChanges(t *testing.T) {
+	fake := newFakeGitHub(t).withExistingFile("gone.md", []byte("old"))
+
+	opts := fake.uploadOptions()
+	opts.DeletePaths = []string{"gone.md"}
+
+	// A deletion is a change, so the "nothing to do" early return must not
+	// swallow it.
+	if err := UploadToRepo(context.Background(), opts, nil); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	if fake.commits != 1 {
+		t.Fatalf("expected one commit for a delete-only export, got %d", fake.commits)
+	}
+}
+
+func TestUploadIgnoresDeleteForMissingPath(t *testing.T) {
+	fake := newFakeGitHub(t)
+
+	opts := fake.uploadOptions()
+	opts.DeletePaths = []string{"never-existed.md"}
+
+	if err := UploadToRepo(context.Background(), opts, nil); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	if fake.commits != 0 {
+		t.Fatalf("expected no commit when there is nothing to delete, got %d", fake.commits)
+	}
+}
+
+func TestUploadKeepsPathThatIsStillExported(t *testing.T) {
+	content := []byte("same")
+	fake := newFakeGitHub(t).withExistingFile("a.md", content)
+
+	opts := fake.uploadOptions()
+	opts.DeletePaths = []string{"a.md"}
+
+	// The file is unchanged, so no blob is written for it -- but it is still
+	// part of the export and a stale deletion must not remove it.
+	if err := UploadToRepo(context.Background(), opts, []FileToUpload{
+		ContentFile("a.md", content),
+	}); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	if _, ok := fake.treeEntry("a.md"); ok {
+		t.Fatal("expected no tree entry for a path that is still exported")
+	}
+	if fake.commits != 0 {
+		t.Fatalf("expected no commit, got %d", fake.commits)
+	}
+}
+
+func TestUploadAppliesTargetPathToDeletes(t *testing.T) {
+	fake := newFakeGitHub(t).withExistingFile("nested/gone.md", []byte("old"))
+
+	opts := fake.uploadOptions()
+	opts.TargetPath = "nested"
+	opts.DeletePaths = []string{"gone.md"}
+
+	if err := UploadToRepo(context.Background(), opts, nil); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	entry, ok := fake.treeEntry("nested/gone.md")
+	if !ok {
+		t.Fatal("expected the delete path to be resolved against the target path")
+	}
+	if entry.SHA != nil {
+		t.Fatalf("expected a null sha, got %q", *entry.SHA)
 	}
 }
 

@@ -14,7 +14,11 @@ import type {
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin, getPluginPath } from '../../serializers/plugin';
 import { applySkill, getSkillPath } from '../../serializers/skill';
-import { getSyncTaskItemWhere } from './_lib/item';
+import {
+  forgetDestinationFileDeletions,
+  recordDestinationFileDeletions
+} from './_lib/deletions';
+import { getSyncTaskItemKey, getSyncTaskItemWhere } from './_lib/item';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import {
   DestinationManifest,
@@ -22,8 +26,7 @@ import {
   signatureForStoredFile
 } from './_lib/manifest';
 import { type SyncTask } from './_lib/task';
-import { syncFinishQueue } from './finish';
-import { syncPropagateStartQueue } from './propagate';
+import { syncReconcileQueue } from './reconcile';
 
 let codeBucketClient = createCodeBucketClient({
   address: env.origin.CODE_BUCKET_SERVICE_URL
@@ -103,25 +106,11 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let task = data.tasks[0];
   if (!task) {
-    if (data.hasChanges) {
-      await appendSkillDestinationSyncLog(
-        data.skillDestinationSyncId,
-        'Content updates are ready.'
-      );
-      await syncPropagateStartQueue.add({
-        skillDestinationSyncId: data.skillDestinationSyncId,
-        skillRepositoryId: data.skillRepositoryId
-      });
-    } else {
-      await appendSkillDestinationSyncLog(
-        data.skillDestinationSyncId,
-        'Content updates were no longer needed.'
-      );
-      await syncFinishQueue.add({
-        skillDestinationSyncId: data.skillDestinationSyncId,
-        status: 'canceled'
-      });
-    }
+    await syncReconcileQueue.add({
+      skillDestinationSyncId: data.skillDestinationSyncId,
+      hasChanges: data.hasChanges,
+      skillRepositoryId: data.skillRepositoryId
+    });
     return;
   }
 
@@ -132,6 +121,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     }
   });
 
+  let itemKey = getSyncTaskItemKey(task);
+
   let basePathRef = { current: '' };
   let hashRef = { current: null as string | null };
   let pruneScopeRef = { current: null as PruneScope | null };
@@ -139,25 +130,96 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
   let manifest = new DestinationManifest(
     await db.skillDestinationFile.findMany({
       where: { destinationOid: sync.destinationOid },
-      select: { path: true, signature: true }
-    })
+      select: { path: true, signature: true, itemKey: true }
+    }),
+    itemKey
   );
   let skippedPathCount = 0;
 
+  /**
+   * Paths this item recorded before the sync, used as the fallback scope when a
+   * delete task cannot derive a prefix from current data.
+   */
+  let getRecordedItemPaths = async () => {
+    let files = await db.skillDestinationFile.findMany({
+      where: { destinationOid: sync.destinationOid, itemKey },
+      select: { path: true }
+    });
+
+    return files.map(file => file.path);
+  };
+
+  let deleteBucketPaths = async (paths: string[]) => {
+    let normalized = [...new Set(paths.map(normalizeBucketPath))].filter(
+      candidate => candidate !== '/'
+    );
+    if (normalized.length === 0) return [];
+
+    for (let candidate of normalized) {
+      await codeBucketClient.deleteBucketFile({
+        bucketId: sync.destination.codeBucketId,
+        path: candidate
+      });
+    }
+
+    return await recordDestinationFileDeletions({
+      destinationOid: sync.destinationOid,
+      paths: normalized
+    });
+  };
+
+  /**
+   * Removes everything under a prefix.
+   *
+   * Expressed as a prune with nothing to keep so the code bucket reports back
+   * the paths it actually removed; that report is what the repositories are
+   * later told to delete, and it also covers files that were written before
+   * they were being recorded.
+   */
   let deleteBucketPath = async (prefix: string | undefined) => {
     let normalized = normalizeBucketPath(prefix ?? '');
 
-    await codeBucketClient.deleteBucketPath({
+    // A missing prefix normalizes to the bucket root, which would wipe the
+    // whole destination. Fall back to the paths we know this item owns.
+    if (normalized === '/') {
+      return await deleteBucketPaths(await getRecordedItemPaths());
+    }
+
+    let { deletedPaths } = await codeBucketClient.pruneBucketPath({
       bucketId: sync.destination.codeBucketId,
-      path: normalized
+      prefix: normalized,
+      keepPaths: [],
+      excludePrefixes: []
     });
 
-    await db.skillDestinationFile.deleteMany({
+    let recorded = await db.skillDestinationFile.findMany({
       where: {
         destinationOid: sync.destinationOid,
         OR: [{ path: normalized }, { path: { startsWith: `${normalized}/` } }]
-      }
+      },
+      select: { path: true }
     });
+
+    return await recordDestinationFileDeletions({
+      destinationOid: sync.destinationOid,
+      paths: [...deletedPaths, ...recorded.map(file => file.path)]
+    });
+  };
+
+  /**
+   * Removes everything belonging to an item that left the destination.
+   *
+   * The prefix is derived from current data, so anything the item recorded
+   * outside of it -- a path from an earlier serializer layout, or a prefix that
+   * could not be derived at all -- is swept up afterwards.
+   */
+  let deleteItemContent = async (prefix: string | undefined) => {
+    let recordedPaths = await getRecordedItemPaths();
+
+    let removedPaths = await deleteBucketPath(prefix);
+    let leftover = recordedPaths.filter(candidate => !removedPaths.includes(candidate));
+
+    return [...removedPaths, ...(await deleteBucketPaths(leftover))];
   };
 
   let pruneStaleFiles = async (): Promise<string[]> => {
@@ -410,6 +472,16 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
    */
   let persistManifest = async (prunedPaths: string[]) => {
     let entries = manifest.entries();
+
+    // Paths this item used to own but no longer writes. The prune only covers
+    // the item's own scope, so anything that moved out of it has to be removed
+    // here or it would linger in the bucket forever.
+    let abandonedPaths = manifest
+      .abandonedPaths()
+      .filter(candidate => !prunedPaths.includes(candidate));
+
+    await deleteBucketPaths(abandonedPaths);
+
     let removedPaths = manifest.removedPaths(prunedPaths);
 
     await withTransaction(async db => {
@@ -424,20 +496,24 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
           create: {
             destinationOid: sync.destinationOid,
             path: entry.path,
-            signature: entry.signature
+            signature: entry.signature,
+            itemKey
           },
-          update: { signature: entry.signature }
+          update: { signature: entry.signature, itemKey }
         });
       }
+    });
 
-      if (removedPaths.length > 0) {
-        await db.skillDestinationFile.deleteMany({
-          where: {
-            destinationOid: sync.destinationOid,
-            path: { in: removedPaths }
-          }
-        });
-      }
+    await recordDestinationFileDeletions({
+      destinationOid: sync.destinationOid,
+      paths: removedPaths
+    });
+
+    // A path we just wrote must not stay tombstoned, or a repository that has
+    // not caught up yet would delete a file that exists again.
+    await forgetDestinationFileDeletions({
+      destinationOid: sync.destinationOid,
+      paths: entries.map(entry => entry.path)
     });
 
     if (skippedPathCount > 0) {
@@ -491,7 +567,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         data.skillDestinationSyncId,
         `Removing skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
       );
-      await deleteBucketPath(
+      await deleteItemContent(
         getSkillPath({
           skill: skillPluginSkill.skill,
           skillPlugin,
@@ -548,7 +624,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         data.skillDestinationSyncId,
         `Removing plugin ${skillPlugin.name}.`
       );
-      await deleteBucketPath(
+      await deleteItemContent(
         getPluginPath({
           skillPlugin,
           skillMarketplace,
@@ -616,23 +692,12 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       hasChanges: data.hasChanges || taskChanged,
       skillRepositoryId: data.skillRepositoryId
     });
-  } else if (!data.hasChanges && !taskChanged) {
-    await appendSkillDestinationSyncLog(
-      data.skillDestinationSyncId,
-      'Content updates were no longer needed.'
-    );
-    await syncFinishQueue.add({
-      skillDestinationSyncId: data.skillDestinationSyncId,
-      status: 'canceled'
-    });
-  } else {
-    await appendSkillDestinationSyncLog(
-      data.skillDestinationSyncId,
-      'Content updates are ready.'
-    );
-    await syncPropagateStartQueue.add({
-      skillDestinationSyncId: data.skillDestinationSyncId,
-      skillRepositoryId: data.skillRepositoryId
-    });
+    return;
   }
+
+  await syncReconcileQueue.add({
+    skillDestinationSyncId: data.skillDestinationSyncId,
+    hasChanges: data.hasChanges || taskChanged,
+    skillRepositoryId: data.skillRepositoryId
+  });
 });

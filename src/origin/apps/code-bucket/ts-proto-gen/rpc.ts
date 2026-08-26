@@ -127,12 +127,6 @@ export interface GetBucketFilesAsZipChunk {
   content: Uint8Array;
 }
 
-/**
- * Builds the archive and uploads it directly to the caller's destination, so
- * the archive bytes never travel through the caller. Exactly one destination
- * must be set: a presigned PUT url, or an object-store bucket and key for
- * backends that cannot presign.
- */
 export interface ExportBucketFilesAsZipToUploadRequest {
   bucketId: string;
   /** Optional filter */
@@ -167,10 +161,6 @@ export interface SetBucketFileRequest {
 export interface SetBucketFileResponse {
 }
 
-/**
- * Copies objects straight from object storage into the bucket. The caller only
- * ever names the source, so file bytes never pass through it.
- */
 export interface CopyBucketFileSource {
   path: string;
   sourceBucket: string;
@@ -225,6 +215,14 @@ export interface ExportBucketToGithubRequest {
   token: string;
   branch: string;
   commitMessage: string;
+  /** Bucket-relative paths to remove from the repository. */
+  deletePaths: string[];
+  /**
+   * When set, only delete_paths are removed and no deletion is inferred from
+   * paths missing in the bucket. Callers owning a subset of path need this so
+   * unmanaged files survive.
+   */
+  explicitDeletesOnly: boolean;
 }
 
 export interface ExportBucketToGithubResponse {
@@ -247,6 +245,13 @@ export interface ExportBucketToGitlabRequest {
   gitlabApiUrl: string;
   branch: string;
   commitMessage: string;
+  /** Bucket-relative paths to remove from the repository. */
+  deletePaths: string[];
+  /**
+   * When set, only delete_paths are removed and no deletion is inferred from
+   * paths missing in the bucket.
+   */
+  explicitDeletesOnly: boolean;
 }
 
 export interface ExportBucketToGitlabResponse {
@@ -281,6 +286,13 @@ export interface ExportBucketToBitbucketCloudRequest {
   token: string;
   bitbucketApiUrl: string;
   bitbucketWebUrl: string;
+  /** Bucket-relative paths to remove from the repository. */
+  deletePaths: string[];
+  /**
+   * When set, only delete_paths are removed instead of mirroring path, so files
+   * under path that the bucket does not manage are left alone.
+   */
+  explicitDeletesOnly: boolean;
 }
 
 export interface ExportBucketToBitbucketDataCenterRequest {
@@ -291,6 +303,10 @@ export interface ExportBucketToBitbucketDataCenterRequest {
   commitMessage: string;
   username: string;
   token: string;
+  /** Bucket-relative paths to remove from the repository. */
+  deletePaths: string[];
+  /** When set, only delete_paths are removed instead of mirroring path. */
+  explicitDeletesOnly: boolean;
 }
 
 export interface ExportBucketToBitbucketResponse {
@@ -3131,7 +3147,17 @@ export const PruneBucketPathResponse: MessageFns<PruneBucketPathResponse> = {
 };
 
 function createBaseExportBucketToGithubRequest(): ExportBucketToGithubRequest {
-  return { bucketId: "", owner: "", repo: "", path: "", token: "", branch: "", commitMessage: "" };
+  return {
+    bucketId: "",
+    owner: "",
+    repo: "",
+    path: "",
+    token: "",
+    branch: "",
+    commitMessage: "",
+    deletePaths: [],
+    explicitDeletesOnly: false,
+  };
 }
 
 export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest> = {
@@ -3156,6 +3182,12 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     }
     if (message.commitMessage !== "") {
       writer.uint32(58).string(message.commitMessage);
+    }
+    for (const v of message.deletePaths) {
+      writer.uint32(66).string(v!);
+    }
+    if (message.explicitDeletesOnly !== false) {
+      writer.uint32(72).bool(message.explicitDeletesOnly);
     }
     return writer;
   },
@@ -3223,6 +3255,22 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
           message.commitMessage = reader.string();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.deletePaths.push(reader.string());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.explicitDeletesOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3249,6 +3297,16 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
         : isSet(object.commit_message)
         ? globalThis.String(object.commit_message)
         : "",
+      deletePaths: globalThis.Array.isArray(object?.deletePaths)
+        ? object.deletePaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.delete_paths)
+        ? object.delete_paths.map((e: any) => globalThis.String(e))
+        : [],
+      explicitDeletesOnly: isSet(object.explicitDeletesOnly)
+        ? globalThis.Boolean(object.explicitDeletesOnly)
+        : isSet(object.explicit_deletes_only)
+        ? globalThis.Boolean(object.explicit_deletes_only)
+        : false,
     };
   },
 
@@ -3275,6 +3333,12 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     if (message.commitMessage !== "") {
       obj.commitMessage = message.commitMessage;
     }
+    if (message.deletePaths?.length) {
+      obj.deletePaths = message.deletePaths;
+    }
+    if (message.explicitDeletesOnly !== false) {
+      obj.explicitDeletesOnly = message.explicitDeletesOnly;
+    }
     return obj;
   },
 
@@ -3290,6 +3354,8 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     message.token = object.token ?? "";
     message.branch = object.branch ?? "";
     message.commitMessage = object.commitMessage ?? "";
+    message.deletePaths = object.deletePaths?.map((e) => e) || [];
+    message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
     return message;
   },
 };
@@ -3492,7 +3558,17 @@ export const CreateBucketFromGitlabRequest: MessageFns<CreateBucketFromGitlabReq
 };
 
 function createBaseExportBucketToGitlabRequest(): ExportBucketToGitlabRequest {
-  return { bucketId: "", projectId: Long.ZERO, path: "", token: "", gitlabApiUrl: "", branch: "", commitMessage: "" };
+  return {
+    bucketId: "",
+    projectId: Long.ZERO,
+    path: "",
+    token: "",
+    gitlabApiUrl: "",
+    branch: "",
+    commitMessage: "",
+    deletePaths: [],
+    explicitDeletesOnly: false,
+  };
 }
 
 export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest> = {
@@ -3517,6 +3593,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     }
     if (message.commitMessage !== "") {
       writer.uint32(58).string(message.commitMessage);
+    }
+    for (const v of message.deletePaths) {
+      writer.uint32(66).string(v!);
+    }
+    if (message.explicitDeletesOnly !== false) {
+      writer.uint32(72).bool(message.explicitDeletesOnly);
     }
     return writer;
   },
@@ -3584,6 +3666,22 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
           message.commitMessage = reader.string();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.deletePaths.push(reader.string());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.explicitDeletesOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3618,6 +3716,16 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
         : isSet(object.commit_message)
         ? globalThis.String(object.commit_message)
         : "",
+      deletePaths: globalThis.Array.isArray(object?.deletePaths)
+        ? object.deletePaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.delete_paths)
+        ? object.delete_paths.map((e: any) => globalThis.String(e))
+        : [],
+      explicitDeletesOnly: isSet(object.explicitDeletesOnly)
+        ? globalThis.Boolean(object.explicitDeletesOnly)
+        : isSet(object.explicit_deletes_only)
+        ? globalThis.Boolean(object.explicit_deletes_only)
+        : false,
     };
   },
 
@@ -3644,6 +3752,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     if (message.commitMessage !== "") {
       obj.commitMessage = message.commitMessage;
     }
+    if (message.deletePaths?.length) {
+      obj.deletePaths = message.deletePaths;
+    }
+    if (message.explicitDeletesOnly !== false) {
+      obj.explicitDeletesOnly = message.explicitDeletesOnly;
+    }
     return obj;
   },
 
@@ -3661,6 +3775,8 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     message.gitlabApiUrl = object.gitlabApiUrl ?? "";
     message.branch = object.branch ?? "";
     message.commitMessage = object.commitMessage ?? "";
+    message.deletePaths = object.deletePaths?.map((e) => e) || [];
+    message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
     return message;
   },
 };
@@ -4033,6 +4149,8 @@ function createBaseExportBucketToBitbucketCloudRequest(): ExportBucketToBitbucke
     token: "",
     bitbucketApiUrl: "",
     bitbucketWebUrl: "",
+    deletePaths: [],
+    explicitDeletesOnly: false,
   };
 }
 
@@ -4064,6 +4182,12 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
     }
     if (message.bitbucketWebUrl !== "") {
       writer.uint32(74).string(message.bitbucketWebUrl);
+    }
+    for (const v of message.deletePaths) {
+      writer.uint32(82).string(v!);
+    }
+    if (message.explicitDeletesOnly !== false) {
+      writer.uint32(88).bool(message.explicitDeletesOnly);
     }
     return writer;
   },
@@ -4147,6 +4271,22 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
           message.bitbucketWebUrl = reader.string();
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.deletePaths.push(reader.string());
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.explicitDeletesOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4183,6 +4323,16 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
         : isSet(object.bitbucket_web_url)
         ? globalThis.String(object.bitbucket_web_url)
         : "",
+      deletePaths: globalThis.Array.isArray(object?.deletePaths)
+        ? object.deletePaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.delete_paths)
+        ? object.delete_paths.map((e: any) => globalThis.String(e))
+        : [],
+      explicitDeletesOnly: isSet(object.explicitDeletesOnly)
+        ? globalThis.Boolean(object.explicitDeletesOnly)
+        : isSet(object.explicit_deletes_only)
+        ? globalThis.Boolean(object.explicit_deletes_only)
+        : false,
     };
   },
 
@@ -4215,6 +4365,12 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
     if (message.bitbucketWebUrl !== "") {
       obj.bitbucketWebUrl = message.bitbucketWebUrl;
     }
+    if (message.deletePaths?.length) {
+      obj.deletePaths = message.deletePaths;
+    }
+    if (message.explicitDeletesOnly !== false) {
+      obj.explicitDeletesOnly = message.explicitDeletesOnly;
+    }
     return obj;
   },
 
@@ -4232,12 +4388,24 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
     message.token = object.token ?? "";
     message.bitbucketApiUrl = object.bitbucketApiUrl ?? "";
     message.bitbucketWebUrl = object.bitbucketWebUrl ?? "";
+    message.deletePaths = object.deletePaths?.map((e) => e) || [];
+    message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
     return message;
   },
 };
 
 function createBaseExportBucketToBitbucketDataCenterRequest(): ExportBucketToBitbucketDataCenterRequest {
-  return { bucketId: "", cloneUrl: "", path: "", branch: "", commitMessage: "", username: "", token: "" };
+  return {
+    bucketId: "",
+    cloneUrl: "",
+    path: "",
+    branch: "",
+    commitMessage: "",
+    username: "",
+    token: "",
+    deletePaths: [],
+    explicitDeletesOnly: false,
+  };
 }
 
 export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketToBitbucketDataCenterRequest> = {
@@ -4262,6 +4430,12 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
     }
     if (message.token !== "") {
       writer.uint32(58).string(message.token);
+    }
+    for (const v of message.deletePaths) {
+      writer.uint32(66).string(v!);
+    }
+    if (message.explicitDeletesOnly !== false) {
+      writer.uint32(72).bool(message.explicitDeletesOnly);
     }
     return writer;
   },
@@ -4329,6 +4503,22 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
           message.token = reader.string();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.deletePaths.push(reader.string());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.explicitDeletesOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4359,6 +4549,16 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
         : "",
       username: isSet(object.username) ? globalThis.String(object.username) : "",
       token: isSet(object.token) ? globalThis.String(object.token) : "",
+      deletePaths: globalThis.Array.isArray(object?.deletePaths)
+        ? object.deletePaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.delete_paths)
+        ? object.delete_paths.map((e: any) => globalThis.String(e))
+        : [],
+      explicitDeletesOnly: isSet(object.explicitDeletesOnly)
+        ? globalThis.Boolean(object.explicitDeletesOnly)
+        : isSet(object.explicit_deletes_only)
+        ? globalThis.Boolean(object.explicit_deletes_only)
+        : false,
     };
   },
 
@@ -4385,6 +4585,12 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
     if (message.token !== "") {
       obj.token = message.token;
     }
+    if (message.deletePaths?.length) {
+      obj.deletePaths = message.deletePaths;
+    }
+    if (message.explicitDeletesOnly !== false) {
+      obj.explicitDeletesOnly = message.explicitDeletesOnly;
+    }
     return obj;
   },
 
@@ -4400,6 +4606,8 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
     message.commitMessage = object.commitMessage ?? "";
     message.username = object.username ?? "";
     message.token = object.token ?? "";
+    message.deletePaths = object.deletePaths?.map((e) => e) || [];
+    message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
     return message;
   },
 };

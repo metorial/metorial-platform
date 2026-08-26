@@ -200,7 +200,9 @@ export let scmRepositoryController = app.controller({
         commitMessage: v.optional(v.string()),
         enableAutoMerge: v.optional(v.boolean()),
         forceMergeOrPush: v.optional(v.boolean()),
-        mergeBeforeChecksPass: v.optional(v.boolean())
+        mergeBeforeChecksPass: v.optional(v.boolean()),
+        deletePaths: v.optional(v.array(v.string())),
+        explicitDeletesOnly: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -221,7 +223,9 @@ export let scmRepositoryController = app.controller({
         commitMessage: ctx.input.commitMessage,
         enableAutoMerge: ctx.input.enableAutoMerge,
         forceMergeOrPush: ctx.input.forceMergeOrPush,
-        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass,
+        deletePaths: ctx.input.deletePaths,
+        explicitDeletesOnly: ctx.input.explicitDeletesOnly
       });
 
       return scmRepositorySyncPresenter(sync);

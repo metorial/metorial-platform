@@ -54,6 +54,8 @@ class scmRepositorySyncServiceImpl {
     enableAutoMerge?: boolean;
     forceMergeOrPush?: boolean;
     mergeBeforeChecksPass?: boolean;
+    deletePaths?: string[];
+    explicitDeletesOnly?: boolean;
   }) {
     let repositoryAccessMode = d.repositoryAccessMode ?? 'pull_request';
     let branchName =
@@ -102,7 +104,9 @@ class scmRepositorySyncServiceImpl {
       description,
       enableAutoMerge,
       forceMergeOrPush,
-      mergeBeforeChecksPass
+      mergeBeforeChecksPass,
+      deletePaths: d.deletePaths ?? [],
+      explicitDeletesOnly: d.explicitDeletesOnly ?? false
     };
     let sync = requestKey
       ? await db.scmRepositorySync.upsert({

@@ -158,7 +158,11 @@ class SkillRepositoryServiceImpl {
         id: await ID.generateId('skillRepository'),
         repoId: d.repoId,
         projectOid: d.project.oid,
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+
+        // A newly linked repository never received our earlier files, so it
+        // must not replay historical deletions.
+        deletionsAppliedAt: new Date()
       },
       include: skillRepositoryInclude
     });

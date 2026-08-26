@@ -14,11 +14,12 @@ model SkillDestination {
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
 
-  syncs                 SkillDestinationSync[]
-  skillMarketplace      SkillMarketplace?
-  skillPlugin           SkillPlugin?
-  skillDestinationItems SkillDestinationItem[]
-  skillDestinationFiles SkillDestinationFile[]
+  syncs                        SkillDestinationSync[]
+  skillMarketplace             SkillMarketplace?
+  skillPlugin                  SkillPlugin?
+  skillDestinationItems        SkillDestinationItem[]
+  skillDestinationFiles        SkillDestinationFile[]
+  skillDestinationDeletedFiles SkillDestinationDeletedFile[]
 
   @@index([isDirty])
   @@index([shouldFlushAt])
@@ -34,11 +35,33 @@ model SkillDestinationFile {
   path      String
   signature String
 
+  /// Identifies the SkillDestinationItem that produced this file, using the
+  /// same key shape as `getSyncItemKey`. Null for rows written before
+  /// attribution existed; those are re-attributed on the next apply.
+  itemKey String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([destinationOid, path])
   @@index([destinationOid])
+  @@index([destinationOid, itemKey])
+}
+
+/// Tombstone for a path we removed from a destination's code bucket. Kept so
+/// repository propagations that failed or were linked later can still catch up
+/// on the deletion, and pruned by a retention cron.
+model SkillDestinationDeletedFile {
+  oid BigInt @id @default(autoincrement())
+
+  destinationOid BigInt
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  path      String
+  createdAt DateTime @default(now())
+
+  @@unique([destinationOid, path])
+  @@index([destinationOid, createdAt])
 }
 
 model SkillDestinationItem {
@@ -118,6 +141,10 @@ model SkillDestinationSyncRepositoryPropagation {
   prDescription String?
   commitMessage String?
   errorMessage  String?
+
+  /// Upper bound of the deletion tombstones this propagation carries. Becomes
+  /// the repository's cursor once the propagation completes.
+  deletionsUpTo DateTime?
 
   skillDestinationSyncOid BigInt
   skillDestinationSync    SkillDestinationSync @relation(fields: [skillDestinationSyncOid], references: [oid], onDelete: Cascade)

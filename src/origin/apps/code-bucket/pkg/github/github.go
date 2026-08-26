@@ -50,6 +50,10 @@ type UploadOptions struct {
 	CommitMessage string
 	Token         string
 
+	// Bucket-relative paths to remove from the repository. Paths that are not
+	// in the branch are ignored.
+	DeletePaths []string
+
 	BaseURL     string
 	LFSEndpoint string
 
@@ -163,7 +167,18 @@ type githubTreeEntry struct {
 	Path string `json:"path"`
 	Mode string `json:"mode"`
 	Type string `json:"type"`
-	SHA  string `json:"sha"`
+
+	// A pointer without omitempty so a deletion marshals as an explicit
+	// "sha": null, which is how the tree API removes a path from base_tree.
+	SHA *string `json:"sha"`
+}
+
+func blobEntry(path, sha string) githubTreeEntry {
+	return githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: &sha}
+}
+
+func deleteEntry(path string) githubTreeEntry {
+	return githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: nil}
 }
 
 type githubCreateTreeRequest struct {
@@ -258,6 +273,11 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 	lfsPaths := make([]string, 0)
 	var exportedAttributes []byte
 
+	// Every path the bucket still holds, including ones skipped because their
+	// content is unchanged. A stale delete request for such a path must not
+	// remove a file that is still part of the export.
+	writtenPaths := map[string]struct{}{}
+
 	if err := iter(func(file FileToUpload) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -265,6 +285,7 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 
 		fullPath := path.Join(opts.TargetPath, file.Path)
 		fullPath = strings.TrimPrefix(fullPath, "/")
+		writtenPaths[fullPath] = struct{}{}
 
 		size := file.Size
 
@@ -352,12 +373,7 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 			return fmt.Errorf("failed to create blob for %s: %w", fullPath, err)
 		}
 
-		treeEntries = append(treeEntries, githubTreeEntry{
-			Path: fullPath,
-			Mode: "100644",
-			Type: "blob",
-			SHA:  blobSHA,
-		})
+		treeEntries = append(treeEntries, blobEntry(fullPath, blobSHA))
 		return nil
 	}); err != nil {
 		return err
@@ -367,6 +383,26 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		return err
 	}
 
+	for _, deletePath := range opts.DeletePaths {
+		fullPath := strings.TrimPrefix(path.Join(opts.TargetPath, deletePath), "/")
+
+		// A path the export just wrote is not a deletion; the caller may have
+		// recreated it since the removal was recorded.
+		if _, written := writtenPaths[fullPath]; written {
+			continue
+		}
+		if _, exists := existingBlobShas[fullPath]; !exists {
+			continue
+		}
+
+		log.Printf(
+			"[github export] delete repo=%s/%s branch=%s path=%s",
+			opts.Owner, opts.Repo, opts.Branch, fullPath,
+		)
+		treeEntries = append(treeEntries, deleteEntry(fullPath))
+	}
+
+	// Deletions are changes too, so this early return has to come after them.
 	if len(treeEntries) == 0 {
 		return nil
 	}

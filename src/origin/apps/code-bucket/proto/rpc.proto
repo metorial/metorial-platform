@@ -211,6 +211,12 @@ message ExportBucketToGithubRequest {
   string token = 5;
   string branch = 6;
   string commit_message = 7;
+  // Bucket-relative paths to remove from the repository.
+  repeated string delete_paths = 8;
+  // When set, only delete_paths are removed and no deletion is inferred from
+  // paths missing in the bucket. Callers owning a subset of path need this so
+  // unmanaged files survive.
+  bool explicit_deletes_only = 9;
 }
 
 message ExportBucketToGithubResponse {}
@@ -232,6 +238,11 @@ message ExportBucketToGitlabRequest {
   string gitlab_api_url = 5;
   string branch = 6;
   string commit_message = 7;
+  // Bucket-relative paths to remove from the repository.
+  repeated string delete_paths = 8;
+  // When set, only delete_paths are removed and no deletion is inferred from
+  // paths missing in the bucket.
+  bool explicit_deletes_only = 9;
 }
 
 message ExportBucketToGitlabResponse {}
@@ -265,6 +276,11 @@ message ExportBucketToBitbucketCloudRequest {
   string token = 7;
   string bitbucket_api_url = 8;
   string bitbucket_web_url = 9;
+  // Bucket-relative paths to remove from the repository.
+  repeated string delete_paths = 10;
+  // When set, only delete_paths are removed instead of mirroring path, so files
+  // under path that the bucket does not manage are left alone.
+  bool explicit_deletes_only = 11;
 }
 
 message ExportBucketToBitbucketDataCenterRequest {
@@ -275,6 +291,10 @@ message ExportBucketToBitbucketDataCenterRequest {
   string commit_message = 5;
   string username = 6;
   string token = 7;
+  // Bucket-relative paths to remove from the repository.
+  repeated string delete_paths = 8;
+  // When set, only delete_paths are removed instead of mirroring path.
+  bool explicit_deletes_only = 9;
 }
 
 message ExportBucketToBitbucketResponse {}
