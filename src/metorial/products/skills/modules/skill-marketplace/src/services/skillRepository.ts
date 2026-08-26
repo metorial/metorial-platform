@@ -164,7 +164,7 @@ class SkillRepositoryServiceImpl {
     });
   }
 
-  assertRepositoryIsAvailable(
+  async assertRepositoryIsAvailable(
     skillRepository: SkillRepositoryRecord,
     allowed?: {
       skillMarketplaceOid?: bigint;
