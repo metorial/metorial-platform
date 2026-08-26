@@ -46,7 +46,7 @@ func (it *ZipFileIterator) Next() (*ZipFileItem, bool) {
 	}
 	if info.Size() > filelimit.MaxBufferedFileBytes {
 		it.setErr(filelimit.FileTooLargeError(
-			"zip", relative, info.Size(), filelimit.MaxBufferedFileBytes,
+			"zip import", relative, info.Size(), filelimit.MaxBufferedFileBytes,
 		))
 		return nil, false
 	}

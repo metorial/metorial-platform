@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	"strings"
+
 	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
 	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
@@ -42,7 +44,7 @@ func (it *RepoIterator) Next() (*zipImporter.ZipFileItem, bool) {
 			item.Path, pointer.OID, pointer.Size, filelimit.MaxBufferedFileBytes,
 		)
 		it.err = filelimit.FileTooLargeError(
-			"GitHub", item.Path, pointer.Size, filelimit.MaxBufferedFileBytes,
+			"GitHub import", item.Path, pointer.Size, filelimit.MaxBufferedFileBytes,
 		)
 		return nil, false
 	}
@@ -68,8 +70,65 @@ func (it *RepoIterator) Close() error {
 	return it.inner.Close()
 }
 
+func checkRepoFileSizes(ctx context.Context, opts DownloadOptions) error {
+	url := fmt.Sprintf(
+		"%s/repos/%s/%s/git/trees/%s?recursive=1",
+		opts.BaseURL, opts.Owner, opts.Repo, opts.Ref,
+	)
+
+	tree, err := githubJSON[githubTreeResponse](ctx, "GET", url, opts.Token, nil)
+	if err != nil {
+		log.Printf(
+			"[github import] size preflight skipped repo=%s/%s ref=%s err=%v",
+			opts.Owner, opts.Repo, opts.Ref, err,
+		)
+		return nil
+	}
+	if tree.Truncated {
+		log.Printf(
+			"[github import] size preflight truncated repo=%s/%s ref=%s",
+			opts.Owner, opts.Repo, opts.Ref,
+		)
+		return nil
+	}
+
+	for _, entry := range tree.Tree {
+		if entry.Type != "blob" || entry.Size <= filelimit.MaxBufferedFileBytes {
+			continue
+		}
+
+		if !pathWithinImport(entry.Path, opts.Path) {
+			continue
+		}
+
+		log.Printf(
+			"[github import] rejected before download repo=%s/%s ref=%s path=%s size=%d limit=%d",
+			opts.Owner, opts.Repo, opts.Ref, entry.Path, entry.Size, filelimit.MaxBufferedFileBytes,
+		)
+		return filelimit.FileTooLargeError(
+			"GitHub import", entry.Path, entry.Size, filelimit.MaxBufferedFileBytes,
+		)
+	}
+
+	return nil
+}
+
+func pathWithinImport(entryPath, target string) bool {
+	target = strings.Trim(target, "/")
+	if target == "" {
+		return true
+	}
+
+	entryPath = strings.TrimPrefix(entryPath, "/")
+	return entryPath == target || strings.HasPrefix(entryPath, target+"/")
+}
+
 func DownloadRepo(ctx context.Context, opts DownloadOptions) (*RepoIterator, error) {
 	opts = opts.withDefaults()
+
+	if err := checkRepoFileSizes(ctx, opts); err != nil {
+		return nil, err
+	}
 
 	url := fmt.Sprintf("%s/repos/%s/%s/zipball/%s", opts.BaseURL, opts.Owner, opts.Repo, opts.Ref)
 

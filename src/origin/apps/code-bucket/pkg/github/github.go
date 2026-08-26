@@ -139,7 +139,10 @@ type githubTreeResponse struct {
 		Path string `json:"path"`
 		Type string `json:"type"`
 		SHA  string `json:"sha"`
+		Size int64  `json:"size"`
 	} `json:"tree"`
+
+	Truncated bool `json:"truncated"`
 }
 
 type githubCreateBlobRequest struct {
@@ -277,7 +280,7 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 				"[github export] rejected repo=%s/%s branch=%s path=%s size=%d limit=%d",
 				opts.Owner, opts.Repo, opts.Branch, fullPath, size, limit,
 			)
-			return filelimit.FileTooLargeError("GitHub", fullPath, size, limit)
+			return filelimit.FileTooLargeError("GitHub export", fullPath, size, limit)
 		}
 
 		log.Printf(

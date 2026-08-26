@@ -100,7 +100,7 @@ func PrepareDataCenterRepo(
 			}
 			if info.Size() > filelimit.MaxBufferedFileBytes {
 				return filelimit.FileTooLargeError(
-					"Bitbucket", filepath.ToSlash(relativePath),
+					"Bitbucket import", filepath.ToSlash(relativePath),
 					info.Size(), filelimit.MaxBufferedFileBytes,
 				)
 			}

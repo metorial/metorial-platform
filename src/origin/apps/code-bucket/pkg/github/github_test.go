@@ -39,6 +39,10 @@ type fakeGitHub struct {
 	createdTree *githubCreateTreeRequest
 	commits     int
 	zipball     []byte
+
+	treeSizes       map[string]int64
+	treeTruncated   bool
+	zipballRequests int
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -50,6 +54,7 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 		baseTree:    map[string]string{},
 		lfsStore:    map[string][]byte{},
 		lfsUploaded: map[string]bool{},
+		treeSizes:   map[string]int64{},
 	}
 
 	mux := http.NewServeMux()
@@ -73,6 +78,10 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 		_, _ = fmt.Fprint(w, `{"object":{"sha":"newcommit"}}`)
 	})
 	mux.HandleFunc("GET /repos/o/r/zipball/{ref}", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		f.zipballRequests++
+		f.mu.Unlock()
+
 		_, _ = w.Write(f.zipball)
 	})
 	mux.HandleFunc("POST /info/lfs/objects/batch", f.handleLFSBatch)
@@ -115,11 +124,34 @@ func (f *fakeGitHub) handleGetTree(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	entries := make([]githubTreeEntry, 0, len(f.baseTree))
-	for path, sha := range f.baseTree {
-		entries = append(entries, githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: sha})
+	type sizedEntry struct {
+		githubTreeEntry
+		Size int64 `json:"size"`
 	}
-	_ = json.NewEncoder(w).Encode(map[string]any{"tree": entries})
+
+	entries := make([]sizedEntry, 0, len(f.baseTree)+len(f.treeSizes))
+	for path, sha := range f.baseTree {
+		entries = append(entries, sizedEntry{
+			githubTreeEntry: githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: sha},
+			Size:            f.treeSizes[path],
+		})
+	}
+	// Sizes can be declared for paths that have no blob body, so a test can
+	// describe a large file without materialising it.
+	for path, size := range f.treeSizes {
+		if _, alreadyListed := f.baseTree[path]; alreadyListed {
+			continue
+		}
+		entries = append(entries, sizedEntry{
+			githubTreeEntry: githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: "sha-" + path},
+			Size:            size,
+		})
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"tree":      entries,
+		"truncated": f.treeTruncated,
+	})
 }
 
 func (f *fakeGitHub) handleGetBlob(w http.ResponseWriter, r *http.Request) {

@@ -163,7 +163,7 @@ func (rs *RcpService) CreateBucketFromGithub(ctx context.Context, req *rpc.Creat
 	defer iter.Close()
 
 	if err := rs.fsm.ImportZip(ctx, req.NewBucketId, iter); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to import zip: %v", err)
+		return nil, providerImportError("GitHub", err)
 	}
 
 	return &rpc.CreateBucketResponse{}, nil
@@ -172,12 +172,12 @@ func (rs *RcpService) CreateBucketFromGithub(ctx context.Context, req *rpc.Creat
 func (rs *RcpService) CreateBucketFromZip(ctx context.Context, req *rpc.CreateBucketFromZipRequest) (*rpc.CreateBucketResponse, error) {
 	iter, err := zipImporter.DownloadZip(req.ZipUrl, req.Path, req.Headers)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to download zip: %v", err)
+		return nil, providerImportError("zip", err)
 	}
 	defer iter.Close()
 
 	if err := rs.fsm.ImportZip(ctx, req.NewBucketId, iter); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to import zip: %v", err)
+		return nil, providerImportError("zip", err)
 	}
 
 	return &rpc.CreateBucketResponse{}, nil
@@ -429,7 +429,7 @@ func (rs *RcpService) CreateBucketFromGitlab(ctx context.Context, req *rpc.Creat
 	defer iter.Close()
 
 	if err := rs.fsm.ImportZip(ctx, req.NewBucketId, iter); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to import zip: %v", err)
+		return nil, providerImportError("GitLab", err)
 	}
 
 	return &rpc.CreateBucketResponse{}, nil
@@ -482,7 +482,7 @@ func (rs *RcpService) CreateBucketFromBitbucketCloud(ctx context.Context, req *r
 	if err := iter(func(file bitbucket.FileToUpload) error {
 		return rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, file.Content, "application/octet-stream")
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to import Bitbucket Cloud repository: %v", err)
+		return nil, providerImportError("Bitbucket Cloud", err)
 	}
 	return &rpc.CreateBucketResponse{}, nil
 }
@@ -539,7 +539,7 @@ func (rs *RcpService) CreateBucketFromBitbucketDataCenter(ctx context.Context, r
 	if err := iter(func(file bitbucket.FileToUpload) error {
 		return rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, file.Content, "application/octet-stream")
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to import Bitbucket Data Center repository: %v", err)
+		return nil, providerImportError("Bitbucket Data Center", err)
 	}
 	return &rpc.CreateBucketResponse{}, nil
 }
@@ -590,7 +590,7 @@ func (rs *RcpService) ensureBucketFitsBufferedExport(
 			provider, bucketID, file.Path, file.Size, filelimit.MaxBufferedFileBytes,
 		)
 		return filelimit.FileTooLargeError(
-			provider, file.Path, file.Size, filelimit.MaxBufferedFileBytes,
+			provider+" export", file.Path, file.Size, filelimit.MaxBufferedFileBytes,
 		)
 	})
 }

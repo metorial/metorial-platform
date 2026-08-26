@@ -9,10 +9,10 @@ const MaxBufferedFileBytes int64 = 64 << 20
 
 var ErrFileTooLarge = errors.New("file exceeds the per-file size limit")
 
-func FileTooLargeError(provider, path string, size, limit int64) error {
+func FileTooLargeError(operation, path string, size, limit int64) error {
 	return fmt.Errorf(
-		"%w: %s is %s, over the %s per-file limit for %s export",
-		ErrFileTooLarge, path, HumanBytes(size), HumanBytes(limit), provider,
+		"%w: %s is %s, over the %s per-file limit for %s",
+		ErrFileTooLarge, path, HumanBytes(size), HumanBytes(limit), operation,
 	)
 }
 

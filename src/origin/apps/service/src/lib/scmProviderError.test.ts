@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   captureException: vi.fn()
@@ -11,6 +11,7 @@ vi.mock('@lowerdeck/sentry', () => ({
 
 import {
   formatScmProviderError,
+  getFileTooLargeDetail,
   getScmProviderErrorDetails,
   getScmProviderLogDetails,
   isRetryableScmProviderError,
@@ -21,6 +22,20 @@ import {
 describe('SCM provider errors', () => {
   beforeEach(() => {
     mocks.captureException.mockClear();
+  });
+
+  it('treats an oversized file as a terminal failure, not something to retry', () => {
+    let error = Object.assign(new Error('too big'), {
+      code: 9,
+      details:
+        'file exceeds the per-file size limit: assets/big.bin is 500.0 MiB, over the 64.0 MiB per-file limit for GitHub import'
+    });
+
+    expect(getScmProviderErrorDetails(error).classification).toBe('file_too_large');
+    expect(isRetryableScmProviderError(error)).toBe(false);
+    expect(getFileTooLargeDetail(error)).toBe(
+      'assets/big.bin is 500.0 MiB, over the 64.0 MiB per-file limit for GitHub import'
+    );
   });
 
   it.each([

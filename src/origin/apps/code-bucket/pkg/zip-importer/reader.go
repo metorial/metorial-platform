@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 )
 
 var httpClient = &http.Client{
@@ -93,6 +95,17 @@ func unzip(src, dest string) error {
 		return err
 	}
 	defer r.Close()
+
+	for _, f := range r.File {
+		if f.FileInfo().IsDir() {
+			continue
+		}
+		if size := f.UncompressedSize64; size > uint64(filelimit.MaxBufferedFileBytes) {
+			return filelimit.FileTooLargeError(
+				"zip import", f.Name, int64(size), filelimit.MaxBufferedFileBytes,
+			)
+		}
+	}
 
 	for _, f := range r.File {
 		fpath := filepath.Join(dest, f.Name)
