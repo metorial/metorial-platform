@@ -1643,6 +1643,7 @@ func (x *DeleteBucketPathRequest) GetPath() string {
 
 type DeleteBucketPathResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeletedPaths  []string               `protobuf:"bytes,1,rep,name=deleted_paths,json=deletedPaths,proto3" json:"deleted_paths,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1677,8 +1678,13 @@ func (*DeleteBucketPathResponse) Descriptor() ([]byte, []int) {
 	return file_rpc_proto_rawDescGZIP(), []int{31}
 }
 
-// Deletes everything under prefix that is not in keep_paths and not under one
-// of exclude_prefixes. Used to remove files a writer no longer produces.
+func (x *DeleteBucketPathResponse) GetDeletedPaths() []string {
+	if x != nil {
+		return x.DeletedPaths
+	}
+	return nil
+}
+
 type PruneBucketPathRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	BucketId        string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
@@ -1792,20 +1798,16 @@ func (x *PruneBucketPathResponse) GetDeletedPaths() []string {
 }
 
 type ExportBucketToGithubRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BucketId      string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
-	Owner         string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	Repo          string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
-	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	Token         string                 `protobuf:"bytes,5,opt,name=token,proto3" json:"token,omitempty"`
-	Branch        string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
-	// Bucket-relative paths to remove from the repository.
-	DeletePaths []string `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
-	// When set, only delete_paths are removed and no deletion is inferred from
-	// paths missing in the bucket. Callers owning a subset of path need this so
-	// unmanaged files survive.
-	ExplicitDeletesOnly bool `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	BucketId            string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
+	Owner               string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Repo                string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
+	Path                string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	Token               string                 `protobuf:"bytes,5,opt,name=token,proto3" json:"token,omitempty"`
+	Branch              string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
+	CommitMessage       string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	DeletePaths         []string               `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
+	ExplicitDeletesOnly bool                   `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -2024,19 +2026,16 @@ func (x *CreateBucketFromGitlabRequest) GetGitlabApiUrl() string {
 }
 
 type ExportBucketToGitlabRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BucketId      string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
-	ProjectId     int64                  `protobuf:"varint,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
-	Token         string                 `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
-	GitlabApiUrl  string                 `protobuf:"bytes,5,opt,name=gitlab_api_url,json=gitlabApiUrl,proto3" json:"gitlab_api_url,omitempty"`
-	Branch        string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
-	// Bucket-relative paths to remove from the repository.
-	DeletePaths []string `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
-	// When set, only delete_paths are removed and no deletion is inferred from
-	// paths missing in the bucket.
-	ExplicitDeletesOnly bool `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	BucketId            string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
+	ProjectId           int64                  `protobuf:"varint,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Path                string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	Token               string                 `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
+	GitlabApiUrl        string                 `protobuf:"bytes,5,opt,name=gitlab_api_url,json=gitlabApiUrl,proto3" json:"gitlab_api_url,omitempty"`
+	Branch              string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
+	CommitMessage       string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	DeletePaths         []string               `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
+	ExplicitDeletesOnly bool                   `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -2347,21 +2346,18 @@ func (x *CreateBucketFromBitbucketDataCenterRequest) GetToken() string {
 }
 
 type ExportBucketToBitbucketCloudRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	BucketId        string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
-	Workspace       string                 `protobuf:"bytes,2,opt,name=workspace,proto3" json:"workspace,omitempty"`
-	Repo            string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
-	Path            string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	Branch          string                 `protobuf:"bytes,5,opt,name=branch,proto3" json:"branch,omitempty"`
-	CommitMessage   string                 `protobuf:"bytes,6,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
-	Token           string                 `protobuf:"bytes,7,opt,name=token,proto3" json:"token,omitempty"`
-	BitbucketApiUrl string                 `protobuf:"bytes,8,opt,name=bitbucket_api_url,json=bitbucketApiUrl,proto3" json:"bitbucket_api_url,omitempty"`
-	BitbucketWebUrl string                 `protobuf:"bytes,9,opt,name=bitbucket_web_url,json=bitbucketWebUrl,proto3" json:"bitbucket_web_url,omitempty"`
-	// Bucket-relative paths to remove from the repository.
-	DeletePaths []string `protobuf:"bytes,10,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
-	// When set, only delete_paths are removed instead of mirroring path, so files
-	// under path that the bucket does not manage are left alone.
-	ExplicitDeletesOnly bool `protobuf:"varint,11,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	BucketId            string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
+	Workspace           string                 `protobuf:"bytes,2,opt,name=workspace,proto3" json:"workspace,omitempty"`
+	Repo                string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
+	Path                string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	Branch              string                 `protobuf:"bytes,5,opt,name=branch,proto3" json:"branch,omitempty"`
+	CommitMessage       string                 `protobuf:"bytes,6,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	Token               string                 `protobuf:"bytes,7,opt,name=token,proto3" json:"token,omitempty"`
+	BitbucketApiUrl     string                 `protobuf:"bytes,8,opt,name=bitbucket_api_url,json=bitbucketApiUrl,proto3" json:"bitbucket_api_url,omitempty"`
+	BitbucketWebUrl     string                 `protobuf:"bytes,9,opt,name=bitbucket_web_url,json=bitbucketWebUrl,proto3" json:"bitbucket_web_url,omitempty"`
+	DeletePaths         []string               `protobuf:"bytes,10,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
+	ExplicitDeletesOnly bool                   `protobuf:"varint,11,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -2474,18 +2470,16 @@ func (x *ExportBucketToBitbucketCloudRequest) GetExplicitDeletesOnly() bool {
 }
 
 type ExportBucketToBitbucketDataCenterRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BucketId      string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
-	CloneUrl      string                 `protobuf:"bytes,2,opt,name=clone_url,json=cloneUrl,proto3" json:"clone_url,omitempty"`
-	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
-	Branch        string                 `protobuf:"bytes,4,opt,name=branch,proto3" json:"branch,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,5,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
-	Username      string                 `protobuf:"bytes,6,opt,name=username,proto3" json:"username,omitempty"`
-	Token         string                 `protobuf:"bytes,7,opt,name=token,proto3" json:"token,omitempty"`
-	// Bucket-relative paths to remove from the repository.
-	DeletePaths []string `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
-	// When set, only delete_paths are removed instead of mirroring path.
-	ExplicitDeletesOnly bool `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	BucketId            string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
+	CloneUrl            string                 `protobuf:"bytes,2,opt,name=clone_url,json=cloneUrl,proto3" json:"clone_url,omitempty"`
+	Path                string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	Branch              string                 `protobuf:"bytes,4,opt,name=branch,proto3" json:"branch,omitempty"`
+	CommitMessage       string                 `protobuf:"bytes,5,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	Username            string                 `protobuf:"bytes,6,opt,name=username,proto3" json:"username,omitempty"`
+	Token               string                 `protobuf:"bytes,7,opt,name=token,proto3" json:"token,omitempty"`
+	DeletePaths         []string               `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
+	ExplicitDeletesOnly bool                   `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -2727,8 +2721,9 @@ const file_rpc_proto_rawDesc = "" +
 	"\x18DeleteBucketFileResponse\"J\n" +
 	"\x17DeleteBucketPathRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x12\n" +
-	"\x04path\x18\x02 \x01(\tR\x04path\"\x1a\n" +
-	"\x18DeleteBucketPathResponse\"\x97\x01\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\"?\n" +
+	"\x18DeleteBucketPathResponse\x12#\n" +
+	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\x97\x01\n" +
 	"\x16PruneBucketPathRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x16\n" +
 	"\x06prefix\x18\x02 \x01(\tR\x06prefix\x12\x1d\n" +

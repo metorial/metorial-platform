@@ -164,11 +164,9 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       return await deleteBucketPaths(await getRecordedItemPaths());
     }
 
-    let { deletedPaths } = await codeBucketClient.pruneBucketPath({
+    let { deletedPaths } = await codeBucketClient.deleteBucketPath({
       bucketId: sync.destination.codeBucketId,
-      prefix: normalized,
-      keepPaths: [],
-      excludePrefixes: []
+      path: normalized
     });
 
     let recorded = await db.skillDestinationFile.findMany({

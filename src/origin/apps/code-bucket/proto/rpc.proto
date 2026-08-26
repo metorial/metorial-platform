@@ -188,7 +188,9 @@ message DeleteBucketPathRequest {
   string path = 2;
 }
 
-message DeleteBucketPathResponse {}
+message DeleteBucketPathResponse {
+  repeated string deleted_paths = 1;
+}
 
 message PruneBucketPathRequest {
   string bucket_id = 1;

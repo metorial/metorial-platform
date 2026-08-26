@@ -736,11 +736,12 @@ func (rs *RcpService) DeleteBucketPath(ctx context.Context, req *rpc.DeleteBucke
 		return nil, status.Errorf(codes.InvalidArgument, "path is required")
 	}
 
-	if err := rs.fsm.DeleteBucketPath(ctx, req.BucketId, req.Path); err != nil {
+	deletedPaths, err := rs.fsm.DeleteBucketPath(ctx, req.BucketId, req.Path)
+	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete path: %v", err)
 	}
 
-	return &rpc.DeleteBucketPathResponse{}, nil
+	return &rpc.DeleteBucketPathResponse{DeletedPaths: deletedPaths}, nil
 }
 
 func (rs *RcpService) PruneBucketPath(ctx context.Context, req *rpc.PruneBucketPathRequest) (*rpc.PruneBucketPathResponse, error) {

@@ -742,19 +742,11 @@ func (fsm *FileSystemManager) deleteObjectKeys(keys []string) error {
 	return nil
 }
 
-func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) error {
-	filePath = canonicalFilePath(filePath)
-
-	if err := fsm.deleteRedisKeysUnderPrefix(ctx, bucketID, filePath); err != nil {
-		return err
-	}
-
-	objectKeys, err := fsm.listObjectKeysUnderPrefix(bucketID, filePath)
-	if err != nil {
-		return err
-	}
-
-	return fsm.deleteObjectKeys(objectKeys)
+// DeleteBucketPath removes everything under filePath and reports the paths it
+// removed, so a caller can propagate those deletions elsewhere. It is a prune
+// that keeps nothing.
+func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) ([]string, error) {
+	return fsm.PruneBucketPath(ctx, bucketID, canonicalFilePath(filePath), nil, nil)
 }
 
 type prunePlan struct {

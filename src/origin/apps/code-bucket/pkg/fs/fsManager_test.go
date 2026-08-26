@@ -119,6 +119,24 @@ func TestPrunePlanAtRootExcludesPluginSubtrees(t *testing.T) {
 	}
 }
 
+func TestPrunePlanWithoutKeepPathsDeletesTheWholePrefix(t *testing.T) {
+	// The shape DeleteBucketPath relies on to report what it removed.
+	plan := newPrunePlan("/plugins/acme", nil, nil)
+
+	if !plan.shouldDelete("plugins/acme/plugin.json") {
+		t.Fatal("expected a file under the prefix to be deleted")
+	}
+	if !plan.shouldDelete("plugins/acme/skills/demo/SKILL.md") {
+		t.Fatal("expected a nested file under the prefix to be deleted")
+	}
+	if plan.shouldDelete("plugins/acme-other/plugin.json") {
+		t.Fatal("expected a sibling sharing the name prefix to survive")
+	}
+	if plan.shouldDelete(".claude-plugin/marketplace.json") {
+		t.Fatal("expected a file outside the prefix to survive")
+	}
+}
+
 func TestNormalizeSeenPathDedupesRedisAndObjectPaths(t *testing.T) {
 	if normalizeSeenPath("/src/index.ts") != normalizeSeenPath("src/index.ts") {
 		t.Fatal("expected leading slash variants to normalize to the same seen path")

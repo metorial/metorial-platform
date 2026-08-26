@@ -190,12 +190,9 @@ export interface DeleteBucketPathRequest {
 }
 
 export interface DeleteBucketPathResponse {
+  deletedPaths: string[];
 }
 
-/**
- * Deletes everything under prefix that is not in keep_paths and not under one
- * of exclude_prefixes. Used to remove files a writer no longer produces.
- */
 export interface PruneBucketPathRequest {
   bucketId: string;
   prefix: string;
@@ -215,13 +212,7 @@ export interface ExportBucketToGithubRequest {
   token: string;
   branch: string;
   commitMessage: string;
-  /** Bucket-relative paths to remove from the repository. */
   deletePaths: string[];
-  /**
-   * When set, only delete_paths are removed and no deletion is inferred from
-   * paths missing in the bucket. Callers owning a subset of path need this so
-   * unmanaged files survive.
-   */
   explicitDeletesOnly: boolean;
 }
 
@@ -245,12 +236,7 @@ export interface ExportBucketToGitlabRequest {
   gitlabApiUrl: string;
   branch: string;
   commitMessage: string;
-  /** Bucket-relative paths to remove from the repository. */
   deletePaths: string[];
-  /**
-   * When set, only delete_paths are removed and no deletion is inferred from
-   * paths missing in the bucket.
-   */
   explicitDeletesOnly: boolean;
 }
 
@@ -286,12 +272,7 @@ export interface ExportBucketToBitbucketCloudRequest {
   token: string;
   bitbucketApiUrl: string;
   bitbucketWebUrl: string;
-  /** Bucket-relative paths to remove from the repository. */
   deletePaths: string[];
-  /**
-   * When set, only delete_paths are removed instead of mirroring path, so files
-   * under path that the bucket does not manage are left alone.
-   */
   explicitDeletesOnly: boolean;
 }
 
@@ -303,9 +284,7 @@ export interface ExportBucketToBitbucketDataCenterRequest {
   commitMessage: string;
   username: string;
   token: string;
-  /** Bucket-relative paths to remove from the repository. */
   deletePaths: string[];
-  /** When set, only delete_paths are removed instead of mirroring path. */
   explicitDeletesOnly: boolean;
 }
 
@@ -2920,11 +2899,14 @@ export const DeleteBucketPathRequest: MessageFns<DeleteBucketPathRequest> = {
 };
 
 function createBaseDeleteBucketPathResponse(): DeleteBucketPathResponse {
-  return {};
+  return { deletedPaths: [] };
 }
 
 export const DeleteBucketPathResponse: MessageFns<DeleteBucketPathResponse> = {
-  encode(_: DeleteBucketPathResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(message: DeleteBucketPathResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.deletedPaths) {
+      writer.uint32(10).string(v!);
+    }
     return writer;
   },
 
@@ -2935,6 +2917,14 @@ export const DeleteBucketPathResponse: MessageFns<DeleteBucketPathResponse> = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.deletedPaths.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2944,20 +2934,30 @@ export const DeleteBucketPathResponse: MessageFns<DeleteBucketPathResponse> = {
     return message;
   },
 
-  fromJSON(_: any): DeleteBucketPathResponse {
-    return {};
+  fromJSON(object: any): DeleteBucketPathResponse {
+    return {
+      deletedPaths: globalThis.Array.isArray(object?.deletedPaths)
+        ? object.deletedPaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_paths)
+        ? object.deleted_paths.map((e: any) => globalThis.String(e))
+        : [],
+    };
   },
 
-  toJSON(_: DeleteBucketPathResponse): unknown {
+  toJSON(message: DeleteBucketPathResponse): unknown {
     const obj: any = {};
+    if (message.deletedPaths?.length) {
+      obj.deletedPaths = message.deletedPaths;
+    }
     return obj;
   },
 
   create(base?: DeepPartial<DeleteBucketPathResponse>): DeleteBucketPathResponse {
     return DeleteBucketPathResponse.fromPartial(base ?? {});
   },
-  fromPartial(_: DeepPartial<DeleteBucketPathResponse>): DeleteBucketPathResponse {
+  fromPartial(object: DeepPartial<DeleteBucketPathResponse>): DeleteBucketPathResponse {
     const message = createBaseDeleteBucketPathResponse();
+    message.deletedPaths = object.deletedPaths?.map((e) => e) || [];
     return message;
   },
 };
