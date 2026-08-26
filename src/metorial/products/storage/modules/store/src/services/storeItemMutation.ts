@@ -1,6 +1,5 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import type {
   Instance,
   Project,
@@ -11,6 +10,7 @@ import type {
   StoreItemKind
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import { applyStoreByteSizeDelta, refreshStoreByteSize } from '../lib/storeByteSize';
 import {
   listAncestorDirectoryPaths,
@@ -176,10 +176,6 @@ class StoreItemMutationServiceImpl {
     );
   }
 
-  /**
-   * Caps the total size of a skill store at attach time, so users get a clear
-   * error here rather than a failing sync or export later.
-   */
   private async assertSkillStoreByteLimit(store: Pick<Store, 'oid'>) {
     let byteSize = await refreshStoreByteSize({ storeOid: store.oid });
     if (byteSize <= maxSkillStoreBytes) return;

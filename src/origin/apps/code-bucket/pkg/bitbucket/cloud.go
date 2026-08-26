@@ -48,22 +48,15 @@ func PrepareCloudRepo(
 }
 
 type CloudUploadOptions struct {
-	Workspace     string
-	Repo          string
-	TargetPath    string
-	Branch        string
-	CommitMessage string
-	Token         string
-	APIURL        string
-	WebURL        string
-
-	// Bucket-relative paths to remove from the repository. Paths that are not
-	// in the branch are ignored.
-	DeletePaths []string
-
-	// When set, only DeletePaths are removed. Without it the export mirrors
-	// TargetPath and deletes whatever the bucket does not contain, which is
-	// wrong for callers that own only part of that path.
+	Workspace           string
+	Repo                string
+	TargetPath          string
+	Branch              string
+	CommitMessage       string
+	Token               string
+	APIURL              string
+	WebURL              string
+	DeletePaths         []string
 	ExplicitDeletesOnly bool
 }
 
@@ -199,9 +192,6 @@ func writeCloudChanges(
 		return false, err
 	}
 
-	// What is left in `existing` is everything under the target path the bucket
-	// did not produce. Mirroring means deleting all of it, which is only correct
-	// when the bucket owns the entire target path.
 	deletePaths := make([]string, 0, len(existing))
 	if opts.ExplicitDeletesOnly {
 		for _, deletePath := range opts.DeletePaths {

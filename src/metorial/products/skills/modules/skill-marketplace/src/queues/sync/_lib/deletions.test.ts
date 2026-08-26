@@ -25,8 +25,6 @@ describe('getPendingDestinationFileDeletionsWhere', () => {
       upTo
     });
 
-    // Exclusive, because the cursor is set to the timestamp of a tombstone that
-    // was applied, not to the moment after it.
     expect(where.createdAt).toEqual({ gt: appliedAt, lte: upTo });
   });
 
@@ -37,8 +35,6 @@ describe('getPendingDestinationFileDeletionsWhere', () => {
       upTo
     });
 
-    // A deletion recorded while the propagation runs must be left for the next
-    // one instead of being silently marked applied.
     expect(where.createdAt.lte).toBe(upTo);
   });
 

@@ -1,11 +1,11 @@
-import { env } from '../../env';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import { db, withTransaction } from '@metorial/db';
+import { fileService } from '@metorial/module-file';
 import { createQueue } from '@metorial/queue';
 import path from 'path';
+import { env } from '../../env';
 import { BatchProcessor } from '../../lib/batchProcessor';
 import { CargoSkillLimitError } from '../../lib/limits';
-import { fileService } from '@metorial/module-file';
 import type {
   PruneScope,
   SerializerContext,
@@ -46,13 +46,6 @@ let normalizeBucketPath = (inPath: string) => {
   return `/${normalized.join('/')}`;
 };
 
-/**
- * Ceiling on the content one setBucketFiles call carries.
- *
- * Only content this process has already materialized takes this path --
- * rendered documents and small unflushed files -- but a batch of them still has
- * to be bounded, since the whole batch is held in memory and encoded at once.
- */
 let maxInlineBatchBytes = 8 * 1024 * 1024;
 
 let contentToBytes = (content: string | Buffer | ArrayBuffer) => {
@@ -136,10 +129,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
   );
   let skippedPathCount = 0;
 
-  /**
-   * Paths this item recorded before the sync, used as the fallback scope when a
-   * delete task cannot derive a prefix from current data.
-   */
   let getRecordedItemPaths = async () => {
     let files = await db.skillDestinationFile.findMany({
       where: { destinationOid: sync.destinationOid, itemKey },
@@ -168,19 +157,9 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     });
   };
 
-  /**
-   * Removes everything under a prefix.
-   *
-   * Expressed as a prune with nothing to keep so the code bucket reports back
-   * the paths it actually removed; that report is what the repositories are
-   * later told to delete, and it also covers files that were written before
-   * they were being recorded.
-   */
   let deleteBucketPath = async (prefix: string | undefined) => {
     let normalized = normalizeBucketPath(prefix ?? '');
 
-    // A missing prefix normalizes to the bucket root, which would wipe the
-    // whole destination. Fall back to the paths we know this item owns.
     if (normalized === '/') {
       return await deleteBucketPaths(await getRecordedItemPaths());
     }
@@ -206,13 +185,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     });
   };
 
-  /**
-   * Removes everything belonging to an item that left the destination.
-   *
-   * The prefix is derived from current data, so anything the item recorded
-   * outside of it -- a path from an earlier serializer layout, or a prefix that
-   * could not be derived at all -- is swept up afterwards.
-   */
   let deleteItemContent = async (prefix: string | undefined) => {
     let recordedPaths = await getRecordedItemPaths();
 
@@ -463,19 +435,9 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     };
   };
 
-  /**
-   * Records what the bucket now holds, so the next sync can skip these paths.
-   *
-   * Only called after the prune has succeeded: if we recorded first and the
-   * prune then failed, a later sync would trust signatures for files that had
-   * been removed and skip rewriting them.
-   */
   let persistManifest = async (prunedPaths: string[]) => {
     let entries = manifest.entries();
 
-    // Paths this item used to own but no longer writes. The prune only covers
-    // the item's own scope, so anything that moved out of it has to be removed
-    // here or it would linger in the bucket forever.
     let abandonedPaths = manifest
       .abandonedPaths()
       .filter(candidate => !prunedPaths.includes(candidate));
@@ -509,8 +471,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       paths: removedPaths
     });
 
-    // A path we just wrote must not stay tombstoned, or a repository that has
-    // not caught up yet would delete a file that exists again.
     await forgetDestinationFileDeletions({
       destinationOid: sync.destinationOid,
       paths: entries.map(entry => entry.path)

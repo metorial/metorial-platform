@@ -19,11 +19,6 @@ export class DestinationManifest {
   private desired = new Map<string, ContentSignature>();
   private explicitlyRemoved = new Set<string>();
 
-  /**
-   * Paths the item being applied held before this run. Used to catch removals
-   * the code bucket prune cannot see, either because they sit outside the
-   * item's prune scope or because the prune was skipped.
-   */
   private owned = new Set<string>();
 
   constructor(
@@ -64,11 +59,6 @@ export class DestinationManifest {
     return [...this.desired].map(([path, signature]) => ({ path, signature }));
   }
 
-  /**
-   * Paths the current item used to own and no longer writes. The caller has to
-   * delete these from the bucket itself, since the prune only covers the item's
-   * own scope.
-   */
   abandonedPaths(): string[] {
     return [...this.owned].filter(path => !this.desired.has(path));
   }

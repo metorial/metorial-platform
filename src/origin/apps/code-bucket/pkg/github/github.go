@@ -43,20 +43,15 @@ func DefaultLFSEndpoint(owner, repo string) string {
 }
 
 type UploadOptions struct {
-	Owner         string
-	Repo          string
-	TargetPath    string
-	Branch        string
-	CommitMessage string
-	Token         string
-
-	// Bucket-relative paths to remove from the repository. Paths that are not
-	// in the branch are ignored.
-	DeletePaths []string
-
-	BaseURL     string
-	LFSEndpoint string
-
+	Owner             string
+	Repo              string
+	TargetPath        string
+	Branch            string
+	CommitMessage     string
+	Token             string
+	DeletePaths       []string
+	BaseURL           string
+	LFSEndpoint       string
 	LFSThresholdBytes int64
 	MaxFileBytes      int64
 }
@@ -164,13 +159,10 @@ type githubBlobResponse struct {
 }
 
 type githubTreeEntry struct {
-	Path string `json:"path"`
-	Mode string `json:"mode"`
-	Type string `json:"type"`
-
-	// A pointer without omitempty so a deletion marshals as an explicit
-	// "sha": null, which is how the tree API removes a path from base_tree.
-	SHA *string `json:"sha"`
+	Path string  `json:"path"`
+	Mode string  `json:"mode"`
+	Type string  `json:"type"`
+	SHA  *string `json:"sha"`
 }
 
 func blobEntry(path, sha string) githubTreeEntry {
@@ -273,9 +265,6 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 	lfsPaths := make([]string, 0)
 	var exportedAttributes []byte
 
-	// Every path the bucket still holds, including ones skipped because their
-	// content is unchanged. A stale delete request for such a path must not
-	// remove a file that is still part of the export.
 	writtenPaths := map[string]struct{}{}
 
 	if err := iter(func(file FileToUpload) error {
@@ -386,8 +375,6 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 	for _, deletePath := range opts.DeletePaths {
 		fullPath := strings.TrimPrefix(path.Join(opts.TargetPath, deletePath), "/")
 
-		// A path the export just wrote is not a deletion; the caller may have
-		// recreated it since the removal was recorded.
 		if _, written := writtenPaths[fullPath]; written {
 			continue
 		}
@@ -402,7 +389,6 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		treeEntries = append(treeEntries, deleteEntry(fullPath))
 	}
 
-	// Deletions are changes too, so this early return has to come after them.
 	if len(treeEntries) == 0 {
 		return nil
 	}

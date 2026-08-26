@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  DestinationManifest,
-  signatureForBytes,
-  signatureForStoredFile
-} from './manifest';
+import { DestinationManifest, signatureForBytes, signatureForStoredFile } from './manifest';
 
 let bytes = (value: string) => new TextEncoder().encode(value);
 
@@ -54,7 +50,6 @@ describe('DestinationManifest', () => {
     manifest.register('/big.bin', 'file:1');
     manifest.register('/a.md', 'sha256:changed');
 
-    // This is the property that makes skipping safe.
     expect(manifest.keepPaths().sort()).toEqual(['/a.md', '/big.bin']);
   });
 
@@ -105,9 +100,7 @@ describe('DestinationManifest', () => {
 
   describe('removedPaths', () => {
     it('reports what the prune deleted', () => {
-      let manifest = new DestinationManifest([
-        { path: '/gone.md', signature: 'sha256:aaa' }
-      ]);
+      let manifest = new DestinationManifest([{ path: '/gone.md', signature: 'sha256:aaa' }]);
 
       expect(manifest.removedPaths(['/gone.md'])).toEqual(['/gone.md']);
     });
@@ -147,8 +140,6 @@ describe('DestinationManifest', () => {
 
   describe('abandonedPaths', () => {
     it('reports a path the item stopped writing, even outside the prune scope', () => {
-      // This is the case a prune cannot catch: the item renamed its output, so
-      // the old path is no longer under the prefix the prune scans.
       let manifest = new DestinationManifest(
         [
           { path: '/old/a.md', signature: 'sha256:aaa', itemKey: 'skill:s_1:p_1' },
@@ -194,7 +185,6 @@ describe('DestinationManifest', () => {
         'plugin:p_1'
       );
 
-      // Registered but skipped as unchanged; it is still ours.
       manifest.register('/a.md', 'sha256:aaa');
 
       expect(manifest.abandonedPaths()).toEqual([]);

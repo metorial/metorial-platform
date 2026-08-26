@@ -13,14 +13,6 @@ let codeBucketClient = createCodeBucketClient({
   address: env.origin.CODE_BUCKET_SERVICE_URL
 });
 
-/**
- * Final content stage of a sync.
- *
- * Per-item processing only ever looks at the items a sync touched, so files
- * belonging to items that vanished between syncs -- a partial run, an item
- * removed by a cascade delete -- are never revisited. This stage compares what
- * we recorded against the items that still exist and removes the difference.
- */
 export let syncReconcileQueue = createQueue<{
   skillDestinationSyncId: string;
   hasChanges?: boolean;
@@ -50,8 +42,6 @@ export let syncReconcileQueueProcessor = syncReconcileQueue.process(async data =
     select: { path: true, itemKey: true }
   });
 
-  // Rows without an item key predate attribution. They are re-attributed the
-  // next time their item is applied, so they cannot be judged orphaned yet.
   let orphanedPaths = files
     .filter(file => file.itemKey && !liveItemKeys.has(file.itemKey))
     .map(file => file.path);

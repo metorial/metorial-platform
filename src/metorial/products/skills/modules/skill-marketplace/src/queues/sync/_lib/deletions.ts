@@ -1,15 +1,5 @@
 import { db, withTransaction } from '@metorial/db';
 
-/**
- * Records that paths are no longer part of a destination.
- *
- * `SkillDestinationFile` tracks what the code bucket currently holds, so a
- * removed path has to disappear from it. Repositories, however, are updated
- * asynchronously and a propagation can fail or be linked after the fact, so the
- * removal is also written to `SkillDestinationDeletedFile`. Those tombstones are
- * what lets a repository catch up on deletions it missed; a retention cron
- * prunes them.
- */
 export let recordDestinationFileDeletions = async (d: {
   destinationOid: bigint;
   paths: string[];
@@ -45,10 +35,6 @@ export let recordDestinationFileDeletions = async (d: {
   return paths;
 };
 
-/**
- * Drops tombstones for paths that exist again, so a re-created file is not
- * deleted from a repository that had not yet caught up on its removal.
- */
 export let forgetDestinationFileDeletions = async (d: {
   destinationOid: bigint;
   paths: string[];
@@ -64,14 +50,6 @@ export let forgetDestinationFileDeletions = async (d: {
   });
 };
 
-/**
- * The window of tombstones a repository still has to apply.
- *
- * A null cursor means the repository has applied nothing yet and takes
- * everything up to the bound. `upTo` is what keeps the cursor honest: without
- * it, a deletion recorded while the repository update is in flight would be
- * marked applied without ever having been pushed.
- */
 export let getPendingDestinationFileDeletionsWhere = (d: {
   destinationOid: bigint;
   appliedAt: Date | null;

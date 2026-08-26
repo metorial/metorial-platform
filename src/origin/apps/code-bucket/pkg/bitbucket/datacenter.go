@@ -115,20 +115,13 @@ func PrepareDataCenterRepo(
 }
 
 type DataCenterUploadOptions struct {
-	CloneURL      string
-	TargetPath    string
-	Branch        string
-	CommitMessage string
-	Username      string
-	Token         string
-
-	// Bucket-relative paths to remove from the repository. Paths that are not
-	// in the branch are ignored.
-	DeletePaths []string
-
-	// When set, only DeletePaths are removed. Without it the export mirrors
-	// TargetPath and deletes whatever the bucket does not contain, which is
-	// wrong for callers that own only part of that path.
+	CloneURL            string
+	TargetPath          string
+	Branch              string
+	CommitMessage       string
+	Username            string
+	Token               string
+	DeletePaths         []string
 	ExplicitDeletesOnly bool
 }
 
@@ -245,9 +238,6 @@ func UploadToDataCenterRepo(
 	return nil
 }
 
-// removeDataCenterPaths deletes only the listed paths, leaving the rest of the
-// worktree untouched. Empty parent directories are pruned so the commit does not
-// keep directories that only held removed files.
 func removeDataCenterPaths(targetDir string, deletePaths []string) error {
 	for _, deletePath := range deletePaths {
 		filePath, err := normalizeRepoPath(deletePath, false)

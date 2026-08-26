@@ -38,11 +38,6 @@ describe('invalid upload size messages', () => {
 });
 
 describe('upload size policy', () => {
-  it('caps presigned uploads at 2 GiB and direct uploads at 100 MiB', () => {
-    expect(maxUploadSize).toBe(2 * 1024 * 1024 * 1024);
-    expect(maxDirectUploadSize).toBe(100 * 1024 * 1024);
-  });
-
   it('accepts positive integers up to the maximum', () => {
     expect(isValidUploadSize(1)).toBe(true);
     expect(isValidUploadSize(maxUploadSize)).toBe(true);

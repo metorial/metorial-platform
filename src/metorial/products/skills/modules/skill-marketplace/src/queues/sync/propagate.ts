@@ -24,9 +24,7 @@ let getPublicErrorMessage = (error: unknown) => {
     try {
       let parsed = JSON.parse(serialized);
       if (typeof parsed?.message === 'string') message = parsed.message;
-    } catch {
-      // Leave non-lowerdeck metadata intact.
-    }
+    } catch {}
   }
 
   return message.replace(/^\[@lowerdeck\/error\]:\s*/, '').trim();
@@ -170,9 +168,6 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
           forceMergeOrPush,
           mergeBeforeChecksPass,
 
-          // Fixing the upper bound here means deletions recorded while this
-          // propagation is in flight are left for the next one, instead of
-          // being marked applied without ever having been pushed.
           deletionsUpTo: new Date(),
 
           skillDestinationSyncOid: sync.oid,
@@ -279,9 +274,6 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           `Starting update for ${repositoryName}.`
         );
 
-        // Every deletion this repository has not applied yet, not just the ones
-        // from this sync, so a repository that missed earlier propagations
-        // catches up here.
         let deletePaths = await getPendingDestinationFileDeletions({
           destinationOid: sync.destinationOid,
           appliedAt: propagation.skillRepository.deletionsAppliedAt,
@@ -303,8 +295,6 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           codeBucketId: sync.destination.codeBucketId,
           deletePaths,
 
-          // Skill destinations own only the paths they write, so the exporter
-          // must never infer deletions from what is missing in the bucket.
           explicitDeletesOnly: true,
 
           repositoryAccessMode: propagation.repositoryAccessMode,
@@ -465,8 +455,6 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
         }
       });
       if (updated.count > 0) {
-        // The repository now reflects every deletion this propagation carried,
-        // so it no longer has to replay them.
         if (propagation.deletionsUpTo) {
           await db.skillRepository.updateMany({
             where: {

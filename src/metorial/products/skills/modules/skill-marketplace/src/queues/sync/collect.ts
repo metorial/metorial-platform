@@ -375,10 +375,6 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
 
   let tasks = taskManager.getTasks();
 
-  // Even with no item updates the sync continues to the reconcile stage, since
-  // files left behind by items that no longer exist still have to be removed.
-  // Reconcile cancels the sync when it finds nothing to do either.
-
   let names = await getSyncTaskNames(tasks);
   let prMetadata = getSyncPrMetadata({
     destination: sync.destination!,

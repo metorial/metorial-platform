@@ -119,12 +119,8 @@ model ScmRepositorySync {
   forceMergeOrPush      Boolean @default(false)
   mergeBeforeChecksPass Boolean @default(false)
 
-  /// Repository paths to remove as part of this sync.
   deletePaths String[] @default([])
 
-  /// When set, the export removes only `deletePaths` and never infers deletions
-  /// from paths missing in the code bucket. Callers that own just a subset of
-  /// the target path need this so unmanaged files survive.
   explicitDeletesOnly Boolean @default(false)
 
   providerPrId               String?

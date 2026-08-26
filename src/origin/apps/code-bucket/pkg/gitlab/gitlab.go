@@ -24,7 +24,6 @@ const (
 )
 
 func DownloadRepo(projectID int64, repoPath, ref, token, gitlabAPIURL string) (*zipImporter.ZipFileIterator, error) {
-	// GitLab API endpoint for downloading repository archive
 	url := fmt.Sprintf("%s/projects/%d/repository/archive.zip?sha=%s", gitlabAPIURL, projectID, ref)
 
 	headers := map[string]string{
@@ -52,10 +51,7 @@ type UploadOptions struct {
 	CommitMessage string
 	Token         string
 	GitlabAPIURL  string
-
-	// Bucket-relative paths to remove from the repository. Paths that are not
-	// in the branch are ignored.
-	DeletePaths []string
+	DeletePaths   []string
 }
 
 func (o UploadOptions) withDefaults() UploadOptions {
@@ -113,9 +109,6 @@ func UploadToRepoIter(opts UploadOptions, iter FileIterator) error {
 	payloadBytes := 0
 	batch := 1
 
-	// Every path the bucket still holds, including ones skipped because their
-	// content is unchanged. A stale delete request for such a path must not
-	// remove a file that is still part of the export.
 	writtenPaths := map[string]struct{}{}
 
 	flush := func() error {
@@ -168,16 +161,12 @@ func UploadToRepoIter(opts UploadOptions, iter FileIterator) error {
 	}
 
 	if err := iter(func(file FileToUpload) error {
-		// Normalize the path by joining targetPath with file.Path
 		fullPath := path.Join(opts.TargetPath, file.Path)
-		// Clean up any double slashes or leading slashes
 		fullPath = strings.TrimPrefix(fullPath, "/")
 		writtenPaths[fullPath] = struct{}{}
 
-		// Encode content to base64
 		encodedContent := base64.StdEncoding.EncodeToString(file.Content)
 
-		// Check if file exists to determine action
 		action := "create"
 		fileInfo, err := getFileInfo(client, opts.ProjectID, fullPath, opts.Branch, opts.Token, opts.GitlabAPIURL)
 		if err != nil {
@@ -203,14 +192,10 @@ func UploadToRepoIter(opts UploadOptions, iter FileIterator) error {
 	for _, deletePath := range opts.DeletePaths {
 		fullPath := strings.TrimPrefix(path.Join(opts.TargetPath, deletePath), "/")
 
-		// A path the export just wrote is not a deletion; the caller may have
-		// recreated it since the removal was recorded.
 		if _, written := writtenPaths[fullPath]; written {
 			continue
 		}
 
-		// Deleting a path that is not on the branch fails the whole commit, so
-		// existence is checked rather than assumed.
 		fileInfo, err := getFileInfo(client, opts.ProjectID, fullPath, opts.Branch, opts.Token, opts.GitlabAPIURL)
 		if err != nil {
 			return fmt.Errorf("failed to get file info for %s: %w", fullPath, err)
@@ -248,9 +233,6 @@ func reconcileActions(client *http.Client, projectID int64, branch, token, gitla
 			return nil, fmt.Errorf("failed to get file info for %s: %w", action.FilePath, err)
 		}
 
-		// A delete is either still valid or already satisfied; it must never be
-		// rewritten into a create or update, which would restore the file with
-		// the action's empty content.
 		if action.Action == "delete" {
 			if fileInfo.Exists {
 				reconciled = append(reconciled, action)
@@ -291,7 +273,6 @@ func createCommit(client *http.Client, projectID int64, branch, commitMessage, t
 		return fmt.Errorf("failed to marshal commit request: %w", err)
 	}
 
-	// POST to commits API
 	commitURL := fmt.Sprintf("%s/projects/%d/repository/commits", gitlabAPIURL, projectID)
 	req, err := http.NewRequest("POST", commitURL, bytes.NewBuffer(commitJSON))
 	if err != nil {
@@ -326,7 +307,6 @@ func sha256Hex(content []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// Helper function to get file metadata in the repository
 func getFileInfo(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string) (gitlabFileInfo, error) {
 	return getFileInfoWithRetry(client, projectID, filePath, branch, token, gitlabAPIURL, func(attempt int) {
 		time.Sleep(250 * time.Millisecond * time.Duration(1<<(attempt-1)))
