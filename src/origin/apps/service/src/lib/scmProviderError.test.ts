@@ -15,6 +15,8 @@ import {
   getScmProviderErrorDetails,
   getScmProviderLogDetails,
   isRetryableScmProviderError,
+  stripGrpcRpcPrefix,
+  toPublicProviderErrorMessage,
   withScmProviderError,
   wrapScmProviderError
 } from './scmProviderError';
@@ -22,6 +24,21 @@ import {
 describe('SCM provider errors', () => {
   beforeEach(() => {
     mocks.captureException.mockClear();
+  });
+
+  it('strips gRPC rpc prefixes from stored and public error copy', () => {
+    let raw =
+      '/rpc.rpc.CodeBucket/ExportBucketToGitlab FAILED_PRECONDITION: failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export';
+    let details =
+      'failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export';
+
+    expect(stripGrpcRpcPrefix(raw)).toBe(details);
+    expect(toPublicProviderErrorMessage(raw)).toBe(
+      'Failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export'
+    );
+    expect(toPublicProviderErrorMessage(details)).toBe(
+      'Failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export'
+    );
   });
 
   it('treats an oversized file as a terminal failure, not something to retry', () => {

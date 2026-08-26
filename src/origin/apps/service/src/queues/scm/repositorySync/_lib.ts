@@ -2,7 +2,8 @@ import { db } from '../../../db';
 import {
   getScmProviderErrorDetails,
   getScmProviderLogDetails,
-  isRetryableScmProviderError
+  isRetryableScmProviderError,
+  toPublicProviderErrorMessage
 } from '../../../lib/scmProviderError';
 import {
   isTerminalRepositorySyncStatus,
@@ -76,10 +77,13 @@ export let appendRepositorySyncLog = async (syncId: string, message: string) => 
 let stripLowerdeckErrorPrefix = (message: string) =>
   message.replace(/^\[@lowerdeck\/error\]:\s*/, '').trim();
 
+let toPublicErrorMessage = (message: string) =>
+  toPublicProviderErrorMessage(stripLowerdeckErrorPrefix(message));
+
 export let getRepositorySyncErrorMessage = (error: unknown) => {
   let dataMessage = (error as any)?.data?.message;
   if (typeof dataMessage === 'string' && dataMessage.trim()) {
-    return stripLowerdeckErrorPrefix(dataMessage);
+    return toPublicErrorMessage(dataMessage);
   }
 
   let message = error instanceof Error ? error.message : String(error);
@@ -88,14 +92,14 @@ export let getRepositorySyncErrorMessage = (error: unknown) => {
     try {
       let parsed = JSON.parse(serialized);
       if (typeof parsed?.message === 'string' && parsed.message.trim()) {
-        return stripLowerdeckErrorPrefix(parsed.message);
+        return toPublicErrorMessage(parsed.message);
       }
     } catch {
       // Keep the original message when the suffix is not lowerdeck error metadata.
     }
   }
 
-  return stripLowerdeckErrorPrefix(message.replace(/\s+\(\{.*\}\)\s*$/s, ''));
+  return toPublicErrorMessage(message.replace(/\s+\(\{.*\}\)\s*$/s, ''));
 };
 
 export let markRepositorySyncFailed = async (syncId: string, error: unknown) => {

@@ -46,6 +46,22 @@ let getHeader = (headers: any, name: string) => {
   return typeof entry?.[1] === 'string' ? entry[1] : undefined;
 };
 
+/**
+ * gRPC-js formats client errors as `/package.Service/Method CODE: details`.
+ * That method path is useful in logs, but not in stored or user-facing copy.
+ */
+let grpcRpcPrefix = /^\/rpc\.[^\s:]+\s+[A-Z][A-Z0-9_]*:\s*/;
+
+export let stripGrpcRpcPrefix = (message: string) =>
+  message.replace(grpcRpcPrefix, '').trim();
+
+export let toPublicProviderErrorMessage = (message: string) => {
+  let stripped = stripGrpcRpcPrefix(message);
+  if (!stripped) return message.trim();
+
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+};
+
 let sanitizeText = (value: unknown, maxLength = 1000): string | undefined => {
   if (value == null) return undefined;
 
@@ -72,6 +88,7 @@ let sanitizeText = (value: unknown, maxLength = 1000): string | undefined => {
     .replace(/bearer\s+[a-z0-9._~+/-]+=*/gi, 'Bearer [redacted]')
     .trim();
 
+  text = stripGrpcRpcPrefix(text);
   if (!text) return undefined;
   return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 };
