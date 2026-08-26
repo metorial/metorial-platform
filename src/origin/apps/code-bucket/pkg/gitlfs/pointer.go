@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 )
@@ -38,6 +39,20 @@ func (p *Pointer) Bytes() []byte {
 func OIDFor(content []byte) string {
 	sum := sha256.Sum256(content)
 	return hex.EncodeToString(sum[:])
+}
+
+// OIDForReader computes the object ID by streaming, so a large file can be
+// hashed without being held in memory. It also reports the number of bytes it
+// read, which the caller needs for the pointer and for Content-Length.
+func OIDForReader(r io.Reader) (string, int64, error) {
+	hasher := sha256.New()
+
+	size, err := io.Copy(hasher, r)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return hex.EncodeToString(hasher.Sum(nil)), size, nil
 }
 
 // ParsePointer reports whether content is a Git LFS pointer and, if so, what it

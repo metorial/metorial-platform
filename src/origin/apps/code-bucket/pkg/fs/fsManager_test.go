@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -255,6 +256,156 @@ func TestDeleteObjectKeysReportsPartialFailures(t *testing.T) {
 	err := fsm.deleteObjectKeys([]string{"bkt_1/a.md", "bkt_1/b.md"})
 	if err == nil {
 		t.Fatal("expected a per-key failure to surface as an error")
+	}
+}
+
+// newFileObjectStorage serves a single object, writing its body in two halves
+// so a caller that buffers can be told apart from one that streams. Nothing is
+// written past the halfway point until release is closed.
+func newFileObjectStorage(t *testing.T, content []byte, release <-chan struct{}) (*objectstorage.Client, func() []string) {
+	t.Helper()
+
+	requested := []string{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requested = append(requested, r.URL.Path)
+
+		half := len(content) / 2
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Length", strconv.Itoa(len(content)))
+		w.Header().Set("Last-Modified", "2026-01-02T03:04:05Z")
+		w.WriteHeader(http.StatusOK)
+
+		w.Write(content[:half])
+		w.(http.Flusher).Flush()
+
+		if release != nil {
+			<-release
+		}
+		w.Write(content[half:])
+	}))
+	t.Cleanup(server.Close)
+
+	return objectstorage.NewClient(server.URL), func() []string { return requested }
+}
+
+// newTestFileSystemManager wires a manager against a real (in-memory) redis and
+// the given object store.
+func newTestFileSystemManager(t *testing.T, storage *objectstorage.Client) *FileSystemManager {
+	t.Helper()
+
+	server := miniredis.RunT(t)
+
+	return &FileSystemManager{
+		redis:         redis.NewClient(&redis.Options{Addr: server.Addr()}),
+		objectStorage: storage,
+		bucketName:    "code-buckets",
+	}
+}
+
+func TestOpenBucketFileReturnsAReaderOverTheObject(t *testing.T) {
+	content := []byte("streamed file content")
+	storage, requested := newFileObjectStorage(t, content, nil)
+	fsm := newTestFileSystemManager(t, storage)
+
+	body, info, err := fsm.OpenBucketFile(context.Background(), "bkt_1", "docs/readme.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer body.Close()
+
+	if info.Path != "/docs/readme.md" {
+		t.Fatalf("unexpected path %q", info.Path)
+	}
+	if info.Size != int64(len(content)) {
+		t.Fatalf("expected size %d, got %d", len(content), info.Size)
+	}
+	if info.ContentType != "text/plain" {
+		t.Fatalf("unexpected content type %q", info.ContentType)
+	}
+
+	got, err := io.ReadAll(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, content) {
+		t.Fatalf("read %q, want %q", got, content)
+	}
+
+	if paths := requested(); len(paths) != 1 || !strings.HasSuffix(paths[0], "bkt_1/docs/readme.md") {
+		t.Fatalf("unexpected object requests: %#v", paths)
+	}
+}
+
+func TestOpenBucketFileDoesNotBufferTheObject(t *testing.T) {
+	content := []byte("first halfsecond half")
+	release := make(chan struct{})
+	defer close(release)
+
+	storage, _ := newFileObjectStorage(t, content, release)
+	fsm := newTestFileSystemManager(t, storage)
+
+	// The store has not finished writing the body. A reader-returning call gets
+	// here; one that buffered the object first would still be blocked.
+	body, _, err := fsm.OpenBucketFile(context.Background(), "bkt_1", "big.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer body.Close()
+
+	head := make([]byte, len(content)/2)
+	if _, err := io.ReadFull(body, head); err != nil {
+		t.Fatal(err)
+	}
+	if string(head) != "first half" {
+		t.Fatalf("read %q, want %q", head, "first half")
+	}
+}
+
+func TestOpenBucketFileServesFilesStillInRedis(t *testing.T) {
+	// Nothing has been flushed yet, so the object store would 404. Recently
+	// written files have to come back from the redis buffer.
+	storage, requested := newFileObjectStorage(t, nil, nil)
+	fsm := newTestFileSystemManager(t, storage)
+
+	content := []byte("not flushed yet")
+	if err := fsm.PutBucketFile(context.Background(), "bkt_1", "/notes.txt", content, "text/plain"); err != nil {
+		t.Fatal(err)
+	}
+
+	body, info, err := fsm.OpenBucketFile(context.Background(), "bkt_1", "/notes.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer body.Close()
+
+	if info.Size != int64(len(content)) {
+		t.Fatalf("expected size %d, got %d", len(content), info.Size)
+	}
+
+	got, err := io.ReadAll(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, content) {
+		t.Fatalf("read %q, want %q", got, content)
+	}
+
+	if paths := requested(); len(paths) != 0 {
+		t.Fatalf("expected no object store reads, got %#v", paths)
+	}
+}
+
+func TestOpenBucketFileReportsMissingFiles(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	fsm := newTestFileSystemManager(t, objectstorage.NewClient(server.URL))
+
+	if _, _, err := fsm.OpenBucketFile(context.Background(), "bkt_1", "missing.txt"); err == nil {
+		t.Fatal("expected an error for a missing file")
 	}
 }
 

@@ -88,9 +88,28 @@ type batchResponse struct {
 	Objects  []batchObject `json:"objects"`
 }
 
+// ContentOpener returns a fresh reader over an object's content.
+//
+// It is an opener rather than a reader because the content may have to be read
+// more than once — the batch protocol needs the digest before it will hand out
+// an upload URL — and because streaming it twice still costs less memory than
+// holding a large object once.
+type ContentOpener func() (io.ReadCloser, error)
+
+// OpenerForBytes adapts content that is already in memory, for callers whose
+// files are small enough that streaming them would be pointless.
+func OpenerForBytes(content []byte) ContentOpener {
+	return func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(content)), nil
+	}
+}
+
 // Upload stores content on the LFS server. It is a no-op when the server
 // already holds the object, which is how LFS deduplicates across commits.
-func (c *Client) Upload(ctx context.Context, ref, oid string, size int64, content []byte) error {
+//
+// Content is streamed from the opener, so peak memory does not scale with the
+// object's size.
+func (c *Client) Upload(ctx context.Context, ref, oid string, size int64, open ContentOpener) error {
 	obj, err := c.batchOne(ctx, "upload", ref, oid, size)
 	if err != nil {
 		return err
@@ -101,7 +120,7 @@ func (c *Client) Upload(ctx context.Context, ref, oid string, size int64, conten
 		return nil
 	}
 
-	if err := c.putObject(ctx, obj.Actions.Upload, size, content); err != nil {
+	if err := c.putObject(ctx, obj.Actions.Upload, size, open); err != nil {
 		return err
 	}
 
@@ -217,11 +236,19 @@ func (c *Client) batchOne(ctx context.Context, operation, ref, oid string, size 
 	return &obj, nil
 }
 
-func (c *Client) putObject(ctx context.Context, action *batchAction, size int64, content []byte) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, action.Href, bytes.NewReader(content))
+func (c *Client) putObject(ctx context.Context, action *batchAction, size int64, open ContentOpener) error {
+	body, err := open()
+	if err != nil {
+		return fmt.Errorf("Git LFS upload: %w", err)
+	}
+	defer body.Close()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, action.Href, body)
 	if err != nil {
 		return err
 	}
+	// Set explicitly: the body is an opaque reader, so without this Go would
+	// send it chunked, which presigned storage URLs reject.
 	req.ContentLength = size
 	// Only the headers the server handed back may be sent: presigned storage
 	// URLs sign a specific header set, and extras invalidate the signature.

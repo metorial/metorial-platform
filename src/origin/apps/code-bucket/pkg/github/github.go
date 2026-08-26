@@ -121,9 +121,25 @@ func normalizeBaseURL(baseURL string) string {
 	return strings.TrimSuffix(baseURL, "/")
 }
 
+// FileToUpload is one file in an export.
+//
+// Content is described by a size and an opener rather than carried as bytes, so
+// a file large enough to go through LFS is streamed and never held whole. Open
+// may be called more than once for the same file.
 type FileToUpload struct {
-	Path    string
-	Content []byte
+	Path string
+	Size int64
+	Open gitlfs.ContentOpener
+}
+
+// ContentFile builds an upload entry from bytes already in memory, for callers
+// whose files are small enough that streaming them would be pointless.
+func ContentFile(path string, content []byte) FileToUpload {
+	return FileToUpload{
+		Path: path,
+		Size: int64(len(content)),
+		Open: gitlfs.OpenerForBytes(content),
+	}
 }
 
 type FileIterator func(func(FileToUpload) error) error
@@ -194,6 +210,30 @@ type githubUpdateRefRequest struct {
 	Force bool   `json:"force"`
 }
 
+// openAndRead buffers a file's content. Callers must have established that the
+// file is small enough for that to be safe.
+func openAndRead(file FileToUpload) ([]byte, error) {
+	body, err := file.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	return io.ReadAll(body)
+}
+
+// openAndHash streams a file to compute its LFS object id and size without
+// buffering it.
+func openAndHash(file FileToUpload) (string, int64, error) {
+	body, err := file.Open()
+	if err != nil {
+		return "", 0, err
+	}
+	defer body.Close()
+
+	return gitlfs.OIDForReader(body)
+}
+
 func UploadToRepo(ctx context.Context, opts UploadOptions, files []FileToUpload) error {
 	return UploadToRepoIter(ctx, opts, func(yield func(FileToUpload) error) error {
 		for _, file := range files {
@@ -252,7 +292,9 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		// Clean up any double slashes or leading slashes
 		fullPath = strings.TrimPrefix(fullPath, "/")
 
-		size := int64(len(file.Content))
+		// Checked before anything is read: the size comes from the listing, so
+		// an oversized file is rejected without ever being fetched.
+		size := file.Size
 		if size > opts.MaxFileBytes {
 			return fmt.Errorf(
 				"file %s is %s, which exceeds the %s per-file limit for GitHub export",
@@ -263,17 +305,44 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		// Above the threshold the content goes to LFS storage and only a ~130
 		// byte pointer is committed, keeping the oversized payload away from the
 		// blobs API, which answers 422 for bodies this large.
-		content := file.Content
+		//
+		// .gitattributes is what declares the LFS tracking in the first place,
+		// so it is committed as real content whatever its size.
+		useLFS := size >= opts.LFSThresholdBytes && fullPath != gitattributesPath
+
+		var content []byte
 		var oid string
-		useLFS := size >= opts.LFSThresholdBytes
+
 		if useLFS {
-			oid = gitlfs.OIDFor(file.Content)
+			// Hashing streams the file rather than buffering it. That means
+			// reading it twice for an upload, which is the trade for never
+			// holding a large object in memory.
+			hashed, hashedSize, err := openAndHash(file)
+			if err != nil {
+				return fmt.Errorf("failed to read %s: %w", fullPath, err)
+			}
+			if hashedSize != size {
+				return fmt.Errorf(
+					"file %s changed while exporting: listed as %s, read %s",
+					fullPath, humanBytes(size), humanBytes(hashedSize),
+				)
+			}
+
+			oid = hashed
 			content = gitlfs.FormatPointer(oid, size)
 			lfsPaths = append(lfsPaths, fullPath)
+		} else {
+			// Below the LFS threshold the blobs API needs the bytes anyway, and
+			// the threshold is what bounds this read.
+			var err error
+			content, err = openAndRead(file)
+			if err != nil {
+				return fmt.Errorf("failed to read %s: %w", fullPath, err)
+			}
 		}
 
 		if fullPath == gitattributesPath {
-			exportedAttributes = file.Content
+			exportedAttributes = content
 		}
 
 		// Dedupe against what the branch already has. For LFS files this compares
@@ -284,7 +353,7 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		}
 
 		if useLFS {
-			if err := lfs.Upload(ctx, lfsRef, oid, size, file.Content); err != nil {
+			if err := lfs.Upload(ctx, lfsRef, oid, size, file.Open); err != nil {
 				return fmt.Errorf("failed to upload %s (%s) to Git LFS: %w", fullPath, humanBytes(size), err)
 			}
 		}

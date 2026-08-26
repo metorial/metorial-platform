@@ -1,6 +1,7 @@
 package gitlfs
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -9,7 +10,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"testing/iotest"
 )
 
 func TestUploadPutsObjectAndVerifies(t *testing.T) {
@@ -69,7 +72,7 @@ func TestUploadPutsObjectAndVerifies(t *testing.T) {
 	})
 
 	client := NewClient(server.URL+"/info/lfs", "", "token", server.Client())
-	if err := client.Upload(context.Background(), "refs/heads/main", oid, int64(len(content)), content); err != nil {
+	if err := client.Upload(context.Background(), "refs/heads/main", oid, int64(len(content)), OpenerForBytes(content)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 
@@ -110,11 +113,134 @@ func TestUploadSkipsTransferWhenServerHasObject(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL+"/info/lfs", "", "token", server.Client())
-	if err := client.Upload(context.Background(), "refs/heads/main", oid, int64(len(content)), content); err != nil {
+	if err := client.Upload(context.Background(), "refs/heads/main", oid, int64(len(content)), OpenerForBytes(content)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 	if transfers != 0 {
 		t.Fatalf("expected no transfer requests, got %d", transfers)
+	}
+}
+
+func TestUploadStreamsFromTheOpener(t *testing.T) {
+	content := []byte("streamed object content")
+	oid := OIDFor(content)
+
+	var (
+		uploaded      []byte
+		contentLength int64
+		opened        int
+	)
+
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	mux.HandleFunc("/info/lfs/objects/batch", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprintf(w, `{
+			"transfer": "basic",
+			"objects": [{
+				"oid": %q,
+				"size": %d,
+				"actions": {"upload": {"href": %q}}
+			}]
+		}`, oid, len(content), server.URL+"/storage/"+oid)
+	})
+
+	mux.HandleFunc("/storage/", func(w http.ResponseWriter, r *http.Request) {
+		// A presigned storage URL signs a specific header set and rejects a
+		// chunked body, so the upload has to declare its length.
+		contentLength = r.ContentLength
+		uploaded, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// An opener that is not a byte slice: nothing may assume the content is
+	// already in memory or seekable.
+	open := func() (io.ReadCloser, error) {
+		opened++
+		return io.NopCloser(iotest.OneByteReader(bytes.NewReader(content))), nil
+	}
+
+	client := NewClient(server.URL+"/info/lfs", "", "token", server.Client())
+	if err := client.Upload(context.Background(), "refs/heads/main", oid, int64(len(content)), open); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	if string(uploaded) != string(content) {
+		t.Fatalf("uploaded %q, want %q", uploaded, content)
+	}
+	if contentLength != int64(len(content)) {
+		t.Fatalf("uploaded with content length %d, want %d", contentLength, len(content))
+	}
+	if opened != 1 {
+		t.Fatalf("opened content %d times, want 1", opened)
+	}
+}
+
+func TestUploadDoesNotOpenContentTheServerAlreadyHas(t *testing.T) {
+	content := []byte("already stored")
+	oid := OIDFor(content)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprintf(w, `{"transfer":"basic","objects":[{"oid":%q,"size":%d}]}`, oid, len(content))
+	}))
+	defer server.Close()
+
+	opened := 0
+	open := func() (io.ReadCloser, error) {
+		opened++
+		return io.NopCloser(bytes.NewReader(content)), nil
+	}
+
+	client := NewClient(server.URL+"/info/lfs", "", "token", server.Client())
+	if err := client.Upload(context.Background(), "refs/heads/main", oid, int64(len(content)), open); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	// Deduplication is the whole point of the batch call: an object the server
+	// already holds must not be read out of storage at all.
+	if opened != 0 {
+		t.Fatalf("opened content %d times, want 0", opened)
+	}
+}
+
+func TestUploadSurfacesOpenerFailures(t *testing.T) {
+	oid := OIDFor([]byte("x"))
+
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	mux.HandleFunc("/info/lfs/objects/batch", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprintf(w, `{
+			"transfer": "basic",
+			"objects": [{"oid": %q, "size": 1, "actions": {"upload": {"href": %q}}}]
+		}`, oid, server.URL+"/storage/"+oid)
+	})
+
+	client := NewClient(server.URL+"/info/lfs", "", "token", server.Client())
+	err := client.Upload(context.Background(), "refs/heads/main", oid, 1, func() (io.ReadCloser, error) {
+		return nil, errors.New("object storage unavailable")
+	})
+
+	if err == nil || !strings.Contains(err.Error(), "object storage unavailable") {
+		t.Fatalf("expected the opener failure to surface, got %v", err)
+	}
+}
+
+func TestOIDForReaderMatchesOIDFor(t *testing.T) {
+	content := bytes.Repeat([]byte("chunky"), 1000)
+
+	oid, size, err := OIDForReader(iotest.OneByteReader(bytes.NewReader(content)))
+	if err != nil {
+		t.Fatalf("hash: %v", err)
+	}
+
+	if oid != OIDFor(content) {
+		t.Fatalf("streamed oid %s, want %s", oid, OIDFor(content))
+	}
+	if size != int64(len(content)) {
+		t.Fatalf("streamed size %d, want %d", size, len(content))
 	}
 }
 
@@ -135,7 +261,7 @@ func TestUploadMapsQuotaAndPolicyFailures(t *testing.T) {
 		}))
 
 		client := NewClient(server.URL+"/info/lfs", "", "token", server.Client())
-		err := client.Upload(context.Background(), "refs/heads/main", OIDFor(nil), 0, nil)
+		err := client.Upload(context.Background(), "refs/heads/main", OIDFor(nil), 0, OpenerForBytes(nil))
 		server.Close()
 
 		if !errors.Is(err, tc.want) {
@@ -156,7 +282,7 @@ func TestUploadSurfacesPerObjectError(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL+"/info/lfs", "", "token", server.Client())
-	err := client.Upload(context.Background(), "refs/heads/main", "a", 1, []byte("x"))
+	err := client.Upload(context.Background(), "refs/heads/main", "a", 1, OpenerForBytes([]byte("x")))
 	if !errors.Is(err, ErrForbidden) {
 		t.Fatalf("expected forbidden error, got %v", err)
 	}

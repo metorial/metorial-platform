@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/iotest"
 
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
 )
@@ -266,7 +267,7 @@ func TestUploadCommitsPointerForLargeFile(t *testing.T) {
 	content := bytes.Repeat([]byte("x"), 64)
 
 	err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{
-		{Path: "assets/big.bin", Content: content},
+		ContentFile("assets/big.bin", content),
 	})
 	if err != nil {
 		t.Fatalf("upload: %v", err)
@@ -304,7 +305,7 @@ func TestUploadKeepsSmallFilesOnTheBlobsAPI(t *testing.T) {
 	content := []byte("small")
 
 	err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{
-		{Path: "notes.txt", Content: content},
+		ContentFile("notes.txt", content),
 	})
 	if err != nil {
 		t.Fatalf("upload: %v", err)
@@ -331,7 +332,7 @@ func TestUploadMergesExistingGitattributes(t *testing.T) {
 
 	content := bytes.Repeat([]byte("y"), 64)
 	err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{
-		{Path: "big.bin", Content: content},
+		ContentFile("big.bin", content),
 	})
 	if err != nil {
 		t.Fatalf("upload: %v", err)
@@ -357,7 +358,7 @@ func TestUploadSkipsUnchangedLargeFileByPointerSHA(t *testing.T) {
 	fake.withLFSObject(content)
 
 	err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{
-		{Path: "big.bin", Content: content},
+		ContentFile("big.bin", content),
 	})
 	if err != nil {
 		t.Fatalf("upload: %v", err)
@@ -380,7 +381,7 @@ func TestUploadRejectsFilesOverTheCeiling(t *testing.T) {
 	opts.MaxFileBytes = 32
 
 	err := UploadToRepo(context.Background(), opts, []FileToUpload{
-		{Path: "huge.bin", Content: bytes.Repeat([]byte("w"), 64)},
+		ContentFile("huge.bin", bytes.Repeat([]byte("w"), 64)),
 	})
 	if err == nil {
 		t.Fatal("expected an error for an oversized file")
@@ -393,12 +394,126 @@ func TestUploadRejectsFilesOverTheCeiling(t *testing.T) {
 	}
 }
 
+// streamedFile builds an upload entry whose content can only be read through
+// the opener, and counts how often that happens.
+func streamedFile(path string, content []byte) (FileToUpload, *int) {
+	opens := 0
+	return FileToUpload{
+		Path: path,
+		Size: int64(len(content)),
+		Open: func() (io.ReadCloser, error) {
+			opens++
+			return io.NopCloser(iotest.OneByteReader(bytes.NewReader(content))), nil
+		},
+	}, &opens
+}
+
+func TestUploadStreamsLargeFilesThroughTheOpener(t *testing.T) {
+	fake := newFakeGitHub(t)
+	content := bytes.Repeat([]byte("x"), 64)
+	file, opens := streamedFile("assets/big.bin", content)
+
+	if err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{file}); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	oid := gitlfs.OIDFor(content)
+	if !bytes.Equal(fake.lfsStore[oid], content) {
+		t.Fatal("Git LFS received the wrong bytes")
+	}
+
+	// Twice: once to hash the content into a pointer, once to upload it. The
+	// file is never held in memory, which is the trade being made here.
+	if *opens != 2 {
+		t.Fatalf("opened content %d times, want 2", *opens)
+	}
+}
+
+func TestUploadRejectsOversizedFilesWithoutReadingThem(t *testing.T) {
+	fake := newFakeGitHub(t)
+	opts := fake.uploadOptions()
+	opts.MaxFileBytes = 32
+
+	file, opens := streamedFile("huge.bin", bytes.Repeat([]byte("w"), 64))
+
+	err := UploadToRepo(context.Background(), opts, []FileToUpload{file})
+	if err == nil {
+		t.Fatal("expected an error for an oversized file")
+	}
+
+	// The point of checking the listed size first: an oversized file must be
+	// rejected without being pulled into this process.
+	if *opens != 0 {
+		t.Fatalf("opened content %d times, want 0", *opens)
+	}
+	if fake.commits != 0 {
+		t.Fatalf("expected no commit, got %d", fake.commits)
+	}
+}
+
+func TestUploadRejectsFilesThatChangeSizeWhileExporting(t *testing.T) {
+	fake := newFakeGitHub(t)
+
+	// The listing says 64 bytes but the content is 32, which is what a file
+	// rewritten mid-export looks like. Committing a pointer with the wrong size
+	// would produce a repository nobody can check out.
+	file := FileToUpload{
+		Path: "big.bin",
+		Size: 64,
+		Open: func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(bytes.Repeat([]byte("x"), 32))), nil
+		},
+	}
+
+	err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{file})
+	if err == nil || !strings.Contains(err.Error(), "changed while exporting") {
+		t.Fatalf("expected a size mismatch error, got %v", err)
+	}
+	if fake.commits != 0 {
+		t.Fatalf("expected no commit, got %d", fake.commits)
+	}
+}
+
+func TestUploadCommitsGitattributesAsContentEvenWhenLarge(t *testing.T) {
+	fake := newFakeGitHub(t)
+
+	// .gitattributes is what declares the LFS tracking, so it can never be
+	// committed as a pointer regardless of how big it grows.
+	existing := []byte("# padding\n" + strings.Repeat("*.tmp text\n", 8))
+	if int64(len(existing)) <= fake.uploadOptions().LFSThresholdBytes {
+		t.Fatalf("fixture is too small to exercise the threshold: %d bytes", len(existing))
+	}
+
+	err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{
+		ContentFile(gitattributesPath, existing),
+		ContentFile("big.bin", bytes.Repeat([]byte("x"), 64)),
+	})
+	if err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	entry, ok := fake.treeEntry(gitattributesPath)
+	if !ok {
+		t.Fatal("expected a .gitattributes tree entry")
+	}
+
+	committed := string(fake.blobContent(entry.SHA))
+	if _, isPointer := gitlfs.ParsePointer([]byte(committed)); isPointer {
+		t.Fatalf(".gitattributes was committed as an LFS pointer:\n%q", committed)
+	}
+
+	want := string(existing) + "big.bin " + lfsAttributes + "\n"
+	if committed != want {
+		t.Fatalf("unexpected .gitattributes:\n%q\nwant:\n%q", committed, want)
+	}
+}
+
 func TestUploadSurfacesLFSQuotaFailure(t *testing.T) {
 	fake := newFakeGitHub(t)
 	fake.batchStatus = http.StatusTooManyRequests
 
 	err := UploadToRepo(context.Background(), fake.uploadOptions(), []FileToUpload{
-		{Path: "big.bin", Content: bytes.Repeat([]byte("q"), 64)},
+		ContentFile("big.bin", bytes.Repeat([]byte("q"), 64)),
 	})
 	if !errors.Is(err, gitlfs.ErrQuotaExceeded) {
 		t.Fatalf("expected a quota error, got %v", err)

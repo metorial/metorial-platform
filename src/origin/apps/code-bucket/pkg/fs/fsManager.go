@@ -2,6 +2,7 @@ package fs
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -441,28 +442,80 @@ func (fsm *FileSystemManager) WalkBucketFileContentBatches(ctx context.Context, 
 	return accumulator.Flush()
 }
 
-func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, error) {
-	filePath = canonicalFilePath(filePath)
-	redisKey := redisFileKey(bucketID, filePath)
-
-	result, err := fsm.redis.Get(ctx, redisKey).Result()
+// getRedisFile returns a file still buffered in Redis, before it has been
+// flushed to object storage. Only files under maxRedisCacheSize are ever kept
+// there, so this never holds a large object.
+func (fsm *FileSystemManager) getRedisFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, bool) {
+	result, err := fsm.redis.Get(ctx, redisFileKey(bucketID, filePath)).Result()
 	if err != nil {
 		legacyRedisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, strings.TrimPrefix(filePath, "/"))
 		result, err = fsm.redis.Get(ctx, legacyRedisKey).Result()
 	}
-	if err == nil {
-		var fileData FileData
-		if err := json.Unmarshal([]byte(result), &fileData); err == nil {
+	if err != nil {
+		return nil, nil, false
+	}
 
-			info := &FileInfo{
-				Path:        filePath,
-				Size:        int64(len(fileData.Content)),
-				ContentType: fileData.ContentType,
-				ModifiedAt:  fileData.ModifiedAt,
-			}
+	var fileData FileData
+	if err := json.Unmarshal([]byte(result), &fileData); err != nil {
+		return nil, nil, false
+	}
 
-			return info, &fileData, nil
+	return &FileInfo{
+		Path:        filePath,
+		Size:        int64(len(fileData.Content)),
+		ContentType: fileData.ContentType,
+		ModifiedAt:  fileData.ModifiedAt,
+	}, &fileData, true
+}
+
+// OpenBucketFile returns a reader over a file's content instead of its bytes,
+// so the caller's memory use does not scale with the file's size. The caller
+// owns the reader and must close it.
+//
+// GetBucketFile is still the right choice for files that are small and needed
+// in memory anyway; this is for large files and for content being forwarded
+// somewhere else.
+func (fsm *FileSystemManager) OpenBucketFile(ctx context.Context, bucketID, filePath string) (io.ReadCloser, *FileInfo, error) {
+	filePath = canonicalFilePath(filePath)
+
+	if info, data, ok := fsm.getRedisFile(ctx, bucketID, filePath); ok {
+		return io.NopCloser(bytes.NewReader(data.Content)), info, nil
+	}
+
+	stream, err := fsm.objectStorage.GetObjectStream(ctx, fsm.bucketName, objectStorageKey(bucketID, filePath))
+	if err != nil {
+		stream, err = fsm.objectStorage.GetObjectStream(ctx, fsm.bucketName, fmt.Sprintf("%s/%s", bucketID, filePath))
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("file not found")
+	}
+
+	contentType := "application/octet-stream"
+	if stream.Metadata.ContentType != nil {
+		contentType = *stream.Metadata.ContentType
+	}
+
+	modifiedAt := time.Now()
+	if stream.Metadata.LastModified != "" {
+		if parsedTime, err := time.Parse(time.RFC3339, stream.Metadata.LastModified); err == nil {
+			modifiedAt = parsedTime
 		}
+	}
+
+	return stream.Body, &FileInfo{
+		Path:        filePath,
+		Size:        int64(stream.Metadata.Size),
+		ContentType: contentType,
+		ModifiedAt:  modifiedAt,
+	}, nil
+}
+
+func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, error) {
+	filePath = canonicalFilePath(filePath)
+	redisKey := redisFileKey(bucketID, filePath)
+
+	if info, data, ok := fsm.getRedisFile(ctx, bucketID, filePath); ok {
+		return info, data, nil
 	}
 
 	obj, err := fsm.objectStorage.GetObject(fsm.bucketName, objectStorageKey(bucketID, filePath))

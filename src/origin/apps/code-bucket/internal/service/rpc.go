@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -361,19 +362,21 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 		Token:         req.Token,
 	}
 
+	// The walk yields paths and sizes only. Content is opened lazily by the
+	// exporter, which streams anything large enough to go to LFS, so a big file
+	// is never held in this process.
 	if err := github.UploadToRepoIter(ctx, opts, func(yield func(github.FileToUpload) error) error {
-		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
-			for i := range batch {
-				file := releaseBatchItem(batch, i)
+		return rs.fsm.WalkBucketFiles(ctx, req.BucketId, "", func(file fs.FileInfo) error {
+			path := file.Path
 
-				if err := yield(github.FileToUpload{
-					Path:    file.Info.Path,
-					Content: file.Content,
-				}); err != nil {
-					return err
-				}
-			}
-			return nil
+			return yield(github.FileToUpload{
+				Path: path,
+				Size: file.Size,
+				Open: func() (io.ReadCloser, error) {
+					body, _, err := rs.fsm.OpenBucketFile(ctx, req.BucketId, path)
+					return body, err
+				},
+			})
 		})
 	}); err != nil {
 		return nil, providerExportError("GitHub", err)
