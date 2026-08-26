@@ -7,7 +7,9 @@ import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeAccessService, storeWritePermission } from '@metorial/module-store';
 import { ObjectStorageError, PublicUrlPurpose } from 'object-storage-client';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
+import { env } from '../env';
 import { requireInstanceScope } from '../lib/instanceScope';
+import { getCloudFrontUploadUrl } from '../lib/signedUploadUrl';
 import {
   describeInvalidUploadSize,
   doesUploadedObjectMatch,
@@ -63,7 +65,35 @@ class FileUploadServiceImpl {
     }
   }
 
-  private async createSignedUploadUrl(d: { storeId: string }) {
+  private async createSignedUploadUrl(d: {
+    uploadId: string;
+    storeId: string;
+    size: number;
+    contentType: string;
+    expiresAt: Date;
+  }) {
+    let host = env.service.UPLOAD_HOST;
+    if (host) {
+      let secret = env.service.SIGNED_UPLOAD_URL_TOKEN_SECRET;
+      if (!secret) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'SIGNED_UPLOAD_URL_TOKEN_SECRET is required when UPLOAD_HOST is set'
+          })
+        );
+      }
+
+      return getCloudFrontUploadUrl({
+        host,
+        secret,
+        uploadId: d.uploadId,
+        storeId: d.storeId,
+        size: d.size,
+        contentType: d.contentType,
+        expiresAt: d.expiresAt
+      });
+    }
+
     try {
       let res = await getStorage().getPublicURL(
         getCargoFilesBucketName(),
@@ -172,23 +202,32 @@ class FileUploadServiceImpl {
     }
 
     let storeId = generatePlainId(20);
-    let uploadUrl = await this.createSignedUploadUrl({ storeId });
+    let uploadId = await ID.generateId('fileUpload');
+    let fileType = d.input.mimeType?.trim() || 'application/octet-stream';
+    let uploadUrlExpiresAt = getUploadUrlExpiresAt();
+    let uploadUrl = await this.createSignedUploadUrl({
+      uploadId,
+      storeId,
+      size: d.input.size,
+      contentType: fileType,
+      expiresAt: uploadUrlExpiresAt
+    });
 
     let upload = await db.fileUpload.create({
       data: {
-        id: await ID.generateId('fileUpload'),
+        id: uploadId,
         ...cargoFileScope(d),
         purposeOid: purpose.oid,
         storeId,
         fileName,
         fileSize: d.input.size,
-        fileType: d.input.mimeType?.trim() || 'application/octet-stream',
+        fileType,
         title: d.input.title,
         attachStoreId: d.input.store?.id,
         attachPath: d.input.store?.path,
         attachReplace: d.input.store?.replace ?? false,
         createdByResourceActorOid: d.authorization.resourceActor?.oid,
-        uploadUrlExpiresAt: getUploadUrlExpiresAt(),
+        uploadUrlExpiresAt,
         expiresAt: getPendingUploadExpiresAt()
       },
       include

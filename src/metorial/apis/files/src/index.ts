@@ -5,11 +5,17 @@ import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
 import { createDocumentLiveApi } from '@metorial/module-documents/live';
 import {
+  fileRouterResolutionHeader,
+  fileRouterResolutionValue,
+  fileRouterSecretHeader,
   fileUploadService,
   getCargoFileContent,
+  getCargoFileSignedDownload,
+  isFileRouterRequest,
   purposeSlugs,
   resolveCargoAccess,
-  uploadCargoFile
+  uploadCargoFile,
+  type FileRouterResolution
 } from '@metorial/module-file';
 import { generatePlainId } from '@metorial/id';
 import { websocket } from 'hono/bun';
@@ -318,6 +324,41 @@ let getContentDispositionHeader = (fileName: string, disposition: 'inline' | 'at
   return `${disposition}; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 };
 
+/**
+ * The headers a file is served with, wherever the bytes come from. The router
+ * replays these verbatim onto its own response, so this stays the single place
+ * that decides content type, disposition and cacheability.
+ */
+let getFileContentHeaders = (d: {
+  fileName?: string | null;
+  contentType?: string | null;
+  size?: number;
+  source: 'document' | 'database' | 'object';
+  isExpiring: boolean;
+  shouldDownload: boolean;
+}) => {
+  let fileName = d.fileName?.trim();
+  let contentDisposition = fileName
+    ? getContentDispositionHeader(fileName, d.shouldDownload ? 'attachment' : 'inline')
+    : undefined;
+
+  return {
+    'Content-Type':
+      d.source === 'document'
+        ? getDocumentContentType(d.contentType)
+        : getServedContentType(d.contentType),
+    // Streamed bodies would otherwise be chunked, leaving clients without a
+    // total size to show progress against.
+    ...(d.size !== undefined ? { 'Content-Length': String(d.size) } : {}),
+    'Cache-Control':
+      d.source === 'document' || d.source === 'database' || d.isExpiring
+        ? 'private, no-store'
+        : 'public, max-age=31536000, immutable',
+    'X-Content-Type-Options': 'nosniff',
+    ...(contentDisposition ? { 'Content-Disposition': contentDisposition } : {})
+  };
+};
+
 let getFileContentHandler = async (c: Context) => {
   let { fileId, key } = c.req.param();
 
@@ -329,29 +370,53 @@ let getFileContentHandler = async (c: Context) => {
     );
   }
 
+  let shouldDownload = new URL(c.req.url).searchParams.has('download');
+
+  // The router still forwards every request here first, so the link is checked
+  // on each hit; it only takes over transferring the bytes.
+  if (isFileRouterRequest(c.req.header(fileRouterSecretHeader))) {
+    let resolved = await getCargoFileSignedDownload({ fileId, key });
+
+    if (resolved) {
+      let resolution: FileRouterResolution = {
+        url: resolved.url,
+        headers: getFileContentHeaders({
+          fileName: resolved.file.fileName,
+          contentType: resolved.file.fileType,
+          size: resolved.file.fileSize,
+          source: 'object',
+          isExpiring: resolved.link.expiresAt != null,
+          shouldDownload
+        }),
+        cacheKey: resolved.link.expiresAt
+          ? null
+          : `${resolved.file.id}/${resolved.file.storeId}`
+      };
+
+      return Response.json(resolution, {
+        headers: {
+          [fileRouterResolutionHeader]: fileRouterResolutionValue,
+          // The body carries a signed URL; it must not be stored anywhere.
+          'Cache-Control': 'private, no-store'
+        }
+      });
+    }
+  }
+
   let { file, link, content, metadata } = await getCargoFileContent({
     fileId,
     key
   });
-  let shouldDownload = new URL(c.req.url).searchParams.has('download');
-  let fileName = file.fileName?.trim();
-  let contentDisposition = fileName
-    ? getContentDispositionHeader(fileName, shouldDownload ? 'attachment' : 'inline')
-    : undefined;
 
   return new Response(content as any, {
-    headers: {
-      'Content-Type':
-        metadata.source === 'document'
-          ? getDocumentContentType(metadata.contentType)
-          : getServedContentType(metadata.contentType),
-      'Cache-Control':
-        metadata.source === 'document' || metadata.source === 'database' || link.expiresAt
-          ? 'private, no-store'
-          : 'public, max-age=31536000, immutable',
-      'X-Content-Type-Options': 'nosniff',
-      ...(contentDisposition ? { 'Content-Disposition': contentDisposition } : {})
-    }
+    headers: getFileContentHeaders({
+      fileName: file.fileName,
+      contentType: metadata.contentType,
+      size: metadata.size,
+      source: metadata.source,
+      isExpiring: link.expiresAt != null,
+      shouldDownload
+    })
   });
 };
 

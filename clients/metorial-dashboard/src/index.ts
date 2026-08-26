@@ -11,6 +11,7 @@ export type { ManagementOrganizationInstancesGetOutput as MetorialInstance } fro
 export type { ManagementOrganizationProjectsGetOutput as MetorialProject } from './gen/src/mt_2025_01_01_dashboard/resources/management/organization/projects/get.js';
 export type { ManagementUserGetOutput as MetorialUser } from './gen/src/mt_2025_01_01_dashboard/resources/management/user/get.js';
 export * from './sdk.js';
+export type { MetorialFileUploadMode, MetorialFileUploadProgress } from './sdk.js';
 
 export type ApiKeysCreateBody = DashboardOrganizationsApiKeysCreateBody;
 export type ApiKeysGetOutput = DashboardOrganizationsApiKeysGetOutput;

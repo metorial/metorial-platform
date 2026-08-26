@@ -244,6 +244,86 @@ export let getUploadFileName = (input: {
   input.title?.trim() ||
   '';
 
+export type MetorialFileUploadProgress = {
+  loaded: number;
+  total: number;
+  ratio: number;
+};
+
+let notifyUploadProgress = (
+  onProgress: ((progress: MetorialFileUploadProgress) => void) | undefined,
+  loaded: number,
+  total: number
+) => {
+  if (!onProgress) return;
+
+  onProgress({
+    loaded,
+    total,
+    ratio: total > 0 ? Math.min(1, loaded / total) : 0
+  });
+};
+
+let sendWithUploadProgress = (opts: {
+  url: string;
+  method: string;
+  body: Blob | FormData | string;
+  headers?: Record<string, string>;
+  credentials?: RequestCredentials;
+  onProgress?: (progress: MetorialFileUploadProgress) => void;
+}) =>
+  new Promise<{ ok: boolean; status: number; text: string }>((resolve, reject) => {
+    if (typeof XMLHttpRequest == 'undefined') {
+      fetch(opts.url, {
+        method: opts.method,
+        body: opts.body,
+        headers: opts.headers,
+        credentials: opts.credentials ?? 'same-origin',
+        redirect: 'follow',
+        referrerPolicy: 'no-referrer-when-downgrade',
+        cache: 'no-cache',
+        mode: 'cors'
+      })
+        .then(async res => {
+          resolve({
+            ok: res.ok,
+            status: res.status,
+            text: await res.text()
+          });
+        })
+        .catch(reject);
+      return;
+    }
+
+    let xhr = new XMLHttpRequest();
+    xhr.open(opts.method, opts.url);
+    xhr.withCredentials = opts.credentials == 'include';
+
+    for (let [key, value] of Object.entries(opts.headers ?? {})) {
+      if (value == null || value == '') continue;
+      xhr.setRequestHeader(key, value);
+    }
+
+    xhr.upload.onprogress = event => {
+      notifyUploadProgress(
+        opts.onProgress,
+        event.loaded,
+        event.lengthComputable ? event.total : 0
+      );
+    };
+
+    xhr.onload = () => {
+      resolve({
+        ok: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        text: xhr.responseText
+      });
+    };
+    xhr.onerror = () => reject(new Error('Network error during file upload'));
+    xhr.onabort = () => reject(new Error('File upload was aborted'));
+    xhr.send(opts.body);
+  });
+
 export type AssistantRequestDeltaEvent = {
   event: string;
   data: unknown;
@@ -525,42 +605,62 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       };
       storeReplace?: boolean;
       mode?: MetorialFileUploadMode;
+      onProgress?: (progress: MetorialFileUploadProgress) => void;
     }) => {
       let base = manager.apiHost;
       if (!base.endsWith('/')) base += '/';
 
       let mode = input.mode ?? (supportsPresignedUpload(base) ? 'presigned' : 'direct');
+      let requestHeaders = manager.getHeaders(manager.config) as Record<string, string>;
 
-      let postFiles = async (body: FormData | string) => {
-        let res = await fetch(`${base}files`, {
-          method: 'POST',
-          body,
-          headers: {
-            ...manager.getHeaders(manager.config),
-            ...(typeof body == 'string' ? { 'Content-Type': 'application/json' } : {})
-          },
-          credentials: 'include',
-          redirect: 'follow',
-          referrerPolicy: 'no-referrer-when-downgrade',
-          cache: 'no-cache',
-          mode: 'cors'
-        });
+      let parseFilesResponse = (status: number, text: string) => {
+        let json = text ? JSON.parse(text) : {};
 
-        let json = await res.json();
-
-        if (!res.ok) {
+        if (status < 200 || status >= 300) {
           throw new MetorialSDKError(
             json?.code
               ? json
               : {
-                  status: res.status,
+                  status,
                   code: 'file_upload_failed',
-                  message: `File upload failed with status ${res.status}`
+                  message: `File upload failed with status ${status}`
                 }
           );
         }
 
         return json;
+      };
+
+      let postFiles = async (body: FormData | string, onProgress?: typeof input.onProgress) => {
+        let res =
+          typeof body != 'string' && onProgress
+            ? await sendWithUploadProgress({
+                url: `${base}files`,
+                method: 'POST',
+                body,
+                headers: requestHeaders,
+                credentials: 'include',
+                onProgress
+              })
+            : await fetch(`${base}files`, {
+                method: 'POST',
+                body,
+                headers: {
+                  ...requestHeaders,
+                  ...(typeof body == 'string' ? { 'Content-Type': 'application/json' } : {})
+                },
+                credentials: 'include',
+                redirect: 'follow',
+                referrerPolicy: 'no-referrer-when-downgrade',
+                cache: 'no-cache',
+                mode: 'cors'
+              }).then(async response => ({
+                ok: response.ok,
+                status: response.status,
+                text: await response.text()
+              }));
+
+        return parseFilesResponse(res.status, res.text);
       };
 
       let directUpload = async () => {
@@ -575,7 +675,10 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         }
         if (input.storeReplace) body.append('store_replace', 'true');
 
-        return await postFiles(body);
+        notifyUploadProgress(input.onProgress, 0, input.file.size);
+        let json = await postFiles(body, input.onProgress);
+        notifyUploadProgress(input.onProgress, input.file.size, input.file.size);
+        return json;
       };
 
       let presignedUpload = async () => {
@@ -593,17 +696,33 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
           })
         );
 
-        let uploaded = await fetch(pending.upload.url, {
-          method: pending.upload.method ?? 'PUT',
-          body: input.file,
-          ...(input.file.type ? { headers: { 'Content-Type': input.file.type } } : {}),
-          cache: 'no-cache',
-          mode: 'cors'
-        });
+        notifyUploadProgress(input.onProgress, 0, input.file.size);
+
+        let uploaded = input.onProgress
+          ? await sendWithUploadProgress({
+              url: pending.upload.url,
+              method: pending.upload.method ?? 'PUT',
+              body: input.file,
+              headers: input.file.type ? { 'Content-Type': input.file.type } : undefined,
+              onProgress: input.onProgress
+            })
+          : await fetch(pending.upload.url, {
+              method: pending.upload.method ?? 'PUT',
+              body: input.file,
+              ...(input.file.type ? { headers: { 'Content-Type': input.file.type } } : {}),
+              cache: 'no-cache',
+              mode: 'cors'
+            }).then(async response => ({
+              ok: response.ok,
+              status: response.status,
+              text: await response.text()
+            }));
 
         if (!uploaded.ok) {
           throw new Error(`Object store rejected the upload with status ${uploaded.status}`);
         }
+
+        notifyUploadProgress(input.onProgress, input.file.size, input.file.size);
 
         return await postFiles(
           JSON.stringify({
