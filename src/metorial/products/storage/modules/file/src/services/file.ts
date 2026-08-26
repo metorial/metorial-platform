@@ -118,16 +118,7 @@ class FileServiceImpl {
     return await withTransaction(async db => {
       let file = await db.file.findUnique({
         where: { id: d.fileId },
-        select: {
-          oid: true,
-          id: true,
-          status: true,
-          isInternal: true,
-          isReadOnly: true,
-          isTemplateBacking: true,
-          fileSize: true,
-          instanceOid: true,
-          organizationOid: true,
+        include: {
           document: { select: { id: true } },
           links: {
             select: {
@@ -189,7 +180,7 @@ class FileServiceImpl {
 
       await Fabric.fire('file.deleted:after', {
         ...fileFabricOwnerFromFile(file),
-        file: file as File
+        file
       });
 
       return hadPendingContent ? null : file.id;
