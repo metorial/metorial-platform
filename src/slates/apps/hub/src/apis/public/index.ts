@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { omit } from 'lodash';
 import { env } from '../../env';
 import { createSanitizedWebhookResponse } from '../../lib/triggerWebhookSync';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
@@ -106,7 +107,7 @@ export let hubApp = createHono()
     let state = c.req.query('state');
     let error = c.req.query('error');
     let errorDescription = c.req.query('error_description');
-    let callbackParams = Object.fromEntries(new URL(c.req.url).searchParams.entries());
+    let callbackParams = omit(Object.fromEntries(new URL(c.req.url).searchParams), 'state');
 
     if (error || !code) {
       let res = await slateOAuthHandlerService.reportError({
