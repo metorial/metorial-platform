@@ -103,7 +103,7 @@ export let hubApp = createHono()
 
     deleteCookie(c, SETUP_COOKIE_NAME, cookieOpts);
 
-    let code = c.req.query('code');
+    let code = c.req.query('code') ?? c.req.query('oauth_verifier');
     let state = c.req.query('state');
     let error = c.req.query('error');
     let errorDescription = c.req.query('error_description');
