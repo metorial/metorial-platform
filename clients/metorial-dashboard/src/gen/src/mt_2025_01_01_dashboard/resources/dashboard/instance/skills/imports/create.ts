@@ -12,7 +12,7 @@ export type DashboardInstanceSkillsImportsCreateOutput = {
         ref: string | null;
       }
     | {
-        type: 'origin';
+        type: 'scm';
         repositoryId: string;
         repositoryName: string | null;
         ref: string | null;
@@ -24,7 +24,6 @@ export type DashboardInstanceSkillsImportsCreateOutput = {
         fileName: string;
         format: 'zip' | 'markdown';
       };
-  codeBucketId: string | null;
   error: string | null;
   items: {
     object: 'skill.import.item';
@@ -75,7 +74,6 @@ export let mapDashboardInstanceSkillsImportsCreateOutput =
         )
       ])
     ),
-    codeBucketId: mtMap.objectField('code_bucket_id', mtMap.passthrough()),
     error: mtMap.objectField('error', mtMap.passthrough()),
     items: mtMap.objectField(
       'items',

@@ -191,6 +191,7 @@ export * from './dashboard_organizations_teams_policies';
 export * from './dashboard_projects_configure_auth-config';
 export * from './dashboard_projects_configure_integration-naming';
 export * from './dashboard_projects_configure_retention';
+export * from './dashboard_projects_configure_skill-sync';
 export * from './dashboard_projects_configure_tool-calling';
 export * from './dashboard_projects_key-providers';
 export * from './dashboard_projects_key-providers_errors';
