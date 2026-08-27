@@ -269,6 +269,7 @@ class codeBucketServiceImpl {
     path: string;
     branchName?: string;
     commitMessage?: string;
+    gitLfsThresholdBytes?: number;
   }) {
     if (d.repo.provider === 'github') {
       await exportGithubQueue.add({
@@ -276,7 +277,8 @@ class codeBucketServiceImpl {
         repoId: d.repo.id,
         path: d.path,
         branchName: d.branchName,
-        commitMessage: d.commitMessage
+        commitMessage: d.commitMessage,
+        gitLfsThresholdBytes: d.gitLfsThresholdBytes
       });
     } else if (d.repo.provider === 'gitlab') {
       await exportGitlabQueue.add({
@@ -311,6 +313,7 @@ class codeBucketServiceImpl {
     commitMessage?: string;
     deletePaths?: string[];
     explicitDeletesOnly?: boolean;
+    gitLfsThresholdBytes?: number;
   }) {
     let repo = await db.scmRepository.findFirstOrThrow({
       where: { oid: d.repo.oid },
@@ -342,7 +345,8 @@ class codeBucketServiceImpl {
         branch,
         commitMessage,
         deletePaths,
-        explicitDeletesOnly
+        explicitDeletesOnly,
+        lfsThresholdBytes: Long.fromNumber(d.gitLfsThresholdBytes ?? 0)
       });
       return;
     }

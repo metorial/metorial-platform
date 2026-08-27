@@ -214,6 +214,11 @@ export interface ExportBucketToGithubRequest {
   commitMessage: string;
   deletePaths: string[];
   explicitDeletesOnly: boolean;
+  /**
+   * Files at or above this size are routed through Git LFS.
+   * Zero or negative means use the service default.
+   */
+  lfsThresholdBytes: Long;
 }
 
 export interface ExportBucketToGithubResponse {
@@ -3157,6 +3162,7 @@ function createBaseExportBucketToGithubRequest(): ExportBucketToGithubRequest {
     commitMessage: "",
     deletePaths: [],
     explicitDeletesOnly: false,
+    lfsThresholdBytes: Long.ZERO,
   };
 }
 
@@ -3188,6 +3194,9 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     }
     if (message.explicitDeletesOnly !== false) {
       writer.uint32(72).bool(message.explicitDeletesOnly);
+    }
+    if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+      writer.uint32(80).int64(message.lfsThresholdBytes.toString());
     }
     return writer;
   },
@@ -3271,6 +3280,14 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
           message.explicitDeletesOnly = reader.bool();
           continue;
         }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.lfsThresholdBytes = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3307,6 +3324,11 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
         : isSet(object.explicit_deletes_only)
         ? globalThis.Boolean(object.explicit_deletes_only)
         : false,
+      lfsThresholdBytes: isSet(object.lfsThresholdBytes)
+        ? Long.fromValue(object.lfsThresholdBytes)
+        : isSet(object.lfs_threshold_bytes)
+        ? Long.fromValue(object.lfs_threshold_bytes)
+        : Long.ZERO,
     };
   },
 
@@ -3339,6 +3361,9 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     if (message.explicitDeletesOnly !== false) {
       obj.explicitDeletesOnly = message.explicitDeletesOnly;
     }
+    if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+      obj.lfsThresholdBytes = (message.lfsThresholdBytes || Long.ZERO).toString();
+    }
     return obj;
   },
 
@@ -3356,6 +3381,9 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     message.commitMessage = object.commitMessage ?? "";
     message.deletePaths = object.deletePaths?.map((e) => e) || [];
     message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
+    message.lfsThresholdBytes = (object.lfsThresholdBytes !== undefined && object.lfsThresholdBytes !== null)
+      ? Long.fromValue(object.lfsThresholdBytes)
+      : Long.ZERO;
     return message;
   },
 };

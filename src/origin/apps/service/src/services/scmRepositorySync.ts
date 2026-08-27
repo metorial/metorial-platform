@@ -56,6 +56,7 @@ class scmRepositorySyncServiceImpl {
     mergeBeforeChecksPass?: boolean;
     deletePaths?: string[];
     explicitDeletesOnly?: boolean;
+    gitLfsThresholdBytes?: number;
   }) {
     let repositoryAccessMode = d.repositoryAccessMode ?? 'pull_request';
     let branchName =
@@ -106,7 +107,8 @@ class scmRepositorySyncServiceImpl {
       forceMergeOrPush,
       mergeBeforeChecksPass,
       deletePaths: d.deletePaths ?? [],
-      explicitDeletesOnly: d.explicitDeletesOnly ?? false
+      explicitDeletesOnly: d.explicitDeletesOnly ?? false,
+      gitLfsThresholdBytes: d.gitLfsThresholdBytes ?? null
     };
     let sync = requestKey
       ? await db.scmRepositorySync.upsert({

@@ -1808,8 +1808,11 @@ type ExportBucketToGithubRequest struct {
 	CommitMessage       string                 `protobuf:"bytes,7,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	DeletePaths         []string               `protobuf:"bytes,8,rep,name=delete_paths,json=deletePaths,proto3" json:"delete_paths,omitempty"`
 	ExplicitDeletesOnly bool                   `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Files at or above this size are routed through Git LFS.
+	// Zero or negative means use the service default.
+	LfsThresholdBytes int64 `protobuf:"varint,10,opt,name=lfs_threshold_bytes,json=lfsThresholdBytes,proto3" json:"lfs_threshold_bytes,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ExportBucketToGithubRequest) Reset() {
@@ -1903,6 +1906,13 @@ func (x *ExportBucketToGithubRequest) GetExplicitDeletesOnly() bool {
 		return x.ExplicitDeletesOnly
 	}
 	return false
+}
+
+func (x *ExportBucketToGithubRequest) GetLfsThresholdBytes() int64 {
+	if x != nil {
+		return x.LfsThresholdBytes
+	}
+	return 0
 }
 
 type ExportBucketToGithubResponse struct {
@@ -2731,7 +2741,7 @@ const file_rpc_proto_rawDesc = "" +
 	"keep_paths\x18\x03 \x03(\tR\tkeepPaths\x12)\n" +
 	"\x10exclude_prefixes\x18\x04 \x03(\tR\x0fexcludePrefixes\">\n" +
 	"\x17PruneBucketPathResponse\x12#\n" +
-	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xa4\x02\n" +
+	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xd4\x02\n" +
 	"\x1bExportBucketToGithubRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
@@ -2741,7 +2751,9 @@ const file_rpc_proto_rawDesc = "" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12%\n" +
 	"\x0ecommit_message\x18\a \x01(\tR\rcommitMessage\x12!\n" +
 	"\fdelete_paths\x18\b \x03(\tR\vdeletePaths\x122\n" +
-	"\x15explicit_deletes_only\x18\t \x01(\bR\x13explicitDeletesOnly\"\x1e\n" +
+	"\x15explicit_deletes_only\x18\t \x01(\bR\x13explicitDeletesOnly\x12.\n" +
+	"\x13lfs_threshold_bytes\x18\n" +
+	" \x01(\x03R\x11lfsThresholdBytes\"\x1e\n" +
 	"\x1cExportBucketToGithubResponse\"\xc4\x01\n" +
 	"\x1dCreateBucketFromGitlabRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x1d\n" +

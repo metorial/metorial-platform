@@ -213,6 +213,10 @@ message ExportBucketToGithubRequest {
   string commit_message = 7;
   repeated string delete_paths = 8;
   bool explicit_deletes_only = 9;
+
+  // Files at or above this size are routed through Git LFS.
+  // Zero or negative means use the service default.
+  int64 lfs_threshold_bytes = 10;
 }
 
 message ExportBucketToGithubResponse {}

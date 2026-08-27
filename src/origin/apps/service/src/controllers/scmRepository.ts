@@ -202,7 +202,10 @@ export let scmRepositoryController = app.controller({
         forceMergeOrPush: v.optional(v.boolean()),
         mergeBeforeChecksPass: v.optional(v.boolean()),
         deletePaths: v.optional(v.array(v.string())),
-        explicitDeletesOnly: v.optional(v.boolean())
+        explicitDeletesOnly: v.optional(v.boolean()),
+        gitLfsThresholdBytes: v.optional(
+          v.number({ modifiers: [v.positive(), v.integer()] })
+        )
       })
     )
     .do(async ctx => {
@@ -225,7 +228,8 @@ export let scmRepositoryController = app.controller({
         forceMergeOrPush: ctx.input.forceMergeOrPush,
         mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass,
         deletePaths: ctx.input.deletePaths,
-        explicitDeletesOnly: ctx.input.explicitDeletesOnly
+        explicitDeletesOnly: ctx.input.explicitDeletesOnly,
+        gitLfsThresholdBytes: ctx.input.gitLfsThresholdBytes
       });
 
       return scmRepositorySyncPresenter(sync);
@@ -243,7 +247,10 @@ export let scmRepositoryController = app.controller({
         prDescription: v.optional(v.string()),
         enableAutoMerge: v.optional(v.boolean()),
         forceMergeOrPush: v.optional(v.boolean()),
-        mergeBeforeChecksPass: v.optional(v.boolean())
+        mergeBeforeChecksPass: v.optional(v.boolean()),
+        gitLfsThresholdBytes: v.optional(
+          v.number({ modifiers: [v.positive(), v.integer()] })
+        )
       })
     )
     .do(async ctx => {
@@ -262,7 +269,8 @@ export let scmRepositoryController = app.controller({
         prDescription: ctx.input.prDescription,
         enableAutoMerge: ctx.input.enableAutoMerge,
         forceMergeOrPush: ctx.input.forceMergeOrPush,
-        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass,
+        gitLfsThresholdBytes: ctx.input.gitLfsThresholdBytes
       });
 
       return scmRepositorySyncPresenter(sync);

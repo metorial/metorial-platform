@@ -359,6 +359,66 @@ func TestUploadKeepsSmallFilesOnTheBlobsAPI(t *testing.T) {
 	}
 }
 
+func TestUploadRoutesToLFSUsingAnExplicitThresholdBelowTheDefault(t *testing.T) {
+	fake := newFakeGitHub(t)
+	content := bytes.Repeat([]byte("x"), 64)
+
+	if int64(len(content)) >= DefaultLFSThresholdBytes {
+		t.Fatal("the fixture must be smaller than the default threshold for this test to mean anything")
+	}
+
+	opts := fake.uploadOptions()
+	opts.LFSThresholdBytes = 32
+
+	err := UploadToRepo(context.Background(), opts, []FileToUpload{
+		ContentFile("assets/big.bin", content),
+	})
+	if err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	oid := gitlfs.OIDFor(content)
+	if !fake.lfsUploaded[oid] {
+		t.Fatal("expected the explicit threshold to route the file through Git LFS")
+	}
+
+	entry, ok := fake.treeEntry("assets/big.bin")
+	if !ok {
+		t.Fatal("expected a tree entry for the file")
+	}
+	if !bytes.Equal(fake.blobContent(entry.SHA), gitlfs.FormatPointer(oid, int64(len(content)))) {
+		t.Fatal("expected a pointer to be committed")
+	}
+}
+
+func TestUploadFallsBackToTheDefaultThresholdWhenUnset(t *testing.T) {
+	fake := newFakeGitHub(t)
+	content := bytes.Repeat([]byte("x"), 64)
+
+	// A zero threshold is what an unset lfs_threshold_bytes looks like on the wire.
+	opts := fake.uploadOptions()
+	opts.LFSThresholdBytes = 0
+
+	err := UploadToRepo(context.Background(), opts, []FileToUpload{
+		ContentFile("assets/small.bin", content),
+	})
+	if err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	if len(fake.lfsUploaded) != 0 {
+		t.Fatalf("expected the default threshold to keep the file off Git LFS, got %v", fake.lfsUploaded)
+	}
+
+	entry, ok := fake.treeEntry("assets/small.bin")
+	if !ok {
+		t.Fatal("expected a tree entry for the file")
+	}
+	if !bytes.Equal(fake.blobContent(entry.SHA), content) {
+		t.Fatal("expected the raw content to be committed")
+	}
+}
+
 func TestUploadMergesExistingGitattributes(t *testing.T) {
 	fake := newFakeGitHub(t)
 	fake.withExistingFile(gitattributesPath, []byte("# managed by hand\n*.md text\n"))

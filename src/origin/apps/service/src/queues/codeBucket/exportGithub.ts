@@ -1,4 +1,5 @@
 import { createQueue } from '@lowerdeck/queue';
+import Long from 'long';
 import { db } from '../../db';
 import { env } from '../../env';
 import { codeBucketClient } from '../../lib/codeWorkspace';
@@ -11,6 +12,7 @@ export let exportGithubQueue = createQueue<{
   repoId: string;
   branchName?: string;
   commitMessage?: string;
+  gitLfsThresholdBytes?: number;
 }>({
   name: 'ori/exp/gh',
   redisUrl: env.service.REDIS_URL
@@ -40,6 +42,7 @@ export let exportGithubQueueProcessor = exportGithubQueue.process(async data => 
     path: data.path,
     token,
     branch: data.branchName ?? repo.defaultBranch ?? 'main',
-    commitMessage: data.commitMessage ?? `Export code bucket ${data.bucketId}`
+    commitMessage: data.commitMessage ?? `Export code bucket ${data.bucketId}`,
+    lfsThresholdBytes: Long.fromNumber(data.gitLfsThresholdBytes ?? 0)
   });
 });

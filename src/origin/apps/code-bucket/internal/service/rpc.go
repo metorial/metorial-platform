@@ -393,13 +393,14 @@ func fileContentItemToRPC(file fs.FileContentItem) *rpc.FileContent {
 
 func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportBucketToGithubRequest) (*rpc.ExportBucketToGithubResponse, error) {
 	opts := github.UploadOptions{
-		Owner:         req.Owner,
-		Repo:          req.Repo,
-		TargetPath:    req.Path,
-		Branch:        req.Branch,
-		CommitMessage: req.CommitMessage,
-		Token:         req.Token,
-		DeletePaths:   req.DeletePaths,
+		Owner:             req.Owner,
+		Repo:              req.Repo,
+		TargetPath:        req.Path,
+		Branch:            req.Branch,
+		CommitMessage:     req.CommitMessage,
+		Token:             req.Token,
+		DeletePaths:       req.DeletePaths,
+		LFSThresholdBytes: req.GetLfsThresholdBytes(),
 	}
 
 	if err := github.UploadToRepoIter(ctx, opts, func(yield func(github.FileToUpload) error) error {

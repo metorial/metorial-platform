@@ -94,7 +94,8 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
         branchName: sync.branchName,
         commitMessage: sync.title,
         deletePaths: sync.deletePaths,
-        explicitDeletesOnly: sync.explicitDeletesOnly
+        explicitDeletesOnly: sync.explicitDeletesOnly,
+        gitLfsThresholdBytes: sync.gitLfsThresholdBytes ?? undefined
       });
       await appendRepositorySyncLog(sync.id, 'Finished writing files.');
       logRepositorySyncQueueEvent('syncContents', 'exported code bucket to repo', {

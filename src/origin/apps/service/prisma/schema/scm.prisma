@@ -123,6 +123,8 @@ model ScmRepositorySync {
 
   explicitDeletesOnly Boolean @default(false)
 
+  gitLfsThresholdBytes Int?
+
   providerPrId               String?
   providerPrUrl              String?
   providerMergeSha           String?
