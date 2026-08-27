@@ -1,4 +1,4 @@
-export let uploadUrlExpirationSecs = 15 * 60;
+export let uploadUrlExpirationSecs = 10 * 60;
 
 export let pendingUploadTtlMs = 24 * 60 * 60 * 1000;
 
@@ -12,11 +12,11 @@ export let getUploadUrlExpiresAt = () => new Date(Date.now() + uploadUrlExpirati
 
 export let getPendingUploadExpiresAt = () => new Date(Date.now() + pendingUploadTtlMs);
 
-let isPositiveInteger = (size: unknown) =>
-  typeof size === 'number' && Number.isSafeInteger(size) && size > 0;
+let isNonNegativeInteger = (size: unknown) =>
+  typeof size === 'number' && Number.isSafeInteger(size) && size >= 0;
 
 let isValidSize = (size: unknown, max: number) =>
-  isPositiveInteger(size) && (size as number) <= max;
+  isNonNegativeInteger(size) && (size as number) <= max;
 
 export let isValidUploadSize = (size: unknown) => isValidSize(size, maxUploadSize);
 
@@ -37,8 +37,8 @@ export let formatByteSize = (bytes: number) => {
 };
 
 export let describeInvalidUploadSize = (d: { size: unknown; max: number }) => {
-  if (!isPositiveInteger(d.size)) {
-    return 'File size must be the size of the file in bytes, given as a whole number greater than zero.';
+  if (!isNonNegativeInteger(d.size)) {
+    return 'File size must be the size of the file in bytes, given as a whole number of zero or more.';
   }
 
   return `Files can be at most ${formatByteSize(d.max)}, but this one is ${formatByteSize(d.size as number)}.`;

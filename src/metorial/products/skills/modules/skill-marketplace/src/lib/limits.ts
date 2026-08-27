@@ -1,9 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { db } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { refreshStoreByteSize } from '@metorial/module-store';
 
 export let maxSkillStoreFiles = 1000;
-export let maxSkillStoreBytes = 1024n * 1024n * 1024n;
+export let maxSkillStoreBytes = 1024n * 1024n * 1024n * 10n;
 export let maxSkillPluginSkills = 100;
 export let maxSkillMarketplacePlugins = 500;
 export let maxSkillMarketplaceSkills = 1000;
@@ -59,10 +60,16 @@ let formatBytes = (bytes: bigint) => {
 
 export let assertSkillStoreByteLimit = async (d: {
   storeOid: bigint;
+  instanceOid: bigint;
   additionalBytes?: bigint;
 }) => {
   let currentBytes = await refreshStoreByteSize({ storeOid: d.storeOid });
   let projectedBytes = currentBytes + (d.additionalBytes ?? 0n);
+
+  await Fabric.fire('skill.store.size:before', {
+    instance: { oid: d.instanceOid },
+    storeSize: Number(projectedBytes)
+  });
 
   if (projectedBytes <= maxSkillStoreBytes) return;
 

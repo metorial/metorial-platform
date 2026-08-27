@@ -29,24 +29,25 @@ describe('invalid upload size messages', () => {
   });
 
   it('explains what the field should hold when it is not a byte count', () => {
-    for (let size of [undefined, null, 'huge', 0, -1, 1.5, Number.NaN]) {
+    for (let size of [undefined, null, 'huge', -1, 1.5, Number.NaN]) {
       expect(describeInvalidUploadSize({ size, max: maxUploadSize })).toMatch(
-        /whole number greater than zero/
+        /whole number of zero or more/
       );
     }
   });
 });
 
 describe('upload size policy', () => {
-  it('accepts positive integers up to the maximum', () => {
+  it('accepts empty files and positive integers up to the maximum', () => {
+    expect(isValidUploadSize(0)).toBe(true);
     expect(isValidUploadSize(1)).toBe(true);
     expect(isValidUploadSize(maxUploadSize)).toBe(true);
+    expect(isValidDirectUploadSize(0)).toBe(true);
     expect(isValidDirectUploadSize(1)).toBe(true);
     expect(isValidDirectUploadSize(maxDirectUploadSize)).toBe(true);
   });
 
-  it('rejects empty, oversized and non-integer sizes', () => {
-    expect(isValidUploadSize(0)).toBe(false);
+  it('rejects oversized and non-integer sizes', () => {
     expect(isValidUploadSize(-1)).toBe(false);
     expect(isValidUploadSize(maxUploadSize + 1)).toBe(false);
     expect(isValidUploadSize(1.5)).toBe(false);
@@ -57,7 +58,6 @@ describe('upload size policy', () => {
   it('rejects direct uploads above the smaller direct limit', () => {
     expect(isValidDirectUploadSize(maxDirectUploadSize + 1)).toBe(false);
     expect(isValidDirectUploadSize(maxUploadSize)).toBe(false);
-    expect(isValidDirectUploadSize(0)).toBe(false);
   });
 
   it('rejects sizes that are not numbers at all', () => {

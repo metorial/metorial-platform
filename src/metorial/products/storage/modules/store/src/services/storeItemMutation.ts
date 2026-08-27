@@ -10,6 +10,7 @@ import type {
   StoreItemKind
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import { applyStoreByteSizeDelta, refreshStoreByteSize } from '../lib/storeByteSize';
 import {
@@ -78,7 +79,7 @@ type NormalizedStoreItemOperation =
 let modifyOperationLimit = 500;
 let maxStoreItems = 1000;
 let maxSkillStoreFiles = 1000;
-let maxSkillStoreBytes = 1024n * 1024n * 1024n;
+let maxSkillStoreBytes = 1024n * 1024n * 1024n * 10n;
 let reservedSkillDocumentName = 'SKILL.md';
 let agentsDirectoryPath = '/agents/';
 
@@ -176,8 +177,14 @@ class StoreItemMutationServiceImpl {
     );
   }
 
-  private async assertSkillStoreByteLimit(store: Pick<Store, 'oid'>) {
+  private async assertSkillStoreByteLimit(store: Pick<Store, 'oid' | 'instanceOid'>) {
     let byteSize = await refreshStoreByteSize({ storeOid: store.oid });
+
+    await Fabric.fire('skill.store.size:before', {
+      instance: { oid: store.instanceOid },
+      storeSize: Number(byteSize)
+    });
+
     if (byteSize <= maxSkillStoreBytes) return;
 
     let toGb = (bytes: bigint) => (Number(bytes) / (1024 * 1024 * 1024)).toFixed(2);
@@ -1417,8 +1424,10 @@ class StoreItemMutationServiceImpl {
         itemCountDelta += 1;
       }
 
-      if (skill && result.created) {
-        await this.assertSkillStoreFileLimit(d.store);
+      if (skill) {
+        if (result.created) {
+          await this.assertSkillStoreFileLimit(d.store);
+        }
         await this.assertSkillStoreByteLimit(d.store);
       }
 
@@ -1600,8 +1609,10 @@ class StoreItemMutationServiceImpl {
             itemCount += 1;
           }
 
-          if (skill && result.created) {
-            await this.assertSkillStoreFileLimit(d.store);
+          if (skill) {
+            if (result.created) {
+              await this.assertSkillStoreFileLimit(d.store);
+            }
             await this.assertSkillStoreByteLimit(d.store);
           }
 
@@ -1781,6 +1792,10 @@ class StoreItemMutationServiceImpl {
           target: operation.target,
           actor: d.actor
         });
+
+        if (skill && operation.target) {
+          await this.assertSkillStoreByteLimit(d.store);
+        }
 
         results.push({
           type: 'modify',

@@ -98,7 +98,8 @@ export let applySkill = createApplicator(
       storeOid: skillStore.oid
     });
     await assertSkillStoreByteLimit({
-      storeOid: skillStore.oid
+      storeOid: skillStore.oid,
+      instanceOid: skillStore.instanceOid
     });
 
     let defaultConfig = await db.skillConfiguration.findFirst({

@@ -208,6 +208,8 @@ let fetchWithRetryAndLogging = async (
 
 export type MetorialFileUploadMode = 'direct' | 'presigned';
 
+export let smallFileDirectUploadMaxBytes = 1024 * 1024;
+
 let presignedUploadHostSuffixes = [
   '.metorial.com',
   '.metorial.app',
@@ -216,11 +218,6 @@ let presignedUploadHostSuffixes = [
   '.metorial-staging.com'
 ];
 
-/**
- * Presigned uploads require the API to be backed by an object store that can sign PUT
- * URLs, which is only guaranteed on Metorial-operated hosts. Everything else (including
- * self-hosted deployments) keeps streaming the bytes through the API service.
- */
 export let supportsPresignedUpload = (apiHost: string) => {
   try {
     let hostname = new URL(apiHost).hostname.toLowerCase();
@@ -230,10 +227,6 @@ export let supportsPresignedUpload = (apiHost: string) => {
   }
 };
 
-/**
- * Multipart uploads let the API derive the name from the form file, but the presigned
- * flow has to declare it up front. Mirrors the server's fallback order.
- */
 export let getUploadFileName = (input: {
   file: File | Blob;
   title?: string;
@@ -610,7 +603,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       let base = manager.apiHost;
       if (!base.endsWith('/')) base += '/';
 
-      let mode = input.mode ?? (supportsPresignedUpload(base) ? 'presigned' : 'direct');
+      let mode =
+        input.mode ??
+        (supportsPresignedUpload(base) && input.file.size > smallFileDirectUploadMaxBytes
+          ? 'presigned'
+          : 'direct');
       let requestHeaders = manager.getHeaders(manager.config) as Record<string, string>;
 
       let parseFilesResponse = (status: number, text: string) => {

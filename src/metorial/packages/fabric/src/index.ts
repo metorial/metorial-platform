@@ -4,13 +4,14 @@ export type {
   FabricBillingAccount,
   FabricBillingPlan,
   FabricEvents,
-  FabricUserTenant,
   FabricOrganizationSubscription,
+  FabricUserTenant,
   FileFabricOwner,
   KeyProviderEventBase,
   KeyProviderEventKeyProvider,
   KeyProviderEventValidation,
-  ProviderEventBase
+  ProviderEventBase,
+  SkillStoreFabricOwner
 } from './types';
 
 let listeners = new Map<string, Set<(data: any) => void | Promise<void>>>();

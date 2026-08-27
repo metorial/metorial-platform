@@ -352,6 +352,11 @@ export type FileFabricOwner = {
   fileSize: number;
 };
 
+export type SkillStoreFabricOwner = {
+  instance: { oid: bigint };
+  storeSize: number;
+};
+
 // prettier-ignore
 export interface FabricEvents {
   'user.created:before': { context?: Context };
@@ -746,6 +751,8 @@ export interface FabricEvents {
   'skill.marketplace.created:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.archived:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.deleted:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
+
+  'skill.store.size:before': SkillStoreFabricOwner;
 
   'file.upload.created:before': FileFabricOwner;
   'file.upload.created:after': FileFabricOwner & { fileUpload: FileUpload };
