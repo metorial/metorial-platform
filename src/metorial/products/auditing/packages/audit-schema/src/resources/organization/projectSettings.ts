@@ -6,6 +6,7 @@ import {
   projectBrandPresenter,
   projectIntegrationNamingConfigurationPresenter,
   projectRetentionPresenter,
+  projectSkillSyncConfigurationPresenter,
   projectToolCallingConfigurationPresenter
 } from '@metorial/presenters';
 import { resource } from '../../_lib/resource';
@@ -54,6 +55,17 @@ export let projectIntegrationNamingConfigurationResource = resource({
     useIntegrationNames: boolean;
   }>('project_integration_naming_configuration'),
   presenter: projectIntegrationNamingConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectSkillSyncConfigurationResource = resource({
+  name: 'project_skill_sync_configuration',
+  payload: v.typedAny<{
+    project: Project;
+  }>('project_skill_sync_configuration'),
+  presenter: projectSkillSyncConfigurationPresenter,
   actions: {
     update: true
   }

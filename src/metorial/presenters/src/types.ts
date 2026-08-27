@@ -1128,6 +1128,10 @@ export let projectIntegrationNamingConfigurationType = PresentableType.create<{
   useIntegrationNames: boolean;
 }>()('project_integration_naming_configuration');
 
+export let projectSkillSyncConfigurationType = PresentableType.create<{
+  project: Project;
+}>()('project_skill_sync_configuration');
+
 export let tokenType = PresentableType.create<{
   token: {
     type:

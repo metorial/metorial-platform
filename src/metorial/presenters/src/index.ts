@@ -140,6 +140,7 @@ import {
   v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectPresenter,
   v1ProjectRetentionPresenter,
+  v1ProjectSkillSyncConfigurationPresenter,
   v1ProjectToolCallingConfigurationPresenter,
   v1ProtoGuardAlertPresenter,
   v1ProtoGuardConfigPresenter,
@@ -353,6 +354,7 @@ import {
   projectBrandType,
   projectIntegrationNamingConfigurationType,
   projectRetentionType,
+  projectSkillSyncConfigurationType,
   projectToolCallingConfigurationType,
   projectType,
   protoGuardAlertType,
@@ -645,6 +647,14 @@ export let projectIntegrationNamingConfigurationPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1ProjectIntegrationNamingConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectIntegrationNamingConfigurationPresenter
+  }
+);
+
+export let projectSkillSyncConfigurationPresenter = declarePresenter(
+  projectSkillSyncConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectSkillSyncConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectSkillSyncConfigurationPresenter
   }
 );
 

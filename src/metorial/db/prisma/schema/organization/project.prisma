@@ -19,6 +19,8 @@ model Project {
   logRetentionInDays   Int     @default(30)
   enforceSessionExpiry Boolean @default(false)
 
+  skillSyncGitLfsThresholdBytes Int?
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 

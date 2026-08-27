@@ -21,5 +21,6 @@ export * from './projectAuthConfigConfiguration';
 export * from './projectBrand';
 export * from './projectIntegrationNamingConfiguration';
 export * from './projectRetention';
+export * from './projectSkillSyncConfiguration';
 export * from './projectToolCallingConfiguration';
 export * from './team';

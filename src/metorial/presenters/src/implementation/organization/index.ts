@@ -14,6 +14,7 @@ export * from './projectBrand';
 export * from './projectRetention';
 export * from './projectAuthConfigConfiguration';
 export * from './projectIntegrationNamingConfiguration';
+export * from './projectSkillSyncConfiguration';
 export * from './projectToolCallingConfiguration';
 export * from './sandbox';
 export * from './team';

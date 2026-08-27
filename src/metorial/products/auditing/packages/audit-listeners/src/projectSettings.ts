@@ -18,6 +18,27 @@ export let recordProjectRetentionUpdated = async (
   });
 };
 
+export let recordProjectSkillSyncConfigurationUpdated = async (
+  event: FabricEvents['organization.project.skill_sync_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_skill_sync_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project
+        },
+        previousPayload: {
+          project: event.previousProject
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordProjectAuthConfigUpdated = async (
   event: FabricEvents['organization.project.auth_config_configuration.updated:after']
 ) => {
@@ -118,6 +139,10 @@ export let recordProjectBrandUpdated = async (
 };
 
 Fabric.listen('organization.project.retention.updated:after', recordProjectRetentionUpdated);
+Fabric.listen(
+  'organization.project.skill_sync_configuration.updated:after',
+  recordProjectSkillSyncConfigurationUpdated
+);
 Fabric.listen(
   'organization.project.auth_config_configuration.updated:after',
   recordProjectAuthConfigUpdated

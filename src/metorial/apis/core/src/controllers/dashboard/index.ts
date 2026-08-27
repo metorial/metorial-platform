@@ -12,6 +12,7 @@ export * from './organizationLayout';
 export * from './projectConfiguration';
 export * from './profile';
 export * from './resourceCounts';
+export * from './skillSyncConfiguration';
 export * from './toolCallingConfiguration';
 export * from './usage';
 export * from './user';

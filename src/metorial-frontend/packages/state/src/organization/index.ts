@@ -15,6 +15,7 @@ export * from './loaders/projectRetention';
 export * from './loaders/sandbox';
 export * from './loaders/projectAuthConfigConfiguration';
 export * from './loaders/projectIntegrationNamingConfiguration';
+export * from './loaders/projectSkillSyncConfiguration';
 export * from './loaders/projectToolCallingConfiguration';
 export * from './loaders/team';
 

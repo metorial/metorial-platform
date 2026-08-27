@@ -297,6 +297,9 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
 
           explicitDeletesOnly: true,
 
+          gitLfsThresholdBytes:
+            propagation.skillRepository.project.skillSyncGitLfsThresholdBytes ?? undefined,
+
           repositoryAccessMode: propagation.repositoryAccessMode,
           forceMergeOrPush: propagation.forceMergeOrPush,
           mergeBeforeChecksPass: propagation.mergeBeforeChecksPass,

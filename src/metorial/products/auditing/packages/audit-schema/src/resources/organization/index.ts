@@ -12,6 +12,7 @@ import {
   projectBrandResource,
   projectIntegrationNamingConfigurationResource,
   projectRetentionResource,
+  projectSkillSyncConfigurationResource,
   projectToolCallingConfigurationResource
 } from './projectSettings';
 import { auditLogStreamResource } from './auditLogStream';
@@ -31,5 +32,6 @@ export let organizationResources = resourceSet({
   project_retention: projectRetentionResource,
   project_auth_config_configuration: projectAuthConfigConfigurationResource,
   project_integration_naming_configuration: projectIntegrationNamingConfigurationResource,
+  project_skill_sync_configuration: projectSkillSyncConfigurationResource,
   project_tool_calling_configuration: projectToolCallingConfigurationResource
 });

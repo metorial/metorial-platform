@@ -38,7 +38,7 @@ export let configurationDocsCategory = createCategory({
 
 export let skillDocsCategory = createCategory({
   id: 'skill',
-  name: 'Magic Skills',
+  name: 'Skills',
   indexHint: getIndexHint()
 });
 
