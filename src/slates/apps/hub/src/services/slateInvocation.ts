@@ -135,6 +135,7 @@ class slateInvocationServiceImpl {
     state: string;
     redirectUri: string;
     input: Record<string, any>;
+    callbackParams: Record<string, string>;
     callbackState: Record<string, any> | undefined;
     clientId: string;
     clientSecret: string;
@@ -146,6 +147,7 @@ class slateInvocationServiceImpl {
       state: d.state,
       redirectUri: d.redirectUri,
       input: d.input,
+      callbackParams: d.callbackParams,
       callbackState: d.callbackState,
       clientId: d.clientId,
       clientSecret: d.clientSecret,

@@ -181,7 +181,12 @@ class slateOAuthHandlerServiceImpl {
   }
 
   async completeOAuthFlow(d: {
-    input: { code: string; state?: string; lastOAuthSetupCookieId: string };
+    input: {
+      code: string;
+      state?: string;
+      lastOAuthSetupCookieId: string;
+      callbackParams: Record<string, string>;
+    };
   }) {
     let setups = await db.slateInstanceOAuthSetup.findMany({
       where: {
@@ -243,6 +248,7 @@ class slateOAuthHandlerServiceImpl {
       authenticationMethodId: setup.authMethod.key,
       redirectUri: setup.callbackUrlOverride ?? callbackUrl,
       input: oauthSecret.input,
+      callbackParams: d.input.callbackParams,
       callbackState: oauthSecret.callbackState,
       clientId: credentialsSecrets.clientId,
       clientSecret: credentialsSecrets.clientSecret,
