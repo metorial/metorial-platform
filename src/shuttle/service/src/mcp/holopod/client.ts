@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { EventEmitter } from 'events';
 import * as https from 'https';
-import { env } from '../../env';
+import { getHolopodHttpEndpoint } from '../../env';
 import {
   ContainerState,
   type HealthResponse,
@@ -25,7 +25,7 @@ let wsDebugLog = (...args: unknown[]) => {
 };
 
 let createRunWsUrl = () => {
-  let base = new URL(env.holopod.HOLOPOD_HTTP_ENDPOINT);
+  let base = new URL(getHolopodHttpEndpoint());
   base.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
   base.pathname = '/v1/run';
   base.search = '';
@@ -34,7 +34,7 @@ let createRunWsUrl = () => {
 };
 
 let createHealthUrl = () => {
-  let base = new URL(env.holopod.HOLOPOD_HTTP_ENDPOINT);
+  let base = new URL(getHolopodHttpEndpoint());
   base.pathname = '/v1/health';
   base.search = '';
   base.hash = '';
