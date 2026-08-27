@@ -210,7 +210,7 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
         <Flex gap="8px">
           {marketplace.data?.syncStatus === 'pending' && (
             <Button size="2" loading={syncMarketplace.isLoading} onClick={forceSync}>
-              Force Sync
+              Sync Now
             </Button>
           )}
           <Menu

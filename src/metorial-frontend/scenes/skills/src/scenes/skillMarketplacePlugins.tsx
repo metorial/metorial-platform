@@ -318,7 +318,11 @@ export let moveSkillOptimistically = (
     if (!plugin) return [item];
 
     if (plugin.id === sourcePluginId) {
-      if (plugin.skills.length === 1 && removeEmptySource && isCollapsedMarketplacePlugin(item)) {
+      if (
+        plugin.skills.length === 1 &&
+        removeEmptySource &&
+        isCollapsedMarketplacePlugin(item)
+      ) {
         return [];
       }
       return [
@@ -354,7 +358,11 @@ export let moveSkillToStandaloneOptimistically = (
   ...items.flatMap(item => {
     let plugin = item.skillPlugin;
     if (!plugin || plugin.id !== sourcePluginId) return [item];
-    if (plugin.skills.length === 1 && removeEmptySource && isCollapsedMarketplacePlugin(item)) {
+    if (
+      plugin.skills.length === 1 &&
+      removeEmptySource &&
+      isCollapsedMarketplacePlugin(item)
+    ) {
       return [];
     }
 
@@ -882,10 +890,7 @@ let SkillRow = (p: {
         </DragHandle>
       )}
       {p.href ? (
-        <SkillLink
-          to={p.href}
-          onPointerDown={event => drag.listeners?.onPointerDown?.(event)}
-        >
+        <SkillLink to={p.href} onPointerDown={event => drag.listeners?.onPointerDown?.(event)}>
           {content}
         </SkillLink>
       ) : (
