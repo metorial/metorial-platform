@@ -6,6 +6,7 @@ export type {
   FabricEvents,
   FabricUserTenant,
   FabricOrganizationSubscription,
+  FileFabricOwner,
   KeyProviderEventBase,
   KeyProviderEventKeyProvider,
   KeyProviderEventValidation,

@@ -206,6 +206,124 @@ let fetchWithRetryAndLogging = async (
   }
 };
 
+export type MetorialFileUploadMode = 'direct' | 'presigned';
+
+let presignedUploadHostSuffixes = [
+  '.metorial.com',
+  '.metorial.app',
+  '.metorial.net',
+  '.metorial.cloud',
+  '.metorial-staging.com'
+];
+
+/**
+ * Presigned uploads require the API to be backed by an object store that can sign PUT
+ * URLs, which is only guaranteed on Metorial-operated hosts. Everything else (including
+ * self-hosted deployments) keeps streaming the bytes through the API service.
+ */
+export let supportsPresignedUpload = (apiHost: string) => {
+  try {
+    let hostname = new URL(apiHost).hostname.toLowerCase();
+    return presignedUploadHostSuffixes.some(suffix => hostname.endsWith(suffix));
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Multipart uploads let the API derive the name from the form file, but the presigned
+ * flow has to declare it up front. Mirrors the server's fallback order.
+ */
+export let getUploadFileName = (input: {
+  file: File | Blob;
+  title?: string;
+  store?: { path: string };
+}) =>
+  (input.file as File).name?.trim() ||
+  input.store?.path.split('/').filter(Boolean).at(-1)?.trim() ||
+  input.title?.trim() ||
+  '';
+
+export type MetorialFileUploadProgress = {
+  loaded: number;
+  total: number;
+  ratio: number;
+};
+
+let notifyUploadProgress = (
+  onProgress: ((progress: MetorialFileUploadProgress) => void) | undefined,
+  loaded: number,
+  total: number
+) => {
+  if (!onProgress) return;
+
+  onProgress({
+    loaded,
+    total,
+    ratio: total > 0 ? Math.min(1, loaded / total) : 0
+  });
+};
+
+let sendWithUploadProgress = (opts: {
+  url: string;
+  method: string;
+  body: Blob | FormData | string;
+  headers?: Record<string, string>;
+  credentials?: RequestCredentials;
+  onProgress?: (progress: MetorialFileUploadProgress) => void;
+}) =>
+  new Promise<{ ok: boolean; status: number; text: string }>((resolve, reject) => {
+    if (typeof XMLHttpRequest == 'undefined') {
+      fetch(opts.url, {
+        method: opts.method,
+        body: opts.body,
+        headers: opts.headers,
+        credentials: opts.credentials ?? 'same-origin',
+        redirect: 'follow',
+        referrerPolicy: 'no-referrer-when-downgrade',
+        cache: 'no-cache',
+        mode: 'cors'
+      })
+        .then(async res => {
+          resolve({
+            ok: res.ok,
+            status: res.status,
+            text: await res.text()
+          });
+        })
+        .catch(reject);
+      return;
+    }
+
+    let xhr = new XMLHttpRequest();
+    xhr.open(opts.method, opts.url);
+    xhr.withCredentials = opts.credentials == 'include';
+
+    for (let [key, value] of Object.entries(opts.headers ?? {})) {
+      if (value == null || value == '') continue;
+      xhr.setRequestHeader(key, value);
+    }
+
+    xhr.upload.onprogress = event => {
+      notifyUploadProgress(
+        opts.onProgress,
+        event.loaded,
+        event.lengthComputable ? event.total : 0
+      );
+    };
+
+    xhr.onload = () => {
+      resolve({
+        ok: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        text: xhr.responseText
+      });
+    };
+    xhr.onerror = () => reject(new Error('Network error during file upload'));
+    xhr.onabort = () => reject(new Error('File upload was aborted'));
+    xhr.send(opts.body);
+  });
+
 export type AssistantRequestDeltaEvent = {
   event: string;
   data: unknown;
@@ -486,69 +604,161 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         path: string;
       };
       storeReplace?: boolean;
+      mode?: MetorialFileUploadMode;
+      onProgress?: (progress: MetorialFileUploadProgress) => void;
     }) => {
-      let body = new FormData();
-      body.append('file', input.file);
-      body.append('purpose', input.purpose);
-      body.append('instance_id', input.instanceId);
-      if (input.title) body.append('title', input.title);
-      if (input.store) {
-        body.append('store_id', input.store.id);
-        body.append('path', input.store.path);
-      }
-      if (input.storeReplace) body.append('store_replace', 'true');
-
-      console.log('Uploading file with body:', Object.fromEntries(body.entries()));
-
       let base = manager.apiHost;
       if (!base.endsWith('/')) base += '/';
 
-      let tries = 0;
+      let mode = input.mode ?? (supportsPresignedUpload(base) ? 'presigned' : 'direct');
+      let requestHeaders = manager.getHeaders(manager.config) as Record<string, string>;
+
+      let parseFilesResponse = (status: number, text: string) => {
+        let json = text ? JSON.parse(text) : {};
+
+        if (status < 200 || status >= 300) {
+          throw new MetorialSDKError(
+            json?.code
+              ? json
+              : {
+                  status,
+                  code: 'file_upload_failed',
+                  message: `File upload failed with status ${status}`
+                }
+          );
+        }
+
+        return json;
+      };
+
+      let postFiles = async (
+        body: FormData | string,
+        onProgress?: typeof input.onProgress
+      ) => {
+        let res =
+          typeof body != 'string' && onProgress
+            ? await sendWithUploadProgress({
+                url: `${base}files`,
+                method: 'POST',
+                body,
+                headers: requestHeaders,
+                credentials: 'include',
+                onProgress
+              })
+            : await fetch(`${base}files`, {
+                method: 'POST',
+                body,
+                headers: {
+                  ...requestHeaders,
+                  ...(typeof body == 'string' ? { 'Content-Type': 'application/json' } : {})
+                },
+                credentials: 'include',
+                redirect: 'follow',
+                referrerPolicy: 'no-referrer-when-downgrade',
+                cache: 'no-cache',
+                mode: 'cors'
+              }).then(async response => ({
+                ok: response.ok,
+                status: response.status,
+                text: await response.text()
+              }));
+
+        return parseFilesResponse(res.status, res.text);
+      };
+
+      let directUpload = async () => {
+        let body = new FormData();
+        body.append('file', input.file);
+        body.append('purpose', input.purpose);
+        body.append('instance_id', input.instanceId);
+        if (input.title) body.append('title', input.title);
+        if (input.store) {
+          body.append('store_id', input.store.id);
+          body.append('path', input.store.path);
+        }
+        if (input.storeReplace) body.append('store_replace', 'true');
+
+        notifyUploadProgress(input.onProgress, 0, input.file.size);
+        let json = await postFiles(body, input.onProgress);
+        notifyUploadProgress(input.onProgress, input.file.size, input.file.size);
+        return json;
+      };
+
+      let presignedUpload = async () => {
+        let pending = await postFiles(
+          JSON.stringify({
+            mode: 'get_upload_url',
+            instance_id: input.instanceId,
+            purpose: input.purpose,
+            file_name: getUploadFileName(input),
+            file_size: input.file.size,
+            ...(input.file.type ? { file_type: input.file.type } : {}),
+            ...(input.title ? { title: input.title } : {}),
+            ...(input.store ? { store_id: input.store.id, path: input.store.path } : {}),
+            ...(input.storeReplace ? { store_replace: true } : {})
+          })
+        );
+
+        notifyUploadProgress(input.onProgress, 0, input.file.size);
+
+        let uploaded = input.onProgress
+          ? await sendWithUploadProgress({
+              url: pending.upload.url,
+              method: pending.upload.method ?? 'PUT',
+              body: input.file,
+              headers: input.file.type ? { 'Content-Type': input.file.type } : undefined,
+              onProgress: input.onProgress
+            })
+          : await fetch(pending.upload.url, {
+              method: pending.upload.method ?? 'PUT',
+              body: input.file,
+              ...(input.file.type ? { headers: { 'Content-Type': input.file.type } } : {}),
+              cache: 'no-cache',
+              mode: 'cors'
+            }).then(async response => ({
+              ok: response.ok,
+              status: response.status,
+              text: await response.text()
+            }));
+
+        if (!uploaded.ok) {
+          throw new Error(`Object store rejected the upload with status ${uploaded.status}`);
+        }
+
+        notifyUploadProgress(input.onProgress, input.file.size, input.file.size);
+
+        return await postFiles(
+          JSON.stringify({
+            mode: 'complete',
+            instance_id: input.instanceId,
+            file_upload_id: pending.id
+          })
+        );
+      };
+
+      console.log('Uploading file:', {
+        mode,
+        name: getUploadFileName(input),
+        size: input.file.size,
+        purpose: input.purpose
+      });
+
+      let attempt = 0;
       while (true) {
         try {
-          let res = await fetch(`${base}files`, {
-            method: 'POST',
-            body,
-            headers: manager.getHeaders(manager.config),
-            credentials: 'include',
-            redirect: 'follow',
-            referrerPolicy: 'no-referrer-when-downgrade',
-            cache: 'no-cache',
-            mode: 'cors'
-          });
+          let json = mode == 'presigned' ? await presignedUpload() : await directUpload();
 
-          let json = await res.json();
-
-          if (!res.ok) {
-            let errorData: {
-              status: number;
-              code: string;
-              message: string;
-            };
-            try {
-              errorData = json;
-            } catch {
-              errorData = {
-                status: res.status,
-                code: 'file_upload_failed',
-                message: `File upload failed with status ${res.status}`
-              };
-            }
-
-            throw new MetorialSDKError(errorData);
-          }
-
-          let mapped = mapDashboardInstanceFilesGetOutput.transformFrom(json);
-
-          return mapped;
+          return mapDashboardInstanceFilesGetOutput.transformFrom(json);
         } catch (error) {
-          if (tries < 2) {
+          if (!(error instanceof MetorialSDKError) && attempt < 2) {
             console.warn('File upload failed, retrying...', error);
-            tries++;
+            attempt++;
             continue;
           }
 
           console.error('File upload failed:', error);
+
+          if (error instanceof MetorialSDKError) throw error;
 
           throw new MetorialSDKError({
             status: 500,

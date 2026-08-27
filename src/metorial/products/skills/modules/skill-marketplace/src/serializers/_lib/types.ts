@@ -1,4 +1,5 @@
 import type {
+  File as MetorialFile,
   Skill,
   SkillConfiguration,
   SkillMarketplace,
@@ -46,9 +47,25 @@ export interface MarketplaceSerializerInput {
 
 export interface SerializerContext {
   setFile: (path: string, content: string | Buffer | ArrayBuffer) => Promise<void>;
+
+  setFileFromStorage: (path: string, file: StorageBackedFile) => Promise<void>;
+
   deletePath: (path: string) => Promise<void>;
   setBasePath: (path: string | undefined) => void;
 }
+
+export type StorageBackedFile = Pick<MetorialFile, 'oid' | 'status' | 'storeId' | 'fileSize'>;
+
+export interface PruneScope {
+  prefix: string;
+  excludePrefixes: string[];
+}
+
+export type PruneScopeFunction<Input> = (input: Input) => PruneScope;
+
+export type GetPruneScopeByType<Type extends Serializer['type']> = PruneScopeFunction<
+  SerializerInputByType<Type>
+>;
 
 export type Applicator<Input, InitResult> = (
   input: Input,
@@ -88,6 +105,7 @@ export type SkillSerializer<InitResult = any> = {
   init: Initializer<'skill', InitResult>;
   apply: GetApplicatorByType<'skill', InitResult>;
   getHash: GetHashFunctionByType<'skill', InitResult>;
+  getPruneScope?: GetPruneScopeByType<'skill'>;
 };
 
 export type PluginSerializer<InitResult = any> = {
@@ -95,6 +113,7 @@ export type PluginSerializer<InitResult = any> = {
   init: Initializer<'plugin', InitResult>;
   apply: GetApplicatorByType<'plugin', InitResult>;
   getHash: GetHashFunctionByType<'plugin', InitResult>;
+  getPruneScope?: GetPruneScopeByType<'plugin'>;
 };
 
 export type MarketplaceSerializer<InitResult = any> = {
@@ -102,6 +121,7 @@ export type MarketplaceSerializer<InitResult = any> = {
   init: Initializer<'marketplace', InitResult>;
   apply: GetApplicatorByType<'marketplace', InitResult>;
   getHash: GetHashFunctionByType<'marketplace', InitResult>;
+  getPruneScope?: GetPruneScopeByType<'marketplace'>;
 };
 
 export type Serializer = SkillSerializer | PluginSerializer | MarketplaceSerializer;

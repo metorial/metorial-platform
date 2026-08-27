@@ -1,6 +1,5 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import type {
   Instance,
   Project,
@@ -11,6 +10,8 @@ import type {
   StoreItemKind
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { fileLinkService, fileReferenceService } from '@metorial/module-file';
+import { applyStoreByteSizeDelta, refreshStoreByteSize } from '../lib/storeByteSize';
 import {
   listAncestorDirectoryPaths,
   normalizeStorePath,
@@ -42,6 +43,7 @@ type ResolvedStoreItemFile = {
   oid: bigint;
   id: string;
   status: 'active' | 'deleted';
+  fileSize: number;
   purpose: {
     canHaveLinks: boolean;
   };
@@ -76,6 +78,7 @@ type NormalizedStoreItemOperation =
 let modifyOperationLimit = 500;
 let maxStoreItems = 1000;
 let maxSkillStoreFiles = 1000;
+let maxSkillStoreBytes = 1024n * 1024n * 1024n;
 let reservedSkillDocumentName = 'SKILL.md';
 let agentsDirectoryPath = '/agents/';
 
@@ -152,19 +155,38 @@ class StoreItemMutationServiceImpl {
     );
   }
 
-  private async assertSkillStoreFileLimit(store: Pick<Store, 'oid'>, client: any = db) {
-    let fileCount = await client.storeItem.count({
-      where: {
-        storeOid: store.oid,
-        kind: { in: ['document', 'file'] }
-      }
-    });
+  private async assertSkillStoreFileLimit(store: Pick<Store, 'oid'>) {
+    let fileCount = await withTransaction(
+      async db =>
+        await db.storeItem.count({
+          where: {
+            storeOid: store.oid,
+            kind: { in: ['document', 'file'] }
+          }
+        }),
+      { ifExists: true }
+    );
 
     if (fileCount <= maxSkillStoreFiles) return;
 
     throw new ServiceError(
       badRequestError({
         message: `Skill store files cannot exceed ${maxSkillStoreFiles}; this change would result in ${fileCount}.`
+      })
+    );
+  }
+
+  private async assertSkillStoreByteLimit(store: Pick<Store, 'oid'>) {
+    let byteSize = await refreshStoreByteSize({ storeOid: store.oid });
+    if (byteSize <= maxSkillStoreBytes) return;
+
+    let toGb = (bytes: bigint) => (Number(bytes) / (1024 * 1024 * 1024)).toFixed(2);
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          `Skill store size cannot exceed ${toGb(maxSkillStoreBytes)}GB; ` +
+          `this change would result in ${toGb(byteSize)}GB.`
       })
     );
   }
@@ -978,6 +1000,10 @@ class StoreItemMutationServiceImpl {
 
       if (targetChanged) {
         await this.cleanupFileReference(d.item.reference);
+        await applyStoreByteSizeDelta({
+          storeOid: d.store.oid,
+          delta: BigInt(d.target!.file.fileSize) - BigInt(d.item.file?.fileSize ?? 0)
+        });
       }
 
       return updatedItem;
@@ -1061,6 +1087,11 @@ class StoreItemMutationServiceImpl {
       });
 
       if (createResult.count === 1) {
+        await applyStoreByteSizeDelta({
+          storeOid: d.store.oid,
+          delta: BigInt(d.target.file.fileSize)
+        });
+
         return {
           created: true,
           previousItem: null,
@@ -1189,6 +1220,10 @@ class StoreItemMutationServiceImpl {
         }
       });
       await this.cleanupFileReference(d.item.reference);
+      await applyStoreByteSizeDelta({
+        storeOid: d.store.oid,
+        delta: -BigInt(d.item.file?.fileSize ?? 0)
+      });
 
       return {
         item: d.item,
@@ -1383,7 +1418,8 @@ class StoreItemMutationServiceImpl {
       }
 
       if (skill && result.created) {
-        await this.assertSkillStoreFileLimit(d.store, client);
+        await this.assertSkillStoreFileLimit(d.store);
+        await this.assertSkillStoreByteLimit(d.store);
       }
 
       if (currentStore.itemCount + itemCountDelta > maxStoreItems) {
@@ -1565,7 +1601,8 @@ class StoreItemMutationServiceImpl {
           }
 
           if (skill && result.created) {
-            await this.assertSkillStoreFileLimit(d.store, client);
+            await this.assertSkillStoreFileLimit(d.store);
+            await this.assertSkillStoreByteLimit(d.store);
           }
 
           if (itemCount > maxStoreItems) {

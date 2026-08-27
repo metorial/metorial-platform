@@ -54,6 +54,7 @@ import {
 import PQueue from 'p-queue';
 import { useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 type EmbeddedPluginSkill = SkillPlugin['skills'][number];
@@ -187,7 +188,7 @@ let RootActions = styled(RowActions)`
   justify-content: flex-end;
 `;
 
-let SkillLink = styled.a`
+let SkillLink = styled(Link)`
   color: inherit;
   text-decoration: none;
   min-width: 0;
@@ -199,6 +200,16 @@ let SkillLink = styled.a`
     outline-offset: 2px;
   }
 `;
+
+let dragGutterIconStyle = {
+  width: 17,
+  height: 17,
+  display: 'block',
+  flexShrink: 0,
+  color: theme.colors.gray700
+} as const;
+
+let DragGutterIcon = () => <RiDraggable size={17} style={dragGutterIconStyle} />;
 
 let DragHandle = styled.button`
   width: 24px;
@@ -293,7 +304,7 @@ export let getMoveSkillInput = (skill: EmbeddedPluginSkill) => ({
 export let shouldDeleteSourcePluginAfterMove = (
   item: SkillMarketplacePlugin | undefined
 ): item is SkillMarketplacePlugin & { skillPlugin: SkillPlugin } =>
-  item?.skillPlugin?.skills.length === 1;
+  Boolean(item && isCollapsedMarketplacePlugin(item));
 
 export let moveSkillOptimistically = (
   items: SkillMarketplacePlugin[],
@@ -307,9 +318,12 @@ export let moveSkillOptimistically = (
     if (!plugin) return [item];
 
     if (plugin.id === sourcePluginId) {
-      if (plugin.skills.length === 1) {
-        if (removeEmptySource) return [];
-        return [{ ...item, skillPlugin: { ...plugin, skills: [] } }];
+      if (
+        plugin.skills.length === 1 &&
+        removeEmptySource &&
+        isCollapsedMarketplacePlugin(item)
+      ) {
+        return [];
       }
       return [
         {
@@ -344,9 +358,12 @@ export let moveSkillToStandaloneOptimistically = (
   ...items.flatMap(item => {
     let plugin = item.skillPlugin;
     if (!plugin || plugin.id !== sourcePluginId) return [item];
-    if (plugin.skills.length === 1) {
-      if (removeEmptySource) return [];
-      return [{ ...item, skillPlugin: { ...plugin, skills: [] } }];
+    if (
+      plugin.skills.length === 1 &&
+      removeEmptySource &&
+      isCollapsedMarketplacePlugin(item)
+    ) {
+      return [];
     }
 
     return [
@@ -869,14 +886,11 @@ let SkillRow = (p: {
           disabled={p.disabled}
           aria-label={`Move ${p.skill.skill.name}`}
         >
-          <RiDraggable size={17} />
+          <DragGutterIcon />
         </DragHandle>
       )}
       {p.href ? (
-        <SkillLink
-          href={p.href}
-          onPointerDown={event => drag.listeners?.onPointerDown?.(event)}
-        >
+        <SkillLink to={p.href} onPointerDown={event => drag.listeners?.onPointerDown?.(event)}>
           {content}
         </SkillLink>
       ) : (
@@ -1457,7 +1471,7 @@ export let SkillMarketplacePluginsScene = (p: {
             <DragOverlay>
               {movingSkill && (
                 <TreeRow>
-                  <RiDraggable />
+                  <DragGutterIcon />
                   <Text size="2" weight="strong">
                     {movingSkill.skill.name}
                   </Text>

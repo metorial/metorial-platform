@@ -103,8 +103,15 @@ func (fsm *FileSystemManager) flushFileToStorage(ctx context.Context, bucketID, 
 		return err
 	}
 
-	objectKey := fmt.Sprintf("%s/%s", bucketID, filePath)
+	objectKey := objectStorageKey(bucketID, filePath)
+	log.Printf("[object-storage debug] flushFileToStorage start bucket_id=%s path=%s key=%s size=%d", bucketID, filePath, objectKey, len(fileData.Content))
+	started := time.Now()
 	_, err = fsm.objectStorage.PutObject(fsm.bucketName, objectKey, fileData.Content, &fileData.ContentType, nil)
+	if err != nil {
+		log.Printf("[object-storage debug] flushFileToStorage failed bucket_id=%s path=%s key=%s size=%d duration=%s err=%v", bucketID, filePath, objectKey, len(fileData.Content), time.Since(started), err)
+	} else {
+		log.Printf("[object-storage debug] flushFileToStorage ok bucket_id=%s path=%s key=%s size=%d duration=%s", bucketID, filePath, objectKey, len(fileData.Content), time.Since(started))
+	}
 
 	return err
 }

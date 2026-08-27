@@ -4,6 +4,7 @@ import { db } from '@metorial/db';
 import semver from 'semver';
 import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { getMarketplacePruneScope } from '../_lib/paths';
 
 let json = (data: any) => JSON.stringify(data, null, 2);
 
@@ -69,9 +70,6 @@ export let applyMarketplace = createApplicator(
       ].join(':')
     );
 
-    // Hash only values that affect generated files. Timestamps and the generated
-    // version are deliberately excluded so importing our own version-only commit
-    // cannot schedule another version-only sync.
     let hash = await Hash.sha256(
       canonicalize({
         serializerVersion: 2,
@@ -99,6 +97,8 @@ export let applyMarketplace = createApplicator(
     };
   },
   {
+    getPruneScope: getMarketplacePruneScope,
+
     getHash: async (_input, { hash }) => hash,
 
     apply: async (input, context, { plugins, project, hash, legacyHash }) => {
@@ -116,8 +116,6 @@ export let applyMarketplace = createApplicator(
           data: {
             versionHash: hash,
             version: nextVersion,
-
-            // Force updatedAt not to change
             updatedAt: input.skillMarketplace.updatedAt
           }
         });

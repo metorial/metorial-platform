@@ -1,5 +1,5 @@
 import { db, withTransaction } from '@metorial/db';
-import { getCargoFilesBucketName, getStorage } from '../storage';
+import { getCargoFilesBucketName, getObjectStream, getStorage } from '../storage';
 import {
   isBufferableTextFile,
   maxBufferedFileSize,
@@ -38,6 +38,42 @@ export let getStoredFileContent = async (d: { file: { oid: bigint; storeId: stri
     source: 'object' as const
   };
 };
+
+export let getStoredFileContentStream = async (d: {
+  file: { oid: bigint; storeId: string };
+}) => {
+  let pending = await db.filePendingContent.findUnique({
+    where: {
+      fileOid: d.file.oid
+    },
+    select: {
+      content: true
+    }
+  });
+
+  if (pending) {
+    let data = Buffer.from(pending.content);
+
+    return {
+      body: data as Buffer | ReadableStream<Uint8Array>,
+      size: data.byteLength as number | undefined,
+      contentType: undefined as string | undefined,
+      source: 'database' as const
+    };
+  }
+
+  let object = await getObjectStream(getCargoFilesBucketName(), d.file.storeId);
+
+  return {
+    body: object.stream as Buffer | ReadableStream<Uint8Array>,
+    size: object.size,
+    contentType: object.contentType,
+    source: 'object' as const
+  };
+};
+
+export let hasPendingFileContent = async (fileOid: bigint) =>
+  (await db.filePendingContent.count({ where: { fileOid } })) > 0;
 
 export let deletePendingFileContent = async (fileOid: bigint) =>
   await withTransaction(

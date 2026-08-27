@@ -45,12 +45,13 @@ func TestUploadToRepoEscapesFilePathAndBranch(t *testing.T) {
 	defer server.Close()
 
 	err := UploadToRepo(
-		42,
-		"",
-		"feature/a&b",
-		"Update file",
-		"token",
-		server.URL,
+		UploadOptions{
+			ProjectID:     42,
+			Branch:        "feature/a&b",
+			CommitMessage: "Update file",
+			Token:         "token",
+			GitlabAPIURL:  server.URL,
+		},
 		[]FileToUpload{{Path: "docs/a#b?.txt", Content: []byte("new")}},
 	)
 	if err != nil {
@@ -93,12 +94,13 @@ func TestUploadToRepoRetriesCreateAsUpdateAfterConflict(t *testing.T) {
 	defer server.Close()
 
 	err := UploadToRepo(
-		42,
-		"",
-		"main",
-		"Update file",
-		"token",
-		server.URL,
+		UploadOptions{
+			ProjectID:     42,
+			Branch:        "main",
+			CommitMessage: "Update file",
+			Token:         "token",
+			GitlabAPIURL:  server.URL,
+		},
 		[]FileToUpload{{Path: "file.txt", Content: []byte("new")}},
 	)
 	if err != nil {
@@ -109,6 +111,152 @@ func TestUploadToRepoRetriesCreateAsUpdateAfterConflict(t *testing.T) {
 	}
 	if len(retriedCommit.Actions) != 1 || retriedCommit.Actions[0].Action != "update" {
 		t.Fatalf("expected retried action to be update, got %#v", retriedCommit.Actions)
+	}
+}
+
+// gitlabRepo serves file metadata for a fixed set of existing paths and records
+// the commit it receives.
+func gitlabRepo(t *testing.T, existing map[string]string) (*httptest.Server, *gitlabCommitRequest) {
+	t.Helper()
+
+	var commit gitlabCommitRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			filePath := strings.TrimPrefix(r.URL.Path, "/projects/42/repository/files/")
+			content, exists := existing[filePath]
+			if !exists {
+				http.NotFound(w, r)
+				return
+			}
+			sum := sha256.Sum256([]byte(content))
+			_, _ = fmt.Fprintf(w, `{"content_sha256":%q}`, hex.EncodeToString(sum[:]))
+		case http.MethodPost:
+			if err := json.NewDecoder(r.Body).Decode(&commit); err != nil {
+				t.Fatalf("decode commit: %v", err)
+			}
+			w.WriteHeader(http.StatusCreated)
+		default:
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	return server, &commit
+}
+
+func TestUploadToRepoDeletesRequestedPath(t *testing.T) {
+	server, commit := gitlabRepo(t, map[string]string{"gone.md": "old"})
+
+	err := UploadToRepo(
+		UploadOptions{
+			ProjectID:     42,
+			CommitMessage: "Sync",
+			Token:         "token",
+			GitlabAPIURL:  server.URL,
+			DeletePaths:   []string{"gone.md"},
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("upload repository: %v", err)
+	}
+
+	if len(commit.Actions) != 1 {
+		t.Fatalf("expected one action, got %#v", commit.Actions)
+	}
+	if commit.Actions[0].Action != "delete" || commit.Actions[0].FilePath != "gone.md" {
+		t.Fatalf("expected a delete action for gone.md, got %#v", commit.Actions[0])
+	}
+}
+
+func TestUploadToRepoSkipsDeleteForMissingPath(t *testing.T) {
+	server, commit := gitlabRepo(t, map[string]string{})
+
+	err := UploadToRepo(
+		UploadOptions{
+			ProjectID:     42,
+			CommitMessage: "Sync",
+			Token:         "token",
+			GitlabAPIURL:  server.URL,
+			DeletePaths:   []string{"never-existed.md"},
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("upload repository: %v", err)
+	}
+
+	// Deleting a path GitLab does not have fails the whole commit, so it must
+	// not be sent at all.
+	if len(commit.Actions) != 0 {
+		t.Fatalf("expected no commit actions, got %#v", commit.Actions)
+	}
+}
+
+func TestUploadToRepoKeepsPathThatIsStillExported(t *testing.T) {
+	server, commit := gitlabRepo(t, map[string]string{"a.md": "same"})
+
+	err := UploadToRepo(
+		UploadOptions{
+			ProjectID:     42,
+			CommitMessage: "Sync",
+			Token:         "token",
+			GitlabAPIURL:  server.URL,
+			DeletePaths:   []string{"a.md"},
+		},
+		[]FileToUpload{{Path: "a.md", Content: []byte("same")}},
+	)
+	if err != nil {
+		t.Fatalf("upload repository: %v", err)
+	}
+
+	// The file is unchanged so nothing is written for it, but it is still part
+	// of the export and a stale deletion must not remove it.
+	if len(commit.Actions) != 0 {
+		t.Fatalf("expected no commit actions, got %#v", commit.Actions)
+	}
+}
+
+func TestReconcileActionsDropsSatisfiedDelete(t *testing.T) {
+	server, _ := gitlabRepo(t, map[string]string{})
+
+	reconciled, err := reconcileActions(
+		&http.Client{},
+		42,
+		"main",
+		"token",
+		server.URL,
+		[]gitlabFileAction{{Action: "delete", FilePath: "gone.md"}},
+	)
+	if err != nil {
+		t.Fatalf("reconcile actions: %v", err)
+	}
+
+	// Rewriting a delete into a create would restore the file with the action's
+	// empty content.
+	if len(reconciled) != 0 {
+		t.Fatalf("expected the delete to be dropped, got %#v", reconciled)
+	}
+}
+
+func TestReconcileActionsKeepsPendingDelete(t *testing.T) {
+	server, _ := gitlabRepo(t, map[string]string{"gone.md": "old"})
+
+	reconciled, err := reconcileActions(
+		&http.Client{},
+		42,
+		"main",
+		"token",
+		server.URL,
+		[]gitlabFileAction{{Action: "delete", FilePath: "gone.md"}},
+	)
+	if err != nil {
+		t.Fatalf("reconcile actions: %v", err)
+	}
+
+	if len(reconciled) != 1 || reconciled[0].Action != "delete" {
+		t.Fatalf("expected the delete to be kept, got %#v", reconciled)
 	}
 }
 

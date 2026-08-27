@@ -373,20 +373,23 @@ class SkillExportServiceImpl {
   }) {
     let purpose = await this.ensureExportFilePurpose();
     let expiresAt = getExportExpiresAt();
-    let zipStream = codeBucketClient.getBucketFilesAsZipStream({
+
+    let { storeId, destination } = await fileService.createPendingUploadForStream();
+
+    await codeBucketClient.exportBucketFilesAsZipToUpload({
       bucketId: d.target.destination.codeBucketId,
-      prefix: ''
+      prefix: '',
+      uploadUrl: destination.type === 'signed_url' ? destination.url : '',
+      uploadBucket: destination.type === 'internal' ? destination.bucket : '',
+      uploadKey: destination.type === 'internal' ? destination.key : '',
+      contentType: 'application/zip'
     });
 
-    let file = await fileService.createUploadedFileFromByteStream({
+    let file = await fileService.completePendingUploadForStream({
       project: d.project,
       instance: d.instance,
       purpose: purpose.slug,
-      content: (async function* () {
-        for await (let chunk of zipStream) {
-          if (chunk.content.byteLength > 0) yield chunk.content;
-        }
-      })(),
+      storeId,
       input: {
         name: d.target.fileName,
         title: d.target.fileName,

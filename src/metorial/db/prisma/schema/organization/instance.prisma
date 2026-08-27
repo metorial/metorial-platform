@@ -110,7 +110,7 @@ model Instance {
   sessionClientSecretReferences        SessionClientSecretReference[]
   files                                File[]
   secrets                              Secret[]
-  uploads                              Upload[]
+  fileUploads                          FileUpload[]
   accessTags                           AccessTag[]
   magicMcpGroups                       MagicMcpGroup[]
   magicMcpEndpoints                    MagicMcpEndpoint[]

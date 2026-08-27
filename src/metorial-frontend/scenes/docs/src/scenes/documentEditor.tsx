@@ -67,12 +67,20 @@ let Header = styled.header`
   border-bottom: 1px solid ${theme.colors.gray300};
   background: ${({ theme }) => theme.color.bg};
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 let HeaderLeft = styled(HeaderSection)`
-  flex: 1 1 0;
+  flex: 1 1 auto;
   justify-content: flex-start;
-  min-width: 0;
+  min-width: 64px;
+  overflow: hidden;
 `;
 
 let HeaderCenter = styled.div`
@@ -85,9 +93,20 @@ let HeaderCenter = styled.div`
 `;
 
 let HeaderRight = styled(HeaderSection)`
-  flex: 1 1 0;
+  flex: 1 1 auto;
   justify-content: flex-end;
-  min-width: 0;
+  min-width: 56px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  & > * {
+    flex-shrink: 0;
+  }
 `;
 
 let Segmented = styled.div`

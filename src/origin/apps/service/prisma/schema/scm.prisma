@@ -119,6 +119,10 @@ model ScmRepositorySync {
   forceMergeOrPush      Boolean @default(false)
   mergeBeforeChecksPass Boolean @default(false)
 
+  deletePaths String[] @default([])
+
+  explicitDeletesOnly Boolean @default(false)
+
   providerPrId               String?
   providerPrUrl              String?
   providerMergeSha           String?

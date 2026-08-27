@@ -7,10 +7,9 @@ import semver from 'semver';
 import { internalImageService } from '@metorial/skills-images';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
-import type { PluginSerializerInput } from '../_lib/types';
+import { getPluginPath, getPluginPruneScope } from '../_lib/paths';
 
-export let getPluginPath = (d: PluginSerializerInput) =>
-  d.skillMarketplacePlugin ? `plugins/${d.skillMarketplacePlugin.pluginSlug}` : undefined;
+export { getPluginPath };
 
 let json = (data: any) => JSON.stringify(data, null, 2);
 
@@ -82,9 +81,6 @@ export let applyPlugin = createApplicator(
       ].join(':')
     );
 
-    // Hash only values that affect generated files. In particular, exclude
-    // updatedAt and the generated version to make repository round-trips
-    // idempotent.
     let hash = await Hash.sha256(
       canonicalize({
         serializerVersion: 2,
@@ -120,6 +116,8 @@ export let applyPlugin = createApplicator(
     };
   },
   {
+    getPruneScope: getPluginPruneScope,
+
     getHash: async (_input, { hash }) => hash,
 
     apply: async (input, context, { project, agents, image, hash, legacyHash }) => {
@@ -137,8 +135,6 @@ export let applyPlugin = createApplicator(
           data: {
             versionHash: hash,
             version: nextVersion,
-
-            // Force updatedAt not to change
             updatedAt: input.skillPlugin.updatedAt
           }
         });
@@ -226,8 +222,6 @@ export let applyPlugin = createApplicator(
       });
       await context.setFile('.codex-plugin/plugin.json', codexPlugin);
 
-      // Standalone plugins are a single-plugin marketplace, so we still need to
-      // create the marketplace files for them.
       if (!input.skillMarketplace) {
         let codexMarketplace = json({
           name: baseInfo.name,

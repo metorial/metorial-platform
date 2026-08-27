@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   captureException: vi.fn()
@@ -11,9 +11,12 @@ vi.mock('@lowerdeck/sentry', () => ({
 
 import {
   formatScmProviderError,
+  getFileTooLargeDetail,
   getScmProviderErrorDetails,
   getScmProviderLogDetails,
   isRetryableScmProviderError,
+  stripGrpcRpcPrefix,
+  toPublicProviderErrorMessage,
   withScmProviderError,
   wrapScmProviderError
 } from './scmProviderError';
@@ -21,6 +24,35 @@ import {
 describe('SCM provider errors', () => {
   beforeEach(() => {
     mocks.captureException.mockClear();
+  });
+
+  it('strips gRPC rpc prefixes from stored and public error copy', () => {
+    let raw =
+      '/rpc.rpc.CodeBucket/ExportBucketToGitlab FAILED_PRECONDITION: failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export';
+    let details =
+      'failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export';
+
+    expect(stripGrpcRpcPrefix(raw)).toBe(details);
+    expect(toPublicProviderErrorMessage(raw)).toBe(
+      'Failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export'
+    );
+    expect(toPublicProviderErrorMessage(details)).toBe(
+      'Failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export'
+    );
+  });
+
+  it('treats an oversized file as a terminal failure, not something to retry', () => {
+    let error = Object.assign(new Error('too big'), {
+      code: 9,
+      details:
+        'file exceeds the per-file size limit: assets/big.bin is 500.0 MiB, over the 64.0 MiB per-file limit for GitHub import'
+    });
+
+    expect(getScmProviderErrorDetails(error).classification).toBe('file_too_large');
+    expect(isRetryableScmProviderError(error)).toBe(false);
+    expect(getFileTooLargeDetail(error)).toBe(
+      'assets/big.bin is 500.0 MiB, over the 64.0 MiB per-file limit for GitHub import'
+    );
   });
 
   it.each([
