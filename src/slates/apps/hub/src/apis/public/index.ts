@@ -106,6 +106,7 @@ export let hubApp = createHono()
     let state = c.req.query('state');
     let error = c.req.query('error');
     let errorDescription = c.req.query('error_description');
+    let callbackParams = Object.fromEntries(new URL(c.req.url).searchParams.entries());
 
     if (error || !code) {
       let res = await slateOAuthHandlerService.reportError({
@@ -124,7 +125,8 @@ export let hubApp = createHono()
       input: {
         code,
         lastOAuthSetupCookieId: setupCookie,
-        state: state || undefined
+        state: state || undefined,
+        callbackParams
       }
     });
 
