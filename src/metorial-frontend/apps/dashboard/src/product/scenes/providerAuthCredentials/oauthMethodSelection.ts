@@ -20,7 +20,7 @@ export let resolveOAuthMethodState = <Method extends AuthMethod>({
   deploymentLoading: boolean;
   authMethodsLoading: boolean;
 }) => {
-  let hasSelectedAuthMethod = selectedAuthMethodId !== undefined;
+  let hasSelectedAuthMethod = Boolean(selectedAuthMethodId);
   let oauthMethod = hasSelectedAuthMethod
     ? selectedAuthMethod?.id === selectedAuthMethodId && selectedAuthMethod?.type === 'oauth'
       ? selectedAuthMethod
@@ -29,12 +29,10 @@ export let resolveOAuthMethodState = <Method extends AuthMethod>({
   let isLoading = hasSelectedAuthMethod
     ? selectedAuthMethodLoading
     : providerLoading || deploymentLoading || authMethodsLoading;
-  let canSubmit = !isLoading && oauthMethod !== undefined;
 
   return {
     oauthMethod,
     isLoading,
-    canSubmit,
     isUnavailable: !isLoading && oauthMethod === undefined
   };
 };
