@@ -421,9 +421,8 @@ let IntegrationProviderAuthSection = (p: {
                 {hasUnlistedSelectedAuthMethod ? (
                   <Callout color="gray">
                     This integration is using a previously selected auth method
-                    {p.selectedAuthMethod?.name
-                      ? ` (${p.selectedAuthMethod.name})`
-                      : ''}. Choose a new method only if you want to change it.
+                    {p.selectedAuthMethod?.name ? ` (${p.selectedAuthMethod.name})` : ''}.
+                    Choose a new method only if you want to change it.
                   </Callout>
                 ) : null}
                 {p.authMethodError}
@@ -505,6 +504,7 @@ let IntegrationProviderAuthSection = (p: {
                               instanceId: p.instanceId,
                               providerId: p.providerId,
                               deploymentId: p.providerDeploymentId,
+                              providerAuthMethodId: p.selectedAuthMethodId,
                               onCreate: credentials => {
                                 p.onSelectedAuthCredentialsIdChange(
                                   credentials.id,
@@ -768,8 +768,8 @@ let IntegrationProviderSetupStep = (p: {
   );
   let isSelectedAuthMethodLoading = Boolean(
     form.values.selectedAuthMethodId &&
-      !listedSelectedAuthMethod &&
-      currentAuthMethod.isLoading
+    !listedSelectedAuthMethod &&
+    currentAuthMethod.isLoading
   );
   // In update mode, keep the auth section available when an existing provider
   // references an older auth method that is no longer returned in the picker list.
@@ -1448,13 +1448,15 @@ let IntegrationInstanceProviderPanel = (p: {
   );
   let fixedAuthMethodId =
     inheritedAuthMethodId &&
-    (inheritedAuthMethods.data?.items ?? []).some(method => method.id === inheritedAuthMethodId)
+    (inheritedAuthMethods.data?.items ?? []).some(
+      method => method.id === inheritedAuthMethodId
+    )
       ? inheritedAuthMethodId
       : undefined;
   let isInheritedAuthMethodLoading = Boolean(
     inheritedAuthMethodId &&
-      visibility.provider.data?.currentVersion?.id &&
-      inheritedAuthMethods.isLoading
+    visibility.provider.data?.currentVersion?.id &&
+    inheritedAuthMethods.isLoading
   );
 
   let submitProviderSetup = async (values: IntegrationInstanceProviderFormValues) => {
