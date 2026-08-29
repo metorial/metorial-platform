@@ -50,7 +50,7 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
       throw new Error('Server version is missing function server OID');
     }
 
-    this.logger = new ConnectionLogger(this.connection);
+    this.logger = new ConnectionLogger(this.connection, tenant);
     this.messenger = new ConnectionMessenger();
     this.manager = new ConnectionManager(this.connection);
 
