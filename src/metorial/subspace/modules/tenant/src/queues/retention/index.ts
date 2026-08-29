@@ -5,6 +5,7 @@ import {
   tenantLogRetentionCleanupSearchQueueProcessor,
   tenantLogRetentionStorageCleanupQueueProcessor
 } from './cleanup';
+import { tenantSessionRetentionDowngradeSyncQueueProcessor } from './downgradeSync';
 import {
   tenantLogRetentionSyncCron,
   tenantLogRetentionSyncQueueProcessor,
@@ -18,5 +19,6 @@ export let retentionQueues = combineQueueProcessors([
   tenantLogRetentionStorageCleanupQueueProcessor,
   tenantLogRetentionSyncCron,
   tenantLogRetentionSyncSearchQueueProcessor,
-  tenantLogRetentionSyncQueueProcessor
+  tenantLogRetentionSyncQueueProcessor,
+  tenantSessionRetentionDowngradeSyncQueueProcessor
 ]);

@@ -14,7 +14,8 @@ let mocks = vi.hoisted(() => ({
   ensureNetworkForEnvironment: vi.fn(),
   reconcileMonitorAddManyWithOps: vi.fn(),
   reconcileBackingsAddManyWithOps: vi.fn(),
-  retentionAdd: vi.fn()
+  retentionAdd: vi.fn(),
+  retentionDowngradeAdd: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -80,6 +81,10 @@ vi.mock('../lib/mirrorRecords', () => ({
 
 vi.mock('../queues/retention/sync', () => ({
   tenantLogRetentionSyncQueue: { add: mocks.retentionAdd }
+}));
+
+vi.mock('../queues/retention/downgradeSync', () => ({
+  tenantSessionRetentionDowngradeSyncQueue: { add: mocks.retentionDowngradeAdd }
 }));
 
 import { tenantService } from './tenant';
@@ -190,5 +195,113 @@ describe('tenantService.upsertTenant', () => {
       instanceOid: 3n
     });
     expect(result.projectOid).toBe(2n);
+  });
+});
+
+describe('tenantService.upsertTenant retention downgrade sync', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.tenantFindFirstOrThrow.mockResolvedValue(tenant);
+    mocks.environmentFindMany.mockResolvedValue([environment]);
+    mocks.environmentCreateMany.mockResolvedValue({ count: 0 });
+    mocks.environmentUpdateMany.mockResolvedValue({ count: 1 });
+    mocks.solutionFindMany.mockResolvedValue([]);
+  });
+
+  it('enqueues a downgrade sync when the retention level gets stricter', async () => {
+    mocks.tenantFindUnique.mockResolvedValue({
+      id: tenant.id,
+      logRetentionInDays: 30,
+      dataRetentionLevel: 'full',
+      collectErrors: true,
+      storeToolCallAttachments: true
+    });
+    mocks.tenantUpsert.mockResolvedValue({
+      ...tenant,
+      dataRetentionLevel: 'none',
+      collectErrors: true,
+      storeToolCallAttachments: true
+    });
+
+    await tenantService.upsertTenant({ input: { ...input, dataRetentionLevel: 'none' } });
+
+    expect(mocks.retentionDowngradeAdd).toHaveBeenCalledWith(
+      { tenantId: tenant.id },
+      { id: `tenant-session-retention-downgrade-sync:${tenant.id}` }
+    );
+  });
+
+  it('does not enqueue a downgrade sync when the retention level gets looser', async () => {
+    mocks.tenantFindUnique.mockResolvedValue({
+      id: tenant.id,
+      logRetentionInDays: 30,
+      dataRetentionLevel: 'none',
+      collectErrors: true,
+      storeToolCallAttachments: true
+    });
+    mocks.tenantUpsert.mockResolvedValue({
+      ...tenant,
+      dataRetentionLevel: 'full',
+      collectErrors: true,
+      storeToolCallAttachments: true
+    });
+
+    await tenantService.upsertTenant({ input: { ...input, dataRetentionLevel: 'full' } });
+
+    expect(mocks.retentionDowngradeAdd).not.toHaveBeenCalled();
+  });
+
+  it('enqueues a downgrade sync when collectErrors is turned off', async () => {
+    mocks.tenantFindUnique.mockResolvedValue({
+      id: tenant.id,
+      logRetentionInDays: 30,
+      dataRetentionLevel: 'full',
+      collectErrors: true,
+      storeToolCallAttachments: true
+    });
+    mocks.tenantUpsert.mockResolvedValue({
+      ...tenant,
+      dataRetentionLevel: 'full',
+      collectErrors: false,
+      storeToolCallAttachments: true
+    });
+
+    await tenantService.upsertTenant({ input: { ...input, collectErrors: false } });
+
+    expect(mocks.retentionDowngradeAdd).toHaveBeenCalled();
+  });
+
+  it('enqueues a downgrade sync when storeToolCallAttachments is turned off', async () => {
+    mocks.tenantFindUnique.mockResolvedValue({
+      id: tenant.id,
+      logRetentionInDays: 30,
+      dataRetentionLevel: 'full',
+      collectErrors: true,
+      storeToolCallAttachments: true
+    });
+    mocks.tenantUpsert.mockResolvedValue({
+      ...tenant,
+      dataRetentionLevel: 'full',
+      collectErrors: true,
+      storeToolCallAttachments: false
+    });
+
+    await tenantService.upsertTenant({ input: { ...input, storeToolCallAttachments: false } });
+
+    expect(mocks.retentionDowngradeAdd).toHaveBeenCalled();
+  });
+
+  it('does not enqueue a downgrade sync for a brand-new tenant', async () => {
+    mocks.tenantFindUnique.mockResolvedValue(null);
+    mocks.tenantUpsert.mockResolvedValue({
+      ...tenant,
+      dataRetentionLevel: 'none',
+      collectErrors: true,
+      storeToolCallAttachments: true
+    });
+
+    await tenantService.upsertTenant({ input: { ...input, dataRetentionLevel: 'none' } });
+
+    expect(mocks.retentionDowngradeAdd).not.toHaveBeenCalled();
   });
 });

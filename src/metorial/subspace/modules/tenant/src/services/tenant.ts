@@ -15,6 +15,8 @@ import {
   linkEnvironmentToInstanceMirror,
   linkTenantToProjectMirror
 } from '../lib/mirrorRecords';
+import { isRetentionLevelStricter } from '../lib/retentionLevel';
+import { tenantSessionRetentionDowngradeSyncQueue } from '../queues/retention/downgradeSync';
 import { tenantLogRetentionSyncQueue } from '../queues/retention/sync';
 
 let include = {};
@@ -126,6 +128,24 @@ class tenantServiceImpl {
         await tenantLogRetentionSyncQueue.add(
           { tenantId: tenant.id },
           { id: `tenant-retention-sync:${tenant.id}` }
+        );
+      }
+
+      let isRetentionDowngrade =
+        !!existingTenant &&
+        ((d.input.dataRetentionLevel !== undefined &&
+          isRetentionLevelStricter({
+            next: tenant.dataRetentionLevel,
+            prev: existingTenant.dataRetentionLevel
+          })) ||
+          (d.input.collectErrors === false && existingTenant.collectErrors !== false) ||
+          (d.input.storeToolCallAttachments === false &&
+            existingTenant.storeToolCallAttachments !== false));
+
+      if (isRetentionDowngrade) {
+        await tenantSessionRetentionDowngradeSyncQueue.add(
+          { tenantId: tenant.id },
+          { id: `tenant-session-retention-downgrade-sync:${tenant.id}` }
         );
       }
 
