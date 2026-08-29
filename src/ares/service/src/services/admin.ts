@@ -1,14 +1,10 @@
-import {
-  notFoundError,
-  ServiceError,
-  unauthorizedError
-} from '@lowerdeck/error';
+import { notFoundError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { addHours } from 'date-fns';
-import type { Admin, App } from '../../prisma/generated/client';
-import { db, withTransaction } from '../db';
+import type { Admin, App, AppMode } from '../../prisma/generated/client';
+import { db, type TransactionDB, withTransaction } from '../db';
 import { getId, ID } from '../id';
 import type { Context } from '../lib/context';
 import { normalizeRedirectDomains } from '../lib/redirectDomains';
@@ -73,10 +69,7 @@ class AdminServiceImpl {
             ...opts,
             where: d?.search
               ? {
-                  OR: [
-                    { email: { contains: d.search } },
-                    { name: { contains: d.search } }
-                  ]
+                  OR: [{ email: { contains: d.search } }, { name: { contains: d.search } }]
                 }
               : undefined
           })
@@ -96,12 +89,20 @@ class AdminServiceImpl {
     return session.admin;
   }
 
+  private async transferHorizonMode(db: TransactionDB, keepAppOid: bigint) {
+    await db.app.updateMany({
+      where: { mode: 'horizon', oid: { not: keepAppOid } },
+      data: { mode: 'standard' }
+    });
+  }
+
   async createApp(d: {
     defaultRedirectUrl: string;
     slug?: string;
     redirectDomains?: string[];
     isSessionless?: boolean;
     disableEmailAuth?: boolean;
+    mode?: AppMode;
   }) {
     let redirectDomains =
       d.redirectDomains !== undefined ? normalizeRedirectDomains(d.redirectDomains) : [];
@@ -115,9 +116,12 @@ class AdminServiceImpl {
           isSessionless: d.isSessionless ?? false,
           disableEmailAuth: d.disableEmailAuth ?? false,
           defaultRedirectUrl: d.defaultRedirectUrl,
+          mode: d.mode ?? 'standard',
           redirectDomains
         }
       });
+
+      if (d.mode === 'horizon') await this.transferHorizonMode(db, app.oid);
 
       let tenant = await db.tenant.create({
         data: {
@@ -144,6 +148,7 @@ class AdminServiceImpl {
     redirectDomains?: string[];
     isSessionless?: boolean;
     disableEmailAuth?: boolean;
+    mode?: AppMode;
   }) {
     let existingApp = await db.app.findUnique({
       where: { slug: d.slug },
@@ -158,7 +163,8 @@ class AdminServiceImpl {
         slug: d.slug,
         redirectDomains: d.redirectDomains,
         isSessionless: d.isSessionless,
-        disableEmailAuth: d.disableEmailAuth
+        disableEmailAuth: d.disableEmailAuth,
+        mode: d.mode
       });
     } catch (e: any) {
       if (e.code !== 'P2002') {
@@ -178,10 +184,16 @@ class AdminServiceImpl {
     return await this.updateApp({
       app: existingApp,
       input: {
+        // An upsert re-states the app's whole registration, so the redirect URL has to move
+        // with it. A horizon app derives it from PASSPORT_AUTH_URL, and leaving it pinned to
+        // whatever the app was first created with would strand every existing deployment on
+        // a stale wrapper endpoint.
+        defaultRedirectUrl: d.defaultRedirectUrl,
         redirectDomains: d.redirectDomains,
         slug: d.slug,
         isSessionless: d.isSessionless,
-        disableEmailAuth: d.disableEmailAuth
+        disableEmailAuth: d.disableEmailAuth,
+        mode: d.mode
       }
     });
   }
@@ -190,9 +202,11 @@ class AdminServiceImpl {
     app: App;
     input: {
       slug?: string;
+      defaultRedirectUrl?: string;
       redirectDomains?: string[];
       isSessionless?: boolean;
       disableEmailAuth?: boolean;
+      mode?: AppMode;
     };
   }) {
     let redirectDomains =
@@ -200,20 +214,28 @@ class AdminServiceImpl {
         ? normalizeRedirectDomains(d.input.redirectDomains)
         : undefined;
 
-    return await db.app.update({
-      where: { oid: d.app.oid },
-      data: {
-        slug: d.input.slug !== undefined ? d.input.slug || null : undefined,
-        isSessionless:
-          d.input.isSessionless !== undefined ? d.input.isSessionless : undefined,
-        disableEmailAuth:
-          d.input.disableEmailAuth !== undefined ? d.input.disableEmailAuth : undefined,
-        redirectDomains
-      },
-      include: {
-        defaultTenant: true,
-        _count: { select: { users: true, tenants: true } }
-      }
+    return withTransaction(async db => {
+      let app = await db.app.update({
+        where: { oid: d.app.oid },
+        data: {
+          slug: d.input.slug !== undefined ? d.input.slug || null : undefined,
+          defaultRedirectUrl: d.input.defaultRedirectUrl,
+          isSessionless:
+            d.input.isSessionless !== undefined ? d.input.isSessionless : undefined,
+          disableEmailAuth:
+            d.input.disableEmailAuth !== undefined ? d.input.disableEmailAuth : undefined,
+          mode: d.input.mode,
+          redirectDomains
+        },
+        include: {
+          defaultTenant: true,
+          _count: { select: { users: true, tenants: true } }
+        }
+      });
+
+      if (d.input.mode === 'horizon') await this.transferHorizonMode(db, app.oid);
+
+      return app;
     });
   }
 
@@ -225,10 +247,7 @@ class AdminServiceImpl {
             ...opts,
             where: d?.search
               ? {
-                  OR: [
-                    { clientId: { contains: d.search } },
-                    { slug: { contains: d.search } }
-                  ]
+                  OR: [{ clientId: { contains: d.search } }, { slug: { contains: d.search } }]
                 }
               : undefined,
             include: {

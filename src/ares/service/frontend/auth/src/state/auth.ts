@@ -67,12 +67,12 @@ let handleStartResponse = async (
 
 export let authState = createLoader({
   name: 'auth',
-  hash: ai => `auth:${ai.clientId}`,
-  fetch: (d: { clientId: string }) => {
+  hash: ai => `auth:${ai.clientId ?? '@default'}`,
+  fetch: (d: { clientId: string | null }) => {
     if (typeof window === 'undefined')
       throw new Error('Cannot fetch authIntent on the server');
 
-    return authClient.authentication.boot({ clientId: d.clientId });
+    return authClient.authentication.boot({ clientId: d.clientId ?? undefined });
   },
   mutators: {
     start: async (data: AuthStartInput) => {

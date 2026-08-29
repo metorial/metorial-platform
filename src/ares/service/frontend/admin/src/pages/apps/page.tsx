@@ -120,11 +120,12 @@ export let AppsPage = () => {
       </div>
 
       <Table
-        headers={['Client ID', 'Slug', 'Users', 'Tenants', 'Created At', '']}
+        headers={['Client ID', 'Slug', 'Mode', 'Users', 'Tenants', 'Created At', '']}
         data={apps.data.items.map((app: any) => ({
           data: [
             app.clientId,
             app.slug ?? '-',
+            app.mode === 'horizon' ? 'Horizon' : 'Standard',
             app.counts.users,
             app.counts.tenants,
             new Date(app.createdAt).toLocaleDateString('de-at'),
