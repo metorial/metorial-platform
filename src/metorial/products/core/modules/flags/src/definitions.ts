@@ -24,6 +24,7 @@ export type Flags = {
   'paid-advanced-roles': boolean;
   'paid-audit-logs': boolean;
   'paid-audit-log-streams': boolean;
+  'paid-project-reduced-data-retention': boolean;
   'paid-magic-mcp-groups': boolean;
   'paid-sso-tenants': boolean;
   'paid-portals': boolean;
@@ -57,6 +58,7 @@ export let defaultFlags: Flags = {
   'paid-advanced-roles': true,
   'paid-audit-logs': true,
   'paid-audit-log-streams': true,
+  'paid-project-reduced-data-retention': true,
   'paid-magic-mcp-groups': true,
   'paid-sso-tenants': true,
   'paid-portals': true,
