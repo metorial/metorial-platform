@@ -2,9 +2,14 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { db, getId } from '@metorial-subspace/db';
+import { db, getId, type SessionDataRetentionLevel } from '@metorial-subspace/db';
 import { providerOAuthSetupInternalService } from '@metorial-subspace/module-auth';
-import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
+import {
+  createProviderInvocationId,
+  getRetentionPolicy,
+  redactJsonShape,
+  redactSensitiveKeys
+} from '@metorial-subspace/provider-utils';
 import { backend as shuttleBackend } from '../../backend';
 import { shuttle } from '../../client';
 import { env } from '../../env';
@@ -23,6 +28,11 @@ type SyncedProviderOAuthSetup = {
   environmentOid: bigint;
   instanceOid: bigint | null;
   solutionOid: number;
+  tenant: {
+    dataRetentionLevel: SessionDataRetentionLevel;
+    storeToolCallAttachments: boolean;
+    collectErrors: boolean;
+  };
 };
 
 export let syncOAuthSetupsQueue = createQueue<{}>({
@@ -82,6 +92,9 @@ let ensureProviderAuthConfigEvent = async (d: {
   });
 
   if (!providerAuthConfigEvent) {
+    let retention = getRetentionPolicy(d.providerOAuthSetup.tenant);
+    let safePayload = redactSensitiveKeys(d.event);
+
     providerAuthConfigEvent = await db.providerAuthConfigEvent.create({
       data: {
         ...getId('providerAuthConfigEvent'),
@@ -89,7 +102,7 @@ let ensureProviderAuthConfigEvent = async (d: {
         sourceType: 'shuttle.server_oauth_setup',
         sourceId: d.event.id,
         providerInvocationId: getProviderInvocationId(d.event.functionInvocationId),
-        payload: d.event,
+        payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
         authConfigOid: d.providerOAuthSetup.authConfigOid,
         authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,
         oauthSetupOid: d.providerOAuthSetup.oid,
@@ -111,6 +124,9 @@ let createErrorForEvent = async (d: {
   providerOAuthSetup: SyncedProviderOAuthSetup;
   providerAuthConfigEventOid: bigint;
 }) => {
+  let retention = getRetentionPolicy(d.providerOAuthSetup.tenant);
+  if (!retention.collectErrors) return;
+
   let existingError = await db.providerAuthConfigError.findUnique({
     where: {
       sourceType_sourceId: {
@@ -122,6 +138,7 @@ let createErrorForEvent = async (d: {
   if (existingError) return;
 
   let { code, message } = getErrorInfo(d.event);
+  let safePayload = redactSensitiveKeys(d.event);
 
   let error = await db.providerAuthConfigError.create({
     data: {
@@ -132,7 +149,7 @@ let createErrorForEvent = async (d: {
       isProcessing: true,
       code,
       message,
-      payload: d.event,
+      payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
       providerInvocationId: getProviderInvocationId(d.event.functionInvocationId),
       authConfigEventOid: d.providerAuthConfigEventOid,
       authConfigOid: d.providerOAuthSetup.authConfigOid,
@@ -281,7 +298,14 @@ export let syncOAuthSetupQueueProcessor = syncOAuthSetupQueue.process(async data
       projectOid: true,
       environmentOid: true,
       instanceOid: true,
-      solutionOid: true
+      solutionOid: true,
+      tenant: {
+        select: {
+          dataRetentionLevel: true,
+          storeToolCallAttachments: true,
+          collectErrors: true
+        }
+      }
     }
   });
   if (!refreshedSetup) throw new QueueRetryError();

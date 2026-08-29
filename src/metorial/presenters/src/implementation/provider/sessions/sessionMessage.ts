@@ -71,7 +71,17 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
             sessionMessage.input,
             sessionMessage
           )) as Record<string, any>)
-        : null,
+        : sessionMessage.methodOrToolKey
+          ? {
+              jsonrpc: '2.0',
+              id: sessionMessage.clientMcpId ?? sessionMessage.id,
+              method: 'tools/call',
+              params: {
+                name: sessionMessage.methodOrToolKey ?? 'unknown_tool',
+                arguments: null
+              }
+            }
+          : null,
       output: sessionMessage.output
         ? ((await messageTranslator.outputToMcpBasic(
             sessionMessage.output,

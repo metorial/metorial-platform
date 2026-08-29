@@ -1317,7 +1317,9 @@ describe('listProviderTelemetryFailedMessagesForExport', () => {
     expect(query.where).toEqual({
       AND: [
         { createdAt: { gte: from, lte: to } },
-        { sessionMessages: { some: { status: 'failed' } } },
+        // Only messages whose payloads are retained are eligible: the export embeds raw
+        // input/output, the tool call, and the error payload.
+        { sessionMessages: { some: { status: 'failed', retentionLevel: 'full' } } },
         {
           OR: [
             { createdAt: { gt: new Date('2026-06-18T00:15:00.000Z') } },

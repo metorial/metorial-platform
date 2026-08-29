@@ -4,12 +4,14 @@ import {
   getId,
   getRawToolCallAttachmentsFromOutput,
   presentToolCallAttachment,
+  Prisma,
   replaceToolCallAttachmentsInOutput,
   type ProviderRun,
   type SessionError,
   type SessionMessageFailureReason,
   type SessionParticipant
 } from '@metorial-subspace/db';
+import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
 import { finalizeMessageQueue } from '../queues/message/finalizeMessage';
 import { createError, messageFailureReasonToErrorType } from './createError';
 
@@ -45,27 +47,30 @@ export let completeMessage = async (
     };
   }
 
-  let currentMessage =
-    data.status === 'failed' || data.output?.type === 'tool.result'
-      ? await db.sessionMessage.findFirstOrThrow({
-          where: 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid },
-          include: { connection: true, session: true, toolCall: true }
-        })
-      : undefined;
+  let currentMessage = await db.sessionMessage.findFirstOrThrow({
+    where: 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid },
+    include: { connection: true, session: true, toolCall: true }
+  });
+
+  let retention = getRetentionPolicy(currentMessage.session);
+
+  let currentToolCall = currentMessage.toolCall;
 
   let toolCallAttachments =
-    currentMessage?.toolCall && data.output?.type === 'tool.result'
+    currentToolCall &&
+    data.output?.type === 'tool.result' &&
+    retention.storeToolCallAttachments
       ? getRawToolCallAttachmentsFromOutput(data.output)
       : [];
 
-  let toolCallAttachmentRecords = currentMessage?.toolCall
+  let toolCallAttachmentRecords = currentToolCall
     ? toolCallAttachments.map(attachment => ({
         ...getId('toolCallAttachment'),
         urlKey: generateCustomId('tca_link_', 50),
         url: attachment.url,
         mimeType: attachment.mimeType,
         expiresAt: attachment.expiresAt,
-        toolCallOid: currentMessage.toolCall!.oid
+        toolCallOid: currentToolCall.oid
       }))
     : [];
 
@@ -76,7 +81,8 @@ export let completeMessage = async (
     );
   }
 
-  let messageWhere = 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid };
+  let messageWhere =
+    'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid };
   let messageInclude = {
     toolCall: {
       include: {
@@ -92,7 +98,8 @@ export let completeMessage = async (
         status: 'waiting_for_response'
       },
       data: {
-        output: data.output,
+        output: retention.storeContent ? data.output : Prisma.DbNull,
+        hasOutput: !!data.output,
         status: data.status,
         completedAt: data.completedAt ?? new Date(),
         failureReason: data.failureReason,
@@ -152,8 +159,8 @@ export let completeMessage = async (
   if (data.status === 'failed') {
     error = await createError({
       type: messageFailureReasonToErrorType(data.failureReason ?? 'provider_error'),
-      session: currentMessage!.session,
-      connection: currentMessage!.connection,
+      session: currentMessage.session,
+      connection: currentMessage.connection,
       output: data.output!,
       providerRun: data.providerRun
     });
@@ -194,6 +201,13 @@ export let completeMessage = async (
 
     await finalizeMessageQueue.add({ messageId: message.id });
   })().catch(() => {});
+
+  if (!retention.storeContent) {
+    return {
+      ...message,
+      output: data.output ?? null
+    };
+  }
 
   return message;
 };

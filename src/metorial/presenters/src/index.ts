@@ -126,6 +126,7 @@ import {
   v1OAuthInstallationPresenter,
   v1OAuthScopePermissionsPresenter,
   v1OrganizationActorPresenter,
+  v1OrganizationAuditLogRetentionPresenter,
   v1OrganizationConfigPresenter,
   v1OrganizationInvitePresenter,
   v1OrganizationLayoutPresenter,
@@ -137,6 +138,7 @@ import {
   v1ProfilePresenter,
   v1ProjectAuthConfigConfigurationPresenter,
   v1ProjectBrandPresenter,
+  v1ProjectDataRetentionConfigurationPresenter,
   v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectPresenter,
   v1ProjectRetentionPresenter,
@@ -341,6 +343,7 @@ import {
   oauthInstallationType,
   oauthScopePermissionsType,
   organizationActorType,
+  organizationAuditLogRetentionType,
   organizationConfigType,
   organizationInviteType,
   organizationLayoutType,
@@ -352,6 +355,7 @@ import {
   profileType,
   projectAuthConfigConfigurationType,
   projectBrandType,
+  projectDataRetentionConfigurationType,
   projectIntegrationNamingConfigurationType,
   projectRetentionType,
   projectSkillSyncConfigurationType,
@@ -626,6 +630,14 @@ export let projectRetentionPresenter = declarePresenter(projectRetentionType, {
   mt_2026_01_01_magnetar: v1ProjectRetentionPresenter
 });
 
+export let organizationAuditLogRetentionPresenter = declarePresenter(
+  organizationAuditLogRetentionType,
+  {
+    mt_2025_01_01_dashboard: v1OrganizationAuditLogRetentionPresenter,
+    mt_2026_01_01_magnetar: v1OrganizationAuditLogRetentionPresenter
+  }
+);
+
 export let projectAuthConfigConfigurationPresenter = declarePresenter(
   projectAuthConfigConfigurationType,
   {
@@ -639,6 +651,14 @@ export let projectToolCallingConfigurationPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1ProjectToolCallingConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectToolCallingConfigurationPresenter
+  }
+);
+
+export let projectDataRetentionConfigurationPresenter = declarePresenter(
+  projectDataRetentionConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectDataRetentionConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectDataRetentionConfigurationPresenter
   }
 );
 

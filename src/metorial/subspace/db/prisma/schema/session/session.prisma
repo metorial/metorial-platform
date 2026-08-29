@@ -26,6 +26,10 @@ model Session {
   sharedProviderName        String?
   sharedProviderDescription String?
 
+  dataRetentionLevel       SessionDataRetentionLevel @default(full)
+  storeToolCallAttachments Boolean                   @default(true)
+  collectErrors            Boolean                   @default(true)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 

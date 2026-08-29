@@ -2,8 +2,8 @@ import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { sessionMessageBucketRecord, storage } from '@metorial-subspace/connection-utils';
 import { db } from '@metorial-subspace/db';
-import { env } from '../../env';
 import { getConnectionRetentionWhere } from '@metorial-subspace/list-utils';
+import { env } from '../../env';
 import {
   getRetentionCutoffDate,
   RETENTION_BATCH_SIZE,
@@ -437,6 +437,54 @@ let cleanupProviderSetupSessionEvents = async (d: { tenantOid: bigint; cutoffDat
   });
 };
 
+let cleanupProviderAuthConfigErrors = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch<{ oid: bigint }>({
+    findMany: () =>
+      db.providerAuthConfigError.findMany({
+        where: {
+          tenantOid: d.tenantOid,
+          createdAt: { lt: d.cutoffDate },
+          isProcessing: false
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { oid: true }
+      }),
+    deleteMany: async records => {
+      let errorOids = records.map(record => record.oid);
+
+      await db.providerAuthConfigErrorGlobal.updateMany({
+        where: { firstOccurrenceOid: { in: errorOids } },
+        data: { firstOccurrenceOid: null }
+      });
+
+      await db.providerAuthConfigError.deleteMany({
+        where: { oid: { in: errorOids } }
+      });
+    }
+  });
+};
+
+let cleanupProviderAuthConfigEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch<{ oid: bigint }>({
+    findMany: () =>
+      db.providerAuthConfigEvent.findMany({
+        where: {
+          tenantOid: d.tenantOid,
+          createdAt: { lt: d.cutoffDate },
+          errors: { none: {} }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { oid: true }
+      }),
+    deleteMany: records =>
+      db.providerAuthConfigEvent.deleteMany({
+        where: { oid: { in: records.map(record => record.oid) } }
+      })
+  });
+};
+
 let cleanupProviderDeploymentConfigPairDiscoveries = async (d: {
   tenantOid: bigint;
   cutoffDate: Date;
@@ -567,6 +615,14 @@ export let tenantLogRetentionCleanupQueueProcessor = tenantLogRetentionCleanupQu
       cutoffDate
     });
     await cleanupProviderAuthImports({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupProviderAuthConfigErrors({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupProviderAuthConfigEvents({
       tenantOid: tenant.oid,
       cutoffDate
     });

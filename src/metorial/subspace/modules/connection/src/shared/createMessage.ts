@@ -2,6 +2,7 @@ import { sessionMessageBucketRecord } from '@metorial-subspace/connection-utils'
 import {
   db,
   getId,
+  Prisma,
   type ProviderTool,
   type Session,
   type SessionConnection,
@@ -15,6 +16,7 @@ import {
   type SessionParticipant,
   type SessionProvider
 } from '@metorial-subspace/db';
+import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
 import { messageCreatedQueue } from '../queues/message/messageCreated';
 import { createError, messageFailureReasonToErrorType } from './createError';
 
@@ -76,6 +78,10 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
     };
   }
 
+  let retention = getRetentionPolicy(data.session);
+  let hasOutput = !!data.output;
+  let storeToolCall = !!data.tool && retention.storeToolIdentity;
+
   let error: SessionError | undefined;
   if (data.status === 'failed') {
     error = await createError({
@@ -98,6 +104,9 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
       failureReason: data.failureReason ?? 'none',
       completedAt: data.completedAt,
 
+      retentionLevel: retention.level,
+      hasOutput,
+
       errorOid: error?.oid,
       sessionOid: data.session.oid,
       connectionOid: data.connection?.oid,
@@ -112,19 +121,21 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
       senderParticipantOid: data.senderParticipant.oid,
       responderParticipantOid: data.responderParticipant?.oid,
 
-      input: data.input,
-      output: data.output,
+      input: retention.storeContent ? data.input : Prisma.DbNull,
+      output: retention.storeContent ? data.output : Prisma.DbNull,
 
-      methodOrToolKey: data.tool?.key ?? data.methodOrToolKey ?? null,
+      methodOrToolKey: retention.storeToolIdentity
+        ? (data.tool?.key ?? data.methodOrToolKey ?? null)
+        : null,
       clientMcpId: data.clientMcpId ?? null,
       providerMcpId: data.providerMcpId ?? null,
 
-      toolCall: data.tool
+      toolCall: storeToolCall
         ? {
             create: {
               ...getId('toolCall'),
-              toolOid: data.tool.oid,
-              toolKey: data.tool.key,
+              toolOid: data.tool!.oid,
+              toolKey: data.tool!.key,
               rationale: data.rationale,
               operation: data.operation,
               sessionOid: data.session.oid,
@@ -174,6 +185,14 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
   }
 
   await messageCreatedQueue.add({ messageId: message.id });
+
+  if (!retention.storeContent) {
+    return {
+      ...message,
+      input: data.input,
+      output: data.output ?? null
+    };
+  }
 
   return message;
 };

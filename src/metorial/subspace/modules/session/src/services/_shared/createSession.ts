@@ -72,6 +72,10 @@ export let createSessionRecord = async (d: {
         metadata: d.input.metadata,
         privateMetadata: d.input.privateMetadata,
 
+        dataRetentionLevel: d.tenant.dataRetentionLevel,
+        storeToolCallAttachments: d.tenant.storeToolCallAttachments,
+        collectErrors: d.tenant.collectErrors,
+
         tenantOid: d.tenant.oid,
         projectOid: d.tenant.projectOid,
         solutionOid: solution.oid,

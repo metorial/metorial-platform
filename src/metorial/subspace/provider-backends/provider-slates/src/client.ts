@@ -30,7 +30,11 @@ export let getTenantForSlates = async (tenant: Tenant) => {
     let slateTenant = await slates.tenant.upsert({
       identifier: tenant.identifier,
       name: tenant.name,
-      logRetentionInDays: tenant.logRetentionInDays
+      logRetentionInDays: tenant.logRetentionInDays,
+      storeContent: tenant.dataRetentionLevel === 'full',
+      collectErrors: tenant.collectErrors,
+      storeToolCallAttachments:
+        tenant.dataRetentionLevel === 'none' ? false : tenant.storeToolCallAttachments
     });
 
     tenant = await db.tenant.update({

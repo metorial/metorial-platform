@@ -230,9 +230,15 @@ export let listProviderTelemetryFailedMessagesForExport = async (
   let errors = await db.sessionError.findMany({
     where: {
       AND: [
-        // Ungrouped errors are included: the cursor must not advance past them.
         { createdAt: { gte: input.range.from, lte: input.range.to } },
-        { sessionMessages: { some: { status: 'failed' as const } } },
+        {
+          sessionMessages: {
+            some: {
+              status: 'failed' as const,
+              retentionLevel: 'full' as const
+            }
+          }
+        },
         input.after && afterDate
           ? {
               OR: [
@@ -256,7 +262,8 @@ export let listProviderTelemetryFailedMessagesForExport = async (
       },
       sessionMessages: {
         where: {
-          status: 'failed'
+          status: 'failed',
+          retentionLevel: 'full'
         },
         include: {
           session: true,
