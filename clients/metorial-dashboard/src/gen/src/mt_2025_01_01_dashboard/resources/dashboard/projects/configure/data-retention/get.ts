@@ -24,3 +24,4 @@ export let mapDashboardProjectsConfigureDataRetentionGetOutput =
     collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+

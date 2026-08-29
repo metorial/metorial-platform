@@ -24,6 +24,7 @@ export let mapDashboardProjectsConfigureDataRetentionUpdateOutput =
     collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+
 export type DashboardProjectsConfigureDataRetentionUpdateBody = {
   dataRetentionLevel?: 'full' | 'intent_only' | 'none' | undefined;
   storeToolCallAttachments?: boolean | undefined;
@@ -42,3 +43,4 @@ export let mapDashboardProjectsConfigureDataRetentionUpdateBody =
     ),
     collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough())
   });
+

@@ -17,3 +17,4 @@ export let mapDashboardOrganizationsConfigureAuditLogRetentionGetOutput =
     ),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
+
