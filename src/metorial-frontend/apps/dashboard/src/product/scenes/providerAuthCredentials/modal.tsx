@@ -1,11 +1,9 @@
-import {
-  DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput,
-  DashboardInstanceProvidersAuthMethodsListOutput
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import {
   useCreateProviderAuthCredentials,
   useProvider,
+  useProviderAuthMethod,
   useProviderAuthMethods,
   useProviderDeployment,
   useProviderListing
@@ -28,15 +26,15 @@ import {
   getAuthMethodOAuthScopesDoc,
   ProviderDocsLink
 } from '../../lib/providerDocs';
-import { ScopePickerField } from './scopePicker';
 import { ProviderContextCard } from '../providerContextCard';
-
-type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
+import { resolveOAuthMethodState } from './oauthMethodSelection';
+import { ScopePickerField } from './scopePicker';
 
 export let ProviderAuthCredentialsForm = ({
   instanceId,
   providerId,
   deploymentId,
+  providerAuthMethodId,
   close,
   onBack,
   onCreate,
@@ -47,6 +45,7 @@ export let ProviderAuthCredentialsForm = ({
   instanceId: string;
   providerId: string;
   deploymentId?: string;
+  providerAuthMethodId?: string;
   close: () => void;
   onBack?: () => void;
   onCreate?: (
@@ -63,13 +62,19 @@ export let ProviderAuthCredentialsForm = ({
   let versionId = deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id;
   let authMethods = useProviderAuthMethods(
     instanceId,
-    versionId ? { providerVersionId: versionId } : null
+    !providerAuthMethodId && versionId ? { providerVersionId: versionId } : null
   );
-  let oauthMethod = useMemo(
-    () =>
-      (authMethods.data?.items ?? []).find((method: AuthMethod) => method.type === 'oauth'),
-    [authMethods.data?.items]
-  );
+  let selectedAuthMethod = useProviderAuthMethod(instanceId, providerAuthMethodId);
+  let oauthMethodState = resolveOAuthMethodState({
+    methods: authMethods.data?.items ?? [],
+    selectedAuthMethodId: providerAuthMethodId,
+    selectedAuthMethod: selectedAuthMethod.data,
+    selectedAuthMethodLoading: selectedAuthMethod.isLoading,
+    providerLoading: provider.isLoading,
+    deploymentLoading: Boolean(deploymentId) && deployment.isLoading,
+    authMethodsLoading: authMethods.isLoading
+  });
+  let oauthMethod = oauthMethodState.oauthMethod;
   let redirectUri = provider.data?.oauth?.callbackUrl;
   let providerName = deployment.data?.name ?? provider.data?.name ?? providerId;
   let oauthMethodName = oauthMethod?.name ?? 'OAuth';
@@ -123,7 +128,7 @@ export let ProviderAuthCredentialsForm = ({
     setSelectedScopes(null);
   }, [oauthMethod?.id]);
 
-  if (authCreation.isLoading) {
+  if (authCreation.isLoading || oauthMethodState.isLoading) {
     return (
       <>
         <Dialog.Title>Create Auth Credentials</Dialog.Title>
@@ -176,6 +181,54 @@ export let ProviderAuthCredentialsForm = ({
           )}
           <Button type="button" size="2" onClick={close}>
             {onBack ? 'Cancel' : 'Close'}
+          </Button>
+        </Dialog.Actions>
+      </>
+    );
+  }
+
+  if (oauthMethodState.isUnavailable) {
+    return (
+      <>
+        {!embedded && (
+          <>
+            <Dialog.Title>Create Auth Credentials</Dialog.Title>
+            <Dialog.Description>
+              Enter OAuth app credentials for {providerName}.
+            </Dialog.Description>
+            <Spacer size={15} />
+          </>
+        )}
+
+        {!effectiveHideProviderContext && (
+          <>
+            <ProviderContextCard
+              providerId={providerId}
+              providerName={provider.data?.name ?? providerName}
+              providerImageUrl={provider.data?.publisher.imageUrl}
+              deploymentName={deployment.data?.name}
+              deploymentDescription={deployment.data?.description}
+            />
+
+            <Spacer size={15} />
+          </>
+        )}
+
+        <Callout color="gray">
+          The selected OAuth method is unavailable. Go back and choose another OAuth method
+          before creating credentials.
+        </Callout>
+
+        <Spacer size={15} />
+
+        <Dialog.Actions>
+          {onBack && (
+            <Button type="button" size="2" variant="outline" onClick={onBack}>
+              Back
+            </Button>
+          )}
+          <Button type="button" size="2" onClick={close}>
+            Close
           </Button>
         </Dialog.Actions>
       </>
@@ -299,6 +352,7 @@ export let showProviderAuthCredentialsFormModal = (p: {
   instanceId: string;
   providerId: string;
   deploymentId?: string;
+  providerAuthMethodId?: string;
   onBack?: () => void;
   onCreate?: (
     credentials: DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput
