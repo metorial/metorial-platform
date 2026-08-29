@@ -52,7 +52,7 @@ let TreeItemStack = styled.div`
 let TreeRowButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
   min-width: 0;
   flex: 1;
@@ -95,7 +95,7 @@ let TreeRowButton = styled.button`
 let TreeRowLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   align-self: stretch;
   min-width: 0;
   flex: 1;
@@ -124,7 +124,7 @@ let TreeRowLink = styled(Link)`
 let TreeRowShell = styled.div<{ $active?: boolean; $dropTarget?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
   height: 32px;
   min-height: 32px;
@@ -205,7 +205,7 @@ let ChevronSpacer = styled.div`
 let TreeLabel = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
   flex: 1;
 `;
