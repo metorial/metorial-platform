@@ -21,10 +21,12 @@ import {
 } from './consumer';
 import {
   dashboardAssistantController,
+  dashboardAuditLogRetentionController,
   dashboardAuthConfigConfigurationController,
   dashboardBootController,
   dashboardIntegrationNamingConfigurationController,
   dashboardKeyProviderController,
+  dashboardDataRetentionConfigurationController,
   dashboardOAuthAuthorizationRequestController,
   dashboardOrganizationConfigController,
   dashboardOrganizationController,
@@ -584,6 +586,7 @@ export let dashboardController = Controller.create<any>(
   },
   {
     dashboardOrganizationController,
+    dashboardAuditLogRetentionController,
     dashboardOrganizationConfigController,
     dashboardOrganizationInviteController,
     dashboardOrganizationLayoutController,
@@ -594,6 +597,7 @@ export let dashboardController = Controller.create<any>(
     dashboardAuthConfigConfigurationController,
     dashboardIntegrationNamingConfigurationController,
     dashboardToolCallingConfigurationController,
+    dashboardDataRetentionConfigurationController,
     dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
     testHelperConsumerOAuthController,
@@ -792,6 +796,7 @@ export let fullDashboardController = Controller.create<any>(dashboardController.
   dashboardAuthConfigConfigurationController,
   dashboardIntegrationNamingConfigurationController,
   dashboardToolCallingConfigurationController,
+  dashboardDataRetentionConfigurationController,
   dashboardOAuthAuthorizationRequestController,
   dashboardBootController,
   testHelperConsumerOAuthController,

@@ -1109,6 +1109,10 @@ export let projectRetentionType = PresentableType.create<{
   project: Project;
 }>()('project_retention');
 
+export let organizationAuditLogRetentionType = PresentableType.create<{
+  organization: Organization;
+}>()('organization_audit_log_retention');
+
 export let projectAuthConfigConfigurationType = PresentableType.create<{
   project: Project;
   allowAuthConfigExport: boolean;
@@ -1122,6 +1126,13 @@ export let projectToolCallingConfigurationType = PresentableType.create<{
   collectOperationDescriptionForToolCalls: boolean;
   messageProcessingTimeoutMs: number;
 }>()('project_tool_calling_configuration');
+
+export let projectDataRetentionConfigurationType = PresentableType.create<{
+  project: Project;
+  dataRetentionLevel: 'full' | 'intent_only' | 'none';
+  storeToolCallAttachments: boolean;
+  collectErrors: boolean;
+}>()('project_data_retention_configuration');
 
 export let projectIntegrationNamingConfigurationType = PresentableType.create<{
   project: Project;

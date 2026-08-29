@@ -1,5 +1,6 @@
 export * from './instance';
 export * from './auditLog';
+export * from './auditLogRetention';
 export * from './auditLogStream';
 export * from './auditLogStreamEvent';
 export * from './organization';
@@ -13,6 +14,7 @@ export * from './project';
 export * from './projectBrand';
 export * from './projectRetention';
 export * from './projectAuthConfigConfiguration';
+export * from './projectDataRetentionConfiguration';
 export * from './projectIntegrationNamingConfiguration';
 export * from './projectSkillSyncConfiguration';
 export * from './projectToolCallingConfiguration';

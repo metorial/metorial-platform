@@ -21,6 +21,7 @@ import type {
   ProviderListingGroup as SubspaceProviderListingGroup,
   ProviderSetupSession as SubspaceProviderSetupSession,
   Session as SubspaceSession,
+  SessionDataRetentionLevel as ProjectDataRetentionLevel,
   SessionProvider as SubspaceSessionProvider,
   SessionTemplate as SubspaceSessionTemplate,
   SessionTemplateProvider as SubspaceSessionTemplateProvider,
@@ -414,6 +415,9 @@ export interface FabricEvents {
   'organization.layout.updated:before': { organization: Organization; user: User; layout: OrganizationLayout; auditScope: AuditScope; input: { value: unknown } };
   'organization.layout.updated:after': { organization: Organization; user: User; layout: OrganizationLayout; previousLayout: OrganizationLayout; auditScope: AuditScope; input: { value: unknown } };
 
+  'organization.audit_log_retention.updated:before': { organization: Organization; auditScope: AuditScope; input: { auditLogRetentionInDays: number } };
+  'organization.audit_log_retention.updated:after': { organization: Organization; previousOrganization: Organization; auditScope: AuditScope; input: { auditLogRetentionInDays: number } };
+
   'organization.invitation.created:before': { organization: Organization; input: { role: OrganizationMember['role'] } & ({ type: 'email'; email: string; message?: string } | { type: 'link' } | { type: 'onboarding'; email: string; message?: string }); auditScope: AuditScope };
   'organization.invitation.created:after': { organization: Organization; invite: AuditOrganizationInvite; input: { role: OrganizationMember['role'] } & ({ type: 'email'; email: string; message?: string } | { type: 'link' } | { type: 'onboarding'; email: string; message?: string }); auditScope: AuditScope };
   'organization.invitation.updated:before': { organization: Organization; invite: OrganizationInvite; input: { role: OrganizationMember['role'] }; auditScope: AuditScope };
@@ -441,6 +445,8 @@ export interface FabricEvents {
   'organization.project.integration_naming_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean }; previousConfiguration: { useIntegrationNames: boolean } };
   'organization.project.tool_calling_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number } };
   'organization.project.tool_calling_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number }; configuration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs: number }; previousConfiguration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs: number } };
+  'organization.project.data_retention_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean } };
+  'organization.project.data_retention_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean }; configuration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean }; previousConfiguration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean } };
   'organization.project.skill_sync_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.skill_sync_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.brand.updated:before': { organization: Organization; project: Project; brand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
