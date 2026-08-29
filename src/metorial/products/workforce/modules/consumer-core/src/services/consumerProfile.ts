@@ -850,6 +850,7 @@ class ConsumerProfileServiceImpl {
     email: string;
     name: string;
     member?: OrganizationMember;
+    user?: User;
     inviteStatus?: ConsumerProfileInviteStatus;
     rejectIfActiveProfileExists?: boolean;
 
@@ -878,6 +879,7 @@ class ConsumerProfileServiceImpl {
           organization,
           instance,
           member: d.member,
+          user: d.user,
           flags: {
             isOrganizationMember: d.surface.type === 'organization_members',
             isPortalConsumer: d.surface.type === 'portal'

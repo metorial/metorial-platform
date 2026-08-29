@@ -12,6 +12,7 @@ import {
   InstanceConsumer,
   Organization,
   OrganizationMember,
+  User,
   withTransaction
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
@@ -172,6 +173,7 @@ class ConsumerServiceImpl {
     organization: Organization;
     instance: Instance;
     member?: OrganizationMember;
+    user?: User;
     flags?: {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
@@ -190,6 +192,7 @@ class ConsumerServiceImpl {
 
         organizationMemberOid: d.member?.oid,
         organizationActorOid: d.member?.actorOid,
+        userOid: d.user?.oid,
 
         isOrganizationMember: !!d.member || d.flags?.isOrganizationMember ? true : undefined,
         isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined,
@@ -226,6 +229,7 @@ class ConsumerServiceImpl {
 
               organizationMemberOid: d.member?.oid,
               organizationActorOid: d.member?.actorOid,
+              userOid: d.user?.oid,
 
               isOrganizationMember: !!d.member || !!d.flags?.isOrganizationMember,
               isPortalConsumer: !!d.flags?.isPortalConsumer,
@@ -279,6 +283,7 @@ class ConsumerServiceImpl {
   async updateConsumer(d: {
     consumer: InstanceConsumer;
     member?: OrganizationMember;
+    user?: User;
     flags?: {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
@@ -303,6 +308,7 @@ class ConsumerServiceImpl {
 
           organizationMemberOid: d.member?.oid,
           organizationActorOid: d.member?.actorOid,
+          userOid: d.user?.oid,
 
           isOrganizationMember:
             !!d.member || !!d.consumer.organizationMemberOid || d.flags?.isOrganizationMember
@@ -346,6 +352,7 @@ class ConsumerServiceImpl {
     organization: Organization;
     instance: Instance;
     member?: OrganizationMember;
+    user?: User;
     flags?: {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
@@ -370,7 +377,8 @@ class ConsumerServiceImpl {
       if (
         existing.email === email &&
         existing.name === d.input.name &&
-        existing.organizationMemberOid == d.member?.oid &&
+        (!d.member || existing.organizationMemberOid == d.member.oid) &&
+        (!d.user || existing.consumer.userOid == d.user.oid) &&
         this.hasRequiredFlags({
           consumer: existing as InstanceConsumerWithRelations,
           flags: d.flags
@@ -382,6 +390,7 @@ class ConsumerServiceImpl {
       return await this.updateConsumer({
         consumer: existing as InstanceConsumerWithRelations,
         member: d.member,
+        user: d.user,
         flags: d.flags,
         input: {
           name: d.input.name,
@@ -401,6 +410,7 @@ class ConsumerServiceImpl {
         organization: d.organization,
         instance: d.instance,
         member: d.member,
+        user: d.user,
         flags: d.flags,
         input: {
           name: d.input.name,
