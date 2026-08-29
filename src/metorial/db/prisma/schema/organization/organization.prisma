@@ -23,6 +23,8 @@ model Organization {
 
   enforceTeamAccess Boolean @default(false)
 
+  auditLogRetentionInDays Int?
+
   ignoreAndDoNotUse_canCreateGlobalOauthApps Boolean @default(false) @map("canCreateGlobalOauthApps")
 
   slug          String   @unique

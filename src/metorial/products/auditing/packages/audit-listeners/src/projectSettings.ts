@@ -138,6 +138,33 @@ export let recordProjectBrandUpdated = async (
   });
 };
 
+export let recordProjectDataRetentionUpdated = async (
+  event: FabricEvents['organization.project.data_retention_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_data_retention_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project,
+          dataRetentionLevel: event.configuration.dataRetentionLevel,
+          storeToolCallAttachments: event.configuration.storeToolCallAttachments,
+          collectErrors: event.configuration.collectErrors
+        },
+        previousPayload: {
+          project: event.project,
+          dataRetentionLevel: event.previousConfiguration.dataRetentionLevel,
+          storeToolCallAttachments: event.previousConfiguration.storeToolCallAttachments,
+          collectErrors: event.previousConfiguration.collectErrors
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 Fabric.listen('organization.project.retention.updated:after', recordProjectRetentionUpdated);
 Fabric.listen(
   'organization.project.skill_sync_configuration.updated:after',
@@ -154,5 +181,9 @@ Fabric.listen(
 Fabric.listen(
   'organization.project.tool_calling_configuration.updated:after',
   recordProjectToolCallingUpdated
+);
+Fabric.listen(
+  'organization.project.data_retention_configuration.updated:after',
+  recordProjectDataRetentionUpdated
 );
 Fabric.listen('organization.project.brand.updated:after', recordProjectBrandUpdated);
