@@ -520,7 +520,7 @@ export let SchemaForm = ({
         })
       ) : (
         <Text size="2" color="gray700">
-          This capability does not require any input.
+          This tool does not require any input.
         </Text>
       )}
 
@@ -529,12 +529,7 @@ export let SchemaForm = ({
       ) : null}
 
       <div>
-        <Button
-          type="submit"
-          size="2"
-          style={blackButtonStyle}
-          loading={isSubmitting}
-        >
+        <Button type="submit" size="2" style={blackButtonStyle} loading={isSubmitting}>
           {submitLabel}
         </Button>
       </div>

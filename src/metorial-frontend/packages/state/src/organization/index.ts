@@ -1,6 +1,7 @@
 export * from './loaders/accessPolicy';
 export * from './loaders/accessRole';
 export * from './loaders/auditLogStream';
+export * from './loaders/auditLogRetention';
 export * from './loaders/boot';
 export * from './loaders/flags';
 export * from './loaders/instance';
@@ -14,6 +15,7 @@ export * from './loaders/projectKeyProviders';
 export * from './loaders/projectRetention';
 export * from './loaders/sandbox';
 export * from './loaders/projectAuthConfigConfiguration';
+export * from './loaders/projectDataRetentionConfiguration';
 export * from './loaders/projectIntegrationNamingConfiguration';
 export * from './loaders/projectSkillSyncConfiguration';
 export * from './loaders/projectToolCallingConfiguration';
