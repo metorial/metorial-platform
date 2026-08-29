@@ -62,6 +62,7 @@ class slateOAuthHandlerServiceImpl {
 
     let urlRes = await slateInvocationService.getOAuthUrl({
       stack: await slateInvocationService.createInvocation({
+        tenant: setup.tenant,
         participants: [],
         slateVersion: setup.slateVersion,
         enclaveId: setup.instanceConfiguration?.enclaveId,
@@ -235,6 +236,7 @@ class slateOAuthHandlerServiceImpl {
 
     let authRes = await slateInvocationService.getOAuthCallback({
       stack: await slateInvocationService.createInvocation({
+        tenant: setup.tenant,
         participants: [],
         slateVersion: setup.slateVersion,
         enclaveId: setup.instanceConfiguration?.enclaveId,

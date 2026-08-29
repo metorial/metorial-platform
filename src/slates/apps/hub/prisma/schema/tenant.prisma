@@ -10,7 +10,10 @@ model Tenant {
   functionBayTenantId         String?
   functionBayTenantIdentifier String?
 
-  logRetentionInDays Int @default(30)
+  logRetentionInDays       Int     @default(30)
+  storeContent             Boolean @default(true)
+  collectErrors            Boolean @default(true)
+  storeToolCallAttachments Boolean @default(true)
 
   createdAt DateTime @default(now())
 

@@ -250,15 +250,17 @@ class slateSessionToolCallServiceImpl {
       };
     }
 
-    let attachments = await Promise.all(
-      (callRes.data.attachments ?? []).map(attachment =>
-        this.ensureAttachment({
-          content: attachment.content,
-          mimeType: attachment.mimeType,
-          invocation: callRes.invocation
-        })
-      )
-    );
+    let attachments = session.tenant.storeToolCallAttachments
+      ? await Promise.all(
+          (callRes.data.attachments ?? []).map(attachment =>
+            this.ensureAttachment({
+              content: attachment.content,
+              mimeType: attachment.mimeType,
+              invocation: callRes.invocation
+            })
+          )
+        )
+      : [];
 
     return {
       call,
