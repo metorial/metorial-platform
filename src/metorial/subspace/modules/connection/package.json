@@ -33,6 +33,7 @@
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/module-session": "^1.0.0",
     "@metorial-subspace/provider": "^1.0.0",
+    "@metorial-subspace/provider-utils": "^1.0.0",
     "@metorial-subspace/redis-url": "^1.0.0",
     "@metorial-subspace/store": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",

@@ -21,8 +21,10 @@ export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async da
   let initialProviderProductive =
     message.isProductive && message.source === 'provider' ? 1 : 0;
 
-  let incrementProviderProductive = message.source === 'client' && message.output ? 1 : 0;
-  let incrementClientProductive = message.source === 'provider' && message.output ? 1 : 0;
+  let respondedTo = message.hasOutput || message.output !== null;
+
+  let incrementProviderProductive = message.source === 'client' && respondedTo ? 1 : 0;
+  let incrementClientProductive = message.source === 'provider' && respondedTo ? 1 : 0;
 
   if (incrementClientProductive || incrementProviderProductive) {
     let incrementData = {
@@ -75,5 +77,7 @@ export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async da
     });
   }
 
-  await protoGuardMessageQueue.add({ messageId: message.id });
+  if (message.retentionLevel === 'full') {
+    await protoGuardMessageQueue.add({ messageId: message.id });
+  }
 });

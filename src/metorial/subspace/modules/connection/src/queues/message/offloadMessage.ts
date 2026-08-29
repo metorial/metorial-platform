@@ -1,7 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { offload } from '@metorial-subspace/connection-utils';
-import { db } from '@metorial-subspace/db';
+import { db, Prisma } from '@metorial-subspace/db';
 import { subDays } from 'date-fns';
 import { env } from '../../env';
 
@@ -27,6 +27,8 @@ let offloadMessagesQueueProcessor = offloadMessagesQueue.process(async data => {
   let messages = await db.sessionMessage.findMany({
     where: {
       isOffloadedToStorage: false,
+      // Only `full` retains payloads; anything else has nothing to move to cold storage.
+      retentionLevel: 'full',
       status: { in: ['failed', 'succeeded'] },
       createdAt: { lte: twoDaysAgo },
       id: data.cursor ? { gt: data.cursor } : undefined
@@ -53,9 +55,26 @@ let offloadMessageQueueProcessor = offloadMessageQueue.process(async data => {
   let message = await db.sessionMessage.findUnique({
     where: { id: data.messageId }
   });
-  if (!message || message?.isOffloadedToStorage) return;
+  if (!message || message.isOffloadedToStorage) return;
+
+  if (message.input === null && message.output === null) {
+    await db.sessionMessage.updateMany({
+      where: { oid: message.oid, isOffloadedToStorage: false },
+      data: { isOffloadedToStorage: true }
+    });
+    return;
+  }
 
   await offload.offloadSessionMessage(message);
+
+  await db.sessionMessage.updateMany({
+    where: { oid: message.oid, isOffloadedToStorage: false },
+    data: {
+      isOffloadedToStorage: true,
+      input: Prisma.DbNull,
+      output: Prisma.DbNull
+    }
+  });
 });
 
 export let offloadQueues = combineQueueProcessors([
