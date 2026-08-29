@@ -31,6 +31,7 @@ type OptimisticStoreItem = {
   kind: 'file' | 'document' | 'directory';
   fileSize?: number;
   uploadProgress?: number;
+  isComplete?: boolean;
 };
 
 let buildTree = (items: StoreItem[], optimisticItems: OptimisticStoreItem[]) => {
@@ -260,11 +261,27 @@ export let SkillStoreFileTree = (p: {
     setOptimisticItems(current => current.filter(item => item.id != id));
   };
 
+  let markOptimisticItemComplete = (id: string) => {
+    setOptimisticItems(current =>
+      current.map(item => (item.id == id ? { ...item, isComplete: true } : item))
+    );
+  };
+
   let updateOptimisticProgress = (id: string, uploadProgress: number) => {
     setOptimisticItems(current =>
       current.map(item => (item.id == id ? { ...item, uploadProgress } : item))
     );
   };
+
+  useEffect(() => {
+    if (!storeItems.data) return;
+
+    let realItemPaths = new Set(storeItems.data.map(item => item.path));
+    setOptimisticItems(current => {
+      let next = current.filter(item => !item.isComplete || !realItemPaths.has(item.path));
+      return next.length == current.length ? current : next;
+    });
+  }, [optimisticItems, storeItems.data]);
 
   let createStoreItem = async (
     parentPath: string,
@@ -276,6 +293,7 @@ export let SkillStoreFileTree = (p: {
     let path = joinStorePath(parentPath, name);
     if (kind == 'directory') {
       let optimisticId = addOptimisticItem({ path, kind: 'directory' });
+      let completed = false;
 
       try {
         await modifyStoreItems.mutate({
@@ -289,9 +307,11 @@ export let SkillStoreFileTree = (p: {
           ]
         });
 
+        completed = true;
+        markOptimisticItemComplete(optimisticId);
         await storeItems.refetch();
       } finally {
-        removeOptimisticItem(optimisticId);
+        if (!completed) removeOptimisticItem(optimisticId);
       }
 
       return;
@@ -302,6 +322,7 @@ export let SkillStoreFileTree = (p: {
       path,
       kind: shouldCreateDocument ? 'document' : 'file'
     });
+    let completed = false;
 
     try {
       if (shouldCreateDocument) {
@@ -341,9 +362,11 @@ export let SkillStoreFileTree = (p: {
         });
       }
 
+      completed = true;
+      markOptimisticItemComplete(optimisticId);
       await storeItems.refetch();
     } finally {
-      removeOptimisticItem(optimisticId);
+      if (!completed) removeOptimisticItem(optimisticId);
     }
   };
 
@@ -362,6 +385,7 @@ export let SkillStoreFileTree = (p: {
             uploadProgress: 0
           })
     });
+    let completed = false;
 
     try {
       if (shouldCreateDocument) {
@@ -404,9 +428,11 @@ export let SkillStoreFileTree = (p: {
         });
       }
 
+      completed = true;
+      markOptimisticItemComplete(optimisticId);
       if (refetch) await storeItems.refetch();
     } finally {
-      removeOptimisticItem(optimisticId);
+      if (!completed) removeOptimisticItem(optimisticId);
     }
   };
 

@@ -332,7 +332,7 @@ let TriggerButton = styled.button`
   all: unset;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   align-self: stretch;
   min-width: 0;
   flex: 1;
