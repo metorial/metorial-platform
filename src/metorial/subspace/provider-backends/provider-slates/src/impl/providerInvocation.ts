@@ -112,6 +112,10 @@ export class ProviderInvocation extends IProviderInvocation {
           slateSessionToolCallId: localToolCall.id
         });
 
+        let hasToolIdentity = localToolCall.sessionMessages.every(
+          message => message.retentionLevel !== 'none'
+        );
+
         mergeInvocation(invocationMap, {
           id: getSlateProviderInvocationId(remote.invocation.id),
           source: 'slates',
@@ -122,7 +126,7 @@ export class ProviderInvocation extends IProviderInvocation {
           authConfigEventIds: [],
           providerOAuthSetupIds: [],
           toolCallId: remote.id,
-          action: remote.action,
+          action: hasToolIdentity ? remote.action : null,
           requests: remote.invocation.requests ?? [],
           responses: remote.invocation.responses ?? [],
           requestTraces: remote.invocation.requestTraces ?? [],
