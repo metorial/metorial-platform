@@ -144,6 +144,7 @@ import {
   v1ProjectRetentionPresenter,
   v1ProjectSkillSyncConfigurationPresenter,
   v1ProjectToolCallingConfigurationPresenter,
+  v1ProjectWorkforceConfigurationPresenter,
   v1ProtoGuardAlertPresenter,
   v1ProtoGuardConfigPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
@@ -360,6 +361,7 @@ import {
   projectRetentionType,
   projectSkillSyncConfigurationType,
   projectToolCallingConfigurationType,
+  projectWorkforceConfigurationType,
   projectType,
   protoGuardAlertType,
   protoGuardConfigType,
@@ -643,6 +645,14 @@ export let projectAuthConfigConfigurationPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1ProjectAuthConfigConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectAuthConfigConfigurationPresenter
+  }
+);
+
+export let projectWorkforceConfigurationPresenter = declarePresenter(
+  projectWorkforceConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectWorkforceConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectWorkforceConfigurationPresenter
   }
 );
 

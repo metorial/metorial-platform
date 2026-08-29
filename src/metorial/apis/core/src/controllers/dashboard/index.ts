@@ -18,3 +18,4 @@ export * from './skillSyncConfiguration';
 export * from './toolCallingConfiguration';
 export * from './usage';
 export * from './user';
+export * from './workforceConfiguration';

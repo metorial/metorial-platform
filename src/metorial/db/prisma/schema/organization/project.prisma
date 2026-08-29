@@ -40,6 +40,8 @@ model Project {
   consumerAuthClientRegistrationsPerMinuteLimit Int @default(10)
   consumerAuthClientRegistrationsPerHourLimit   Int @default(25)
 
+  autoAddOrganizationMembersToPortals Boolean @default(false)
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt

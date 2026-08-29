@@ -38,6 +38,7 @@ import {
   dashboardToolCallingConfigurationController,
   dashboardUsageController,
   dashboardUserController,
+  dashboardWorkforceConfigurationController,
   flagsController,
   profileController
 } from './dashboard';
@@ -603,6 +604,7 @@ export let dashboardController = Controller.create<any>(
     testHelperConsumerOAuthController,
     dashboardUsageController,
     dashboardAssistantController,
+    dashboardWorkforceConfigurationController,
     flagsController,
 
     managementApiKeyController,

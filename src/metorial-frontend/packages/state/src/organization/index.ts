@@ -19,6 +19,7 @@ export * from './loaders/projectDataRetentionConfiguration';
 export * from './loaders/projectIntegrationNamingConfiguration';
 export * from './loaders/projectSkillSyncConfiguration';
 export * from './loaders/projectToolCallingConfiguration';
+export * from './loaders/projectWorkforceConfiguration';
 export * from './loaders/team';
 
 export * from './current';

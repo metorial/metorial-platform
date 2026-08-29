@@ -18,6 +18,7 @@ export * from './projectDataRetentionConfiguration';
 export * from './projectIntegrationNamingConfiguration';
 export * from './projectSkillSyncConfiguration';
 export * from './projectToolCallingConfiguration';
+export * from './projectWorkforceConfiguration';
 export * from './sandbox';
 export * from './team';
 export * from './user';

@@ -1121,6 +1121,10 @@ export let projectAuthConfigConfigurationType = PresentableType.create<{
   consumerAuthClientRegistrationsPerMinuteLimit: number;
 }>()('project_auth_config_configuration');
 
+export let projectWorkforceConfigurationType = PresentableType.create<{
+  project: Project;
+}>()('project_workforce_configuration');
+
 export let projectToolCallingConfigurationType = PresentableType.create<{
   project: Project;
   collectOperationDescriptionForToolCalls: boolean;
