@@ -41,6 +41,10 @@ model Tenant {
 
   collectOperationDescriptionForToolCalls Boolean @default(true)
 
+  dataRetentionLevel       SessionDataRetentionLevel @default(full)
+  storeToolCallAttachments Boolean                   @default(true)
+  collectErrors            Boolean                   @default(true)
+
   retiredAt DateTime?
 
   providers                                Provider[]

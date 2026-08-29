@@ -1,3 +1,9 @@
+enum SessionDataRetentionLevel {
+  full
+  intent_only
+  none
+}
+
 enum SessionMessageStatus {
   waiting_for_response
   failed
@@ -48,6 +54,10 @@ model SessionMessage {
   output Json?
 
   isProductive Boolean @default(true)
+
+  retentionLevel SessionDataRetentionLevel @default(full)
+
+  hasOutput Boolean @default(false)
 
   parentMessageOid BigInt?
   parentMessage    SessionMessage?  @relation("SessionMessageToParent", fields: [parentMessageOid], references: [oid])

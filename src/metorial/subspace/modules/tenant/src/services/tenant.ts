@@ -1,7 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
-import { db, type EnvironmentType, getId, type Tenant } from '@metorial-subspace/db';
+import {
+  db,
+  type EnvironmentType,
+  getId,
+  type SessionDataRetentionLevel,
+  type Tenant
+} from '@metorial-subspace/db';
 import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
 import { reconcileProviderDeploymentMonitorForEnvironmentQueue } from '@metorial-subspace/module-deployment/src/queues/reconcile/providerDeploymentMonitor';
 import { networkInternalService } from '@metorial-subspace/module-enclave';
@@ -29,6 +35,9 @@ class tenantServiceImpl {
       allowAuthConfigImport?: boolean;
       collectOperationDescriptionForToolCalls?: boolean;
       useIntegrationNamesForSessionProviderNameTemplates?: boolean;
+      dataRetentionLevel?: SessionDataRetentionLevel;
+      storeToolCallAttachments?: boolean;
+      collectErrors?: boolean;
       projectOid?: bigint;
       skipNetworks?: boolean;
       environments: {
@@ -46,7 +55,10 @@ class tenantServiceImpl {
         where: { identifier: d.input.identifier },
         select: {
           id: true,
-          logRetentionInDays: true
+          logRetentionInDays: true,
+          dataRetentionLevel: true,
+          collectErrors: true,
+          storeToolCallAttachments: true
         }
       });
 
@@ -66,7 +78,10 @@ class tenantServiceImpl {
           collectOperationDescriptionForToolCalls:
             d.input.collectOperationDescriptionForToolCalls,
           useIntegrationNamesForSessionProviderNameTemplates:
-            d.input.useIntegrationNamesForSessionProviderNameTemplates
+            d.input.useIntegrationNamesForSessionProviderNameTemplates,
+          dataRetentionLevel: d.input.dataRetentionLevel,
+          storeToolCallAttachments: d.input.storeToolCallAttachments,
+          collectErrors: d.input.collectErrors
         },
         create: {
           ...getId('tenant'),
@@ -85,6 +100,9 @@ class tenantServiceImpl {
             d.input.collectOperationDescriptionForToolCalls ?? true,
           useIntegrationNamesForSessionProviderNameTemplates:
             d.input.useIntegrationNamesForSessionProviderNameTemplates ?? false,
+          dataRetentionLevel: d.input.dataRetentionLevel ?? 'full',
+          storeToolCallAttachments: d.input.storeToolCallAttachments ?? true,
+          collectErrors: d.input.collectErrors ?? true,
 
           urlKey: generatePlainId(10).toLowerCase()
         }
@@ -94,10 +112,17 @@ class tenantServiceImpl {
         await linkTenantToProjectMirror({ tenant, projectOid: d.input.projectOid });
       }
 
-      if (
-        d.input.logRetentionInDays !== undefined &&
-        existingTenant?.logRetentionInDays !== tenant.logRetentionInDays
-      ) {
+      let retentionRelevantFieldsChanged =
+        (d.input.logRetentionInDays !== undefined &&
+          existingTenant?.logRetentionInDays !== tenant.logRetentionInDays) ||
+        (d.input.dataRetentionLevel !== undefined &&
+          existingTenant?.dataRetentionLevel !== tenant.dataRetentionLevel) ||
+        (d.input.collectErrors !== undefined &&
+          existingTenant?.collectErrors !== tenant.collectErrors) ||
+        (d.input.storeToolCallAttachments !== undefined &&
+          existingTenant?.storeToolCallAttachments !== tenant.storeToolCallAttachments);
+
+      if (retentionRelevantFieldsChanged) {
         await tenantLogRetentionSyncQueue.add(
           { tenantId: tenant.id },
           { id: `tenant-retention-sync:${tenant.id}` }

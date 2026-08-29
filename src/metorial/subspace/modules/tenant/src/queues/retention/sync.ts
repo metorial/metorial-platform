@@ -62,7 +62,11 @@ export let tenantLogRetentionSyncQueueProcessor = tenantLogRetentionSyncQueue.pr
       await slatesClient.tenant.upsert({
         identifier: tenant.slateTenantIdentifier ?? tenant.identifier,
         name: tenant.name,
-        logRetentionInDays: tenant.logRetentionInDays
+        logRetentionInDays: tenant.logRetentionInDays,
+        storeContent: tenant.dataRetentionLevel === 'full',
+        collectErrors: tenant.collectErrors,
+        storeToolCallAttachments:
+          tenant.dataRetentionLevel === 'none' ? false : tenant.storeToolCallAttachments
       });
     }
 
@@ -71,7 +75,9 @@ export let tenantLogRetentionSyncQueueProcessor = tenantLogRetentionSyncQueue.pr
       await shuttleClient.tenant.upsert({
         identifier: tenant.shuttleTenantIdentifier ?? tenant.identifier,
         name: tenant.name,
-        logRetentionInDays: tenant.logRetentionInDays
+        logRetentionInDays: tenant.logRetentionInDays,
+        storeContent: tenant.dataRetentionLevel === 'full',
+        collectErrors: tenant.collectErrors
       });
     }
   }
