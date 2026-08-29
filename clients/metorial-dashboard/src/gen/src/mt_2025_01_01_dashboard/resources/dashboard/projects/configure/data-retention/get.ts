@@ -13,7 +13,10 @@ export let mapDashboardProjectsConfigureDataRetentionGetOutput =
   mtMap.object<DashboardProjectsConfigureDataRetentionGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    dataRetentionLevel: mtMap.objectField('data_retention_level', mtMap.passthrough()),
+    dataRetentionLevel: mtMap.objectField(
+      'data_retention_level',
+      mtMap.passthrough()
+    ),
     storeToolCallAttachments: mtMap.objectField(
       'store_tool_call_attachments',
       mtMap.passthrough()

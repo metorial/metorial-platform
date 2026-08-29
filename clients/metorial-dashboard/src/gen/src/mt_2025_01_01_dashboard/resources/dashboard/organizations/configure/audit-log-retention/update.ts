@@ -17,7 +17,6 @@ export let mapDashboardOrganizationsConfigureAuditLogRetentionUpdateOutput =
     ),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-
 export type DashboardOrganizationsConfigureAuditLogRetentionUpdateBody = {
   auditLogRetentionInDays: number;
 };

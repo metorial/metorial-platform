@@ -13,7 +13,10 @@ export let mapDashboardProjectsConfigureDataRetentionUpdateOutput =
   mtMap.object<DashboardProjectsConfigureDataRetentionUpdateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    dataRetentionLevel: mtMap.objectField('data_retention_level', mtMap.passthrough()),
+    dataRetentionLevel: mtMap.objectField(
+      'data_retention_level',
+      mtMap.passthrough()
+    ),
     storeToolCallAttachments: mtMap.objectField(
       'store_tool_call_attachments',
       mtMap.passthrough()
@@ -21,7 +24,6 @@ export let mapDashboardProjectsConfigureDataRetentionUpdateOutput =
     collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-
 export type DashboardProjectsConfigureDataRetentionUpdateBody = {
   dataRetentionLevel?: 'full' | 'intent_only' | 'none' | undefined;
   storeToolCallAttachments?: boolean | undefined;
@@ -30,7 +32,10 @@ export type DashboardProjectsConfigureDataRetentionUpdateBody = {
 
 export let mapDashboardProjectsConfigureDataRetentionUpdateBody =
   mtMap.object<DashboardProjectsConfigureDataRetentionUpdateBody>({
-    dataRetentionLevel: mtMap.objectField('data_retention_level', mtMap.passthrough()),
+    dataRetentionLevel: mtMap.objectField(
+      'data_retention_level',
+      mtMap.passthrough()
+    ),
     storeToolCallAttachments: mtMap.objectField(
       'store_tool_call_attachments',
       mtMap.passthrough()

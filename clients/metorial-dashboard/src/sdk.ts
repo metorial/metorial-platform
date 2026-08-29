@@ -178,6 +178,7 @@ import {
   MetorialDashboardProjectsConfigureRetentionEndpoint,
   MetorialDashboardProjectsConfigureSkillSyncEndpoint,
   MetorialDashboardProjectsConfigureToolCallingEndpoint,
+  MetorialDashboardProjectsConfigureWorkforceEndpoint,
   MetorialDashboardProjectsKeyProvidersEndpoint,
   MetorialDashboardProjectsKeyProvidersErrorsEndpoint,
   MetorialDashboardUsageEndpoint,
@@ -582,6 +583,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     configureRetention: new MetorialDashboardProjectsConfigureRetentionEndpoint(manager),
     configureSkillSync: new MetorialDashboardProjectsConfigureSkillSyncEndpoint(manager),
     configureToolCalling: new MetorialDashboardProjectsConfigureToolCallingEndpoint(manager),
+    configureWorkforce: new MetorialDashboardProjectsConfigureWorkforceEndpoint(manager),
     keyProviders: Object.assign(new MetorialDashboardProjectsKeyProvidersEndpoint(manager), {
       errors: new MetorialDashboardProjectsKeyProvidersErrorsEndpoint(manager)
     })
