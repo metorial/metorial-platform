@@ -34,9 +34,22 @@ type OptimisticStoreItem = {
   isComplete?: boolean;
 };
 
+let allowedStorePathCharacter = /^[A-Za-z0-9._() \-$]$/;
+let normalizeTreePath = (path: string) =>
+  path
+    .replaceAll('\\', '/')
+    .split('/')
+    .map(segment =>
+      Array.from(segment.trim())
+        .filter(character => allowedStorePathCharacter.test(character))
+        .join('')
+    )
+    .filter(segment => !!segment && !/^\.+$/.test(segment))
+    .join('/');
+
 let buildTree = (items: StoreItem[], optimisticItems: OptimisticStoreItem[]) => {
   let nodeMap = new Map<string, SkillFileTreeNode>();
-  let realItemPaths = new Set(items.map(item => item.path).filter(Boolean));
+  let realItemPaths = new Set(items.map(item => normalizeTreePath(item.path)).filter(Boolean));
   let rootNode: SkillFileTreeNode = {
     id: '/',
     name: 'root',
@@ -130,7 +143,7 @@ let buildTree = (items: StoreItem[], optimisticItems: OptimisticStoreItem[]) => 
   }
 
   for (let item of optimisticItems) {
-    if (realItemPaths.has(item.path)) continue;
+    if (realItemPaths.has(normalizeTreePath(item.path))) continue;
 
     let parts = item.path.split('/').filter(Boolean);
     if (parts.length == 0) continue;
@@ -185,11 +198,13 @@ let joinStorePath = (parentPath: string, name: string) => {
   return `${parentPath.replace(/\/+$/, '')}/${cleanName}`;
 };
 
-let shouldCreateDocumentForFileName = (name: string) => {
+let shouldCreateDocumentForFileName = (name: string, extensionlessIsDocument = true) => {
   let normalized = name.trim().toLowerCase();
   let lastDot = normalized.lastIndexOf('.');
 
-  if (lastDot <= 0 || lastDot == normalized.length - 1) return true;
+  if (lastDot <= 0 || lastDot == normalized.length - 1) {
+    return extensionlessIsDocument;
+  }
 
   let extension = normalized.slice(lastDot + 1);
   return extension == 'md' || extension == 'txt';
@@ -276,9 +291,13 @@ export let SkillStoreFileTree = (p: {
   useEffect(() => {
     if (!storeItems.data) return;
 
-    let realItemPaths = new Set(storeItems.data.map(item => item.path));
+    let realItemPaths = new Set(
+      storeItems.data.map(item => normalizeTreePath(item.path)).filter(Boolean)
+    );
     setOptimisticItems(current => {
-      let next = current.filter(item => !item.isComplete || !realItemPaths.has(item.path));
+      let next = current.filter(
+        item => !item.isComplete || !realItemPaths.has(normalizeTreePath(item.path))
+      );
       return next.length == current.length ? current : next;
     });
   }, [optimisticItems, storeItems.data]);
@@ -374,7 +393,7 @@ export let SkillStoreFileTree = (p: {
     if (!p.instanceId || !p.storeId) return;
 
     let path = joinStorePath(parentPath, file.name);
-    let shouldCreateDocument = shouldCreateDocumentForFileName(file.name);
+    let shouldCreateDocument = shouldCreateDocumentForFileName(file.name, false);
     let optimisticId = addOptimisticItem({
       path,
       kind: shouldCreateDocument ? 'document' : 'file',
