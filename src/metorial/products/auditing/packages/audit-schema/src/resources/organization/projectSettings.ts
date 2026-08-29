@@ -8,7 +8,8 @@ import {
   projectIntegrationNamingConfigurationPresenter,
   projectRetentionPresenter,
   projectSkillSyncConfigurationPresenter,
-  projectToolCallingConfigurationPresenter
+  projectToolCallingConfigurationPresenter,
+  projectWorkforceConfigurationPresenter
 } from '@metorial/presenters';
 import { resource } from '../../_lib/resource';
 
@@ -44,6 +45,17 @@ export let projectAuthConfigConfigurationResource = resource({
     consumerAuthClientRegistrationsPerMinuteLimit: number;
   }>('project_auth_config_configuration'),
   presenter: projectAuthConfigConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectWorkforceConfigurationResource = resource({
+  name: 'project_workforce_configuration',
+  payload: v.typedAny<{
+    project: Project;
+  }>('project_workforce_configuration'),
+  presenter: projectWorkforceConfigurationPresenter,
   actions: {
     update: true
   }

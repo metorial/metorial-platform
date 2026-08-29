@@ -72,6 +72,23 @@ export let recordProjectAuthConfigUpdated = async (
   });
 };
 
+export let recordProjectWorkforceConfigurationUpdated = async (
+  event: FabricEvents['organization.project.workforce_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_workforce_configuration',
+      'update',
+      {
+        payload: { project: event.project },
+        previousPayload: { project: event.previousProject },
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordProjectIntegrationNamingUpdated = async (
   event: FabricEvents['organization.project.integration_naming_configuration.updated:after']
 ) => {
@@ -173,6 +190,10 @@ Fabric.listen(
 Fabric.listen(
   'organization.project.auth_config_configuration.updated:after',
   recordProjectAuthConfigUpdated
+);
+Fabric.listen(
+  'organization.project.workforce_configuration.updated:after',
+  recordProjectWorkforceConfigurationUpdated
 );
 Fabric.listen(
   'organization.project.integration_naming_configuration.updated:after',
