@@ -12,3 +12,4 @@ export * from './apiKey';
 export * from './oauth';
 export * from './serviceAccount';
 export * from './auditLogStream';
+export * from './auditLogRetention';

@@ -135,3 +135,17 @@ export let getAuditEventsByIds = async (eventIds: string[]): Promise<AuditEvent[
     .lean()
     .exec();
 };
+
+export let deleteAuditEventsBefore = async (d: {
+  organizationOid: bigint | string | number;
+  recordedAt: Date;
+}) => {
+  if (!isAuditDbEnabled()) return;
+
+  await dbConnect();
+
+  await AuditEventModel.deleteMany({
+    organizationOid: toOidString(d.organizationOid),
+    recordedAt: { $lt: d.recordedAt }
+  }).exec();
+};

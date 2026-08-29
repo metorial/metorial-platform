@@ -4,6 +4,7 @@ import type { ProjectBrandOverride } from '@metorial/module-organization';
 import {
   projectAuthConfigConfigurationPresenter,
   projectBrandPresenter,
+  projectDataRetentionConfigurationPresenter,
   projectIntegrationNamingConfigurationPresenter,
   projectRetentionPresenter,
   projectSkillSyncConfigurationPresenter,
@@ -79,6 +80,20 @@ export let projectToolCallingConfigurationResource = resource({
     messageProcessingTimeoutMs: number;
   }>('project_tool_calling_configuration'),
   presenter: projectToolCallingConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectDataRetentionConfigurationResource = resource({
+  name: 'project_data_retention_configuration',
+  payload: v.typedAny<{
+    project: Project;
+    dataRetentionLevel: 'full' | 'intent_only' | 'none';
+    storeToolCallAttachments: boolean;
+    collectErrors: boolean;
+  }>('project_data_retention_configuration'),
+  presenter: projectDataRetentionConfigurationPresenter,
   actions: {
     update: true
   }
