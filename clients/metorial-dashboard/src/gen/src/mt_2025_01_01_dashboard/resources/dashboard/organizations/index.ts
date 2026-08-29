@@ -4,6 +4,7 @@ export * from './api-keys';
 export * from './audit-log-streams';
 export * from './audit-logs';
 export * from './configs';
+export * from './configure';
 export * from './create';
 export * from './delete';
 export * from './get';

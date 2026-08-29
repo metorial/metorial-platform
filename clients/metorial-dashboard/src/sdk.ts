@@ -149,6 +149,7 @@ import {
   MetorialDashboardOrganizationsAuditLogStreamsEndpoint,
   MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint,
   MetorialDashboardOrganizationsEndpoint,
+  MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
   MetorialDashboardOrganizationsJoinEndpoint,
@@ -172,6 +173,7 @@ import {
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
   MetorialDashboardOrganizationsTeamsPoliciesEndpoint,
   MetorialDashboardProjectsConfigureAuthConfigEndpoint,
+  MetorialDashboardProjectsConfigureDataRetentionEndpoint,
   MetorialDashboardProjectsConfigureIntegrationNamingEndpoint,
   MetorialDashboardProjectsConfigureRetentionEndpoint,
   MetorialDashboardProjectsConfigureSkillSyncEndpoint,
@@ -553,6 +555,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   })
 )(manager => ({
   organizations: Object.assign(new MetorialDashboardOrganizationsEndpoint(manager), {
+    configureAuditLogRetention:
+      new MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint(manager),
     invites: new MetorialDashboardOrganizationsInvitesEndpoint(manager),
     flags: new MetorialOrganizationsFlagsEndpoint(manager),
 
@@ -570,6 +574,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   projects: Object.assign(new MetorialDashboardOrganizationsProjectsEndpoint(manager), {
     branding: new MetorialDashboardOrganizationsProjectsBrandingEndpoint(manager),
     configureAuthConfig: new MetorialDashboardProjectsConfigureAuthConfigEndpoint(manager),
+    configureDataRetention: new MetorialDashboardProjectsConfigureDataRetentionEndpoint(
+      manager
+    ),
     configureIntegrationNaming:
       new MetorialDashboardProjectsConfigureIntegrationNamingEndpoint(manager),
     configureRetention: new MetorialDashboardProjectsConfigureRetentionEndpoint(manager),
