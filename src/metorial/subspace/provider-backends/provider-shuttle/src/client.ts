@@ -49,7 +49,9 @@ export let getTenantForShuttle = async (tenant: Tenant) => {
     let shuttleTenant = await shuttle.tenant.upsert({
       identifier: tenant.identifier,
       name: tenant.name,
-      logRetentionInDays: tenant.logRetentionInDays
+      logRetentionInDays: tenant.logRetentionInDays,
+      storeContent: tenant.dataRetentionLevel === 'full',
+      collectErrors: tenant.collectErrors
     });
 
     tenant = await db.tenant.update({

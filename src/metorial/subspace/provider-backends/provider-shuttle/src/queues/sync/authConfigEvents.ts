@@ -3,7 +3,12 @@ import { Hash } from '@lowerdeck/hash';
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
-import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
+import {
+  createProviderInvocationId,
+  getRetentionPolicy,
+  redactJsonShape,
+  redactSensitiveKeys
+} from '@metorial-subspace/provider-utils';
 import { backend as shuttleBackend } from '../../backend';
 import { shuttle } from '../../client';
 import { env } from '../../env';
@@ -100,9 +105,12 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
 
   let authConfigVersion = await db.providerAuthConfigVersion.findUnique({
     where: { shuttleAuthConfigOid: shuttleAuthConfig.oid },
-    include: { authConfig: true }
+    include: { authConfig: { include: { tenant: true } } }
   });
   if (!authConfigVersion) throw new QueueRetryError();
+
+  let retention = getRetentionPolicy(authConfigVersion.authConfig.tenant);
+  let safePayload = redactSensitiveKeys(data.event);
 
   let authConfigEvent = await db.providerAuthConfigEvent.findUnique({
     where: {
@@ -121,7 +129,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
         sourceType: 'shuttle.server_auth_config_event',
         sourceId: data.event.id,
         providerInvocationId: getProviderInvocationId(data.event.functionInvocationId),
-        payload: data.event,
+        payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
         authConfigOid: authConfigVersion.authConfigOid,
         authCredentialsOid:
           authConfigVersion.authCredentialsOid ??
@@ -137,6 +145,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
   }
 
   if (!isErrorEvent(data.event)) return;
+  if (!retention.collectErrors) return;
 
   let existingError = await db.providerAuthConfigError.findUnique({
     where: {
@@ -159,7 +168,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       isProcessing: true,
       code,
       message,
-      payload: data.event,
+      payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
       providerInvocationId: getProviderInvocationId(data.event.functionInvocationId),
       authConfigEventOid: authConfigEvent.oid,
       authConfigOid: authConfigVersion.authConfigOid,

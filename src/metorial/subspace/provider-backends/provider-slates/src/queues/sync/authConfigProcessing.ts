@@ -2,7 +2,12 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
-import { createProviderInvocationId } from '@metorial-subspace/provider-utils';
+import {
+  createProviderInvocationId,
+  getRetentionPolicy,
+  redactJsonShape,
+  redactSensitiveKeys
+} from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../../client';
 import { env } from '../../env';
 import { resolveSlateAuthConfigScopes } from '../../impl/scopes';
@@ -62,6 +67,8 @@ let createErrorForAuthConfig = async (d: {
   record: Awaited<ReturnType<typeof slates.slateAuthConfig.get>>;
 }) => {
   let sourceId = d.authConfigVersion.slateAuthConfig.id;
+  let retention = getRetentionPolicy(d.authConfigVersion.authConfig.tenant);
+  let safePayload = redactSensitiveKeys(d.record);
 
   let authConfigEvent = await db.providerAuthConfigEvent.findUnique({
     where: {
@@ -87,7 +94,7 @@ let createErrorForAuthConfig = async (d: {
         sourceType: 'slates.auth_config',
         sourceId,
         providerInvocationId,
-        payload: d.record,
+        payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
         authConfigOid: d.authConfigVersion.authConfigOid,
         authCredentialsOid:
           d.authConfigVersion.authCredentialsOid ??
@@ -101,6 +108,8 @@ let createErrorForAuthConfig = async (d: {
       }
     });
   }
+
+  if (!retention.collectErrors) return;
 
   let existingError = await db.providerAuthConfigError.findUnique({
     where: {
@@ -121,7 +130,7 @@ let createErrorForAuthConfig = async (d: {
       isProcessing: true,
       code: errorCode,
       message: errorMessage,
-      payload: d.record,
+      payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
       providerInvocationId,
       authConfigEventOid: authConfigEvent.oid,
       authConfigOid: d.authConfigVersion.authConfigOid,
