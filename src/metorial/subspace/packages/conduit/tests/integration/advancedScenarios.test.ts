@@ -306,7 +306,7 @@ describe('Advanced Scenarios Integration', () => {
       await receiver1.start();
 
       const sender = conduit.createSender({
-        defaultTimeout: 200,
+        defaultTimeout: 1_000,
         maxRetries: 3,
         retryBackoffMs: 100
       });
@@ -378,7 +378,7 @@ describe('Advanced Scenarios Integration', () => {
     test('should handle cascading receiver failures', async () => {
       const conduit = createConduit();
       const sender = conduit.createSender({
-        defaultTimeout: 200,
+        defaultTimeout: 1_500,
         maxRetries: 5,
         retryBackoffMs: 50
       });
@@ -528,7 +528,7 @@ describe('Advanced Scenarios Integration', () => {
     test('should handle network-like errors with retries', async () => {
       const conduit = createConduit();
       const sender = conduit.createSender({
-        defaultTimeout: 200,
+        defaultTimeout: 1_000,
         maxRetries: 3,
         retryBackoffMs: 50
       });

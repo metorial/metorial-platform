@@ -77,8 +77,8 @@ describe('Receiver Crash Integration', () => {
       expect.unreachable('Should have thrown');
     } catch (err: unknown) {
       expect(err).toBeDefined();
-      // Should fail after retries
-      expect((err as Error).message).toContain('failed after');
+      expect((err as Error).message).toContain('Receiver unavailable');
+      expect((err as Error).message).toContain('activeReceivers=0');
     }
 
     await sender.close();
@@ -196,7 +196,9 @@ describe('Receiver Crash Integration', () => {
       receiver: 'healthy',
       payload: { data: 'test' }
     });
-    expect(await conduit.coordination.getTopicOwner('stale-topic')).toBe(receiver.getReceiverId());
+    expect(await conduit.coordination.getTopicOwner('stale-topic')).toBe(
+      receiver.getReceiverId()
+    );
 
     await receiver.stop();
     await sender.close();

@@ -112,6 +112,8 @@ let connectionTokenLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+let providerInstanceResolutionPromises = new Map<string, Promise<any>>();
+
 let sender = conduit.createSender({
   defaultTimeout: 10_000,
   maxRetries: 2
@@ -470,7 +472,7 @@ export class SenderManager {
       }
     }
 
-    return new SenderManager(
+    let manager = new SenderManager(
       session,
       connection,
       session.tenant,
@@ -479,6 +481,7 @@ export class SenderManager {
       d.agentClient,
       d.connectionPrivateMetadata
     );
+    return manager;
   }
 
   #upsertAgentClientPromise: ReturnType<typeof this.upsertAgentClientIfNeeded> | null = null;
@@ -556,190 +559,256 @@ export class SenderManager {
     return connection.participant;
   }
 
-  private async ensureProviderInstance(provider: SessionProvider) {
-    return instanceLock.usingLock(provider.id, async () => {
-      let currentInstance = await db.sessionProviderInstance.findFirst({
-        where: {
-          sessionProviderOid: provider.oid,
-          expiresAt: { gt: new Date() }
-        },
-        include: { pairVersion: true }
-      });
-      if (currentInstance) {
-        let ageInMinutes = Math.abs(
-          differenceInMinutes(new Date(), currentInstance.createdAt)
-        );
-        if (ageInMinutes <= SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) {
-          return {
-            status: 'ok' as const,
-            instance: await db.sessionProviderInstance.update({
-              where: { oid: currentInstance.oid },
-              data: {
-                expiresAt: addMinutes(
-                  new Date(),
-                  SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT
-                )
-              },
-              include: { pairVersion: true }
-            })
-          };
-        }
+  private async findReusableProviderInstance(provider: SessionProvider) {
+    let currentInstance = await db.sessionProviderInstance.findFirst({
+      where: {
+        sessionProviderOid: provider.oid,
+        expiresAt: { gt: new Date() }
+      },
+      include: { pairVersion: true }
+    });
+    if (!currentInstance) return null;
 
-        await db.sessionProviderInstance.updateMany({
-          where: { oid: currentInstance.oid },
-          data: { expiresAt: new Date() }
-        });
+    let ageInMinutes = Math.abs(differenceInMinutes(new Date(), currentInstance.createdAt));
+    if (ageInMinutes > SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) return null;
+
+    return await db.sessionProviderInstance.update({
+      where: { oid: currentInstance.oid },
+      data: {
+        expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
+      },
+      include: { pairVersion: true }
+    });
+  }
+
+  private async resolveProviderInstance(provider: SessionProvider) {
+    let reusableInstance = await this.findReusableProviderInstance(provider);
+    if (reusableInstance) {
+      return { status: 'ok' as const, instance: reusableInstance };
+    }
+
+    let fullProvider = await db.sessionProvider.findFirstOrThrow({
+      where: { oid: provider.oid },
+      include: {
+        environment: true,
+        deployment: { include: { currentVersion: true } },
+        config: { include: { currentVersion: true } },
+        authConfig: { include: { currentVersion: true } },
+        provider: { include: { defaultVariant: { include: { currentVersion: true } } } }
       }
+    });
 
-      let fullProvider = await db.sessionProvider.findFirstOrThrow({
+    let dependencyIsDeleted =
+      isRecordDeleted(fullProvider.deployment) ||
+      isRecordDeleted(fullProvider.config) ||
+      isRecordDeleted(fullProvider.authConfig);
+    if (dependencyIsDeleted) {
+      await db.sessionProvider.updateMany({
         where: { oid: provider.oid },
-        include: {
-          environment: true,
-          deployment: { include: { currentVersion: true } },
-          config: { include: { currentVersion: true } },
-          authConfig: { include: { currentVersion: true } },
-          provider: { include: { defaultVariant: { include: { currentVersion: true } } } }
+        data: { status: 'archived' }
+      });
+      return null;
+    }
+
+    let version = await providerDeploymentInternalService.getCurrentVersion({
+      environment: fullProvider.environment,
+      deployment: fullProvider.deployment,
+      provider: fullProvider.provider
+    });
+    if (!version?.specificationOid) {
+      let discoveryError = {
+        type: 'connection_error' as const,
+        error: {
+          code: version ? 'specification_unavailable' : 'version_unavailable',
+          message: version
+            ? 'The provider version has no discovered specification yet'
+            : 'The provider has no usable version'
         }
+      };
+
+      await createError({
+        session: this.session,
+        connection: this.connection,
+
+        type: 'provider_discovery_failed',
+        output: { type: 'error', data: discoveryError.error }
       });
 
-      let dependencyIsDeleted =
-        isRecordDeleted(fullProvider.deployment) ||
-        isRecordDeleted(fullProvider.config) ||
-        isRecordDeleted(fullProvider.authConfig);
-      if (dependencyIsDeleted) {
-        await db.sessionProvider.updateMany({
-          where: { oid: provider.oid },
-          data: { status: 'archived' }
-        });
-        return null;
-      }
-
-      let version = await providerDeploymentInternalService.getCurrentVersion({
-        environment: fullProvider.environment,
-        deployment: fullProvider.deployment,
-        provider: fullProvider.provider
-      });
-      if (!version?.specificationOid) {
-        let discoveryError = {
-          type: 'connection_error' as const,
-          error: {
-            code: version ? 'specification_unavailable' : 'version_unavailable',
-            message: version
-              ? 'The provider version has no discovered specification yet'
-              : 'The provider has no usable version'
-          }
-        };
-
-        await createError({
-          session: this.session,
-          connection: this.connection,
-
-          type: 'provider_discovery_failed',
-          output: { type: 'error', data: discoveryError.error }
-        });
-
-        let detail = buildConnectionFailedDetail({ provider: fullProvider, discoveryError });
-
-        return {
-          status: 'discovery_failed' as const,
-          discoveryError,
-          detail,
-          mcpError: { code: -32603, message: detail.shortMessage }
-        };
-      }
-
-      let pair = await providerDeploymentConfigPairInternalService.useDeploymentConfigPair({
-        deployment: fullProvider.deployment,
-        authConfig: fullProvider.authConfig,
-        config: fullProvider.config,
-        version
-      });
-
-      let rec = pair.version.latestDiscoveryRecord;
-
-      if (rec) {
-        for (let warning of rec.warnings) {
-          await createWarning({
-            session: this.session,
-            connection: this.connection,
-            warning: {
-              code: warning.code,
-              message: warning.message,
-              payload: warning.data
-            }
-          });
-        }
-      }
-
-      if (
-        pair.version.specificationDiscoveryStatus == 'failed' &&
-        !pair.version.specificationOid
-      ) {
-        await createError({
-          session: this.session,
-          connection: this.connection,
-
-          type: 'provider_discovery_failed',
-          output: rec?.error
-            ? {
-                type: 'error',
-                data:
-                  rec.error.type == 'timeout_error'
-                    ? {
-                        code: 'discovery_timeout',
-                        message:
-                          rec.error.message ?? 'Provider specification discovery timed out'
-                      }
-                    : {
-                        code: rec.error.error.code,
-                        message:
-                          rec.error.error.message ??
-                          `Unable to discover provider capabilities: ${rec.error.error.code}`
-                      }
-              }
-            : {
-                type: 'error',
-                data: {
-                  code: 'discovery_failed',
-                  message: 'Failed to discover provider specification'
-                }
-              }
-        });
-
-        let detail = buildConnectionFailedDetail({
-          provider: fullProvider,
-          discoveryError: rec?.error
-        });
-
-        return {
-          status: 'discovery_failed' as const,
-          discoveryError: rec?.error ?? null,
-          detail,
-          mcpError:
-            rec?.error?.type == 'mcp_error'
-              ? { ...rec.error.error, message: detail.shortMessage }
-              : {
-                  code: -32603,
-                  message: detail.shortMessage
-                }
-        };
-      }
+      let detail = buildConnectionFailedDetail({ provider: fullProvider, discoveryError });
 
       return {
-        status: 'ok' as const,
-        instance: await db.sessionProviderInstance.create({
-          data: {
-            ...getId('sessionProviderInstance'),
-            sessionProviderOid: provider.oid,
-            sessionOid: provider.sessionOid,
-            pairOid: pair.pair.oid,
-            pairVersionOid: pair.version.oid,
-            expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
-          },
-          include: { pairVersion: true }
-        })
+        status: 'discovery_failed' as const,
+        discoveryError,
+        detail,
+        mcpError: { code: -32603, message: detail.shortMessage }
       };
+    }
+
+    let pair = await providerDeploymentConfigPairInternalService.useDeploymentConfigPair({
+      deployment: fullProvider.deployment,
+      authConfig: fullProvider.authConfig,
+      config: fullProvider.config,
+      version
     });
+
+    let rec = pair.version.latestDiscoveryRecord;
+
+    if (rec) {
+      for (let warning of rec.warnings) {
+        await createWarning({
+          session: this.session,
+          connection: this.connection,
+          warning: {
+            code: warning.code,
+            message: warning.message,
+            payload: warning.data
+          }
+        });
+      }
+    }
+
+    if (
+      pair.version.specificationDiscoveryStatus == 'failed' &&
+      !pair.version.specificationOid
+    ) {
+      await createError({
+        session: this.session,
+        connection: this.connection,
+
+        type: 'provider_discovery_failed',
+        output: rec?.error
+          ? {
+              type: 'error',
+              data:
+                rec.error.type == 'timeout_error'
+                  ? {
+                      code: 'discovery_timeout',
+                      message:
+                        rec.error.message ?? 'Provider specification discovery timed out'
+                    }
+                  : {
+                      code: rec.error.error.code,
+                      message:
+                        rec.error.error.message ??
+                        `Unable to discover provider capabilities: ${rec.error.error.code}`
+                    }
+            }
+          : {
+              type: 'error',
+              data: {
+                code: 'discovery_failed',
+                message: 'Failed to discover provider specification'
+              }
+            }
+      });
+
+      let detail = buildConnectionFailedDetail({
+        provider: fullProvider,
+        discoveryError: rec?.error
+      });
+
+      return {
+        status: 'discovery_failed' as const,
+        discoveryError: rec?.error ?? null,
+        detail,
+        mcpError:
+          rec?.error?.type == 'mcp_error'
+            ? { ...rec.error.error, message: detail.shortMessage }
+            : {
+                code: -32603,
+                message: detail.shortMessage
+              }
+      };
+    }
+
+    try {
+      return await instanceLock.usingLock(
+        provider.id,
+        async () => {
+          return await withTransaction(async tdb => {
+            let currentInstance = await tdb.sessionProviderInstance.findFirst({
+              where: {
+                sessionProviderOid: provider.oid,
+                expiresAt: { gt: new Date() }
+              },
+              include: { pairVersion: true }
+            });
+
+            if (currentInstance) {
+              let ageInMinutes = Math.abs(
+                differenceInMinutes(new Date(), currentInstance.createdAt)
+              );
+              if (ageInMinutes <= SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) {
+                return {
+                  status: 'ok' as const,
+                  instance: await tdb.sessionProviderInstance.update({
+                    where: { oid: currentInstance.oid },
+                    data: {
+                      expiresAt: addMinutes(
+                        new Date(),
+                        SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT
+                      )
+                    },
+                    include: { pairVersion: true }
+                  })
+                };
+              }
+            }
+
+            await tdb.sessionProviderInstance.updateMany({
+              where: {
+                sessionProviderOid: provider.oid,
+                expiresAt: { gt: new Date() }
+              },
+              data: { expiresAt: new Date() }
+            });
+
+            return {
+              status: 'ok' as const,
+              instance: await tdb.sessionProviderInstance.create({
+                data: {
+                  ...getId('sessionProviderInstance'),
+                  sessionProviderOid: provider.oid,
+                  sessionOid: provider.sessionOid,
+                  pairOid: pair.pair.oid,
+                  pairVersionOid: pair.version.oid,
+                  expiresAt: addMinutes(
+                    new Date(),
+                    SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT
+                  )
+                },
+                include: { pairVersion: true }
+              })
+            };
+          });
+        },
+        { acquisitionTimeoutMs: 5_000 }
+      );
+    } catch (error) {
+      // A contender may have committed immediately before our acquisition budget
+      // elapsed. Prefer its valid instance over surfacing lock contention.
+      let winnerInstance = await this.findReusableProviderInstance(provider);
+      if (winnerInstance) return { status: 'ok' as const, instance: winnerInstance };
+      throw error;
+    }
+  }
+
+  private async ensureProviderInstance(provider: SessionProvider) {
+    let existing = providerInstanceResolutionPromises.get(provider.id);
+    if (existing) {
+      return (await existing) as Awaited<ReturnType<typeof this.resolveProviderInstance>>;
+    }
+
+    let promise = this.resolveProviderInstance(provider);
+    providerInstanceResolutionPromises.set(provider.id, promise);
+
+    try {
+      return await promise;
+    } finally {
+      if (providerInstanceResolutionPromises.get(provider.id) === promise) {
+        providerInstanceResolutionPromises.delete(provider.id);
+      }
+    }
   }
 
   #connectionSpecificationPromises = new Map<
@@ -879,7 +948,7 @@ export class SenderManager {
             tool => checkToolScopesSatisfied(tool, grantedScopes).allowed
           );
 
-    return {
+    let result = {
       status: 'ok' as const,
       tools: scopeFilteredTools.map(t => ({
         ...t,
@@ -888,6 +957,7 @@ export class SenderManager {
         sessionProviderInstance: res.instance
       }))
     };
+    return result;
   }
 
   async listProviders() {

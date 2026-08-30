@@ -7,7 +7,6 @@
     "@metorial/config": "^1.0.0",
     "@metorial/context": "^1.0.0",
     "@metorial/db": "^1.0.0",
-    "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/execution-context": "workspace:2.0.0",
     "@lowerdeck/hono": "workspace:2.0.0",

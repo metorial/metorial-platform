@@ -35,6 +35,24 @@ export class ConduitSendError extends Error {
   }
 }
 
+export class ConduitReceiverUnavailableError extends ConduitSendError {
+  constructor(
+    messageId: string,
+    topic: string,
+    retryCount: number,
+    public readonly elapsedMs: number,
+    public readonly activeReceiverCount: number
+  ) {
+    super(
+      `Receiver unavailable for topic ${topic} after ${elapsedMs}ms (activeReceivers=${activeReceiverCount})`,
+      messageId,
+      topic,
+      retryCount
+    );
+    this.name = 'ConduitReceiverUnavailableError';
+  }
+}
+
 export class ConduitProcessError extends Error {
   public readonly messageId: string;
   public readonly topic: string;
