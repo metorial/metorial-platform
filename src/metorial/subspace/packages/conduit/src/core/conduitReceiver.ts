@@ -67,7 +67,8 @@ export class ConduitReceiver {
       maxProcessingMs: 300000,
       maxInFlight: 2000,
       handlerConcurrency: 256,
-      maxOrphanedHandlers: config.config?.maxOrphanedHandlers ?? config.config?.handlerConcurrency ?? 256,
+      maxOrphanedHandlers:
+        config.config?.maxOrphanedHandlers ?? config.config?.handlerConcurrency ?? 256,
       ...config.config
     };
 
@@ -362,6 +363,11 @@ export class ConduitReceiver {
 
   isReady(): boolean {
     return this.receiver.isReady();
+  }
+
+  async isRegistered(): Promise<boolean> {
+    let activeReceivers = await this.coordination.getActiveReceivers();
+    return activeReceivers.includes(this.receiver.getReceiverId());
   }
 
   getStats() {

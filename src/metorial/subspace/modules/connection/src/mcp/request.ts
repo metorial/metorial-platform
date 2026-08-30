@@ -14,9 +14,10 @@ export let handleMcpRequest = async (
   }
 ) => {
   let { message, waitForResponse, onProgress, ...connectionInput } = d;
+  let method = 'method' in message ? message.method : undefined;
+
   let connection = await McpConnection.create(connectionInput);
 
-  let method = 'method' in message ? message.method : undefined;
   let response =
     onProgress && isLongRunningMcpMethod(method)
       ? await connection.handleMessageWithProgress(

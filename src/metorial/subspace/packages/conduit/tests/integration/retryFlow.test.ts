@@ -12,7 +12,8 @@ describe('Retry Flow Integration', () => {
       expect.unreachable('Should have thrown');
     } catch (err: unknown) {
       expect(err).toBeDefined();
-      expect((err as Error).message).toContain('No receiver available');
+      expect((err as Error).message).toContain('Receiver unavailable');
+      expect((err as Error).message).toContain('activeReceivers=0');
     }
 
     await sender.close();
@@ -22,7 +23,7 @@ describe('Retry Flow Integration', () => {
   test('should retry and succeed when receiver becomes available', async () => {
     const conduit = createConduit();
     const sender = conduit.createSender({
-      defaultTimeout: 200,
+      defaultTimeout: 500,
       maxRetries: 3,
       retryBackoffMs: 100
     });

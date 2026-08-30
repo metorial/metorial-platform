@@ -100,28 +100,45 @@ export class Receiver {
       `CONDUIT.receiver.start receiverId=${this.receiverId} conduitId=${this.conduitId}`
     );
 
-    // Subscribe to messages FIRST. We must be listening before we advertise
-    // ourselves as an active receiver, otherwise a freshly-started worker would
-    // be in the active pool (and pingable / assignable) while not yet draining.
-    await this.subscribe();
-    this.ready = true;
+    let registered = false;
+    try {
+      // Subscribe to messages FIRST. We must be listening before we advertise
+      // ourselves as an active receiver, otherwise a freshly-started worker would
+      // be in the active pool (and pingable / assignable) while not yet draining.
+      await this.subscribe();
+      this.ready = true;
 
-    // Now register the receiver (only after we are actually listening).
-    await this.coordination.registerReceiver(this.receiverId, this.config.heartbeatTtl);
-    console.log(
-      `CONDUIT.receiver.start.registered receiverId=${this.receiverId} heartbeatTtl=${this.config.heartbeatTtl}`
-    );
+      // Now register the receiver (only after we are actually listening).
+      await this.coordination.registerReceiver(this.receiverId, this.config.heartbeatTtl);
+      registered = true;
+      console.log(
+        `CONDUIT.receiver.start.registered receiverId=${this.receiverId} heartbeatTtl=${this.config.heartbeatTtl}`
+      );
 
-    // Start heartbeat
-    this.startHeartbeat();
+      this.startHeartbeat();
+      this.ownershipManager.start();
+      this.startTimeoutChecker();
 
-    // Start ownership renewal
-    this.ownershipManager.start();
+      console.log(`CONDUIT.receiver.start.done receiverId=${this.receiverId}`);
+    } catch (error) {
+      // Leave the object in a genuinely stopped state so a supervisor can retry.
+      this.ready = false;
+      this.running = false;
+      this.stopHeartbeat();
+      this.stopTimeoutChecker();
+      this.ownershipManager.stop();
 
-    // Start shared timeout/health check interval
-    this.startTimeoutChecker();
+      if (this.subscriptionId) {
+        await this.transport.unsubscribe(this.subscriptionId).catch(() => {});
+        this.subscriptionId = null;
+      }
+      if (registered) {
+        await this.coordination.unregisterReceiver(this.receiverId).catch(() => {});
+      }
 
-    console.log(`CONDUIT.receiver.start.done receiverId=${this.receiverId}`);
+      console.error(`CONDUIT.receiver.start.failed receiverId=${this.receiverId}`, error);
+      throw error;
+    }
   }
 
   async stop(): Promise<void> {

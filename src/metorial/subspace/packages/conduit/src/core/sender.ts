@@ -6,14 +6,13 @@ import type { SenderConfig } from '../types/config';
 import type { ConduitMessage, TimeoutExtension } from '../types/message';
 import { isTimeoutExtension } from '../types/message';
 import type { ConduitResponse } from '../types/response';
-import { ConduitSendError } from '../types/response';
+import { ConduitReceiverUnavailableError, ConduitSendError } from '../types/response';
 import type {
   TopicListener,
   TopicResponseBroadcast,
   TopicSubscription
 } from '../types/topicListener';
 import { CONDUIT_HEALTH_TOPIC } from './health';
-import { RetryManager } from './retryManager';
 
 let Sentry = getSentry();
 
@@ -29,7 +28,6 @@ interface InFlightMessage {
 
 export class Sender {
   private senderId: string;
-  private retryManager: RetryManager;
   private messageCounter = 0;
   private inFlightMessages: Map<string, InFlightMessage> = new Map();
   private topicSubscriptions: Map<string, string> = new Map(); // topic -> subscriptionId
@@ -45,12 +43,6 @@ export class Sender {
   ) {
     this.conduitId = conduitId;
     this.senderId = `sender-${crypto.randomUUID()}`;
-    this.retryManager = new RetryManager(
-      config.maxRetries,
-      config.retryBackoffMs,
-      config.retryBackoffMultiplier
-    );
-
     // Start cleanup interval for failed unsubscribes
     this.cleanupInterval = setInterval(() => {
       this.retryFailedUnsubscribes().catch(err => {
@@ -72,24 +64,84 @@ export class Sender {
 
     let actualTimeout = timeout ?? this.config.defaultTimeout;
     let messageId = this.generateMessageId();
+    let startedAt = Date.now();
+    let deadline = startedAt + actualTimeout;
+    let retryAttempt = 0;
+    let receiverWaitAttempt = 0;
+    let lastError: Error | null = null;
 
-    return this.retryManager.withRetry(
-      async attemptNumber => {
-        let message: ConduitMessage = {
+    while (true) {
+      let remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        if (lastError instanceof ConduitReceiverUnavailableError) {
+          throw new ConduitReceiverUnavailableError(
+            messageId,
+            topic,
+            retryAttempt + receiverWaitAttempt,
+            Date.now() - startedAt,
+            lastError.activeReceiverCount
+          );
+        }
+
+        throw new ConduitSendError(
+          `Send deadline exceeded for topic ${topic} after ${Date.now() - startedAt}ms`,
           messageId,
           topic,
-          payload,
-          replySubject: '', // Will be set by transport
-          timeout: actualTimeout,
-          sentAt: Date.now(),
-          retryCount: attemptNumber
-        };
+          retryAttempt + receiverWaitAttempt,
+          lastError ?? undefined,
+          false
+        );
+      }
 
-        return await this.sendMessage(message, actualTimeout);
-      },
-      `Send message ${messageId} to topic ${topic}`,
-      error => !(error instanceof ConduitSendError) || error.retryable
-    );
+      let attemptNumber = retryAttempt + receiverWaitAttempt;
+      let attemptsRemaining = Math.max(1, this.config.maxRetries - retryAttempt + 1);
+      let attemptTimeoutMs = Math.max(1, Math.floor(remainingMs / attemptsRemaining));
+      let message: ConduitMessage = {
+        messageId,
+        topic,
+        payload,
+        replySubject: '',
+        timeout: attemptTimeoutMs,
+        sentAt: Date.now(),
+        retryCount: attemptNumber
+      };
+
+      try {
+        let response = await this.sendMessage(message, attemptTimeoutMs, startedAt);
+        return response;
+      } catch (err) {
+        let error = err instanceof Error ? err : new Error(String(err));
+        lastError = error;
+
+        if (error.message === 'Sender closed') throw error;
+
+        if (error instanceof ConduitReceiverUnavailableError) {
+          let backoffMs = Math.min(100 * 2 ** receiverWaitAttempt, 1_000);
+          let waitMs = Math.min(backoffMs, Math.max(0, deadline - Date.now()));
+          if (waitMs <= 0) continue;
+
+          receiverWaitAttempt++;
+          await new Promise(resolve => setTimeout(resolve, waitMs));
+          continue;
+        }
+
+        let retryable = !(error instanceof ConduitSendError) || error.retryable;
+        if (!retryable || retryAttempt >= this.config.maxRetries) {
+          throw new Error(
+            `Send message ${messageId} to topic ${topic} failed after ${retryAttempt + 1} attempts: ${error.message}`
+          );
+        }
+
+        let backoffMs =
+          this.config.retryBackoffMs * this.config.retryBackoffMultiplier ** retryAttempt;
+        let waitMs = Math.min(backoffMs, Math.max(0, deadline - Date.now()));
+        console.warn(
+          `Send message ${messageId} to topic ${topic} failed (attempt ${retryAttempt + 1}/${this.config.maxRetries + 1}), retrying in ${waitMs}ms: ${error.message}`
+        );
+        retryAttempt++;
+        if (waitMs > 0) await new Promise(resolve => setTimeout(resolve, waitMs));
+      }
+    }
   }
 
   async pingReceiver(receiverId: string, timeoutMs?: number): Promise<ConduitResponse> {
@@ -293,16 +345,19 @@ export class Sender {
 
   private async sendMessage(
     message: ConduitMessage,
-    timeout: number
+    timeout: number,
+    sendStartedAt: number
   ): Promise<ConduitResponse> {
     // Resolve topic owner
     let receiverId = await this.resolveOwner(message.topic);
     if (!receiverId) {
-      throw new ConduitSendError(
-        `No receiver available for topic ${message.topic}`,
+      let activeReceivers = await this.coordination.getActiveReceivers();
+      throw new ConduitReceiverUnavailableError(
         message.messageId,
         message.topic,
-        message.retryCount
+        message.retryCount,
+        Date.now() - sendStartedAt,
+        activeReceivers.length
       );
     }
 
