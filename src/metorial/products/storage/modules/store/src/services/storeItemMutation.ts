@@ -9,10 +9,12 @@ import type {
   StoreDirectory,
   StoreItemKind
 } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import { applyStoreByteSizeDelta, refreshStoreByteSize } from '../lib/storeByteSize';
+import { createStoreItemAuditRecorder } from '../lib/storeItemAudit';
 import {
   listAncestorDirectoryPaths,
   normalizeStorePath,
@@ -1501,6 +1503,7 @@ class StoreItemMutationServiceImpl {
   async modifyStoreItems(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     store: Store;
     operations: StoreItemOperationInput[];
     actor?: Pick<ResourceActor, 'oid'>;
@@ -1530,6 +1533,7 @@ class StoreItemMutationServiceImpl {
 
     return await withTransaction(async client => {
       let results: StoreItemMutationResult[] = [];
+      let auditRecorder = createStoreItemAuditRecorder();
       let currentStore = (await client.store.findUnique({
         where: {
           id: d.store.id
@@ -1580,10 +1584,12 @@ class StoreItemMutationServiceImpl {
               );
             }
 
+            let addedDirectory = hierarchy.item ?? root.item;
             results.push({
               type: 'add',
-              item: hierarchy.item ?? root.item
+              item: addedDirectory
             });
+            auditRecorder.record('add', addedDirectory);
 
             continue;
           }
@@ -1628,6 +1634,7 @@ class StoreItemMutationServiceImpl {
             type: 'add',
             item: result.item
           });
+          auditRecorder.record('add', result.item);
           await this.syncSkillAgentForStoreItemTransition({
             skill,
             previousItem: null,
@@ -1666,6 +1673,7 @@ class StoreItemMutationServiceImpl {
             type: 'remove',
             item: removedItem.item
           });
+          auditRecorder.record('remove', removedItem.item);
 
           continue;
         }
@@ -1743,6 +1751,7 @@ class StoreItemMutationServiceImpl {
             type: 'modify',
             item: movedItem.item
           });
+          auditRecorder.record('modify', movedItem.item, normalizedCurrentPath.path);
 
           continue;
         }
@@ -1801,6 +1810,7 @@ class StoreItemMutationServiceImpl {
           type: 'modify',
           item: updatedItem
         });
+        auditRecorder.record('modify', updatedItem, item.path);
         await this.syncSkillAgentForStoreItemTransition({
           skill,
           previousItem: item,
@@ -1842,6 +1852,15 @@ class StoreItemMutationServiceImpl {
         });
 
         await enqueueStoreLifecycle({ storeId: d.store.id, event: 'contents-changed' });
+      }
+
+      if (auditRecorder.total > 0) {
+        await Fabric.fire('store.items.modified:after', {
+          auditScope: d.auditScope,
+          store: d.store,
+          skill: skill ? { id: skill.id } : null,
+          ...auditRecorder.summary
+        });
       }
 
       return results;

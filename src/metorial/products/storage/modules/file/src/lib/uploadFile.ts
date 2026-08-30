@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
+import type { AuditScope } from '@metorial/audit-scope';
 import type { StoreParticipantPermissions } from '@metorial/db';
 import type { CargoOwnerScope } from '../internal/ownerScope';
 import type { ResourceAuthorization } from '@metorial/module-access';
@@ -18,6 +19,7 @@ import {
 
 export let uploadCargoFile = async (
   d: CargoOwnerScope & {
+    auditScope: AuditScope;
     purpose: string;
     file: Blob;
     fileName: string;

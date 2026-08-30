@@ -24,6 +24,7 @@ import type {
   Project,
   StoreParticipantPermissions
 } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
@@ -114,11 +115,16 @@ class FileServiceImpl {
     });
   }
 
-  private async deleteFileIfUnreferenced(d: { fileId: string; replacementFileOid: bigint }) {
+  private async deleteFileIfUnreferenced(d: {
+    fileId: string;
+    replacementFileOid: bigint;
+    auditScope: AuditScope;
+  }) {
     return await withTransaction(async db => {
       let file = await db.file.findUnique({
         where: { id: d.fileId },
         include: {
+          purpose: { select: { slug: true } },
           document: { select: { id: true } },
           links: {
             select: {
@@ -180,6 +186,7 @@ class FileServiceImpl {
 
       await Fabric.fire('file.deleted:after', {
         ...fileFabricOwnerFromFile(file),
+        auditScope: d.auditScope,
         file
       });
 
@@ -240,6 +247,7 @@ class FileServiceImpl {
 
   async createFile(
     d: CargoOwnerScope & {
+      auditScope: AuditScope;
       purpose: string;
       storeId: string;
       _isDocument?: boolean;
@@ -355,7 +363,8 @@ class FileServiceImpl {
           if (d.input.store.replace && attached.previousFile) {
             cleanupFileId = await this.deleteFileIfUnreferenced({
               fileId: attached.previousFile.id,
-              replacementFileOid: updatedFile.oid
+              replacementFileOid: updatedFile.oid,
+              auditScope: d.auditScope
             });
           }
         }
@@ -363,7 +372,10 @@ class FileServiceImpl {
         return await this.withEffectiveStoreId(updatedFile);
       }
 
-      await Fabric.fire('file.created:before', fileFabricOwnerFromScope(d, d.input.size));
+      await Fabric.fire('file.created:before', {
+        ...fileFabricOwnerFromScope(d, d.input.size),
+        auditScope: d.auditScope
+      });
 
       let createdFile = await db.file.create({
         data: {
@@ -386,6 +398,7 @@ class FileServiceImpl {
 
       await Fabric.fire('file.created:after', {
         ...fileFabricOwnerFromScope(d, createdFile.fileSize),
+        auditScope: d.auditScope,
         file: createdFile
       });
 
@@ -420,7 +433,8 @@ class FileServiceImpl {
         if (d.input.store.replace && attached.previousFile) {
           cleanupFileId = await this.deleteFileIfUnreferenced({
             fileId: attached.previousFile.id,
-            replacementFileOid: createdFile.oid
+            replacementFileOid: createdFile.oid,
+            auditScope: d.auditScope
           });
         }
       }
@@ -520,6 +534,7 @@ class FileServiceImpl {
 
   async createUploadedFile(
     d: CargoOwnerScope & {
+      auditScope: AuditScope;
       purpose: string;
       file: Blob;
       input: {
@@ -613,6 +628,7 @@ class FileServiceImpl {
    */
   async completePendingUploadForStream(
     d: CargoOwnerScope & {
+      auditScope: AuditScope;
       purpose: string;
       storeId: string;
       input: {
@@ -662,6 +678,7 @@ class FileServiceImpl {
 
   async createUploadedFileFromByteStream(
     d: CargoOwnerScope & {
+      auditScope: AuditScope;
       purpose: string;
       content: AsyncIterable<Uint8Array>;
       input: {
@@ -754,6 +771,7 @@ class FileServiceImpl {
 
   async deleteFileById(
     d: CargoOwnerScope & {
+      auditScope: AuditScope;
       fileId: string;
     } & FileAccessInput
   ) {
@@ -781,11 +799,12 @@ class FileServiceImpl {
     }
 
     return await this.deleteFile({
-      file
+      file,
+      auditScope: d.auditScope
     });
   }
 
-  async deleteFile(d: { file: File }) {
+  async deleteFile(d: { file: File; auditScope: AuditScope }) {
     await this.ensureFileActive(d.file);
     this.assertFileWritable(d.file);
     let activeSkillAgentCount = await db.skillAgent.count({
@@ -857,6 +876,7 @@ class FileServiceImpl {
 
     await Fabric.fire('file.deleted:after', {
       ...fileFabricOwnerFromFile(file),
+      auditScope: d.auditScope,
       file
     });
 

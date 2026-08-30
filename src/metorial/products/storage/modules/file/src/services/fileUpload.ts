@@ -3,6 +3,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { Fabric } from '@metorial/fabric';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeAccessService, storeWritePermission } from '@metorial/module-store';
@@ -144,6 +145,7 @@ class FileUploadServiceImpl {
 
   async createPendingUpload(
     d: CargoOwnerScope & {
+      auditScope: AuditScope;
       purpose: string;
       input: {
         name: string;
@@ -205,7 +207,10 @@ class FileUploadServiceImpl {
     let uploadId = await ID.generateId('fileUpload');
     let fileType = d.input.mimeType?.trim() || 'application/octet-stream';
     let uploadUrlExpiresAt = getUploadUrlExpiresAt();
-    let fabricOwner = fileFabricOwnerFromScope(d, d.input.size);
+    let fabricOwner = {
+      ...fileFabricOwnerFromScope(d, d.input.size),
+      auditScope: d.auditScope
+    };
 
     await Fabric.fire('file.upload.created:before', fabricOwner);
 
@@ -269,6 +274,7 @@ class FileUploadServiceImpl {
 
   async completePendingUpload(
     d: CargoOwnerScope & {
+      auditScope: AuditScope;
       uploadId: string;
     } & FileUploadAccessInput
   ) {
@@ -299,7 +305,10 @@ class FileUploadServiceImpl {
       );
     }
 
-    let fabricOwner = fileFabricOwnerFromScope(scope, upload.fileSize);
+    let fabricOwner = {
+      ...fileFabricOwnerFromScope(scope, upload.fileSize),
+      auditScope: d.auditScope
+    };
 
     await Fabric.fire('file.upload.completed:before', {
       ...fabricOwner,
