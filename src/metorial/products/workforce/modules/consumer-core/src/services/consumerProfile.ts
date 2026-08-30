@@ -2,6 +2,7 @@ import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { createOrganizationActorAuditScope, type AuditScope } from '@metorial/audit-scope';
 import {
   getEffectiveConsumerGroups,
@@ -28,7 +29,6 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { namespaceService, organizationActorService } from '@metorial/module-organization';
-import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { searchConsumerIds } from '@metorial/module-search';
 import {
   consumerEmailEquals,
@@ -871,6 +871,7 @@ class ConsumerProfileServiceImpl {
     user?: User;
     inviteStatus?: ConsumerProfileInviteStatus;
     rejectIfActiveProfileExists?: boolean;
+    automatic?: boolean;
 
     ssoGroupIds?: string[];
     ssoRoles?: string[];
@@ -986,8 +987,29 @@ class ConsumerProfileServiceImpl {
             };
           }
 
+          if (d.automatic && d.user) {
+            let previouslyDeletedProfile = await db.consumerProfile.findFirst({
+              where: {
+                surfaceOid: d.surface.oid,
+                status: 'deleted',
+                consumer: { userOid: d.user.oid }
+              },
+              include
+            });
+
+            if (previouslyDeletedProfile) {
+              return {
+                lifecycleAction: 'skipped' as const,
+                instanceConsumer,
+                consumerProfile: previouslyDeletedProfile,
+                previousConsumerProfile: undefined
+              };
+            }
+          }
+
           await Fabric.fire('consumer.profile.created:before', {
-            surface: d.surface
+            surface: d.surface,
+            automatic: !!d.automatic
           });
 
           let organizationIdentity = await this.resolveOrganizationIdentity({
@@ -1054,7 +1076,7 @@ class ConsumerProfileServiceImpl {
       });
 
       await consumerProfileCreatedQueue.add({ consumerProfileId: res.consumerProfile.id });
-    } else {
+    } else if (res.lifecycleAction === 'updated') {
       await Fabric.fire('consumer.profile.updated:after', {
         consumerProfile: res.consumerProfile,
         previousConsumerProfile: res.previousConsumerProfile,
@@ -1064,10 +1086,13 @@ class ConsumerProfileServiceImpl {
 
       await consumerProfileUpdatedQueue.add({ consumerProfileId: res.consumerProfile.id });
     }
+    // 'skipped': a prior deletion for this user on this surface is respected -- nothing to fire or sync.
 
-    await addAwaitedAfterTransactionHook(() =>
-      metorialResourceService.syncConsumerProfile(res.consumerProfile)
-    );
+    if (res.lifecycleAction !== 'skipped') {
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncConsumerProfile(res.consumerProfile)
+      );
+    }
 
     let consumerProfile =
       res.lifecycleAction == 'updated' && res.shouldActivate

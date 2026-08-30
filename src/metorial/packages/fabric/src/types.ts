@@ -922,7 +922,7 @@ export interface FabricEvents {
   'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
 
-  'portal.created:before': { organization: Organization; instance: Instance; context: Context; auditScope: AuditScope; isDefaultPortal: boolean; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.created:before': { organization: Organization; instance: Instance; context: Context; auditScope: AuditScope; isDefaultPortal: boolean; automatic?: boolean; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
   'portal.created:after': { organization: Organization; instance: Instance; portal: AuditPortal; context: Context; auditScope: AuditScope; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
   'portal.updated:before': { portal: Portal; auditScope: AuditScope; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
   'portal.updated:after': { portal: AuditPortal; previousPortal: AuditPortal; auditScope: AuditScope; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
@@ -1027,7 +1027,7 @@ export interface FabricEvents {
   'workspace_policy_assignment.deleted:before': { workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
   'workspace_policy_assignment.deleted:after': { workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
 
-  'consumer.profile.created:before': { surface: ConsumerSurface };
+  'consumer.profile.created:before': { surface: ConsumerSurface; automatic?: boolean };
   'consumer.profile.created:after': { consumerProfile: AuditConsumerProfile, surface: ConsumerSurface, auditScope: AuditScope };
   'consumer.profile.updated:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.updated:after': { consumerProfile: AuditConsumerProfile, previousConsumerProfile: AuditConsumerProfile, surface: ConsumerSurface, auditScope: AuditScope };

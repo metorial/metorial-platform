@@ -31,6 +31,7 @@ export let instancePortalSetupQueueProcessor = instancePortalSetupQueue.process(
       context: data.context
     }),
     isDefaultPortal: true,
+    automatic: true,
     input: {
       name:
         instance.type === 'development'

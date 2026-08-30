@@ -248,6 +248,7 @@ class PortalServiceImpl {
       allowConsumerSkillPublishing?: boolean;
     };
     isDefaultPortal?: boolean;
+    automatic?: boolean;
   }) {
     let portalId = await ID.generateId('portal');
     let slug = await getPortalSlug({
@@ -272,7 +273,8 @@ class PortalServiceImpl {
 
       await Fabric.fire('portal.created:before', {
         ...d,
-        isDefaultPortal: !!d.isDefaultPortal
+        isDefaultPortal: !!d.isDefaultPortal,
+        automatic: !!d.automatic
       });
 
       let portal = await db.portal.create({
