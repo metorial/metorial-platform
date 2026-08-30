@@ -1,5 +1,4 @@
 import { ServiceError, badRequestError } from '@lowerdeck/error';
-import type { Instance } from '@metorial/db';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import { providerService, providerVersionService } from '@metorial-subspace/module-catalog';
 import {
@@ -8,6 +7,8 @@ import {
   providerDeploymentService
 } from '@metorial-subspace/module-deployment';
 import type { SessionProviderInput } from '@metorial-subspace/module-session';
+import type { AuditScope } from '@metorial/audit-scope';
+import type { Instance } from '@metorial/db';
 
 export type SessionProviderDeploymentSource =
   | { type: 'reference'; providerDeploymentId: string }
@@ -42,6 +43,7 @@ export type SessionProviderAuthConfigSource =
 
 export let resolveSessionProviderInput = async (d: {
   instance: Instance;
+  auditScope?: AuditScope;
   sessionTemplateId?: string;
   providerDeployment?: SessionProviderDeploymentSource;
   providerConfig?: SessionProviderConfigSource;
@@ -63,6 +65,7 @@ export let resolveSessionProviderInput = async (d: {
 
     let deployment = await providerDeploymentService.createProviderDeployment({
       instance: d.instance,
+      auditScope: d.auditScope,
       provider,
       lockedVersion,
       input: {
@@ -127,6 +130,7 @@ export let resolveSessionProviderInput = async (d: {
           };
     let newConfig = await providerConfigService.createProviderConfig({
       instance: d.instance,
+      auditScope: d.auditScope,
       provider,
       providerDeployment,
       input: {
@@ -176,6 +180,7 @@ export let resolveSessionProviderInput = async (d: {
 
     let authConfig = await providerAuthConfigService.createProviderAuthConfig({
       instance: d.instance,
+      auditScope: d.auditScope,
       provider,
       providerDeployment,
       source: 'manual',

@@ -109,6 +109,7 @@ export let storeController = Controller.create(
           ? await storeService.createStoreFromTemplate({
               project: access.project,
               instance: access.instance,
+              auditScope: access.auditScope,
               authorization: access.authorization,
               input: {
                 templateId: ctx.body.template_id,
@@ -132,6 +133,7 @@ export let storeController = Controller.create(
             : await storeService.createStore({
                 project: access.project,
                 instance: access.instance,
+                auditScope: access.auditScope,
                 input: {
                   name: ctx.body.name,
                   access: ctx.body.access,

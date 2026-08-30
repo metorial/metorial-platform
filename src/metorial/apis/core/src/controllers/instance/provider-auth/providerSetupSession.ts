@@ -248,6 +248,7 @@ export let providerSetupSessionController = Controller.create(
 
         let setupSession = await providerSetupSessionService.createProviderSetupSession({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           provider,
           providerDeployment,
           credentials,
@@ -347,6 +348,7 @@ export let providerSetupSessionController = Controller.create(
           : undefined;
         let setupSession = await providerSetupSessionService.updateProviderSetupSession({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerSetupSession: ctx.setupSession,
           input: {
             name: ctx.body.name,

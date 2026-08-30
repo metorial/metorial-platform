@@ -211,12 +211,10 @@ export let magicMcpEndpointController = Controller.create(
               })
             : undefined);
         let skillPlugin = ctx.body.skill_plugin_id
-          ? (
-              await skillPluginService.getSkillPluginById({
-                ...(await getSkillPluginAccess(ctx)),
-                skillPluginId: ctx.body.skill_plugin_id
-              })
-            )
+          ? await skillPluginService.getSkillPluginById({
+              ...(await getSkillPluginAccess(ctx)),
+              skillPluginId: ctx.body.skill_plugin_id
+            })
           : undefined;
         let servers = resolveMagicMcpEndpointServers({
           magicMcpServer: ctx.body.magic_mcp_servers
@@ -236,6 +234,7 @@ export let magicMcpEndpointController = Controller.create(
         }
 
         let magicMcpEndpoint = await magicMcpEndpointService.createMagicMcpEndpoint({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           input: {
             name: ctx.body.name,
@@ -290,6 +289,7 @@ export let magicMcpEndpointController = Controller.create(
         });
 
         let magicMcpEndpoint = await magicMcpEndpointService.archiveMagicMcpEndpoint({
+          auditScope: ctx.auditScope,
           endpoint: ctx.magicMcpEndpoint
         });
 
@@ -335,6 +335,7 @@ export let magicMcpEndpointController = Controller.create(
         });
 
         let magicMcpEndpoint = await magicMcpEndpointService.updateMagicMcpEndpoint({
+          auditScope: ctx.auditScope,
           endpoint: ctx.magicMcpEndpoint,
           input: {
             name: ctx.body.name,
@@ -409,6 +410,7 @@ export let magicMcpEndpointController = Controller.create(
         }
 
         let magicMcpEndpoint = await magicMcpEndpointService.addServersToEndpoint({
+          auditScope: ctx.auditScope,
           endpoint: ctx.magicMcpEndpoint,
           servers
         });
@@ -460,6 +462,7 @@ export let magicMcpEndpointController = Controller.create(
         });
 
         let magicMcpEndpoint = await magicMcpEndpointService.removeServersFromEndpoint({
+          auditScope: ctx.auditScope,
           endpoint: ctx.magicMcpEndpoint,
           magicMcpServerIds: ctx.body.magic_mcp_server_ids
         });

@@ -196,6 +196,7 @@ export let providerAuthImportController = Controller.create(
 
         let authImport = await providerAuthImportService.createProviderAuthImport({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           provider,
           providerDeployment,
           providerAuthConfig,

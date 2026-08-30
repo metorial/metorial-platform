@@ -174,6 +174,7 @@ export let providerConfigVaultController = Controller.create(
 
         let configVault = await providerConfigVaultService.createProviderConfigVault({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           provider,
           providerDeployment,
           input: {
@@ -221,6 +222,7 @@ export let providerConfigVaultController = Controller.create(
       .do(async ctx => {
         let configVault = await providerConfigVaultService.updateProviderConfigVault({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerConfigVault: ctx.configVault,
           input: {
             name: ctx.body.name,
@@ -250,6 +252,7 @@ export let providerConfigVaultController = Controller.create(
       .do(async ctx => {
         let configVault = await providerConfigVaultService.archiveProviderConfigVault({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerConfigVault: ctx.configVault
         });
 

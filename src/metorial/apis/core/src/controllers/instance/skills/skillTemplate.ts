@@ -152,6 +152,7 @@ export let skillTemplateController = Controller.create(
         let localTemplate = await skillTemplateService.createSkillTemplate({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           input: {
             id: await ID.generateId('skillTemplate'),
             name: ctx.body.name,

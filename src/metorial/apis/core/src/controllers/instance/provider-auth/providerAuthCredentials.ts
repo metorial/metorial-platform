@@ -197,6 +197,7 @@ export let providerAuthCredentialsController = Controller.create(
         let authCredentials =
           await providerAuthCredentialsService.createProviderAuthCredentials({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             provider,
             input: {
               name: ctx.body.name,
@@ -248,6 +249,7 @@ export let providerAuthCredentialsController = Controller.create(
         let authCredentials =
           await providerAuthCredentialsService.updateProviderAuthCredentials({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             providerAuthCredentials: ctx.authCredentials,
             input: {
               name: ctx.body.name,
@@ -281,6 +283,7 @@ export let providerAuthCredentialsController = Controller.create(
         let authCredentials =
           await providerAuthCredentialsService.archiveProviderAuthCredentials({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             providerAuthCredentials: ctx.authCredentials
           });
 

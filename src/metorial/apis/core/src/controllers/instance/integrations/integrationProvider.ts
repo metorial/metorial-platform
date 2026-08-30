@@ -143,6 +143,7 @@ export let integrationProviderController = Controller.create(
         });
         let integrationProvider = await integrationProviderService.createIntegrationProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integration,
           input: {
             providerId: ctx.body.provider_id,
@@ -192,6 +193,7 @@ export let integrationProviderController = Controller.create(
       .do(async ctx => {
         let integrationProvider = await integrationProviderService.updateIntegrationProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integrationProvider: ctx.integrationProvider,
           input: {
             providerDeploymentId: ctx.body.provider_deployment_id,
@@ -227,6 +229,7 @@ export let integrationProviderController = Controller.create(
       .do(async ctx => {
         let integrationProvider = await integrationProviderService.archiveIntegrationProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integrationProvider: ctx.integrationProvider
         });
 

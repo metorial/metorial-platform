@@ -103,6 +103,7 @@ export let documentController = Controller.create(
         let document = await documentService.createDocument({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           input: {
             title: ctx.body.title,
             content: ctx.body.content,
@@ -285,6 +286,7 @@ export let documentController = Controller.create(
           document: ctx.document,
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           input: {
             id: ctx.body.target_document_id,
             title: ctx.body.title,

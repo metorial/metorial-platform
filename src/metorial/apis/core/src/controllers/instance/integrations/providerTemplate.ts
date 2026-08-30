@@ -115,8 +115,7 @@ export let providerTemplateController = Controller.create(
     create: instanceGroup
       .post(instancePath('provider-templates', 'providerTemplates.create'), {
         name: 'Create provider template',
-        description:
-          'Creates a new provider template from an existing integration.'
+        description: 'Creates a new provider template from an existing integration.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
@@ -124,6 +123,7 @@ export let providerTemplateController = Controller.create(
       .output(providerTemplatePresenter)
       .do(async ctx => {
         let providerTemplate = await providerTemplateService.createProviderTemplate({
+          auditScope: ctx.auditScope,
           organization: ctx.organization,
           instance: ctx.instance,
           input: {
@@ -160,6 +160,7 @@ export let providerTemplateController = Controller.create(
       .output(providerTemplatePresenter)
       .do(async ctx => {
         let providerTemplate = await providerTemplateService.updateProviderTemplate({
+          auditScope: ctx.auditScope,
           providerTemplate: ctx.providerTemplate,
           instance: ctx.instance,
           input: {
@@ -187,6 +188,7 @@ export let providerTemplateController = Controller.create(
       .output(providerTemplatePresenter)
       .do(async ctx => {
         let providerTemplate = await providerTemplateService.archiveProviderTemplate({
+          auditScope: ctx.auditScope,
           providerTemplate: ctx.providerTemplate,
           instance: ctx.instance
         });

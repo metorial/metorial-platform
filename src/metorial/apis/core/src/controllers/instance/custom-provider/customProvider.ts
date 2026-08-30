@@ -317,6 +317,7 @@ export let customProviderController = Controller.create(
 
         let customProvider = await customProviderService.createCustomProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           organizationActor: ctx.actor!,
           input: {
             name: ctx.body.name,
@@ -354,6 +355,7 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let customProvider = await customProviderService.updateCustomProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           organizationActor: ctx.actor!,
           customProvider: ctx.customProvider,
           input: {
@@ -384,6 +386,7 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let customProvider = await customProviderService.archiveCustomProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           organizationActor: ctx.actor!,
           customProvider: ctx.customProvider
         });

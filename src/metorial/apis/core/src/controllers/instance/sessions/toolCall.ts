@@ -161,6 +161,7 @@ export let toolCallController = Controller.create(
         });
         let toolCall = await toolCallService.createToolCall({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           session,
           input: {
             toolId: ctx.body.tool_id,

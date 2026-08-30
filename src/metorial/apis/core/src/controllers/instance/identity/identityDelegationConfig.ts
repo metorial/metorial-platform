@@ -161,6 +161,7 @@ export let identityDelegationConfigController = Controller.create(
         let identityDelegationConfig =
           await identityDelegationConfigService.createIdentityDelegationConfig({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
@@ -225,6 +226,7 @@ export let identityDelegationConfigController = Controller.create(
         let identityDelegationConfig =
           await identityDelegationConfigService.updateIdentityDelegationConfig({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             identityDelegationConfig: ctx.identityDelegationConfig,
             input: {
               name: ctx.body.name,
@@ -256,6 +258,7 @@ export let identityDelegationConfigController = Controller.create(
         let identityDelegationConfig =
           await identityDelegationConfigService.archiveIdentityDelegationConfig({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             identityDelegationConfig: ctx.identityDelegationConfig
           });
 

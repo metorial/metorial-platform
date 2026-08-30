@@ -373,6 +373,7 @@ export let consumerProviderController = Controller.create(
         let consumerAccessRequest =
           await consumerAccessRequestService.createConsumerAccessRequest({
             consumerProfile,
+            auditScope: ctx.auditScope,
             accessRequest:
               ctx.consumerProvider.type == 'provider_template'
                 ? {
@@ -412,6 +413,7 @@ export let consumerProviderController = Controller.create(
         let setupSession = await consumerProviderSetupSessionService.startSetupSession({
           instance: ctx.instance,
           context: ctx.context,
+          auditScope: ctx.auditScope,
           accessTags: ctx.accessTags!,
           consumerSurface: ctx.consumerSurface,
           consumerProfile: ctx.consumerProfile,
@@ -478,6 +480,7 @@ export let consumerProviderController = Controller.create(
           performedBy: ctx.actor!,
           instance: ctx.instance,
           context: ctx.context,
+          auditScope: ctx.auditScope,
           consumerProfile: ctx.consumerProfile,
           accessTags: ctx.accessTags!,
           providerTemplateId: consumerProvider.providerTemplate.id,

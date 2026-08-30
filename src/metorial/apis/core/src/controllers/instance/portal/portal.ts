@@ -149,6 +149,7 @@ export let portalController = Controller.create(
           organization: ctx.organization,
           instance: ctx.instance,
           context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -191,6 +192,7 @@ export let portalController = Controller.create(
       .do(async ctx => {
         let portal = await portalService.updatePortal({
           portal: ctx.portal,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -222,7 +224,8 @@ export let portalController = Controller.create(
       .output(portalPresenter)
       .do(async ctx => {
         let portal = await portalService.archivePortal({
-          portal: ctx.portal
+          portal: ctx.portal,
+          auditScope: ctx.auditScope
         });
 
         return presentPortal(portal);

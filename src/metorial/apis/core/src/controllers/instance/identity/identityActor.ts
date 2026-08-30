@@ -151,6 +151,7 @@ export let identityActorController = Controller.create(
       .do(async ctx => {
         let identityActor = await identityActorService.createIdentityActor({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             type: ctx.body.type,
             name: ctx.body.name,
@@ -196,6 +197,7 @@ export let identityActorController = Controller.create(
       .do(async ctx => {
         let identityActor = await identityActorService.updateIdentityActor({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           identityActor: ctx.identityActor,
           input: {
             name: ctx.body.name,
@@ -218,6 +220,7 @@ export let identityActorController = Controller.create(
       .do(async ctx => {
         let identityActor = await identityActorService.archiveIdentityActor({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           identityActor: ctx.identityActor
         });
 

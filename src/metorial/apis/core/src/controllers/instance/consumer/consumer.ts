@@ -154,6 +154,7 @@ export let consumerController = Controller.create(
         let consumer = await consumerService.createConsumer({
           organization: ctx.organization,
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           flags: {
             isManuallyCreated: true
           },
@@ -232,7 +233,8 @@ export let consumerController = Controller.create(
           surface: consumerSurface,
           email: user.email,
           name: user.name,
-          member: ctx.member
+          member: ctx.member,
+          auditScope: ctx.auditScope
         });
 
         let consumer = await consumerService.getConsumerById({
@@ -269,6 +271,7 @@ export let consumerController = Controller.create(
       .do(async ctx => {
         let consumer = await consumerService.updateConsumer({
           consumer: ctx.consumer,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             email: ctx.body.email

@@ -259,6 +259,7 @@ export let portalConsumerAccessController = Controller.create(
             ? await consumerAccessService.createConsumerAccess({
                 organization: ctx.organization,
                 consumerSurface: ctx.portal.surface,
+                auditScope: ctx.auditScope,
                 consumerGroup,
                 input,
                 access: {
@@ -273,6 +274,7 @@ export let portalConsumerAccessController = Controller.create(
               ? await consumerAccessService.createConsumerAccess({
                   organization: ctx.organization,
                   consumerSurface: ctx.portal.surface,
+                  auditScope: ctx.auditScope,
                   consumerGroup,
                   input,
                   access: {
@@ -287,6 +289,7 @@ export let portalConsumerAccessController = Controller.create(
                 ? await consumerAccessService.createConsumerAccess({
                     organization: ctx.organization,
                     consumerSurface: ctx.portal.surface,
+                    auditScope: ctx.auditScope,
                     consumerGroup,
                     input,
                     access: {
@@ -298,6 +301,7 @@ export let portalConsumerAccessController = Controller.create(
                   ? await consumerAccessService.createConsumerAccess({
                       organization: ctx.organization,
                       consumerSurface: ctx.portal.surface,
+                      auditScope: ctx.auditScope,
                       consumerGroup,
                       input,
                       access: {
@@ -309,6 +313,7 @@ export let portalConsumerAccessController = Controller.create(
                     ? await consumerAccessService.createConsumerAccess({
                         organization: ctx.organization,
                         consumerSurface: ctx.portal.surface,
+                        auditScope: ctx.auditScope,
                         consumerGroup,
                         input,
                         access: {
@@ -320,6 +325,7 @@ export let portalConsumerAccessController = Controller.create(
                       ? await consumerAccessService.createConsumerAccess({
                           organization: ctx.organization,
                           consumerSurface: ctx.portal.surface,
+                          auditScope: ctx.auditScope,
                           consumerGroup,
                           input,
                           access: {
@@ -331,6 +337,7 @@ export let portalConsumerAccessController = Controller.create(
                       : await consumerAccessService.createConsumerAccess({
                           organization: ctx.organization,
                           consumerSurface: ctx.portal.surface,
+                          auditScope: ctx.auditScope,
                           consumerGroup,
                           input,
                           access: {
@@ -362,6 +369,7 @@ export let portalConsumerAccessController = Controller.create(
       .do(async ctx => {
         let consumerAccess = await consumerAccessService.updateConsumerAccess({
           consumerAccess: ctx.consumerAccess,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -383,7 +391,8 @@ export let portalConsumerAccessController = Controller.create(
       .do(async ctx => {
         let consumerAccess = await consumerAccessService.deleteConsumerAccess({
           organization: ctx.organization,
-          consumerAccess: ctx.consumerAccess
+          consumerAccess: ctx.consumerAccess,
+          auditScope: ctx.auditScope
         });
 
         return consumerAccessPresenter.present({ consumerAccess });
