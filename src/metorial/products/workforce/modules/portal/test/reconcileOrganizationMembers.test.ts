@@ -92,6 +92,7 @@ describe('organization member portal reconciliation', () => {
       name: 'Ada Lovelace',
       email: 'ada@example.com',
       user: expect.objectContaining({ id: 'user-1' }),
+      automatic: true,
       auditScope: expect.objectContaining({
         organizationOid: 1n,
         actor: { type: 'system', id: 'portal/reconcileOrganizationMembers' }
