@@ -98,7 +98,7 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
     organization_actor_id: auditLog.organizationActorId ?? null,
     actor: auditLog.actor
       ? {
-          type: auditLog.actor.type,
+          type: auditLog.actor.type === 'org_actor' ? 'organization_actor' : auditLog.actor.type,
           id: auditLog.actor.id,
           metadata: auditLog.actor.metadata ?? null,
           record: presentActorRecord(auditLog.actor.record as AuditLogActorRecord | undefined)
