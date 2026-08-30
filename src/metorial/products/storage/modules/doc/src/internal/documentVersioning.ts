@@ -1,6 +1,7 @@
 import { Service } from '@lowerdeck/service';
 import type { Prisma } from '@metorial/db';
-import { ID, withTransaction } from '@metorial/db';
+import { addAfterTransactionHook, ID, withTransaction } from '@metorial/db';
+import { enqueueDocumentVersionSeal } from '../queues/documentVersionSeal';
 import type { documentInclude } from '../services/document';
 
 type DocumentRecord = Prisma.DocumentGetPayload<{
@@ -31,7 +32,7 @@ class InternalDocumentVersioningServiceImpl {
     instance: { oid: bigint };
     document: { oid: bigint; maxVersionNumber: number };
     contentOid: bigint;
-    previousVersionOid?: bigint | null;
+    previousVersion?: { oid: bigint; id: string } | null;
     listEditedAt?: Date;
   }) {
     return await withTransaction(async db => {
@@ -66,7 +67,7 @@ class InternalDocumentVersioningServiceImpl {
           documentOid: d.document.oid,
           versionNumber: nextVersionNumber,
           contentOid: d.contentOid,
-          previousVersionOid: d.previousVersionOid ?? null,
+          previousVersionOid: d.previousVersion?.oid ?? null,
           listEditedAt: d.listEditedAt
         },
         include: {
@@ -82,6 +83,12 @@ class InternalDocumentVersioningServiceImpl {
           maxVersionNumber: nextVersionNumber
         }
       });
+
+      if (d.previousVersion) {
+        await addAfterTransactionHook(() =>
+          enqueueDocumentVersionSeal({ documentVersionId: d.previousVersion!.id })
+        );
+      }
 
       return version;
     });

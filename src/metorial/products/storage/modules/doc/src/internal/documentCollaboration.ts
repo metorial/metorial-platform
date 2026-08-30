@@ -3,6 +3,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { createRedisClient } from '@lowerdeck/redis';
 import { Service } from '@lowerdeck/service';
 import { getConfig } from '@metorial/config';
+import type { Context } from '@metorial/context';
 import { Buffer } from 'node:buffer';
 import * as Y from 'yjs';
 
@@ -22,6 +23,25 @@ let redisClientPromise: Promise<any> | undefined;
 let getRedis = async () => {
   redisClientPromise ??= redisFactory.eager();
   return await redisClientPromise;
+};
+
+export type CollaborationActor = {
+  id: string;
+  context?: Context;
+};
+
+let encodeCollaborationActor = (actor: CollaborationActor) => JSON.stringify(actor);
+
+let decodeCollaborationActor = (value: unknown): CollaborationActor | undefined => {
+  if (typeof value != 'string' || value.length == 0) return undefined;
+  if (!value.startsWith('{')) return { id: value };
+
+  try {
+    let parsed = JSON.parse(value) as CollaborationActor;
+    return typeof parsed?.id == 'string' && parsed.id.length > 0 ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 };
 
 let collaborationKeys = (documentId: string) => ({
@@ -164,6 +184,7 @@ class InternalDocumentCollaborationServiceImpl {
     documentId: string;
     update: string;
     actorId?: string;
+    actorContext?: Context;
     generation?: number;
   }) {
     return await this.withDocumentLock(d.documentId, async () => {
@@ -193,7 +214,11 @@ class InternalDocumentCollaborationServiceImpl {
       let revision = await redis.hIncrBy(dirtyDocumentsHash, d.documentId, 1);
 
       if (d.actorId) {
-        await redis.hSet(actorDocumentsHash, d.documentId, d.actorId);
+        await redis.hSet(
+          actorDocumentsHash,
+          d.documentId,
+          encodeCollaborationActor({ id: d.actorId, context: d.actorContext })
+        );
       }
 
       doc.destroy();
@@ -257,10 +282,9 @@ class InternalDocumentCollaborationServiceImpl {
     });
   }
 
-  async getActorId(documentId: string) {
+  async getActor(documentId: string) {
     let redis = await getRedis();
-    let actorId = await redis.hGet(actorDocumentsHash, documentId);
-    return typeof actorId == 'string' && actorId.length > 0 ? actorId : undefined;
+    return decodeCollaborationActor(await redis.hGet(actorDocumentsHash, documentId));
   }
 
   async clearState(documentId: string) {
