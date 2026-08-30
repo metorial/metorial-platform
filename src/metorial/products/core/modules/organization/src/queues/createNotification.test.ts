@@ -146,6 +146,49 @@ describe('organization notification fanout', () => {
     expect(mocks.emailAdd).toHaveBeenCalledWith({ destinationId: 'ond_1' });
   });
 
+  it('creates the destination but skips email when the notification suppresses email', async () => {
+    let { createOrganizationNotificationDestinationProcessor } =
+      await import('./createNotification');
+    mocks.notificationFindUnique.mockResolvedValue({
+      oid: 3n,
+      organizationOid: 1n,
+      status: 'active',
+      onlyForMemberRoles: ['admin'],
+      organization: { oid: 1n, id: 'org_1' },
+      type: { oid: 4n, sendEmail: true, severity: 'alert' },
+      suppressEmail: true
+    });
+    mocks.memberFindFirst.mockResolvedValue({
+      oid: 2n,
+      id: 'ome_1',
+      userOid: 5n,
+      role: 'admin'
+    });
+    mocks.generateId.mockResolvedValue('ond_1');
+    mocks.destinationFindUnique.mockResolvedValue(null);
+    mocks.destinationCreate.mockResolvedValue({
+      id: 'ond_1',
+      emailStatus: 'disabled'
+    });
+
+    await (createOrganizationNotificationDestinationProcessor as any).handler({
+      notificationId: 'onf_1',
+      memberId: 'ome_1'
+    });
+
+    expect(mocks.destinationCreate).toHaveBeenCalledWith({
+      data: {
+        id: 'ond_1',
+        status: 'active',
+        memberOid: 2n,
+        notificationOid: 3n
+      }
+    });
+    expect(mocks.getSetting).not.toHaveBeenCalled();
+    expect(mocks.destinationUpdate).not.toHaveBeenCalled();
+    expect(mocks.emailAdd).not.toHaveBeenCalled();
+  });
+
   it('filters member fanout by configured roles', async () => {
     let { createOrganizationNotificationProcessor } = await import('./createNotification');
     mocks.notificationFindUnique.mockResolvedValue({

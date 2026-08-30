@@ -81,6 +81,26 @@ describe('notificationService', () => {
     expect(mocks.enqueue).toHaveBeenCalledWith({ notificationId: 'onf_1' });
   });
 
+  it('persists an explicit suppressEmail flag', async () => {
+    let { notificationService } = await import('./notification');
+
+    await notificationService.createNotification({
+      organization: { oid: 1n } as any,
+      type: 'billing_alert',
+      suppressEmail: true,
+      input: {
+        kind: 'subscription.usage.alert',
+        title: 'Subscription Usage Alert',
+        message: 'You have reached 100% of your included usage'
+      }
+    });
+
+    expect(mocks.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ suppressEmail: true }),
+      include: { type: true }
+    });
+  });
+
   it('rejects mark-read requests containing an inaccessible notification', async () => {
     let { notificationService } = await import('./notification');
     mocks.findMany.mockResolvedValue([]);

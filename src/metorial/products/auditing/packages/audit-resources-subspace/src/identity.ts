@@ -43,7 +43,8 @@ export let identityActorAuditResource = resource({
   }>('identity_actor'),
   presenter: undefined,
   actions: {
-    create: true
+    create: true,
+    delete: true
   }
 });
 
@@ -59,7 +60,8 @@ export let identityAuditResource = resource({
   presenter: undefined,
   actions: {
     create: true,
-    update: true
+    update: true,
+    delete: true
   }
 });
 
