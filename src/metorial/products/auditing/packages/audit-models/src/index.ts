@@ -5,6 +5,7 @@ export {
   deleteAuditEventsBefore,
   getAuditEventsByIds,
   ingestAuditEvent,
+  ingestAuditEvents,
   type AuditEvent,
   type AuditEventContext,
   type AuditEventInput
