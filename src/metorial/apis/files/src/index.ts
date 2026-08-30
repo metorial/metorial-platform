@@ -1,4 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import type { AuditScope } from '@metorial/audit-scope';
+import type { Context as RequestContext } from '@metorial/context';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
@@ -25,6 +27,22 @@ import { assertDirectUploadBodySize, parseStoreReplace } from './uploadForm';
 import { parseUploadMode, parseUploadRequest } from './uploadRequest';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
+
+/**
+ * Uploads outside any organization (user avatars) have nothing to audit against, and
+ * the upload services require an explicit scope rather than silently skipping.
+ */
+let requireUploadAuditScope = (target: { auditScope?: AuditScope }) => {
+  if (!target.auditScope) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'This upload target cannot be attributed to an organization'
+      })
+    );
+  }
+
+  return target.auditScope;
+};
 
 type FileApiOptions = {
   authenticateRequest?: (
@@ -113,7 +131,7 @@ let presentFileUpload = (
   updated_at: upload.updatedAt
 });
 
-let handleDirectUpload = async (c: Context, auth: AuthInfo) => {
+let handleDirectUpload = async (c: Context, auth: AuthInfo, context: RequestContext) => {
   assertDirectUploadBodySize(c.req.header('Content-Length'));
 
   let body = await c.req.formData();
@@ -181,6 +199,7 @@ let handleDirectUpload = async (c: Context, auth: AuthInfo) => {
 
   let target = await resolveUploadTarget({
     auth,
+    context,
     instanceId: typeof instanceId == 'string' ? instanceId : null,
     organizationId: typeof organizationId == 'string' ? organizationId : null
   });
@@ -199,6 +218,7 @@ let handleDirectUpload = async (c: Context, auth: AuthInfo) => {
   });
   let createdFile = await uploadCargoFile({
     ...access.scope,
+    auditScope: requireUploadAuditScope(target),
     purpose,
     file,
     title,
@@ -219,7 +239,7 @@ let handleDirectUpload = async (c: Context, auth: AuthInfo) => {
   return c.json(presentFile(createdFile));
 };
 
-let handleJsonUpload = async (c: Context, auth: AuthInfo) => {
+let handleJsonUpload = async (c: Context, auth: AuthInfo, context: RequestContext) => {
   let raw: unknown;
 
   try {
@@ -236,6 +256,7 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo) => {
 
   let target = await resolveUploadTarget({
     auth,
+    context,
     instanceId: body.instance_id ?? null,
     organizationId: body.organization_id ?? null
   });
@@ -248,6 +269,7 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo) => {
   if (body.mode === 'complete') {
     let file = await fileUploadService.completePendingUpload({
       ...access.scope,
+      auditScope: requireUploadAuditScope(target),
       uploadId: body.file_upload_id,
       authorization: access.authorization,
       defaultPermissions: access.defaultPermissions,
@@ -267,6 +289,7 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo) => {
 
   let { upload, uploadUrl } = await fileUploadService.createPendingUpload({
     ...access.scope,
+    auditScope: requireUploadAuditScope(target),
     purpose: body.purpose,
     authorization: access.authorization,
     defaultPermissions: access.defaultPermissions,
@@ -292,22 +315,28 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo) => {
 
 let createFileUploadHandler =
   (authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>) =>
-  async (c: Context) =>
-    provideExecutionContext(
+  async (c: Context) => {
+    let context: RequestContext = {
+      ip: extractIp(c.req.raw.headers as any) ?? '0.0.0.0',
+      ua: c.req.raw.headers.get('user-agent')
+    };
+
+    return provideExecutionContext(
       createExecutionContext({
         contextId: `req_${generatePlainId(20)}`,
         type: 'request',
-        ip: extractIp(c.req.raw.headers as any) ?? '0.0.0.0',
-        userAgent: c.req.raw.headers.get('user-agent') ?? 'unknown'
+        ip: context.ip,
+        userAgent: context.ua ?? 'unknown'
       }),
       async () => {
         let { auth } = await authenticateRequest(c.req.raw, new URL(c.req.url));
 
         return c.req.header('Content-Type')?.includes('multipart/form-data')
-          ? await handleDirectUpload(c, auth)
-          : await handleJsonUpload(c, auth);
+          ? await handleDirectUpload(c, auth, context)
+          : await handleJsonUpload(c, auth, context);
       }
     );
+  };
 
 let getServedContentType = (contentType?: string | null) => {
   if (contentType?.startsWith('image/')) return contentType;
@@ -442,12 +471,17 @@ let createDocumentsLiveHandler = () =>
       createDocumentLiveApi({
         path: '/documents-live',
         resolveConnection: async ({ request, url }) => {
+          let context = {
+            ip: extractIp(request.headers as any) ?? '0.0.0.0',
+            ua: request.headers.get('user-agent')
+          };
+
           return await provideExecutionContext(
             createExecutionContext({
               contextId: `req_${generatePlainId(20)}`,
               type: 'request',
-              ip: extractIp(request.headers as any) ?? '0.0.0.0',
-              userAgent: request.headers.get('user-agent') ?? 'unknown'
+              ip: context.ip,
+              userAgent: context.ua ?? 'unknown'
             }),
             async () => {
               let documentId = getQueryParam(url, ['documentId', 'document_id']);
@@ -472,15 +506,17 @@ let createDocumentsLiveHandler = () =>
                 editToken,
                 documentId,
                 instanceId,
-                organizationId
+                organizationId,
+                context
               });
             }
           );
         },
-        resolveToken: async ({ token, documentId, instanceId, organizationId }) =>
+        resolveToken: async ({ token, documentId, instanceId, organizationId, context }) =>
           await resolveDocumentsLiveToken({
             editToken: token,
             documentId,
+            context,
             instanceId,
             organizationId
           })
