@@ -127,8 +127,13 @@ export class Sender {
 
         let retryable = !(error instanceof ConduitSendError) || error.retryable;
         if (!retryable || retryAttempt >= this.config.maxRetries) {
-          throw new Error(
-            `Send message ${messageId} to topic ${topic} failed after ${retryAttempt + 1} attempts: ${error.message}`
+          throw new ConduitSendError(
+            `Send message ${messageId} to topic ${topic} failed after ${retryAttempt + 1} attempts: ${error.message}`,
+            messageId,
+            topic,
+            retryAttempt + 1,
+            error,
+            false
           );
         }
 
