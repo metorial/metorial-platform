@@ -4,4 +4,5 @@ export * from './lib/metorialFacing';
 export * from './lib/resolveConsumerActors';
 export * from './lib/scopeIds';
 export * from './lib/systemAuditScope';
+export * from './lib/systemProviderEventBase';
 export * from './services';

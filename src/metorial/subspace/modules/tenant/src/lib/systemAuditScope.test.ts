@@ -2,55 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   instance: { findUnique: vi.fn() },
-  project: { findUnique: vi.fn() },
-  metorialInstance: { findUniqueOrThrow: vi.fn() }
+  project: { findUnique: vi.fn() }
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
   db: { instance: mocks.instance, project: mocks.project }
 }));
 
-vi.mock('./metorialDb', () => ({
-  metorialDb: { instance: mocks.metorialInstance }
-}));
-
-import {
-  getSubspaceSystemAuditScope,
-  getSubspaceSystemProviderEventBase
-} from './systemAuditScope';
+import { getSubspaceSystemAuditScope } from './systemAuditScope';
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.instance.findUnique.mockResolvedValue({ organizationOid: 1n });
   mocks.project.findUnique.mockResolvedValue({ organizationOid: 2n });
-  mocks.metorialInstance.findUniqueOrThrow.mockResolvedValue({ id: 'ins_1', oid: 3n });
-});
-
-describe('getSubspaceSystemProviderEventBase', () => {
-  it('combines the Metorial instance with a system audit scope', async () => {
-    let eventBase = await getSubspaceSystemProviderEventBase({
-      job: 'subspace/providerSetupSession',
-      instanceOid: 3n
-    });
-
-    expect(eventBase).toMatchObject({
-      instance: { id: 'ins_1', oid: 3n },
-      auditScope: {
-        organizationOid: 1n,
-        instanceOid: 3n,
-        actor: { type: 'system', id: 'subspace/providerSetupSession' }
-      }
-    });
-  });
-
-  it('rejects event bases that cannot be tied to an instance', async () => {
-    await expect(
-      getSubspaceSystemProviderEventBase({
-        job: 'subspace/providerSetupSession',
-        instanceOid: null
-      })
-    ).rejects.toThrow('Cannot create provider Fabric event without an instance');
-  });
 });
 
 describe('getSubspaceSystemAuditScope', () => {
