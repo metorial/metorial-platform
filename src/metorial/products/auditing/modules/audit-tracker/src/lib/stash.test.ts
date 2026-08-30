@@ -21,7 +21,8 @@ import {
   claimAuditEvents,
   decodeStashedAuditEvent,
   listClaimedAuditEvents,
-  stashAuditEvent
+  stashAuditEvent,
+  stashAuditEvents
 } from './stash';
 
 describe('stashAuditEvent', () => {
@@ -60,10 +61,44 @@ describe('stashAuditEvent', () => {
     await stashAuditEvent(event);
 
     expect(redis.rPush).toHaveBeenCalledOnce();
-    expect(redis.rPush).toHaveBeenCalledWith('audit:events:stash', expect.any(String));
+    expect(redis.rPush).toHaveBeenCalledWith('audit:events:stash', [expect.any(String)]);
 
-    let encoded = redis.rPush.mock.calls[0]![1];
+    let encoded = redis.rPush.mock.calls[0]![1][0];
     expect(serialize.decode(encoded)).toEqual(event);
+  });
+
+  it('appends a whole batch in a single push', async () => {
+    let event = (id: string) => ({
+      id,
+      organizationOid: 1n,
+      instanceOid: 3n,
+      organizationActorOid: 4n,
+      actor: {
+        type: 'org_actor' as const,
+        id: 'oac_1'
+      },
+      context: {} as any,
+      resource: 'organization',
+      action: 'create',
+      payload: { id },
+      recordedAt: new Date('2026-08-12T10:01:00.000Z')
+    });
+
+    await stashAuditEvents([event('event-1'), event('event-2')]);
+
+    expect(redis.rPush).toHaveBeenCalledOnce();
+    let encoded = redis.rPush.mock.calls[0]![1];
+    expect(encoded).toHaveLength(2);
+    expect(encoded.map((value: string) => serialize.decode(value))).toEqual([
+      event('event-1'),
+      event('event-2')
+    ]);
+  });
+
+  it('does not touch redis for an empty batch', async () => {
+    await stashAuditEvents([]);
+
+    expect(redis.rPush).not.toHaveBeenCalled();
   });
 
   it('propagates Redis append failures', async () => {
