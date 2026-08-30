@@ -44,6 +44,7 @@ import {
 } from '@metorial/module-access';
 import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { Fabric } from '@metorial/fabric';
 import { internalImageService } from '@metorial/skills-images';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
@@ -164,6 +165,8 @@ class SkillServiceImpl {
         })
       );
     }
+
+    await Fabric.fire('skill.created:before', { instance: d.instance });
 
     let actor = d.input.authorization.resourceActor;
     let forkBaseSkillVersion =

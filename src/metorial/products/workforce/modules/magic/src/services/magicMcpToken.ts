@@ -153,6 +153,10 @@ class MagicMcpTokenImpl {
       magicMcpEndpoint: d.input.magicMcpEndpoint
     });
 
+    await Fabric.fire('magic_mcp.token.created:before', {
+      instance: d.instance
+    });
+
     let magicMcpToken = await db.magicMcpToken.create({
       data: {
         id: await ID.generateId('magicMcpToken'),

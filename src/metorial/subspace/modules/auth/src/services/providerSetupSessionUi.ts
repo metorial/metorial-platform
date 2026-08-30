@@ -18,7 +18,9 @@ import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspac
 import { providerListingService, providerService } from '@metorial-subspace/module-catalog';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
+import { Fabric } from '@metorial/fabric';
 import {
+  getSubspaceSystemProviderEventBase,
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -42,10 +44,7 @@ let undefinedIfEmpty = <T>(value: T[] | null | undefined): T[] | undefined => {
 
 class providerSetupSessionUiServiceImpl {
   private canConfirmToolFilters(d: {
-    providerSetupSession: Pick<
-      ProviderSetupSession,
-      'status' | 'expiresAt' | 'configuration'
-    >;
+    providerSetupSession: Pick<ProviderSetupSession, 'status' | 'expiresAt' | 'configuration'>;
   }) {
     return (
       !!d.providerSetupSession.configuration?.toolFilters?.enabled &&
@@ -55,10 +54,19 @@ class providerSetupSessionUiServiceImpl {
 
   private async cloneConfigForToolFilters(d: {
     config: Awaited<ReturnType<typeof db.providerConfig.findUniqueOrThrow>> & {
-      currentVersion: { slateInstanceOid: bigint | null; shuttleConfigOid: bigint | null } | null;
+      currentVersion: {
+        slateInstanceOid: bigint | null;
+        shuttleConfigOid: bigint | null;
+      } | null;
     };
     toolFilters?: PrismaJson.ToolFilter | null;
   }) {
+    let eventBase = await getSubspaceSystemProviderEventBase({
+      job: 'subspace/providerSetupSession',
+      instanceOid: d.config.instanceOid
+    });
+    await Fabric.fire('provider.config.created:before', eventBase);
+
     let cloned = await db.providerConfig.create({
       data: {
         ...getId('providerConfig'),
@@ -93,10 +101,15 @@ class providerSetupSessionUiServiceImpl {
       }
     });
 
-    return await db.providerConfig.update({
+    let config = await db.providerConfig.update({
       where: { oid: cloned.oid },
-      data: { currentVersionOid: currentVersion.oid }
+      data: { currentVersionOid: currentVersion.oid },
+      include: { provider: true, deployment: true }
     });
+
+    await Fabric.fire('provider.config.created:after', { ...eventBase, config });
+
+    return config;
   }
 
   async getProviderSetupSessionByClientSecret(d: { sessionId: string; clientSecret: string }) {

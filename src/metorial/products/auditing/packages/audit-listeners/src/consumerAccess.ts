@@ -174,7 +174,7 @@ export let recordConsumerAccessRequestReviewed = async (
 };
 
 export let recordConsumerProviderSetupSessionCreated = async (
-  event: FabricEvents['consumer.integration_setup_session.created:after']
+  event: FabricEvents['integration_setup_session.created:after']
 ) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(
@@ -210,6 +210,6 @@ Fabric.listen('consumer.access_listing.deleted:after', recordConsumerAccessListi
 Fabric.listen('consumer.access_request.created:after', recordConsumerAccessRequestCreated);
 Fabric.listen('consumer.access_request.reviewed:after', recordConsumerAccessRequestReviewed);
 Fabric.listen(
-  'consumer.integration_setup_session.created:after',
+  'integration_setup_session.created:after',
   recordConsumerProviderSetupSessionCreated
 );

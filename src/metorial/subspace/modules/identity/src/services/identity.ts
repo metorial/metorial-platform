@@ -285,6 +285,9 @@ class identityServiceImpl {
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('identity.created:before', eventBase);
+    for (let _ of d.input.inputs) {
+      await Fabric.fire('identity.credential.created:before', eventBase);
+    }
 
     let identity = await this.createIdentityInternal({ ...rest, tenant, environment });
 
@@ -292,6 +295,12 @@ class identityServiceImpl {
       ...eventBase,
       identity
     });
+    for (let identityCredential of identity.credentials) {
+      await Fabric.fire('identity.credential.created:after', {
+        ...eventBase,
+        identityCredential
+      });
+    }
 
     return identity;
   }
@@ -411,7 +420,14 @@ class identityServiceImpl {
       }
     }
 
-    return this.archiveIdentityInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.deleted:before', eventBase);
+
+    let identity = await this.archiveIdentityInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.deleted:after', { ...eventBase, identity });
+
+    return identity;
   }
 
   async archiveIdentityInternal(d: ArchiveIdentityParams) {

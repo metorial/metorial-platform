@@ -1109,8 +1109,8 @@ export interface FabricEvents {
   'consumer.surface_provider_group.listing.added:after': { auditScope: AuditScope; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup; consumerAccessListing: { id: string } };
   'consumer.surface_provider_group.listing.removed:after': { auditScope: AuditScope; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup; consumerAccessListing: { id: string } };
 
-  'consumer.integration_setup_session.created:before': { instance: Instance };
-  'consumer.integration_setup_session.created:after': { instance: Instance; setupSession: SubspaceIntegrationSetupSession; binding: { id: string }; consumerSurface: ConsumerSurface; consumerProfile: ConsumerProfile; providerTemplate: ProviderTemplate; auditScope: AuditScope };
+  'integration_setup_session.created:before': { instance: Instance };
+  'integration_setup_session.created:after': { instance: Instance; setupSession: SubspaceIntegrationSetupSession; binding: { id: string }; consumerSurface: ConsumerSurface; consumerProfile: ConsumerProfile; providerTemplate: ProviderTemplate; auditScope: AuditScope };
 
   'magic_mcp.server.created:before': { organization: Organization; instance: Instance };
   'magic_mcp.server.created:after': { organization: Organization; instance: Instance; magicMcpServer: MagicMcpServer; auditScope: AuditScope };
@@ -1127,6 +1127,7 @@ export interface FabricEvents {
   'magic_mcp.group.deleted:after': { magicMcpGroup: AuditMagicMcpGroup; auditScope: AuditScope };
   'magic_mcp.group.servers.modified:after': { magicMcpGroup: AuditMagicMcpGroup; auditScope: AuditScope } & MagicMcpServerMembershipFabricChange;
 
+  'magic_mcp.token.created:before': { instance: Instance };
   'magic_mcp.token.created:after': { instance: Instance; magicMcpToken: AuditMagicMcpToken; auditScope: AuditScope };
   'magic_mcp.token.updated:after': { magicMcpToken: AuditMagicMcpToken; previousMagicMcpToken: AuditMagicMcpToken; auditScope: AuditScope };
   'magic_mcp.token.rotated:after': { magicMcpToken: AuditMagicMcpToken; auditScope: AuditScope };
@@ -1164,8 +1165,9 @@ export interface FabricEvents {
   'file.created:after': FileFabricOwner & { file: AuditFile };
   'file.deleted:after': FileFabricOwner & { file: AuditFile };
 
-  'document.created:after': { auditScope: AuditScope; document: AuditDocument };
-  'document.deleted:after': { auditScope: AuditScope; document: AuditDocument };
+  'document.created:before': { instance: Instance };
+  'document.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
+  'document.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
   'document.version.sealed:after': { document: { id: string; title: string }; version: { id: string; versionNumber: number; byteSize: number; editedAt: Date }; previousVersionId: string | null; editors: { auditScope: AuditScope }[] };
 
   'store.created:after': { auditScope: AuditScope; store: AuditStore };
@@ -1265,9 +1267,13 @@ export interface FabricEvents {
 
   'identity.actor.created:before': ProviderEventBase;
   'identity.actor.created:after': ProviderEventBase & { identityActor: AuditSubspaceIdentityActor };
+  'identity.actor.deleted:before': ProviderEventBase;
+  'identity.actor.deleted:after': ProviderEventBase & { identityActor: AuditSubspaceIdentityActor };
 
   'identity.created:before': ProviderEventBase;
   'identity.created:after': ProviderEventBase & { identity: AuditSubspaceIdentity };
+  'identity.deleted:before': ProviderEventBase;
+  'identity.deleted:after': ProviderEventBase & { identity: AuditSubspaceIdentity };
   'identity.updated:before': ProviderEventBase;
   'identity.updated:after': ProviderEventBase & { identity: AuditSubspaceIdentity; previousIdentity: AuditSubspaceIdentity };
 
@@ -1322,7 +1328,8 @@ export interface FabricEvents {
    * itself is not audited -- it is the mechanism -- but the sessions it stands up are
    * real sessions and belong in the log, attributed to the system actor that made them.
    */
-  'provider.session.ephemeral_created:after': { auditScope: AuditScope; session: AuditSubspaceSession };
+  'provider.session.ephemeral_created:before': { instanceOid: bigint };
+  'provider.session.ephemeral_created:after': { instanceOid: bigint; auditScope: AuditScope; session: AuditSubspaceSession };
 
   'provider.session.deleted:before': ProviderEventBase;
   'provider.session.deleted:after': ProviderEventBase & { session: AuditSubspaceSession };

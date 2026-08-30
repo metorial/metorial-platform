@@ -2,6 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
+  db,
   type Environment,
   getId,
   type Provider,
@@ -22,7 +23,11 @@ import {
 import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityCredentialService } from '@metorial-subspace/module-identity';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  getSubspaceSystemProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
@@ -297,6 +302,13 @@ class providerSetupSessionInternalServiceImpl {
         authCredentialsOid: setup.authCredentialsOid
       };
     } else {
+      let eventBase = await getSubspaceSystemProviderEventBase({
+        job: 'subspace/providerSetupSession',
+        instanceOid: d.environment.instanceOid
+      });
+      await Fabric.fire('provider.auth_config.created:before', eventBase);
+      await Fabric.fire('provider.auth_import.created:before', eventBase);
+
       let config = await providerAuthConfigService.createProviderAuthConfigInternal({
         tenant: d.tenant,
         environment: d.environment,
@@ -314,6 +326,21 @@ class providerSetupSessionInternalServiceImpl {
           authMethodId: d.authMethod.id
         }
       });
+
+      await Fabric.fire('provider.auth_config.created:after', {
+        ...eventBase,
+        authConfig: config
+      });
+      if (config.authImport) {
+        let authImport = await db.providerAuthImport.findUniqueOrThrow({
+          where: { oid: config.authImport.oid },
+          include: { authConfig: { include: { provider: true } } }
+        });
+        await Fabric.fire('provider.auth_import.created:after', {
+          ...eventBase,
+          authImport
+        });
+      }
 
       return {
         authConfigOid: config.oid,
@@ -345,6 +372,12 @@ class providerSetupSessionInternalServiceImpl {
   }) {
     checkProviderMatch(d.provider, d.providerDeployment);
 
+    let eventBase = await getSubspaceSystemProviderEventBase({
+      job: 'subspace/providerSetupSession',
+      instanceOid: d.environment.instanceOid
+    });
+    await Fabric.fire('provider.config.created:before', eventBase);
+
     let config = await providerConfigService.createProviderConfigInternal({
       tenant: d.tenant,
       environment: d.environment,
@@ -359,6 +392,8 @@ class providerSetupSessionInternalServiceImpl {
         config: { type: 'inline', data: d.input.config }
       }
     });
+
+    await Fabric.fire('provider.config.created:after', { ...eventBase, config });
 
     return {
       configOid: config.oid,
@@ -598,17 +633,31 @@ class providerSetupSessionInternalServiceImpl {
               })
             : null;
 
-          let identityCredential =
-            await identityCredentialService.createIdentityCredentialInternal({
-              tenant,
-              environment,
-              identity,
-              input: {
-                deploymentId: deployment?.id,
-                configId: config?.id,
-                authConfigId: authConfig?.id
-              }
+          let identityCredential = await (async () => {
+            let eventBase = await getSubspaceSystemProviderEventBase({
+              job: 'subspace/providerSetupSession',
+              instanceOid: environment.instanceOid
             });
+            await Fabric.fire('identity.credential.created:before', eventBase);
+
+            let identityCredential =
+              await identityCredentialService.createIdentityCredentialInternal({
+                tenant,
+                environment,
+                identity,
+                input: {
+                  deploymentId: deployment?.id,
+                  configId: config?.id,
+                  authConfigId: authConfig?.id
+                }
+              });
+
+            await Fabric.fire('identity.credential.created:after', {
+              ...eventBase,
+              identityCredential
+            });
+            return identityCredential;
+          })();
 
           result = await db.providerSetupSession.update({
             where: { oid: result.oid },

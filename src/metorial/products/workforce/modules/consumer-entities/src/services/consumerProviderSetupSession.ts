@@ -165,7 +165,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       consumerProfile: d.consumerProfile
     });
 
-    await Fabric.fire('consumer.integration_setup_session.created:before', {
+    await Fabric.fire('integration_setup_session.created:before', {
       instance: d.instance
     });
 
@@ -213,7 +213,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       }
     });
 
-    await Fabric.fire('consumer.integration_setup_session.created:after', {
+    await Fabric.fire('integration_setup_session.created:after', {
       instance: d.instance,
       setupSession,
       binding,

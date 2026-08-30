@@ -274,7 +274,11 @@ class identityActorServiceImpl {
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('identity.actor.created:before', eventBase);
 
-    let identityActor = await this.createIdentityActorInternal({ ...rest, tenant, environment });
+    let identityActor = await this.createIdentityActorInternal({
+      ...rest,
+      tenant,
+      environment
+    });
 
     await Fabric.fire('identity.actor.created:after', {
       ...eventBase,
@@ -458,7 +462,18 @@ class identityActorServiceImpl {
       }
     }
 
-    return this.archiveIdentityActorInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.actor.deleted:before', eventBase);
+
+    let identityActor = await this.archiveIdentityActorInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('identity.actor.deleted:after', { ...eventBase, identityActor });
+
+    return identityActor;
   }
 
   async archiveIdentityActorInternal(d: ArchiveIdentityActorParams) {

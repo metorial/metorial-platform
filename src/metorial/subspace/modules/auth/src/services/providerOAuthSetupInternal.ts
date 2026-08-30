@@ -8,6 +8,8 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
+import { Fabric } from '@metorial/fabric';
+import { getSubspaceSystemProviderEventBase } from '@metorial-subspace/module-tenant';
 import { env } from '../env';
 import { providerOAuthSetupUpdatedQueue } from '../queues/lifecycle/providerOAuthSetup';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
@@ -70,6 +72,12 @@ class providerOAuthSetupInternalServiceImpl {
 
         if (record.slateAuthConfig || record.shuttleAuthConfig) {
           if (!authConfig) {
+            let eventBase = await getSubspaceSystemProviderEventBase({
+              job: 'subspace/providerOAuthSetup',
+              instanceOid: providerOAuthSetup.environment.instanceOid
+            });
+            await Fabric.fire('provider.auth_config.created:before', eventBase);
+
             authConfig =
               await providerAuthConfigInternalService.createProviderAuthConfigInternal({
                 backend: backend.backend,
@@ -95,6 +103,18 @@ class providerOAuthSetupInternalServiceImpl {
                   expiresAt: null
                 }
               });
+
+            await Fabric.fire('provider.auth_config.created:after', {
+              ...eventBase,
+              authConfig: await db.providerAuthConfig.findUniqueOrThrow({
+                where: { oid: authConfig.oid },
+                include: {
+                  provider: true,
+                  deployment: true,
+                  authMethod: true
+                }
+              })
+            });
           }
 
           if (authConfig) {

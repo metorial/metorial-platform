@@ -222,6 +222,8 @@ class DocumentServiceImpl {
 
     let actor = d.input.authorization.resourceActor;
 
+    await Fabric.fire('document.created:before', { instance: d.instance });
+
     return await withTransaction(async db => {
       let documentId = d.input.id ?? (await ID.generateId('document'));
 
@@ -333,6 +335,7 @@ class DocumentServiceImpl {
       }
 
       await Fabric.fire('document.created:after', {
+        instance: d.instance,
         auditScope: d.auditScope,
         document: createdDocument
       });
@@ -702,6 +705,8 @@ class DocumentServiceImpl {
       );
     }
 
+    await Fabric.fire('document.created:before', { instance: d.instance });
+
     let clonedDocument = await withTransaction(async db => {
       let documentId = d.input.id ?? (await ID.generateId('document'));
       let sourceTitle = d.document.resolvedTitle ?? d.document.title;
@@ -789,6 +794,7 @@ class DocumentServiceImpl {
       }
 
       await Fabric.fire('document.created:after', {
+        instance: d.instance,
         auditScope: d.auditScope,
         document: nextDocument
       });
@@ -851,6 +857,7 @@ class DocumentServiceImpl {
     });
 
     await Fabric.fire('document.deleted:after', {
+      instance: d.instance,
       auditScope: d.auditScope,
       document: deletedDocument
     });

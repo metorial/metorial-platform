@@ -132,6 +132,25 @@ export let recordIdentityActorCreated = async (
   );
 };
 
+export let recordIdentityActorDeleted = async (
+  event: FabricEvents['identity.actor.deleted:after']
+) => {
+  let scope = getSubspaceAuditScope(event);
+  if (!scope) return;
+
+  await recordSubspaceAuditEvent(() =>
+    auditTrackerService.recordEvent(scope, 'identity_actor', 'delete', {
+      payload: {
+        id: event.identityActor.id,
+        type: event.identityActor.type,
+        status: event.identityActor.status,
+        name: event.identityActor.name,
+        description: event.identityActor.description
+      }
+    })
+  );
+};
+
 export let recordIdentityCreated = async (event: FabricEvents['identity.created:after']) => {
   let scope = getSubspaceAuditScope(event);
   if (!scope) return;
@@ -151,6 +170,17 @@ export let recordIdentityUpdated = async (event: FabricEvents['identity.updated:
     auditTrackerService.recordEvent(scope, 'identity', 'update', {
       payload: identityPayload(event.identity),
       previousPayload: identityPayload(event.previousIdentity)
+    })
+  );
+};
+
+export let recordIdentityDeleted = async (event: FabricEvents['identity.deleted:after']) => {
+  let scope = getSubspaceAuditScope(event);
+  if (!scope) return;
+
+  await recordSubspaceAuditEvent(() =>
+    auditTrackerService.recordEvent(scope, 'identity', 'delete', {
+      payload: identityPayload(event.identity)
     })
   );
 };
@@ -267,8 +297,10 @@ Fabric.listen('identity.agent.deleted:after', recordAgentDeleted);
 Fabric.listen('identity.agent_client.created:after', recordAgentClientCreated);
 
 Fabric.listen('identity.actor.created:after', recordIdentityActorCreated);
+Fabric.listen('identity.actor.deleted:after', recordIdentityActorDeleted);
 Fabric.listen('identity.created:after', recordIdentityCreated);
 Fabric.listen('identity.updated:after', recordIdentityUpdated);
+Fabric.listen('identity.deleted:after', recordIdentityDeleted);
 
 Fabric.listen('identity.credential.created:after', recordIdentityCredentialCreated);
 Fabric.listen('identity.credential.updated:after', recordIdentityCredentialUpdated);

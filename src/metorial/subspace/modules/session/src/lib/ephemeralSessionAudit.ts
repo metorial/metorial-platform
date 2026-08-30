@@ -6,20 +6,17 @@ export let recordEphemeralSessionAuditEvent = async (d: {
   instanceOid: bigint | null;
   projectOid: bigint | null;
 }) => {
-  try {
-    let auditScope = await getSubspaceSystemAuditScope({
-      job: 'subspace/ephemeralManagedSession',
-      instanceOid: d.instanceOid,
-      projectOid: d.projectOid,
-      metadata: { sessionId: d.session.id }
-    });
-    if (!auditScope) return;
+  let auditScope = await getSubspaceSystemAuditScope({
+    job: 'subspace/ephemeralManagedSession',
+    instanceOid: d.instanceOid,
+    projectOid: d.projectOid,
+    metadata: { sessionId: d.session.id }
+  });
+  if (!auditScope || d.instanceOid == null) return;
 
-    await Fabric.fire('provider.session.ephemeral_created:after', {
-      auditScope,
-      session: d.session
-    });
-  } catch (error) {
-    console.error('[Audit] Failed to record ephemeral managed session audit event', error);
-  }
+  await Fabric.fire('provider.session.ephemeral_created:after', {
+    instanceOid: d.instanceOid,
+    auditScope,
+    session: d.session
+  });
 };

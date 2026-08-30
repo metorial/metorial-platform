@@ -205,12 +205,17 @@ class agentServiceImpl {
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('identity.agent.created:before', eventBase);
+    await Fabric.fire('identity.actor.created:before', eventBase);
 
     let agent = await this.createAgentInternal({ ...rest, tenant, environment });
 
     await Fabric.fire('identity.agent.created:after', {
       ...eventBase,
       agent
+    });
+    await Fabric.fire('identity.actor.created:after', {
+      ...eventBase,
+      identityActor: agent.actor
     });
 
     return agent;
@@ -351,12 +356,17 @@ class agentServiceImpl {
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('identity.agent.deleted:before', eventBase);
+    await Fabric.fire('identity.actor.deleted:before', eventBase);
 
     let agent = await this.archiveAgentInternal({ ...rest, tenant, environment });
 
     await Fabric.fire('identity.agent.deleted:after', {
       ...eventBase,
       agent
+    });
+    await Fabric.fire('identity.actor.deleted:after', {
+      ...eventBase,
+      identityActor: agent.actor
     });
 
     return agent;

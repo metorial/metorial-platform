@@ -14,6 +14,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { checkDeletedEdit } from '@metorial-subspace/list-utils';
+import { Fabric } from '@metorial/fabric';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -211,6 +212,8 @@ class ephemeralManagedSessionServiceImpl {
     d: { tenant: Tenant; environment: Environment } & CreateEphemeralManagedSessionParams
   ) {
     let solution = await getMetorialSolution();
+    let instanceOid = d.environment.instanceOid;
+    if (instanceOid == null) throw new Error('Ephemeral managed sessions require an instance');
 
     return withTransaction(async db => {
       let ephemeralManagedSession = await db.ephemeralManagedSession.create({
@@ -229,6 +232,10 @@ class ephemeralManagedSessionServiceImpl {
           templateHash: d.sessionTemplate.hash ?? null
         },
         include
+      });
+
+      await Fabric.fire('provider.session.ephemeral_created:before', {
+        instanceOid
       });
 
       let session = await createSessionRecord({
@@ -468,6 +475,14 @@ class ephemeralManagedSessionServiceImpl {
       }
 
       return await withTransaction(async db => {
+        let instanceOid = ephemeralManagedSession.environment.instanceOid;
+        if (instanceOid == null) {
+          throw new Error('Ephemeral managed sessions require an instance');
+        }
+        await Fabric.fire('provider.session.ephemeral_created:before', {
+          instanceOid
+        });
+
         let session = await createSessionRecord({
           tenant: ephemeralManagedSession.tenant,
           environment: ephemeralManagedSession.environment,
