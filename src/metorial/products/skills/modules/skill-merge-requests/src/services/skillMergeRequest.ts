@@ -6,6 +6,7 @@ import type {
   SkillMergeRequestResolutionType,
   SkillMergeRequestStatus
 } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, Prisma, withTransaction } from '@metorial/db';
 import type { DateFilter } from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
@@ -455,6 +456,7 @@ class SkillMergeRequestServiceImpl {
   async rollbackSkillMergeRequest(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     authorization: ResourceAuthorization;
   }) {

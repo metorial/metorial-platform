@@ -9,6 +9,7 @@ import {
   storeWritePermission
 } from '@metorial/module-store';
 import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
@@ -104,6 +105,7 @@ class SkillAgentServiceImpl {
   async createSkillAgent(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skill: SkillRecord;
     input: {
       name: string;
@@ -129,6 +131,7 @@ class SkillAgentServiceImpl {
     let document = await documentService.createDocument({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       input: {
         title: input.name,
         content: d.input.content ?? '',
@@ -228,6 +231,7 @@ class SkillAgentServiceImpl {
   async updateSkillAgent(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillAgent: SkillAgentRecord;
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
@@ -304,6 +308,7 @@ class SkillAgentServiceImpl {
   async deleteSkillAgent(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillAgent: SkillAgentRecord;
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
@@ -315,6 +320,7 @@ class SkillAgentServiceImpl {
       await storeService.modifyStoreItems({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         store: d.skillAgent.skill.store!,
         operations: [
           {

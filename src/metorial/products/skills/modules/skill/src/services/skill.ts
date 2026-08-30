@@ -24,6 +24,7 @@ import type {
   ResourceActor,
   StoreParticipantPermissions
 } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
@@ -130,6 +131,7 @@ class SkillServiceImpl {
   async createSkill(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     parentSkill?: SkillRecord;
     parentSkillTemplate?: SkillTemplateRecord;
     parentSkillCloneType?: 'fork' | 'duplicate';
@@ -176,6 +178,7 @@ class SkillServiceImpl {
         ? await storeService.createStoreFromTemplate({
             project: d.project,
             instance: d.instance,
+            auditScope: d.auditScope,
             authorization: d.input.authorization,
             input: {
               templateId: d.parentSkillTemplate.storeTemplate!.id,
@@ -191,6 +194,7 @@ class SkillServiceImpl {
           ? await storeService.cloneStore({
               project: d.project,
               instance: d.instance,
+              auditScope: d.auditScope,
               store: d.parentSkill.store!,
               actor,
               authorization: d.input.authorization,
@@ -205,6 +209,7 @@ class SkillServiceImpl {
           : await storeService.createStore({
               project: d.project,
               instance: d.instance,
+              auditScope: d.auditScope,
               input: {
                 name: d.input.name,
                 actor,
@@ -450,6 +455,7 @@ class SkillServiceImpl {
   async updateSkill(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skill: SkillRecord;
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
@@ -514,6 +520,7 @@ class SkillServiceImpl {
       ? await storeService.updateStore({
           project: d.project,
           instance: d.instance,
+          auditScope: d.auditScope,
           store: d.skill.store!,
           authorization: d.authorization,
           input: {

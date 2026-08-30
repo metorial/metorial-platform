@@ -19,6 +19,7 @@ import type {
   SkillExportStatus,
   SkillExportTarget
 } from '@metorial/db';
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
 import { createHash } from 'node:crypto';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
@@ -388,6 +389,12 @@ class SkillExportServiceImpl {
     let file = await fileService.completePendingUploadForStream({
       project: d.project,
       instance: d.instance,
+      auditScope: createSystemAuditScope({
+        organization: { oid: d.instance.organizationOid },
+        instance: d.instance,
+        job: 'skill-export',
+        metadata: { skillExportId: d.skillExport.id }
+      }),
       purpose: purpose.slug,
       storeId,
       input: {
