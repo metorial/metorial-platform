@@ -141,7 +141,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
       .do(async ctx => {
         let consumerSurfaceProviderGroup = await consumerSurfaceProviderGroupService.update({
           auditScope: ctx.auditScope,
-          consumerSurface: ctx.consumerSurface,
+          consumerSurface: ctx.portal.surface,
           consumerSurfaceProviderGroup: ctx.consumerSurfaceProviderGroup,
           input: {
             name: ctx.body.name,
@@ -172,7 +172,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
 
         await consumerSurfaceProviderGroupService.delete({
           consumerSurfaceProviderGroup,
-          consumerSurface: ctx.consumerSurface,
+          consumerSurface: ctx.portal.surface,
           auditScope: ctx.auditScope
         });
 
