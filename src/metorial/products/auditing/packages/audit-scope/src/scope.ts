@@ -3,6 +3,7 @@ import { Context } from '@metorial/context';
 export type AuditActorType =
   | 'org_actor'
   | 'consumer_profile'
+  | 'resource_actor'
   | 'system'
   | 'fine_grained_token';
 
@@ -103,3 +104,32 @@ export let bindAuditScope = <Scope extends AuditScope>(d: {
   organizationOid: d.organization.oid,
   instanceOid: d.instance?.oid
 });
+
+export type SystemAuditActor = AuditActor & {
+  type: 'system';
+};
+
+export let createSystemAuditActor = (d: {
+  job: string;
+  metadata?: Record<string, AuditActorMetadataValue>;
+}): SystemAuditActor => ({
+  type: 'system',
+  id: d.job,
+  ...(d.metadata ? { metadata: d.metadata } : {})
+});
+
+export let createSystemAuditScope = (d: {
+  organization: { oid: bigint };
+  instance?: { oid: bigint } | null;
+  organizationActor?: { oid: bigint } | null;
+  job: string;
+  metadata?: Record<string, AuditActorMetadataValue>;
+  context?: Context;
+}): AuditScope =>
+  createAuditScope({
+    organization: d.organization,
+    instance: d.instance,
+    organizationActor: d.organizationActor,
+    actor: createSystemAuditActor({ job: d.job, metadata: d.metadata }),
+    context: d.context ?? { ip: '' }
+  });
