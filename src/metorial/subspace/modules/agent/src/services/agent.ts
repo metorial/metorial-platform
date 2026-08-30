@@ -13,6 +13,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric, type AuditSubspaceAgent } from '@metorial/fabric';
 import {
   type DateFilter,
   getConnectionRetentionFilter,
@@ -27,6 +28,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 
@@ -79,6 +81,10 @@ export type UpdateAgentParams = {
     description?: string;
     metadata?: Record<string, any>;
   };
+};
+
+export type UpdateAgentFacingParams = Omit<UpdateAgentParams, 'agent'> & {
+  agent: UpdateAgentParams['agent'] & AuditSubspaceAgent;
 };
 
 export type UpsertAgentParams = {
@@ -197,7 +203,17 @@ class agentServiceImpl {
   async createAgent(d: MetorialFacing<CreateAgentParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.createAgentInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.agent.created:before', eventBase);
+
+    let agent = await this.createAgentInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.agent.created:after', {
+      ...eventBase,
+      agent
+    });
+
+    return agent;
   }
 
   async createAgentInternal(d: CreateAgentParams) {
@@ -223,10 +239,21 @@ class agentServiceImpl {
     });
   }
 
-  async updateAgent(d: MetorialFacing<UpdateAgentParams>) {
+  async updateAgent(d: MetorialFacing<UpdateAgentFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.updateAgentInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.agent.updated:before', eventBase);
+
+    let agent = await this.updateAgentInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.agent.updated:after', {
+      ...eventBase,
+      agent,
+      previousAgent: d.agent
+    });
+
+    return agent;
   }
 
   async updateAgentInternal(d: UpdateAgentParams) {
@@ -322,7 +349,17 @@ class agentServiceImpl {
   async archiveAgent(d: MetorialFacing<ArchiveAgentParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.archiveAgentInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.agent.deleted:before', eventBase);
+
+    let agent = await this.archiveAgentInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.agent.deleted:after', {
+      ...eventBase,
+      agent
+    });
+
+    return agent;
   }
 
   async archiveAgentInternal(d: ArchiveAgentParams) {

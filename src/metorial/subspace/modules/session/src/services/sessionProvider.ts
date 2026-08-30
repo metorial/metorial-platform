@@ -30,7 +30,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceSessionProvider } from '@metorial/fabric';
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import {
   sessionProviderInputService,
@@ -81,6 +81,14 @@ export type UpdateSessionProviderParams = {
   input: {
     toolFilters?: SessionProviderInputToolFilters;
   };
+};
+
+export type UpdateSessionProviderFacingParams = Omit<
+  UpdateSessionProviderParams,
+  'sessionProvider'
+> & {
+  sessionProvider: UpdateSessionProviderParams['sessionProvider'] &
+    AuditSubspaceSessionProvider;
 };
 
 export type ArchiveSessionProviderParams = {
@@ -224,7 +232,7 @@ class sessionProviderServiceImpl {
     return res!;
   }
 
-  async updateSessionProvider(d: MetorialFacing<UpdateSessionProviderParams>) {
+  async updateSessionProvider(d: MetorialFacing<UpdateSessionProviderFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -239,7 +247,8 @@ class sessionProviderServiceImpl {
 
     await Fabric.fire('provider.session.provider.updated:after', {
       ...eventBase,
-      sessionProvider
+      sessionProvider,
+      previousSessionProvider: d.sessionProvider
     });
 
     return sessionProvider;

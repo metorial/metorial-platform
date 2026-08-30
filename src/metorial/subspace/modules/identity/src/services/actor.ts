@@ -15,6 +15,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import {
   assertNoActiveIntegrationActorLink,
   checkDeletedEdit,
@@ -30,6 +31,7 @@ import {
   getMetorialSolution,
   metorialDb,
   type MetorialFacing,
+  toProviderEventBase,
   resolveConsumerActorIds,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -269,7 +271,17 @@ class identityActorServiceImpl {
   async createIdentityActor(d: MetorialFacing<CreateIdentityActorParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.createIdentityActorInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.actor.created:before', eventBase);
+
+    let identityActor = await this.createIdentityActorInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.actor.created:after', {
+      ...eventBase,
+      identityActor
+    });
+
+    return identityActor;
   }
 
   async createIdentityActorInternal(d: CreateIdentityActorParams) {

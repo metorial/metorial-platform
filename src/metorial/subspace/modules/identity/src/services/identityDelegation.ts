@@ -9,6 +9,7 @@ import {
   type IdentityDelegationStatus,
   type Tenant
 } from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -18,6 +19,7 @@ import {
 import {
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import {
@@ -196,7 +198,17 @@ class identityDelegationServiceImpl {
   async createIdentityDelegation(d: MetorialFacing<CreateIdentityDelegationParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.createIdentityDelegationInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.delegation.created:before', eventBase);
+
+    let identityDelegation = await this.createIdentityDelegationInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.delegation.created:after', {
+      ...eventBase,
+      identityDelegation
+    });
+
+    return identityDelegation;
   }
 
   async createIdentityDelegationInternal(d: CreateIdentityDelegationParams) {
@@ -211,7 +223,17 @@ class identityDelegationServiceImpl {
   async revokeIdentityDelegation(d: MetorialFacing<RevokeIdentityDelegationParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.revokeIdentityDelegationInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.delegation.revoked:before', eventBase);
+
+    let identityDelegation = await this.revokeIdentityDelegationInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.delegation.revoked:after', {
+      ...eventBase,
+      identityDelegation
+    });
+
+    return identityDelegation;
   }
 
   async revokeIdentityDelegationInternal(d: RevokeIdentityDelegationParams) {

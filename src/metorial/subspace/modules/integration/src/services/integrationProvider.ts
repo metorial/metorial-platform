@@ -18,6 +18,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric, type AuditSubspaceIntegrationProvider } from '@metorial/fabric';
 import {
   checkDeletedEdit,
   checkDeletedRelation,
@@ -46,6 +47,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
@@ -308,6 +310,14 @@ export type UpdateIntegrationProviderParams = {
   };
 };
 
+/**
+ * The public entry point takes the record with its relations already loaded, so the
+ * audit event can carry a previous payload without reading the row a second time.
+ */
+export type UpdateIntegrationProviderFacingParams = Omit<UpdateIntegrationProviderParams, 'integrationProvider'> & {
+  integrationProvider: UpdateIntegrationProviderParams['integrationProvider'] & AuditSubspaceIntegrationProvider;
+};
+
 export type ArchiveIntegrationProviderParams = {
   integrationProvider: IntegrationProvider;
 };
@@ -487,11 +497,21 @@ class integrationProviderServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.createIntegrationProviderInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_provider.created:before', eventBase);
+
+    let integrationProvider = await this.createIntegrationProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_provider.created:after', {
+      ...eventBase,
+      integrationProvider
+    });
+
+    return integrationProvider;
   }
 
   async createIntegrationProviderInternal(
@@ -723,15 +743,26 @@ class integrationProviderServiceImpl {
     });
   }
 
-  async updateIntegrationProvider(d: MetorialFacing<UpdateIntegrationProviderParams>) {
+  async updateIntegrationProvider(d: MetorialFacing<UpdateIntegrationProviderFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.updateIntegrationProviderInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_provider.updated:before', eventBase);
+
+    let integrationProvider = await this.updateIntegrationProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_provider.updated:after', {
+      ...eventBase,
+      integrationProvider,
+      previousIntegrationProvider: d.integrationProvider
+    });
+
+    return integrationProvider;
   }
 
   async updateIntegrationProviderInternal(
@@ -849,11 +880,21 @@ class integrationProviderServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.archiveIntegrationProviderInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_provider.deleted:before', eventBase);
+
+    let integrationProvider = await this.archiveIntegrationProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_provider.deleted:after', {
+      ...eventBase,
+      integrationProvider
+    });
+
+    return integrationProvider;
   }
 
   async archiveIntegrationProviderInternal(

@@ -92,6 +92,7 @@ import { createMessage, type CreateMessageProps } from '../shared/createMessage'
 import { createWarning } from '../shared/createWarning';
 import { extractToolCallOperation } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
+import { recordConnectionAuditEvent } from '../audit/recordMessage';
 import {
   type ConnectionScopedSpecification,
   isConnectionScopedProviderVersion,
@@ -1703,6 +1704,7 @@ export class SenderManager {
     };
 
     let connection: SessionConnection;
+    let isNewConnection = !this.connection;
     if (this.connection) {
       connection = await db.sessionConnection.update({
         where: { oid: this.connection.oid },
@@ -1736,6 +1738,18 @@ export class SenderManager {
       throw new ServiceError(
         internalServerError({ message: 'Connection cannot be used for manual tool calls' })
       );
+    }
+
+    // Only a row that did not exist before. Re-initialising an existing connection --
+    // an SSE client reattaching with the same token -- runs through the update branch
+    // above and would otherwise emit a second `create` for the same connection id. The
+    // rollover earlier in this file is likewise bookkeeping, not someone connecting.
+    if (isNewConnection) {
+      await recordConnectionAuditEvent({
+        ...connection,
+        session: this.session,
+        participant
+      });
     }
 
     await db.session.updateMany({

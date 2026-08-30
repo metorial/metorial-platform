@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { v7 } from 'uuid';
 import { env } from '../../env';
+import { recordMessageAuditEvent } from '../../audit/recordMessage';
 import { protoGuardMessageQueue } from './protoGuard';
 
 export let finalizeMessageQueue = createQueue<{ messageId: string }>({
@@ -13,9 +14,22 @@ export let finalizeMessageQueue = createQueue<{ messageId: string }>({
 export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async data => {
   let message = await db.sessionMessage.findFirst({
     where: { id: data.messageId },
-    include: { session: true }
+    include: {
+      session: true,
+      sessionProvider: { include: { provider: { select: { id: true, name: true } } } },
+      connection: { select: { id: true } },
+      senderParticipant: {
+        include: {
+          identity: { select: { id: true } },
+          identityActor: { select: { id: true } }
+        }
+      },
+      toolCall: { include: { tool: { select: { key: true } } } }
+    }
   });
   if (!message) return;
+
+  await recordMessageAuditEvent(message);
 
   let initialClientProductive = message.isProductive && message.source === 'client' ? 1 : 0;
   let initialProviderProductive =

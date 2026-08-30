@@ -35,7 +35,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceProviderConfigVault } from '@metorial/fabric';
 import {
   providerConfigVaultArchivedQueue,
   providerConfigVaultCreatedQueue,
@@ -81,6 +81,14 @@ export type UpdateProviderConfigVaultParams = {
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
   };
+};
+
+export type UpdateProviderConfigVaultFacingParams = Omit<
+  UpdateProviderConfigVaultParams,
+  'providerConfigVault'
+> & {
+  providerConfigVault: UpdateProviderConfigVaultParams['providerConfigVault'] &
+    AuditSubspaceProviderConfigVault;
 };
 
 export type ArchiveProviderConfigVaultParams = {
@@ -133,7 +141,7 @@ class providerConfigVaultServiceImpl {
     return configVault;
   }
 
-  async updateProviderConfigVault(d: MetorialFacing<UpdateProviderConfigVaultParams>) {
+  async updateProviderConfigVault(d: MetorialFacing<UpdateProviderConfigVaultFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -146,7 +154,11 @@ class providerConfigVaultServiceImpl {
       environment: scope.environment
     });
 
-    await Fabric.fire('provider.config_vault.updated:after', { ...eventBase, configVault });
+    await Fabric.fire('provider.config_vault.updated:after', {
+      ...eventBase,
+      configVault,
+      previousConfigVault: d.providerConfigVault
+    });
 
     return configVault;
   }

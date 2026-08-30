@@ -15,6 +15,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import {
   checkDeletedEdit,
   checkDeletedRelation,
@@ -37,6 +38,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import {
@@ -830,11 +832,21 @@ class integrationInstanceProviderServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.setIntegrationInstanceProviderInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_instance_provider.set:before', eventBase);
+
+    let integrationInstanceProvider = await this.setIntegrationInstanceProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_instance_provider.set:after', {
+      ...eventBase,
+      integrationInstanceProvider
+    });
+
+    return integrationInstanceProvider;
   }
 
   async setIntegrationInstanceProviderInternal(

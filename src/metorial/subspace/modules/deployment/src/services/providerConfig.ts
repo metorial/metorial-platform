@@ -57,7 +57,7 @@ import {
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceProviderConfig } from '@metorial/fabric';
 import { env } from '../env';
 import {
   providerConfigArchivedQueue,
@@ -125,6 +125,13 @@ export type UpdateProviderConfigParams = {
     privateMetadata?: Record<string, any>;
     toolFilters?: PrismaJson.ToolFilter | null;
   };
+};
+
+export type UpdateProviderConfigFacingParams = Omit<
+  UpdateProviderConfigParams,
+  'providerConfig'
+> & {
+  providerConfig: UpdateProviderConfigParams['providerConfig'] & AuditSubspaceProviderConfig;
 };
 
 export type ArchiveProviderConfigParams = {
@@ -437,7 +444,7 @@ class providerConfigServiceImpl {
     return config;
   }
 
-  async updateProviderConfig(d: MetorialFacing<UpdateProviderConfigParams>) {
+  async updateProviderConfig(d: MetorialFacing<UpdateProviderConfigFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
@@ -450,7 +457,11 @@ class providerConfigServiceImpl {
       environment: scope.environment
     });
 
-    await Fabric.fire('provider.config.updated:after', { ...eventBase, config });
+    await Fabric.fire('provider.config.updated:after', {
+      ...eventBase,
+      config,
+      previousConfig: d.providerConfig
+    });
 
     return config;
   }

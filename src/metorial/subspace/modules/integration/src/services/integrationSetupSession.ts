@@ -14,6 +14,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import {
   checkDeletedRelation,
   type DateFilter,
@@ -29,6 +30,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { addMinutes } from 'date-fns';
@@ -362,11 +364,21 @@ class integrationSetupSessionServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.createIntegrationSetupSessionInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_setup_session.created:before', eventBase);
+
+    let setupSession = await this.createIntegrationSetupSessionInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_setup_session.created:after', {
+      ...eventBase,
+      setupSession
+    });
+
+    return setupSession;
   }
 
   async createIntegrationSetupSessionInternal(

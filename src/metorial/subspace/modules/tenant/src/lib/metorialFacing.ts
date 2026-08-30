@@ -1,3 +1,4 @@
+import type { AuditScope } from '@metorial/audit-scope';
 import type { Instance, OrganizationActor, Project } from '@metorial/db';
 import type { ProviderEventBase } from '@metorial/fabric';
 import type { Environment, Solution, Tenant, TenantActor } from '@metorial-subspace/db';
@@ -9,12 +10,14 @@ export type MetorialFacing<T> = Omit<T, ScopeKeys> & {
   instance: Instance;
   organizationActor?: OrganizationActor;
   project?: Project;
+  auditScope?: AuditScope;
 };
 
 export type MetorialFacingWithActor<T> = Omit<T, ScopeKeys> & {
   instance: Instance;
   organizationActor: OrganizationActor;
   project?: Project;
+  auditScope?: AuditScope;
 };
 
 export type InternalScope = {
@@ -39,10 +42,11 @@ export type ResolvedMetorialScopeWithActor = ResolvedMetorialScope & {
 export let toProviderEventBase = (d: {
   instance: Instance;
   organizationActor?: OrganizationActor;
+  auditScope?: AuditScope;
   [key: string]: unknown;
 }): ProviderEventBase => {
-  let { instance, organizationActor, project, ...input } = d;
-  return { instance, organizationActor, input };
+  let { instance, organizationActor, project, auditScope, ...input } = d;
+  return { instance, organizationActor, auditScope, input };
 };
 
 export let resolveMetorialFacing = async (d: {

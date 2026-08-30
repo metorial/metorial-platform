@@ -7,6 +7,7 @@ let mocks = vi.hoisted(() => {
     handlerRef,
     db: {
       sessionMessage: { findFirst: vi.fn() },
+      instance: { findUnique: vi.fn() },
       sessionConnection: { updateMany: vi.fn() },
       sessionProvider: { updateMany: vi.fn() },
       session: { updateMany: vi.fn() },
@@ -41,7 +42,14 @@ let message = (overrides: Record<string, unknown> = {}) => ({
   retentionLevel: 'full',
   hasOutput: true,
   output: { type: 'tool.result', data: {} },
-  session: { tenantOid: 10n, projectOid: 11n, solutionOid: 30n },
+  session: { id: 'ses_1', tenantOid: 10n, projectOid: 11n, solutionOid: 30n },
+  instanceOid: 3n,
+  senderParticipant: { id: 'spa_1', type: 'agent', name: 'Client' },
+  sessionProvider: null,
+  connection: null,
+  toolCall: null,
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+  completedAt: new Date('2026-01-01T00:00:01Z'),
   ...overrides
 });
 
@@ -55,6 +63,9 @@ describe('finalizeMessage usage accounting', () => {
     mocks.db.session.updateMany.mockResolvedValue(undefined);
     mocks.db.sessionUsageRecord.create.mockResolvedValue(undefined);
     mocks.protoGuardMessageQueue.add.mockResolvedValue(undefined);
+    // No mirror row: the audit entry resolves no scope and is skipped, which keeps these
+    // usage-accounting cases focused on accounting.
+    mocks.db.instance.findUnique.mockResolvedValue(null);
   });
 
   it('records the same usage at none as at full', async () => {

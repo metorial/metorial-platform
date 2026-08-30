@@ -108,6 +108,10 @@ export let upsertParticipant = async (d: {
             identityActorOid: d.session.identityActorOid ?? null,
             identityOid: d.session.identityOid ?? null
           }
-        : {}
+        : {},
+    include: {
+      identity: { select: { id: true } },
+      identityActor: { select: { id: true } }
+    }
   });
 };

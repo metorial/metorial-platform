@@ -50,7 +50,7 @@ import {
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceProviderAuthConfig } from '@metorial/fabric';
 import {
   providerAuthConfigArchivedQueue,
   providerAuthConfigUpdatedQueue
@@ -119,6 +119,15 @@ export type UpdateProviderAuthConfigParams = {
     ua: string | undefined;
     note?: string | undefined;
   };
+};
+
+/**
+ * The public entry point takes the record with its relations already loaded -- every
+ * caller has just read it through this service's `include` -- so the audit event can
+ * carry a previous payload without reading the row a second time.
+ */
+export type UpdateProviderAuthConfigFacingParams = Omit<UpdateProviderAuthConfigParams, 'providerAuthConfig'> & {
+  providerAuthConfig: UpdateProviderAuthConfigParams['providerAuthConfig'] & AuditSubspaceProviderAuthConfig;
 };
 
 export type ArchiveProviderAuthConfigParams = {
@@ -195,7 +204,7 @@ class providerAuthConfigServiceImpl {
     return authConfig;
   }
 
-  async updateProviderAuthConfig(d: MetorialFacing<UpdateProviderAuthConfigParams>) {
+  async updateProviderAuthConfig(d: MetorialFacing<UpdateProviderAuthConfigFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
@@ -208,7 +217,11 @@ class providerAuthConfigServiceImpl {
       environment: scope.environment
     });
 
-    await Fabric.fire('provider.auth_config.updated:after', { ...eventBase, authConfig });
+    await Fabric.fire('provider.auth_config.updated:after', {
+      ...eventBase,
+      authConfig,
+      previousAuthConfig: d.providerAuthConfig
+    });
 
     return authConfig;
   }

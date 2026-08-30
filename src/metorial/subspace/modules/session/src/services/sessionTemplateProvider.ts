@@ -41,7 +41,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceSessionTemplateProvider } from '@metorial/fabric';
 import {
   enqueueSessionTemplateProvidersCreated,
   enqueueSessionTemplateSyncHash
@@ -139,6 +139,14 @@ export type UpdateSessionTemplateProviderParams = {
     toolFilters?: SessionProviderInputToolFilters;
   };
   _allowLinked?: boolean;
+};
+
+export type UpdateSessionTemplateProviderFacingParams = Omit<
+  UpdateSessionTemplateProviderParams,
+  'sessionTemplateProvider'
+> & {
+  sessionTemplateProvider: UpdateSessionTemplateProviderParams['sessionTemplateProvider'] &
+    AuditSubspaceSessionTemplateProvider;
 };
 
 export type ArchiveSessionTemplateProviderParams = {
@@ -286,7 +294,9 @@ class sessionTemplateProviderServiceImpl {
     );
   }
 
-  async getSessionTemplateProviderById(d: MetorialFacing<GetSessionTemplateProviderByIdParams>) {
+  async getSessionTemplateProviderById(
+    d: MetorialFacing<GetSessionTemplateProviderByIdParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -721,7 +731,9 @@ class sessionTemplateProviderServiceImpl {
     return res!;
   }
 
-  async updateSessionTemplateProvider(d: MetorialFacing<UpdateSessionTemplateProviderParams>) {
+  async updateSessionTemplateProvider(
+    d: MetorialFacing<UpdateSessionTemplateProviderFacingParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -736,7 +748,8 @@ class sessionTemplateProviderServiceImpl {
 
     await Fabric.fire('provider.session_template.provider.updated:after', {
       ...eventBase,
-      sessionTemplateProvider
+      sessionTemplateProvider,
+      previousSessionTemplateProvider: d.sessionTemplateProvider
     });
 
     return sessionTemplateProvider;
@@ -771,7 +784,9 @@ class sessionTemplateProviderServiceImpl {
     return sessionTemplateProvider;
   }
 
-  async archiveSessionTemplateProvider(d: MetorialFacing<ArchiveSessionTemplateProviderParams>) {
+  async archiveSessionTemplateProvider(
+    d: MetorialFacing<ArchiveSessionTemplateProviderParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 

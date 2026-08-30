@@ -12,6 +12,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric, type AuditSubspaceIdentity } from '@metorial/fabric';
 import {
   assertNoActiveIntegrationIdentityLink,
   checkDeletedEdit,
@@ -38,6 +39,7 @@ import {
   getMetorialSolution,
   metorialDb,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import {
@@ -131,6 +133,10 @@ export type UpdateIdentityParams = {
     description?: string;
     metadata?: Record<string, any>;
   };
+};
+
+export type UpdateIdentityFacingParams = Omit<UpdateIdentityParams, 'identity'> & {
+  identity: UpdateIdentityParams['identity'] & AuditSubspaceIdentity;
 };
 
 export type ArchiveIdentityParams = {
@@ -277,7 +283,17 @@ class identityServiceImpl {
   async createIdentity(d: MetorialFacing<CreateIdentityParams> & { actor: IdentityActor }) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.createIdentityInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.created:before', eventBase);
+
+    let identity = await this.createIdentityInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.created:after', {
+      ...eventBase,
+      identity
+    });
+
+    return identity;
   }
 
   async createIdentityInternal(d: CreateIdentityParams) {
@@ -329,10 +345,21 @@ class identityServiceImpl {
     });
   }
 
-  async updateIdentity(d: MetorialFacing<UpdateIdentityParams>) {
+  async updateIdentity(d: MetorialFacing<UpdateIdentityFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.updateIdentityInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.updated:before', eventBase);
+
+    let identity = await this.updateIdentityInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('identity.updated:after', {
+      ...eventBase,
+      identity,
+      previousIdentity: d.identity
+    });
+
+    return identity;
   }
 
   async updateIdentityInternal(d: UpdateIdentityParams) {

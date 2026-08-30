@@ -30,7 +30,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceIntegration } from '@metorial/fabric';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import { createIntegrationVersion } from '../lib/versions';
 import {
@@ -148,6 +148,10 @@ export type UpdateIntegrationParams = {
     canOverrideToolFilters?: boolean;
     useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
   };
+};
+
+export type UpdateIntegrationFacingParams = Omit<UpdateIntegrationParams, 'integration'> & {
+  integration: UpdateIntegrationParams['integration'] & AuditSubspaceIntegration;
 };
 
 export type ArchiveIntegrationParams = {
@@ -420,15 +424,26 @@ class integrationServiceImpl {
     });
   }
 
-  async updateIntegration(d: MetorialFacing<UpdateIntegrationParams>) {
+  async updateIntegration(d: MetorialFacing<UpdateIntegrationFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.updateIntegrationInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration.updated:before', eventBase);
+
+    let integration = await this.updateIntegrationInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration.updated:after', {
+      ...eventBase,
+      integration,
+      previousIntegration: d.integration
+    });
+
+    return integration;
   }
 
   async updateIntegrationInternal(

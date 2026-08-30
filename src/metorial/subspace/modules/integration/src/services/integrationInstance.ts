@@ -39,7 +39,11 @@ import {
   identityInternalService
 } from '@metorial-subspace/module-identity';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { sessionService, sessionTemplateService, finalizeSessionCreate } from '@metorial-subspace/module-session';
+import {
+  sessionService,
+  sessionTemplateService,
+  finalizeSessionCreate
+} from '@metorial-subspace/module-session';
 import { enqueueSyncIntegrationInstanceSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import {
@@ -49,7 +53,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceIntegrationInstance } from '@metorial/fabric';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   integrationInstanceArchivedQueue,
@@ -253,6 +257,14 @@ export type UpdateIntegrationInstanceParams = {
   };
 };
 
+export type UpdateIntegrationInstanceFacingParams = Omit<
+  UpdateIntegrationInstanceParams,
+  'integrationInstance'
+> & {
+  integrationInstance: UpdateIntegrationInstanceParams['integrationInstance'] &
+    AuditSubspaceIntegrationInstance;
+};
+
 export type CreateSessionTemplateForIntegrationInstanceParams = {
   integrationInstance: IntegrationInstance;
   input: {
@@ -340,46 +352,49 @@ class integrationInstanceServiceImpl {
     current?: Parameters<typeof mergeIntegrationIdentityInput>[0]['current'];
     isMagicMcpBacking?: boolean;
   }) {
-    return withTransaction(async db => {
-      let mergedIdentityInput = mergeIntegrationIdentityInput({
-        current: d.current,
-        input: {
-          identityActorId: d.input.identityActorId,
-          identityId: d.input.identityId
-        }
-      });
-      let { actor, identity } = await resolveIntegrationIdentity({
-        tenant: d.tenant,
-        environment: d.environment,
-        integrationInstance: d.integrationInstance,
-        input: mergedIdentityInput
-      });
-
-      let integrationInstance = await db.integrationInstance.update({
-        where: { oid: d.integrationInstance.oid },
-        data: {
-          identityActorOid: actor?.oid ?? null,
-          identityOid: identity?.oid ?? null
-        },
-        include: integrationInstanceInclude
-      });
-
-      if (d.input.providers?.length) {
-        await integrationInstanceProviderService.setIntegrationInstanceProvidersInternal({
+    return withTransaction(
+      async db => {
+        let mergedIdentityInput = mergeIntegrationIdentityInput({
+          current: d.current,
+          input: {
+            identityActorId: d.input.identityActorId,
+            identityId: d.input.identityId
+          }
+        });
+        let { actor, identity } = await resolveIntegrationIdentity({
           tenant: d.tenant,
           environment: d.environment,
-          integrationInstance,
-          input: d.input.providers
+          integrationInstance: d.integrationInstance,
+          input: mergedIdentityInput
         });
 
-        integrationInstance = await db.integrationInstance.findUniqueOrThrow({
-          where: { oid: integrationInstance.oid },
+        let integrationInstance = await db.integrationInstance.update({
+          where: { oid: d.integrationInstance.oid },
+          data: {
+            identityActorOid: actor?.oid ?? null,
+            identityOid: identity?.oid ?? null
+          },
           include: integrationInstanceInclude
         });
-      }
 
-      return integrationInstance;
-    }, { ifExists: true });
+        if (d.input.providers?.length) {
+          await integrationInstanceProviderService.setIntegrationInstanceProvidersInternal({
+            tenant: d.tenant,
+            environment: d.environment,
+            integrationInstance,
+            input: d.input.providers
+          });
+
+          integrationInstance = await db.integrationInstance.findUniqueOrThrow({
+            where: { oid: integrationInstance.oid },
+            include: integrationInstanceInclude
+          });
+        }
+
+        return integrationInstance;
+      },
+      { ifExists: true }
+    );
   }
 
   private async getAutomaticProviderInputs(d: {
@@ -809,15 +824,26 @@ class integrationInstanceServiceImpl {
     });
   }
 
-  async updateIntegrationInstance(d: MetorialFacing<UpdateIntegrationInstanceParams>) {
+  async updateIntegrationInstance(d: MetorialFacing<UpdateIntegrationInstanceFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.updateIntegrationInstanceInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_instance.updated:before', eventBase);
+
+    let integrationInstance = await this.updateIntegrationInstanceInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_instance.updated:after', {
+      ...eventBase,
+      integrationInstance,
+      previousIntegrationInstance: d.integrationInstance
+    });
+
+    return integrationInstance;
   }
 
   async updateIntegrationInstanceInternal(
@@ -915,7 +941,10 @@ class integrationInstanceServiceImpl {
   }
 
   async createSessionTemplateForIntegrationInstanceInternal(
-    d: { tenant: Tenant; environment: Environment } & CreateSessionTemplateForIntegrationInstanceParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & CreateSessionTemplateForIntegrationInstanceParams
   ) {
     checkTenant(d, d.integrationInstance);
     checkDeletedRelation(d.integrationInstance);
@@ -951,7 +980,10 @@ class integrationInstanceServiceImpl {
   }
 
   async waitForDefaultSessionTemplateForIntegrationInstanceInternal(
-    d: { tenant: Tenant; environment: Environment } & WaitForDefaultSessionTemplateForIntegrationInstanceParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & WaitForDefaultSessionTemplateForIntegrationInstanceParams
   ) {
     let solution = await getMetorialSolution();
 

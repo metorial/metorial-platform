@@ -13,6 +13,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import {
   checkDeletedEdit,
   checkDeletedRelation,
@@ -35,6 +36,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import {
@@ -526,11 +528,22 @@ class integrationInstanceGroupProviderServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.setIntegrationInstanceGroupProviderInternal({
-      ...rest,
-      tenant: scope.tenant,
-      environment: scope.environment
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_instance_group_provider.set:before', eventBase);
+
+    let integrationInstanceGroupProvider =
+      await this.setIntegrationInstanceGroupProviderInternal({
+        ...rest,
+        tenant: scope.tenant,
+        environment: scope.environment
+      });
+
+    await Fabric.fire('provider.integration_instance_group_provider.set:after', {
+      ...eventBase,
+      integrationInstanceGroupProvider
     });
+
+    return integrationInstanceGroupProvider;
   }
 
   async setIntegrationInstanceGroupProviderInternal(
@@ -599,11 +612,25 @@ class integrationInstanceGroupProviderServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.archiveIntegrationInstanceGroupProviderInternal({
-      ...rest,
-      tenant: scope.tenant,
-      environment: scope.environment
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire(
+      'provider.integration_instance_group_provider.deleted:before',
+      eventBase
+    );
+
+    let integrationInstanceGroupProvider =
+      await this.archiveIntegrationInstanceGroupProviderInternal({
+        ...rest,
+        tenant: scope.tenant,
+        environment: scope.environment
+      });
+
+    await Fabric.fire('provider.integration_instance_group_provider.deleted:after', {
+      ...eventBase,
+      integrationInstanceGroupProvider
     });
+
+    return integrationInstanceGroupProvider;
   }
 
   async archiveIntegrationInstanceGroupProviderInternal(

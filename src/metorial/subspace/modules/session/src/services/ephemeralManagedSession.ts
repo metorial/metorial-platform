@@ -22,6 +22,7 @@ import {
 import { env } from '../env';
 import { sessionArchivedQueue } from '../queues/lifecycle/session';
 import { createSessionRecord } from './_shared/createSession';
+import { recordEphemeralSessionAuditEvent } from '../lib/ephemeralSessionAudit';
 import { type SessionProviderTemplateInput } from './sessionProviderInput';
 
 let ephemeralManagedSessionResolveLock = createLock({
@@ -159,7 +160,9 @@ export type ArchiveEphemeralManagedSessionParams = {
 };
 
 class ephemeralManagedSessionServiceImpl {
-  async getEphemeralManagedSessionById(d: MetorialFacing<GetEphemeralManagedSessionByIdParams>) {
+  async getEphemeralManagedSessionById(
+    d: MetorialFacing<GetEphemeralManagedSessionByIdParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -250,7 +253,7 @@ class ephemeralManagedSessionServiceImpl {
         }
       });
 
-      return await db.ephemeralManagedSession.update({
+      let updated = await db.ephemeralManagedSession.update({
         where: { oid: ephemeralManagedSession.oid },
         data: {
           currentSessionOid: session.oid,
@@ -262,6 +265,16 @@ class ephemeralManagedSessionServiceImpl {
         },
         include
       });
+
+      await addAfterTransactionHook(async () =>
+        recordEphemeralSessionAuditEvent({
+          session,
+          instanceOid: d.environment.instanceOid,
+          projectOid: d.tenant.projectOid
+        })
+      );
+
+      return updated;
     });
   }
 
@@ -325,7 +338,9 @@ class ephemeralManagedSessionServiceImpl {
     });
   }
 
-  async archiveEphemeralManagedSession(d: MetorialFacing<ArchiveEphemeralManagedSessionParams>) {
+  async archiveEphemeralManagedSession(
+    d: MetorialFacing<ArchiveEphemeralManagedSessionParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -488,6 +503,14 @@ class ephemeralManagedSessionServiceImpl {
             })
           }
         });
+
+        await addAfterTransactionHook(async () =>
+          recordEphemeralSessionAuditEvent({
+            session,
+            instanceOid: ephemeralManagedSession.environment.instanceOid,
+            projectOid: ephemeralManagedSession.tenant.projectOid
+          })
+        );
 
         return {
           ...session,

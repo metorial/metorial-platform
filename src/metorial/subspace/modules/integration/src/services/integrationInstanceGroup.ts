@@ -13,6 +13,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric, type AuditSubspaceIntegrationInstanceGroup } from '@metorial/fabric';
 import {
   checkDeletedEdit,
   checkDeletedRelation,
@@ -38,6 +39,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import {
@@ -192,6 +194,14 @@ export type UpdateIntegrationInstanceGroupParams = {
     identityId?: string | null;
     providers?: SetIntegrationInstanceGroupProviderInput[];
   };
+};
+
+/**
+ * The public entry point takes the record with its relations already loaded, so the
+ * audit event can carry a previous payload without reading the row a second time.
+ */
+export type UpdateIntegrationInstanceGroupFacingParams = Omit<UpdateIntegrationInstanceGroupParams, 'integrationInstanceGroup'> & {
+  integrationInstanceGroup: UpdateIntegrationInstanceGroupParams['integrationInstanceGroup'] & AuditSubspaceIntegrationInstanceGroup;
 };
 
 export type CreateSessionTemplateForIntegrationInstanceGroupParams = {
@@ -502,11 +512,21 @@ class integrationInstanceGroupServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.createIntegrationInstanceGroupInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_instance_group.created:before', eventBase);
+
+    let integrationInstanceGroup = await this.createIntegrationInstanceGroupInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_instance_group.created:after', {
+      ...eventBase,
+      integrationInstanceGroup
+    });
+
+    return integrationInstanceGroup;
   }
 
   async createIntegrationInstanceGroupInternal(
@@ -632,15 +652,26 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async updateIntegrationInstanceGroup(d: MetorialFacing<UpdateIntegrationInstanceGroupParams>) {
+  async updateIntegrationInstanceGroup(d: MetorialFacing<UpdateIntegrationInstanceGroupFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.updateIntegrationInstanceGroupInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_instance_group.updated:before', eventBase);
+
+    let integrationInstanceGroup = await this.updateIntegrationInstanceGroupInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_instance_group.updated:after', {
+      ...eventBase,
+      integrationInstanceGroup,
+      previousIntegrationInstanceGroup: d.integrationInstanceGroup
+    });
+
+    return integrationInstanceGroup;
   }
 
   async updateIntegrationInstanceGroupInternal(
@@ -891,11 +922,21 @@ class integrationInstanceGroupServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.archiveIntegrationInstanceGroupInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_instance_group.deleted:before', eventBase);
+
+    let integrationInstanceGroup = await this.archiveIntegrationInstanceGroupInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.integration_instance_group.deleted:after', {
+      ...eventBase,
+      integrationInstanceGroup
+    });
+
+    return integrationInstanceGroup;
   }
 
   async archiveIntegrationInstanceGroupInternal(

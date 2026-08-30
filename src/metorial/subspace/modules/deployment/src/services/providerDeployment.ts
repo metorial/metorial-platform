@@ -54,7 +54,7 @@ import {
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceProviderDeployment } from '@metorial/fabric';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import {
@@ -132,6 +132,14 @@ export type UpdateProviderDeploymentParams = {
   };
 };
 
+export type UpdateProviderDeploymentFacingParams = Omit<
+  UpdateProviderDeploymentParams,
+  'providerDeployment'
+> & {
+  providerDeployment: UpdateProviderDeploymentParams['providerDeployment'] &
+    AuditSubspaceProviderDeployment;
+};
+
 export type ArchiveProviderDeploymentParams = {
   tenant: Tenant;
   environment: Environment;
@@ -191,7 +199,7 @@ class providerDeploymentServiceImpl {
     return deployment;
   }
 
-  async updateProviderDeployment(d: MetorialFacing<UpdateProviderDeploymentParams>) {
+  async updateProviderDeployment(d: MetorialFacing<UpdateProviderDeploymentFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
@@ -204,7 +212,11 @@ class providerDeploymentServiceImpl {
       environment: scope.environment
     });
 
-    await Fabric.fire('provider.deployment.updated:after', { ...eventBase, deployment });
+    await Fabric.fire('provider.deployment.updated:after', {
+      ...eventBase,
+      deployment,
+      previousDeployment: d.providerDeployment
+    });
 
     return deployment;
   }

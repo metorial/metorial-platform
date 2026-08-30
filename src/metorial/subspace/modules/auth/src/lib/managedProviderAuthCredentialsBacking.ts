@@ -1,4 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { recordManagedCredentialsAuditEvent } from './managedCredentialsAudit';
 import { createLock } from '@lowerdeck/lock';
 import {
   addAfterTransactionHook,
@@ -158,11 +159,18 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
           }
         });
 
-        await addAfterTransactionHook(async () =>
-          providerAuthCredentialsUpdatedQueue.add({
+        await addAfterTransactionHook(async () => {
+          await providerAuthCredentialsUpdatedQueue.add({
             providerAuthCredentialsId: updated.id
-          })
-        );
+          });
+
+          await recordManagedCredentialsAuditEvent({
+            action: 'update',
+            authCredentials: { ...updated, provider },
+            previousAuthCredentials: { ...existing, provider },
+            projectOid: d.tenant.projectOid
+          });
+        });
 
         return updated;
       });
@@ -204,11 +212,17 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
         }
       });
 
-      await addAfterTransactionHook(async () =>
-        providerAuthCredentialsCreatedQueue.add({
+      await addAfterTransactionHook(async () => {
+        await providerAuthCredentialsCreatedQueue.add({
           providerAuthCredentialsId: backingCredentials.id
-        })
-      );
+        });
+
+        await recordManagedCredentialsAuditEvent({
+          action: 'create',
+          authCredentials: { ...backingCredentials, provider },
+          projectOid: d.tenant.projectOid
+        });
+      });
 
       return backingCredentials;
     });

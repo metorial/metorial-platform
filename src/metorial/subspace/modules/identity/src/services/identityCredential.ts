@@ -13,6 +13,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric, type AuditSubspaceIdentityCredential } from '@metorial/fabric';
 import {
   checkDeletedEdit,
   checkDeletedRelation,
@@ -36,6 +37,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import {
@@ -103,6 +105,14 @@ export type UpdateIdentityCredentialParams = {
   input: {
     delegationConfig: IdentityDelegationConfig;
   };
+};
+
+export type UpdateIdentityCredentialFacingParams = Omit<
+  UpdateIdentityCredentialParams,
+  'identityCredential'
+> & {
+  identityCredential: UpdateIdentityCredentialParams['identityCredential'] &
+    AuditSubspaceIdentityCredential;
 };
 
 export type ArchiveIdentityCredentialParams = {
@@ -209,7 +219,21 @@ class identityCredentialServiceImpl {
   async createIdentityCredential(d: MetorialFacing<CreateIdentityCredentialParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.createIdentityCredentialInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.credential.created:before', eventBase);
+
+    let identityCredential = await this.createIdentityCredentialInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('identity.credential.created:after', {
+      ...eventBase,
+      identityCredential
+    });
+
+    return identityCredential;
   }
 
   async createIdentityCredentialInternal(d: CreateIdentityCredentialParams) {
@@ -251,10 +275,25 @@ class identityCredentialServiceImpl {
     });
   }
 
-  async updateIdentityCredential(d: MetorialFacing<UpdateIdentityCredentialParams>) {
+  async updateIdentityCredential(d: MetorialFacing<UpdateIdentityCredentialFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.updateIdentityCredentialInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.credential.updated:before', eventBase);
+
+    let identityCredential = await this.updateIdentityCredentialInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('identity.credential.updated:after', {
+      ...eventBase,
+      identityCredential,
+      previousIdentityCredential: d.identityCredential
+    });
+
+    return identityCredential;
   }
 
   async updateIdentityCredentialInternal(d: UpdateIdentityCredentialParams) {
@@ -289,7 +328,21 @@ class identityCredentialServiceImpl {
   async archiveIdentityCredential(d: MetorialFacing<ArchiveIdentityCredentialParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.archiveIdentityCredentialInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.credential.deleted:before', eventBase);
+
+    let identityCredential = await this.archiveIdentityCredentialInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('identity.credential.deleted:after', {
+      ...eventBase,
+      identityCredential
+    });
+
+    return identityCredential;
   }
 
   async archiveIdentityCredentialInternal(d: ArchiveIdentityCredentialParams) {

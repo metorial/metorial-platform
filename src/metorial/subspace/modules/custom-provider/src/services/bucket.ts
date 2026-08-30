@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { type CodeBucket, db, type Environment, type Tenant } from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -12,6 +13,7 @@ import {
 import {
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { getTenantForOrigin, origin } from '../origin';
@@ -216,10 +218,24 @@ class bucketServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.setFileInBucketInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.custom_provider.code_bucket.file.written:before', eventBase);
+
+    let result = await this.setFileInBucketInternal({
       ...rest,
       tenant: scope.tenant
     });
+
+    await Fabric.fire('provider.custom_provider.code_bucket.file.written:after', {
+      ...eventBase,
+      file: {
+        bucket: { id: d.bucket.id },
+        filename: d.filename,
+        byteSize: Buffer.byteLength(d.content, d.encoding)
+      }
+    });
+
+    return result;
   }
 
   async setFileInBucketInternal(d: { tenant: Tenant } & SetFileInBucketParams) {
@@ -246,10 +262,20 @@ class bucketServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.deleteFileInBucketInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.custom_provider.code_bucket.file.deleted:before', eventBase);
+
+    let result = await this.deleteFileInBucketInternal({
       ...rest,
       tenant: scope.tenant
     });
+
+    await Fabric.fire('provider.custom_provider.code_bucket.file.deleted:after', {
+      ...eventBase,
+      file: { bucket: { id: d.bucket.id }, filename: d.filename, byteSize: null }
+    });
+
+    return result;
   }
 
   async deleteFileInBucketInternal(d: { tenant: Tenant } & DeleteFileInBucketParams) {

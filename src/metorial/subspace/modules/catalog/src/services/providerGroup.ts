@@ -3,6 +3,8 @@ import { generateCode } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
+import type { AuditScope } from '@metorial/audit-scope';
+import type { Instance } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
   db,
@@ -185,11 +187,22 @@ class ProviderListingGroupService {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.updateProviderListingGroupInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.provider_listing_group.updated:before', eventBase);
+
+    let providerGroup = await this.updateProviderListingGroupInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.provider_listing_group.updated:after', {
+      ...eventBase,
+      providerGroup,
+      previousProviderGroup: d.providerListingGroup
+    });
+
+    return providerGroup;
   }
 
   async updateProviderListingGroupInternal(
@@ -241,8 +254,13 @@ class ProviderListingGroupService {
 
   async addProviderToGroup(d: {
     providerListingGroup: ProviderListingGroup;
-    providerListing: ProviderListing;
+    providerListing: ProviderListing & { provider: { id: string; name: string } };
+    instance: Instance;
+    auditScope?: AuditScope;
   }) {
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.provider_listing_group.listing.added:before', eventBase);
+
     await db.providerListing.update({
       where: { id: d.providerListing.id },
       data: {
@@ -254,13 +272,27 @@ class ProviderListingGroupService {
         groups: true
       }
     });
+
+    await Fabric.fire('provider.provider_listing_group.listing.added:after', {
+      ...eventBase,
+      providerGroup: d.providerListingGroup,
+      providerListing: {
+        id: d.providerListing.id,
+        provider: { id: d.providerListing.provider.id, name: d.providerListing.provider.name }
+      }
+    });
   }
 
   async removeProviderFromGroup(d: {
     providerListingGroup: ProviderListingGroup;
-    providerListing: ProviderListing;
+    providerListing: ProviderListing & { provider: { id: string; name: string } };
+    instance: Instance;
+    auditScope?: AuditScope;
   }) {
-    return db.providerListing.update({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.provider_listing_group.listing.removed:before', eventBase);
+
+    let providerListing = await db.providerListing.update({
       where: { id: d.providerListing.id },
       data: {
         groups: {
@@ -268,6 +300,17 @@ class ProviderListingGroupService {
         }
       }
     });
+
+    await Fabric.fire('provider.provider_listing_group.listing.removed:after', {
+      ...eventBase,
+      providerGroup: d.providerListingGroup,
+      providerListing: {
+        id: d.providerListing.id,
+        provider: { id: d.providerListing.provider.id, name: d.providerListing.provider.name }
+      }
+    });
+
+    return providerListing;
   }
 }
 

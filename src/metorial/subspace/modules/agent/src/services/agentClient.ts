@@ -10,11 +10,13 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import { type DateFilter, normalizeDateFilter } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { indexAgentClientQueue } from '../queues/search/agentClient';
@@ -201,7 +203,17 @@ class agentClientServiceImpl {
   }
 
   async createAgentClient(d: MetorialFacing<CreateAgentClientParams>) {
-    return await this.upsertAgentClient(d);
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.agent_client.created:before', eventBase);
+
+    let result = await this.upsertAgentClient(d);
+
+    await Fabric.fire('identity.agent_client.created:after', {
+      ...eventBase,
+      agentClient: result.agentClient
+    });
+
+    return result;
   }
 
   async createAgentClientInternal(d: CreateAgentClientParams) {

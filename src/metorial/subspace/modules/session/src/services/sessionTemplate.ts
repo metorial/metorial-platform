@@ -41,7 +41,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceSessionTemplate } from '@metorial/fabric';
 import { metorialDb } from '@metorial-subspace/module-tenant';
 import { sessionTemplateArchivedQueue } from '../queues/lifecycle/sessionTemplate';
 import { queueJobId, withSessionTemplateSyncLock } from '../lib/sessionTemplateSync';
@@ -185,6 +185,13 @@ export type UpdateSessionTemplateParams = {
   };
   _allowLinked?: boolean;
   _allowMagicMcpUpdate?: boolean;
+};
+
+export type UpdateSessionTemplateFacingParams = Omit<
+  UpdateSessionTemplateParams,
+  'template'
+> & {
+  template: UpdateSessionTemplateParams['template'] & AuditSubspaceSessionTemplate;
 };
 
 export type ArchiveSessionTemplateParams = {
@@ -502,7 +509,7 @@ class sessionTemplateServiceImpl {
     });
   }
 
-  async updateSessionTemplate(d: MetorialFacing<UpdateSessionTemplateParams>) {
+  async updateSessionTemplate(d: MetorialFacing<UpdateSessionTemplateFacingParams>) {
     let { instance, organizationActor, _allowMagicMcpUpdate, ...rest } = d;
 
     await assertMagicMcpSessionTemplateMutable({
@@ -524,7 +531,8 @@ class sessionTemplateServiceImpl {
 
     await Fabric.fire('provider.session_template.updated:after', {
       ...eventBase,
-      sessionTemplate
+      sessionTemplate,
+      previousSessionTemplate: d.template
     });
 
     return sessionTemplate;

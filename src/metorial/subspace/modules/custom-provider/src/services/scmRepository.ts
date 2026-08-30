@@ -2,10 +2,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Tenant } from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import { type DateFilter, normalizeDateFilter, resolveCustomProviders } from '@metorial-subspace/list-utils';
 import {
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { ensureScmRepoForOrigin } from '../internal/linkRepo';
@@ -135,11 +137,21 @@ class scmRepositoryServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.createScmRepositoryInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.scm_repository.created:before', eventBase);
+
+    let scmRepository = await this.createScmRepositoryInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.scm_repository.created:after', {
+      ...eventBase,
+      scmRepository
+    });
+
+    return scmRepository;
   }
 
   async createScmRepositoryInternal(
@@ -167,11 +179,21 @@ class scmRepositoryServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.linkScmRepositoryInternal({
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.scm_repository.linked:before', eventBase);
+
+    let result = await this.linkScmRepositoryInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await Fabric.fire('provider.scm_repository.linked:after', {
+      ...eventBase,
+      scmRepository: result
+    });
+
+    return result;
   }
 
   async linkScmRepositoryInternal(

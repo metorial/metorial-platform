@@ -48,7 +48,7 @@ import {
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceProviderSetupSession } from '@metorial/fabric';
 import { addMinutes } from 'date-fns';
 import {
   providerSetupSessionCreatedQueue,
@@ -145,6 +145,14 @@ export type UpdateProviderSetupSessionParams = {
     metadata?: Record<string, any>;
     identity?: Identity;
   };
+};
+
+export type UpdateProviderSetupSessionFacingParams = Omit<
+  UpdateProviderSetupSessionParams,
+  'providerSetupSession'
+> & {
+  providerSetupSession: UpdateProviderSetupSessionParams['providerSetupSession'] &
+    AuditSubspaceProviderSetupSession;
 };
 
 type ListProviderSetupSessionsParams = {
@@ -511,7 +519,7 @@ class providerSetupSessionServiceImpl {
     });
   }
 
-  async updateProviderSetupSession(d: MetorialFacing<UpdateProviderSetupSessionParams>) {
+  async updateProviderSetupSession(d: MetorialFacing<UpdateProviderSetupSessionFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
@@ -524,7 +532,11 @@ class providerSetupSessionServiceImpl {
       environment: scope.environment
     });
 
-    await Fabric.fire('provider.setup_session.updated:after', { ...eventBase, setupSession });
+    await Fabric.fire('provider.setup_session.updated:after', {
+      ...eventBase,
+      setupSession,
+      previousSetupSession: d.providerSetupSession
+    });
 
     return setupSession;
   }

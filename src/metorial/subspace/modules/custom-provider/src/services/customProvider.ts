@@ -40,7 +40,7 @@ import {
   resolveMetorialFacingWithActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceCustomProvider } from '@metorial/fabric';
 import type { ProviderVariantEnrichment } from '@metorial-subspace/provider-utils';
 import { prepareVersion } from '../internal/createVersion';
 import { linkRepo } from '../internal/linkRepo';
@@ -138,6 +138,13 @@ export type UpdateCustomProviderParams = {
         }
       | null;
   };
+};
+
+export type UpdateCustomProviderFacingParams = Omit<
+  UpdateCustomProviderParams,
+  'customProvider'
+> & {
+  customProvider: UpdateCustomProviderParams['customProvider'] & AuditSubspaceCustomProvider;
 };
 
 export type ArchiveCustomProviderParams = {
@@ -313,7 +320,7 @@ class customProviderServiceImpl {
     return customProvider;
   }
 
-  async updateCustomProvider(d: MetorialFacingWithActor<UpdateCustomProviderParams>) {
+  async updateCustomProvider(d: MetorialFacingWithActor<UpdateCustomProviderFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithActor(d);
 
@@ -329,6 +336,7 @@ class customProviderServiceImpl {
 
     await Fabric.fire('provider.custom_provider.updated:after', {
       ...eventBase,
+      previousCustomProvider: d.customProvider,
       customProvider
     });
 

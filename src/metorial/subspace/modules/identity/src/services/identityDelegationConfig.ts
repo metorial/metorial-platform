@@ -14,6 +14,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { Fabric, type AuditSubspaceIdentityDelegationConfig } from '@metorial/fabric';
 import {
   checkDeletedEdit,
   type DateFilter,
@@ -26,6 +27,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { env } from '../env';
@@ -99,6 +101,14 @@ export type UpdateIdentityDelegationConfigParams = {
     subDelegationDepth?: number;
     subDelegationBehavior?: IdentityDelegationConfigSubDelegationBehavior;
   };
+};
+
+export type UpdateIdentityDelegationConfigFacingParams = Omit<
+  UpdateIdentityDelegationConfigParams,
+  'identityDelegationConfig'
+> & {
+  identityDelegationConfig: UpdateIdentityDelegationConfigParams['identityDelegationConfig'] &
+    AuditSubspaceIdentityDelegationConfig;
 };
 
 export type ArchiveIdentityDelegationConfigParams = {
@@ -186,10 +196,26 @@ class identityDelegationConfigServiceImpl {
     return identityDelegationConfig;
   }
 
-  async createIdentityDelegationConfig(d: MetorialFacing<CreateIdentityDelegationConfigParams>) {
+  async createIdentityDelegationConfig(
+    d: MetorialFacing<CreateIdentityDelegationConfigParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.createIdentityDelegationConfigInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.delegation_config.created:before', eventBase);
+
+    let identityDelegationConfig = await this.createIdentityDelegationConfigInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('identity.delegation_config.created:after', {
+      ...eventBase,
+      identityDelegationConfig
+    });
+
+    return identityDelegationConfig;
   }
 
   async createIdentityDelegationConfigInternal(d: CreateIdentityDelegationConfigParams) {
@@ -244,10 +270,27 @@ class identityDelegationConfigServiceImpl {
     });
   }
 
-  async updateIdentityDelegationConfig(d: MetorialFacing<UpdateIdentityDelegationConfigParams>) {
+  async updateIdentityDelegationConfig(
+    d: MetorialFacing<UpdateIdentityDelegationConfigFacingParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.updateIdentityDelegationConfigInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.delegation_config.updated:before', eventBase);
+
+    let identityDelegationConfig = await this.updateIdentityDelegationConfigInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('identity.delegation_config.updated:after', {
+      ...eventBase,
+      identityDelegationConfig,
+      previousIdentityDelegationConfig: d.identityDelegationConfig
+    });
+
+    return identityDelegationConfig;
   }
 
   async updateIdentityDelegationConfigInternal(d: UpdateIdentityDelegationConfigParams) {
@@ -296,10 +339,26 @@ class identityDelegationConfigServiceImpl {
     });
   }
 
-  async archiveIdentityDelegationConfig(d: MetorialFacing<ArchiveIdentityDelegationConfigParams>) {
+  async archiveIdentityDelegationConfig(
+    d: MetorialFacing<ArchiveIdentityDelegationConfigParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.archiveIdentityDelegationConfigInternal({ ...rest, tenant, environment });
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('identity.delegation_config.deleted:before', eventBase);
+
+    let identityDelegationConfig = await this.archiveIdentityDelegationConfigInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('identity.delegation_config.deleted:after', {
+      ...eventBase,
+      identityDelegationConfig
+    });
+
+    return identityDelegationConfig;
   }
 
   async archiveIdentityDelegationConfigInternal(d: ArchiveIdentityDelegationConfigParams) {

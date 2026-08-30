@@ -27,7 +27,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceNetworkPolicy } from '@metorial/fabric';
 import { env } from '../env';
 import {
   assignNetworkPolicyRuleIds,
@@ -95,6 +95,13 @@ export type UpdateNetworkPolicyParams = {
   };
 };
 
+export type UpdateNetworkPolicyFacingParams = Omit<
+  UpdateNetworkPolicyParams,
+  'networkPolicy'
+> & {
+  networkPolicy: UpdateNetworkPolicyParams['networkPolicy'] & AuditSubspaceNetworkPolicy;
+};
+
 export type AddNetworkPolicyRuleParams = {
   tenant: Tenant;
   environment: Environment;
@@ -102,6 +109,13 @@ export type AddNetworkPolicyRuleParams = {
   input: {
     rule: NetworkPolicyRuleInput;
   };
+};
+
+export type AddNetworkPolicyRuleFacingParams = Omit<
+  AddNetworkPolicyRuleParams,
+  'networkPolicy'
+> & {
+  networkPolicy: AddNetworkPolicyRuleParams['networkPolicy'] & AuditSubspaceNetworkPolicy;
 };
 
 export type UpdateNetworkPolicyRuleParams = {
@@ -114,11 +128,25 @@ export type UpdateNetworkPolicyRuleParams = {
   };
 };
 
+export type UpdateNetworkPolicyRuleFacingParams = Omit<
+  UpdateNetworkPolicyRuleParams,
+  'networkPolicy'
+> & {
+  networkPolicy: UpdateNetworkPolicyRuleParams['networkPolicy'] & AuditSubspaceNetworkPolicy;
+};
+
 export type RemoveNetworkPolicyRuleParams = {
   tenant: Tenant;
   environment: Environment;
   networkPolicy: NetworkPolicy;
   ruleId: string;
+};
+
+export type RemoveNetworkPolicyRuleFacingParams = Omit<
+  RemoveNetworkPolicyRuleParams,
+  'networkPolicy'
+> & {
+  networkPolicy: RemoveNetworkPolicyRuleParams['networkPolicy'] & AuditSubspaceNetworkPolicy;
 };
 
 export type ArchiveNetworkPolicyParams = {
@@ -173,7 +201,7 @@ class networkPolicyServiceImpl {
     return networkPolicy;
   }
 
-  async updateNetworkPolicy(d: MetorialFacing<UpdateNetworkPolicyParams>) {
+  async updateNetworkPolicy(d: MetorialFacing<UpdateNetworkPolicyFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing(d);
 
@@ -188,7 +216,8 @@ class networkPolicyServiceImpl {
 
     await Fabric.fire('instance.network.network_policy.updated:after', {
       ...eventBase,
-      networkPolicy
+      networkPolicy,
+      previousNetworkPolicy: d.networkPolicy
     });
 
     return networkPolicy;
@@ -215,7 +244,7 @@ class networkPolicyServiceImpl {
     return networkPolicy;
   }
 
-  async addNetworkPolicyRule(d: MetorialFacing<AddNetworkPolicyRuleParams>) {
+  async addNetworkPolicyRule(d: MetorialFacing<AddNetworkPolicyRuleFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing(d);
 
@@ -227,13 +256,14 @@ class networkPolicyServiceImpl {
     await Fabric.fire('instance.network.network_policy.rule.created:after', {
       ...eventBase,
       networkPolicy: result.networkPolicy,
+      previousNetworkPolicy: d.networkPolicy,
       rule: result.rule
     });
 
     return result;
   }
 
-  async updateNetworkPolicyRule(d: MetorialFacing<UpdateNetworkPolicyRuleParams>) {
+  async updateNetworkPolicyRule(d: MetorialFacing<UpdateNetworkPolicyRuleFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing(d);
 
@@ -245,13 +275,14 @@ class networkPolicyServiceImpl {
     await Fabric.fire('instance.network.network_policy.rule.updated:after', {
       ...eventBase,
       networkPolicy: result.networkPolicy,
+      previousNetworkPolicy: d.networkPolicy,
       rule: result.rule
     });
 
     return result;
   }
 
-  async removeNetworkPolicyRule(d: MetorialFacing<RemoveNetworkPolicyRuleParams>) {
+  async removeNetworkPolicyRule(d: MetorialFacing<RemoveNetworkPolicyRuleFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing(d);
 
@@ -266,7 +297,9 @@ class networkPolicyServiceImpl {
 
     await Fabric.fire('instance.network.network_policy.rule.deleted:after', {
       ...eventBase,
-      networkPolicy
+      networkPolicy,
+      previousNetworkPolicy: d.networkPolicy,
+      ruleId: d.ruleId
     });
 
     return networkPolicy;

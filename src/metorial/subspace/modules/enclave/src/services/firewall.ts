@@ -32,7 +32,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceFirewall } from '@metorial/fabric';
 import {
   type FirewallBindingInput,
   validateFirewallBindingInputs
@@ -89,6 +89,10 @@ export type UpdateFirewallParams = {
   };
 };
 
+export type UpdateFirewallFacingParams = Omit<UpdateFirewallParams, 'firewall'> & {
+  firewall: UpdateFirewallParams['firewall'] & AuditSubspaceFirewall;
+};
+
 export type AddFirewallNetworkPolicyParams = {
   tenant: Tenant;
   environment: Environment;
@@ -97,11 +101,25 @@ export type AddFirewallNetworkPolicyParams = {
   position?: number;
 };
 
+export type AddFirewallNetworkPolicyFacingParams = Omit<
+  AddFirewallNetworkPolicyParams,
+  'firewall'
+> & {
+  firewall: AddFirewallNetworkPolicyParams['firewall'] & AuditSubspaceFirewall;
+};
+
 export type RemoveFirewallNetworkPolicyParams = {
   tenant: Tenant;
   environment: Environment;
   firewall: Firewall;
   networkPolicyId: string;
+};
+
+export type RemoveFirewallNetworkPolicyFacingParams = Omit<
+  RemoveFirewallNetworkPolicyParams,
+  'firewall'
+> & {
+  firewall: RemoveFirewallNetworkPolicyParams['firewall'] & AuditSubspaceFirewall;
 };
 
 export type ArchiveFirewallParams = {
@@ -225,7 +243,7 @@ class firewallServiceImpl {
     return firewall;
   }
 
-  async updateFirewall(d: MetorialFacing<UpdateFirewallParams>) {
+  async updateFirewall(d: MetorialFacing<UpdateFirewallFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing(d);
 
@@ -234,7 +252,11 @@ class firewallServiceImpl {
 
     let firewall = await this.updateFirewallInternal({ ...rest, tenant, environment });
 
-    await Fabric.fire('instance.network.firewall.updated:after', { ...eventBase, firewall });
+    await Fabric.fire('instance.network.firewall.updated:after', {
+      ...eventBase,
+      firewall,
+      previousFirewall: d.firewall
+    });
 
     return firewall;
   }
@@ -253,7 +275,7 @@ class firewallServiceImpl {
     return firewall;
   }
 
-  async addFirewallNetworkPolicy(d: MetorialFacing<AddFirewallNetworkPolicyParams>) {
+  async addFirewallNetworkPolicy(d: MetorialFacing<AddFirewallNetworkPolicyFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing(d);
 
@@ -268,13 +290,16 @@ class firewallServiceImpl {
 
     await Fabric.fire('instance.network.firewall.network_policy.attached:after', {
       ...eventBase,
-      firewall
+      firewall,
+      previousFirewall: d.firewall
     });
 
     return firewall;
   }
 
-  async removeFirewallNetworkPolicy(d: MetorialFacing<RemoveFirewallNetworkPolicyParams>) {
+  async removeFirewallNetworkPolicy(
+    d: MetorialFacing<RemoveFirewallNetworkPolicyFacingParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing(d);
 
@@ -289,7 +314,8 @@ class firewallServiceImpl {
 
     await Fabric.fire('instance.network.firewall.network_policy.detached:after', {
       ...eventBase,
-      firewall
+      firewall,
+      previousFirewall: d.firewall
     });
 
     return firewall;

@@ -32,7 +32,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AuditSubspaceSession } from '@metorial/fabric';
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import {
   assertMagicMcpSessionMutable,
@@ -113,6 +113,10 @@ export type UpdateSessionParams = {
   _allowMagicMcpUpdate?: boolean;
 };
 
+export type UpdateSessionFacingParams = Omit<UpdateSessionParams, 'session'> & {
+  session: UpdateSessionParams['session'] & AuditSubspaceSession;
+};
+
 export type ArchiveSessionParams = {
   session: Session;
   _allowMagicMcpDelete?: boolean;
@@ -144,7 +148,10 @@ class sessionServiceImpl {
   }
 
   async listSessionsInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<ListSessionsParams, 'accessTagSessionIds'>
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      ListSessionsParams,
+      'accessTagSessionIds'
+    >
   ) {
     let solution = await getMetorialSolution();
 
@@ -249,7 +256,9 @@ class sessionServiceImpl {
     });
   }
 
-  async getSessionByIdInternal(d: { tenant: Tenant; environment: Environment } & GetSessionByIdParams) {
+  async getSessionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetSessionByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let session = await db.session.findFirst({
@@ -326,7 +335,9 @@ class sessionServiceImpl {
     return enriched;
   }
 
-  async createSessionInternal(d: { tenant: Tenant; environment: Environment } & CreateSessionParams) {
+  async createSessionInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateSessionParams
+  ) {
     return withTransaction(async db =>
       createSessionRecord({
         tenant: d.tenant,
@@ -337,7 +348,7 @@ class sessionServiceImpl {
     );
   }
 
-  async updateSession(d: MetorialFacing<UpdateSessionParams>) {
+  async updateSession(d: MetorialFacing<UpdateSessionFacingParams>) {
     let { instance, organizationActor, _allowMagicMcpUpdate, ...rest } = d;
 
     await assertMagicMcpSessionMutable({
@@ -357,7 +368,11 @@ class sessionServiceImpl {
       environment: scope.environment
     });
 
-    await Fabric.fire('provider.session.updated:after', { ...eventBase, session });
+    await Fabric.fire('provider.session.updated:after', {
+      ...eventBase,
+      session,
+      previousSession: d.session
+    });
 
     return await enrichSessionEnsuringClientSecret({
       instance,
@@ -366,7 +381,10 @@ class sessionServiceImpl {
   }
 
   async updateSessionInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<UpdateSessionParams, '_allowMagicMcpUpdate'>
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      UpdateSessionParams,
+      '_allowMagicMcpUpdate'
+    >
   ) {
     let solution = await getMetorialSolution();
 
@@ -428,7 +446,10 @@ class sessionServiceImpl {
   }
 
   async archiveSessionInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<ArchiveSessionParams, '_allowMagicMcpDelete'>
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      ArchiveSessionParams,
+      '_allowMagicMcpDelete'
+    >
   ) {
     let solution = await getMetorialSolution();
 
@@ -472,7 +493,10 @@ class sessionServiceImpl {
   }
 
   async deleteSessionInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<ArchiveSessionParams, '_allowMagicMcpDelete'>
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      ArchiveSessionParams,
+      '_allowMagicMcpDelete'
+    >
   ) {
     return this.archiveSessionInternal(d);
   }
