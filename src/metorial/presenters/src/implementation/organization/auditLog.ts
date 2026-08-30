@@ -2,6 +2,90 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { auditLogType } from '../../types';
 
+type AuditLogActorRecord = NonNullable<
+  NonNullable<Parameters<typeof presentActorRecord>[0]>
+>;
+
+let presentActorRecord = (
+  record:
+    | {
+        object: 'organization_actor';
+        id: string;
+        type: string;
+        name: string | null;
+        email: string | null;
+        imageUrl: string | null;
+        member?: { id: string; status: string; role: string };
+        consumerProfile?: {
+          id: string;
+          status: string;
+          name: string | null;
+          email: string | null;
+          instanceId: string;
+        };
+      }
+    | {
+        object: 'consumer_profile';
+        id: string;
+        status: string;
+        name: string | null;
+        email: string | null;
+        instanceId: string;
+        organizationActorId: string | null;
+      }
+    | {
+        object: 'resource_actor';
+        id: string;
+        type: string;
+        name: string;
+        identifier: string;
+      }
+    | undefined
+) => {
+  if (!record) return null;
+
+  if (record.object == 'organization_actor') {
+    return {
+      object: record.object,
+      id: record.id,
+      type: record.type,
+      name: record.name,
+      email: record.email,
+      image_url: record.imageUrl,
+      member: record.member ?? null,
+      consumer_profile: record.consumerProfile
+        ? {
+            id: record.consumerProfile.id,
+            status: record.consumerProfile.status,
+            name: record.consumerProfile.name,
+            email: record.consumerProfile.email,
+            instance_id: record.consumerProfile.instanceId
+          }
+        : null
+    };
+  }
+
+  if (record.object == 'resource_actor') {
+    return {
+      object: record.object,
+      id: record.id,
+      type: record.type,
+      name: record.name,
+      identifier: record.identifier
+    };
+  }
+
+  return {
+    object: record.object,
+    id: record.id,
+    status: record.status,
+    name: record.name,
+    email: record.email,
+    instance_id: record.instanceId,
+    organization_actor_id: record.organizationActorId ?? null
+  };
+};
+
 export let v1AuditLogPresenter = Presenter.create(auditLogType)
   .presenter(async ({ auditLog }) => ({
     object: 'organization.audit_log',
@@ -17,36 +101,7 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
           type: auditLog.actor.type,
           id: auditLog.actor.id,
           metadata: auditLog.actor.metadata ?? null,
-          record: auditLog.actor.record
-            ? auditLog.actor.record.object == 'organization_actor'
-              ? {
-                  object: auditLog.actor.record.object,
-                  id: auditLog.actor.record.id,
-                  type: auditLog.actor.record.type,
-                  name: auditLog.actor.record.name,
-                  email: auditLog.actor.record.email,
-                  image_url: auditLog.actor.record.imageUrl,
-                  member: auditLog.actor.record.member ?? null,
-                  consumer_profile: auditLog.actor.record.consumerProfile
-                    ? {
-                        id: auditLog.actor.record.consumerProfile.id,
-                        status: auditLog.actor.record.consumerProfile.status,
-                        name: auditLog.actor.record.consumerProfile.name,
-                        email: auditLog.actor.record.consumerProfile.email,
-                        instance_id: auditLog.actor.record.consumerProfile.instanceId
-                      }
-                    : null
-                }
-              : {
-                  object: auditLog.actor.record.object,
-                  id: auditLog.actor.record.id,
-                  status: auditLog.actor.record.status,
-                  name: auditLog.actor.record.name,
-                  email: auditLog.actor.record.email,
-                  instance_id: auditLog.actor.record.instanceId,
-                  organization_actor_id: auditLog.actor.record.organizationActorId ?? null
-                }
-            : null
+          record: presentActorRecord(auditLog.actor.record as AuditLogActorRecord | undefined)
         }
       : (null as any),
 
