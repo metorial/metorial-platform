@@ -1,6 +1,8 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
+import { Fabric } from '@metorial/fabric';
 import {
   db,
   ID,
@@ -122,6 +124,7 @@ class ProviderTemplateServiceImpl {
   async createProviderTemplate(d: {
     organization: Organization;
     instance: Instance;
+    auditScope: AuditScope;
     input: ProviderTemplateCreateInput;
   }): Promise<EnrichedProviderTemplate> {
     let integrationId = d.input.integrationId;
@@ -178,6 +181,14 @@ class ProviderTemplateServiceImpl {
       });
 
       await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
+
+      await Fabric.fire('magic_mcp.provider_template.created:after', {
+        organization: d.organization,
+        instance: d.instance,
+        providerTemplate,
+        auditScope: d.auditScope
+      });
+
       return providerTemplate;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -203,6 +214,7 @@ class ProviderTemplateServiceImpl {
   async updateProviderTemplate(d: {
     providerTemplate: ProviderTemplate;
     instance: Instance;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -243,12 +255,20 @@ class ProviderTemplateServiceImpl {
       });
     }
 
+    await Fabric.fire('magic_mcp.provider_template.updated:after', {
+      instance: d.instance,
+      providerTemplate,
+      previousProviderTemplate: d.providerTemplate,
+      auditScope: d.auditScope
+    });
+
     return providerTemplate;
   }
 
   async archiveProviderTemplate(d: {
     instance: Instance;
     providerTemplate: ProviderTemplate;
+    auditScope: AuditScope;
   }): Promise<EnrichedProviderTemplate> {
     if (d.providerTemplate.status != 'active') {
       throw new ServiceError(
@@ -275,6 +295,12 @@ class ProviderTemplateServiceImpl {
       instanceId: d.instance.id,
       integrationId: providerTemplate.subspaceIntegrationId,
       providerTemplateId: providerTemplate.id
+    });
+
+    await Fabric.fire('magic_mcp.provider_template.archived:after', {
+      instance: d.instance,
+      providerTemplate,
+      auditScope: d.auditScope
     });
 
     return providerTemplate;

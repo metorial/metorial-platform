@@ -2,7 +2,7 @@ import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
+import { createOrganizationActorAuditScope, type AuditScope } from '@metorial/audit-scope';
 import {
   getEffectiveConsumerGroups,
   normalizeStringList,
@@ -684,16 +684,25 @@ class ConsumerProfileServiceImpl {
     });
   }
 
-  async createConsumerProfile(d: { surface: ConsumerSurface; email: string; name: string }) {
+  async createConsumerProfile(d: {
+    surface: ConsumerSurface;
+    email: string;
+    name: string;
+    auditScope: AuditScope;
+  }) {
     return await this.ensureConsumerProfile({
       surface: d.surface,
       email: d.email,
       name: d.name,
+      auditScope: d.auditScope,
       rejectIfActiveProfileExists: true
     });
   }
 
-  async deleteConsumerProfile(d: { consumerProfile: ConsumerProfileWithRelations }) {
+  async deleteConsumerProfile(d: {
+    consumerProfile: ConsumerProfileWithRelations;
+    auditScope: AuditScope;
+  }) {
     this.ensureConsumerProfileActive(d.consumerProfile);
 
     let consumerProfile = await withTransaction(async db => {
@@ -717,7 +726,8 @@ class ConsumerProfileServiceImpl {
 
       await Fabric.fire('consumer.profile.deleted:after', {
         consumerProfile,
-        surface: consumerProfile.surface
+        surface: consumerProfile.surface,
+        auditScope: d.auditScope
       });
 
       // A deleted profile keeps its row and carries a status, so the copy is an update like any other.
@@ -735,9 +745,12 @@ class ConsumerProfileServiceImpl {
     return await this.enrichConsumerProfile({ consumerProfile });
   }
 
-  async activateConsumerProfile(d: { consumerProfile: Pick<ConsumerProfile, 'oid'> }) {
-    let { consumerProfile, updatedInviteIds, wasActivated } = await withTransaction(
-      async db => {
+  async activateConsumerProfile(d: {
+    consumerProfile: Pick<ConsumerProfile, 'oid'>;
+    auditScope: AuditScope;
+  }) {
+    let { consumerProfile, previousProfile, updatedInviteIds, wasActivated } =
+      await withTransaction(async db => {
         let existingProfile = await db.consumerProfile.findUniqueOrThrow({
           where: {
             oid: d.consumerProfile.oid
@@ -748,6 +761,7 @@ class ConsumerProfileServiceImpl {
         if (existingProfile.inviteStatus != 'invited') {
           return {
             consumerProfile: existingProfile,
+            previousProfile: existingProfile,
             updatedInviteIds: [],
             wasActivated: false
           };
@@ -793,17 +807,19 @@ class ConsumerProfileServiceImpl {
 
         return {
           consumerProfile,
+          previousProfile: existingProfile,
           updatedInviteIds,
           wasActivated: true
         };
-      }
-    );
+      });
 
     if (!wasActivated) return consumerProfile;
 
     await Fabric.fire('consumer.profile.updated:after', {
       consumerProfile,
-      surface: consumerProfile.surface
+      previousConsumerProfile: previousProfile,
+      surface: consumerProfile.surface,
+      auditScope: d.auditScope
     });
     await addAwaitedAfterTransactionHook(() =>
       metorialResourceService.syncConsumerProfile(consumerProfile)
@@ -833,7 +849,8 @@ class ConsumerProfileServiceImpl {
           consumerInvite: updatedInvite,
           consumerProfile: updatedInvite.consumerProfile,
           consumerSurface: updatedInvite.surface,
-          performedBy: updatedInvite.invitedBy
+          performedBy: updatedInvite.invitedBy,
+          auditScope: d.auditScope
         });
       }
 
@@ -849,6 +866,7 @@ class ConsumerProfileServiceImpl {
     surface: ConsumerSurface;
     email: string;
     name: string;
+    auditScope: AuditScope;
     member?: OrganizationMember;
     user?: User;
     inviteStatus?: ConsumerProfileInviteStatus;
@@ -878,6 +896,7 @@ class ConsumerProfileServiceImpl {
         let instanceConsumer = await consumerService.upsertConsumer({
           organization,
           instance,
+          auditScope: d.auditScope,
           member: d.member,
           user: d.user,
           flags: {
@@ -898,12 +917,14 @@ class ConsumerProfileServiceImpl {
         }
 
         return await withTransaction(async db => {
+          // The full relation set, not just the surface: an update records the profile as
+          // it was, and that snapshot needs the same shape as the one recorded after.
           let existingProfile = await db.consumerProfile.findFirst({
             where: {
               email: consumerEmailEquals(email),
               surfaceOid: d.surface.oid
             },
-            include: { surface: { include: { portal: true } } }
+            include
           });
           if (existingProfile) {
             if (
@@ -960,6 +981,7 @@ class ConsumerProfileServiceImpl {
               lifecycleAction: 'updated' as const,
               instanceConsumer,
               consumerProfile,
+              previousConsumerProfile: existingProfile,
               shouldActivate
             };
           }
@@ -998,6 +1020,7 @@ class ConsumerProfileServiceImpl {
           return {
             lifecycleAction: 'created' as const,
             instanceConsumer,
+            previousConsumerProfile: undefined,
             consumerProfile: await db.consumerProfile.create({
               data: {
                 id: await ID.generateId('consumerProfile'),
@@ -1026,14 +1049,17 @@ class ConsumerProfileServiceImpl {
     if (res.lifecycleAction === 'created') {
       await Fabric.fire('consumer.profile.created:after', {
         consumerProfile: res.consumerProfile,
-        surface: res.consumerProfile.surface
+        surface: res.consumerProfile.surface,
+        auditScope: d.auditScope
       });
 
       await consumerProfileCreatedQueue.add({ consumerProfileId: res.consumerProfile.id });
     } else {
       await Fabric.fire('consumer.profile.updated:after', {
         consumerProfile: res.consumerProfile,
-        surface: res.consumerProfile.surface
+        previousConsumerProfile: res.previousConsumerProfile,
+        surface: res.consumerProfile.surface,
+        auditScope: d.auditScope
       });
 
       await consumerProfileUpdatedQueue.add({ consumerProfileId: res.consumerProfile.id });
@@ -1045,7 +1071,10 @@ class ConsumerProfileServiceImpl {
 
     let consumerProfile =
       res.lifecycleAction == 'updated' && res.shouldActivate
-        ? await this.activateConsumerProfile({ consumerProfile: res.consumerProfile })
+        ? await this.activateConsumerProfile({
+            consumerProfile: res.consumerProfile,
+            auditScope: d.auditScope
+          })
         : res.consumerProfile;
 
     return await this.enrichConsumerProfile({
@@ -1120,6 +1149,7 @@ class ConsumerProfileServiceImpl {
   async assignToGroups<T extends ConsumerProfileWithRelations>(d: {
     consumerProfile: T;
     groupIds: string[];
+    auditScope: AuditScope;
     assignedVia?: ConsumerProfileGroupAssignedVia;
   }) {
     let groups = await this.getAssignableGroupsOrThrow(d);
@@ -1169,7 +1199,8 @@ class ConsumerProfileServiceImpl {
           await Fabric.fire('consumer.profile.group.added:after', {
             consumerProfile: d.consumerProfile,
             consumerGroup: group,
-            consumerProfileGroup
+            consumerProfileGroup,
+            auditScope: d.auditScope
           });
         }
       });
@@ -1183,6 +1214,7 @@ class ConsumerProfileServiceImpl {
   async removeFromGroups<T extends ConsumerProfileWithRelations>(d: {
     consumerProfile: T;
     groupIds: string[];
+    auditScope: AuditScope;
     assignedVia?: ConsumerProfileGroupAssignedVia;
   }) {
     let groups = await this.getAssignableGroupsOrThrow(d);
@@ -1222,7 +1254,8 @@ class ConsumerProfileServiceImpl {
         await Fabric.fire('consumer.profile.group.removed:after', {
           consumerProfile: d.consumerProfile,
           consumerGroup: group,
-          consumerProfileGroup
+          consumerProfileGroup,
+          auditScope: d.auditScope
         });
       }
     });

@@ -1,3 +1,4 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { consumerProfileService } from '@metorial/module-consumer-core';
@@ -153,7 +154,11 @@ export let reconcileOrganizationMembersSingleQueueProcessor =
     let [portal, member] = await Promise.all([
       db.portal.findUnique({
         where: { id: data.portalId },
-        include: { surface: true, instance: { include: { project: true } } }
+        include: {
+          organization: true,
+          surface: true,
+          instance: { include: { project: true } }
+        }
       }),
       db.organizationMember.findUnique({
         where: { id: data.memberId },
@@ -178,7 +183,11 @@ export let reconcileOrganizationMembersSingleQueueProcessor =
       surface: portal.surface,
       name: member.user.name,
       email: member.user.email,
-      user: member.user
+      user: member.user,
+      auditScope: createSystemAuditScope({
+        organization: portal.organization,
+        job: 'portal/reconcileOrganizationMembers'
+      })
     });
   });
 

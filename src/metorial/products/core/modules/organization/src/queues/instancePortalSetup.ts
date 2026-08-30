@@ -1,3 +1,4 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import { db } from '@metorial/db';
 import { portalService } from '@metorial/module-portal';
@@ -23,6 +24,12 @@ export let instancePortalSetupQueueProcessor = instancePortalSetupQueue.process(
     organization: instance.organization,
     instance: instance,
     context: data.context,
+    auditScope: createSystemAuditScope({
+      organization: instance.organization,
+      instance,
+      job: 'organization/instancePortalSetup',
+      context: data.context
+    }),
     isDefaultPortal: true,
     input: {
       name:

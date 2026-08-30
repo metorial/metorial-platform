@@ -1,7 +1,11 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
+import {
+  createOrganizationActorAuditScope,
+  createSystemAuditScope,
+  type AuditScope
+} from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import {
   ConsumerSurface,
@@ -14,6 +18,7 @@ import {
   SkillConfiguration,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
@@ -277,6 +282,7 @@ class ConsumerSurfaceServiceImpl {
     organization: Organization;
     instance: Instance;
     context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string;
@@ -344,6 +350,7 @@ class ConsumerSurfaceServiceImpl {
         if (d.type === 'portal') {
           let group = await consumerGroupService.createConsumerGroup({
             consumerSurface,
+            auditScope: d.auditScope,
             input: {
               name: 'Everyone',
               isDefault: true,
@@ -362,6 +369,13 @@ class ConsumerSurfaceServiceImpl {
         }
 
         return consumerSurface;
+      });
+
+      await Fabric.fire('consumer.surface.created:after', {
+        organization: d.organization,
+        instance: d.instance,
+        consumerSurface,
+        auditScope: d.auditScope
       });
 
       await consumerSurfaceCreatedQueue.add({ consumerSurfaceId: consumerSurface.id });
@@ -411,6 +425,11 @@ class ConsumerSurfaceServiceImpl {
           organization: org,
           instance: d.instance,
           context: { ip: '0.0.0.0', ua: 'Metorial System' },
+          auditScope: createSystemAuditScope({
+            organization: org,
+            instance: d.instance,
+            job: 'consumerSurface/ensureInternal'
+          }),
           input: {
             name: d.name,
             sessionExpiryTimeInSeconds: 3600
@@ -426,6 +445,7 @@ class ConsumerSurfaceServiceImpl {
 
   async updateConsumerSurface(d: {
     consumerSurface: ConsumerSurface;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -470,6 +490,12 @@ class ConsumerSurfaceServiceImpl {
       include: consumerSurfaceInclude
     });
 
+    await Fabric.fire('consumer.surface.updated:after', {
+      consumerSurface,
+      previousConsumerSurface: d.consumerSurface,
+      auditScope: d.auditScope
+    });
+
     await consumerSurfaceUpdatedQueue.add({ consumerSurfaceId: consumerSurface.id });
 
     return await this.enrichConsumerSurface({
@@ -482,7 +508,10 @@ class ConsumerSurfaceServiceImpl {
     });
   }
 
-  async archiveConsumerSurface(d: { consumerSurface: ConsumerSurface }) {
+  async archiveConsumerSurface(d: {
+    consumerSurface: ConsumerSurface;
+    auditScope: AuditScope;
+  }) {
     this.assertConsumerSurfaceIsActive(d.consumerSurface);
 
     let now = new Date();
@@ -497,6 +526,11 @@ class ConsumerSurfaceServiceImpl {
         deletedAt: null
       },
       include: consumerSurfaceInclude
+    });
+
+    await Fabric.fire('consumer.surface.archived:after', {
+      consumerSurface,
+      auditScope: d.auditScope
     });
 
     await consumerSurfaceArchivedQueue.add({ consumerSurfaceId: consumerSurface.id });

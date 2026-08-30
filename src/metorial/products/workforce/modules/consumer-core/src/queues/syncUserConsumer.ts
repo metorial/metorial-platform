@@ -1,3 +1,4 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { consumerService } from '../services';
@@ -58,13 +59,18 @@ export let syncUserConsumerQueueProcessor = syncUserConsumerQueue.process(async 
       consumer: {
         OR: [{ userOid: user.oid }, { organizationMember: { userOid: user.oid } }]
       }
-    }
+    },
+    include: { instance: { select: { organizationOid: true } } }
   });
   if (!instanceConsumer) return;
 
   try {
     await consumerService.updateConsumer({
       consumer: instanceConsumer,
+      auditScope: createSystemAuditScope({
+        organization: { oid: instanceConsumer.instance.organizationOid },
+        job: 'consumer/syncUserConsumer'
+      }),
       input: {
         name: user.name,
         email: user.type === 'system' ? instanceConsumer.email : user.email

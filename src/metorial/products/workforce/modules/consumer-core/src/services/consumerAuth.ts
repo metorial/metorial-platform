@@ -1,5 +1,6 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   authenticateWithConsumerSessionToken,
   consumerSessionInclude,
@@ -10,12 +11,27 @@ import {
 } from '@metorial/consumer-auth';
 import { Context } from '@metorial/context';
 import { ConsumerProfile, ConsumerSession, ConsumerSurface, db, ID, User } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { addDays } from 'date-fns';
 import {
   isConsumerSurfaceEmailWhitelisted,
   normalizeConsumerSurfaceEmail
 } from '../lib/consumerSurfaceEmailWhitelist';
 import { consumerProfileService } from './consumerProfile';
+
+let consumerSessionAuditScope = (d: {
+  consumerSurface: ConsumerSurface;
+  consumerProfile: Pick<ConsumerProfile, 'id'>;
+  context: Context;
+}): AuditScope => ({
+  organizationOid: d.consumerSurface.organizationOid,
+  instanceOid: d.consumerSurface.instanceOid,
+  actor: {
+    type: 'consumer_profile',
+    id: d.consumerProfile.id
+  },
+  context: d.context
+});
 
 class ConsumerAuthServiceImpl {
   private getSessionExpiryDate(d: { consumerSurface: ConsumerSurface; isForUser: boolean }) {
@@ -94,7 +110,7 @@ class ConsumerAuthServiceImpl {
 
       if (existingSession) {
         if (existingSession.loggedOutAt || existingSession.expiresAt < new Date()) {
-          return await db.consumerSession.update({
+          let consumerSession = await db.consumerSession.update({
             where: {
               oid: existingSession.oid
             },
@@ -111,6 +127,13 @@ class ConsumerAuthServiceImpl {
             },
             include: consumerSessionInclude
           });
+
+          await Fabric.fire('consumer.session.created:after', {
+            consumerSession,
+            auditScope: consumerSessionAuditScope(d)
+          });
+
+          return consumerSession;
         }
 
         return await db.consumerSession.update({
@@ -126,7 +149,7 @@ class ConsumerAuthServiceImpl {
     }
 
     try {
-      return await db.consumerSession.create({
+      let consumerSession = await db.consumerSession.create({
         data: {
           id: await ID.generateId('consumerSession'),
           tokenNonce: await ID.generateId('clientSecret'),
@@ -141,6 +164,13 @@ class ConsumerAuthServiceImpl {
         },
         include: consumerSessionInclude
       });
+
+      await Fabric.fire('consumer.session.created:after', {
+        consumerSession,
+        auditScope: consumerSessionAuditScope(d)
+      });
+
+      return consumerSession;
     } catch (err: any) {
       if (err.code === 'P2002') {
         let res = await db.consumerSession.findUnique({
@@ -173,7 +203,12 @@ class ConsumerAuthServiceImpl {
 
     if (profile.inviteStatus == 'invited') {
       profile = await consumerProfileService.activateConsumerProfile({
-        consumerProfile: profile
+        consumerProfile: profile,
+        auditScope: consumerSessionAuditScope({
+          consumerSurface: d.consumerSurface,
+          consumerProfile: profile,
+          context: d.context
+        })
       });
     }
 
@@ -213,19 +248,27 @@ class ConsumerAuthServiceImpl {
     });
   }
 
-  async revokeConsumerSession(d: { session: ConsumerSession }) {
+  async revokeConsumerSession(d: { session: ConsumerSession; auditScope: AuditScope }) {
     if (d.session.loggedOutAt) {
       return d.session;
     }
 
-    return await db.consumerSession.update({
+    let consumerSession = await db.consumerSession.update({
       where: {
         oid: d.session.oid
       },
       data: {
         loggedOutAt: new Date()
-      }
+      },
+      include: consumerSessionInclude
     });
+
+    await Fabric.fire('consumer.session.revoked:after', {
+      consumerSession,
+      auditScope: d.auditScope
+    });
+
+    return consumerSession;
   }
 }
 

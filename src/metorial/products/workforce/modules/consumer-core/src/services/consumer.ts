@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   Consumer,
   ConsumerProfile,
@@ -15,6 +16,7 @@ import {
   User,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
 import {
@@ -172,6 +174,7 @@ class ConsumerServiceImpl {
   async createConsumer(d: {
     organization: Organization;
     instance: Instance;
+    auditScope: AuditScope;
     member?: OrganizationMember;
     user?: User;
     flags?: {
@@ -275,6 +278,11 @@ class ConsumerServiceImpl {
       return instanceConsumer;
     });
 
+    await Fabric.fire('consumer.identity.created:after', {
+      instanceConsumer,
+      auditScope: d.auditScope
+    });
+
     await consumerCreatedQueue.add({ instanceConsumerId: instanceConsumer.id });
 
     return instanceConsumer;
@@ -282,6 +290,7 @@ class ConsumerServiceImpl {
 
   async updateConsumer(d: {
     consumer: InstanceConsumer;
+    auditScope: AuditScope;
     member?: OrganizationMember;
     user?: User;
     flags?: {
@@ -294,7 +303,12 @@ class ConsumerServiceImpl {
       email?: string;
     };
   }) {
-    let consumer = await withTransaction(async db => {
+    let { consumer, previousInstanceConsumer } = await withTransaction(async db => {
+      let previousInstanceConsumer = await db.instanceConsumer.findUniqueOrThrow({
+        where: { oid: d.consumer.oid },
+        include: getInclude({ instanceOid: d.consumer.instanceOid })
+      });
+
       let name = d.input.name ?? d.consumer.name;
       let email = normalizeConsumerEmail(d.input.email ?? d.consumer.email);
 
@@ -340,7 +354,13 @@ class ConsumerServiceImpl {
         email
       });
 
-      return consumer;
+      return { consumer, previousInstanceConsumer };
+    });
+
+    await Fabric.fire('consumer.identity.updated:after', {
+      instanceConsumer: consumer,
+      previousInstanceConsumer,
+      auditScope: d.auditScope
     });
 
     await consumerUpdatedQueue.add({ instanceConsumerId: consumer.id });
@@ -351,6 +371,7 @@ class ConsumerServiceImpl {
   async upsertConsumer(d: {
     organization: Organization;
     instance: Instance;
+    auditScope: AuditScope;
     member?: OrganizationMember;
     user?: User;
     flags?: {
@@ -388,7 +409,8 @@ class ConsumerServiceImpl {
       }
 
       return await this.updateConsumer({
-        consumer: existing as InstanceConsumerWithRelations,
+        consumer: existing,
+        auditScope: d.auditScope,
         member: d.member,
         user: d.user,
         flags: d.flags,
@@ -409,6 +431,7 @@ class ConsumerServiceImpl {
       return await this.createConsumer({
         organization: d.organization,
         instance: d.instance,
+        auditScope: d.auditScope,
         member: d.member,
         user: d.user,
         flags: d.flags,

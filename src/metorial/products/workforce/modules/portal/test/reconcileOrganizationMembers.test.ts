@@ -50,6 +50,7 @@ let portal = (enabled = true) => ({
   id: 'portal-1',
   status: 'active',
   organizationOid: 1n,
+  organization: { id: 'org-1', oid: 1n },
   surface: { id: 'surface-1', status: 'active' },
   instance: {
     project: {
@@ -90,7 +91,11 @@ describe('organization member portal reconciliation', () => {
       surface: expect.objectContaining({ id: 'surface-1' }),
       name: 'Ada Lovelace',
       email: 'ada@example.com',
-      user: expect.objectContaining({ id: 'user-1' })
+      user: expect.objectContaining({ id: 'user-1' }),
+      auditScope: expect.objectContaining({
+        organizationOid: 1n,
+        actor: { type: 'system', id: 'portal/reconcileOrganizationMembers' }
+      })
     });
     expect(ensureConsumerProfile.mock.calls[0]![0]).not.toHaveProperty('member');
     expect(ensureConsumerProfile.mock.calls[0]![0]).not.toHaveProperty('inviteStatus');

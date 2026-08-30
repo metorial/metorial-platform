@@ -1,3 +1,4 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { createQueue, QueueRetryError } from '@metorial/queue';
@@ -89,6 +90,10 @@ export let syncOrgMemberConsumerQueueProcessor = syncOrgMemberConsumerQueue.proc
     try {
       consumer = await consumerService.updateConsumer({
         consumer,
+        auditScope: createSystemAuditScope({
+          organization: member.organization,
+          job: 'consumer/syncOrganizationMember'
+        }),
         input: {
           name: member.actor.name,
           email: member.actor.email ?? consumer.email
@@ -130,6 +135,11 @@ export let createOrgMemberConsumerForInstanceQueueProcessor =
       organization: member.organization,
       instance,
       member,
+      auditScope: createSystemAuditScope({
+        organization: member.organization,
+        instance,
+        job: 'consumer/createOrganizationMemberConsumer'
+      }),
       input: {
         name: member.actor.name,
         email: member.actor.email ?? `${member.oid}@${instance.oid}.consumer.metorial.net`

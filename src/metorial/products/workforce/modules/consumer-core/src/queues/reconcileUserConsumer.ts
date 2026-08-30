@@ -1,3 +1,4 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
@@ -322,12 +323,21 @@ export let reconcileUserConsumerQueueProcessor = reconcileUserConsumerQueue.proc
       if (consumerProfileIds.size) {
         let consumerProfiles = await db.consumerProfile.findMany({
           where: { id: { in: Array.from(consumerProfileIds) } },
-          include: { surface: true }
+          include: {
+            consumer: true,
+            surface: { include: { portal: true } },
+            organization: true
+          }
         });
         for (let consumerProfile of consumerProfiles) {
           await Fabric.fire('consumer.profile.updated:after', {
             consumerProfile,
-            surface: consumerProfile.surface
+            previousConsumerProfile: consumerProfile,
+            surface: consumerProfile.surface,
+            auditScope: createSystemAuditScope({
+              organization: consumerProfile.organization,
+              job: 'consumer/reconcileUserConsumer'
+            })
           });
 
           await metorialResourceService.syncConsumerProfile(consumerProfile);

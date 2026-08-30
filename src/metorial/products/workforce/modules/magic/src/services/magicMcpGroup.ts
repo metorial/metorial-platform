@@ -19,12 +19,22 @@ import { generatePlainId } from '@metorial/id';
 import { searchMagicMcpGroupIds } from '@metorial/module-search';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
+import { Fabric } from '@metorial/fabric';
 import { slugify } from '@lowerdeck/slugify';
 import {
   magicMcpGroupCreatedQueue,
   magicMcpGroupDeletedQueue,
   magicMcpGroupUpdatedQueue
 } from '../queues/lifecycle/magicMcpGroup';
+
+let magicMcpGroupInclude = {
+  servers: {
+    include: {
+      magicMcpServer: true
+    }
+  }
+} as const;
 
 class MagicMcpGroupImpl {
   async getMagicMcpGroupById(d: { instance: Instance; magicMcpGroupId: string }) {
@@ -44,6 +54,7 @@ class MagicMcpGroupImpl {
     performedBy: OrganizationActor;
     instance: Instance;
     context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -61,16 +72,24 @@ class MagicMcpGroupImpl {
         description: d.input.description,
         metadata: d.input.metadata || {},
         slug
-      }
+      },
+      include: magicMcpGroupInclude
     });
 
     await magicMcpGroupCreatedQueue.add({ magicMcpGroupId: magicMcpGroup.id });
+
+    await Fabric.fire('magic_mcp.group.created:after', {
+      instance: d.instance,
+      magicMcpGroup,
+      auditScope: d.auditScope
+    });
 
     return magicMcpGroup;
   }
 
   async updateMagicMcpGroup(d: {
     group: MagicMcpGroup;
+    auditScope: AuditScope;
     input: {
       name?: string | null;
       description?: string | null;
@@ -100,10 +119,22 @@ class MagicMcpGroupImpl {
         description:
           d.input.description === undefined ? d.group.description : d.input.description,
         metadata: d.input.metadata === undefined ? d.group.metadata : d.input.metadata
-      }
+      },
+      include: magicMcpGroupInclude
     });
 
     await magicMcpGroupUpdatedQueue.add({ magicMcpGroupId: magicMcpGroup.id });
+
+    let instance = await db.instance.findUniqueOrThrow({
+      where: { oid: d.group.instanceOid }
+    });
+
+    await Fabric.fire('magic_mcp.group.updated:after', {
+      instance,
+      magicMcpGroup,
+      previousMagicMcpGroup: { ...d.group, servers: magicMcpGroup.servers },
+      auditScope: d.auditScope
+    });
 
     return magicMcpGroup;
   }
@@ -141,7 +172,7 @@ class MagicMcpGroupImpl {
     );
   }
 
-  async deleteMagicMcpGroup(d: { group: MagicMcpGroup }) {
+  async deleteMagicMcpGroup(d: { group: MagicMcpGroup; auditScope: AuditScope }) {
     if (d.group.status === 'deleted') {
       throw new ServiceError(
         goneError({
@@ -233,10 +264,19 @@ class MagicMcpGroupImpl {
 
     await magicMcpGroupDeletedQueue.add({ magicMcpGroupId: deletedGroup.id });
 
+    await Fabric.fire('magic_mcp.group.deleted:after', {
+      magicMcpGroup: { ...deletedGroup, servers: [] },
+      auditScope: d.auditScope
+    });
+
     return deletedGroup;
   }
 
-  async addServersToGroup(d: { group: MagicMcpGroup; serverIds: string[] }) {
+  async addServersToGroup(d: {
+    group: MagicMcpGroup;
+    serverIds: string[];
+    auditScope: AuditScope;
+  }) {
     if (d.group.status === 'deleted') {
       throw new ServiceError(
         goneError({
@@ -273,6 +313,18 @@ class MagicMcpGroupImpl {
       );
     }
 
+    let existingServerOids = new Set(
+      (
+        await db.magicMcpGroupServer.findMany({
+          where: {
+            magicMcpGroupOid: d.group.oid,
+            magicMcpServerOid: { in: servers.map(server => server.oid) }
+          },
+          select: { magicMcpServerOid: true }
+        })
+      ).map(link => link.magicMcpServerOid)
+    );
+
     await db.magicMcpGroupServer.createMany({
       data: servers.map(s => ({
         magicMcpGroupOid: d.group.oid,
@@ -281,10 +333,30 @@ class MagicMcpGroupImpl {
       skipDuplicates: true
     });
 
+    await Fabric.fire('magic_mcp.group.servers.modified:after', {
+      magicMcpGroup: await this.getMagicMcpGroupWithServers(d.group),
+      operation: 'add',
+      servers: servers
+        .filter(server => !existingServerOids.has(server.oid))
+        .map(server => ({ id: server.id, name: server.name })),
+      auditScope: d.auditScope
+    });
+
     return d.group;
   }
 
-  async removeServersFromGroup(d: { group: MagicMcpGroup; serverIds: string[] }) {
+  private async getMagicMcpGroupWithServers(group: MagicMcpGroup) {
+    return await db.magicMcpGroup.findUniqueOrThrow({
+      where: { oid: group.oid },
+      include: magicMcpGroupInclude
+    });
+  }
+
+  async removeServersFromGroup(d: {
+    group: MagicMcpGroup;
+    serverIds: string[];
+    auditScope: AuditScope;
+  }) {
     if (d.group.status === 'deleted') {
       throw new ServiceError(
         goneError({
@@ -300,11 +372,32 @@ class MagicMcpGroupImpl {
       }
     });
 
+    let removedServerOids = new Set(
+      (
+        await db.magicMcpGroupServer.findMany({
+          where: {
+            magicMcpGroupOid: d.group.oid,
+            magicMcpServerOid: { in: servers.map(server => server.oid) }
+          },
+          select: { magicMcpServerOid: true }
+        })
+      ).map(link => link.magicMcpServerOid)
+    );
+
     await db.magicMcpGroupServer.deleteMany({
       where: {
         magicMcpGroupOid: d.group.oid,
         magicMcpServerOid: { in: servers.map(s => s.oid) }
       }
+    });
+
+    await Fabric.fire('magic_mcp.group.servers.modified:after', {
+      magicMcpGroup: await this.getMagicMcpGroupWithServers(d.group),
+      operation: 'remove',
+      servers: servers
+        .filter(server => removedServerOids.has(server.oid))
+        .map(server => ({ id: server.id, name: server.name })),
+      auditScope: d.auditScope
     });
 
     return d.group;

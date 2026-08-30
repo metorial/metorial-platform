@@ -6,7 +6,9 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import { UnifiedApiKey } from '@metorial/api-keys';
+import { Fabric } from '@metorial/fabric';
 import { getConfig } from '@metorial/config';
 import {
   db,
@@ -126,6 +128,7 @@ class MagicMcpTokenImpl {
   async createMagicMcpToken(d: {
     instance: Instance;
     groups?: MagicMcpGroup[];
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -150,7 +153,7 @@ class MagicMcpTokenImpl {
       magicMcpEndpoint: d.input.magicMcpEndpoint
     });
 
-    return await db.magicMcpToken.create({
+    let magicMcpToken = await db.magicMcpToken.create({
       data: {
         id: await ID.generateId('magicMcpToken'),
         secret: createMagicMcpSecret(),
@@ -177,11 +180,20 @@ class MagicMcpTokenImpl {
       },
       include
     });
+
+    await Fabric.fire('magic_mcp.token.created:after', {
+      instance: d.instance,
+      magicMcpToken,
+      auditScope: d.auditScope
+    });
+
+    return magicMcpToken;
   }
 
   async rotateMagicMcpTokenSecret(d: {
     token: MagicMcpToken;
     expiresAt?: Date | null;
+    auditScope: AuditScope;
   }): Promise<MagicMcpTokenWithRelations> {
     if (d.token.status !== 'active') {
       throw new ServiceError(
@@ -202,7 +214,7 @@ class MagicMcpTokenImpl {
       );
     }
 
-    return await db.magicMcpToken.update({
+    let magicMcpToken = await db.magicMcpToken.update({
       where: { id: d.token.id },
       data: {
         secret: createMagicMcpSecret(),
@@ -210,6 +222,13 @@ class MagicMcpTokenImpl {
       },
       include
     });
+
+    await Fabric.fire('magic_mcp.token.rotated:after', {
+      magicMcpToken,
+      auditScope: d.auditScope
+    });
+
+    return magicMcpToken;
   }
 
   async checkWriteAccess(d: {
@@ -239,7 +258,7 @@ class MagicMcpTokenImpl {
     }
   }
 
-  async deleteMagicMcpToken(d: { token: MagicMcpToken }) {
+  async deleteMagicMcpToken(d: { token: MagicMcpToken; auditScope: AuditScope }) {
     if (d.token.status === 'deleted') {
       throw new ServiceError(
         preconditionFailedError({
@@ -248,15 +267,23 @@ class MagicMcpTokenImpl {
       );
     }
 
-    return await db.magicMcpToken.update({
+    let magicMcpToken = await db.magicMcpToken.update({
       where: { id: d.token.id },
       data: { status: 'deleted', deletedAt: new Date() },
       include
     });
+
+    await Fabric.fire('magic_mcp.token.deleted:after', {
+      magicMcpToken,
+      auditScope: d.auditScope
+    });
+
+    return magicMcpToken;
   }
 
   async updateMagicMcpToken(d: {
     token: MagicMcpToken;
+    auditScope: AuditScope;
     input: {
       name?: string | null;
       description?: string | null;
@@ -271,7 +298,9 @@ class MagicMcpTokenImpl {
       );
     }
 
-    return await db.magicMcpToken.update({
+    let previousMagicMcpToken = await this.getMagicMcpTokenWithRelations(d.token);
+
+    let magicMcpToken = await db.magicMcpToken.update({
       where: { id: d.token.id },
       data: {
         name: d.input.name === undefined ? d.token.name : d.input.name,
@@ -279,6 +308,21 @@ class MagicMcpTokenImpl {
           d.input.description === undefined ? d.token.description : d.input.description,
         metadata: d.input.metadata === undefined ? d.token.metadata : d.input.metadata
       },
+      include
+    });
+
+    await Fabric.fire('magic_mcp.token.updated:after', {
+      magicMcpToken,
+      previousMagicMcpToken,
+      auditScope: d.auditScope
+    });
+
+    return magicMcpToken;
+  }
+
+  private async getMagicMcpTokenWithRelations(token: Pick<MagicMcpToken, 'oid'>) {
+    return await db.magicMcpToken.findUniqueOrThrow({
+      where: { oid: token.oid },
       include
     });
   }
@@ -653,8 +697,14 @@ class MagicMcpTokenImpl {
     });
   }
 
-  async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {
+  async addGroupsToToken(d: {
+    token: MagicMcpToken;
+    groupIds: string[];
+    auditScope: AuditScope;
+  }) {
     this.assetTokenNotServerOrEndpointLinked(d.token);
+
+    let previousMagicMcpToken = await this.getMagicMcpTokenWithRelations(d.token);
 
     let uniqueGroupIds = [...new Set(d.groupIds)];
     let groups = await db.magicMcpGroup.findMany({
@@ -686,17 +736,31 @@ class MagicMcpTokenImpl {
       where: { magicMcpTokenOid: d.token.oid }
     });
 
-    return await db.magicMcpToken.update({
+    let magicMcpToken = await db.magicMcpToken.update({
       where: { id: d.token.id },
       data: {
         isGroupLocked: otherGroups > 0
       },
       include
     });
+
+    await Fabric.fire('magic_mcp.token.updated:after', {
+      magicMcpToken,
+      previousMagicMcpToken,
+      auditScope: d.auditScope
+    });
+
+    return magicMcpToken;
   }
 
-  async removeGroupsFromToken(d: { token: MagicMcpToken; groupIds: string[] }) {
+  async removeGroupsFromToken(d: {
+    token: MagicMcpToken;
+    groupIds: string[];
+    auditScope: AuditScope;
+  }) {
     this.assetTokenNotServerOrEndpointLinked(d.token);
+
+    let previousMagicMcpToken = await this.getMagicMcpTokenWithRelations(d.token);
 
     let groups = await db.magicMcpGroup.findMany({
       where: {
@@ -716,11 +780,19 @@ class MagicMcpTokenImpl {
       where: { magicMcpTokenOid: d.token.oid }
     });
 
-    return await db.magicMcpToken.update({
+    let magicMcpToken = await db.magicMcpToken.update({
       where: { id: d.token.id },
       data: { isGroupLocked: otherGroups > 0 },
       include
     });
+
+    await Fabric.fire('magic_mcp.token.updated:after', {
+      magicMcpToken,
+      previousMagicMcpToken,
+      auditScope: d.auditScope
+    });
+
+    return magicMcpToken;
   }
 
   private assetTokenNotServerOrEndpointLinked(token: MagicMcpToken) {

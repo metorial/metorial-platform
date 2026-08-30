@@ -13,6 +13,7 @@ import {
   type SkillRecord
 } from '@metorial/module-skill';
 import { skillTemplateService } from '@metorial/module-skill-templates';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   Consumer,
   ConsumerGroup,
@@ -312,6 +313,7 @@ class ConsumerSkillServiceImpl {
     organization: Organization;
     consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
     skill: Pick<Skill, 'oid'>;
+    auditScope: AuditScope;
   }) {
     let accesses = await d.database.consumerAccess.findMany({
       where: {
@@ -328,20 +330,23 @@ class ConsumerSkillServiceImpl {
         skillGroup: true,
         skillMarketplace: true,
         skillPlugin: true,
-        listing: true
+        listing: true,
+        surface: true
       }
     });
 
     for (let consumerAccess of accesses) {
       await consumerAccessService.deleteConsumerAccess({
         organization: d.organization,
-        consumerAccess
+        consumerAccess,
+        auditScope: d.auditScope
       });
     }
   }
 
   private async setConsumerSkillSharePermission(d: {
     organization: Organization;
+    auditScope: AuditScope;
     instance: Instance;
     consumerProfile: ConsumerProfileForSkill;
     skill: SkillRecord;
@@ -367,7 +372,8 @@ class ConsumerSkillServiceImpl {
         database,
         organization: d.organization,
         consumerProfile: d.consumerProfile,
-        skill: d.skill
+        skill: d.skill,
+        auditScope: d.auditScope
       });
       await consumerAccessPolicyService.revokeSkillParticipantAccessForPersonalGroup({
         organization: d.organization,
@@ -390,6 +396,7 @@ class ConsumerSkillServiceImpl {
     organization: Organization;
     instance: Instance;
     project: Project;
+    auditScope: AuditScope;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfileForSkill;
     consumerGroups: Pick<ConsumerGroup, 'oid' | 'accessTagOid'>[];
@@ -423,6 +430,7 @@ class ConsumerSkillServiceImpl {
     let localSkill = await skillService.createSkill({
       instance: d.instance,
       project: d.project,
+      auditScope: d.auditScope,
       parentSkillTemplate: template,
       input: {
         id: await ID.generateId('skill'),
@@ -469,6 +477,7 @@ class ConsumerSkillServiceImpl {
     organization: Organization;
     instance: Instance;
     project: Project;
+    auditScope: AuditScope;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfileForSkill;
     consumerGroups: Pick<ConsumerGroup, 'oid' | 'accessTagOid'>[];
@@ -496,6 +505,7 @@ class ConsumerSkillServiceImpl {
     let localSkill = await skillService.createSkill({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       parentSkill,
       parentSkillCloneType: 'fork',
       input: {
@@ -540,6 +550,7 @@ class ConsumerSkillServiceImpl {
   async shareSkill(d: {
     organization: Organization;
     instance: Instance;
+    auditScope: AuditScope;
     skill: SkillRecord;
     permission: SkillSharePermission;
     consumerProfile?: ConsumerProfileForSkill;
@@ -613,6 +624,7 @@ class ConsumerSkillServiceImpl {
       await this.setConsumerSkillSharePermission({
         organization: d.organization,
         instance: d.instance,
+        auditScope: d.auditScope,
         consumerProfile: targetProfile,
         skill: d.skill,
         permission: d.permission
@@ -623,6 +635,7 @@ class ConsumerSkillServiceImpl {
   async publishConsumerSkill(d: {
     organization: Organization;
     instance: Instance;
+    auditScope: AuditScope;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfileForSkill;
     consumerGroups: ConsumerGroup[];
@@ -668,6 +681,7 @@ class ConsumerSkillServiceImpl {
         organization: d.organization,
         consumerSurface: d.consumerSurface,
         consumerGroup,
+        auditScope: d.auditScope,
         access: {
           type: 'skill',
           skill

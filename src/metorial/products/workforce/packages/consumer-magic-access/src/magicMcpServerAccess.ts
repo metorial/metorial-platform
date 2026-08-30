@@ -1,3 +1,4 @@
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   ConsumerGroup,
   ConsumerProfile,
@@ -15,11 +16,13 @@ export let grantConsumerOwnedMagicMcpServerAccess = async (d: {
     personalConsumerGroup: ConsumerGroup;
   };
   magicMcpServer: MagicMcpServer;
+  auditScope: AuditScope;
 }) => {
   await consumerAccessService.createConsumerAccess({
     organization: d.organization,
     consumerSurface: d.consumerProfile.surface,
     consumerGroup: d.consumerProfile.personalConsumerGroup,
+    auditScope: d.auditScope,
     access: {
       type: 'magic_mcp_server',
       magicMcpServer: d.magicMcpServer

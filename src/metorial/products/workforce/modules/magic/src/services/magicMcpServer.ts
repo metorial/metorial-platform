@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import { slugify } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
@@ -228,6 +229,7 @@ class MagicMcpServerImpl {
     performedBy: OrganizationActor;
     instance: Instance;
     context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -293,7 +295,8 @@ class MagicMcpServerImpl {
     await Fabric.fire('magic_mcp.server.created:after', {
       organization: d.organization,
       instance: d.instance,
-      magicMcpServer: server
+      magicMcpServer: server,
+      auditScope: d.auditScope
     });
 
     return server;
@@ -344,7 +347,7 @@ class MagicMcpServerImpl {
     }
   }
 
-  async archiveMagicMcpServer(d: { server: MagicMcpServer }) {
+  async archiveMagicMcpServer(d: { server: MagicMcpServer; auditScope: AuditScope }) {
     if (d.server.status !== 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -403,7 +406,8 @@ class MagicMcpServerImpl {
     await Fabric.fire('magic_mcp.server.archived:after', {
       organization: instance.organization,
       instance,
-      magicMcpServer
+      magicMcpServer,
+      auditScope: d.auditScope
     });
 
     return magicMcpServer;
@@ -413,6 +417,7 @@ class MagicMcpServerImpl {
     server: MagicMcpServerWithRelations;
     instance?: Instance;
     accessTags?: AnyAccessTagSelector;
+    auditScope: AuditScope;
     input: {
       name?: string | null;
       description?: string | null;
@@ -492,6 +497,17 @@ class MagicMcpServerImpl {
     await magicMcpServerUpdatedQueue.add({
       magicMcpServerId: server.id,
       isReconciliation: false
+    });
+
+    let instance =
+      d.instance ??
+      (await db.instance.findUniqueOrThrow({ where: { oid: d.server.instanceOid } }));
+
+    await Fabric.fire('magic_mcp.server.updated:after', {
+      instance,
+      magicMcpServer: server,
+      previousMagicMcpServer: d.server,
+      auditScope: d.auditScope
     });
 
     return server;
