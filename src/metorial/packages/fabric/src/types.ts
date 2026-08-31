@@ -1356,6 +1356,11 @@ export interface FabricEvents {
   'provider.session_template.provider.deleted:after': ProviderEventBase & { sessionTemplateProvider: AuditSubspaceSessionTemplateProvider };
 
   'provider.session_message.created:before': ProviderEventBase;
+  'provider.session_message.usage:after': {
+    instanceOid: bigint;
+    clientMessageIncrement: number;
+    providerMessageIncrement: number;
+  };
   'provider.tool_call.created:before': ProviderEventBase;
   'provider.tool_call.created:after': ProviderEventBase & { toolCall: SubspaceToolCall };
 

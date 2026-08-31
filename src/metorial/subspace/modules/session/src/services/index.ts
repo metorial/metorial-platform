@@ -19,5 +19,4 @@ export * from './sessionProviderInput';
 export * from './sessionProviderNameTemplate';
 export * from './sessionTemplate';
 export * from './sessionTemplateProvider';
-export * from './sessionUsageRecord';
 export * from './toolCall';

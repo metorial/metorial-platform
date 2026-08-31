@@ -10,10 +10,10 @@ let mocks = vi.hoisted(() => {
       instance: { findUnique: vi.fn() },
       sessionConnection: { updateMany: vi.fn() },
       sessionProvider: { updateMany: vi.fn() },
-      session: { updateMany: vi.fn() },
-      sessionUsageRecord: { create: vi.fn() }
+      session: { updateMany: vi.fn() }
     },
     protoGuardMessageQueue: { add: vi.fn() },
+    fabricFire: vi.fn(),
     createQueue: vi.fn(() => ({
       process: (handler: any) => {
         handlerRef.current = handler;
@@ -25,9 +25,9 @@ let mocks = vi.hoisted(() => {
 
 vi.mock('@lowerdeck/queue', () => ({ createQueue: mocks.createQueue }));
 vi.mock('@metorial-subspace/db', () => ({ db: mocks.db }));
+vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fabricFire } }));
 vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://localhost:6379' } } }));
 vi.mock('./protoGuard', () => ({ protoGuardMessageQueue: mocks.protoGuardMessageQueue }));
-vi.mock('uuid', () => ({ v7: () => 'usage_uuid' }));
 
 import './finalizeMessage';
 
@@ -61,7 +61,7 @@ describe('finalizeMessage usage accounting', () => {
     mocks.db.sessionConnection.updateMany.mockResolvedValue(undefined);
     mocks.db.sessionProvider.updateMany.mockResolvedValue(undefined);
     mocks.db.session.updateMany.mockResolvedValue(undefined);
-    mocks.db.sessionUsageRecord.create.mockResolvedValue(undefined);
+    mocks.fabricFire.mockResolvedValue(undefined);
     mocks.protoGuardMessageQueue.add.mockResolvedValue(undefined);
     // No mirror row: the audit entry resolves no scope and is skipped, which keeps these
     // usage-accounting cases focused on accounting.
@@ -71,17 +71,17 @@ describe('finalizeMessage usage accounting', () => {
   it('records the same usage at none as at full', async () => {
     mocks.db.sessionMessage.findFirst.mockResolvedValue(message({ retentionLevel: 'full' }));
     await run(message());
-    let atFull = mocks.db.sessionUsageRecord.create.mock.calls[0]![0].data;
+    let atFull = mocks.fabricFire.mock.calls[0]![1];
 
     vi.clearAllMocks();
-    mocks.db.sessionUsageRecord.create.mockResolvedValue(undefined);
+    mocks.fabricFire.mockResolvedValue(undefined);
 
     // Under zero data retention the payload is gone, but `hasOutput` is still true.
     mocks.db.sessionMessage.findFirst.mockResolvedValue(
       message({ retentionLevel: 'none', output: null })
     );
     await run(message());
-    let atNone = mocks.db.sessionUsageRecord.create.mock.calls[0]![0].data;
+    let atNone = mocks.fabricFire.mock.calls[0]![1];
 
     expect(atNone.clientMessageIncrement).toBe(atFull.clientMessageIncrement);
     expect(atNone.providerMessageIncrement).toBe(atFull.providerMessageIncrement);
@@ -95,7 +95,8 @@ describe('finalizeMessage usage accounting', () => {
 
     await run(message());
 
-    let { data } = mocks.db.sessionUsageRecord.create.mock.calls[0]![0];
+    let [event, data] = mocks.fabricFire.mock.calls[0]!;
+    expect(event).toBe('provider.session_message.usage:after');
     expect(data.clientMessageIncrement).toBe(1);
     expect(data.providerMessageIncrement).toBe(0);
   });
@@ -108,8 +109,16 @@ describe('finalizeMessage usage accounting', () => {
 
     await run(message());
 
-    let { data } = mocks.db.sessionUsageRecord.create.mock.calls[0]![0];
+    let data = mocks.fabricFire.mock.calls[0]![1];
     expect(data.providerMessageIncrement).toBe(1);
+  });
+
+  it('does not report usage when the message has no instance', async () => {
+    mocks.db.sessionMessage.findFirst.mockResolvedValue(message({ instanceOid: null }));
+
+    await run(message());
+
+    expect(mocks.fabricFire).not.toHaveBeenCalled();
   });
 
   it('runs ProtoGuard only at full', async () => {
@@ -119,7 +128,7 @@ describe('finalizeMessage usage accounting', () => {
 
     for (let level of ['intent_only', 'none']) {
       vi.clearAllMocks();
-      mocks.db.sessionUsageRecord.create.mockResolvedValue(undefined);
+      mocks.fabricFire.mockResolvedValue(undefined);
       mocks.db.sessionMessage.findFirst.mockResolvedValue(
         message({ retentionLevel: level, output: null })
       );

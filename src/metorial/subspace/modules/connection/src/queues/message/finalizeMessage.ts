@@ -1,6 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
-import { v7 } from 'uuid';
+import { Fabric } from '@metorial/fabric';
 import { env } from '../../env';
 import { recordMessageAuditEvent } from '../../audit/recordMessage';
 import { protoGuardMessageQueue } from './protoGuard';
@@ -70,24 +70,14 @@ export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async da
     });
   }
 
-  if (
-    initialClientProductive ||
-    initialProviderProductive ||
-    incrementClientProductive ||
-    incrementProviderProductive
-  ) {
-    await db.sessionUsageRecord.create({
-      data: {
-        id: v7(),
+  let clientMessageIncrement = initialClientProductive + incrementClientProductive;
+  let providerMessageIncrement = initialProviderProductive + incrementProviderProductive;
 
-        sessionOid: message.sessionOid,
-        tenantOid: message.session.tenantOid,
-        projectOid: message.session.projectOid,
-        solutionOid: message.session.solutionOid,
-
-        clientMessageIncrement: initialClientProductive + incrementClientProductive,
-        providerMessageIncrement: initialProviderProductive + incrementProviderProductive
-      }
+  if ((clientMessageIncrement || providerMessageIncrement) && message.instanceOid) {
+    await Fabric.fire('provider.session_message.usage:after', {
+      instanceOid: message.instanceOid,
+      clientMessageIncrement,
+      providerMessageIncrement
     });
   }
 

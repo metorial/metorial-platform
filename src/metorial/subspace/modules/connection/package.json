@@ -42,6 +42,7 @@
     "@metorial/audit-resources-subspace": "workspace:*",
     "@metorial/audit-scope": "workspace:*",
     "@metorial/audit-stash": "workspace:*",
+    "@metorial/fabric": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@types/lodash": "^4.17.23",
     "date-fns": "^4.1.0",
