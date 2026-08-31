@@ -1,6 +1,7 @@
 import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { db } from '@metorial-subspace/db';
 import { consumerAccessRequestService } from '@metorial/module-consumer-access';
 import {
   consumerProfileService,
@@ -320,9 +321,12 @@ export let consumerProviderController = Controller.create(
             order: ctx.query.order
           }
         });
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
 
         return Paginator.present(list, consumerProvider =>
-          consumerProviderPresenter.present({ consumerProvider })
+          consumerProviderPresenter.present({ consumerProvider, tenant })
         );
       }),
 
@@ -335,8 +339,13 @@ export let consumerProviderController = Controller.create(
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerProviderPresenter)
       .do(async ctx => {
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
+
         return consumerProviderPresenter.present({
-          consumerProvider: ctx.consumerProvider
+          consumerProvider: ctx.consumerProvider,
+          tenant
         });
       }),
 
