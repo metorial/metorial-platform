@@ -7,6 +7,7 @@ export * from './files';
 export * from './monitor';
 export * from './network';
 export * from './organization';
+export * from './outpost';
 export * from './platform';
 export * from './portal';
 export * from './provider';

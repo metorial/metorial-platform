@@ -132,6 +132,10 @@ import {
   v1OrganizationLayoutPresenter,
   v1OrganizationMemberPresenter,
   v1OrganizationPresenter,
+  v1OrganizationScopesPresenter,
+  v1OutpostAccessPresenter,
+  v1OutpostCredentialPresenter,
+  v1OutpostPresenter,
   v1PortalOAuthAuthorizationPresenter,
   v1PortalOAuthClientPresenter,
   v1PortalPresenter,
@@ -349,7 +353,11 @@ import {
   organizationInviteType,
   organizationLayoutType,
   organizationMemberType,
+  organizationScopesType,
   organizationType,
+  outpostAccessType,
+  outpostCredentialType,
+  outpostType,
   portalOAuthAuthorizationType,
   portalOAuthClientType,
   portalType,
@@ -587,9 +595,29 @@ export let organizationMemberPresenter = declarePresenter(organizationMemberType
   mt_2026_01_01_magnetar: v1OrganizationMemberPresenter
 });
 
+export let organizationScopesPresenter = declarePresenter(organizationScopesType, {
+  mt_2025_01_01_dashboard: v1OrganizationScopesPresenter,
+  mt_2026_01_01_magnetar: v1OrganizationScopesPresenter
+});
+
 export let organizationPresenter = declarePresenter(organizationType, {
   mt_2025_01_01_dashboard: v1OrganizationPresenter,
   mt_2026_01_01_magnetar: v1OrganizationPresenter
+});
+
+export let outpostPresenter = declarePresenter(outpostType, {
+  mt_2025_01_01_dashboard: v1OutpostPresenter,
+  mt_2026_01_01_magnetar: v1OutpostPresenter
+});
+
+export let outpostCredentialPresenter = declarePresenter(outpostCredentialType, {
+  mt_2025_01_01_dashboard: v1OutpostCredentialPresenter,
+  mt_2026_01_01_magnetar: v1OutpostCredentialPresenter
+});
+
+export let outpostAccessPresenter = declarePresenter(outpostAccessType, {
+  mt_2025_01_01_dashboard: v1OutpostAccessPresenter,
+  mt_2026_01_01_magnetar: v1OutpostAccessPresenter
 });
 
 export let organizationConfigPresenter = declarePresenter(organizationConfigType, {
