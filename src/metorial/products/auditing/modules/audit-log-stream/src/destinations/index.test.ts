@@ -29,7 +29,7 @@ describe('audit log stream destinations', () => {
 
   it('validates and sanitizes Splunk configuration', () => {
     let data = validateAuditLogStreamProviderData('splunk', {
-      endpoint: 'https://splunk.example.com/services/collector',
+      endpoint: 'https://http-inputs.customer.splunkcloud.com/services/collector',
       token: 'splunk-secret',
       index: 'audit',
       source: 'metorial',
@@ -37,14 +37,14 @@ describe('audit log stream destinations', () => {
     });
 
     expect(data).toEqual({
-      endpoint: 'https://splunk.example.com/services/collector',
+      endpoint: 'https://http-inputs.customer.splunkcloud.com/services/collector',
       token: 'splunk-secret',
       index: 'audit',
       source: 'metorial',
       sourcetype: '_json'
     });
     expect(sanitizeAuditLogStreamProviderData('splunk', data)).toEqual({
-      endpoint: 'https://splunk.example.com/services/collector',
+      endpoint: 'https://http-inputs.customer.splunkcloud.com/services/collector',
       index: 'audit',
       source: 'metorial',
       sourcetype: '_json'
@@ -64,6 +64,53 @@ describe('audit log stream destinations', () => {
         token: 'secret'
       })
     ).toThrow();
+  });
+
+  it('allows vendor sites without hard-coding regions', () => {
+    expect(() =>
+      validateAuditLogStreamProviderData('datadog', {
+        apiKey: 'secret',
+        site: 'future-region.datadoghq.com'
+      })
+    ).not.toThrow();
+    expect(() =>
+      validateAuditLogStreamProviderData('datadog', {
+        apiKey: 'secret',
+        site: 'future-region.ddog-gov.com'
+      })
+    ).not.toThrow();
+    expect(() =>
+      validateAuditLogStreamProviderData('splunk', {
+        endpoint: 'https://http-inputs.future-region.splunkcloud.com/services/collector',
+        token: 'secret'
+      })
+    ).not.toThrow();
+  });
+
+  it('rejects destination URLs that can target non-vendor hosts', () => {
+    let invalidDatadogSites = [
+      'localhost',
+      'datadoghq.com.attacker.example',
+      'attacker.example/datadoghq.com'
+    ];
+    let invalidSplunkEndpoints = [
+      'http://customer.splunkcloud.com/services/collector',
+      'https://splunkcloud.com@attacker.example/services/collector',
+      'https://customer.splunkcloud.com.attacker.example/services/collector',
+      'https://127.0.0.1/services/collector'
+    ];
+
+    for (let site of invalidDatadogSites) {
+      expect(() =>
+        validateAuditLogStreamProviderData('datadog', { apiKey: 'secret', site })
+      ).toThrow();
+    }
+
+    for (let endpoint of invalidSplunkEndpoints) {
+      expect(() =>
+        validateAuditLogStreamProviderData('splunk', { endpoint, token: 'secret' })
+      ).toThrow();
+    }
   });
 
   it('dispatches delivery with provider-specific configuration', async () => {
