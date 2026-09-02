@@ -80,7 +80,8 @@
     "src/voyager/*/*/*",
     "src/relay/*",
     "src/relay/*/*",
-    "src/relay/*/*/*"
+    "src/relay/*/*/*",
+    "src/outpost/*/*"
   ],
   "dependencies": {
     "sade": "^1.8.1",
