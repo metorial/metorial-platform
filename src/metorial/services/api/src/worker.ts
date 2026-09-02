@@ -18,6 +18,7 @@ import { emailQueueProcessor } from '@metorial/module-email';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import { organizationQueueProcessor } from '@metorial/module-organization';
+import { outpostQueueProcessor } from '@metorial/module-outpost';
 import { portalQueueProcessor } from '@metorial/module-portal';
 import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
 import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/module-skill';
@@ -39,6 +40,7 @@ export let worker = runQueueProcessors([
   userQueueProcessor,
   machineAccessQueueProcessor,
   organizationQueueProcessor,
+  outpostQueueProcessor,
   emailQueueProcessor,
   accessQueueProcessor,
   cargoFileQueueProcessor,

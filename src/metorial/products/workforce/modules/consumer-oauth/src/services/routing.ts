@@ -11,8 +11,11 @@ class ConsumerOAuthRoutingService {
     portalId: string;
     magicMcpTargetId?: string;
     namespaceHost?: string;
+    originOverride?: string;
   }) {
-    let origin = d.namespaceHost ? `https://${d.namespaceHost}` : getConfig().urls.apiUrl;
+    let origin =
+      d.originOverride ??
+      (d.namespaceHost ? `https://${d.namespaceHost}` : getConfig().urls.apiUrl);
 
     return `${origin}/connect/portal/${d.portalId}${
       d.magicMcpTargetId ? `/${d.magicMcpTargetId}` : ''
@@ -33,6 +36,7 @@ class ConsumerOAuthRoutingService {
     portalId: string;
     magicMcpTargetId?: string;
     namespaceHost?: string;
+    originOverride?: string;
   }) {
     let portal: Awaited<ReturnType<typeof portalService.getPortalPublic>> | null = null;
     let consumerSurface:
@@ -90,6 +94,8 @@ class ConsumerOAuthRoutingService {
       portal,
       consumerSurface,
       instance,
+      projectOid: instance.projectOid,
+      instanceOid: instance.oid,
       magicMcpTarget,
       base: this.portalBase(d)
     };
@@ -99,6 +105,7 @@ class ConsumerOAuthRoutingService {
     portalId: string;
     magicMcpTargetId?: string;
     namespaceHost?: string;
+    originOverride?: string;
   }) {
     let namespace = this.parseNamespaceHost(d.namespaceHost);
     let portal = await db.portal.findFirst({
@@ -170,12 +177,14 @@ class ConsumerOAuthRoutingService {
       portal: null,
       consumerSurface: null,
       instance,
+      projectOid: instance.projectOid,
+      instanceOid: instance.oid,
       magicMcpTarget,
       base: this.portalBase(d)
     };
   }
 
-  async resolveSkillPluginRoute(d: { skillPluginId: string }) {
+  async resolveSkillPluginRoute(d: { skillPluginId: string; originOverride?: string }) {
     let skillPlugin = await db.skillPlugin.findFirst({
       where: {
         OR: [{ id: d.skillPluginId }, { slug: d.skillPluginId }],
@@ -199,7 +208,9 @@ class ConsumerOAuthRoutingService {
     return {
       skillPlugin,
       instance: skillPlugin.instance,
-      base: `${getConfig().urls.apiUrl}/connect/plugin/${d.skillPluginId}`
+      projectOid: skillPlugin.instance.projectOid,
+      instanceOid: skillPlugin.instance.oid,
+      base: `${d.originOverride ?? getConfig().urls.apiUrl}/connect/plugin/${d.skillPluginId}`
     };
   }
 }

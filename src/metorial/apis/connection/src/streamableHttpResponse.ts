@@ -1,33 +1,68 @@
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 
-let sseResponse = (messages: JSONRPCMessage[]) => {
-  let body = messages.map(message => `data: ${JSON.stringify(message)}\n\n`).join('');
-  return new Response(body, {
-    headers: { 'Content-Type': 'text/event-stream' }
+let encoder = new TextEncoder();
+
+export let createStreamableHttpResponse = () => {
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  let started = false;
+  let closed = false;
+  let resolveStarted!: () => void;
+  let startedPromise = new Promise<void>(resolve => {
+    resolveStarted = resolve;
   });
-};
 
-export let createStreamableHttpPostResponse = (d: {
-  request: JSONRPCMessage;
-  response?: JSONRPCMessage | null;
-  progress: JSONRPCMessage[];
-}) => {
-  if (!d.response && d.progress.length === 0) {
-    return new Response(null, { status: 202 });
-  }
+  let body = new ReadableStream<Uint8Array>({
+    start: value => {
+      controller = value;
+    },
+    cancel: () => {
+      closed = true;
+    }
+  });
 
-  let responseMessage = d.response ?? {
-    jsonrpc: '2.0' as const,
-    id: 'id' in d.request ? d.request.id : undefined,
-    error: {
-      code: -32603,
-      message: 'No response produced for MCP request'
+  let write = (message: JSONRPCMessage) => {
+    if (closed) return;
+
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(message)}\n\n`));
+    if (!started) {
+      started = true;
+      resolveStarted();
     }
   };
 
-  if (d.progress.length === 0) {
-    return Response.json(responseMessage);
-  }
+  let close = () => {
+    if (closed) return;
+    closed = true;
+    controller.close();
+  };
 
-  return sseResponse([...d.progress, responseMessage]);
+  let error = (cause: unknown) => {
+    if (closed) return;
+    closed = true;
+    controller.error(cause);
+  };
+
+  return {
+    response: new Response(body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+      }
+    }),
+    started: startedPromise,
+    hasStarted: () => started,
+    write,
+    close,
+    error
+  };
 };
+
+export let missingMcpResponse = (request: JSONRPCMessage): JSONRPCMessage => ({
+  jsonrpc: '2.0',
+  id: 'id' in request ? request.id : undefined,
+  error: {
+    code: -32603,
+    message: 'No response produced for MCP request'
+  }
+});

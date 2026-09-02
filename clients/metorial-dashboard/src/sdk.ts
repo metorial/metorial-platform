@@ -162,6 +162,9 @@ import {
   MetorialDashboardOrganizationsOauthCliDevicesEndpoint,
   MetorialDashboardOrganizationsOauthInstallationsEndpoint,
   MetorialDashboardOrganizationsOauthScopesEndpoint,
+  MetorialDashboardOrganizationsOutpostsAccessEndpoint,
+  MetorialDashboardOrganizationsOutpostsCredentialsEndpoint,
+  MetorialDashboardOrganizationsOutpostsEndpoint,
   MetorialDashboardOrganizationsProjectsBrandingEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
   MetorialDashboardOrganizationsSandboxesEndpoint,
@@ -184,7 +187,8 @@ import {
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
   MetorialOrganizationsFlagsEndpoint,
-  MetorialOrganizationsProfileEndpoint
+  MetorialOrganizationsProfileEndpoint,
+  MetorialOrganizationsScopesEndpoint
 } from './gen/src/mt_2025_01_01_dashboard';
 
 let fetchWithRetry = createFetchWithRetry();
@@ -560,6 +564,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       new MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint(manager),
     invites: new MetorialDashboardOrganizationsInvitesEndpoint(manager),
     flags: new MetorialOrganizationsFlagsEndpoint(manager),
+    scopes: new MetorialOrganizationsScopesEndpoint(manager),
+
+    outposts: Object.assign(new MetorialDashboardOrganizationsOutpostsEndpoint(manager), {
+      access: new MetorialDashboardOrganizationsOutpostsAccessEndpoint(manager),
+      credentials: new MetorialDashboardOrganizationsOutpostsCredentialsEndpoint(manager)
+    }),
 
     members: Object.assign(new MetorialDashboardOrganizationsMembersEndpoint(manager), {
       policies: new MetorialDashboardOrganizationsMembersPoliciesEndpoint(manager)

@@ -38,6 +38,7 @@ model Tenant {
 
   allowAuthConfigExport Boolean @default(false)
   allowAuthConfigImport Boolean @default(false)
+  onlyAllowOAuthAuthMethods Boolean @default(false)
 
   collectOperationDescriptionForToolCalls Boolean @default(true)
 

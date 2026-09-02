@@ -19,6 +19,7 @@ import { getProviderTenantFilter } from './provider';
 type ListProviderAuthMethodsParams = {
   providerVersion: ProviderVersion;
   includeDeprecated?: boolean;
+  applyAuthMethodPolicy?: boolean;
 };
 
 type GetProviderAuthMethodByIdParams = {
@@ -78,11 +79,20 @@ class providerAuthMethodServiceImpl {
             ...(version?.specificationOid
               ? {
                   providerAuthMethods: {
-                    some: { specificationOid: version.specificationOid }
+                    some: {
+                      specificationOid: version.specificationOid,
+                      ...(d.tenant?.onlyAllowOAuthAuthMethods &&
+                      d.applyAuthMethodPolicy !== false
+                        ? { type: 'oauth' as const }
+                        : {})
+                    }
                   }
                 }
               : {
-                  currentInstance: { isNot: null }
+                  currentInstance:
+                    d.tenant?.onlyAllowOAuthAuthMethods && d.applyAuthMethodPolicy !== false
+                      ? { is: { type: 'oauth' as const } }
+                      : { isNot: null }
                 })
           },
 
@@ -94,7 +104,13 @@ class providerAuthMethodServiceImpl {
               : { include: { specification: { omit: { value: true } } } },
             providerAuthMethods: version?.specificationOid
               ? {
-                  where: { specificationOid: version.specificationOid },
+                  where: {
+                    specificationOid: version.specificationOid,
+                    ...(d.tenant?.onlyAllowOAuthAuthMethods &&
+                    d.applyAuthMethodPolicy !== false
+                      ? { type: 'oauth' as const }
+                      : {})
+                  },
                   include: { specification: { omit: { value: true } } }
                 }
               : false

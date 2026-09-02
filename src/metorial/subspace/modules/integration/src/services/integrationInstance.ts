@@ -70,7 +70,7 @@ export let integrationInstanceProviderVersionInclude = {
     include: integrationProviderVersionInclude
   },
   config: { include: { provider: true } },
-  authConfig: { include: { provider: true } }
+  authConfig: { include: { provider: true, authMethod: true } }
 } as const;
 
 export let integrationInstanceProviderInclude = {

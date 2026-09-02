@@ -164,6 +164,7 @@ model Instance {
 
   productAssistantConversations          ProductAssistantConversation[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
+  outpostAccesses                        OutpostAccess[]
 
   @@index([previousSlugs])
   @@index([oldSlug])

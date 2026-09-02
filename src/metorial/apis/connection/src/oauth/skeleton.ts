@@ -1,5 +1,6 @@
 import { Context } from '@lowerdeck/hono';
 import { createConnectionHono } from '../hono';
+import { assertOutpostConnectionAccess, getOutpostAuth } from '../outpost';
 
 export type PortalOAuthRouteInput = {
   portalId: string;
@@ -12,6 +13,8 @@ export type PluginOAuthRouteInput = {
 
 export type PortalOAuthResolvedRoute = {
   base: string;
+  projectOid: bigint;
+  instanceOid: bigint;
 };
 
 export let buildOAuthProtectedResource = (base: string) => ({
@@ -125,13 +128,35 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
     return await d.handlers.resolveRoute(input, c);
   };
 
+  // Every connection route resolves to an instance. An outpost-proxied request must be granted
+  // `mcp_connection_proxy` for that specific project and instance -- direct requests are
+  // untouched, see `assertOutpostConnectionAccess`.
+  let resolveAuthorizedRoute = async (
+    c: Context,
+    resolver: (c: Context) => Promise<TRoute>
+  ) => {
+    let route = await resolver(c);
+    let scope = route as TRoute & { projectOid?: bigint; instanceOid?: bigint };
+    let outpostAuth = getOutpostAuth(c);
+    if (outpostAuth && (scope.projectOid === undefined || scope.instanceOid === undefined)) {
+      throw new Error('Outpost-authenticated OAuth route did not resolve an instance scope');
+    }
+    if (scope.projectOid !== undefined && scope.instanceOid !== undefined) {
+      await assertOutpostConnectionAccess(c, {
+        projectOid: scope.projectOid,
+        instanceOid: scope.instanceOid
+      });
+    }
+    return route;
+  };
+
   let withResolvedRoute =
     (
       handler: (d: { route: TRoute }, c: Context) => Promise<Response>,
       resolver: (c: Context) => Promise<TRoute> = resolveRoute
     ) =>
     async (c: Context) =>
-      await handler({ route: await resolver(c) }, c);
+      await handler({ route: await resolveAuthorizedRoute(c, resolver) }, c);
 
   let metadataServer = createConnectionHono();
   for (let path of d.paths.metadata) {
@@ -187,7 +212,10 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
   for (let path of d.paths.registration) {
     connectServer = connectServer.get(path, async c => {
       return await d.handlers.registration(
-        { route: await resolveRoute(c), registrationId: c.req.param('registrationId')! },
+        {
+          route: await resolveAuthorizedRoute(c, resolveRoute),
+          registrationId: c.req.param('registrationId')!
+        },
         c
       );
     });

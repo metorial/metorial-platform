@@ -2,7 +2,11 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Tenant } from '@metorial-subspace/db';
-import { type DateFilter, normalizeDateFilter, resolveProviders } from '@metorial-subspace/list-utils';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveProviders
+} from '@metorial-subspace/list-utils';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -108,7 +112,9 @@ class providerSpecificationServiceImpl {
             include: {
               provider: true,
               providerTools: true,
-              providerAuthMethods: true,
+              providerAuthMethods: d.tenant?.onlyAllowOAuthAuthMethods
+                ? { where: { type: 'oauth' } }
+                : true,
               providerTriggers: true
             }
           })
@@ -148,7 +154,9 @@ class providerSpecificationServiceImpl {
       include: {
         provider: true,
         providerTools: true,
-        providerAuthMethods: true,
+        providerAuthMethods: d.tenant?.onlyAllowOAuthAuthMethods
+          ? { where: { type: 'oauth' } }
+          : true,
         providerTriggers: true
       }
     });

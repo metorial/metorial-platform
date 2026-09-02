@@ -99,6 +99,9 @@ import {
   OrganizationLayout,
   OrganizationLayoutType,
   OrganizationMember,
+  Outpost,
+  OutpostAccess,
+  OutpostCredential,
   Portal,
   Prisma,
   Profile,
@@ -1117,6 +1120,7 @@ export let projectAuthConfigConfigurationType = PresentableType.create<{
   project: Project;
   allowAuthConfigExport: boolean;
   allowAuthConfigImport: boolean;
+  onlyAllowOAuthAuthMethods: boolean;
   consumerAuthClientRegistrationsPerHourLimit: number;
   consumerAuthClientRegistrationsPerMinuteLimit: number;
 }>()('project_auth_config_configuration');
@@ -1264,6 +1268,25 @@ export let apiKeyType = PresentableType.create<{
   secret?: ApiKeySecret;
   canReveal: boolean;
 }>()('api_key');
+
+export let outpostType = PresentableType.create<{
+  outpost: Outpost & { organization: Organization };
+}>()('outpost');
+
+export let outpostCredentialType = PresentableType.create<{
+  outpost: Outpost;
+  credential: OutpostCredential;
+  envelope?: string;
+}>()('outpost_credential');
+
+export let outpostAccessType = PresentableType.create<{
+  access: OutpostAccess & {
+    project: Project;
+    instance: Instance;
+    organization: Organization;
+    outpost: Outpost;
+  };
+}>()('outpost_access');
 
 export let oauthApplicationType = PresentableType.create<{
   oauthApplication: OAuthApplication & {
@@ -2043,6 +2066,10 @@ export let profileType = PresentableType.create<{
 export let flagsType = PresentableType.create<{
   flags: Flags;
 }>()('flags');
+
+export let organizationScopesType = PresentableType.create<{
+  scopes: string[];
+}>()('organization_scopes');
 
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {

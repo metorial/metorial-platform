@@ -35,6 +35,7 @@ class tenantServiceImpl {
       enforceSessionExpiry?: boolean;
       allowAuthConfigExport?: boolean;
       allowAuthConfigImport?: boolean;
+      onlyAllowOAuthAuthMethods?: boolean;
       collectOperationDescriptionForToolCalls?: boolean;
       useIntegrationNamesForSessionProviderNameTemplates?: boolean;
       dataRetentionLevel?: SessionDataRetentionLevel;
@@ -77,6 +78,7 @@ class tenantServiceImpl {
           enforceSessionExpiry: d.input.enforceSessionExpiry,
           allowAuthConfigExport: d.input.allowAuthConfigExport,
           allowAuthConfigImport: d.input.allowAuthConfigImport,
+          onlyAllowOAuthAuthMethods: d.input.onlyAllowOAuthAuthMethods,
           collectOperationDescriptionForToolCalls:
             d.input.collectOperationDescriptionForToolCalls,
           useIntegrationNamesForSessionProviderNameTemplates:
@@ -98,6 +100,7 @@ class tenantServiceImpl {
           enforceSessionExpiry: d.input.enforceSessionExpiry ?? false,
           allowAuthConfigExport: d.input.allowAuthConfigExport ?? false,
           allowAuthConfigImport: d.input.allowAuthConfigImport ?? false,
+          onlyAllowOAuthAuthMethods: d.input.onlyAllowOAuthAuthMethods ?? false,
           collectOperationDescriptionForToolCalls:
             d.input.collectOperationDescriptionForToolCalls ?? true,
           useIntegrationNamesForSessionProviderNameTemplates:

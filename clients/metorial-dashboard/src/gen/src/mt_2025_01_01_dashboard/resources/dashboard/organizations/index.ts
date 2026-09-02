@@ -15,6 +15,7 @@ export * from './layouts';
 export * from './list';
 export * from './members';
 export * from './oauth';
+export * from './outposts';
 export * from './projects';
 export * from './sandboxes';
 export * from './service-accounts';

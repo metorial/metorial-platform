@@ -104,6 +104,9 @@ model Organization {
   events                                 Event[]
   auditLogDirtyTrackers                  AuditLogDirtyTracker[]
   auditLogStreams                        AuditLogStream[]
+  outpostAccesses                        OutpostAccess[]
+  outposts                               Outpost[]
+  outpostTokenKeyPairs                   OutpostTokenKeyPair[]
 
   @@index([authVersion])
   @@index([previousSlugs])

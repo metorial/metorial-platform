@@ -32,10 +32,15 @@ import {
 } from '@metorial/module-access';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
 import {
+  integrationInstanceService,
   magicMcpServerBackingService,
-  magicMcpServerProviderService
+  magicMcpServerProviderService,
+  providerTemplateBackingService,
+  resolveProviderAttachmentAuthMethodInternal
 } from '@metorial-subspace/module-integration';
+import { assertAuthMethodAllowedForTenant } from '@metorial-subspace/module-provider-internal';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import { ensureMagicMcpServerBacking, type ConsumerOwner } from '../lib/backing';
 import {
   magicMcpServerCreatedQueue,
@@ -246,6 +251,52 @@ class MagicMcpServerImpl {
       consumerOwner?: ConsumerOwner;
     };
   }) {
+    if (
+      d.input.subspaceIntegrationInstanceId ||
+      d.input.providerTemplateId ||
+      d.input.providers?.length
+    ) {
+      let { tenant, environment } = await subspaceScopeService.ensureForInstance(d.instance);
+
+      let integrationInstance = d.input.subspaceIntegrationInstanceId
+        ? await integrationInstanceService.getIntegrationInstanceById({
+            instance: d.instance,
+            integrationInstanceId: d.input.subspaceIntegrationInstanceId
+          })
+        : null;
+
+      for (let provider of integrationInstance?.integrationInstanceProviders ?? []) {
+        let authMethod =
+          provider.currentVersion?.authConfig?.authMethod ??
+          provider.currentVersion?.integrationProviderVersion.authMethod;
+        assertAuthMethodAllowedForTenant({ tenant, authMethod });
+      }
+
+      let providerTemplateBacking = d.input.providerTemplateId
+        ? await providerTemplateBackingService.getProviderTemplateBackingById({
+            instance: d.instance,
+            providerTemplateBackingId: d.input.providerTemplateId
+          })
+        : null;
+
+      for (let provider of providerTemplateBacking?.integration.providers ?? []) {
+        assertAuthMethodAllowedForTenant({
+          tenant,
+          authMethod: provider.currentVersion?.authMethod
+        });
+      }
+
+      for (let provider of d.input.providers ?? []) {
+        let material = await resolveProviderAttachmentAuthMethodInternal({
+          tenant,
+          environment,
+          providerDeploymentId: provider.providerDeploymentId,
+          providerAuthConfigId: provider.providerAuthConfigId
+        });
+        assertAuthMethodAllowedForTenant({ tenant, ...material });
+      }
+    }
+
     await Fabric.fire('magic_mcp.server.created:before', {
       organization: d.organization,
       instance: d.instance

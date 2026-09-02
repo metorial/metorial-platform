@@ -52,6 +52,7 @@ export let recordProjectAuthConfigUpdated = async (
           project: event.project,
           allowAuthConfigExport: event.configuration.allowAuthConfigExport,
           allowAuthConfigImport: event.configuration.allowAuthConfigImport,
+          onlyAllowOAuthAuthMethods: event.configuration.onlyAllowOAuthAuthMethods,
           consumerAuthClientRegistrationsPerHourLimit:
             event.project.consumerAuthClientRegistrationsPerHourLimit,
           consumerAuthClientRegistrationsPerMinuteLimit:
@@ -61,6 +62,7 @@ export let recordProjectAuthConfigUpdated = async (
           project: event.previousProject,
           allowAuthConfigExport: event.previousConfiguration.allowAuthConfigExport,
           allowAuthConfigImport: event.previousConfiguration.allowAuthConfigImport,
+          onlyAllowOAuthAuthMethods: event.previousConfiguration.onlyAllowOAuthAuthMethods,
           consumerAuthClientRegistrationsPerHourLimit:
             event.previousProject.consumerAuthClientRegistrationsPerHourLimit,
           consumerAuthClientRegistrationsPerMinuteLimit:

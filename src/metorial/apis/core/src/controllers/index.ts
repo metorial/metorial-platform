@@ -40,7 +40,8 @@ import {
   dashboardUserController,
   dashboardWorkforceConfigurationController,
   flagsController,
-  profileController
+  profileController,
+  scopesController
 } from './dashboard';
 import {
   agentController,
@@ -187,6 +188,7 @@ import {
   organizationInviteManagementController,
   organizationManagementController,
   organizationMemberManagementController,
+  outpostManagementController,
   projectManagementController,
   sandboxManagementController,
   serviceAccountManagementController,
@@ -534,6 +536,7 @@ export let magnetarController = Controller.create<any>(
     consumerActivityController,
 
     managementApiKeyController,
+    outpostManagementController,
     dashboardAssistantController,
 
     consumerController,
@@ -606,6 +609,7 @@ export let dashboardController = Controller.create<any>(
     dashboardAssistantController,
     dashboardWorkforceConfigurationController,
     flagsController,
+    scopesController,
 
     managementApiKeyController,
 
@@ -625,6 +629,7 @@ export let dashboardController = Controller.create<any>(
     serviceAccountManagementController,
     organizationInviteManagementController,
     organizationMemberManagementController,
+    outpostManagementController,
     projectManagementController,
     sandboxManagementController,
     dashboardUserController,

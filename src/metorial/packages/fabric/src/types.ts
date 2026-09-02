@@ -70,6 +70,12 @@ import {
   OrganizationInviteJoin,
   OrganizationLayout,
   OrganizationMember,
+  Outpost,
+  OutpostAccess,
+  OutpostCredential,
+  OutpostInstance,
+  OutpostInstanceService,
+  OutpostTokenKeyPair,
   Portal,
   Project,
   ProjectBrand,
@@ -158,6 +164,12 @@ export type ProviderEventBase = {
   organizationActor?: OrganizationActor;
   input?: Record<string, any>;
   auditScope?: AuditScope;
+};
+
+export type OutpostRequestedService = {
+  id: string;
+  version?: string;
+  capabilities?: Record<string, any>;
 };
 
 export type AuditSubspaceProviderAuthConfig = SubspaceProviderAuthConfig & {
@@ -782,8 +794,8 @@ export interface FabricEvents {
   'organization.project.updated:after': { organization: Organization; project: AuditProject; previousProject: Project; input: ProjectUpdateInput; auditScope: AuditScope };
   'organization.project.retention.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
   'organization.project.retention.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
-  'organization.project.auth_config_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number } };
-  'organization.project.auth_config_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean }; previousConfiguration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean } };
+  'organization.project.auth_config_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number } };
+  'organization.project.auth_config_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean }; previousConfiguration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean } };
   'organization.project.workforce_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean } };
   'organization.project.workforce_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean } };
   'organization.project.integration_naming_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean } };
@@ -879,6 +891,40 @@ export interface FabricEvents {
   'machine_access.api_key.expired:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+
+  'outpost.created:before': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope };
+  'outpost.created:after': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope; outpost: Outpost };
+  'outpost.updated:before': { outpost: Outpost; organization: Organization; input: { name?: string; description?: string }; auditScope: AuditScope };
+  'outpost.updated:after': { outpost: Outpost; previousOutpost: Outpost; organization: Organization; input: { name?: string; description?: string }; auditScope: AuditScope };
+  'outpost.disabled:before': { outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.disabled:after': { outpost: Outpost; previousOutpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.enabled:before': { outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.enabled:after': { outpost: Outpost; previousOutpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.deleted:before': { outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.deleted:after': { outpost: Outpost; previousOutpost: Outpost; organization: Organization; auditScope: AuditScope };
+
+  'outpost_access.updated:before': { outpost: Outpost; organization: Organization; grants: { instanceId: string; services: string[] }[]; auditScope: AuditScope };
+  'outpost_access.updated:after': { outpost: Outpost; organization: Organization; grants: { instanceId: string; services: string[] }[]; auditScope: AuditScope; access: (OutpostAccess & { project: Project; instance: Instance; organization: Organization; outpost: Outpost })[] };
+
+  'outpost_credential.created:before': { outpost: Outpost; organization: Organization; input: { name: string; expiresAt?: Date }; auditScope: AuditScope };
+  'outpost_credential.created:after': { outpost: Outpost; organization: Organization; input: { name: string; expiresAt?: Date }; auditScope: AuditScope; credential: OutpostCredential };
+  'outpost_credential.disabled:before': { credential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.disabled:after': { credential: OutpostCredential; previousCredential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.deleted:before': { credential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.deleted:after': { credential: OutpostCredential; previousCredential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.expired:before': { credential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.expired:after': { credential: OutpostCredential; previousCredential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+
+  'outpost_instance.registered:before': { outpost: Outpost; credential: OutpostCredential; organization: Organization; input: { identifier: string; requestedServices: OutpostRequestedService[] }; auditScope: AuditScope };
+  'outpost_instance.registered:after': { instance: OutpostInstance; previousInstance: OutpostInstance | null; services: OutpostInstanceService[]; outpost: Outpost; credential: OutpostCredential; organization: Organization; input: { identifier: string; requestedServices: OutpostRequestedService[] }; auditScope: AuditScope };
+  'outpost_instance.key_rotated:after': { instance: OutpostInstance; previousInstance: OutpostInstance; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_instance.deactivated:after': { instance: OutpostInstance; previousInstance: OutpostInstance; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_instance.pruned:after': { instance: OutpostInstance; outpost: Outpost; organization: Organization; deleted: { events: number; keyRotations: number }; auditScope: AuditScope };
+  'outpost_instance.deleted:after': { instance: OutpostInstance; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+
+  'outpost_token_key_pair.created:after': { keyPair: OutpostTokenKeyPair; organization: Organization; auditScope: AuditScope };
+  'outpost_token_key_pair.replaced:after': { keyPair: OutpostTokenKeyPair; previousKeyPair: OutpostTokenKeyPair; organization: Organization; auditScope: AuditScope };
+  'outpost_token_key_pair.expired:after': { keyPair: OutpostTokenKeyPair; previousKeyPair: OutpostTokenKeyPair; organization: Organization; auditScope: AuditScope };
 
   'machine_access.oauth_application.created:before': { organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; };
   'machine_access.oauth_application.created:after': { organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; oauthApplication: OAuthApplication; };

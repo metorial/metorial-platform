@@ -120,6 +120,7 @@ export type DashboardInstanceIntegrationsInstancesDeleteOutput = {
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
+  isOauthCompatible: boolean;
 };
 
 export let mapDashboardInstanceIntegrationsInstancesDeleteOutput =
@@ -372,6 +373,10 @@ export let mapDashboardInstanceIntegrationsInstancesDeleteOutput =
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    archivedAt: mtMap.objectField('archived_at', mtMap.date())
+    archivedAt: mtMap.objectField('archived_at', mtMap.date()),
+    isOauthCompatible: mtMap.objectField(
+      'is_oauth_compatible',
+      mtMap.passthrough()
+    )
   });
 

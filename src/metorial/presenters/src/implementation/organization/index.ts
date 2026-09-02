@@ -9,6 +9,7 @@ export * from './organizationConfig';
 export * from './organizationInvite';
 export * from './organizationLayout';
 export * from './organizationMember';
+export * from './organizationScopes';
 export * from './profile';
 export * from './project';
 export * from './projectBrand';

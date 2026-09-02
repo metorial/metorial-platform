@@ -41,6 +41,7 @@ export let projectAuthConfigConfigurationResource = resource({
     project: Project;
     allowAuthConfigExport: boolean;
     allowAuthConfigImport: boolean;
+    onlyAllowOAuthAuthMethods: boolean;
     consumerAuthClientRegistrationsPerHourLimit: number;
     consumerAuthClientRegistrationsPerMinuteLimit: number;
   }>('project_auth_config_configuration'),
