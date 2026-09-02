@@ -1,0 +1,89 @@
+enum OutpostInstanceStatus {
+  active
+  inactive
+}
+
+model OutpostInstance {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status OutpostInstanceStatus
+
+  outpostOid BigInt
+  outpost    Outpost @relation(fields: [outpostOid], references: [oid], onDelete: Cascade)
+
+  credentialOid BigInt
+  credential    OutpostCredential @relation(fields: [credentialOid], references: [oid], onDelete: Cascade)
+
+  identifier String
+  publicKey  Bytes
+
+  keyRotationCount  Int       @default(0)
+  lastKeyRotationAt DateTime?
+  lastSeenAt        DateTime?
+  lastSeenIp        String?
+
+  registrationCount Int       @default(0)
+  lastRegisteredAt  DateTime?
+
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  keyRotations OutpostInstanceKeyRotation[]
+  events       OutpostInstanceEvent[]
+  services     OutpostInstanceService[]
+
+  @@unique([outpostOid, identifier])
+  @@index([status, lastSeenAt])
+  @@index([status, expiresAt])
+}
+
+model OutpostInstanceService {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  instanceOid BigInt
+  instance    OutpostInstance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  service      OutpostService
+  version      String?
+  capabilities Json
+  granted      Boolean
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([instanceOid, service])
+  @@index([service, granted])
+}
+
+model OutpostInstanceKeyRotation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  instanceOid BigInt
+  instance    OutpostInstance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  publicKey Bytes
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model OutpostInstanceEvent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  instanceOid BigInt
+  instance    OutpostInstance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  logType String
+  content Json
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

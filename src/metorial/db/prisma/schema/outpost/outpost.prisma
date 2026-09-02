@@ -1,0 +1,94 @@
+enum OutpostStatus {
+  active
+  disabled
+  deleted
+}
+
+enum OutpostConnectionStatus {
+  active
+  inactive
+}
+
+model Outpost {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status           OutpostStatus
+  connectionStatus OutpostConnectionStatus
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  name        String
+  description String?
+
+  instanceCount Int       @default(0)
+  lastSeenAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  credentials OutpostCredential[]
+  access      OutpostAccess[]
+  instances   OutpostInstance[]
+
+  @@index([status, connectionStatus])
+}
+
+enum OutpostCredentialStatus {
+  active
+  disabled
+  deleted
+  expired
+}
+
+model OutpostCredential {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status OutpostCredentialStatus
+
+  outpostOid BigInt
+  outpost    Outpost @relation(fields: [outpostOid], references: [oid], onDelete: Cascade)
+
+  identifier      String
+  publicKey       Bytes
+  envelopePreview String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  expiresAt DateTime?
+
+  instances OutpostInstance[]
+}
+
+enum OutpostService {
+  mcp_connection_proxy
+  outpost_registration_proxy
+}
+
+model OutpostAccess {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  services OutpostService[]
+
+  outpostOid BigInt
+  outpost    Outpost @relation(fields: [outpostOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([outpostOid, instanceOid])
+}
