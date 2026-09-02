@@ -5,6 +5,7 @@ export type DashboardProjectsConfigureAuthConfigUpdateOutput = {
   projectId: string;
   allowAuthConfigExport: boolean;
   allowAuthConfigImport: boolean;
+  onlyAllowOauthAuthMethods: boolean;
   consumerAuthClientRegistrationsPerHourLimit: number;
   consumerAuthClientRegistrationsPerMinuteLimit: number;
   updatedAt: Date;
@@ -22,6 +23,10 @@ export let mapDashboardProjectsConfigureAuthConfigUpdateOutput =
       'allow_auth_config_import',
       mtMap.passthrough()
     ),
+    onlyAllowOauthAuthMethods: mtMap.objectField(
+      'only_allow_oauth_auth_methods',
+      mtMap.passthrough()
+    ),
     consumerAuthClientRegistrationsPerHourLimit: mtMap.objectField(
       'consumer_auth_client_registrations_per_hour_limit',
       mtMap.passthrough()
@@ -36,6 +41,7 @@ export let mapDashboardProjectsConfigureAuthConfigUpdateOutput =
 export type DashboardProjectsConfigureAuthConfigUpdateBody = {
   allowAuthConfigExport?: boolean | undefined;
   allowAuthConfigImport?: boolean | undefined;
+  onlyAllowOauthAuthMethods?: boolean | undefined;
   consumerAuthClientRegistrationsPerHourLimit?: number | undefined;
   consumerAuthClientRegistrationsPerMinuteLimit?: number | undefined;
 };
@@ -48,6 +54,10 @@ export let mapDashboardProjectsConfigureAuthConfigUpdateBody =
     ),
     allowAuthConfigImport: mtMap.objectField(
       'allow_auth_config_import',
+      mtMap.passthrough()
+    ),
+    onlyAllowOauthAuthMethods: mtMap.objectField(
+      'only_allow_oauth_auth_methods',
       mtMap.passthrough()
     ),
     consumerAuthClientRegistrationsPerHourLimit: mtMap.objectField(
