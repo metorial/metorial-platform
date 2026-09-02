@@ -9,7 +9,8 @@ let {
   providerAuthCredentialsServiceMock,
   createIntegrationProviderVersionMock,
   createIntegrationVersionMock,
-  integrationProviderUpdatedQueueAddMock
+  integrationProviderUpdatedQueueAddMock,
+  assertAuthMethodAllowedForTenantMock
 } = vi.hoisted(() => {
   let createModel = () => ({
     count: vi.fn(),
@@ -43,7 +44,8 @@ let {
     },
     createIntegrationProviderVersionMock: vi.fn(),
     createIntegrationVersionMock: vi.fn(),
-    integrationProviderUpdatedQueueAddMock: vi.fn()
+    integrationProviderUpdatedQueueAddMock: vi.fn(),
+    assertAuthMethodAllowedForTenantMock: vi.fn()
   };
 });
 
@@ -69,6 +71,7 @@ vi.mock('@metorial-subspace/module-auth', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-provider-internal', () => ({
+  assertAuthMethodAllowedForTenant: assertAuthMethodAllowedForTenantMock,
   checkProviderMatch: vi.fn(),
   providerDeploymentInternalService: {}
 }));
@@ -290,6 +293,11 @@ describe('integrationProviderService.createIntegrationProvider', () => {
       tenant: input.tenant,
       environment: input.environment,
       providerAuthCredentialsId: 'pac_1'
+    });
+    expect(assertAuthMethodAllowedForTenantMock).toHaveBeenCalledWith({
+      tenant: input.tenant,
+      authMethod: expect.objectContaining({ id: 'pam_1' }),
+      requiresAuth: false
     });
   });
 });

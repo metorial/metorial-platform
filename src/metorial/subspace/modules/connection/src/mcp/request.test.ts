@@ -15,6 +15,7 @@ describe('handleMcpRequest', () => {
 
   it('streams progress for long-running MCP methods', async () => {
     let onProgress = vi.fn();
+    let onConnection = vi.fn();
     let connection = {
       handleMessageWithProgress: vi.fn(async (_message, _opts, emit) => {
         await emit({ mcp: { jsonrpc: '2.0', method: 'notifications/progress' } });
@@ -36,10 +37,15 @@ describe('handleMcpRequest', () => {
         params: { name: 'search', arguments: {} }
       },
       waitForResponse: true,
-      onProgress
+      onProgress,
+      onConnection
     });
 
     expect(result.connection).toBe(connection);
+    expect(onConnection).toHaveBeenCalledWith(connection);
+    expect(onConnection.mock.invocationCallOrder[0]!).toBeLessThan(
+      connection.handleMessageWithProgress.mock.invocationCallOrder[0]!
+    );
     expect(connection.handleMessageWithProgress).toHaveBeenCalled();
     expect(connection.handleMessage).not.toHaveBeenCalled();
     expect(onProgress).toHaveBeenCalledWith({

@@ -104,7 +104,7 @@ class providerCombinationServiceImpl {
             let authConfig = s.authConfigId
               ? await db.providerAuthConfig.findFirst({
                   where: { ...ts, id: s.authConfigId },
-                  include: { currentVersion: true }
+                  include: { currentVersion: true, authMethod: true }
                 })
               : null;
             let deployment = s.deploymentId
@@ -245,11 +245,15 @@ class providerCombinationServiceImpl {
               }
             }
 
-            if (!authConfig && spec.value.authMethods.length > 0 && !d.allowMissingAuthConfig) {
+            if (
+              !authConfig &&
+              spec.value.authMethods.length > 0 &&
+              !d.allowMissingAuthConfig
+            ) {
               if (deployment.defaultAuthConfigOid) {
                 authConfig = await db.providerAuthConfig.findFirstOrThrow({
                   where: { ...ts, oid: deployment.defaultAuthConfigOid },
-                  include: { currentVersion: true }
+                  include: { currentVersion: true, authMethod: true }
                 });
                 checkDeletedRelation(authConfig, d);
               } else {
@@ -262,7 +266,11 @@ class providerCombinationServiceImpl {
               }
             }
 
-            if (spec.value.authMethods.length > 0 && !authConfig && !d.allowMissingAuthConfig) {
+            if (
+              spec.value.authMethods.length > 0 &&
+              !authConfig &&
+              !d.allowMissingAuthConfig
+            ) {
               throw new ServiceError(
                 badRequestError({ message: 'Provider requires an auth config to be provided' })
               );

@@ -24,12 +24,15 @@ import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspac
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityCredentialService } from '@metorial-subspace/module-identity';
 import {
+  assertAuthMethodAllowedForTenant,
+  checkProviderMatch
+} from '@metorial-subspace/module-provider-internal';
+import {
   getMetorialSolution,
   getSubspaceSystemProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
-import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
+import { Fabric } from '@metorial/fabric';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
@@ -121,6 +124,8 @@ class providerSetupSessionInternalServiceImpl {
               credentials
             }
           );
+
+          assertAuthMethodAllowedForTenant({ tenant: d.tenant, authMethod });
 
           if (credentials && authMethod.type !== 'oauth') credentials = undefined;
           if (

@@ -37,20 +37,21 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import {
+  assertAuthMethodAllowedForTenant,
   checkProviderMatch,
   normalizeToolFilters
 } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
-  getMetorialSolution,
   checkTenant,
+  getMetorialSolution,
   type MetorialFacing,
   resolveConsumerActorIds,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric, type AuditSubspaceProviderAuthConfig } from '@metorial/fabric';
+import { type AuditSubspaceProviderAuthConfig, Fabric } from '@metorial/fabric';
 import {
   providerAuthConfigArchivedQueue,
   providerAuthConfigUpdatedQueue
@@ -121,13 +122,12 @@ export type UpdateProviderAuthConfigParams = {
   };
 };
 
-/**
- * The public entry point takes the record with its relations already loaded -- every
- * caller has just read it through this service's `include` -- so the audit event can
- * carry a previous payload without reading the row a second time.
- */
-export type UpdateProviderAuthConfigFacingParams = Omit<UpdateProviderAuthConfigParams, 'providerAuthConfig'> & {
-  providerAuthConfig: UpdateProviderAuthConfigParams['providerAuthConfig'] & AuditSubspaceProviderAuthConfig;
+export type UpdateProviderAuthConfigFacingParams = Omit<
+  UpdateProviderAuthConfigParams,
+  'providerAuthConfig'
+> & {
+  providerAuthConfig: UpdateProviderAuthConfigParams['providerAuthConfig'] &
+    AuditSubspaceProviderAuthConfig;
 };
 
 export type ArchiveProviderAuthConfigParams = {
@@ -514,6 +514,8 @@ class providerAuthConfigServiceImpl {
           authMethodId: d.input.authMethodId,
           credentials: d.credentials
         });
+
+      assertAuthMethodAllowedForTenant({ tenant: d.tenant, authMethod });
 
       let credentials = d.credentials;
 

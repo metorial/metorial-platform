@@ -40,6 +40,7 @@ import {
   providerDeploymentService
 } from '@metorial-subspace/module-deployment';
 import {
+  assertAuthMethodAllowedForTenant,
   checkProviderMatch,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
@@ -95,7 +96,8 @@ let resolveAuthMethod = async (d: {
   let paginator = await providerAuthMethodService.listProviderAuthMethodsInternal({
     tenant: d.tenant,
     environment: d.environment,
-    providerVersion: version
+    providerVersion: version,
+    applyAuthMethodPolicy: false
   });
   let authMethods = await paginator.run({ limit: 100 });
   if (!authMethods.items.length) return null;
@@ -213,6 +215,61 @@ let validateMaterialInput = async (d: {
   return { deployment, authMethod, authCredentials, config };
 };
 
+export let resolveProviderAttachmentAuthMethodInternal = async (d: {
+  tenant: Tenant;
+  environment: Environment;
+  providerDeploymentId: string;
+  providerAuthConfigId?: string | null;
+}) => {
+  let solution = await getMetorialSolution();
+  let deployment = await providerDeploymentService.getProviderDeploymentByIdInternal({
+    tenant: d.tenant,
+    environment: d.environment,
+    providerDeploymentId: d.providerDeploymentId
+  });
+  let provider = await providerService.getProviderByIdInternal({
+    tenant: d.tenant,
+    environment: d.environment,
+    providerId: deployment.provider.id
+  });
+  let material = await validateMaterialInput({
+    tenant: d.tenant,
+    environment: d.environment,
+    provider,
+    input: { providerDeploymentId: deployment.id }
+  });
+  let authConfig = d.providerAuthConfigId
+    ? await db.providerAuthConfig.findFirst({
+        where: {
+          id: d.providerAuthConfigId,
+          tenantOid: d.tenant.oid,
+          solutionOid: solution.oid,
+          environmentOid: d.environment.oid,
+          status: 'active'
+        },
+        include: { authMethod: true }
+      })
+    : null;
+
+  if (d.providerAuthConfigId && !authConfig) {
+    throw new ServiceError(notFoundError('provider.auth_config', d.providerAuthConfigId));
+  }
+  checkProviderMatch(provider, authConfig);
+  if (authConfig?.deploymentOid && authConfig.deploymentOid !== deployment.oid) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Provider auth config is not compatible with provider deployment.',
+        code: 'provider_auth_config_deployment_mismatch'
+      })
+    );
+  }
+
+  return {
+    authMethod: authConfig?.authMethod ?? material.authMethod,
+    requiresAuth: provider.type.supportsAuth
+  };
+};
+
 let inferReconciliationAuthMaterial = async (d: {
   tenant: Tenant;
   environment: Environment;
@@ -314,8 +371,12 @@ export type UpdateIntegrationProviderParams = {
  * The public entry point takes the record with its relations already loaded, so the
  * audit event can carry a previous payload without reading the row a second time.
  */
-export type UpdateIntegrationProviderFacingParams = Omit<UpdateIntegrationProviderParams, 'integrationProvider'> & {
-  integrationProvider: UpdateIntegrationProviderParams['integrationProvider'] & AuditSubspaceIntegrationProvider;
+export type UpdateIntegrationProviderFacingParams = Omit<
+  UpdateIntegrationProviderParams,
+  'integrationProvider'
+> & {
+  integrationProvider: UpdateIntegrationProviderParams['integrationProvider'] &
+    AuditSubspaceIntegrationProvider;
 };
 
 export type ArchiveIntegrationProviderParams = {
@@ -534,6 +595,12 @@ class integrationProviderServiceImpl {
       environment: d.environment,
       provider,
       input: d.input
+    });
+
+    assertAuthMethodAllowedForTenant({
+      tenant: d.tenant,
+      authMethod: material.authMethod,
+      requiresAuth: provider.type.supportsAuth
     });
 
     return await withTransaction(async db => {
@@ -828,6 +895,17 @@ class integrationProviderServiceImpl {
       currentVersion: current.currentVersion,
       input: materialInput
     });
+
+    if (
+      materialChanged &&
+      material.authMethod?.oid !== current.currentVersion.authMethod?.oid
+    ) {
+      assertAuthMethodAllowedForTenant({
+        tenant: d.tenant,
+        authMethod: material.authMethod,
+        requiresAuth: provider.type.supportsAuth
+      });
+    }
 
     return await withTransaction(async db => {
       let integrationProvider = await db.integrationProvider.update({

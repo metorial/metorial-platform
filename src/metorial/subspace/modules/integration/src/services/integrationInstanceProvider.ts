@@ -33,7 +33,10 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { providerService } from '@metorial-subspace/module-catalog';
-import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
+import {
+  assertAuthMethodAllowedForTenant,
+  providerCombinationService
+} from '@metorial-subspace/module-provider-internal';
 import {
   checkTenant,
   getMetorialSolution,
@@ -69,7 +72,8 @@ let requireCurrentIntegrationProviderVersion = async (d: {
         currentVersion: {
           include: {
             deployment: true,
-            config: true
+            config: true,
+            authMethod: true
           }
         }
       }
@@ -489,7 +493,9 @@ class integrationInstanceProviderServiceImpl {
           include: {
             currentVersion: {
               include: {
-                config: true
+                config: true,
+                authConfig: { include: { authMethod: true } },
+                integrationProviderVersion: { include: { authMethod: true } }
               }
             }
           }
@@ -598,6 +604,24 @@ class integrationInstanceProviderServiceImpl {
           authConfigId: input.providerAuthConfigId
         }))
       });
+
+      for (let [idx, combination] of combinations.entries()) {
+        let materialProvider = materialProviders[idx]!;
+        let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);
+        let authMethod =
+          combination.authConfig?.authMethod ?? materialProvider.currentVersion!.authMethod;
+        let existingAuthMethod =
+          existing?.currentVersion?.authConfig?.authMethod ??
+          existing?.currentVersion?.integrationProviderVersion.authMethod;
+
+        if (!existing || authMethod?.oid !== existingAuthMethod?.oid) {
+          assertAuthMethodAllowedForTenant({
+            tenant: d.tenant,
+            authMethod,
+            requiresAuth: materialProvider.provider.type.supportsAuth
+          });
+        }
+      }
 
       let toolFilters = d.input.map((input, idx) => {
         let existing = existingByIntegrationProviderOid.get(integrationProviders[idx]!.oid);

@@ -11,12 +11,14 @@ export let handleMcpRequest = async (
     message: JSONRPCMessage;
     waitForResponse: boolean;
     onProgress?: (message: JSONRPCMessage) => Promise<void>;
+    onConnection?: (connection: McpConnection) => Promise<void> | void;
   }
 ) => {
-  let { message, waitForResponse, onProgress, ...connectionInput } = d;
+  let { message, waitForResponse, onProgress, onConnection, ...connectionInput } = d;
   let method = 'method' in message ? message.method : undefined;
 
   let connection = await McpConnection.create(connectionInput);
+  await onConnection?.(connection);
 
   let response =
     onProgress && isLongRunningMcpMethod(method)

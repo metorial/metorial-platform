@@ -29,6 +29,7 @@ class ProjectAuthConfigConfigurationService {
     return {
       allowAuthConfigExport: tenant.allowAuthConfigExport,
       allowAuthConfigImport: tenant.allowAuthConfigImport,
+      onlyAllowOAuthAuthMethods: tenant.onlyAllowOAuthAuthMethods,
 
       consumerAuthClientRegistrationsPerHourLimit:
         d.project.consumerAuthClientRegistrationsPerHourLimit,
@@ -44,6 +45,7 @@ class ProjectAuthConfigConfigurationService {
     input: {
       allowAuthConfigExport?: boolean;
       allowAuthConfigImport?: boolean;
+      onlyAllowOAuthAuthMethods?: boolean;
 
       consumerAuthClientRegistrationsPerHourLimit?: number;
       consumerAuthClientRegistrationsPerMinuteLimit?: number;
@@ -63,7 +65,9 @@ class ProjectAuthConfigConfigurationService {
         resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
         environments: [],
         allowAuthConfigExport: d.input.allowAuthConfigExport ?? tenant.allowAuthConfigExport,
-        allowAuthConfigImport: d.input.allowAuthConfigImport ?? tenant.allowAuthConfigImport
+        allowAuthConfigImport: d.input.allowAuthConfigImport ?? tenant.allowAuthConfigImport,
+        onlyAllowOAuthAuthMethods:
+          d.input.onlyAllowOAuthAuthMethods ?? tenant.onlyAllowOAuthAuthMethods
       }
     });
 
@@ -84,11 +88,13 @@ class ProjectAuthConfigConfigurationService {
       previousProject: d.project,
       configuration: {
         allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
-        allowAuthConfigImport: updatedTenant.allowAuthConfigImport
+        allowAuthConfigImport: updatedTenant.allowAuthConfigImport,
+        onlyAllowOAuthAuthMethods: updatedTenant.onlyAllowOAuthAuthMethods
       },
       previousConfiguration: {
         allowAuthConfigExport: tenant.allowAuthConfigExport,
-        allowAuthConfigImport: tenant.allowAuthConfigImport
+        allowAuthConfigImport: tenant.allowAuthConfigImport,
+        onlyAllowOAuthAuthMethods: tenant.onlyAllowOAuthAuthMethods
       },
       auditScope: d.auditScope
     });
@@ -96,6 +102,7 @@ class ProjectAuthConfigConfigurationService {
     return {
       allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
       allowAuthConfigImport: updatedTenant.allowAuthConfigImport,
+      onlyAllowOAuthAuthMethods: updatedTenant.onlyAllowOAuthAuthMethods,
 
       consumerAuthClientRegistrationsPerHourLimit:
         project.consumerAuthClientRegistrationsPerHourLimit,
