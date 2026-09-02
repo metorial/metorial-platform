@@ -6,6 +6,7 @@ import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
 import { integrationsApi } from '@metorial/api-integrations';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
+import { outpostApi } from '@metorial/api-outpost';
 import { authenticate } from '@metorial/auth';
 
 let { initializeSnowflakeWorkerLease } = await import('@metorial-subspace/db');
@@ -33,6 +34,12 @@ let server = apiMux(
         path: '/files',
         exact: true,
         fetch: fileUploadApi.fetch as any
+      }
+    },
+    {
+      endpoint: {
+        path: '/outpost',
+        fetch: outpostApi.fetch as any
       }
     }
   ],
