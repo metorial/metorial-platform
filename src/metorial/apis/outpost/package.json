@@ -1,0 +1,21 @@
+{
+  "name": "@metorial/api-outpost",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@metorial/module-outpost": "^1.0.0",
+    "@metorial-outpost/server": "workspace:*",
+    "@metorial/redis": "^1.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}
