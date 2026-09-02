@@ -1,53 +1,66 @@
-import { describe, expect, it } from 'vitest';
-import { createStreamableHttpPostResponse } from '../src/streamableHttpResponse';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  createStreamableHttpResponse,
+  missingMcpResponse
+} from '../src/streamableHttpResponse';
 
-let request = {
-  jsonrpc: '2.0' as const,
-  id: 0,
-  method: 'initialize',
-  params: {}
-};
+describe('createStreamableHttpResponse', () => {
+  it('does not start until the first message is written', async () => {
+    let stream = createStreamableHttpResponse();
+    let onStarted = vi.fn();
+    void stream.started.then(onStarted);
 
-let response = {
-  jsonrpc: '2.0' as const,
-  id: 0,
-  result: { protocolVersion: '2025-11-25' }
-};
+    await Promise.resolve();
+    expect(onStarted).not.toHaveBeenCalled();
 
-describe('createStreamableHttpPostResponse', () => {
-  it('returns a finite JSON response when no progress was emitted', async () => {
-    let result = createStreamableHttpPostResponse({ request, response, progress: [] });
+    stream.write({
+      jsonrpc: '2.0',
+      method: 'notifications/progress',
+      params: { progressToken: 'test', progress: 1 }
+    });
+    await stream.started;
 
-    expect(result.status).toBe(200);
-    expect(result.headers.get('content-type')).toContain('application/json');
-    expect(await result.json()).toEqual(response);
+    expect(onStarted).toHaveBeenCalledOnce();
   });
 
-  it('uses SSE when progress events need to precede the result', async () => {
+  it('streams messages written after the response has started', async () => {
+    let stream = createStreamableHttpResponse();
+    let reader = stream.response.body!.getReader();
+    let decoder = new TextDecoder();
     let progress = {
       jsonrpc: '2.0' as const,
       method: 'notifications/progress',
       params: { progressToken: 'test', progress: 1 }
     };
-    let result = createStreamableHttpPostResponse({ request, response, progress: [progress] });
+    let response = {
+      jsonrpc: '2.0' as const,
+      id: 1,
+      result: { content: [] }
+    };
 
-    expect(result.headers.get('content-type')).toContain('text/event-stream');
-    expect(await result.text()).toBe(
-      `data: ${JSON.stringify(progress)}\n\ndata: ${JSON.stringify(response)}\n\n`
+    stream.write(progress);
+    expect(decoder.decode((await reader.read()).value)).toBe(
+      `data: ${JSON.stringify(progress)}\n\n`
     );
+
+    stream.write(response);
+    stream.close();
+    expect(decoder.decode((await reader.read()).value)).toBe(
+      `data: ${JSON.stringify(response)}\n\n`
+    );
+    expect((await reader.read()).done).toBe(true);
   });
 
-  it('returns 202 for notifications with no response', () => {
-    let notification = {
-      jsonrpc: '2.0' as const,
-      method: 'notifications/initialized'
-    };
-    let result = createStreamableHttpPostResponse({
-      request: notification,
-      response: null,
-      progress: []
+  it('creates an MCP error for a missing final response', () => {
+    expect(
+      missingMcpResponse({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: {} })
+    ).toEqual({
+      jsonrpc: '2.0',
+      id: 1,
+      error: {
+        code: -32603,
+        message: 'No response produced for MCP request'
+      }
     });
-
-    expect(result.status).toBe(202);
   });
 });

@@ -1,5 +1,4 @@
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
-import { useRequestContext } from '@lowerdeck/hono';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
@@ -7,13 +6,34 @@ import { authenticateAndResolveInstance } from './getSession';
 import { createConnectionHono } from './hono';
 import { handleMagicMcpRequest } from './magic';
 import { handleMcpRequest } from './mcp';
+import { outpostConnectionAuthMiddleware, useConnectionRequestContext } from './outpost';
 
-export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
+export type CorsOriginOption = string[] | ((origin: string) => boolean);
+
+let isCorsOriginAllowed = (origin: string | undefined, corsOrigins?: CorsOriginOption) => {
+  if (!origin) return false;
+  if (!corsOrigins) return true;
+  return typeof corsOrigins === 'function'
+    ? corsOrigins(origin)
+    : corsOrigins.includes(origin);
+};
+
+export let startMcpServer = (d: {
+  port: number;
+  authenticate: Authenticator<AuthInfo>;
+  /** Origins allowed to call this MCP server from a browser. Unset allows all. */
+  corsOrigins?: CorsOriginOption;
+}) => {
   let hono = createConnectionHono()
+    .use(outpostConnectionAuthMiddleware)
     .use(async (c, next) => {
       await next();
 
-      c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
+      let origin = c.req.header('Origin');
+      if (!isCorsOriginAllowed(origin, d.corsOrigins)) return;
+
+      c.res.headers.set('Access-Control-Allow-Origin', origin!);
+      c.res.headers.set('Vary', 'Origin');
       c.res.headers.set(
         'Access-Control-Allow-Methods',
         'GET, POST, PUT, DELETE, OPTIONS, PATCH'
@@ -30,12 +50,12 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       c.res.headers.set('Access-Control-Max-Age', '86400');
     })
     .options('*', c => {
-      return c.text('');
+      return c.body(null, 204);
     })
     .get('/ping', c => c.text('OK'))
     .all('/connect/mcp/:sessionId', async (c, _next) => {
       let { sessionId } = c.req.param();
-      let context = useRequestContext(c);
+      let context = useConnectionRequestContext(c);
       let url = new URL(c.req.url);
       let req = c.req.raw;
 
@@ -78,4 +98,5 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
 export { authenticateAndResolveInstance } from './getSession';
 export { handleMagicMcpRequest } from './magic';
 export { handleMcpRequest } from './mcp';
+export * from './outpost';
 export * from './portal';

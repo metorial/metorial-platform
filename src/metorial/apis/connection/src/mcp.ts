@@ -1,15 +1,20 @@
-import type { Instance } from '@metorial/db';
-import { Fabric } from '@metorial/fabric';
 import {
   handleMcpRequest as handleSubspaceMcpRequest,
   McpConnection
 } from '@metorial-subspace/module-connection';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
+import type { Instance } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import z from 'zod';
-import { createStreamableHttpPostResponse } from './streamableHttpResponse';
+import {
+  assertOutpostConnectionAccess,
+  getOutpostAuth,
+  resolveOutpostOrigin
+} from './outpost';
+import { createStreamableHttpResponse, missingMcpResponse } from './streamableHttpResponse';
 
 let agentClientSchema = z.discriminatedUnion('type', [
   z.object({
@@ -46,8 +51,13 @@ let parseOptionalJsonHeader = <T>(
   return { success: false as const, message: `Invalid ${name} header value` };
 };
 
-let publicProxyUrl = (c: Context) => {
+let publicProxyUrl = (c: Context, originOverride?: string) => {
   let inputUrl = new URL(c.req.url);
+
+  if (originOverride) {
+    return `${originOverride}${inputUrl.pathname}${inputUrl.search}`;
+  }
+
   let hostname = inputUrl.hostname;
 
   if (
@@ -104,6 +114,11 @@ export let handleMcpRequest = async (
     }) => Promise<void> | void;
   }
 ) => {
+  await assertOutpostConnectionAccess(c, {
+    projectOid: d.instance.projectOid,
+    instanceOid: d.instance.oid
+  });
+
   let { tenant, solution } = await subspaceScopeService.ensureForInstance(d.instance);
   let connectionToken =
     c.req.header('mcp-session-id') || c.req.query('connection_token') || undefined;
@@ -111,7 +126,7 @@ export let handleMcpRequest = async (
     connectionToken || (c.req.method === 'POST' && !c.req.query('connection_token'))
       ? 'streamable_http'
       : 'sse';
-  let proxyUrl = publicProxyUrl(c);
+  let proxyUrl = publicProxyUrl(c, resolveOutpostOrigin(getOutpostAuth(c)));
 
   let privateMetadata = parseOptionalJsonHeader(
     c.req.header('metorial-connection-private-metadata'),
@@ -233,24 +248,60 @@ export let handleMcpRequest = async (
   if (c.req.method === 'POST') {
     let message = await readMessage(c);
     if (message instanceof Response) return message;
-    let progress: JSONRPCMessage[] = [];
-    let { connection, response } = await handleSubspaceMcpRequest({
+
+    let stream = createStreamableHttpResponse();
+    let resolveConnection!: (connection: McpConnection) => void;
+    let connectionPromise = new Promise<McpConnection>(resolve => {
+      resolveConnection = resolve;
+    });
+
+    let requestPromise = handleSubspaceMcpRequest({
       ...connectionInput,
       message,
       waitForResponse: true,
+      onConnection: connection => {
+        resolveConnection(connection);
+      },
       onProgress: async event => {
-        progress.push(event);
+        stream.write(event);
       }
     });
 
-    return finish(
-      createStreamableHttpPostResponse({
-        request: message,
-        response: response?.mcp,
-        progress
-      }),
-      connection
+    let outcomePromise = requestPromise.then(
+      result => {
+        resolveConnection(result.connection);
+
+        if (result.response?.mcp) {
+          stream.write(result.response.mcp);
+        } else if (stream.hasStarted()) {
+          stream.write(missingMcpResponse(message));
+        }
+
+        stream.close();
+        return { type: 'complete' as const, result };
+      },
+      error => {
+        if (stream.hasStarted()) stream.error(error);
+        else stream.close();
+        return { type: 'error' as const, error };
+      }
     );
+
+    let first = await Promise.race([
+      stream.started.then(() => ({ type: 'stream' as const })),
+      outcomePromise
+    ]);
+
+    if (first.type === 'error') {
+      if (stream.hasStarted()) return finish(stream.response, await connectionPromise);
+      throw first.error;
+    }
+
+    if (first.type === 'complete' && !stream.hasStarted()) {
+      return finish(new Response(null, { status: 202 }), first.result.connection);
+    }
+
+    return finish(stream.response, await connectionPromise);
   }
 
   if (c.req.method === 'DELETE') {
