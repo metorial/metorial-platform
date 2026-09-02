@@ -2332,6 +2332,7 @@ export let consumerSessionType = PresentableType.create<{
 
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('consumer.provider');
 
 export let consumerActivityAgentType = PresentableType.create<ConsumerActivityAgent>()(
@@ -2577,7 +2578,7 @@ export let providerVersionType = PresentableType.create<{
 
 export let providerType = PresentableType.create<{
   provider: RawProvider | NonNullable<RawCustomProvider['provider']>;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('provider');
 
 export let identityType = PresentableType.create<{
@@ -2624,7 +2625,7 @@ export let providerListingGroupType = PresentableType.create<{
 
 export let providerListingType = PresentableType.create<{
   providerListing: RawProviderListing;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('providerListing');
 
 export let providerToolType = PresentableType.create<{ tool: RawProviderTool }>()('tool');
@@ -3198,7 +3199,7 @@ export let authConfigSchemaType = PresentableType.create<{
 
 export let customProviderType = PresentableType.create<{
   customProvider: RawCustomProvider;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('customProvider');
 
 export let customProviderVersionType = PresentableType.create<{

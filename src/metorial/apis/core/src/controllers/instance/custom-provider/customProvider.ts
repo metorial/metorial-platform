@@ -2,6 +2,7 @@ import { badRequestError, paymentRequiredError, ServiceError } from '@lowerdeck/
 import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { flagService } from '@metorial/module-flags';
+import { db } from '@metorial-subspace/db';
 import { customProviderService } from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -243,10 +244,14 @@ export let customProviderController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
 
         return Paginator.present(list, customProvider =>
           subspaceCustomProviderPresenter.present({
-            customProvider
+            customProvider,
+            tenant
           })
         );
       }),
@@ -260,8 +265,13 @@ export let customProviderController = Controller.create(
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
+
         return subspaceCustomProviderPresenter.present({
-          customProvider: ctx.customProvider
+          customProvider: ctx.customProvider,
+          tenant
         });
       }),
 
@@ -327,9 +337,13 @@ export let customProviderController = Controller.create(
             config: ctx.body.config
           }
         });
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
 
         return subspaceCustomProviderPresenter.present({
-          customProvider
+          customProvider,
+          tenant
         });
       }),
 
@@ -365,9 +379,13 @@ export let customProviderController = Controller.create(
             readme: ctx.body.readme
           }
         });
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
 
         return subspaceCustomProviderPresenter.present({
-          customProvider
+          customProvider,
+          tenant
         });
       }),
 
@@ -390,9 +408,13 @@ export let customProviderController = Controller.create(
           organizationActor: ctx.actor!,
           customProvider: ctx.customProvider
         });
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
 
         return subspaceCustomProviderPresenter.present({
-          customProvider
+          customProvider,
+          tenant
         });
       })
   }
