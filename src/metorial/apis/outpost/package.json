@@ -5,7 +5,7 @@
   "license": "FSL-1.1",
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@lowerdeck/sentry": "workspace:2.0.0",
