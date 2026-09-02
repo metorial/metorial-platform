@@ -24,6 +24,7 @@ vi.mock('../src/lib/cache', async () => {
   return {
     ...actual,
     cachedCredentialLookup: cache('credentialLookup'),
+    cachedInstanceAccessGrant: cache('instanceAccessGrant'),
     cachedInstanceAuthorization: cache('instanceAuthorization'),
     cachedManifest: cache('manifest'),
     cachedVerificationKey: cache('verificationKey')
@@ -51,11 +52,17 @@ describe('outpost cache invalidation', () => {
     clears = [];
   });
 
-  it('clears every outpost-scoped cache when an outpost changes', async () => {
-    await fire('outpost.updated:after', { outpost: { id: 'otp_1' } });
+  it.each([
+    'outpost.updated:after',
+    'outpost.disabled:after',
+    'outpost.enabled:after',
+    'outpost.deleted:after'
+  ])('clears every outpost-scoped cache on %s', async event => {
+    await fire(event, { outpost: { id: 'otp_1' } });
 
     expect(clears).toEqual([
       { cache: 'credentialLookup', tag: 'outpost:otp_1' },
+      { cache: 'instanceAccessGrant', tag: 'outpost:otp_1' },
       { cache: 'instanceAuthorization', tag: 'outpost:otp_1' },
       { cache: 'manifest', tag: 'outpost:otp_1' }
     ]);
@@ -82,6 +89,7 @@ describe('outpost cache invalidation', () => {
     await fire('outpost_access.updated:after', { outpost: { id: 'otp_1' } });
 
     expect(tagsClearedIn('manifest')).toEqual(['outpost_access:otp_1']);
+    expect(tagsClearedIn('instanceAccessGrant')).toEqual(['outpost_access:otp_1']);
     expect(tagsClearedIn('instanceAuthorization')).toEqual(['outpost:otp_1']);
   });
 

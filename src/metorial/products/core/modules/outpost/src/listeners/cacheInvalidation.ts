@@ -1,6 +1,7 @@
 import { Fabric } from '@metorial/fabric';
 import {
   cachedCredentialLookup,
+  cachedInstanceAccessGrant,
   cachedInstanceAuthorization,
   cachedManifest,
   cachedVerificationKey,
@@ -13,6 +14,7 @@ import {
 
 let clearOutpost = async (outpostId: string) => {
   await cachedCredentialLookup.clearByTag(outpostTag(outpostId));
+  await cachedInstanceAccessGrant.clearByTag(outpostTag(outpostId));
   await cachedInstanceAuthorization.clearByTag(outpostTag(outpostId));
   await cachedManifest.clearByTag(outpostTag(outpostId));
 };
@@ -38,6 +40,7 @@ export let registerOutpostCacheInvalidation = () => {
 
   Fabric.listen('outpost_access.updated:after', async ({ outpost }) => {
     await cachedManifest.clearByTag(outpostAccessTag(outpost.id));
+    await cachedInstanceAccessGrant.clearByTag(outpostAccessTag(outpost.id));
     await cachedInstanceAuthorization.clearByTag(outpostTag(outpost.id));
   });
 
