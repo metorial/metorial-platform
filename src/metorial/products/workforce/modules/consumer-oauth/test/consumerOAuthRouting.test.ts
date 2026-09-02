@@ -51,7 +51,8 @@ describe('consumerOAuthRoutingService', () => {
     (db.portal.findFirst as any).mockResolvedValue({
       instance: {
         oid: 10n,
-        id: 'ins_1'
+        id: 'ins_1',
+        projectOid: 30n
       }
     });
     vi.mocked(resolveMagicMcpTargetByIdOrAlias).mockResolvedValue({
@@ -81,6 +82,21 @@ describe('consumerOAuthRoutingService', () => {
     expect(route.consumerSurface).toBeNull();
     expect(route.instance.id).toBe('ins_1');
     expect(route.magicMcpTarget?.target.oid).toBe(20n);
+    expect(route.projectOid).toBe(30n);
+  });
+
+  it("prefers a verified outpost's own base URL over its own public host and any namespace", async () => {
+    (db.portal.findFirst as any).mockResolvedValue({
+      instance: { oid: 10n, id: 'ins_1' }
+    });
+
+    let route = await consumerOAuthRoutingService.resolvePortalMcpRoute({
+      portalId: 'portal_1',
+      namespaceHost: 'tenant.example.com',
+      originOverride: 'https://abc.outpost.example'
+    });
+
+    expect(route.base).toBe('https://abc.outpost.example/connect/portal/portal_1');
   });
 
   it('constrains namespace MCP routes to portals assigned to the namespace', async () => {

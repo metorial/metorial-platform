@@ -19,7 +19,12 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import { providerTemplateBackingService } from '@metorial-subspace/module-integration';
+import {
+  integrationService,
+  providerTemplateBackingService
+} from '@metorial-subspace/module-integration';
+import { assertAuthMethodAllowedForTenant } from '@metorial-subspace/module-provider-internal';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import {
   providerTemplateArchivedQueue,
   providerTemplateCreatedQueue,
@@ -133,6 +138,21 @@ class ProviderTemplateServiceImpl {
       integrationId
     });
     if (existing) return existing;
+
+    let [{ tenant }, integration] = await Promise.all([
+      subspaceScopeService.ensureForInstance(d.instance),
+      integrationService.getIntegrationById({
+        instance: d.instance,
+        integrationId
+      })
+    ]);
+
+    for (let provider of integration.providers) {
+      assertAuthMethodAllowedForTenant({
+        tenant,
+        authMethod: provider.currentVersion?.authMethod
+      });
+    }
 
     let backing =
       await providerTemplateBackingService.upsertProviderTemplateBackingFromIntegration({
