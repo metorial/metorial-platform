@@ -13,6 +13,7 @@ export type Flags = {
   'assistant-enabled': boolean;
   'advanced-security-management-enabled': boolean;
   'networking-enabled': boolean;
+  outposts: boolean;
 
   'paid-oauth-import': boolean;
   'paid-oauth-export': boolean;
@@ -47,6 +48,7 @@ export let defaultFlags: Flags = {
   'assistant-enabled': false,
   'advanced-security-management-enabled': false,
   'networking-enabled': false,
+  outposts: false,
 
   'paid-oauth-import': true,
   'paid-oauth-export': true,
