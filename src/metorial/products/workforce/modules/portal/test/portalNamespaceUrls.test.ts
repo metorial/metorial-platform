@@ -34,7 +34,9 @@ vi.mock('@metorial/config', () => ({
 }));
 
 vi.mock('@metorial/db', () => ({
-  db: {},
+  db: {
+    organization: { findUnique: vi.fn().mockResolvedValue(null) }
+  },
   ID: { generateId: vi.fn() },
   withTransaction: vi.fn()
 }));
@@ -53,10 +55,11 @@ vi.mock('@metorial/module-consumer-core', () => ({
   consumerSurfaceService: {}
 }));
 
+import { db } from '@metorial/db';
 import { namespaceService } from '@metorial/module-organization';
 import { portalService } from '../src/services/portal';
 
-let portal = { oid: 1n, slug: 'acme' };
+let portal = { oid: 1n, slug: 'acme', organizationOid: 1n };
 
 let namespaceProperty = (d: { value: string; compartment: string; purposes: string[] }) => ({
   namespace: {
@@ -192,6 +195,23 @@ describe('portalService.getPrimaryPortalUrls', () => {
 
     expect(await portalService.getPrimaryPortalConnectUrl({ portal })).toBe(
       'https://api.metorial.test/connect/portal/acme'
+    );
+  });
+
+  it("prefers the organization's custom Magic MCP origin over the namespace or API URL", async () => {
+    mockNamespaces([
+      namespaceProperty({
+        value: 'acme',
+        compartment: 'portals.metorial.com',
+        purposes: ['metorial_portal']
+      })
+    ]);
+    vi.mocked(db.organization.findUnique).mockResolvedValueOnce({
+      magicMcpOrigin: 'https://mcp.acme.com'
+    } as any);
+
+    expect(await portalService.getPrimaryPortalConnectUrl({ portal })).toBe(
+      'https://mcp.acme.com/connect/portal/acme'
     );
   });
 

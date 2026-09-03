@@ -1,5 +1,5 @@
 import { getConfig } from '@metorial/config';
-import { Portal } from '@metorial/db';
+import { db, Portal } from '@metorial/db';
 import {
   namespaceService,
   type NamespacePropertyWithNamespace
@@ -94,24 +94,32 @@ export let getPrimaryPortalUrl = async (d: { portal: Pick<Portal, 'oid' | 'slug'
 export let getPortalConnectUrl = (d: {
   portal: Pick<Portal, 'slug'>;
   namespaces: NamespacePropertyWithNamespace[];
+  magicMcpOrigin?: string | null;
 }) => {
-  let origin = d.namespaces.length
-    ? new URL(getPortalUrls(d)[0]!.url).origin
-    : getConfig().urls.apiUrl.replace(/\/+$/, '');
+  let origin =
+    toOrigin(d.magicMcpOrigin) ??
+    (d.namespaces.length
+      ? new URL(getPortalUrls(d)[0]!.url).origin
+      : getConfig().urls.apiUrl.replace(/\/+$/, ''));
 
   return `${origin}/connect/portal/${d.portal.slug}`;
 };
 
 export let getPrimaryPortalConnectUrl = async (d: {
-  portal: Pick<Portal, 'oid' | 'slug'>;
+  portal: Pick<Portal, 'oid' | 'slug' | 'organizationOid'>;
 }) => {
-  let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
-    portals: [d.portal]
-  });
+  let [namespacesByPortalOid, organization] = await Promise.all([
+    namespaceService.getNamespacePropertiesByPortalOid({ portals: [d.portal] }),
+    db.organization.findUnique({
+      where: { oid: d.portal.organizationOid },
+      select: { magicMcpOrigin: true }
+    })
+  ]);
 
   return getPortalConnectUrl({
     portal: d.portal,
-    namespaces: namespacesByPortalOid.get(d.portal.oid) ?? []
+    namespaces: namespacesByPortalOid.get(d.portal.oid) ?? [],
+    magicMcpOrigin: organization?.magicMcpOrigin
   });
 };
 

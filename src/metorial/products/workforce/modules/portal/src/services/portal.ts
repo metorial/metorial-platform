@@ -456,7 +456,9 @@ class PortalServiceImpl {
     return await resolvePrimaryPortalUrl(d);
   }
 
-  async getPrimaryPortalConnectUrl(d: { portal: Pick<Portal, 'oid' | 'slug'> }) {
+  async getPrimaryPortalConnectUrl(d: {
+    portal: Pick<Portal, 'oid' | 'slug' | 'organizationOid'>;
+  }) {
     return await resolvePrimaryPortalConnectUrl(d);
   }
 
