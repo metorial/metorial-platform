@@ -1,5 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import {
+  badRequestError,
   conflictError,
   forbiddenError,
   notFoundError,
@@ -44,6 +45,31 @@ let getOrgSlug = createSlugGenerator(
       }
     })) && !(await db.cellOrganization.findFirst({ where: { slug } }))
 );
+
+let normalizeMagicMcpOrigin = (value: string | null) => {
+  if (!value || !value.trim()) return null;
+
+  let url: URL;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Magic MCP origin must be a valid URL, e.g. https://mcp.example.com'
+      })
+    );
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Magic MCP origin must use the http or https protocol'
+      })
+    );
+  }
+
+  return url.origin;
+};
 
 let getNextPreviousSlugs = (d: {
   previousSlugs: string[];
@@ -217,11 +243,17 @@ class OrganizationService {
       slug?: string;
       image?: PrismaJson.EntityImage;
       imageFileId?: string | null;
+      magicMcpOrigin?: string | null;
     };
     organization: Organization;
     auditScope: AuditScope;
   }) {
     await this.ensureOrganizationActive(d.organization);
+
+    let magicMcpOrigin =
+      d.input.magicMcpOrigin !== undefined
+        ? normalizeMagicMcpOrigin(d.input.magicMcpOrigin)
+        : undefined;
 
     return await withTransaction(async db => {
       await Fabric.fire('organization.updated:before', d);
@@ -262,7 +294,8 @@ class OrganizationService {
                   nextSlug: d.input.slug
                 })
               : undefined,
-          image: nextImage
+          image: nextImage,
+          magicMcpOrigin
         }
       });
 

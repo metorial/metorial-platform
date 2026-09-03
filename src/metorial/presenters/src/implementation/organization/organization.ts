@@ -12,6 +12,7 @@ export let v1OrganizationPresenter = Presenter.create(organizationType)
     slug: organization.slug,
     name: organization.name,
     image_url: await getImageUrl(organization),
+    magic_mcp_origin: organization.magicMcpOrigin,
     created_at: organization.createdAt,
     updated_at: organization.updatedAt
   }))
@@ -45,6 +46,13 @@ export let v1OrganizationPresenter = Presenter.create(organizationType)
         description: `The organization's image URL`,
         examples: ['https://avatar-cdn.metorial.com/aimg_1234567890']
       }),
+      magic_mcp_origin: v.nullable(
+        v.string({
+          name: 'magic_mcp_origin',
+          description: `A custom protocol+host to use for this organization's Magic MCP URLs (e.g. a self-hosted outpost proxy). The \`/connect/portal/:slug\` path is unaffected.`,
+          examples: ['https://mcp.acme.com']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: `The organization's creation date`

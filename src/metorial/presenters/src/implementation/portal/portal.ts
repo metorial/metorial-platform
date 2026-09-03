@@ -3,6 +3,7 @@ import { getPortalAllowedRedirectUrlFilters } from '@metorial/consumer-oauth-uti
 import { portalService } from '@metorial/module-portal';
 import { Presenter } from '@metorial/presenter';
 import { portalType } from '../../types';
+import { getCachedPortalConnectUrl } from '../provider/magicMcp/portalConnectUrl';
 
 export let v1PortalPresenter = Presenter.create(portalType)
   .presenter(async ({ portal, portalUrl, namespaces }) => ({
@@ -33,6 +34,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
     urls: namespaces
       ? await portalService.getPortalUrls({ portal, namespaces })
       : ([{ type: 'default' as const, url: portalUrl }] as any),
+    magic_mcp_url: await getCachedPortalConnectUrl(portal),
     created_at: portal.createdAt,
     updated_at: portal.updatedAt
   }))
@@ -69,6 +71,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
           url: v.string()
         })
       ),
+      magic_mcp_url: v.string(),
       created_at: v.date(),
       updated_at: v.date()
     })
