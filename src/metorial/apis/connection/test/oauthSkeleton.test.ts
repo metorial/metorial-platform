@@ -12,7 +12,7 @@ vi.mock('@metorial/module-outpost', () => ({
 }));
 
 import { createPortalOAuthServers } from '../src/oauth/skeleton';
-import { setOutpostAuth } from '../src/outpost';
+import { assertOutpostOAuthRouteAccess, setOutpostAuth } from '../src/outpost';
 
 let fakeAuth = () =>
   ({
@@ -34,6 +34,7 @@ let buildServers = () =>
       projectOid: 42n,
       instanceOid: 84n
     }),
+    authorizeRoute: assertOutpostOAuthRouteAccess,
     metadata: async ({ route }, c) => c.json({ base: route.base }),
     portal: async ({ route }, c) => c.json({ base: route.base }),
     protectedResource: async ({ route }, c) => c.json({ base: route.base }),
@@ -92,6 +93,29 @@ describe('createOAuthRouteServers (via createPortalOAuthServers) instance gating
     let res = await mount(metadataServer).request('http://test/portal_1');
 
     expect(res.status).toBe(403);
+  });
+
+  it('does not consult outpost access unless authorizeRoute is wired (global-router path)', async () => {
+    isServiceGrantedForInstance.mockResolvedValue(false);
+    let { metadataServer } = createPortalOAuthServers({
+      resolveRoute: async () => ({
+        base: 'https://example.test',
+        host: 'region.example'
+      }),
+      metadata: async ({ route }, c) => c.json({ base: route.base }),
+      portal: async ({ route }, c) => c.json({ base: route.base }),
+      protectedResource: async ({ route }, c) => c.json({ base: route.base }),
+      openIdConfiguration: async ({ route }, c) => c.json({ base: route.base }),
+      register: async ({ route }, c) => c.json({ base: route.base }),
+      authorize: async ({ route }, c) => c.json({ base: route.base }),
+      token: async ({ route }, c) => c.json({ base: route.base }),
+      registration: async ({ route }, c) => c.json({ base: route.base })
+    });
+
+    let res = await mount(metadataServer).request('http://test/portal_1');
+
+    expect(res.status).toBe(200);
+    expect(isServiceGrantedForInstance).not.toHaveBeenCalled();
   });
 
   it('also gates the registration lookup route, which resolves the route outside of withResolvedRoute', async () => {

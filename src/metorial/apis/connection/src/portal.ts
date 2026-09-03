@@ -21,7 +21,12 @@ import {
   createPortalOAuthServers
 } from './oauth/skeleton';
 import { getClientCredentials, getString, parseOAuthBody } from './oauth/utils';
-import { getOutpostAuth, resolveOutpostOrigin, useConnectionRequestContext } from './outpost';
+import {
+  assertOutpostOAuthRouteAccess,
+  getOutpostAuth,
+  resolveOutpostOrigin,
+  useConnectionRequestContext
+} from './outpost';
 
 export { createPluginOAuthServers, createPortalOAuthServers } from './oauth/skeleton';
 
@@ -133,6 +138,7 @@ export let createPortalHandler = (d: {
         originOverride: resolveOutpostOrigin(getOutpostAuth(c))
       });
     },
+    authorizeRoute: assertOutpostOAuthRouteAccess,
 
     metadata: async ({ route }, c) => {
       return c.json(buildOAuthClientConfig(route.base));
@@ -322,6 +328,7 @@ export let createPluginHandler = (d: {
         originOverride: resolveOutpostOrigin(getOutpostAuth(c))
       });
     },
+    authorizeRoute: assertOutpostOAuthRouteAccess,
 
     metadata: async ({ route }, c) => {
       return c.json(buildOAuthClientConfig(route.base));

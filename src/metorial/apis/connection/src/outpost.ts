@@ -147,3 +147,19 @@ export let assertOutpostConnectionAccess = async (
     );
   }
 };
+
+export let assertOutpostOAuthRouteAccess = async (
+  c: Context,
+  route: { projectOid?: bigint; instanceOid?: bigint }
+) => {
+  let outpostAuth = getOutpostAuth(c);
+  if (outpostAuth && (route.projectOid === undefined || route.instanceOid === undefined)) {
+    throw new Error('Outpost-authenticated OAuth route did not resolve an instance scope');
+  }
+  if (route.projectOid !== undefined && route.instanceOid !== undefined) {
+    await assertOutpostConnectionAccess(c, {
+      projectOid: route.projectOid,
+      instanceOid: route.instanceOid
+    });
+  }
+};

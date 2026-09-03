@@ -1,6 +1,5 @@
 import { Context } from '@lowerdeck/hono';
 import { createConnectionHono } from '../hono';
-import { assertOutpostConnectionAccess, getOutpostAuth } from '../outpost';
 
 export type PortalOAuthRouteInput = {
   portalId: string;
@@ -40,6 +39,7 @@ export let buildOAuthClientConfig = (base: string) => ({
 type OAuthRouteHandlers<TInput, TRoute> = {
   resolveRoute: (route: TInput, c: Context) => Promise<TRoute>;
   resolveConnectRoute?: (route: TInput, c: Context) => Promise<TRoute>;
+  authorizeRoute?: (c: Context, route: TRoute) => Promise<void>;
   metadata: (d: { route: TRoute }, c: Context) => Promise<Response>;
   portal: (d: { route: TRoute }, c: Context) => Promise<Response>;
   protectedResource: (d: { route: TRoute }, c: Context) => Promise<Response>;
@@ -128,25 +128,12 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
     return await d.handlers.resolveRoute(input, c);
   };
 
-  // Every connection route resolves to an instance. An outpost-proxied request must be granted
-  // `mcp_connection_proxy` for that specific project and instance -- direct requests are
-  // untouched, see `assertOutpostConnectionAccess`.
   let resolveAuthorizedRoute = async (
     c: Context,
     resolver: (c: Context) => Promise<TRoute>
   ) => {
     let route = await resolver(c);
-    let scope = route as TRoute & { projectOid?: bigint; instanceOid?: bigint };
-    let outpostAuth = getOutpostAuth(c);
-    if (outpostAuth && (scope.projectOid === undefined || scope.instanceOid === undefined)) {
-      throw new Error('Outpost-authenticated OAuth route did not resolve an instance scope');
-    }
-    if (scope.projectOid !== undefined && scope.instanceOid !== undefined) {
-      await assertOutpostConnectionAccess(c, {
-        projectOid: scope.projectOid,
-        instanceOid: scope.instanceOid
-      });
-    }
+    if (d.handlers.authorizeRoute) await d.handlers.authorizeRoute(c, route);
     return route;
   };
 
