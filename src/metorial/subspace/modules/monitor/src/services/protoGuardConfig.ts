@@ -176,7 +176,7 @@ class protoGuardConfigServiceImpl {
       filterId: filter.id
     });
 
-    let setting = await this.setTenantFilterEnabledInternal({ ...rest, tenant });
+    let setting = await this.setTenantFilterEnabledInternal({ ...rest, tenant, filter });
 
     await Fabric.fire('protoguard.filter_setting.updated:after', {
       ...eventBase,
@@ -187,10 +187,14 @@ class protoGuardConfigServiceImpl {
     return setting;
   }
 
-  async setTenantFilterEnabledInternal(d: SetTenantFilterEnabledParams) {
-    let filter = await db.protoGuardFilter.findFirstOrThrow({
-      where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
-    });
+  async setTenantFilterEnabledInternal(
+    d: SetTenantFilterEnabledParams & { filter?: ProtoGuardFilter }
+  ) {
+    let filter =
+      d.filter ??
+      (await db.protoGuardFilter.findFirstOrThrow({
+        where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
+      }));
 
     let setting = await db.protoGuardTenantFilterSetting.upsert({
       where: {
@@ -234,7 +238,8 @@ class protoGuardConfigServiceImpl {
 
     let setting = await this.setTenantFilterAlertConfidenceThresholdInternal({
       ...rest,
-      tenant
+      tenant,
+      filter
     });
 
     await Fabric.fire('protoguard.filter_setting.updated:after', {
@@ -247,11 +252,13 @@ class protoGuardConfigServiceImpl {
   }
 
   async setTenantFilterAlertConfidenceThresholdInternal(
-    d: SetTenantFilterAlertConfidenceThresholdParams
+    d: SetTenantFilterAlertConfidenceThresholdParams & { filter?: ProtoGuardFilter }
   ) {
-    let filter = await db.protoGuardFilter.findFirstOrThrow({
-      where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
-    });
+    let filter =
+      d.filter ??
+      (await db.protoGuardFilter.findFirstOrThrow({
+        where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
+      }));
 
     let setting = await db.protoGuardTenantFilterSetting.upsert({
       where: {
