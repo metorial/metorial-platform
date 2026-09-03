@@ -55,7 +55,7 @@ export class MetorialManagementOrganizationOutpostsEndpoint {
 
   /**
    * @name List outposts
-   * @description List every outpost in the organization’s account family
+   * @description List every outpost in the organization's account family
    *
    * @param `query` - DashboardOrganizationsOutpostsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -85,7 +85,7 @@ export class MetorialManagementOrganizationOutpostsEndpoint {
 
   /**
    * @name Get outpost
-   * @description Get any outpost in the organization’s account family
+   * @description Get any outpost in the organization's account family
    *
    * @param `outpostId` - string
    * @param `opts` - { headers?: Record<string, string> }

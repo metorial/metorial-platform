@@ -28,6 +28,7 @@ export type DashboardOrganizationsInvitesEnsureLinkOutput = {
     slug: string;
     name: string;
     imageUrl: string;
+    magicMcpOrigin: string | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -92,6 +93,10 @@ export let mapDashboardOrganizationsInvitesEnsureLinkOutput =
         slug: mtMap.objectField('slug', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+        magicMcpOrigin: mtMap.objectField(
+          'magic_mcp_origin',
+          mtMap.passthrough()
+        ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })

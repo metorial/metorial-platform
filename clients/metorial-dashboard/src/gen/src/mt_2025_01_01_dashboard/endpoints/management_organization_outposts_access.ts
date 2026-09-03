@@ -43,7 +43,7 @@ export class MetorialManagementOrganizationOutpostsAccessEndpoint {
 
   /**
    * @name Set outpost access
-   * @description Replace this organization’s access grants on an outpost with the given list of instance/service grants
+   * @description Replace this organization's access grants on an outpost with the given list of instance/service grants
    *
    * @param `outpostId` - string
    * @param `body` - DashboardOrganizationsOutpostsAccessSetBody
