@@ -25,6 +25,8 @@ vi.mock('@metorial/fabric', () => ({
 vi.mock('@metorial/config', () => ({
   getConfig: () => ({ urls: { apiUrl: 'http://api.test' } })
 }));
+const mockEnv = vi.hoisted(() => ({ urls: { OUTPOST_REGIONAL_API_URL: undefined as string | undefined } }));
+vi.mock('../src/env', () => ({ env: mockEnv }));
 vi.mock('@metorial-outpost/server', () => ({ DEFAULT_BASE_PATH: '/outpost' }));
 vi.mock('@metorial-outpost/crypto', () => ({
   Ed25519: {
@@ -51,9 +53,13 @@ let testAuditScope = {
   actor: { type: 'org_actor' as const, id: 'actor_1' }
 } as any;
 
+const decodeEnvelope = (envelope: string) =>
+  JSON.parse(Buffer.from(envelope.replace('metorial_op_', ''), 'base64url').toString());
+
 describe('outpostCredentialService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEnv.urls.OUTPOST_REGIONAL_API_URL = undefined;
   });
 
   it('creates a credential, returning a one-time envelope while persisting only the public key and preview', async () => {
@@ -78,6 +84,39 @@ describe('outpostCredentialService', () => {
     let createCall = (db.outpostCredential.create as any).mock.calls[0][0];
     expect(createCall.data.publicKey).toBeInstanceOf(Buffer);
     expect(createCall.data).not.toHaveProperty('privateKey');
+  });
+
+  it('falls back to the global API URL when no regional endpoint is configured', async () => {
+    (db.outpostCredential.create as any).mockImplementation(({ data }: any) => ({
+      ...data,
+      oid: 500n
+    }));
+
+    let { envelope } = await outpostCredentialService.createCredential({
+      outpost: baseOutpost,
+      organization: baseOrg,
+      input: { name: 'CI Runner' },
+      auditScope: testAuditScope
+    });
+
+    expect(decodeEnvelope(envelope).endpoint).toBe('http://api.test');
+  });
+
+  it('prefers the regional API endpoint when configured', async () => {
+    mockEnv.urls.OUTPOST_REGIONAL_API_URL = 'https://api-eu1.test';
+    (db.outpostCredential.create as any).mockImplementation(({ data }: any) => ({
+      ...data,
+      oid: 500n
+    }));
+
+    let { envelope } = await outpostCredentialService.createCredential({
+      outpost: baseOutpost,
+      organization: baseOrg,
+      input: { name: 'CI Runner' },
+      auditScope: testAuditScope
+    });
+
+    expect(decodeEnvelope(envelope).endpoint).toBe('https://api-eu1.test');
   });
 
   it('refuses to delete an active credential', async () => {

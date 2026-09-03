@@ -14,6 +14,7 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { encodeCredentialEnvelope } from '@metorial-outpost/credential-envelope';
 import { base64url, Ed25519 } from '@metorial-outpost/crypto';
+import { env } from '../env';
 import { getEnvelopePreview } from '../lib/envelopePreview';
 
 class OutpostCredentialService {
@@ -45,9 +46,11 @@ class OutpostCredentialService {
     let publicKeyBytes = await Ed25519.exportPublicKey(keyPair.publicKey);
     let privateKeyBytes = await Ed25519.exportPrivateKey(keyPair.privateKey);
 
+    let endpoint = env.urls.OUTPOST_REGIONAL_API_URL ?? getConfig().urls.apiUrl;
+
     let envelope = encodeCredentialEnvelope({
       version: 1,
-      endpoint: `${getConfig().urls.apiUrl}`,
+      endpoint,
       outpost_id: d.outpost.id,
       credential_id: id,
       private_key: base64url.encode(privateKeyBytes)
