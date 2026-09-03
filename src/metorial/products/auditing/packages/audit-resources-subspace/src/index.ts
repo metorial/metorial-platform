@@ -41,6 +41,11 @@ import {
   networkPolicyAuditResource
 } from './network';
 import {
+  protoGuardAlertAuditResource,
+  protoGuardAlertThresholdAuditResource,
+  protoGuardFilterSettingAuditResource
+} from './protoguard';
+import {
   providerListingGroupAuditResource,
   providerListingGroupListingAuditResource
 } from './providerListingGroup';
@@ -108,5 +113,9 @@ export let subspaceAuditResources = resourceSet({
   network_policy: networkPolicyAuditResource,
 
   session_connection: sessionConnectionAuditResource,
-  session_message: sessionMessageAuditResource
+  session_message: sessionMessageAuditResource,
+
+  protoguard_filter_setting: protoGuardFilterSettingAuditResource,
+  protoguard_alert_threshold: protoGuardAlertThresholdAuditResource,
+  protoguard_alert: protoGuardAlertAuditResource
 });

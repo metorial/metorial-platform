@@ -1,6 +1,7 @@
 import { db, getId, withTransaction } from '@metorial-subspace/db';
 import { alertInternalService } from '@metorial-subspace/module-monitor';
 import { evaluateProtoGuardMessage } from './evaluateProtoguard';
+import { recordProtoGuardAlertAuditEvent } from './protoguardAudit';
 
 let truncate = (value: string, maxLength: number) =>
   value.length > maxLength ? value.slice(0, maxLength) : value;
@@ -118,6 +119,17 @@ export let createProtoGuardRunForMessage = async (d: { messageId: string }) => {
     if (createdRun && run.alert) {
       await alertInternalService.createFromProtoGuardAlert({
         protoGuardAlertId: run.alert.id
+      });
+
+      await recordProtoGuardAlertAuditEvent({
+        messageId: message.id,
+        instanceOid: message.instanceOid,
+        projectOid: message.projectOid,
+        alertId: run.alert.id,
+        runId: run.id,
+        alertFilterCountThreshold: evaluation.alertFilterCountThreshold,
+        score,
+        createdAt: run.alert.createdAt
       });
     }
 

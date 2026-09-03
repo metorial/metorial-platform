@@ -388,6 +388,67 @@ export type AuditSubspaceIdentityDelegationConfig = {
   description: string | null;
 };
 
+export type AuditSubspaceProtoGuardFilterDefinition = {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  issueType: string;
+  severity: string;
+  scoreWeight: number;
+  defaultEnabled: boolean;
+  defaultAlertConfidenceThreshold: number;
+};
+
+export type AuditSubspaceProtoGuardFilterSetting = {
+  filter: AuditSubspaceProtoGuardFilterDefinition;
+  settingId: string | null;
+  enabled: boolean;
+  isUsingDefaultEnabled: boolean;
+  alertConfidenceThreshold: number;
+  isUsingDefaultConfidenceThreshold: boolean;
+};
+
+export type AuditSubspaceProtoGuardAlertThreshold = {
+  settingId: string | null;
+  alertFilterCountThreshold: number;
+  isUsingDefault: boolean;
+  defaultAlertFilterCountThreshold: number;
+};
+
+export type AuditSubspaceProtoGuardAlertMatch = {
+  filter: { key: string; name: string };
+  issueType: string;
+  severity: string;
+  confidence: number;
+  confidenceThreshold: number;
+  scoreWeight: number;
+  path: string;
+  startOffset: number;
+  endOffset: number;
+  description: string | null;
+};
+
+export type AuditSubspaceProtoGuardAlert = {
+  id: string;
+  runId: string;
+  messageId: string;
+  sessionId: string;
+  connectionId: string | null;
+  providerRunId: string | null;
+  issueTypes: string[];
+  score: number;
+  maxScore: number;
+  confidence: number;
+  triggeredFilterCount: number;
+  matchedInstanceCount: number;
+  alertFilterCountThreshold: number;
+  alertByConfidence: boolean;
+  alertByFilterCount: boolean;
+  matches: AuditSubspaceProtoGuardAlertMatch[];
+  createdAt: Date;
+};
+
 export type AuditConsumerProviderDeployment = {
   providerTemplate: { id: string; name: string };
   provider: { id: string; name: string };
@@ -1409,6 +1470,20 @@ export interface FabricEvents {
   };
   'provider.tool_call.created:before': ProviderEventBase;
   'provider.tool_call.created:after': ProviderEventBase & { toolCall: SubspaceToolCall };
+
+  'protoguard.filter_setting.updated:before': ProviderEventBase & { filterId: string };
+  'protoguard.filter_setting.updated:after': ProviderEventBase & {
+    setting: AuditSubspaceProtoGuardFilterSetting;
+    previousSetting: AuditSubspaceProtoGuardFilterSetting;
+  };
+
+  'protoguard.alert_threshold.updated:before': ProviderEventBase;
+  'protoguard.alert_threshold.updated:after': ProviderEventBase & {
+    threshold: AuditSubspaceProtoGuardAlertThreshold;
+    previousThreshold: AuditSubspaceProtoGuardAlertThreshold;
+  };
+
+  'protoguard.alert.created:after': { auditScope: AuditScope; alert: AuditSubspaceProtoGuardAlert };
 
   'provider.custom_provider.created:before': ProviderEventBase;
   'provider.custom_provider.created:after': ProviderEventBase & { customProvider: AuditSubspaceCustomProvider };

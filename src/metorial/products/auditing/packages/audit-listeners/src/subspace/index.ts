@@ -4,5 +4,6 @@ export * from './deployment';
 export * from './identity';
 export * from './integration';
 export * from './network';
+export * from './protoguard';
 export * from './providerListingGroup';
 export * from './session';

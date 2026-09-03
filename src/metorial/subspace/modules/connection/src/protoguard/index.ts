@@ -2,6 +2,7 @@ export * from './config';
 export * from './createRun';
 export * from './evaluateProtoguard';
 export * from './extractText';
+export * from './protoguardAudit';
 export * from './registry';
 export * from './sampleMarkdown';
 export * from './score';

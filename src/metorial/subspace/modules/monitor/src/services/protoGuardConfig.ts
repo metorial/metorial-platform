@@ -1,6 +1,22 @@
 import { Service } from '@lowerdeck/service';
-import { db, getId, type Tenant } from '@metorial-subspace/db';
-import { type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
+import {
+  db,
+  getId,
+  type ProtoGuardFilter,
+  type ProtoGuardTenantFilterSetting,
+  type ProtoGuardTenantSetting,
+  type Tenant
+} from '@metorial-subspace/db';
+import {
+  toProviderEventBase,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
+import {
+  Fabric,
+  type AuditSubspaceProtoGuardAlertThreshold,
+  type AuditSubspaceProtoGuardFilterSetting
+} from '@metorial/fabric';
 
 export let DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD = 2;
 
@@ -76,6 +92,38 @@ export type SetTenantAlertFilterCountThresholdParams = {
   threshold: number | null;
 };
 
+let toFilterSettingAuditPayload = (
+  filter: ProtoGuardFilter,
+  setting: ProtoGuardTenantFilterSetting | null
+): AuditSubspaceProtoGuardFilterSetting => ({
+  filter: {
+    id: filter.id,
+    key: filter.key,
+    name: filter.name,
+    description: filter.description,
+    issueType: filter.issueType,
+    severity: filter.severity,
+    scoreWeight: filter.scoreWeight,
+    defaultEnabled: filter.defaultEnabled,
+    defaultAlertConfidenceThreshold: filter.alertConfidenceThreshold
+  },
+  settingId: setting?.id ?? null,
+  enabled: setting?.enabled ?? filter.defaultEnabled,
+  isUsingDefaultEnabled: !setting,
+  alertConfidenceThreshold: setting?.alertConfidenceThreshold ?? filter.alertConfidenceThreshold,
+  isUsingDefaultConfidenceThreshold: setting?.alertConfidenceThreshold == null
+});
+
+let toAlertThresholdAuditPayload = (
+  setting: ProtoGuardTenantSetting | null
+): AuditSubspaceProtoGuardAlertThreshold => ({
+  settingId: setting?.id ?? null,
+  alertFilterCountThreshold:
+    setting?.alertFilterCountThreshold ?? DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD,
+  isUsingDefault: !setting,
+  defaultAlertFilterCountThreshold: DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD
+});
+
 class protoGuardConfigServiceImpl {
   async listFilters(d: MetorialFacing<ListProtoGuardFiltersParams>) {
     let { instance, organizationActor, ...rest } = d;
@@ -114,7 +162,29 @@ class protoGuardConfigServiceImpl {
   async setTenantFilterEnabled(d: MetorialFacing<SetTenantFilterEnabledParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.setTenantFilterEnabledInternal({ ...rest, tenant });
+
+    let filter = await db.protoGuardFilter.findFirstOrThrow({
+      where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
+    });
+    let previousSetting = await db.protoGuardTenantFilterSetting.findUnique({
+      where: { tenantOid_filterOid: { tenantOid: tenant.oid, filterOid: filter.oid } }
+    });
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('protoguard.filter_setting.updated:before', {
+      ...eventBase,
+      filterId: filter.id
+    });
+
+    let setting = await this.setTenantFilterEnabledInternal({ ...rest, tenant });
+
+    await Fabric.fire('protoguard.filter_setting.updated:after', {
+      ...eventBase,
+      setting: toFilterSettingAuditPayload(filter, setting),
+      previousSetting: toFilterSettingAuditPayload(filter, previousSetting)
+    });
+
+    return setting;
   }
 
   async setTenantFilterEnabledInternal(d: SetTenantFilterEnabledParams) {
@@ -148,7 +218,32 @@ class protoGuardConfigServiceImpl {
   ) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.setTenantFilterAlertConfidenceThresholdInternal({ ...rest, tenant });
+
+    let filter = await db.protoGuardFilter.findFirstOrThrow({
+      where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
+    });
+    let previousSetting = await db.protoGuardTenantFilterSetting.findUnique({
+      where: { tenantOid_filterOid: { tenantOid: tenant.oid, filterOid: filter.oid } }
+    });
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('protoguard.filter_setting.updated:before', {
+      ...eventBase,
+      filterId: filter.id
+    });
+
+    let setting = await this.setTenantFilterAlertConfidenceThresholdInternal({
+      ...rest,
+      tenant
+    });
+
+    await Fabric.fire('protoguard.filter_setting.updated:after', {
+      ...eventBase,
+      setting: toFilterSettingAuditPayload(filter, setting),
+      previousSetting: toFilterSettingAuditPayload(filter, previousSetting)
+    });
+
+    return setting;
   }
 
   async setTenantFilterAlertConfidenceThresholdInternal(
@@ -185,7 +280,23 @@ class protoGuardConfigServiceImpl {
   ) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.setTenantAlertFilterCountThresholdInternal({ ...rest, tenant });
+
+    let previousSetting = await db.protoGuardTenantSetting.findUnique({
+      where: { tenantOid: tenant.oid }
+    });
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('protoguard.alert_threshold.updated:before', eventBase);
+
+    let setting = await this.setTenantAlertFilterCountThresholdInternal({ ...rest, tenant });
+
+    await Fabric.fire('protoguard.alert_threshold.updated:after', {
+      ...eventBase,
+      threshold: toAlertThresholdAuditPayload(setting),
+      previousThreshold: toAlertThresholdAuditPayload(previousSetting)
+    });
+
+    return setting;
   }
 
   async setTenantAlertFilterCountThresholdInternal(

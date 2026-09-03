@@ -54,6 +54,7 @@ export let protoGuardConfigController = Controller.create(
         if (ctx.body.enabled !== undefined) {
           await protoGuardConfigService.setTenantFilterEnabled({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             filterId,
             enabled: ctx.body.enabled
           });
@@ -65,6 +66,7 @@ export let protoGuardConfigController = Controller.create(
         if (ctx.body.alert_confidence_threshold !== undefined) {
           await protoGuardConfigService.setTenantFilterAlertConfidenceThreshold({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             filterId,
             threshold: ctx.body.alert_confidence_threshold
           });
@@ -109,6 +111,7 @@ export let protoGuardConfigController = Controller.create(
       .do(async ctx => {
         await protoGuardConfigService.setTenantAlertFilterCountThreshold({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           threshold: ctx.body.threshold
         });
 
