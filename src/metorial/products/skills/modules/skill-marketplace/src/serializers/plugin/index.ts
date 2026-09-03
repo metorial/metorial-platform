@@ -175,13 +175,7 @@ export let applyPlugin = createApplicator(
       await context.setFile(logoIcon, await downloadImage.fetch());
 
       let baseInfo = {
-        name: slugify(
-          (
-            input.skillMarketplacePlugin?.pluginSlug ??
-            input.skillPlugin.name ??
-            input.skillPlugin.id
-          ).replaceAll('_', '-')
-        ),
+        name: slugify((input.skillPlugin.name ?? input.skillPlugin.id).replaceAll('_', '-')),
         description: input.skillPlugin.description,
         version: input.skillPlugin.version,
         author: {
