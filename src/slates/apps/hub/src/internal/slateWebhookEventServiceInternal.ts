@@ -13,7 +13,8 @@ let include = {
     include: {
       slate: true,
       triggerGroup: true,
-      tenant: true
+      tenant: true,
+      triggerWebhookTarget: true
     }
   }
 };

@@ -45,11 +45,40 @@ model TriggerRegistrationInstance {
 
   createdAt DateTime @default(now())
 
-  schedule TriggerRegistrationSchedule?
-  webhooks TriggerRegistrationWebhook[]
-  errors   TriggerRegistrationInstanceError[]
+  schedule  TriggerRegistrationSchedule?
+  webhooks  TriggerRegistrationWebhook[]
+  errors    TriggerRegistrationInstanceError[]
+  rawEvents TriggerRawEvent[]
 
   @@unique([triggerRegistrationOid, triggerGroupOid])
+}
+
+enum TriggerRawEventSource {
+  polling
+  webhook
+}
+
+model TriggerRawEvent {
+  oid    BigInt                @id
+  id     String                @unique
+  source TriggerRawEventSource
+
+  triggerRegistrationInstanceOid BigInt
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  /// [AnyRecord]
+  payload Json
+
+  idempotencyKey String?
+  triggerIds     String[]
+
+  /// [TriggerRawEventMatchers]
+  matchers Json?
+
+  createdAt DateTime @default(now())
+
+  @@unique([triggerRegistrationInstanceOid, idempotencyKey])
+  @@index([triggerRegistrationInstanceOid, createdAt])
 }
 
 model TriggerRegistrationSchedule {

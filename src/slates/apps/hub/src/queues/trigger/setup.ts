@@ -50,60 +50,52 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
         { id: `${instance.id}:first` }
       );
     } else {
-      await matchManualWebhookRegistration(instance);
-    }
-  });
+      let registration = instance.triggerRegistration;
 
-let matchManualWebhookRegistration = async (instance: {
-  oid: bigint;
-  triggerGroup: { oid: bigint };
-  triggerRegistration: { tenantOid: bigint; authConfigOid: bigint | null };
-}) => {
-  let registration = instance.triggerRegistration;
+      let candidates = await db.slateWebhookRegistration.findMany({
+        where: {
+          triggerGroupOid: instance.triggerGroup.oid,
+          status: 'active',
+          OR: [{ owner: 'tenant', tenantOid: registration.tenantOid }, { owner: 'global' }]
+        }
+      });
 
-  let candidates = await db.slateWebhookRegistration.findMany({
-    where: {
-      triggerGroupOid: instance.triggerGroup.oid,
-      status: 'active',
-      OR: [{ owner: 'tenant', tenantOid: registration.tenantOid }, { owner: 'global' }]
-    }
-  });
+      let hasAuthConfig = !!registration.authConfigOid;
+      let findMatch = (pool: typeof candidates) => {
+        let byRouting = (routing: SlateWebhookRegistrationAuthRouting) =>
+          pool.find(c => c.authRouting === routing);
+        return (
+          (hasAuthConfig && byRouting('restricted_credential')) ||
+          (hasAuthConfig && byRouting('restricted_method')) ||
+          byRouting('any') ||
+          null
+        );
+      };
 
-  let hasAuthConfig = !!registration.authConfigOid;
-  let findMatch = (pool: typeof candidates) => {
-    let byRouting = (routing: SlateWebhookRegistrationAuthRouting) =>
-      pool.find(c => c.authRouting === routing);
-    return (
-      (hasAuthConfig && byRouting('restricted_credential')) ||
-      (hasAuthConfig && byRouting('restricted_method')) ||
-      byRouting('any') ||
-      null
-    );
-  };
+      let match =
+        findMatch(candidates.filter(c => c.owner === 'tenant')) ||
+        findMatch(candidates.filter(c => c.owner === 'global'));
 
-  let match =
-    findMatch(candidates.filter(c => c.owner === 'tenant')) ||
-    findMatch(candidates.filter(c => c.owner === 'global'));
-
-  if (!match) {
-    await createTriggerRegistrationInstanceError({
-      triggerRegistrationInstanceOid: instance.oid,
-      code: 'no_matching_webhook_registration',
-      message:
-        'No existing webhook registration matches this provider instance yet - ask an admin to set one up.'
-    });
-    return;
-  }
-
-  try {
-    await db.triggerRegistrationWebhook.create({
-      data: {
-        oid: snowflake.nextId(),
-        triggerRegistrationInstanceOid: instance.oid,
-        webhookRegistrationOid: match.oid
+      if (!match) {
+        await createTriggerRegistrationInstanceError({
+          triggerRegistrationInstanceOid: instance.oid,
+          code: 'no_matching_webhook_registration',
+          message:
+            'No existing webhook registration matches this provider instance yet - ask an admin to set one up.'
+        });
+        return;
       }
-    });
-  } catch (err: any) {
-    if (err.code !== 'P2002') throw err;
-  }
-};
+
+      try {
+        await db.triggerRegistrationWebhook.create({
+          data: {
+            oid: snowflake.nextId(),
+            triggerRegistrationInstanceOid: instance.oid,
+            webhookRegistrationOid: match.oid
+          }
+        });
+      } catch (err: any) {
+        if (err.code !== 'P2002') throw err;
+      }
+    }
+  });

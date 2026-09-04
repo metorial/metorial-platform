@@ -5,6 +5,7 @@ import type {
   SlateAuthenticationMethod,
   SlatesMessageProviderIdentifyResponse,
   SlatesTriggerGroup,
+  SlatesTriggerRoutingMatcher,
   SlatesWebhookHttpResponse as SlatesWebhookHttpResponseImport
 } from '@slates/proto';
 import { PrismaClient } from '../prisma/generated/client';
@@ -114,5 +115,7 @@ declare global {
       | { webhookEventId: string }
       | { webhookEventId: string; warning: { code: string; message: string } }
       | { webhookEventId: string; error: { code: string; message: string; status: number } };
+
+    type TriggerRawEventMatchers = SlatesTriggerRoutingMatcher[];
   }
 }

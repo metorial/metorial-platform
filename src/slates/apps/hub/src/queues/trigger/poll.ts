@@ -1,12 +1,14 @@
 import { createLock } from '@lowerdeck/lock';
 import { createQueue } from '@lowerdeck/queue';
 import { addSeconds, min } from 'date-fns';
+import { Prisma } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
 import { getActiveSlateVersion } from '../../lib/slateVersion';
 import { secretService, slateInvocationService } from '../../services';
 import { TRIGGER_POLL_MAX_FAILURE_BACKOFF_SECONDS, triggerPollWorkerOpts } from './_config';
+import { triggerRawEventMappingQueue } from './rawEventMapping';
 
 let pollLock = createLock({
   name: 'shub/trg/poll/lock',
@@ -98,6 +100,20 @@ let processScheduledPoll = async (scheduleId: string) => {
       errorMessage: result.status === 'error' ? result.error.message : null
     }
   });
+
+  if (result.status === 'success' && result.data.events.length > 0) {
+    let rows = result.data.events.map(event => ({
+      ...getId('triggerRawEvent'),
+      source: 'polling' as const,
+      triggerRegistrationInstanceOid: instance.oid,
+      payload: event.payload,
+      idempotencyKey: event.idempotencyKey ?? null,
+      triggerIds: event.triggerIds,
+      matchers: Prisma.DbNull
+    }));
+    await db.triggerRawEvent.createMany({ skipDuplicates: true, data: rows });
+    await triggerRawEventMappingQueue.addMany(rows.map(row => ({ rawEventId: row.id })));
+  }
 
   let now = new Date();
   let nextRunAt =

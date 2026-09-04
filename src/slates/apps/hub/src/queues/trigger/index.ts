@@ -1,5 +1,6 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { triggerPollQueueProcessor } from './poll';
+import { triggerRawEventMappingQueueProcessor } from './rawEventMapping';
 import {
   triggerScheduleReleaseStaleClaimsCron,
   triggerScheduleSearchCron,
@@ -22,5 +23,6 @@ export let triggerQueues = combineQueueProcessors([
   triggerWebhookTargetLinkQueueProcessor,
   triggerWebhookRegisterQueueProcessor,
   triggerWebhookUnregisterQueueProcessor,
-  triggerRegistrationCleanupQueueProcessor
+  triggerRegistrationCleanupQueueProcessor,
+  triggerRawEventMappingQueueProcessor
 ]);

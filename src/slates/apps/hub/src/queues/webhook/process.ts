@@ -1,11 +1,14 @@
 import { createQueue } from '@lowerdeck/queue';
 import { SLATES_WEBHOOK_ERROR_DEFAULTS, type SlatesWebhookErrorCode } from '@slates/proto';
+import { db } from '../../db';
 import { env } from '../../env';
+import { getId } from '../../id';
 import { slateWebhookEventServiceInternal } from '../../internal';
 import { getActiveSlateVersion } from '../../lib/slateVersion';
 import { publishWebhookEventResolved } from '../../lib/webhookEventBus';
 import { secretService, slateInvocationService } from '../../services';
 import { globalTenant } from '../../services/tenant';
+import { triggerRawEventMappingQueue } from '../trigger/rawEventMapping';
 
 export let processWebhookEventQueue = createQueue<{ webhookEventId: string }>({
   name: 'shub/whk/process',
@@ -125,6 +128,34 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
     await slateWebhookEventServiceInternal.resolveSuccess({ eventOid: event.oid });
     await publishWebhookEventResolved(event.id);
 
-    // TODO: do something with the event
+    if (result.data.events.length > 0) {
+      let target = registration.triggerWebhookTarget;
+
+      if (target) {
+        let links = await db.triggerRegistrationWebhook.findMany({
+          where: { triggerWebhookTargetOid: target.oid },
+          select: { triggerRegistrationInstanceOid: true }
+        });
+
+        if (links.length > 0) {
+          let rows = links.flatMap(link =>
+            result.data.events.map(webhookEvent => ({
+              ...getId('triggerRawEvent'),
+              source: 'webhook' as const,
+              triggerRegistrationInstanceOid: link.triggerRegistrationInstanceOid,
+              payload: webhookEvent.payload,
+              idempotencyKey: webhookEvent.idempotencyKey ?? null,
+              triggerIds: webhookEvent.triggerIds,
+              matchers: webhookEvent.matchers
+            }))
+          );
+          await db.triggerRawEvent.createMany({ skipDuplicates: true, data: rows });
+          await triggerRawEventMappingQueue.addMany(rows.map(row => ({ rawEventId: row.id })));
+        }
+      } else {
+        // else: TODO: this webhook registration isn't linked to a TriggerWebhookTarget yet
+        // (manual webhook registrations aren't matched to trigger registration instances yet)
+      }
+    }
   }
 );

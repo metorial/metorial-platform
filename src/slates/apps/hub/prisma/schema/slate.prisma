@@ -329,7 +329,7 @@ model SlateSpecification {
   actions Json
 
   /// [SlateTriggerGroups]
-  triggerGroups Json
+  triggerGroups Json @default("[]")
 
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])
