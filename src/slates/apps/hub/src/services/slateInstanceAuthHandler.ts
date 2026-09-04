@@ -231,7 +231,10 @@ class slateAuthHandlerServiceImpl {
         let tokenExpiresAt = extractExpiresAt(decrypted.output);
         await db.slateAuthConfig.update({
           where: { oid: authConfig.oid },
-          data: { tokenExpiresAt }
+          data: {
+            tokenExpiresAt,
+            routingMatchers: res.data.routingMatchers ?? undefined
+          }
         });
       }
     }

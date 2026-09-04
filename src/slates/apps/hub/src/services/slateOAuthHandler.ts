@@ -341,6 +341,7 @@ class slateOAuthHandlerServiceImpl {
         type: 'oauth_automated',
         tokenExpiresAt,
         grantedScopes: authRes.data.scopes ?? setup.oauthCredentials.scopes,
+        routingMatchers: authRes.data.routingMatchers,
 
         tenantOid: setup.tenantOid,
         secretOid: authConfigSecret.oid,
