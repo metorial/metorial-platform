@@ -3,14 +3,13 @@ import { Hash } from '@lowerdeck/hash';
 import { slugify } from '@lowerdeck/slugify';
 import { getConfig } from '@metorial/config';
 import { db } from '@metorial/db';
-import semver from 'semver';
 import { internalImageService } from '@metorial/skills-images';
+import semver from 'semver';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
-import type { PluginSerializerInput } from '../_lib/types';
+import { getPluginPath, getPluginPruneScope } from '../_lib/paths';
 
-export let getPluginPath = (d: PluginSerializerInput) =>
-  d.skillMarketplacePlugin ? `plugins/${d.skillMarketplacePlugin.pluginSlug}` : undefined;
+export { getPluginPath };
 
 let json = (data: any) => JSON.stringify(data, null, 2);
 
@@ -61,33 +60,9 @@ export let applyPlugin = createApplicator(
     if (image?.type !== 'file' && project.organization.image?.type === 'file') {
       image = project.organization.image;
     }
-    let legacySkillHashes = skills
-      .map(skill =>
-        [
-          1,
-          skill.oid,
-          skill.skill.oid,
-          skill.updatedAt.getTime(),
-          skill.skill.updatedAt.getTime(),
-          skill.skill.store!.lastEditedAt.getTime()
-        ].join(':')
-      )
-      .join('|');
-    let legacyHash = await Hash.sha256(
-      [
-        1,
-        input.skillPlugin.oid,
-        input.skillPlugin.updatedAt.getTime(),
-        legacySkillHashes
-      ].join(':')
-    );
-
-    // Hash only values that affect generated files. In particular, exclude
-    // updatedAt and the generated version to make repository round-trips
-    // idempotent.
     let hash = await Hash.sha256(
       canonicalize({
-        serializerVersion: 2,
+        serializerVersion: 3,
         plugin: {
           slug: input.skillPlugin.slug,
           name: input.skillPlugin.name,
@@ -115,19 +90,17 @@ export let applyPlugin = createApplicator(
       project,
       agents,
       image,
-      hash,
-      legacyHash
+      hash
     };
   },
   {
+    getPruneScope: getPluginPruneScope,
+
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { project, agents, image, hash, legacyHash }) => {
+    apply: async (input, context, { project, agents, image, hash }) => {
       if (input.skillPlugin.versionHash !== hash) {
-        let isHashMigration = input.skillPlugin.versionHash === legacyHash;
-        let nextVersion = isHashMigration
-          ? input.skillPlugin.version
-          : semver.inc(input.skillPlugin.version ?? '0.0.0', 'patch')!;
+        let nextVersion = semver.inc(input.skillPlugin.version ?? '0.0.0', 'patch')!;
 
         let updated = await db.skillPlugin.updateMany({
           where: {
@@ -137,8 +110,6 @@ export let applyPlugin = createApplicator(
           data: {
             versionHash: hash,
             version: nextVersion,
-
-            // Force updatedAt not to change
             updatedAt: input.skillPlugin.updatedAt
           }
         });
@@ -179,13 +150,7 @@ export let applyPlugin = createApplicator(
       await context.setFile(logoIcon, await downloadImage.fetch());
 
       let baseInfo = {
-        name: slugify(
-          (
-            input.skillMarketplacePlugin?.pluginSlug ??
-            input.skillPlugin.name ??
-            input.skillPlugin.id
-          ).replaceAll('_', '-')
-        ),
+        name: slugify((input.skillPlugin.name ?? input.skillPlugin.id).replaceAll('_', '-')),
         description: input.skillPlugin.description,
         version: input.skillPlugin.version,
         author: {
@@ -226,8 +191,6 @@ export let applyPlugin = createApplicator(
       });
       await context.setFile('.codex-plugin/plugin.json', codexPlugin);
 
-      // Standalone plugins are a single-plugin marketplace, so we still need to
-      // create the marketplace files for them.
       if (!input.skillMarketplace) {
         let codexMarketplace = json({
           name: baseInfo.name,

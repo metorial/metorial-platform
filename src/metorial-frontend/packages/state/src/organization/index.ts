@@ -1,6 +1,7 @@
 export * from './loaders/accessPolicy';
 export * from './loaders/accessRole';
 export * from './loaders/auditLogStream';
+export * from './loaders/auditLogRetention';
 export * from './loaders/boot';
 export * from './loaders/flags';
 export * from './loaders/instance';
@@ -8,14 +9,19 @@ export * from './loaders/organization';
 export * from './loaders/organizationInvite';
 export * from './loaders/organizationInviteAccept';
 export * from './loaders/organizationMember';
+export * from './loaders/outpost';
 export * from './loaders/project';
 export * from './loaders/projectBrand';
 export * from './loaders/projectKeyProviders';
 export * from './loaders/projectRetention';
 export * from './loaders/sandbox';
 export * from './loaders/projectAuthConfigConfiguration';
+export * from './loaders/projectDataRetentionConfiguration';
 export * from './loaders/projectIntegrationNamingConfiguration';
+export * from './loaders/projectSkillSyncConfiguration';
 export * from './loaders/projectToolCallingConfiguration';
+export * from './loaders/projectWorkforceConfiguration';
+export * from './loaders/scopes';
 export * from './loaders/team';
 
 export * from './current';

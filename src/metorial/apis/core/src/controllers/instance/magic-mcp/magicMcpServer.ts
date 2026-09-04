@@ -771,6 +771,7 @@ export let magicMcpServerController = Controller.create(
         }
 
         let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
+          auditScope: ctx.auditScope,
           organization: ctx.organization,
           performedBy: ctx.actor!,
           instance: ctx.instance,
@@ -788,7 +789,8 @@ export let magicMcpServerController = Controller.create(
           await grantConsumerOwnedMagicMcpServerAccess({
             organization: ctx.organization,
             consumerProfile,
-            magicMcpServer
+            magicMcpServer,
+            auditScope: ctx.auditScope
           });
         }
 
@@ -826,6 +828,7 @@ export let magicMcpServerController = Controller.create(
         });
 
         let magicMcpServer = await magicMcpServerService.archiveMagicMcpServer({
+          auditScope: ctx.auditScope,
           server: ctx.magicMcpServer
         });
 
@@ -872,6 +875,7 @@ export let magicMcpServerController = Controller.create(
         });
 
         let magicMcpServer = await magicMcpServerService.updateMagicMcpServer({
+          auditScope: ctx.auditScope,
           server: ctx.magicMcpServer,
           instance: ctx.instance,
           accessTags: ctx.accessTags,

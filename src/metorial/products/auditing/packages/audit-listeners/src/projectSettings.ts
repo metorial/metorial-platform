@@ -18,6 +18,27 @@ export let recordProjectRetentionUpdated = async (
   });
 };
 
+export let recordProjectSkillSyncConfigurationUpdated = async (
+  event: FabricEvents['organization.project.skill_sync_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_skill_sync_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project
+        },
+        previousPayload: {
+          project: event.previousProject
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordProjectAuthConfigUpdated = async (
   event: FabricEvents['organization.project.auth_config_configuration.updated:after']
 ) => {
@@ -31,6 +52,7 @@ export let recordProjectAuthConfigUpdated = async (
           project: event.project,
           allowAuthConfigExport: event.configuration.allowAuthConfigExport,
           allowAuthConfigImport: event.configuration.allowAuthConfigImport,
+          onlyAllowOAuthAuthMethods: event.configuration.onlyAllowOAuthAuthMethods,
           consumerAuthClientRegistrationsPerHourLimit:
             event.project.consumerAuthClientRegistrationsPerHourLimit,
           consumerAuthClientRegistrationsPerMinuteLimit:
@@ -40,11 +62,29 @@ export let recordProjectAuthConfigUpdated = async (
           project: event.previousProject,
           allowAuthConfigExport: event.previousConfiguration.allowAuthConfigExport,
           allowAuthConfigImport: event.previousConfiguration.allowAuthConfigImport,
+          onlyAllowOAuthAuthMethods: event.previousConfiguration.onlyAllowOAuthAuthMethods,
           consumerAuthClientRegistrationsPerHourLimit:
             event.previousProject.consumerAuthClientRegistrationsPerHourLimit,
           consumerAuthClientRegistrationsPerMinuteLimit:
             event.previousProject.consumerAuthClientRegistrationsPerMinuteLimit
         },
+        recordedAt
+      }
+    );
+  });
+};
+
+export let recordProjectWorkforceConfigurationUpdated = async (
+  event: FabricEvents['organization.project.workforce_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_workforce_configuration',
+      'update',
+      {
+        payload: { project: event.project },
+        previousPayload: { project: event.previousProject },
         recordedAt
       }
     );
@@ -117,10 +157,45 @@ export let recordProjectBrandUpdated = async (
   });
 };
 
+export let recordProjectDataRetentionUpdated = async (
+  event: FabricEvents['organization.project.data_retention_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_data_retention_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project,
+          dataRetentionLevel: event.configuration.dataRetentionLevel,
+          storeToolCallAttachments: event.configuration.storeToolCallAttachments,
+          collectErrors: event.configuration.collectErrors
+        },
+        previousPayload: {
+          project: event.project,
+          dataRetentionLevel: event.previousConfiguration.dataRetentionLevel,
+          storeToolCallAttachments: event.previousConfiguration.storeToolCallAttachments,
+          collectErrors: event.previousConfiguration.collectErrors
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 Fabric.listen('organization.project.retention.updated:after', recordProjectRetentionUpdated);
+Fabric.listen(
+  'organization.project.skill_sync_configuration.updated:after',
+  recordProjectSkillSyncConfigurationUpdated
+);
 Fabric.listen(
   'organization.project.auth_config_configuration.updated:after',
   recordProjectAuthConfigUpdated
+);
+Fabric.listen(
+  'organization.project.workforce_configuration.updated:after',
+  recordProjectWorkforceConfigurationUpdated
 );
 Fabric.listen(
   'organization.project.integration_naming_configuration.updated:after',
@@ -129,5 +204,9 @@ Fabric.listen(
 Fabric.listen(
   'organization.project.tool_calling_configuration.updated:after',
   recordProjectToolCallingUpdated
+);
+Fabric.listen(
+  'organization.project.data_retention_configuration.updated:after',
+  recordProjectDataRetentionUpdated
 );
 Fabric.listen('organization.project.brand.updated:after', recordProjectBrandUpdated);

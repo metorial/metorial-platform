@@ -18,7 +18,12 @@ export interface SlateInvocationDeploymentTarget {
 export interface SlateInvocationBaseParams {
   tenant?: Pick<
     Tenant,
-    'oid' | 'identifier' | 'name' | 'functionBayTenantId' | 'functionBayTenantIdentifier'
+    | 'oid'
+    | 'identifier'
+    | 'name'
+    | 'functionBayTenantId'
+    | 'functionBayTenantIdentifier'
+    | 'storeContent'
   >;
   slateVersion: SlateVersion;
   deploymentTarget?: SlateInvocationDeploymentTarget;

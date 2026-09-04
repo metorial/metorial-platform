@@ -331,6 +331,7 @@ export let providerDeploymentController = Controller.create(
 
         let deployment = await providerDeploymentService.createProviderDeployment({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           provider,
           lockedVersion,
           input: {
@@ -418,6 +419,7 @@ export let providerDeploymentController = Controller.create(
 
         let deployment = await providerDeploymentService.updateProviderDeployment({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerDeployment: ctx.deployment,
           input: {
             name: ctx.body.name,
@@ -451,6 +453,7 @@ export let providerDeploymentController = Controller.create(
       .do(async ctx => {
         let deployment = await providerDeploymentService.archiveProviderDeployment({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerDeployment: ctx.deployment
         });
 

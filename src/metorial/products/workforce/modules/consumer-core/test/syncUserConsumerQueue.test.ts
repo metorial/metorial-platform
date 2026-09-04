@@ -77,7 +77,8 @@ describe('sync user consumer queues', () => {
     });
     (db.instanceConsumer.findFirst as any).mockResolvedValue({
       id: 'cns_1',
-      email: 'previous@example.com'
+      email: 'previous@example.com',
+      instance: { organizationOid: 7n }
     });
 
     await (syncUserConsumerQueueProcessor as any)({
@@ -86,7 +87,16 @@ describe('sync user consumer queues', () => {
     });
 
     expect(consumerService.updateConsumer).toHaveBeenCalledWith({
-      consumer: { id: 'cns_1', email: 'previous@example.com' },
+      consumer: {
+        id: 'cns_1',
+        email: 'previous@example.com',
+        instance: { organizationOid: 7n }
+      },
+      // The sync runs on a queue, so the rewrite is attributed to the job.
+      auditScope: expect.objectContaining({
+        organizationOid: 7n,
+        actor: { type: 'system', id: 'consumer/syncUserConsumer' }
+      }),
       input: { name: 'Updated User', email: 'updated@example.com' }
     });
   });

@@ -3,7 +3,11 @@ import { storeVersionService } from '@metorial/module-store';
 import { createCron } from '@metorial/cron';
 import { withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { internalDocumentContentService, internalDocumentDraftService } from '../internal';
+import {
+  getDocumentDraftActors,
+  internalDocumentContentService,
+  internalDocumentDraftService
+} from '../internal';
 import { documentInclude } from '../services/document';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
 import { enqueueDocumentLifecycle } from './lifecycle';
@@ -90,24 +94,30 @@ export let flushDocumentDraft = async (d: {
       ensureDocumentActive(currentDocument);
       assertDocumentWritable(currentDocument);
 
-      let actors =
-        draft.actorIds.length > 0
-          ? await db.resourceActor.findMany({
-              where: {
-                projectOid: currentDocument.project.oid,
-                id: {
-                  in: draft.actorIds
-                }
+      let draftActors = getDocumentDraftActors(draft);
+      let resourceActors = draftActors.length
+        ? await db.resourceActor.findMany({
+            where: {
+              projectOid: currentDocument.project.oid,
+              id: {
+                in: draftActors.map(actor => actor.id)
               }
-            })
-          : [];
+            }
+          })
+        : [];
+      let contextByActorId = new Map(
+        draftActors.map(actor => [actor.id, actor.context] as const)
+      );
 
       return await internalDocumentContentService.persistDraftToDocument({
         project: currentDocument.project,
         instance: currentDocument.instance,
         document: currentDocument,
         draft,
-        actors
+        actors: resourceActors.map(actor => ({
+          actor,
+          context: contextByActorId.get(actor.id)
+        }))
       });
     });
 

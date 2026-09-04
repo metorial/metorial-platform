@@ -24,6 +24,15 @@ export let ID = createIdGenerator({
   organizationLayout: idType.sorted('oly'),
   account: idType.sorted('acc'),
 
+  outpost: idType.sorted('otp_'),
+  outpostCredential: idType.sorted('otc_'),
+  outpostAccess: idType.sorted('ota_'),
+  outpostInstance: idType.sorted('otn_'),
+  outpostInstanceService: idType.sorted('otsv_'),
+  outpostInstanceKeyRotation: idType.sorted('otr_'),
+  outpostInstanceEvent: idType.sorted('ote_'),
+  outpostTokenKeyPair: idType.sorted('otkp_'),
+
   project: idType.sorted('prj'),
   projectBrand: idType.sorted('pbr'),
   projectBrandUpdate: idType.sorted('pbu'),
@@ -60,6 +69,7 @@ export let ID = createIdGenerator({
   file: idType.sorted('fil'),
   fileLink: idType.sorted('flk'),
   fileRef: idType.sorted('frf'),
+  fileUpload: idType.sorted('fup'),
 
   secretType: idType.sorted('sty'),
   secret: idType.sorted('sec'),

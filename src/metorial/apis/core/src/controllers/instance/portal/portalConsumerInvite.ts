@@ -105,6 +105,7 @@ export let portalConsumerInviteController = Controller.create(
         let consumerInvite = await consumerInviteService.inviteConsumer({
           consumerSurface: ctx.portal.surface,
           performedBy: ctx.actor!,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             email: ctx.body.email,

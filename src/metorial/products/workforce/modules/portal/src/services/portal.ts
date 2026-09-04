@@ -3,6 +3,7 @@ import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   getPortalAllowedRedirectUrlFilters,
   portalAllowedRedirectUrlFiltersEqual,
@@ -237,6 +238,7 @@ class PortalServiceImpl {
     organization: Organization;
     instance: Instance;
     context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string;
@@ -246,6 +248,7 @@ class PortalServiceImpl {
       allowConsumerSkillPublishing?: boolean;
     };
     isDefaultPortal?: boolean;
+    automatic?: boolean;
   }) {
     let portalId = await ID.generateId('portal');
     let slug = await getPortalSlug({
@@ -257,6 +260,7 @@ class PortalServiceImpl {
         organization: d.organization,
         instance: d.instance,
         context: d.context,
+        auditScope: d.auditScope,
         input: {
           name: d.input.name,
           description: d.input.description,
@@ -269,7 +273,8 @@ class PortalServiceImpl {
 
       await Fabric.fire('portal.created:before', {
         ...d,
-        isDefaultPortal: !!d.isDefaultPortal
+        isDefaultPortal: !!d.isDefaultPortal,
+        automatic: !!d.automatic
       });
 
       let portal = await db.portal.create({
@@ -315,6 +320,7 @@ class PortalServiceImpl {
     portal: Portal & {
       surface: PortalSurface;
     };
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -335,6 +341,7 @@ class PortalServiceImpl {
 
     let surface = await consumerSurfaceService.updateConsumerSurface({
       consumerSurface: d.portal.surface,
+      auditScope: d.auditScope,
       input: {
         name: d.input.name,
         description: d.input.description,
@@ -367,7 +374,8 @@ class PortalServiceImpl {
 
       await Fabric.fire('portal.updated:after', {
         ...d,
-        portal
+        portal,
+        previousPortal: d.portal
       });
 
       return portal;
@@ -386,6 +394,7 @@ class PortalServiceImpl {
     portal: Portal & {
       surface: PortalSurface;
     };
+    auditScope: AuditScope;
   }) {
     if (d.portal.status != 'active') {
       throw new ServiceError(
@@ -396,7 +405,8 @@ class PortalServiceImpl {
     }
 
     await consumerSurfaceService.archiveConsumerSurface({
-      consumerSurface: d.portal.surface
+      consumerSurface: d.portal.surface,
+      auditScope: d.auditScope
     });
 
     let portal = await withTransaction(async db => {
@@ -414,7 +424,8 @@ class PortalServiceImpl {
       });
 
       await Fabric.fire('portal.archived:after', {
-        portal
+        portal,
+        auditScope: d.auditScope
       });
 
       return portal;
@@ -445,7 +456,9 @@ class PortalServiceImpl {
     return await resolvePrimaryPortalUrl(d);
   }
 
-  async getPrimaryPortalConnectUrl(d: { portal: Pick<Portal, 'oid' | 'slug'> }) {
+  async getPrimaryPortalConnectUrl(d: {
+    portal: Pick<Portal, 'oid' | 'slug' | 'organizationOid'>;
+  }) {
     return await resolvePrimaryPortalConnectUrl(d);
   }
 

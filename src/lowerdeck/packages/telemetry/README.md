@@ -77,6 +77,17 @@ Example:
 export OTEL_ALLOW_ROOT_SPANS=true
 ```
 
+### `OTEL_TRACES_SAMPLER_ARG`
+- Type: number between `0` and `1`
+- Default: `0.1`
+- What it does: sets the proportion of new root traces to export. Parent trace sampling decisions are preserved so a sampled request remains sampled across services.
+
+Example:
+
+```bash
+export OTEL_TRACES_SAMPLER_ARG=0.05
+```
+
 ### `OTEL_SERVICE_NAME`
 - Type: string
 - Default: value passed to `initTelemetry({ serviceName })`

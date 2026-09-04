@@ -176,7 +176,7 @@ export let InspectorFrame = (p: {
     return () => window.clearInterval(timer);
   }, [explorerConfig, explorerVersion, inspectorUrl]);
 
-  let resolvedSessionTemplateId = p.sessionTemplateId ?? session.data?.fromTemplatesIds?.[0];
+  let resolvedSessionTemplateId = p.sessionTemplateId ?? session.data?.fromTemplateIds?.[0];
 
   return (
     <>

@@ -1,28 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, withTransaction, generateId } = vi.hoisted(() => {
-  let db = {
-    documentVersion: {
-      aggregate: vi.fn(),
-      create: vi.fn()
-    },
-    document: {
-      update: vi.fn()
-    }
-  };
+let { db, withTransaction, generateId, addAfterTransactionHook, enqueueDocumentVersionSeal } =
+  vi.hoisted(() => {
+    let db = {
+      documentVersion: {
+        aggregate: vi.fn(),
+        create: vi.fn()
+      },
+      document: {
+        update: vi.fn()
+      }
+    };
 
-  return {
-    db,
-    withTransaction: vi.fn(async (fn: any) => await fn(db)),
-    generateId: vi.fn(async () => 'dver_generated')
-  };
-});
+    return {
+      db,
+      withTransaction: vi.fn(async (fn: any) => await fn(db)),
+      generateId: vi.fn(async () => 'dver_generated'),
+      addAfterTransactionHook: vi.fn(async (hook: () => Promise<void>) => await hook()),
+      enqueueDocumentVersionSeal: vi.fn()
+    };
+  });
 
 vi.mock('@metorial/db', () => ({
   withTransaction,
+  addAfterTransactionHook,
   ID: {
     generateId
   }
+}));
+
+vi.mock('../queues/documentVersionSeal', () => ({
+  enqueueDocumentVersionSeal
 }));
 
 import { internalDocumentVersioningService } from './documentVersioning';
@@ -42,6 +50,7 @@ describe('document version allocation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     db.document.update.mockResolvedValue({});
+    enqueueDocumentVersionSeal.mockResolvedValue(undefined);
     db.documentVersion.create.mockImplementation(async ({ data }: any) => ({
       ...data,
       content: {}
@@ -130,5 +139,40 @@ describe('document version allocation', () => {
       where: { oid: 3n },
       data: { maxVersionNumber: 6 }
     });
+  });
+
+  it('seals the version it supersedes, once the transaction has committed', async () => {
+    db.documentVersion.aggregate.mockResolvedValue({
+      _max: { versionNumber: 5 }
+    });
+
+    await internalDocumentVersioningService.createVersion({
+      project: { oid: 5n },
+      instance: { oid: 6n },
+      document: { oid: 3n, maxVersionNumber: 5 },
+      contentOid: 4n,
+      previousVersion: { oid: 20n, id: 'dver_previous' }
+    });
+
+    expect(db.documentVersion.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ previousVersionOid: 20n })
+      })
+    );
+    expect(addAfterTransactionHook).toHaveBeenCalledTimes(1);
+    expect(enqueueDocumentVersionSeal).toHaveBeenCalledWith({
+      documentVersionId: 'dver_previous'
+    });
+  });
+
+  it('seals nothing when the document had no version to supersede', async () => {
+    db.documentVersion.aggregate.mockResolvedValue({
+      _max: { versionNumber: null }
+    });
+
+    await createVersion(1);
+
+    expect(addAfterTransactionHook).not.toHaveBeenCalled();
+    expect(enqueueDocumentVersionSeal).not.toHaveBeenCalled();
   });
 });

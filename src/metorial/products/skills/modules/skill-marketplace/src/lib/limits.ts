@@ -1,7 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { db } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
+import { refreshStoreByteSize } from '@metorial/module-store';
 
 export let maxSkillStoreFiles = 1000;
+export let maxSkillStoreBytes = 1024n * 1024n * 1024n * 10n;
 export let maxSkillPluginSkills = 100;
 export let maxSkillMarketplacePlugins = 500;
 export let maxSkillMarketplaceSkills = 1000;
@@ -48,6 +51,32 @@ export let assertSkillStoreFileLimit = async (d: {
     additionalCount: d.additionalCount,
     max: maxSkillStoreFiles
   });
+};
+
+let formatBytes = (bytes: bigint) => {
+  let mb = Number(bytes) / (1024 * 1024);
+  return mb >= 1024 ? `${(mb / 1024).toFixed(2)}GB` : `${mb.toFixed(2)}MB`;
+};
+
+export let assertSkillStoreByteLimit = async (d: {
+  storeOid: bigint;
+  instanceOid: bigint;
+  additionalBytes?: bigint;
+}) => {
+  let currentBytes = await refreshStoreByteSize({ storeOid: d.storeOid });
+  let projectedBytes = currentBytes + (d.additionalBytes ?? 0n);
+
+  await Fabric.fire('skill.store.size:before', {
+    instance: { oid: d.instanceOid },
+    storeSize: Number(projectedBytes)
+  });
+
+  if (projectedBytes <= maxSkillStoreBytes) return;
+
+  throw new CargoSkillLimitError(
+    `Skill store size cannot exceed ${formatBytes(maxSkillStoreBytes)}; ` +
+      `this change would result in ${formatBytes(projectedBytes)}.`
+  );
 };
 
 export let countSkillPluginSkills = async (d: { skillPluginOid: bigint }) =>

@@ -1,4 +1,5 @@
 import type {
+  SessionDataRetentionLevel as ProjectDataRetentionLevel,
   Callback as SubspaceCallback,
   CallbackDestination as SubspaceCallbackDestination,
   CallbackInstance as SubspaceCallbackInstance,
@@ -38,16 +39,25 @@ import {
   ApiKey,
   AuditLogStream,
   Consumer,
+  ConsumerAccess,
+  ConsumerAccessListing,
+  ConsumerAccessRequest,
   ConsumerGroup,
   ConsumerInvite,
   ConsumerProfile,
   ConsumerProfileGroup,
+  ConsumerSession,
   ConsumerSurface,
+  Document,
+  File,
+  FileUpload,
   Instance,
   InstanceConsumer,
   MachineAccess,
   MagicMcpEndpoint,
+  MagicMcpGroup,
   MagicMcpServer,
+  MagicMcpToken,
   OAuthApplication,
   OAuthApplicationClientSecret,
   OAuthAuthorization,
@@ -60,15 +70,26 @@ import {
   OrganizationInviteJoin,
   OrganizationLayout,
   OrganizationMember,
+  Outpost,
+  OutpostAccess,
+  OutpostCredential,
+  OutpostInstance,
+  OutpostInstanceService,
+  OutpostTokenKeyPair,
   Portal,
   Project,
   ProjectBrand,
+  ProviderTemplate,
   Sandbox,
   ServiceAccount,
   ServiceAccountCredential,
   Skill,
+  SkillGroup,
   SkillMarketplace,
   SkillPlugin,
+  SkillTemplate,
+  Store,
+  StoreItem,
   Team,
   TeamMember,
   TeamProject,
@@ -142,6 +163,304 @@ export type ProviderEventBase = {
   instance: Instance;
   organizationActor?: OrganizationActor;
   input?: Record<string, any>;
+  auditScope?: AuditScope;
+};
+
+export type OutpostRequestedService = {
+  id: string;
+  version?: string;
+  capabilities?: Record<string, any>;
+};
+
+export type AuditSubspaceProviderAuthConfig = SubspaceProviderAuthConfig & {
+  provider: { id: string; name: string };
+  authMethod: { id: string; key: string; name: string; type: string };
+  deployment?: { id: string } | null;
+};
+
+export type AuditSubspaceProviderAuthCredentials = SubspaceProviderAuthCredentials & {
+  provider: { id: string; name: string };
+};
+
+export type AuditSubspaceProviderConfig = SubspaceProviderConfig & {
+  provider: { id: string; name: string };
+  deployment?: { id: string } | null;
+};
+
+export type AuditSubspaceProviderConfigVault = SubspaceProviderConfigVault;
+
+export type AuditSubspaceProviderDeployment = SubspaceProviderDeployment & {
+  provider: { id: string; name: string };
+};
+
+export type AuditSubspaceProviderSetupSession = SubspaceProviderSetupSession & {
+  provider?: { id: string; name: string } | null;
+};
+
+export type AuditSubspaceProviderAuthExport = SubspaceProviderAuthExport & {
+  authConfig: { id: string; provider: { id: string; name: string } };
+};
+
+export type AuditSubspaceProviderAuthImport = SubspaceProviderAuthImport & {
+  authConfig: { id: string; provider: { id: string; name: string } };
+};
+
+export type AuditSubspaceSessionProvider = SubspaceSessionProvider & {
+  session: { id: string };
+  provider: { id: string; name: string };
+  deployment?: { id: string } | null;
+  config?: { id: string } | null;
+  authConfig?: { id: string } | null;
+};
+
+export type AuditSubspaceSession = SubspaceSession & {
+  identity?: { id: string } | null;
+  identityActor?: { id: string } | null;
+  providers?: AuditSubspaceSessionProvider[];
+};
+
+export type AuditSubspaceSessionTemplateProvider = SubspaceSessionTemplateProvider & {
+  sessionTemplate: { id: string };
+  provider: { id: string; name: string };
+  deployment?: { id: string } | null;
+  config?: { id: string } | null;
+  authConfig?: { id: string } | null;
+};
+
+export type AuditSubspaceSessionTemplate = SubspaceSessionTemplate & {
+  identity?: { id: string } | null;
+  identityActor?: { id: string } | null;
+  integrationInstance?: { id: string } | null;
+  integrationInstanceGroup?: { id: string } | null;
+  providers?: AuditSubspaceSessionTemplateProvider[];
+};
+
+export type AuditSubspaceIntegration = SubspaceIntegration & {
+  currentVersion?: { id: string } | null;
+};
+
+export type AuditSubspaceIntegrationInstance = SubspaceIntegrationInstance & {
+  integration: { id: string; name: string };
+  identity?: { id: string } | null;
+  identityActor?: { id: string } | null;
+};
+
+export type AuditSubspaceFirewall = SubspaceFirewall & {
+  network: { id: string; name: string };
+  networkPolicyLinks?: {
+    position: number;
+    networkPolicy: { id: string; name: string };
+  }[];
+};
+
+export type AuditSubspaceFirewallBinding = SubspaceFirewallBinding & {
+  firewall: { id: string; slug: string; name: string };
+  enclave?: { id: string; slug: string; name: string } | null;
+  provider?: { id: string; name: string } | null;
+  network?: { id: string; name: string } | null;
+};
+
+export type AuditSubspaceNetworkPolicy = SubspaceNetworkPolicy & {
+  currentVersion?: { id: string; version: number; rules: unknown } | null;
+};
+
+export type AuditSubspaceCustomProvider = SubspaceCustomProvider & {
+  provider?: { id: string; name: string } | null;
+};
+
+export type AuditSubspaceCustomProviderVersion = SubspaceCustomProviderVersion & {
+  customProvider: { id: string; name: string };
+};
+
+export type AuditSubspaceCustomProviderCommit = SubspaceCustomProviderCommit & {
+  customProvider: { id: string; name: string };
+  toEnvironment?: { id: string; branchName: string | null } | null;
+  fromEnvironment?: { id: string; branchName: string | null } | null;
+};
+
+export type AuditSubspaceScmRepo = {
+  id: string;
+  provider: string;
+  name: string;
+  identifier: string;
+  externalId: string;
+  externalName: string;
+  externalOwner: string;
+  externalUrl: string;
+  externalIsPrivate: boolean;
+  defaultBranch: string;
+};
+
+export type AuditSubspaceCodeBucketFile = {
+  bucket: { id: string };
+  filename: string;
+  byteSize: number | null;
+};
+
+export type AuditSubspaceIntegrationProvider = {
+  id: string;
+  status: string;
+  integration: { id: string; name: string };
+  provider: { id: string; name: string };
+  currentVersion?: { id: string } | null;
+};
+
+export type AuditSubspaceIntegrationInstanceGroup = {
+  id: string;
+  status: string;
+  name: string;
+  description: string | null;
+  isMagicMcpBacking?: boolean;
+  identity?: { id: string } | null;
+  identityActor?: { id: string } | null;
+  archivedAt: Date | null;
+};
+
+export type AuditSubspaceIntegrationInstanceProvider = {
+  id: string;
+  status: string;
+  integration?: { id: string; name: string } | null;
+  integrationInstance?: { id: string; name: string } | null;
+  integrationInstanceGroup?: { id: string; name: string } | null;
+  integrationProvider?: { id: string; provider: { id: string; name: string } } | null;
+};
+
+export type AuditSubspaceIntegrationSetupSession = SubspaceIntegrationSetupSession & {
+  integration?: { id: string; name: string } | null;
+};
+
+export type AuditSubspaceAgent = {
+  id: string;
+  status: string;
+  type: string;
+  name: string;
+  description: string | null;
+  slug: string;
+};
+
+export type AuditSubspaceAgentClient = {
+  id: string;
+  type: string;
+  name: string;
+};
+
+export type AuditSubspaceIdentityActor = {
+  id: string;
+  type: string;
+  status: string;
+  name: string;
+  description: string | null;
+};
+
+export type AuditSubspaceIdentity = {
+  id: string;
+  status: string;
+  name: string | null;
+  description: string | null;
+  actor?: { id: string; name: string } | null;
+};
+
+export type AuditSubspaceIdentityCredential = {
+  id: string;
+  status: string;
+  identity: { id: string; name: string | null };
+  deployment?: { id: string } | null;
+  config?: { id: string } | null;
+  authConfig?: { id: string } | null;
+};
+
+export type AuditSubspaceIdentityDelegation = {
+  id: string;
+  status: string;
+  delegationLevel: number;
+  permissions: string[];
+  deniedReason: string | null;
+  note: string | null;
+  wasCoveredByPreviousDelegationAndAutoApproved: boolean;
+  identity: { id: string; name: string | null };
+};
+
+export type AuditSubspaceIdentityDelegationConfig = {
+  id: string;
+  status: string;
+  isDefault: boolean;
+  name: string | null;
+  description: string | null;
+};
+
+export type AuditSubspaceProtoGuardFilterDefinition = {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  issueType: string;
+  severity: string;
+  scoreWeight: number;
+  defaultEnabled: boolean;
+  defaultAlertConfidenceThreshold: number;
+};
+
+export type AuditSubspaceProtoGuardFilterSetting = {
+  filter: AuditSubspaceProtoGuardFilterDefinition;
+  settingId: string | null;
+  enabled: boolean;
+  isUsingDefaultEnabled: boolean;
+  alertConfidenceThreshold: number;
+  isUsingDefaultConfidenceThreshold: boolean;
+};
+
+export type AuditSubspaceProtoGuardAlertThreshold = {
+  settingId: string | null;
+  alertFilterCountThreshold: number;
+  isUsingDefault: boolean;
+  defaultAlertFilterCountThreshold: number;
+};
+
+export type AuditSubspaceProtoGuardAlertMatch = {
+  filter: { key: string; name: string };
+  issueType: string;
+  severity: string;
+  confidence: number;
+  confidenceThreshold: number;
+  scoreWeight: number;
+  path: string;
+  startOffset: number;
+  endOffset: number;
+  description: string | null;
+};
+
+export type AuditSubspaceProtoGuardAlert = {
+  id: string;
+  runId: string;
+  messageId: string;
+  sessionId: string;
+  connectionId: string | null;
+  providerRunId: string | null;
+  issueTypes: string[];
+  score: number;
+  maxScore: number;
+  confidence: number;
+  triggeredFilterCount: number;
+  matchedInstanceCount: number;
+  alertFilterCountThreshold: number;
+  alertByConfidence: boolean;
+  alertByFilterCount: boolean;
+  matches: AuditSubspaceProtoGuardAlertMatch[];
+  createdAt: Date;
+};
+
+export type AuditConsumerProviderDeployment = {
+  providerTemplate: { id: string; name: string };
+  provider: { id: string; name: string };
+  magicMcpServer: { id: string; name: string | null };
+  integrationInstanceId: string | null;
+};
+
+export type AuditConsumerSurfaceProviderGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  index: number;
 };
 
 export type FabricEnterprise = {
@@ -344,6 +663,117 @@ export type AuditOAuthApplication = OAuthApplication & {
   clientSecrets?: OAuthApplicationClientSecret[] | null;
 };
 
+export type FileFabricOwner = {
+  instance?: { oid: bigint };
+  organization?: { oid: bigint };
+  fileSize: number;
+  auditScope?: AuditScope;
+};
+
+export type AuditFile = File & {
+  purpose: { slug: string };
+};
+
+export type AuditDocument = Document & {
+  file: { id: string };
+  parentDocument: { id: string } | null;
+  currentVersion?: { id: string } | null;
+  content: { content: string };
+};
+
+export type AuditStore = Store;
+
+export type StoreItemFabricOperation = {
+  type: 'add' | 'modify' | 'remove';
+  kind: StoreItem['kind'];
+  path: string;
+  previousPath?: string;
+  itemId?: string;
+  fileId?: string;
+  documentId?: string;
+};
+
+export type SkillStoreFabricOwner = {
+  instance: { oid: bigint };
+  storeSize: number;
+};
+
+export type AuditConsumerSurface = ConsumerSurface & {
+  portal?: { id: string } | null;
+};
+
+export type AuditConsumerProfile = ConsumerProfile & {
+  consumer: { id: string; email: string };
+  surface: AuditConsumerSurface;
+};
+
+export type AuditInstanceConsumer = InstanceConsumer & {
+  consumer: Consumer & {
+    user: { id: string } | null;
+    organizationMember: { id: string } | null;
+  };
+};
+
+export type AuditConsumerSession = ConsumerSession & {
+  consumerProfile: AuditConsumerProfile;
+};
+
+export type AuditPortal = Portal & {
+  surface: { id: string };
+};
+
+export type AuditConsumerAccessTarget = {
+  providerTemplate: ProviderTemplate | null;
+  magicMcpServer: MagicMcpServer | null;
+  skill: Skill | null;
+  skillTemplate: SkillTemplate | null;
+  skillGroup: SkillGroup | null;
+  skillMarketplace: SkillMarketplace | null;
+  skillPlugin: SkillPlugin | null;
+};
+
+export type AuditConsumerAccess = ConsumerAccess &
+  AuditConsumerAccessTarget & {
+    surface: { id: string };
+    consumerGroup: ConsumerGroup;
+    listing: ConsumerAccessListing | null;
+  };
+
+export type AuditConsumerAccessListing = ConsumerAccessListing &
+  Omit<AuditConsumerAccessTarget, 'skillPlugin'> & {
+    surface: { id: string };
+    skillPlugin?: SkillPlugin | null;
+  };
+
+export type AuditConsumerAccessRequest = ConsumerAccessRequest & {
+  surface: { id: string };
+  consumerProfile: { id: string; email: string };
+  providerTemplate: ProviderTemplate | null;
+  magicMcpServer: MagicMcpServer | null;
+};
+
+export type AuditMagicMcpEndpoint = MagicMcpEndpoint & {
+  consumerProfile: { id: string } | null;
+  skillPlugin: { id: string } | null;
+  servers: { magicMcpServer: { id: string; name: string | null } }[];
+};
+
+export type AuditMagicMcpGroup = MagicMcpGroup & {
+  servers: { magicMcpServer: { id: string; name: string | null } }[];
+};
+
+export type AuditMagicMcpToken = MagicMcpToken & {
+  magicMcpServer: { id: string } | null;
+  magicMcpEndpoint: { id: string } | null;
+  skillPlugin: { id: string } | null;
+  groups: { magicMcpGroup: { id: string } }[];
+};
+
+export type MagicMcpServerMembershipFabricChange = {
+  operation: 'add' | 'remove';
+  servers: { id: string; name: string | null }[];
+};
+
 // prettier-ignore
 export interface FabricEvents {
   'user.created:before': { context?: Context };
@@ -401,6 +831,9 @@ export interface FabricEvents {
   'organization.layout.updated:before': { organization: Organization; user: User; layout: OrganizationLayout; auditScope: AuditScope; input: { value: unknown } };
   'organization.layout.updated:after': { organization: Organization; user: User; layout: OrganizationLayout; previousLayout: OrganizationLayout; auditScope: AuditScope; input: { value: unknown } };
 
+  'organization.audit_log_retention.updated:before': { organization: Organization; auditScope: AuditScope; input: { auditLogRetentionInDays: number } };
+  'organization.audit_log_retention.updated:after': { organization: Organization; previousOrganization: Organization; auditScope: AuditScope; input: { auditLogRetentionInDays: number } };
+
   'organization.invitation.created:before': { organization: Organization; input: { role: OrganizationMember['role'] } & ({ type: 'email'; email: string; message?: string } | { type: 'link' } | { type: 'onboarding'; email: string; message?: string }); auditScope: AuditScope };
   'organization.invitation.created:after': { organization: Organization; invite: AuditOrganizationInvite; input: { role: OrganizationMember['role'] } & ({ type: 'email'; email: string; message?: string } | { type: 'link' } | { type: 'onboarding'; email: string; message?: string }); auditScope: AuditScope };
   'organization.invitation.updated:before': { organization: Organization; invite: OrganizationInvite; input: { role: OrganizationMember['role'] }; auditScope: AuditScope };
@@ -422,12 +855,18 @@ export interface FabricEvents {
   'organization.project.updated:after': { organization: Organization; project: AuditProject; previousProject: Project; input: ProjectUpdateInput; auditScope: AuditScope };
   'organization.project.retention.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
   'organization.project.retention.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
-  'organization.project.auth_config_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number } };
-  'organization.project.auth_config_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean }; previousConfiguration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean } };
+  'organization.project.auth_config_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number } };
+  'organization.project.auth_config_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean }; previousConfiguration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean } };
+  'organization.project.workforce_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean } };
+  'organization.project.workforce_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean } };
   'organization.project.integration_naming_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean } };
   'organization.project.integration_naming_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean }; previousConfiguration: { useIntegrationNames: boolean } };
   'organization.project.tool_calling_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number } };
   'organization.project.tool_calling_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number }; configuration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs: number }; previousConfiguration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs: number } };
+  'organization.project.data_retention_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean } };
+  'organization.project.data_retention_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean }; configuration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean }; previousConfiguration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean } };
+  'organization.project.skill_sync_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
+  'organization.project.skill_sync_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.brand.updated:before': { organization: Organization; project: Project; brand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
   'organization.project.brand.updated:after': { organization: Organization; project: Project; brand: AuditProjectBrand; previousBrand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
   'organization.project.deleted:before': { organization: Organization; project: Project; auditScope: AuditScope };
@@ -514,6 +953,40 @@ export interface FabricEvents {
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
 
+  'outpost.created:before': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope };
+  'outpost.created:after': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope; outpost: Outpost };
+  'outpost.updated:before': { outpost: Outpost; organization: Organization; input: { name?: string; description?: string }; auditScope: AuditScope };
+  'outpost.updated:after': { outpost: Outpost; previousOutpost: Outpost; organization: Organization; input: { name?: string; description?: string }; auditScope: AuditScope };
+  'outpost.disabled:before': { outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.disabled:after': { outpost: Outpost; previousOutpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.enabled:before': { outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.enabled:after': { outpost: Outpost; previousOutpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.deleted:before': { outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost.deleted:after': { outpost: Outpost; previousOutpost: Outpost; organization: Organization; auditScope: AuditScope };
+
+  'outpost_access.updated:before': { outpost: Outpost; organization: Organization; grants: { instanceId: string; services: string[] }[]; auditScope: AuditScope };
+  'outpost_access.updated:after': { outpost: Outpost; organization: Organization; grants: { instanceId: string; services: string[] }[]; auditScope: AuditScope; access: (OutpostAccess & { project: Project; instance: Instance; organization: Organization; outpost: Outpost })[] };
+
+  'outpost_credential.created:before': { outpost: Outpost; organization: Organization; input: { name: string; expiresAt?: Date }; auditScope: AuditScope };
+  'outpost_credential.created:after': { outpost: Outpost; organization: Organization; input: { name: string; expiresAt?: Date }; auditScope: AuditScope; credential: OutpostCredential };
+  'outpost_credential.disabled:before': { credential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.disabled:after': { credential: OutpostCredential; previousCredential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.deleted:before': { credential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.deleted:after': { credential: OutpostCredential; previousCredential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.expired:before': { credential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_credential.expired:after': { credential: OutpostCredential; previousCredential: OutpostCredential; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+
+  'outpost_instance.registered:before': { outpost: Outpost; credential: OutpostCredential; organization: Organization; input: { identifier: string; requestedServices: OutpostRequestedService[] }; auditScope: AuditScope };
+  'outpost_instance.registered:after': { instance: OutpostInstance; previousInstance: OutpostInstance | null; services: OutpostInstanceService[]; outpost: Outpost; credential: OutpostCredential; organization: Organization; input: { identifier: string; requestedServices: OutpostRequestedService[] }; auditScope: AuditScope };
+  'outpost_instance.key_rotated:after': { instance: OutpostInstance; previousInstance: OutpostInstance; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_instance.deactivated:after': { instance: OutpostInstance; previousInstance: OutpostInstance; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+  'outpost_instance.pruned:after': { instance: OutpostInstance; outpost: Outpost; organization: Organization; deleted: { events: number; keyRotations: number }; auditScope: AuditScope };
+  'outpost_instance.deleted:after': { instance: OutpostInstance; outpost: Outpost; organization: Organization; auditScope: AuditScope };
+
+  'outpost_token_key_pair.created:after': { keyPair: OutpostTokenKeyPair; organization: Organization; auditScope: AuditScope };
+  'outpost_token_key_pair.replaced:after': { keyPair: OutpostTokenKeyPair; previousKeyPair: OutpostTokenKeyPair; organization: Organization; auditScope: AuditScope };
+  'outpost_token_key_pair.expired:after': { keyPair: OutpostTokenKeyPair; previousKeyPair: OutpostTokenKeyPair; organization: Organization; auditScope: AuditScope };
+
   'machine_access.oauth_application.created:before': { organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; };
   'machine_access.oauth_application.created:after': { organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; oauthApplication: OAuthApplication; };
   'machine_access.oauth_application.updated:before': { oauthApplication: OAuthApplication; organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationUpdateInput; };
@@ -556,12 +1029,12 @@ export interface FabricEvents {
   'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
 
-  'portal.created:before': { organization: Organization; instance: Instance; context: Context; isDefaultPortal: boolean; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
-  'portal.created:after': { organization: Organization; instance: Instance; portal: Portal; context: Context; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
-  'portal.updated:before': { portal: Portal; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
-  'portal.updated:after': { portal: Portal; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
-  'portal.archived:before': { portal: Portal };
-  'portal.archived:after': { portal: Portal };
+  'portal.created:before': { organization: Organization; instance: Instance; context: Context; auditScope: AuditScope; isDefaultPortal: boolean; automatic?: boolean; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.created:after': { organization: Organization; instance: Instance; portal: AuditPortal; context: Context; auditScope: AuditScope; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.updated:before': { portal: Portal; auditScope: AuditScope; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.updated:after': { portal: AuditPortal; previousPortal: AuditPortal; auditScope: AuditScope; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.archived:before': { portal: Portal; auditScope: AuditScope };
+  'portal.archived:after': { portal: AuditPortal; auditScope: AuditScope };
 
   'workspace.created:before':
     | { organization: Organization }
@@ -661,32 +1134,54 @@ export interface FabricEvents {
   'workspace_policy_assignment.deleted:before': { workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
   'workspace_policy_assignment.deleted:after': { workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
 
-  'consumer.profile.created:before': { surface: ConsumerSurface };
-  'consumer.profile.created:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+  'consumer.profile.created:before': { surface: ConsumerSurface; automatic?: boolean };
+  'consumer.profile.created:after': { consumerProfile: AuditConsumerProfile, surface: ConsumerSurface, auditScope: AuditScope };
   'consumer.profile.updated:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
-  'consumer.profile.updated:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+  'consumer.profile.updated:after': { consumerProfile: AuditConsumerProfile, previousConsumerProfile: AuditConsumerProfile, surface: ConsumerSurface, auditScope: AuditScope };
   'consumer.profile.deleted:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
-  'consumer.profile.deleted:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+  'consumer.profile.deleted:after': { consumerProfile: AuditConsumerProfile, surface: ConsumerSurface, auditScope: AuditScope };
   'consumer.profile.group.added:before': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup };
-  'consumer.profile.group.added:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
+  'consumer.profile.group.added:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup, auditScope: AuditScope };
   'consumer.profile.group.removed:before': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
-  'consumer.profile.group.removed:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
+  'consumer.profile.group.removed:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup, auditScope: AuditScope };
 
   'consumer.created:after': { consumer: Consumer; instanceConsumer: InstanceConsumer };
   'consumer.updated:after': { consumer: Consumer };
   'consumer.deleted:after': { consumerId: string };
 
+  'consumer.identity.created:after': { instanceConsumer: AuditInstanceConsumer; auditScope: AuditScope };
+  'consumer.identity.updated:after': { instanceConsumer: AuditInstanceConsumer; previousInstanceConsumer: AuditInstanceConsumer; auditScope: AuditScope };
+
+  'consumer.session.created:after': { consumerSession: AuditConsumerSession; auditScope: AuditScope };
+  'consumer.session.revoked:after': { consumerSession: AuditConsumerSession; auditScope: AuditScope };
+
+  'consumer.surface.created:after': { organization: Organization; instance: Instance; consumerSurface: ConsumerSurface; auditScope: AuditScope };
+  'consumer.surface.updated:after': { consumerSurface: ConsumerSurface; previousConsumerSurface: ConsumerSurface; auditScope: AuditScope };
+  'consumer.surface.archived:after': { consumerSurface: ConsumerSurface; auditScope: AuditScope };
+
   'consumer.group.created:before': { consumerSurface: ConsumerSurface, input: { name: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
-  'consumer.group.created:after': { consumerSurface: ConsumerSurface, consumerGroup: ConsumerGroup, input: { name: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
+  'consumer.group.created:after': { consumerSurface: ConsumerSurface, consumerGroup: ConsumerGroup, auditScope: AuditScope, input: { name: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
   'consumer.group.updated:before': { consumerGroup: ConsumerGroup, input: { name?: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
-  'consumer.group.updated:after': { consumerGroup: ConsumerGroup, input: { name?: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
+  'consumer.group.updated:after': { consumerSurface: ConsumerSurface, consumerGroup: ConsumerGroup, previousConsumerGroup: ConsumerGroup, auditScope: AuditScope, input: { name?: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
   'consumer.group.archived:before': { organization: Organization, consumerGroup: ConsumerGroup };
-  'consumer.group.archived:after': { organization: Organization, consumerGroup: ConsumerGroup };
+  'consumer.group.archived:after': { organization: Organization, consumerSurface: ConsumerSurface, consumerGroup: ConsumerGroup, auditScope: AuditScope };
 
   'consumer.invite.created:before': { consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor };
-  'consumer.invite.created:after': { consumerInvite: ConsumerInvite, consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor };
+  'consumer.invite.created:after': { consumerInvite: ConsumerInvite, consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor, auditScope: AuditScope };
   'consumer.invite.updated:before': { consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor, consumerInviteId: string };
-  'consumer.invite.updated:after': { consumerInvite: ConsumerInvite, consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor };
+  'consumer.invite.updated:after': { consumerInvite: ConsumerInvite, consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor, auditScope?: AuditScope };
+  'consumer.invite.deleted:after': { consumerInvite: ConsumerInvite, consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, auditScope: AuditScope };
+
+  'consumer.access.created:after': { consumerAccess: AuditConsumerAccess; auditScope: AuditScope };
+  'consumer.access.updated:after': { consumerAccess: AuditConsumerAccess; previousConsumerAccess: AuditConsumerAccess; auditScope: AuditScope };
+  'consumer.access.deleted:after': { consumerAccess: AuditConsumerAccess; auditScope: AuditScope };
+
+  'consumer.access_listing.created:after': { consumerAccessListing: AuditConsumerAccessListing; auditScope: AuditScope };
+  'consumer.access_listing.updated:after': { consumerAccessListing: AuditConsumerAccessListing; previousConsumerAccessListing: AuditConsumerAccessListing; auditScope: AuditScope };
+  'consumer.access_listing.deleted:after': { consumerAccessListing: AuditConsumerAccessListing; auditScope: AuditScope };
+
+  'consumer.access_request.created:after': { consumerAccessRequest: AuditConsumerAccessRequest; auditScope: AuditScope };
+  'consumer.access_request.reviewed:after': { consumerAccessRequest: AuditConsumerAccessRequest; previousConsumerAccessRequest: AuditConsumerAccessRequest; auditScope: AuditScope };
 
   'workspace_invite.created:before':
     | { consumerInvite: ConsumerInvite }
@@ -712,15 +1207,42 @@ export interface FabricEvents {
     | { workspaceInvite: WorkspaceInvite; enterpriseInvite: FabricEnterpriseInvite };
 
 
-  'consumer.integration_setup_session.created:before': { instance: Instance };
-  'consumer.integration_setup_session.created:after': { instance: Instance; setupSession: SubspaceIntegrationSetupSession };
+  'consumer.provider.deployed:before': { instance: Instance; auditScope: AuditScope };
+  'consumer.provider.deployed:after': { instance: Instance; auditScope: AuditScope; deployment: AuditConsumerProviderDeployment };
+
+  'consumer.surface_provider_group.created:after': { auditScope: AuditScope; consumerSurface: ConsumerSurface; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup };
+  'consumer.surface_provider_group.updated:after': { auditScope: AuditScope; consumerSurface: ConsumerSurface; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup; previousConsumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup };
+  'consumer.surface_provider_group.deleted:after': { auditScope: AuditScope; consumerSurface: ConsumerSurface; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup };
+  'consumer.surface_provider_group.listing.added:after': { auditScope: AuditScope; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup; consumerAccessListing: { id: string } };
+  'consumer.surface_provider_group.listing.removed:after': { auditScope: AuditScope; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup; consumerAccessListing: { id: string } };
+
+  'integration_setup_session.created:before': { instance: Instance };
+  'integration_setup_session.created:after': { instance: Instance; setupSession: SubspaceIntegrationSetupSession; binding: { id: string }; consumerSurface: ConsumerSurface; consumerProfile: ConsumerProfile; providerTemplate: ProviderTemplate; auditScope: AuditScope };
 
   'magic_mcp.server.created:before': { organization: Organization; instance: Instance };
-  'magic_mcp.server.created:after': { organization: Organization; instance: Instance; magicMcpServer: MagicMcpServer };
-  'magic_mcp.server.archived:after': { organization: Organization; instance: Instance; magicMcpServer: MagicMcpServer };
+  'magic_mcp.server.created:after': { organization: Organization; instance: Instance; magicMcpServer: MagicMcpServer; auditScope: AuditScope };
+  'magic_mcp.server.updated:after': { instance: Instance; magicMcpServer: MagicMcpServer; previousMagicMcpServer: MagicMcpServer; auditScope: AuditScope };
+  'magic_mcp.server.archived:after': { organization: Organization; instance: Instance; magicMcpServer: MagicMcpServer; auditScope: AuditScope };
   'magic_mcp.endpoint.created:before': { instance: Instance };
-  'magic_mcp.endpoint.created:after': { instance: Instance; magicMcpEndpoint: MagicMcpEndpoint };
-  'magic_mcp.endpoint.archived:after': { instance: Instance; magicMcpEndpoint: MagicMcpEndpoint };
+  'magic_mcp.endpoint.created:after': { instance: Instance; magicMcpEndpoint: AuditMagicMcpEndpoint; auditScope: AuditScope };
+  'magic_mcp.endpoint.updated:after': { instance: Instance; magicMcpEndpoint: AuditMagicMcpEndpoint; previousMagicMcpEndpoint: AuditMagicMcpEndpoint; auditScope: AuditScope };
+  'magic_mcp.endpoint.archived:after': { instance: Instance; magicMcpEndpoint: AuditMagicMcpEndpoint; auditScope: AuditScope };
+  'magic_mcp.endpoint.servers.modified:after': { magicMcpEndpoint: AuditMagicMcpEndpoint; auditScope: AuditScope } & MagicMcpServerMembershipFabricChange;
+
+  'magic_mcp.group.created:after': { instance: Instance; magicMcpGroup: AuditMagicMcpGroup; auditScope: AuditScope };
+  'magic_mcp.group.updated:after': { instance: Instance; magicMcpGroup: AuditMagicMcpGroup; previousMagicMcpGroup: AuditMagicMcpGroup; auditScope: AuditScope };
+  'magic_mcp.group.deleted:after': { magicMcpGroup: AuditMagicMcpGroup; auditScope: AuditScope };
+  'magic_mcp.group.servers.modified:after': { magicMcpGroup: AuditMagicMcpGroup; auditScope: AuditScope } & MagicMcpServerMembershipFabricChange;
+
+  'magic_mcp.token.created:before': { instance: Instance };
+  'magic_mcp.token.created:after': { instance: Instance; magicMcpToken: AuditMagicMcpToken; auditScope: AuditScope };
+  'magic_mcp.token.updated:after': { magicMcpToken: AuditMagicMcpToken; previousMagicMcpToken: AuditMagicMcpToken; auditScope: AuditScope };
+  'magic_mcp.token.rotated:after': { magicMcpToken: AuditMagicMcpToken; auditScope: AuditScope };
+  'magic_mcp.token.deleted:after': { magicMcpToken: AuditMagicMcpToken; auditScope: AuditScope };
+
+  'magic_mcp.provider_template.created:after': { organization: Organization; instance: Instance; providerTemplate: ProviderTemplate; auditScope: AuditScope };
+  'magic_mcp.provider_template.updated:after': { instance: Instance; providerTemplate: ProviderTemplate; previousProviderTemplate: ProviderTemplate; auditScope: AuditScope };
+  'magic_mcp.provider_template.archived:after': { instance: Instance; providerTemplate: ProviderTemplate; auditScope: AuditScope };
 
   'skill.created:before': { instance: Instance };
   'skill.created:after': { instance: Instance; skill: Skill };
@@ -739,61 +1261,155 @@ export interface FabricEvents {
   'skill.marketplace.archived:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.deleted:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
 
+  'skill.store.size:before': SkillStoreFabricOwner;
+
+  'file.upload.created:before': FileFabricOwner;
+  'file.upload.created:after': FileFabricOwner & { fileUpload: FileUpload };
+  'file.upload.completed:before': FileFabricOwner & { fileUpload: FileUpload };
+  'file.upload.completed:after': FileFabricOwner & { fileUpload: FileUpload; file: File };
+
+  'file.created:before': FileFabricOwner;
+  'file.created:after': FileFabricOwner & { file: AuditFile };
+  'file.deleted:after': FileFabricOwner & { file: AuditFile };
+
+  'document.created:before': { instance: Instance };
+  'document.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
+  'document.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
+  'document.version.sealed:after': { document: { id: string; title: string }; version: { id: string; versionNumber: number; byteSize: number; editedAt: Date }; previousVersionId: string | null; editors: { auditScope: AuditScope }[] };
+
+  'store.created:after': { auditScope: AuditScope; store: AuditStore };
+  'store.updated:after': { auditScope: AuditScope; store: AuditStore; previousStore: AuditStore };
+  'store.deleted:after': { auditScope: AuditScope; store: AuditStore };
+  'store.items.modified:after': { auditScope: AuditScope; store: AuditStore; skill: { id: string } | null; operations: StoreItemFabricOperation[]; counts: { add: number; modify: number; remove: number }; truncated: boolean };
+
   'provider.deployment.created:before': ProviderEventBase;
-  'provider.deployment.created:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
+  'provider.deployment.created:after': ProviderEventBase & { deployment: AuditSubspaceProviderDeployment };
   'provider.deployment.updated:before': ProviderEventBase;
-  'provider.deployment.updated:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
+  'provider.deployment.updated:after': ProviderEventBase & { deployment: AuditSubspaceProviderDeployment; previousDeployment: AuditSubspaceProviderDeployment };
   'provider.deployment.deleted:before': ProviderEventBase;
-  'provider.deployment.deleted:after': ProviderEventBase & { deployment: SubspaceProviderDeployment };
+  'provider.deployment.deleted:after': ProviderEventBase & { deployment: AuditSubspaceProviderDeployment };
 
   'provider.config.created:before': ProviderEventBase;
-  'provider.config.created:after': ProviderEventBase & { config: SubspaceProviderConfig };
+  'provider.config.created:after': ProviderEventBase & { config: AuditSubspaceProviderConfig };
   'provider.config.updated:before': ProviderEventBase;
-  'provider.config.updated:after': ProviderEventBase & { config: SubspaceProviderConfig };
+  'provider.config.updated:after': ProviderEventBase & { config: AuditSubspaceProviderConfig; previousConfig: AuditSubspaceProviderConfig };
   'provider.config.deleted:before': ProviderEventBase;
-  'provider.config.deleted:after': ProviderEventBase & { config: SubspaceProviderConfig };
+  'provider.config.deleted:after': ProviderEventBase & { config: AuditSubspaceProviderConfig };
 
   'provider.auth_config.created:before': ProviderEventBase;
-  'provider.auth_config.created:after': ProviderEventBase & { authConfig: SubspaceProviderAuthConfig };
+  'provider.auth_config.created:after': ProviderEventBase & { authConfig: AuditSubspaceProviderAuthConfig };
   'provider.auth_config.updated:before': ProviderEventBase;
-  'provider.auth_config.updated:after': ProviderEventBase & { authConfig: SubspaceProviderAuthConfig };
+  'provider.auth_config.updated:after': ProviderEventBase & { authConfig: AuditSubspaceProviderAuthConfig; previousAuthConfig: AuditSubspaceProviderAuthConfig };
   'provider.auth_config.deleted:before': ProviderEventBase;
-  'provider.auth_config.deleted:after': ProviderEventBase & { authConfig: SubspaceProviderAuthConfig };
+  'provider.auth_config.deleted:after': ProviderEventBase & { authConfig: AuditSubspaceProviderAuthConfig };
 
   'provider.auth_credentials.created:before': ProviderEventBase;
-  'provider.auth_credentials.created:after': ProviderEventBase & { authCredentials: SubspaceProviderAuthCredentials };
+  'provider.auth_credentials.created:after': ProviderEventBase & { authCredentials: AuditSubspaceProviderAuthCredentials };
   'provider.auth_credentials.updated:before': ProviderEventBase;
-  'provider.auth_credentials.updated:after': ProviderEventBase & { authCredentials: SubspaceProviderAuthCredentials };
+  'provider.auth_credentials.updated:after': ProviderEventBase & { authCredentials: AuditSubspaceProviderAuthCredentials; previousAuthCredentials: AuditSubspaceProviderAuthCredentials };
+  'provider.auth_credentials.managed_created:after': { auditScope: AuditScope; authCredentials: AuditSubspaceProviderAuthCredentials };
+  'provider.auth_credentials.managed_updated:after': { auditScope: AuditScope; authCredentials: AuditSubspaceProviderAuthCredentials; previousAuthCredentials: AuditSubspaceProviderAuthCredentials };
+
   'provider.auth_credentials.deleted:before': ProviderEventBase;
-  'provider.auth_credentials.deleted:after': ProviderEventBase & { authCredentials: SubspaceProviderAuthCredentials };
+  'provider.auth_credentials.deleted:after': ProviderEventBase & { authCredentials: AuditSubspaceProviderAuthCredentials };
 
   'provider.auth_export.created:before': ProviderEventBase;
-  'provider.auth_export.created:after': ProviderEventBase & { authExport: SubspaceProviderAuthExport };
+  'provider.auth_export.created:after': ProviderEventBase & { authExport: AuditSubspaceProviderAuthExport };
 
   'provider.auth_import.created:before': ProviderEventBase;
-  'provider.auth_import.created:after': ProviderEventBase & { authImport: SubspaceProviderAuthImport };
+  'provider.auth_import.created:after': ProviderEventBase & { authImport: AuditSubspaceProviderAuthImport };
 
   'provider.config_vault.created:before': ProviderEventBase;
-  'provider.config_vault.created:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
+  'provider.config_vault.created:after': ProviderEventBase & { configVault: AuditSubspaceProviderConfigVault };
   'provider.config_vault.updated:before': ProviderEventBase;
-  'provider.config_vault.updated:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
+  'provider.config_vault.updated:after': ProviderEventBase & { configVault: AuditSubspaceProviderConfigVault; previousConfigVault: AuditSubspaceProviderConfigVault };
   'provider.config_vault.deleted:before': ProviderEventBase;
-  'provider.config_vault.deleted:after': ProviderEventBase & { configVault: SubspaceProviderConfigVault };
+  'provider.config_vault.deleted:after': ProviderEventBase & { configVault: AuditSubspaceProviderConfigVault };
 
   'provider.integration.created:before': ProviderEventBase;
-  'provider.integration.created:after': ProviderEventBase & { integration: SubspaceIntegration };
+  'provider.integration.created:after': ProviderEventBase & { integration: AuditSubspaceIntegration };
+  'provider.integration.updated:before': ProviderEventBase;
+  'provider.integration.updated:after': ProviderEventBase & { integration: AuditSubspaceIntegration; previousIntegration: AuditSubspaceIntegration };
   'provider.integration.deleted:before': ProviderEventBase;
-  'provider.integration.deleted:after': ProviderEventBase & { integration: SubspaceIntegration };
+  'provider.integration.deleted:after': ProviderEventBase & { integration: AuditSubspaceIntegration };
 
   'provider.integration_instance.created:before': ProviderEventBase;
-  'provider.integration_instance.created:after': ProviderEventBase & { integrationInstance: SubspaceIntegrationInstance };
+  'provider.integration_instance.created:after': ProviderEventBase & { integrationInstance: AuditSubspaceIntegrationInstance };
+  'provider.integration_instance.updated:before': ProviderEventBase;
+  'provider.integration_instance.updated:after': ProviderEventBase & { integrationInstance: AuditSubspaceIntegrationInstance; previousIntegrationInstance: AuditSubspaceIntegrationInstance };
   'provider.integration_instance.deleted:before': ProviderEventBase;
-  'provider.integration_instance.deleted:after': ProviderEventBase & { integrationInstance: SubspaceIntegrationInstance };
+  'provider.integration_instance.deleted:after': ProviderEventBase & { integrationInstance: AuditSubspaceIntegrationInstance };
+
+  'provider.integration_provider.created:before': ProviderEventBase;
+  'provider.integration_provider.created:after': ProviderEventBase & { integrationProvider: AuditSubspaceIntegrationProvider };
+  'provider.integration_provider.updated:before': ProviderEventBase;
+  'provider.integration_provider.updated:after': ProviderEventBase & { integrationProvider: AuditSubspaceIntegrationProvider; previousIntegrationProvider: AuditSubspaceIntegrationProvider };
+  'provider.integration_provider.deleted:before': ProviderEventBase;
+  'provider.integration_provider.deleted:after': ProviderEventBase & { integrationProvider: AuditSubspaceIntegrationProvider };
+
+  'provider.integration_instance_group.created:before': ProviderEventBase;
+  'provider.integration_instance_group.created:after': ProviderEventBase & { integrationInstanceGroup: AuditSubspaceIntegrationInstanceGroup };
+  'provider.integration_instance_group.updated:before': ProviderEventBase;
+  'provider.integration_instance_group.updated:after': ProviderEventBase & { integrationInstanceGroup: AuditSubspaceIntegrationInstanceGroup; previousIntegrationInstanceGroup: AuditSubspaceIntegrationInstanceGroup };
+  'provider.integration_instance_group.deleted:before': ProviderEventBase;
+  'provider.integration_instance_group.deleted:after': ProviderEventBase & { integrationInstanceGroup: AuditSubspaceIntegrationInstanceGroup };
+
+  'provider.integration_instance_provider.set:before': ProviderEventBase;
+  'provider.integration_instance_provider.set:after': ProviderEventBase & { integrationInstanceProvider: AuditSubspaceIntegrationInstanceProvider };
+
+  'provider.integration_instance_group_provider.set:before': ProviderEventBase;
+  'provider.integration_instance_group_provider.set:after': ProviderEventBase & { integrationInstanceGroupProvider: AuditSubspaceIntegrationInstanceProvider };
+  'provider.integration_instance_group_provider.deleted:before': ProviderEventBase;
+  'provider.integration_instance_group_provider.deleted:after': ProviderEventBase & { integrationInstanceGroupProvider: AuditSubspaceIntegrationInstanceProvider };
+
+  'identity.agent.created:before': ProviderEventBase;
+  'identity.agent.created:after': ProviderEventBase & { agent: AuditSubspaceAgent };
+  'identity.agent.updated:before': ProviderEventBase;
+  'identity.agent.updated:after': ProviderEventBase & { agent: AuditSubspaceAgent; previousAgent: AuditSubspaceAgent };
+  'identity.agent.deleted:before': ProviderEventBase;
+  'identity.agent.deleted:after': ProviderEventBase & { agent: AuditSubspaceAgent };
+
+  'identity.agent_client.created:before': ProviderEventBase;
+  'identity.agent_client.created:after': ProviderEventBase & { agentClient: AuditSubspaceAgentClient };
+
+  'identity.actor.created:before': ProviderEventBase;
+  'identity.actor.created:after': ProviderEventBase & { identityActor: AuditSubspaceIdentityActor };
+  'identity.actor.deleted:before': ProviderEventBase;
+  'identity.actor.deleted:after': ProviderEventBase & { identityActor: AuditSubspaceIdentityActor };
+
+  'identity.created:before': ProviderEventBase;
+  'identity.created:after': ProviderEventBase & { identity: AuditSubspaceIdentity };
+  'identity.deleted:before': ProviderEventBase;
+  'identity.deleted:after': ProviderEventBase & { identity: AuditSubspaceIdentity };
+  'identity.updated:before': ProviderEventBase;
+  'identity.updated:after': ProviderEventBase & { identity: AuditSubspaceIdentity; previousIdentity: AuditSubspaceIdentity };
+
+  'identity.credential.created:before': ProviderEventBase;
+  'identity.credential.created:after': ProviderEventBase & { identityCredential: AuditSubspaceIdentityCredential };
+  'identity.credential.updated:before': ProviderEventBase;
+  'identity.credential.updated:after': ProviderEventBase & { identityCredential: AuditSubspaceIdentityCredential; previousIdentityCredential: AuditSubspaceIdentityCredential };
+  'identity.credential.deleted:before': ProviderEventBase;
+  'identity.credential.deleted:after': ProviderEventBase & { identityCredential: AuditSubspaceIdentityCredential };
+
+  'identity.delegation.created:before': ProviderEventBase;
+  'identity.delegation.created:after': ProviderEventBase & { identityDelegation: AuditSubspaceIdentityDelegation };
+  'identity.delegation.revoked:before': ProviderEventBase;
+  'identity.delegation.revoked:after': ProviderEventBase & { identityDelegation: AuditSubspaceIdentityDelegation };
+
+  'identity.delegation_config.created:before': ProviderEventBase;
+  'identity.delegation_config.created:after': ProviderEventBase & { identityDelegationConfig: AuditSubspaceIdentityDelegationConfig };
+  'identity.delegation_config.updated:before': ProviderEventBase;
+  'identity.delegation_config.updated:after': ProviderEventBase & { identityDelegationConfig: AuditSubspaceIdentityDelegationConfig; previousIdentityDelegationConfig: AuditSubspaceIdentityDelegationConfig };
+  'identity.delegation_config.deleted:before': ProviderEventBase;
+  'identity.delegation_config.deleted:after': ProviderEventBase & { identityDelegationConfig: AuditSubspaceIdentityDelegationConfig };
+
+  'provider.integration_setup_session.created:before': ProviderEventBase;
+  'provider.integration_setup_session.created:after': ProviderEventBase & { setupSession: AuditSubspaceIntegrationSetupSession };
 
   'provider.setup_session.created:before': ProviderEventBase;
-  'provider.setup_session.created:after': ProviderEventBase & { setupSession: SubspaceProviderSetupSession };
+  'provider.setup_session.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
-  'provider.setup_session.updated:after': ProviderEventBase & { setupSession: SubspaceProviderSetupSession };
+  'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
 
   'provider.callback.created:before': ProviderEventBase;
   'provider.callback.created:after': ProviderEventBase & { callback: SubspaceCallback };
@@ -811,81 +1427,124 @@ export interface FabricEvents {
   'provider.callback_destination.archived:after': ProviderEventBase & { callbackDestination: SubspaceCallbackDestination };
 
   'provider.session.created:before': ProviderEventBase;
-  'provider.session.created:after': ProviderEventBase & { session: SubspaceSession };
+  'provider.session.created:after': ProviderEventBase & { session: AuditSubspaceSession };
   'provider.session.updated:before': ProviderEventBase;
-  'provider.session.updated:after': ProviderEventBase & { session: SubspaceSession };
+  'provider.session.updated:after': ProviderEventBase & { session: AuditSubspaceSession; previousSession: AuditSubspaceSession };
+  /**
+   * A session created or rotated for an ephemeral managed session. The managed session
+   * itself is not audited -- it is the mechanism -- but the sessions it stands up are
+   * real sessions and belong in the log, attributed to the system actor that made them.
+   */
+  'provider.session.ephemeral_created:before': { instanceOid: bigint };
+  'provider.session.ephemeral_created:after': { instanceOid: bigint; auditScope: AuditScope; session: AuditSubspaceSession };
+
   'provider.session.deleted:before': ProviderEventBase;
-  'provider.session.deleted:after': ProviderEventBase & { session: SubspaceSession };
+  'provider.session.deleted:after': ProviderEventBase & { session: AuditSubspaceSession };
 
   'provider.session.provider.created:before': ProviderEventBase;
-  'provider.session.provider.created:after': ProviderEventBase & { sessionProvider: SubspaceSessionProvider };
+  'provider.session.provider.created:after': ProviderEventBase & { sessionProvider: AuditSubspaceSessionProvider };
   'provider.session.provider.updated:before': ProviderEventBase;
-  'provider.session.provider.updated:after': ProviderEventBase & { sessionProvider: SubspaceSessionProvider };
+  'provider.session.provider.updated:after': ProviderEventBase & { sessionProvider: AuditSubspaceSessionProvider; previousSessionProvider: AuditSubspaceSessionProvider };
   'provider.session.provider.deleted:before': ProviderEventBase;
-  'provider.session.provider.deleted:after': ProviderEventBase & { sessionProvider: SubspaceSessionProvider };
+  'provider.session.provider.deleted:after': ProviderEventBase & { sessionProvider: AuditSubspaceSessionProvider };
 
   'provider.session_template.created:before': ProviderEventBase;
-  'provider.session_template.created:after': ProviderEventBase & { sessionTemplate: SubspaceSessionTemplate };
+  'provider.session_template.created:after': ProviderEventBase & { sessionTemplate: AuditSubspaceSessionTemplate };
   'provider.session_template.updated:before': ProviderEventBase;
-  'provider.session_template.updated:after': ProviderEventBase & { sessionTemplate: SubspaceSessionTemplate };
+  'provider.session_template.updated:after': ProviderEventBase & { sessionTemplate: AuditSubspaceSessionTemplate; previousSessionTemplate: AuditSubspaceSessionTemplate };
   'provider.session_template.deleted:before': ProviderEventBase;
-  'provider.session_template.deleted:after': ProviderEventBase & { sessionTemplate: SubspaceSessionTemplate };
+  'provider.session_template.deleted:after': ProviderEventBase & { sessionTemplate: AuditSubspaceSessionTemplate };
 
   'provider.session_template.provider.created:before': ProviderEventBase;
-  'provider.session_template.provider.created:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };
+  'provider.session_template.provider.created:after': ProviderEventBase & { sessionTemplateProvider: AuditSubspaceSessionTemplateProvider };
   'provider.session_template.provider.updated:before': ProviderEventBase;
-  'provider.session_template.provider.updated:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };
+  'provider.session_template.provider.updated:after': ProviderEventBase & { sessionTemplateProvider: AuditSubspaceSessionTemplateProvider; previousSessionTemplateProvider: AuditSubspaceSessionTemplateProvider };
   'provider.session_template.provider.deleted:before': ProviderEventBase;
-  'provider.session_template.provider.deleted:after': ProviderEventBase & { sessionTemplateProvider: SubspaceSessionTemplateProvider };
+  'provider.session_template.provider.deleted:after': ProviderEventBase & { sessionTemplateProvider: AuditSubspaceSessionTemplateProvider };
 
   'provider.session_message.created:before': ProviderEventBase;
+  'provider.session_message.usage:after': {
+    instanceOid: bigint;
+    clientMessageIncrement: number;
+    providerMessageIncrement: number;
+  };
   'provider.tool_call.created:before': ProviderEventBase;
   'provider.tool_call.created:after': ProviderEventBase & { toolCall: SubspaceToolCall };
 
+  'protoguard.filter_setting.updated:before': ProviderEventBase & { filterId: string };
+  'protoguard.filter_setting.updated:after': ProviderEventBase & {
+    setting: AuditSubspaceProtoGuardFilterSetting;
+    previousSetting: AuditSubspaceProtoGuardFilterSetting;
+  };
+
+  'protoguard.alert_threshold.updated:before': ProviderEventBase;
+  'protoguard.alert_threshold.updated:after': ProviderEventBase & {
+    threshold: AuditSubspaceProtoGuardAlertThreshold;
+    previousThreshold: AuditSubspaceProtoGuardAlertThreshold;
+  };
+
+  'protoguard.alert.created:after': { auditScope: AuditScope; alert: AuditSubspaceProtoGuardAlert };
+
   'provider.custom_provider.created:before': ProviderEventBase;
-  'provider.custom_provider.created:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
+  'provider.custom_provider.created:after': ProviderEventBase & { customProvider: AuditSubspaceCustomProvider };
   'provider.custom_provider.updated:before': ProviderEventBase;
-  'provider.custom_provider.updated:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
+  'provider.custom_provider.updated:after': ProviderEventBase & { customProvider: AuditSubspaceCustomProvider; previousCustomProvider: AuditSubspaceCustomProvider };
   'provider.custom_provider.archived:before': ProviderEventBase;
-  'provider.custom_provider.archived:after': ProviderEventBase & { customProvider: SubspaceCustomProvider };
+  'provider.custom_provider.archived:after': ProviderEventBase & { customProvider: AuditSubspaceCustomProvider };
 
   'provider.custom_provider.version.created:before': ProviderEventBase;
-  'provider.custom_provider.version.created:after': ProviderEventBase & { customProviderVersion: SubspaceCustomProviderVersion };
+  'provider.custom_provider.version.created:after': ProviderEventBase & { customProviderVersion: AuditSubspaceCustomProviderVersion };
 
   'provider.custom_provider.commit.created:before': ProviderEventBase;
-  'provider.custom_provider.commit.created:after': ProviderEventBase & { customProviderCommit: SubspaceCustomProviderCommit };
+  'provider.custom_provider.commit.created:after': ProviderEventBase & { customProviderCommit: AuditSubspaceCustomProviderCommit };
+
+  'provider.scm_repository.created:before': ProviderEventBase;
+  'provider.scm_repository.created:after': ProviderEventBase & { scmRepository: AuditSubspaceScmRepo };
+  'provider.scm_repository.linked:before': ProviderEventBase;
+  'provider.scm_repository.linked:after': ProviderEventBase & { scmRepository: AuditSubspaceScmRepo; customProvider?: { id: string; name: string } | null };
+
+  'provider.custom_provider.code_bucket.file.written:before': ProviderEventBase;
+  'provider.custom_provider.code_bucket.file.written:after': ProviderEventBase & { file: AuditSubspaceCodeBucketFile };
+  'provider.custom_provider.code_bucket.file.deleted:before': ProviderEventBase;
+  'provider.custom_provider.code_bucket.file.deleted:after': ProviderEventBase & { file: AuditSubspaceCodeBucketFile };
 
   'provider.provider_listing_group.created:before': ProviderEventBase;
   'provider.provider_listing_group.created:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup };
+  'provider.provider_listing_group.updated:before': ProviderEventBase;
+  'provider.provider_listing_group.updated:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup; previousProviderGroup: SubspaceProviderListingGroup };
+  'provider.provider_listing_group.listing.added:before': ProviderEventBase;
+  'provider.provider_listing_group.listing.added:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup; providerListing: { id: string; provider: { id: string; name: string } } };
+  'provider.provider_listing_group.listing.removed:before': ProviderEventBase;
+  'provider.provider_listing_group.listing.removed:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup; providerListing: { id: string; provider: { id: string; name: string } } };
   'provider.provider_listing_group.deleted:before': ProviderEventBase;
   'provider.provider_listing_group.deleted:after': ProviderEventBase & { providerGroup: SubspaceProviderListingGroup };
 
   'instance.network.firewall.created:before': ProviderEventBase;
-  'instance.network.firewall.created:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.created:after': ProviderEventBase & { firewall: AuditSubspaceFirewall };
   'instance.network.firewall.updated:before': ProviderEventBase;
-  'instance.network.firewall.updated:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.updated:after': ProviderEventBase & { firewall: AuditSubspaceFirewall; previousFirewall: AuditSubspaceFirewall };
   'instance.network.firewall.deleted:before': ProviderEventBase;
-  'instance.network.firewall.deleted:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.deleted:after': ProviderEventBase & { firewall: AuditSubspaceFirewall };
   'instance.network.firewall.network_policy.attached:before': ProviderEventBase;
-  'instance.network.firewall.network_policy.attached:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.network_policy.attached:after': ProviderEventBase & { firewall: AuditSubspaceFirewall; previousFirewall: AuditSubspaceFirewall };
   'instance.network.firewall.network_policy.detached:before': ProviderEventBase;
-  'instance.network.firewall.network_policy.detached:after': ProviderEventBase & { firewall: SubspaceFirewall };
+  'instance.network.firewall.network_policy.detached:after': ProviderEventBase & { firewall: AuditSubspaceFirewall; previousFirewall: AuditSubspaceFirewall };
 
   'instance.network.firewall_binding.created:before': ProviderEventBase;
-  'instance.network.firewall_binding.created:after': ProviderEventBase & { firewallBinding: SubspaceFirewallBinding };
+  'instance.network.firewall_binding.created:after': ProviderEventBase & { firewallBinding: AuditSubspaceFirewallBinding };
   'instance.network.firewall_binding.deleted:before': ProviderEventBase;
-  'instance.network.firewall_binding.deleted:after': ProviderEventBase & { firewallBinding: SubspaceFirewallBinding };
+  'instance.network.firewall_binding.deleted:after': ProviderEventBase & { firewallBinding: AuditSubspaceFirewallBinding };
 
   'instance.network.network_policy.created:before': ProviderEventBase;
-  'instance.network.network_policy.created:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
+  'instance.network.network_policy.created:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy };
   'instance.network.network_policy.updated:before': ProviderEventBase;
-  'instance.network.network_policy.updated:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
+  'instance.network.network_policy.updated:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy; previousNetworkPolicy: AuditSubspaceNetworkPolicy };
   'instance.network.network_policy.deleted:before': ProviderEventBase;
-  'instance.network.network_policy.deleted:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
+  'instance.network.network_policy.deleted:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy };
   'instance.network.network_policy.rule.created:before': ProviderEventBase;
-  'instance.network.network_policy.rule.created:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy; rule: PrismaJson.NetworkPolicyRule };
+  'instance.network.network_policy.rule.created:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy; previousNetworkPolicy: AuditSubspaceNetworkPolicy; rule: PrismaJson.NetworkPolicyRule };
   'instance.network.network_policy.rule.updated:before': ProviderEventBase;
-  'instance.network.network_policy.rule.updated:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy; rule: PrismaJson.NetworkPolicyRule };
+  'instance.network.network_policy.rule.updated:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy; previousNetworkPolicy: AuditSubspaceNetworkPolicy; rule: PrismaJson.NetworkPolicyRule };
   'instance.network.network_policy.rule.deleted:before': ProviderEventBase;
-  'instance.network.network_policy.rule.deleted:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
+  'instance.network.network_policy.rule.deleted:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy; previousNetworkPolicy: AuditSubspaceNetworkPolicy; ruleId: string };
 }

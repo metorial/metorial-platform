@@ -38,7 +38,8 @@ export let consumerSessionController = Controller.create(
       .output(consumerSessionPresenter)
       .do(async ctx => {
         let consumerSession = await consumerAuthService.revokeConsumerSession({
-          session: ctx.consumerSession
+          session: ctx.consumerSession,
+          auditScope: ctx.auditScope
         });
 
         return consumerSessionPresenter.present({

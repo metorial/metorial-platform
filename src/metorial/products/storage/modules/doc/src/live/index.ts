@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
+import type { Context } from '@metorial/context';
 import { db, type StoreParticipantPermissions } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { upgradeWebSocket, websocket } from 'hono/bun';
@@ -90,6 +91,8 @@ type LiveSession = {
   id: string;
   documentId: string;
   actorId: string;
+  /** Captured when the socket connects, so edits made over it can be attributed. */
+  context: Context;
   instanceId: string;
   organizationId: string;
   authorization: ResourceAuthorization;
@@ -519,6 +522,7 @@ type DocumentLiveConnection = {
   instanceId: string;
   organizationId: string;
   actorId: string;
+  context: Context;
   authorization: ResourceAuthorization;
   permissions: ('content_read' | 'content_write')[];
   expiresAt: Date;
@@ -534,6 +538,7 @@ type DocumentLiveApiOptions = {
     documentId: string;
     instanceId: string;
     organizationId: string;
+    context: Context;
   }) => Promise<DocumentLiveConnection>;
 };
 
@@ -572,6 +577,7 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
           instanceId,
           organizationId,
           actorId,
+          context,
           authorization,
           permissions,
           expiresAt,
@@ -602,6 +608,7 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
               instanceId,
               organizationId,
               actorId,
+              context,
               authorization,
               permissions,
               canWrite: permissions.includes('content_write'),
@@ -671,7 +678,8 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
                   token: parsed.data.token,
                   documentId: session.documentId,
                   instanceId: session.instanceId,
-                  organizationId: session.organizationId
+                  organizationId: session.organizationId,
+                  context: session.context
                 });
                 if (!hasSameDocumentLiveIdentity(session, refreshed)) {
                   throw new ServiceError(
@@ -739,6 +747,7 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
                   documentId: session.documentId,
                   update: parsed.data.update,
                   actorId: session.actorId,
+                  actorContext: session.context,
                   generation:
                     typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
                 });
@@ -866,6 +875,7 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
                 document: currentScopedDocument.document,
                 input: {
                   authorization: session.authorization,
+                  context: session.context,
                   title: parsed.data.title,
                   content:
                     parsed.type === 'document_update' ||

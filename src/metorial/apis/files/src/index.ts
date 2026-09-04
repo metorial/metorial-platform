@@ -1,22 +1,48 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import type { AuditScope } from '@metorial/audit-scope';
+import type { Context as RequestContext } from '@metorial/context';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
+import { generatePlainId } from '@metorial/id';
 import { createDocumentLiveApi } from '@metorial/module-documents/live';
 import {
+  fileRouterResolutionHeader,
+  fileRouterResolutionValue,
+  fileRouterSecretHeader,
+  fileUploadService,
   getCargoFileContent,
+  getCargoFileSignedDownload,
+  isFileRouterRequest,
   purposeSlugs,
   resolveCargoAccess,
-  uploadCargoFile
+  uploadCargoFile,
+  type FileRouterResolution
 } from '@metorial/module-file';
-import { generatePlainId } from '@metorial/id';
 import { websocket } from 'hono/bun';
 import { resolveDocumentsLiveToken } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
-import { parseStoreReplace } from './uploadForm';
+import { assertDirectUploadBodySize, parseStoreReplace } from './uploadForm';
+import { parseUploadMode, parseUploadRequest } from './uploadRequest';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
+
+/**
+ * Uploads outside any organization (user avatars) have nothing to audit against, and
+ * the upload services require an explicit scope rather than silently skipping.
+ */
+let requireUploadAuditScope = (target: { auditScope?: AuditScope }) => {
+  if (!target.auditScope) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'This upload target cannot be attributed to an organization'
+      })
+    );
+  }
+
+  return target.auditScope;
+};
 
 type FileApiOptions = {
   authenticateRequest?: (
@@ -29,138 +55,288 @@ type FileApiOptions = {
 
 export { websocket };
 
+type AuthInfo = FileApiAuthResult['auth'];
+
+let presentFile = (file: {
+  id: string;
+  status: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  title: string | null;
+  purpose: { name: string; slug: string };
+  createdAt: Date;
+  updatedAt: Date;
+}) => ({
+  object: 'file',
+
+  id: file.id,
+  status: file.status,
+
+  file_name: file.fileName,
+  file_size: file.fileSize,
+  file_type: file.fileType,
+
+  title: file.title,
+
+  purpose: {
+    name: file.purpose.name,
+    identifier: file.purpose.slug
+  },
+
+  created_at: file.createdAt,
+  updated_at: file.updatedAt
+});
+
+let presentFileUpload = (
+  upload: {
+    id: string;
+    status: string;
+    fileName: string;
+    fileSize: number;
+    fileType: string;
+    title: string | null;
+    purpose: { name: string; slug: string };
+    uploadUrlExpiresAt: Date;
+    expiresAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  uploadUrl: string
+) => ({
+  object: 'file_upload',
+
+  id: upload.id,
+  status: upload.status,
+
+  file_name: upload.fileName,
+  file_size: upload.fileSize,
+  file_type: upload.fileType,
+
+  title: upload.title,
+
+  purpose: {
+    name: upload.purpose.name,
+    identifier: upload.purpose.slug
+  },
+
+  upload: {
+    url: uploadUrl,
+    method: 'PUT',
+    expires_at: upload.uploadUrlExpiresAt
+  },
+
+  expires_at: upload.expiresAt,
+  created_at: upload.createdAt,
+  updated_at: upload.updatedAt
+});
+
+let handleDirectUpload = async (c: Context, auth: AuthInfo, context: RequestContext) => {
+  assertDirectUploadBodySize(c.req.header('Content-Length'));
+
+  let body = await c.req.formData();
+
+  parseUploadMode(body.get('mode'));
+
+  let file = body.get('file') as File;
+  let purpose = body.get('purpose') as string;
+  let organizationId = body.get('organization_id');
+  let instanceId = body.get('instance_id');
+  let attachedStoreId = body.get('store_id');
+  let attachedStorePath = body.get('path');
+  let storeReplaceValue = body.get('store_replace');
+  let title = (body.get('title') || undefined) as string | undefined;
+
+  if (!file || !purpose) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Missing file or purpose'
+      })
+    );
+  }
+
+  let fileNameFromStorePath =
+    typeof attachedStorePath == 'string'
+      ? attachedStorePath.split('/').filter(Boolean).at(-1)?.trim()
+      : undefined;
+  let fileName =
+    typeof file.name == 'string' && file.name.trim()
+      ? file.name.trim()
+      : fileNameFromStorePath
+        ? fileNameFromStorePath
+        : typeof title == 'string' && title.trim()
+          ? title.trim()
+          : null;
+
+  if (!fileName) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Missing file name'
+      })
+    );
+  }
+
+  if (!purposeSlugs.includes(purpose as (typeof purposeSlugs)[number])) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Invalid purpose'
+      })
+    );
+  }
+
+  if (!!attachedStoreId !== !!attachedStorePath) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'store_id and path must be provided together'
+      })
+    );
+  }
+
+  let storeReplace = parseStoreReplace(
+    storeReplaceValue,
+    !!attachedStoreId && !!attachedStorePath
+  );
+
+  let target = await resolveUploadTarget({
+    auth,
+    context,
+    instanceId: typeof instanceId == 'string' ? instanceId : null,
+    organizationId: typeof organizationId == 'string' ? organizationId : null
+  });
+
+  if ((attachedStoreId || attachedStorePath) && !target.isInstanceOwner) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Files can only be attached to stores when uploading to an instance'
+      })
+    );
+  }
+
+  let access = await resolveCargoAccess({
+    owner: target.owner,
+    ...target.cargoAccess
+  });
+  let createdFile = await uploadCargoFile({
+    ...access.scope,
+    auditScope: requireUploadAuditScope(target),
+    purpose,
+    file,
+    title,
+    fileName,
+    authorization: access.authorization,
+    defaultPermissions: access.defaultPermissions,
+    overridePermissions: access.overridePermissions,
+    store:
+      typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
+        ? {
+            id: attachedStoreId,
+            path: attachedStorePath,
+            replace: storeReplace
+          }
+        : undefined
+  });
+
+  return c.json(presentFile(createdFile));
+};
+
+let handleJsonUpload = async (c: Context, auth: AuthInfo, context: RequestContext) => {
+  let raw: unknown;
+
+  try {
+    raw = await c.req.json();
+  } catch {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Invalid JSON body'
+      })
+    );
+  }
+
+  let body = parseUploadRequest(raw);
+
+  let target = await resolveUploadTarget({
+    auth,
+    context,
+    instanceId: body.instance_id ?? null,
+    organizationId: body.organization_id ?? null
+  });
+
+  let access = await resolveCargoAccess({
+    owner: target.owner,
+    ...target.cargoAccess
+  });
+
+  if (body.mode === 'complete') {
+    let file = await fileUploadService.completePendingUpload({
+      ...access.scope,
+      auditScope: requireUploadAuditScope(target),
+      uploadId: body.file_upload_id,
+      authorization: access.authorization,
+      defaultPermissions: access.defaultPermissions,
+      overridePermissions: access.overridePermissions
+    });
+
+    return c.json(presentFile(file));
+  }
+
+  if (body.store_id && !target.isInstanceOwner) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Files can only be attached to stores when uploading to an instance'
+      })
+    );
+  }
+
+  let { upload, uploadUrl } = await fileUploadService.createPendingUpload({
+    ...access.scope,
+    auditScope: requireUploadAuditScope(target),
+    purpose: body.purpose,
+    authorization: access.authorization,
+    defaultPermissions: access.defaultPermissions,
+    overridePermissions: access.overridePermissions,
+    input: {
+      name: body.file_name,
+      size: body.file_size,
+      mimeType: body.file_type,
+      title: body.title,
+      store:
+        body.store_id && body.path
+          ? {
+              id: body.store_id,
+              path: body.path,
+              replace: body.store_replace ?? false
+            }
+          : undefined
+    }
+  });
+
+  return c.json(presentFileUpload(upload, uploadUrl));
+};
+
 let createFileUploadHandler =
   (authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>) =>
-  async (c: Context) =>
-    provideExecutionContext(
+  async (c: Context) => {
+    let context: RequestContext = {
+      ip: extractIp(c.req.raw.headers as any) ?? '0.0.0.0',
+      ua: c.req.raw.headers.get('user-agent')
+    };
+
+    return provideExecutionContext(
       createExecutionContext({
         contextId: `req_${generatePlainId(20)}`,
         type: 'request',
-        ip: extractIp(c.req.raw.headers as any) ?? '0.0.0.0',
-        userAgent: c.req.raw.headers.get('user-agent') ?? 'unknown'
+        ip: context.ip,
+        userAgent: context.ua ?? 'unknown'
       }),
       async () => {
         let { auth } = await authenticateRequest(c.req.raw, new URL(c.req.url));
 
-        let body = await c.req.formData();
-        let file = body.get('file') as File;
-        let purpose = body.get('purpose') as string;
-        let organizationId = body.get('organization_id');
-        let instanceId = body.get('instance_id');
-        let attachedStoreId = body.get('store_id');
-        let attachedStorePath = body.get('path');
-        let storeReplaceValue = body.get('store_replace');
-        let title = (body.get('title') || undefined) as string | undefined;
-
-        if (!file || !purpose) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Missing file or purpose'
-            })
-          );
-        }
-
-        let fileNameFromStorePath =
-          typeof attachedStorePath == 'string'
-            ? attachedStorePath.split('/').filter(Boolean).at(-1)?.trim()
-            : undefined;
-        let fileName =
-          typeof file.name == 'string' && file.name.trim()
-            ? file.name.trim()
-            : fileNameFromStorePath
-              ? fileNameFromStorePath
-              : typeof title == 'string' && title.trim()
-                ? title.trim()
-                : null;
-
-        if (!fileName) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Missing file name'
-            })
-          );
-        }
-
-        if (!purposeSlugs.includes(purpose as (typeof purposeSlugs)[number])) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Invalid purpose'
-            })
-          );
-        }
-
-        if (!!attachedStoreId !== !!attachedStorePath) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'store_id and path must be provided together'
-            })
-          );
-        }
-
-        let storeReplace = parseStoreReplace(
-          storeReplaceValue,
-          !!attachedStoreId && !!attachedStorePath
-        );
-
-        let target = await resolveUploadTarget({
-          auth,
-          instanceId: typeof instanceId == 'string' ? instanceId : null,
-          organizationId: typeof organizationId == 'string' ? organizationId : null
-        });
-
-        if ((attachedStoreId || attachedStorePath) && !target.isInstanceOwner) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Files can only be attached to stores when uploading to an instance'
-            })
-          );
-        }
-
-        let access = await resolveCargoAccess({
-          owner: target.owner,
-          ...target.cargoAccess
-        });
-        let createdFile = await uploadCargoFile({
-          ...access.scope,
-          purpose,
-          file,
-          title,
-          fileName,
-          authorization: access.authorization,
-          defaultPermissions: access.defaultPermissions,
-          overridePermissions: access.overridePermissions,
-          store:
-            typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
-              ? {
-                  id: attachedStoreId,
-                  path: attachedStorePath,
-                  replace: storeReplace
-                }
-              : undefined
-        });
-
-        return c.json({
-          object: 'file',
-
-          id: createdFile.id,
-          status: createdFile.status,
-
-          file_name: createdFile.fileName,
-          file_size: createdFile.fileSize,
-          file_type: createdFile.fileType,
-
-          title: createdFile.title,
-
-          purpose: {
-            name: createdFile.purpose.name,
-            identifier: createdFile.purpose.slug
-          },
-
-          created_at: createdFile.createdAt,
-          updated_at: createdFile.updatedAt
-        });
+        return c.req.header('Content-Type')?.includes('multipart/form-data')
+          ? await handleDirectUpload(c, auth, context)
+          : await handleJsonUpload(c, auth, context);
       }
     );
+  };
 
 let getServedContentType = (contentType?: string | null) => {
   if (contentType?.startsWith('image/')) return contentType;
@@ -177,6 +353,34 @@ let getContentDispositionHeader = (fileName: string, disposition: 'inline' | 'at
   return `${disposition}; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 };
 
+let getFileContentHeaders = (d: {
+  fileName?: string | null;
+  contentType?: string | null;
+  size?: number;
+  source: 'document' | 'database' | 'object';
+  isExpiring: boolean;
+  shouldDownload: boolean;
+}) => {
+  let fileName = d.fileName?.trim();
+  let contentDisposition = fileName
+    ? getContentDispositionHeader(fileName, d.shouldDownload ? 'attachment' : 'inline')
+    : undefined;
+
+  return {
+    'Content-Type':
+      d.source === 'document'
+        ? getDocumentContentType(d.contentType)
+        : getServedContentType(d.contentType),
+    ...(d.size !== undefined ? { 'Content-Length': String(d.size) } : {}),
+    'Cache-Control':
+      d.source === 'document' || d.source === 'database' || d.isExpiring
+        ? 'private, no-store'
+        : 'public, max-age=31536000, immutable',
+    'X-Content-Type-Options': 'nosniff',
+    ...(contentDisposition ? { 'Content-Disposition': contentDisposition } : {})
+  };
+};
+
 let getFileContentHandler = async (c: Context) => {
   let { fileId, key } = c.req.param();
 
@@ -188,29 +392,50 @@ let getFileContentHandler = async (c: Context) => {
     );
   }
 
+  let shouldDownload = new URL(c.req.url).searchParams.has('download');
+
+  if (isFileRouterRequest(c.req.header(fileRouterSecretHeader))) {
+    let resolved = await getCargoFileSignedDownload({ fileId, key });
+
+    if (resolved) {
+      let resolution: FileRouterResolution = {
+        url: resolved.url,
+        headers: getFileContentHeaders({
+          fileName: resolved.file.fileName,
+          contentType: resolved.file.fileType,
+          size: resolved.file.fileSize,
+          source: 'object',
+          isExpiring: resolved.link.expiresAt != null,
+          shouldDownload
+        }),
+        cacheKey: resolved.link.expiresAt
+          ? null
+          : `${resolved.file.id}/${resolved.file.storeId}`
+      };
+
+      return Response.json(resolution, {
+        headers: {
+          [fileRouterResolutionHeader]: fileRouterResolutionValue,
+          'Cache-Control': 'private, no-store'
+        }
+      });
+    }
+  }
+
   let { file, link, content, metadata } = await getCargoFileContent({
     fileId,
     key
   });
-  let shouldDownload = new URL(c.req.url).searchParams.has('download');
-  let fileName = file.fileName?.trim();
-  let contentDisposition = fileName
-    ? getContentDispositionHeader(fileName, shouldDownload ? 'attachment' : 'inline')
-    : undefined;
 
   return new Response(content as any, {
-    headers: {
-      'Content-Type':
-        metadata.source === 'document'
-          ? getDocumentContentType(metadata.contentType)
-          : getServedContentType(metadata.contentType),
-      'Cache-Control':
-        metadata.source === 'document' || metadata.source === 'database' || link.expiresAt
-          ? 'private, no-store'
-          : 'public, max-age=31536000, immutable',
-      'X-Content-Type-Options': 'nosniff',
-      ...(contentDisposition ? { 'Content-Disposition': contentDisposition } : {})
-    }
+    headers: getFileContentHeaders({
+      fileName: file.fileName,
+      contentType: metadata.contentType,
+      size: metadata.size,
+      source: metadata.source,
+      isExpiring: link.expiresAt != null,
+      shouldDownload
+    })
   });
 };
 
@@ -246,12 +471,17 @@ let createDocumentsLiveHandler = () =>
       createDocumentLiveApi({
         path: '/documents-live',
         resolveConnection: async ({ request, url }) => {
+          let context = {
+            ip: extractIp(request.headers as any) ?? '0.0.0.0',
+            ua: request.headers.get('user-agent')
+          };
+
           return await provideExecutionContext(
             createExecutionContext({
               contextId: `req_${generatePlainId(20)}`,
               type: 'request',
-              ip: extractIp(request.headers as any) ?? '0.0.0.0',
-              userAgent: request.headers.get('user-agent') ?? 'unknown'
+              ip: context.ip,
+              userAgent: context.ua ?? 'unknown'
             }),
             async () => {
               let documentId = getQueryParam(url, ['documentId', 'document_id']);
@@ -276,15 +506,17 @@ let createDocumentsLiveHandler = () =>
                 editToken,
                 documentId,
                 instanceId,
-                organizationId
+                organizationId,
+                context
               });
             }
           );
         },
-        resolveToken: async ({ token, documentId, instanceId, organizationId }) =>
+        resolveToken: async ({ token, documentId, instanceId, organizationId, context }) =>
           await resolveDocumentsLiveToken({
             editToken: token,
             documentId,
+            context,
             instanceId,
             organizationId
           })

@@ -39,9 +39,7 @@ let getApiKeyAuditScope = (
   return bindAuditScope({
     scope: event.auditScope,
     organization: event.organization,
-    instance: event.machineAccess.instanceOid
-      ? { oid: event.machineAccess.instanceOid }
-      : null
+    instance: event.machineAccess.instanceOid ? { oid: event.machineAccess.instanceOid } : null
   });
 };
 

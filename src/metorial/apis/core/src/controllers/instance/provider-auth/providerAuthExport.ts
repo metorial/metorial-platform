@@ -152,6 +152,7 @@ export let providerAuthExportController = Controller.create(
         let { authExport, decryptedConfigData } =
           await providerAuthExportService.createProviderAuthExport({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             authConfig,
             input: {
               note: ctx.body.note,

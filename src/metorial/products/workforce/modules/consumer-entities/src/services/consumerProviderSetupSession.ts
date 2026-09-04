@@ -5,6 +5,7 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   integrationService,
   integrationSetupSessionService
@@ -120,6 +121,7 @@ class ConsumerProviderSetupSessionServiceImpl {
   async startSetupSession(d: {
     instance: Instance;
     context: Context;
+    auditScope: AuditScope;
     accessTags: AnyAccessTagSelector;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfile;
@@ -163,7 +165,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       consumerProfile: d.consumerProfile
     });
 
-    await Fabric.fire('consumer.integration_setup_session.created:before', {
+    await Fabric.fire('integration_setup_session.created:before', {
       instance: d.instance
     });
 
@@ -200,7 +202,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       }
     });
 
-    await db.consumerProviderSetupSessionBinding.create({
+    let binding = await db.consumerProviderSetupSessionBinding.create({
       data: {
         id: await ID.generateId('consumerProviderSetupSessionBinding'),
         providerSetupSessionId: setupSession.id,
@@ -211,9 +213,14 @@ class ConsumerProviderSetupSessionServiceImpl {
       }
     });
 
-    await Fabric.fire('consumer.integration_setup_session.created:after', {
+    await Fabric.fire('integration_setup_session.created:after', {
       instance: d.instance,
-      setupSession
+      setupSession,
+      binding,
+      consumerSurface: d.consumerSurface,
+      consumerProfile: d.consumerProfile,
+      providerTemplate,
+      auditScope: d.auditScope
     });
 
     return setupSession;

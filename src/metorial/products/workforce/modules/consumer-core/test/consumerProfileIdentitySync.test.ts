@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   consumerUpdate: vi.fn(),
   instanceConsumerUpdate: vi.fn(),
+  instanceConsumerFindUniqueOrThrow: vi.fn(),
   consumerProfileFindMany: vi.fn(),
   consumerProfileUpdate: vi.fn(),
   consumerProfileUpdateMany: vi.fn(),
@@ -12,7 +13,10 @@ let mocks = vi.hoisted(() => ({
 vi.mock('@metorial/db', () => {
   let db = {
     consumer: { update: mocks.consumerUpdate },
-    instanceConsumer: { update: mocks.instanceConsumerUpdate },
+    instanceConsumer: {
+      update: mocks.instanceConsumerUpdate,
+      findUniqueOrThrow: mocks.instanceConsumerFindUniqueOrThrow
+    },
     consumerProfile: {
       findMany: mocks.consumerProfileFindMany,
       update: mocks.consumerProfileUpdate,
@@ -41,6 +45,8 @@ vi.mock('@metorial/lock', () => ({
 
 vi.mock('@metorial/module-search', () => ({ searchConsumerIds: vi.fn() }));
 
+vi.mock('@metorial/fabric', () => ({ Fabric: { fire: vi.fn(), listen: vi.fn() } }));
+
 vi.mock('../src/queues/lifecycle/consumer', () => ({
   consumerCreatedQueue: { add: vi.fn() },
   consumerUpdatedQueue: { add: mocks.consumerUpdatedAdd }
@@ -61,6 +67,13 @@ describe('consumer profile identity sync', () => {
         { oid: 3n, surfaceOid: 20n }
       ])
       .mockResolvedValueOnce([{ surfaceOid: 10n }]);
+    mocks.instanceConsumerFindUniqueOrThrow.mockResolvedValue({
+      id: 'instance_consumer_1',
+      oid: 100n,
+      name: 'Old Name',
+      email: 'old@example.com',
+      consumer: { id: 'cns_1', organizationMember: null, user: null }
+    });
     mocks.instanceConsumerUpdate.mockResolvedValue({
       id: 'instance_consumer_1',
       oid: 100n,
@@ -79,6 +92,11 @@ describe('consumer profile identity sync', () => {
         organizationMemberOid: null,
         name: 'Old Name',
         email: 'old@example.com'
+      } as any,
+      auditScope: {
+        organizationOid: 900n,
+        actor: { type: 'system', id: 'test' },
+        context: { ip: '' }
       } as any,
       input: {
         name: 'Updated Name',

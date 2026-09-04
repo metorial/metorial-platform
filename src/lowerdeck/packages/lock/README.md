@@ -54,6 +54,25 @@ await lock.usingLock(['user:123', 'account:456'], async () => {
 });
 ```
 
+Lock acquisition is bounded to 5 seconds by default. Override the acquisition budget without
+changing the lease duration when a caller has a different latency budget:
+
+```typescript
+await lock.usingLock('resource-key', performWork, {
+  acquisitionTimeoutMs: 2_000,
+  durationMs: 10_000
+});
+```
+
+Redis connections are pooled by URL. Long-running services may close the shared pool during
+graceful shutdown:
+
+```typescript
+import { closeLockPool } from '@lowerdeck/lock';
+
+await closeLockPool();
+```
+
 ## License
 
 This project is licensed under the Apache License 2.0.

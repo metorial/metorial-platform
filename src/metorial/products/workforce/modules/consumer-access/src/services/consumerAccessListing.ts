@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   ConsumerAccessListing,
   ConsumerAccessTargetType,
@@ -19,10 +20,12 @@ import {
   SkillTemplate,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { searchMagicMcpServerIds, searchProviderTemplateIds } from '@metorial/module-search';
 import { consumerAccessService } from './consumerAccess';
 
 let include = {
+  surface: true,
   providerTemplate: true,
   magicMcpServer: true,
   skill: true,
@@ -38,6 +41,7 @@ let include = {
 } as const;
 
 export type ConsumerAccessListingWithRelations = ConsumerAccessListing & {
+  surface: ConsumerSurface;
   providerTemplate: ProviderTemplate | null;
   magicMcpServer: MagicMcpServer | null;
   skill: Skill | null;
@@ -608,6 +612,7 @@ class ConsumerAccessListingServiceImpl {
 
   async create(d: {
     consumerSurface: ConsumerSurface;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string | null;
@@ -621,7 +626,7 @@ class ConsumerAccessListingServiceImpl {
     });
     let defaults = this.getTargetDefaultValues(target);
 
-    return await db.consumerAccessListing.upsert({
+    let consumerAccessListing = await db.consumerAccessListing.upsert({
       where:
         target.type == 'provider_template'
           ? {
@@ -688,17 +693,25 @@ class ConsumerAccessListingServiceImpl {
       },
       include
     });
+
+    await Fabric.fire('consumer.access_listing.created:after', {
+      consumerAccessListing,
+      auditScope: d.auditScope
+    });
+
+    return consumerAccessListing;
   }
 
   async update(d: {
-    consumerAccessListing: ConsumerAccessListing;
+    consumerAccessListing: ConsumerAccessListingWithRelations;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string | null;
       readme?: string | null;
     };
   }) {
-    return await db.consumerAccessListing.update({
+    let consumerAccessListing = await db.consumerAccessListing.update({
       where: { oid: d.consumerAccessListing.oid },
       data: {
         name: d.input.name,
@@ -707,15 +720,25 @@ class ConsumerAccessListingServiceImpl {
       },
       include
     });
+
+    await Fabric.fire('consumer.access_listing.updated:after', {
+      consumerAccessListing,
+      previousConsumerAccessListing: d.consumerAccessListing,
+      auditScope: d.auditScope
+    });
+
+    return consumerAccessListing;
   }
 
   async delete(d: {
     organization: Organization;
     consumerAccessListing: ConsumerAccessListingWithRelations;
+    auditScope: AuditScope;
   }) {
     let accesses = await db.consumerAccess.findMany({
       where: { listingOid: d.consumerAccessListing.oid },
       include: {
+        surface: true,
         consumerGroup: true,
         providerTemplate: true,
         magicMcpServer: true,
@@ -731,7 +754,8 @@ class ConsumerAccessListingServiceImpl {
     for (let consumerAccess of accesses) {
       await consumerAccessService.deleteConsumerAccess({
         organization: d.organization,
-        consumerAccess
+        consumerAccess,
+        auditScope: d.auditScope
       });
     }
 
@@ -748,10 +772,17 @@ class ConsumerAccessListingServiceImpl {
       if (!existing) return d.consumerAccessListing;
 
       try {
-        return await db.consumerAccessListing.delete({
+        let consumerAccessListing = await db.consumerAccessListing.delete({
           where: { oid: d.consumerAccessListing.oid },
           include
         });
+
+        await Fabric.fire('consumer.access_listing.deleted:after', {
+          consumerAccessListing,
+          auditScope: d.auditScope
+        });
+
+        return consumerAccessListing;
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
           return d.consumerAccessListing;

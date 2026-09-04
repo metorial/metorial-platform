@@ -23,6 +23,10 @@ model Organization {
 
   enforceTeamAccess Boolean @default(false)
 
+  auditLogRetentionInDays Int?
+
+  magicMcpOrigin String?
+
   ignoreAndDoNotUse_canCreateGlobalOauthApps Boolean @default(false) @map("canCreateGlobalOauthApps")
 
   slug          String   @unique
@@ -57,7 +61,7 @@ model Organization {
   files                                  File[]
   secrets                                Secret[]
   profile                                Profile?
-  uploads                                Upload[]
+  fileUploads                            FileUpload[]
   accessLimiters                         AccessLimiter[]
   team                                   Team[]
   accessTagPolicies                      AccessTagPolicy[]
@@ -102,6 +106,9 @@ model Organization {
   events                                 Event[]
   auditLogDirtyTrackers                  AuditLogDirtyTracker[]
   auditLogStreams                        AuditLogStream[]
+  outpostAccesses                        OutpostAccess[]
+  outposts                               Outpost[]
+  outpostTokenKeyPairs                   OutpostTokenKeyPair[]
 
   @@index([authVersion])
   @@index([previousSlugs])

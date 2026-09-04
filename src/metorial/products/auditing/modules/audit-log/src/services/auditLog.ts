@@ -62,7 +62,14 @@ class AuditLogService {
         )
       )
     ];
-    let [auditEvents, consumerProfiles] = await Promise.all([
+    let resourceActorIds = [
+      ...new Set(
+        auditLogs.flatMap(auditLog =>
+          auditLog.actorType == 'resource_actor' && auditLog.actorId ? [auditLog.actorId] : []
+        )
+      )
+    ];
+    let [auditEvents, consumerProfiles, resourceActors] = await Promise.all([
       getAuditEventsByIds(eventIds),
       consumerProfileIds.length
         ? db.consumerProfile.findMany({
@@ -87,11 +94,28 @@ class AuditLogService {
               }
             }
           })
+        : [],
+      resourceActorIds.length
+        ? db.resourceActor.findMany({
+            where: {
+              id: { in: resourceActorIds },
+              project: { organizationOid }
+            },
+            select: {
+              id: true,
+              type: true,
+              name: true,
+              identifier: true
+            }
+          })
         : []
     ]);
     let auditEventsById = new Map(auditEvents.map(event => [event._id, event]));
     let consumerProfilesById = new Map(
       consumerProfiles.map(consumerProfile => [consumerProfile.id, consumerProfile])
+    );
+    let resourceActorsById = new Map(
+      resourceActors.map(resourceActor => [resourceActor.id, resourceActor])
     );
 
     return await Promise.all(
@@ -138,7 +162,20 @@ class AuditLogService {
                       }
                     : undefined;
                 })()
-              : undefined;
+              : auditLog.actorType == 'resource_actor' && auditLog.actorId
+                ? (() => {
+                    let resourceActor = resourceActorsById.get(auditLog.actorId);
+                    return resourceActor
+                      ? {
+                          object: 'resource_actor' as const,
+                          id: resourceActor.id,
+                          type: resourceActor.type,
+                          name: resourceActor.name,
+                          identifier: resourceActor.identifier
+                        }
+                      : undefined;
+                  })()
+                : undefined;
 
         return {
           id: auditLog.id,

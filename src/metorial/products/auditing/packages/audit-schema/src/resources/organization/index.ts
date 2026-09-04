@@ -10,11 +10,15 @@ import { organizationMemberResource } from './member';
 import {
   projectAuthConfigConfigurationResource,
   projectBrandResource,
+  projectDataRetentionConfigurationResource,
   projectIntegrationNamingConfigurationResource,
   projectRetentionResource,
-  projectToolCallingConfigurationResource
+  projectSkillSyncConfigurationResource,
+  projectToolCallingConfigurationResource,
+  projectWorkforceConfigurationResource
 } from './projectSettings';
 import { auditLogStreamResource } from './auditLogStream';
+import { auditLogRetentionResource } from './auditLogRetention';
 import { teamMemberResource, teamResource } from './team';
 
 export let organizationResources = resourceSet({
@@ -22,6 +26,7 @@ export let organizationResources = resourceSet({
   organization_member: organizationMemberResource,
   organization_invite: organizationInviteResource,
   audit_log_stream: auditLogStreamResource,
+  audit_log_retention: auditLogRetentionResource,
   team: teamResource,
   team_member: teamMemberResource,
   access_role: accessRoleResource,
@@ -31,5 +36,8 @@ export let organizationResources = resourceSet({
   project_retention: projectRetentionResource,
   project_auth_config_configuration: projectAuthConfigConfigurationResource,
   project_integration_naming_configuration: projectIntegrationNamingConfigurationResource,
-  project_tool_calling_configuration: projectToolCallingConfigurationResource
+  project_skill_sync_configuration: projectSkillSyncConfigurationResource,
+  project_tool_calling_configuration: projectToolCallingConfigurationResource,
+  project_data_retention_configuration: projectDataRetentionConfigurationResource,
+  project_workforce_configuration: projectWorkforceConfigurationResource
 });

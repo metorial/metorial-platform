@@ -85,7 +85,18 @@ let toBigIntOrNull = (v: string | null | undefined): bigint | null =>
   v != null ? BigInt(v) : null;
 
 class slateErrorServiceImpl {
+  private async shouldCollectErrors(tenantOid: bigint | string) {
+    let tenant = await db.tenant.findUnique({
+      where: { oid: BigInt(tenantOid) },
+      select: { collectErrors: true }
+    });
+
+    return tenant ? tenant.collectErrors : true;
+  }
+
   async recordSlateError(d: RecordSlateErrorInput) {
+    if (!(await this.shouldCollectErrors(d.tenantOid))) return;
+
     await recordSlateErrorQueue.add({
       type: d.type,
       errorCode: d.errorCode,
@@ -118,6 +129,8 @@ class slateErrorServiceImpl {
     instanceConfigOid: string | null;
     oauthSetupOid: string | null;
   }) {
+    if (!(await this.shouldCollectErrors(d.tenantOid))) return null;
+
     return db.slateError.create({
       data: {
         ...getId('slateError'),
@@ -140,10 +153,7 @@ class slateErrorServiceImpl {
     });
   }
 
-  async listSlateErrors(d: {
-    tenant?: Tenant;
-    types?: SlateErrorType[];
-  }) {
+  async listSlateErrors(d: { tenant?: Tenant; types?: SlateErrorType[] }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>

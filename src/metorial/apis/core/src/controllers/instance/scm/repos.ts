@@ -161,6 +161,7 @@ export let scmReposController = Controller.create(
         if ('external_repo_id' in ctx.body) {
           let scmRepo = await scmRepositoryService.linkScmRepository({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             input: {
               scmConnectionId: ctx.body.installation_id,
               externalId: ctx.body.external_repo_id
@@ -174,6 +175,7 @@ export let scmReposController = Controller.create(
 
         let scmRepo = await scmRepositoryService.createScmRepository({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             scmConnectionId: ctx.body.installation_id,
             externalAccountId: (ctx.body as any).external_account_id,

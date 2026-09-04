@@ -47,6 +47,7 @@ export let updateProfileQueueProcessor = updateProfileQueue.process(async data =
   });
 
   let stack = await slateInvocationService.createInvocation({
+    tenant: authConfig.tenant,
     slateVersion: version,
     participants: []
   });

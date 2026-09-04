@@ -126,21 +126,29 @@ import {
   v1OAuthInstallationPresenter,
   v1OAuthScopePermissionsPresenter,
   v1OrganizationActorPresenter,
+  v1OrganizationAuditLogRetentionPresenter,
   v1OrganizationConfigPresenter,
   v1OrganizationInvitePresenter,
   v1OrganizationLayoutPresenter,
   v1OrganizationMemberPresenter,
   v1OrganizationPresenter,
+  v1OrganizationScopesPresenter,
+  v1OutpostAccessPresenter,
+  v1OutpostCredentialPresenter,
+  v1OutpostPresenter,
   v1PortalOAuthAuthorizationPresenter,
   v1PortalOAuthClientPresenter,
   v1PortalPresenter,
   v1ProfilePresenter,
   v1ProjectAuthConfigConfigurationPresenter,
   v1ProjectBrandPresenter,
+  v1ProjectDataRetentionConfigurationPresenter,
   v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectPresenter,
   v1ProjectRetentionPresenter,
+  v1ProjectSkillSyncConfigurationPresenter,
   v1ProjectToolCallingConfigurationPresenter,
+  v1ProjectWorkforceConfigurationPresenter,
   v1ProtoGuardAlertPresenter,
   v1ProtoGuardConfigPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
@@ -340,20 +348,28 @@ import {
   oauthInstallationType,
   oauthScopePermissionsType,
   organizationActorType,
+  organizationAuditLogRetentionType,
   organizationConfigType,
   organizationInviteType,
   organizationLayoutType,
   organizationMemberType,
+  organizationScopesType,
   organizationType,
+  outpostAccessType,
+  outpostCredentialType,
+  outpostType,
   portalOAuthAuthorizationType,
   portalOAuthClientType,
   portalType,
   profileType,
   projectAuthConfigConfigurationType,
   projectBrandType,
+  projectDataRetentionConfigurationType,
   projectIntegrationNamingConfigurationType,
   projectRetentionType,
+  projectSkillSyncConfigurationType,
   projectToolCallingConfigurationType,
+  projectWorkforceConfigurationType,
   projectType,
   protoGuardAlertType,
   protoGuardConfigType,
@@ -579,9 +595,29 @@ export let organizationMemberPresenter = declarePresenter(organizationMemberType
   mt_2026_01_01_magnetar: v1OrganizationMemberPresenter
 });
 
+export let organizationScopesPresenter = declarePresenter(organizationScopesType, {
+  mt_2025_01_01_dashboard: v1OrganizationScopesPresenter,
+  mt_2026_01_01_magnetar: v1OrganizationScopesPresenter
+});
+
 export let organizationPresenter = declarePresenter(organizationType, {
   mt_2025_01_01_dashboard: v1OrganizationPresenter,
   mt_2026_01_01_magnetar: v1OrganizationPresenter
+});
+
+export let outpostPresenter = declarePresenter(outpostType, {
+  mt_2025_01_01_dashboard: v1OutpostPresenter,
+  mt_2026_01_01_magnetar: v1OutpostPresenter
+});
+
+export let outpostCredentialPresenter = declarePresenter(outpostCredentialType, {
+  mt_2025_01_01_dashboard: v1OutpostCredentialPresenter,
+  mt_2026_01_01_magnetar: v1OutpostCredentialPresenter
+});
+
+export let outpostAccessPresenter = declarePresenter(outpostAccessType, {
+  mt_2025_01_01_dashboard: v1OutpostAccessPresenter,
+  mt_2026_01_01_magnetar: v1OutpostAccessPresenter
 });
 
 export let organizationConfigPresenter = declarePresenter(organizationConfigType, {
@@ -624,11 +660,27 @@ export let projectRetentionPresenter = declarePresenter(projectRetentionType, {
   mt_2026_01_01_magnetar: v1ProjectRetentionPresenter
 });
 
+export let organizationAuditLogRetentionPresenter = declarePresenter(
+  organizationAuditLogRetentionType,
+  {
+    mt_2025_01_01_dashboard: v1OrganizationAuditLogRetentionPresenter,
+    mt_2026_01_01_magnetar: v1OrganizationAuditLogRetentionPresenter
+  }
+);
+
 export let projectAuthConfigConfigurationPresenter = declarePresenter(
   projectAuthConfigConfigurationType,
   {
     mt_2025_01_01_dashboard: v1ProjectAuthConfigConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectAuthConfigConfigurationPresenter
+  }
+);
+
+export let projectWorkforceConfigurationPresenter = declarePresenter(
+  projectWorkforceConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectWorkforceConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectWorkforceConfigurationPresenter
   }
 );
 
@@ -640,11 +692,27 @@ export let projectToolCallingConfigurationPresenter = declarePresenter(
   }
 );
 
+export let projectDataRetentionConfigurationPresenter = declarePresenter(
+  projectDataRetentionConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectDataRetentionConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectDataRetentionConfigurationPresenter
+  }
+);
+
 export let projectIntegrationNamingConfigurationPresenter = declarePresenter(
   projectIntegrationNamingConfigurationType,
   {
     mt_2025_01_01_dashboard: v1ProjectIntegrationNamingConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectIntegrationNamingConfigurationPresenter
+  }
+);
+
+export let projectSkillSyncConfigurationPresenter = declarePresenter(
+  projectSkillSyncConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectSkillSyncConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectSkillSyncConfigurationPresenter
   }
 );
 

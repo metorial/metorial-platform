@@ -7,11 +7,10 @@ import { db } from '@metorial/db';
 import PQueue from 'p-queue';
 import { stringify } from 'yaml';
 import { combineConfigs } from '../../lib/combineConfigs';
-import { scriptsFolder } from '../../lib/files';
-import { assertSkillStoreFileLimit } from '../../lib/limits';
+import { assertSkillStoreByteLimit, assertSkillStoreFileLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { getSkillPath, getSkillPruneScope } from '../_lib/paths';
 import type { SkillSerializerInput } from '../_lib/types';
-import { getPluginPath } from '../plugin';
 import {
   getEffectiveAllowedFileExtensions,
   isAllowedBySkillConfig,
@@ -20,14 +19,7 @@ import {
 } from './config';
 import { parseSkillDocumentFrontmatter } from './frontmatter';
 
-export let getSkillPath = (d: SkillSerializerInput) => {
-  let inner = `skills/${d.skillPluginSkill.pluginSkillSlug}`;
-
-  let pluginPath = getPluginPath(d);
-  if (pluginPath) return `${pluginPath}/${inner}`;
-
-  return inner;
-};
+export { getSkillPath };
 
 let storeItemInclude = {
   document: {
@@ -105,6 +97,10 @@ export let applySkill = createApplicator(
     await assertSkillStoreFileLimit({
       storeOid: skillStore.oid
     });
+    await assertSkillStoreByteLimit({
+      storeOid: skillStore.oid,
+      instanceOid: skillStore.instanceOid
+    });
 
     let defaultConfig = await db.skillConfiguration.findFirst({
       where: {
@@ -133,6 +129,8 @@ export let applySkill = createApplicator(
     };
   },
   {
+    getPruneScope: getSkillPruneScope,
+
     getHash: async (input, { skillStore, config, effectiveAllowedFileExtensions }) => {
       return await Hash.sha256(
         canonicalize({
@@ -160,10 +158,6 @@ export let applySkill = createApplicator(
 
     apply: async (input, context, { skillStore, config }) => {
       context.setBasePath(getSkillPath(input));
-
-      if (!config.allowScripts) {
-        await context.deletePath(scriptsFolder);
-      }
 
       let q = new PQueue({ concurrency: 10 });
       let cursor: string | null = null;
@@ -198,13 +192,7 @@ export let applySkill = createApplicator(
           } else if (item.kind === 'file' && item.file) {
             if (!isAllowedBySkillConfig(item.path, config)) continue;
 
-            q.add(async () => {
-              let content = await fileService.downloadFileContent({
-                file: item.file!
-              });
-
-              await context.setFile(item.path, content);
-            });
+            q.add(async () => await context.setFileFromStorage(item.path, item.file!));
           }
         }
 

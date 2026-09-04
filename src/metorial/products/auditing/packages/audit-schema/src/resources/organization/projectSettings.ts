@@ -4,9 +4,12 @@ import type { ProjectBrandOverride } from '@metorial/module-organization';
 import {
   projectAuthConfigConfigurationPresenter,
   projectBrandPresenter,
+  projectDataRetentionConfigurationPresenter,
   projectIntegrationNamingConfigurationPresenter,
   projectRetentionPresenter,
-  projectToolCallingConfigurationPresenter
+  projectSkillSyncConfigurationPresenter,
+  projectToolCallingConfigurationPresenter,
+  projectWorkforceConfigurationPresenter
 } from '@metorial/presenters';
 import { resource } from '../../_lib/resource';
 
@@ -38,10 +41,22 @@ export let projectAuthConfigConfigurationResource = resource({
     project: Project;
     allowAuthConfigExport: boolean;
     allowAuthConfigImport: boolean;
+    onlyAllowOAuthAuthMethods: boolean;
     consumerAuthClientRegistrationsPerHourLimit: number;
     consumerAuthClientRegistrationsPerMinuteLimit: number;
   }>('project_auth_config_configuration'),
   presenter: projectAuthConfigConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectWorkforceConfigurationResource = resource({
+  name: 'project_workforce_configuration',
+  payload: v.typedAny<{
+    project: Project;
+  }>('project_workforce_configuration'),
+  presenter: projectWorkforceConfigurationPresenter,
   actions: {
     update: true
   }
@@ -59,6 +74,17 @@ export let projectIntegrationNamingConfigurationResource = resource({
   }
 });
 
+export let projectSkillSyncConfigurationResource = resource({
+  name: 'project_skill_sync_configuration',
+  payload: v.typedAny<{
+    project: Project;
+  }>('project_skill_sync_configuration'),
+  presenter: projectSkillSyncConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
 export let projectToolCallingConfigurationResource = resource({
   name: 'project_tool_calling_configuration',
   payload: v.typedAny<{
@@ -67,6 +93,20 @@ export let projectToolCallingConfigurationResource = resource({
     messageProcessingTimeoutMs: number;
   }>('project_tool_calling_configuration'),
   presenter: projectToolCallingConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectDataRetentionConfigurationResource = resource({
+  name: 'project_data_retention_configuration',
+  payload: v.typedAny<{
+    project: Project;
+    dataRetentionLevel: 'full' | 'intent_only' | 'none';
+    storeToolCallAttachments: boolean;
+    collectErrors: boolean;
+  }>('project_data_retention_configuration'),
+  presenter: projectDataRetentionConfigurationPresenter,
   actions: {
     update: true
   }

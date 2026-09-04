@@ -49,6 +49,8 @@ export let storeSlateInvocation = (
 ) => {
   storeQueue
     .add(async () => {
+      let storeContent = d.tenant?.storeContent !== false;
+
       let idToMethodMap = new Map<string, SlatesRequest['method']>();
 
       let sanitizedRequests = d.requestMessages.map(m => {
@@ -113,11 +115,13 @@ export let storeSlateInvocation = (
           storageKey,
           JSON.stringify({
             id: d.record.id,
-            requests: sanitizedRequests as any,
-            responses: (sanitizedResponses ?? []) as any,
-            provider: { error: (d.invocationResult as any).error } as any,
+            requests: (storeContent ? sanitizedRequests : []) as any,
+            responses: (storeContent ? (sanitizedResponses ?? []) : []) as any,
+            provider: {
+              error: storeContent ? (d.invocationResult as any).error : null
+            } as any,
             logs: [],
-            requestTraces
+            requestTraces: storeContent ? requestTraces : []
           } satisfies StoredSlateInvocation)
         );
 
@@ -140,7 +144,8 @@ export let storeSlateInvocation = (
         functionVersionId: d.invocationResult.functionVersionId,
         billedTimeMs: d.invocationResult.billedTimeMs,
         computeTimeMs: d.invocationResult.computeTimeMs,
-        error: d.invocationResult.type === 'error' ? d.invocationResult.error : null
+        error:
+          storeContent && d.invocationResult.type === 'error' ? d.invocationResult.error : null
       };
 
       let storageKey = getStoredInvocationStorageKey(d.record);
@@ -149,11 +154,13 @@ export let storeSlateInvocation = (
         storageKey,
         JSON.stringify({
           id: d.record.id,
-          requests: sanitizedRequests as any,
-          responses: (sanitizedResponses ?? []) as any,
+          requests: (storeContent ? sanitizedRequests : []) as any,
+          responses: (storeContent ? (sanitizedResponses ?? []) : []) as any,
           provider,
-          logs: d.invocationResult.logs.map(log => [log.timestamp, log.message] as const),
-          requestTraces
+          logs: storeContent
+            ? d.invocationResult.logs.map(log => [log.timestamp, log.message] as const)
+            : [],
+          requestTraces: storeContent ? requestTraces : []
         } satisfies StoredSlateInvocation)
       );
 

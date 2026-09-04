@@ -38,6 +38,7 @@ jobs:
         run: |
           bunx turbo run --ui=stream build --filter=!./src/**
           bunx turbo run --ui=stream build --filter=./src/*/clients/** --filter=!./src/origin/clients/**
+          bunx turbo run --ui=stream build --filter='./src/outpost/*/*'
 
       - name: Test Metorial Packages
         run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/metorial/packages/*'

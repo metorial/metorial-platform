@@ -99,6 +99,9 @@ import {
   OrganizationLayout,
   OrganizationLayoutType,
   OrganizationMember,
+  Outpost,
+  OutpostAccess,
+  OutpostCredential,
   Portal,
   Prisma,
   Profile,
@@ -1109,13 +1112,22 @@ export let projectRetentionType = PresentableType.create<{
   project: Project;
 }>()('project_retention');
 
+export let organizationAuditLogRetentionType = PresentableType.create<{
+  organization: Organization;
+}>()('organization_audit_log_retention');
+
 export let projectAuthConfigConfigurationType = PresentableType.create<{
   project: Project;
   allowAuthConfigExport: boolean;
   allowAuthConfigImport: boolean;
+  onlyAllowOAuthAuthMethods: boolean;
   consumerAuthClientRegistrationsPerHourLimit: number;
   consumerAuthClientRegistrationsPerMinuteLimit: number;
 }>()('project_auth_config_configuration');
+
+export let projectWorkforceConfigurationType = PresentableType.create<{
+  project: Project;
+}>()('project_workforce_configuration');
 
 export let projectToolCallingConfigurationType = PresentableType.create<{
   project: Project;
@@ -1123,10 +1135,21 @@ export let projectToolCallingConfigurationType = PresentableType.create<{
   messageProcessingTimeoutMs: number;
 }>()('project_tool_calling_configuration');
 
+export let projectDataRetentionConfigurationType = PresentableType.create<{
+  project: Project;
+  dataRetentionLevel: 'full' | 'intent_only' | 'none';
+  storeToolCallAttachments: boolean;
+  collectErrors: boolean;
+}>()('project_data_retention_configuration');
+
 export let projectIntegrationNamingConfigurationType = PresentableType.create<{
   project: Project;
   useIntegrationNames: boolean;
 }>()('project_integration_naming_configuration');
+
+export let projectSkillSyncConfigurationType = PresentableType.create<{
+  project: Project;
+}>()('project_skill_sync_configuration');
 
 export let tokenType = PresentableType.create<{
   token: {
@@ -1245,6 +1268,25 @@ export let apiKeyType = PresentableType.create<{
   secret?: ApiKeySecret;
   canReveal: boolean;
 }>()('api_key');
+
+export let outpostType = PresentableType.create<{
+  outpost: Outpost & { organization: Organization };
+}>()('outpost');
+
+export let outpostCredentialType = PresentableType.create<{
+  outpost: Outpost;
+  credential: OutpostCredential;
+  envelope?: string;
+}>()('outpost_credential');
+
+export let outpostAccessType = PresentableType.create<{
+  access: OutpostAccess & {
+    project: Project;
+    instance: Instance;
+    organization: Organization;
+    outpost: Outpost;
+  };
+}>()('outpost_access');
 
 export let oauthApplicationType = PresentableType.create<{
   oauthApplication: OAuthApplication & {
@@ -2025,6 +2067,10 @@ export let flagsType = PresentableType.create<{
   flags: Flags;
 }>()('flags');
 
+export let organizationScopesType = PresentableType.create<{
+  scopes: string[];
+}>()('organization_scopes');
+
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
     aliases: MagicMcpServerAlias[];
@@ -2286,6 +2332,7 @@ export let consumerSessionType = PresentableType.create<{
 
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('consumer.provider');
 
 export let consumerActivityAgentType = PresentableType.create<ConsumerActivityAgent>()(
@@ -2531,7 +2578,7 @@ export let providerVersionType = PresentableType.create<{
 
 export let providerType = PresentableType.create<{
   provider: RawProvider | NonNullable<RawCustomProvider['provider']>;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('provider');
 
 export let identityType = PresentableType.create<{
@@ -2578,7 +2625,7 @@ export let providerListingGroupType = PresentableType.create<{
 
 export let providerListingType = PresentableType.create<{
   providerListing: RawProviderListing;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('providerListing');
 
 export let providerToolType = PresentableType.create<{ tool: RawProviderTool }>()('tool');
@@ -3152,7 +3199,7 @@ export let authConfigSchemaType = PresentableType.create<{
 
 export let customProviderType = PresentableType.create<{
   customProvider: RawCustomProvider;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('customProvider');
 
 export let customProviderVersionType = PresentableType.create<{

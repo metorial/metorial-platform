@@ -27,7 +27,9 @@ export let tenantController = app.controller({
       v.object({
         name: v.string(),
         identifier: v.string(),
-        logRetentionInDays: v.optional(v.number())
+        logRetentionInDays: v.optional(v.number()),
+        storeContent: v.optional(v.boolean()),
+        collectErrors: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -35,7 +37,9 @@ export let tenantController = app.controller({
         input: {
           name: ctx.input.name,
           identifier: ctx.input.identifier,
-          logRetentionInDays: ctx.input.logRetentionInDays
+          logRetentionInDays: ctx.input.logRetentionInDays,
+          storeContent: ctx.input.storeContent,
+          collectErrors: ctx.input.collectErrors
         }
       });
       return tenantPresenter(tenant);

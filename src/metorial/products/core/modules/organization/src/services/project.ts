@@ -116,6 +116,7 @@ class ProjectService {
           slug: await getProjectSlug({ input: `${d.input.name}-${generateCode(5)}` }),
           name: d.input.name,
           magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes,
+          autoAddOrganizationMembersToPortals: true,
           organizationOid: d.organization.oid
         },
         include: {

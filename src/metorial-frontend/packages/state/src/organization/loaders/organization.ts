@@ -39,13 +39,15 @@ export let organizationLoader = createLoader({
       i: {
         name?: string;
         imageFileId?: string | null;
+        magicMcpOrigin?: string | null;
       },
       { output: { id } }
     ) =>
       withAuth(sdk =>
         sdk.organizations.update(id, {
           name: i.name,
-          imageFileId: i.imageFileId
+          imageFileId: i.imageFileId,
+          magicMcpOrigin: i.magicMcpOrigin
         })
       ),
 

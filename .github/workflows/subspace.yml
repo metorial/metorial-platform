@@ -22,7 +22,7 @@ jobs:
       matrix:
         service:
           - name: worker
-            dockerfile: ./src/metorial/subspace/apps/worker/Dockerfile
+            dockerfile: ./src/metorial/products/integrations/apps/worker/Dockerfile
 
     steps:
       - name: Checkout repository
@@ -69,4 +69,4 @@ jobs:
       # is needed and local == CI via the same compose-driven setup.
       - name: Run conduit integration tests
         run: bun run test:integration
-        working-directory: src/metorial/subspace/packages/conduit
+        working-directory: src/metorial/products/integrations/packages/conduit

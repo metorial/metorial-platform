@@ -2,36 +2,120 @@ package github
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
-	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
+	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
+	"github.com/metorial/metorial/services/code-bucket/pkg/util"
 )
 
-func DownloadRepo(owner, repo, repoPath, ref, token string) (*zipImporter.ZipFileIterator, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/%s", owner, repo, ref)
+const (
+	DefaultBaseURL = "https://api.github.com"
 
-	headers := map[string]string{
-		"Accept": "*/*",
+	DefaultLFSThresholdBytes int64 = 8 << 20
+
+	DefaultMaxFileBytes int64 = 2 << 30
+
+	maxGitattributesBytes int64 = 1 << 20
+
+	apiTimeout      = 2 * time.Minute
+	transferTimeout = 30 * time.Minute
+)
+
+var (
+	apiClient      = &http.Client{Timeout: apiTimeout}
+	transferClient = &http.Client{Timeout: transferTimeout}
+)
+
+func DefaultLFSEndpoint(owner, repo string) string {
+	return fmt.Sprintf("https://github.com/%s/%s.git/info/lfs", owner, repo)
+}
+
+type UploadOptions struct {
+	Owner             string
+	Repo              string
+	TargetPath        string
+	Branch            string
+	CommitMessage     string
+	Token             string
+	DeletePaths       []string
+	BaseURL           string
+	LFSEndpoint       string
+	LFSThresholdBytes int64
+	MaxFileBytes      int64
+}
+
+func (o UploadOptions) withDefaults() UploadOptions {
+	o.BaseURL = normalizeBaseURL(o.BaseURL)
+	if o.LFSEndpoint == "" {
+		o.LFSEndpoint = DefaultLFSEndpoint(o.Owner, o.Repo)
 	}
-
-	if token != "" {
-		headers["Authorization"] = fmt.Sprintf("Bearer %s", token)
+	o.LFSEndpoint = strings.TrimSuffix(o.LFSEndpoint, "/")
+	if o.Branch == "" {
+		o.Branch = "main"
 	}
+	if o.CommitMessage == "" {
+		o.CommitMessage = "Upload files"
+	}
+	if o.LFSThresholdBytes <= 0 {
+		o.LFSThresholdBytes = DefaultLFSThresholdBytes
+	}
+	if o.MaxFileBytes <= 0 {
+		o.MaxFileBytes = DefaultMaxFileBytes
+	}
+	return o
+}
 
-	return zipImporter.DownloadZip(url, repoPath, headers)
+type DownloadOptions struct {
+	Owner string
+	Repo  string
+	Path  string
+	Ref   string
+	Token string
+
+	BaseURL     string
+	LFSEndpoint string
+}
+
+func (o DownloadOptions) withDefaults() DownloadOptions {
+	o.BaseURL = normalizeBaseURL(o.BaseURL)
+	if o.LFSEndpoint == "" {
+		o.LFSEndpoint = DefaultLFSEndpoint(o.Owner, o.Repo)
+	}
+	o.LFSEndpoint = strings.TrimSuffix(o.LFSEndpoint, "/")
+	return o
+}
+
+func normalizeBaseURL(baseURL string) string {
+	if baseURL == "" {
+		return DefaultBaseURL
+	}
+	return strings.TrimSuffix(baseURL, "/")
 }
 
 type FileToUpload struct {
-	Path    string
-	Content []byte
+	Path string
+	Size int64
+	Open gitlfs.ContentOpener
+}
+
+func ContentFile(path string, content []byte) FileToUpload {
+	return FileToUpload{
+		Path: path,
+		Size: int64(len(content)),
+		Open: gitlfs.OpenerForBytes(content),
+	}
 }
 
 type FileIterator func(func(FileToUpload) error) error
@@ -54,7 +138,10 @@ type githubTreeResponse struct {
 		Path string `json:"path"`
 		Type string `json:"type"`
 		SHA  string `json:"sha"`
+		Size int64  `json:"size"`
 	} `json:"tree"`
+
+	Truncated bool `json:"truncated"`
 }
 
 type githubCreateBlobRequest struct {
@@ -66,11 +153,24 @@ type githubCreateBlobResponse struct {
 	SHA string `json:"sha"`
 }
 
+type githubBlobResponse struct {
+	Content  string `json:"content"`
+	Encoding string `json:"encoding"`
+}
+
 type githubTreeEntry struct {
-	Path string `json:"path"`
-	Mode string `json:"mode"`
-	Type string `json:"type"`
-	SHA  string `json:"sha"`
+	Path string  `json:"path"`
+	Mode string  `json:"mode"`
+	Type string  `json:"type"`
+	SHA  *string `json:"sha"`
+}
+
+func blobEntry(path, sha string) githubTreeEntry {
+	return githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: &sha}
+}
+
+func deleteEntry(path string) githubTreeEntry {
+	return githubTreeEntry{Path: path, Mode: "100644", Type: "blob", SHA: nil}
 }
 
 type githubCreateTreeRequest struct {
@@ -97,8 +197,28 @@ type githubUpdateRefRequest struct {
 	Force bool   `json:"force"`
 }
 
-func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, files []FileToUpload) error {
-	return UploadToRepoIter(owner, repo, targetPath, branch, commitMessage, token, func(yield func(FileToUpload) error) error {
+func openAndRead(file FileToUpload) ([]byte, error) {
+	body, err := file.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	return io.ReadAll(body)
+}
+
+func openAndHash(file FileToUpload) (string, int64, error) {
+	body, err := file.Open()
+	if err != nil {
+		return "", 0, err
+	}
+	defer body.Close()
+
+	return gitlfs.OIDForReader(body)
+}
+
+func UploadToRepo(ctx context.Context, opts UploadOptions, files []FileToUpload) error {
+	return UploadToRepoIter(ctx, opts, func(yield func(FileToUpload) error) error {
 		for _, file := range files {
 			if err := yield(file); err != nil {
 				return err
@@ -108,31 +228,25 @@ func UploadToRepo(owner, repo, targetPath, branch, commitMessage, token string, 
 	})
 }
 
-func UploadToRepoIter(owner, repo, targetPath, branch, commitMessage, token string, iter FileIterator) error {
-	if token == "" {
+func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator) error {
+	if opts.Token == "" {
 		return fmt.Errorf("GitHub token is required")
 	}
+	opts = opts.withDefaults()
 
-	client := &http.Client{}
-	baseURL := "https://api.github.com"
-	if branch == "" {
-		branch = "main"
-	}
-	if commitMessage == "" {
-		commitMessage = "Upload files"
-	}
+	repoURL := fmt.Sprintf("%s/repos/%s/%s", opts.BaseURL, opts.Owner, opts.Repo)
 
-	ref, err := githubJSON[githubRefResponse](client, "GET", fmt.Sprintf("%s/repos/%s/%s/git/ref/heads/%s", baseURL, owner, repo, branch), token, nil)
+	ref, err := githubJSON[githubRefResponse](ctx, "GET", fmt.Sprintf("%s/git/ref/heads/%s", repoURL, opts.Branch), opts.Token, nil)
 	if err != nil {
-		return fmt.Errorf("failed to get branch ref %s: %w", branch, err)
+		return fmt.Errorf("failed to get branch ref %s: %w", opts.Branch, err)
 	}
 
-	baseCommit, err := githubJSON[githubCommitResponse](client, "GET", fmt.Sprintf("%s/repos/%s/%s/git/commits/%s", baseURL, owner, repo, ref.Object.SHA), token, nil)
+	baseCommit, err := githubJSON[githubCommitResponse](ctx, "GET", fmt.Sprintf("%s/git/commits/%s", repoURL, ref.Object.SHA), opts.Token, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get base commit %s: %w", ref.Object.SHA, err)
 	}
 
-	baseTree, err := githubJSON[githubTreeResponse](client, "GET", fmt.Sprintf("%s/repos/%s/%s/git/trees/%s?recursive=1", baseURL, owner, repo, baseCommit.Tree.SHA), token, nil)
+	baseTree, err := githubJSON[githubTreeResponse](ctx, "GET", fmt.Sprintf("%s/git/trees/%s?recursive=1", repoURL, baseCommit.Tree.SHA), opts.Token, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get base tree %s: %w", baseCommit.Tree.SHA, err)
 	}
@@ -144,40 +258,135 @@ func UploadToRepoIter(owner, repo, targetPath, branch, commitMessage, token stri
 		}
 	}
 
-	treeEntries := make([]githubTreeEntry, 0)
-	if err := iter(func(file FileToUpload) error {
-		// Normalize the path by joining targetPath with file.Path
-		fullPath := path.Join(targetPath, file.Path)
-		// Clean up any double slashes or leading slashes
-		fullPath = strings.TrimPrefix(fullPath, "/")
+	lfs := gitlfs.NewClient(opts.LFSEndpoint, "", opts.Token, transferClient)
+	lfsRef := "refs/heads/" + opts.Branch
 
-		if existingBlobShas[fullPath] == gitBlobSHA(file.Content) {
+	treeEntries := make([]githubTreeEntry, 0)
+	lfsPaths := make([]string, 0)
+	var exportedAttributes []byte
+
+	writtenPaths := map[string]struct{}{}
+
+	if err := iter(func(file FileToUpload) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		fullPath := path.Join(opts.TargetPath, file.Path)
+		fullPath = strings.TrimPrefix(fullPath, "/")
+		writtenPaths[fullPath] = struct{}{}
+
+		size := file.Size
+
+		useLFS := size >= opts.LFSThresholdBytes && fullPath != gitattributesPath
+
+		limit := opts.MaxFileBytes
+		if fullPath == gitattributesPath {
+			limit = maxGitattributesBytes
+		}
+
+		if size > limit {
+			log.Printf(
+				"[github export] rejected repo=%s/%s branch=%s path=%s size=%d limit=%d",
+				opts.Owner, opts.Repo, opts.Branch, fullPath, size, limit,
+			)
+			return filelimit.FileTooLargeError("GitHub export", fullPath, size, limit)
+		}
+
+		log.Printf(
+			"[github export] file repo=%s/%s branch=%s path=%s size=%d route=%s",
+			opts.Owner, opts.Repo, opts.Branch, fullPath, size,
+			util.Ternary(useLFS, "lfs", "blob"),
+		)
+
+		var content []byte
+		var oid string
+
+		if useLFS {
+			hashed, hashedSize, err := openAndHash(file)
+			if err != nil {
+				return fmt.Errorf("failed to read %s: %w", fullPath, err)
+			}
+			if hashedSize != size {
+				return fmt.Errorf(
+					"file %s changed while exporting: listed as %s, read %s",
+					fullPath, filelimit.HumanBytes(size), filelimit.HumanBytes(hashedSize),
+				)
+			}
+
+			oid = hashed
+			content = gitlfs.FormatPointer(oid, size)
+			lfsPaths = append(lfsPaths, fullPath)
+		} else {
+			var err error
+			content, err = openAndRead(file)
+			if err != nil {
+				return fmt.Errorf("failed to read %s: %w", fullPath, err)
+			}
+		}
+
+		if fullPath == gitattributesPath {
+			exportedAttributes = content
+		}
+
+		if existingBlobShas[fullPath] == gitBlobSHA(content) {
 			return nil
 		}
 
-		blob, err := githubJSON[githubCreateBlobResponse](
-			client,
-			"POST",
-			fmt.Sprintf("%s/repos/%s/%s/git/blobs", baseURL, owner, repo),
-			token,
-			githubCreateBlobRequest{
-				Content:  base64.StdEncoding.EncodeToString(file.Content),
-				Encoding: "base64",
-			},
-		)
+		if useLFS {
+			started := time.Now()
+			log.Printf(
+				"[github export] lfs upload start repo=%s/%s path=%s size=%d oid=%s",
+				opts.Owner, opts.Repo, fullPath, size, oid,
+			)
+
+			if err := lfs.Upload(ctx, lfsRef, oid, size, file.Open); err != nil {
+				log.Printf(
+					"[github export] lfs upload failed repo=%s/%s path=%s size=%d oid=%s took=%s err=%v",
+					opts.Owner, opts.Repo, fullPath, size, oid, time.Since(started), err,
+				)
+				return fmt.Errorf(
+					"failed to upload %s (%s) to Git LFS: %w",
+					fullPath, filelimit.HumanBytes(size), err,
+				)
+			}
+
+			log.Printf(
+				"[github export] lfs upload done repo=%s/%s path=%s size=%d oid=%s took=%s",
+				opts.Owner, opts.Repo, fullPath, size, oid, time.Since(started),
+			)
+		}
+
+		blobSHA, err := createBlob(ctx, repoURL, opts.Token, content)
 		if err != nil {
 			return fmt.Errorf("failed to create blob for %s: %w", fullPath, err)
 		}
 
-		treeEntries = append(treeEntries, githubTreeEntry{
-			Path: fullPath,
-			Mode: "100644",
-			Type: "blob",
-			SHA:  blob.SHA,
-		})
+		treeEntries = append(treeEntries, blobEntry(fullPath, blobSHA))
 		return nil
 	}); err != nil {
 		return err
+	}
+
+	if err := trackLFSPaths(ctx, repoURL, opts.Token, lfsPaths, exportedAttributes, existingBlobShas, &treeEntries); err != nil {
+		return err
+	}
+
+	for _, deletePath := range opts.DeletePaths {
+		fullPath := strings.TrimPrefix(path.Join(opts.TargetPath, deletePath), "/")
+
+		if _, written := writtenPaths[fullPath]; written {
+			continue
+		}
+		if _, exists := existingBlobShas[fullPath]; !exists {
+			continue
+		}
+
+		log.Printf(
+			"[github export] delete repo=%s/%s branch=%s path=%s",
+			opts.Owner, opts.Repo, opts.Branch, fullPath,
+		)
+		treeEntries = append(treeEntries, deleteEntry(fullPath))
 	}
 
 	if len(treeEntries) == 0 {
@@ -185,10 +394,10 @@ func UploadToRepoIter(owner, repo, targetPath, branch, commitMessage, token stri
 	}
 
 	newTree, err := githubJSON[githubCreateTreeResponse](
-		client,
+		ctx,
 		"POST",
-		fmt.Sprintf("%s/repos/%s/%s/git/trees", baseURL, owner, repo),
-		token,
+		fmt.Sprintf("%s/git/trees", repoURL),
+		opts.Token,
 		githubCreateTreeRequest{
 			BaseTree: baseCommit.Tree.SHA,
 			Tree:     treeEntries,
@@ -199,12 +408,12 @@ func UploadToRepoIter(owner, repo, targetPath, branch, commitMessage, token stri
 	}
 
 	newCommit, err := githubJSON[githubCreateCommitResponse](
-		client,
+		ctx,
 		"POST",
-		fmt.Sprintf("%s/repos/%s/%s/git/commits", baseURL, owner, repo),
-		token,
+		fmt.Sprintf("%s/git/commits", repoURL),
+		opts.Token,
 		githubCreateCommitRequest{
-			Message: commitMessage,
+			Message: opts.CommitMessage,
 			Tree:    newTree.SHA,
 			Parents: []string{baseCommit.SHA},
 		},
@@ -214,20 +423,37 @@ func UploadToRepoIter(owner, repo, targetPath, branch, commitMessage, token stri
 	}
 
 	_, err = githubJSON[githubRefResponse](
-		client,
+		ctx,
 		"PATCH",
-		fmt.Sprintf("%s/repos/%s/%s/git/refs/heads/%s", baseURL, owner, repo, branch),
-		token,
+		fmt.Sprintf("%s/git/refs/heads/%s", repoURL, opts.Branch),
+		opts.Token,
 		githubUpdateRefRequest{
 			SHA:   newCommit.SHA,
 			Force: false,
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update branch ref %s: %w", branch, err)
+		return fmt.Errorf("failed to update branch ref %s: %w", opts.Branch, err)
 	}
 
 	return nil
+}
+
+func createBlob(ctx context.Context, repoURL, token string, content []byte) (string, error) {
+	blob, err := githubJSON[githubCreateBlobResponse](
+		ctx,
+		"POST",
+		fmt.Sprintf("%s/git/blobs", repoURL),
+		token,
+		githubCreateBlobRequest{
+			Content:  base64.StdEncoding.EncodeToString(content),
+			Encoding: "base64",
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	return blob.SHA, nil
 }
 
 func gitBlobSHA(content []byte) string {
@@ -237,7 +463,7 @@ func gitBlobSHA(content []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func githubJSON[T any](client *http.Client, method, url, token string, body any) (*T, error) {
+func githubJSON[T any](ctx context.Context, method, url, token string, body any) (*T, error) {
 	var reader io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -247,7 +473,7 @@ func githubJSON[T any](client *http.Client, method, url, token string, body any)
 		reader = bytes.NewBuffer(b)
 	}
 
-	req, err := http.NewRequest(method, url, reader)
+	req, err := http.NewRequestWithContext(ctx, method, url, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +484,7 @@ func githubJSON[T any](client *http.Client, method, url, token string, body any)
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := client.Do(req)
+	resp, err := apiClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -79,7 +79,7 @@ let Page = styled.div`
 let PageInner = styled.div`
   max-width: 1080px;
   margin: 0 auto;
-  padding: 40px 20px 72px 20px;
+  padding: 40px 20px 130px 20px;
 `;
 
 let Hero = styled.div`

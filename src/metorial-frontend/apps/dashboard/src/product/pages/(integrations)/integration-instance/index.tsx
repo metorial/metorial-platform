@@ -8,6 +8,7 @@ import {
   useIntegration,
   useIntegrationInstance,
   useMagicMcpServers,
+  useProjectAuthConfigConfiguration,
   type IntegrationInstance
 } from '@metorial/state';
 import {
@@ -134,12 +135,15 @@ let LinkedMagicMcpServersBox = (p: {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
+  let authConfig = useProjectAuthConfigConfiguration(organization.data?.id, project.data?.id);
   let servers = useMagicMcpServers(p.instanceId, {
     integrationInstanceId: p.integrationInstance.id,
     owner: ['organization', 'consumer'],
     status: ['active'],
     limit: 100
   });
+  let isBlockedByOAuthPolicy =
+    authConfig.data?.onlyAllowOauthAuthMethods && !p.integrationInstance.isOauthCompatible;
   let canCreate =
     p.integrationInstance.status === 'active' && p.integrationInstance.providers.length > 0;
 
@@ -162,11 +166,18 @@ let LinkedMagicMcpServersBox = (p: {
       title="Magic MCP Servers"
       description="Magic MCP servers using this integration instance, including servers created from provider templates."
       rightActions={
-        <Button size="2" onClick={openCreate} disabled={!canCreate}>
+        <Button size="2" onClick={openCreate} disabled={!canCreate || isBlockedByOAuthPolicy}>
           Create Magic MCP Server
         </Button>
       }
     >
+      {isBlockedByOAuthPolicy && (
+        <Callout color="orange">
+          This integration instance uses a non-OAuth authentication method and cannot be linked
+          to a new Magic MCP server while the project OAuth-only policy is enabled.
+        </Callout>
+      )}
+
       {renderWithPagination(servers)(servers => (
         <>
           <Table

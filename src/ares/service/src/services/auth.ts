@@ -1315,7 +1315,8 @@ class AuthServiceImpl {
 
     return {
       user,
-      session
+      session,
+      authAttempt
     };
   }
 }

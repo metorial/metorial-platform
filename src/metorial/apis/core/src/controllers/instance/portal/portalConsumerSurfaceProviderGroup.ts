@@ -105,6 +105,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
       .output(consumerSurfaceProviderGroupPresenter)
       .do(async ctx => {
         let consumerSurfaceProviderGroup = await consumerSurfaceProviderGroupService.create({
+          auditScope: ctx.auditScope,
           consumerSurface: ctx.portal.surface,
           input: {
             name: ctx.body.name,
@@ -139,6 +140,8 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
       .output(consumerSurfaceProviderGroupPresenter)
       .do(async ctx => {
         let consumerSurfaceProviderGroup = await consumerSurfaceProviderGroupService.update({
+          auditScope: ctx.auditScope,
+          consumerSurface: ctx.portal.surface,
           consumerSurfaceProviderGroup: ctx.consumerSurfaceProviderGroup,
           input: {
             name: ctx.body.name,
@@ -167,7 +170,11 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
       .do(async ctx => {
         let { consumerSurfaceProviderGroup } = ctx;
 
-        await consumerSurfaceProviderGroupService.delete({ consumerSurfaceProviderGroup });
+        await consumerSurfaceProviderGroupService.delete({
+          consumerSurfaceProviderGroup,
+          consumerSurface: ctx.portal.surface,
+          auditScope: ctx.auditScope
+        });
 
         return consumerSurfaceProviderGroupPresenter.present({
           consumerSurfaceProviderGroup
@@ -201,6 +208,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
         });
 
         await consumerSurfaceProviderGroupService.addListing({
+          auditScope: ctx.auditScope,
           consumerSurfaceProviderGroup: ctx.consumerSurfaceProviderGroup,
           consumerAccessListing
         });
@@ -240,6 +248,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
         });
 
         await consumerSurfaceProviderGroupService.removeListing({
+          auditScope: ctx.auditScope,
           consumerSurfaceProviderGroup: ctx.consumerSurfaceProviderGroup,
           consumerAccessListing
         });

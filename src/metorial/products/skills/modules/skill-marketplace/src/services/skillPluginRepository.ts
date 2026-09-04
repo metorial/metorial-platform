@@ -130,7 +130,7 @@ class SkillPluginRepositoryServiceImpl {
       repoId: d.repoId
     });
 
-    skillRepositoryService.assertRepositoryIsAvailable(skillRepository, {
+    await skillRepositoryService.assertRepositoryIsAvailable(skillRepository, {
       skillPluginOid: plugin.oid
     });
 

@@ -53,12 +53,10 @@ let authorizationRequestPayload = (event: {
   }
 });
 
-let shouldRecordOAuthApplication = (
-  event: {
-    auditScope?: FabricEvents['machine_access.oauth_application.created:after']['auditScope'];
-    oauthApplication?: { type: string };
-  }
-) =>
+let shouldRecordOAuthApplication = (event: {
+  auditScope?: FabricEvents['machine_access.oauth_application.created:after']['auditScope'];
+  oauthApplication?: { type: string };
+}) =>
   Boolean(event.auditScope) &&
   event.oauthApplication?.type != 'internal' &&
   event.oauthApplication?.type != 'cli_auth';

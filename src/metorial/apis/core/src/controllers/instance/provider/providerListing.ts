@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { db } from '@metorial-subspace/db';
 import { providerListingService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -180,10 +181,14 @@ export let providerListingController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
 
         return Paginator.present(list, providerListing =>
           providerListingPresenter.present({
-            providerListing
+            providerListing,
+            tenant
           })
         );
       }),
@@ -196,8 +201,13 @@ export let providerListingController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.listing:read'] }))
       .output(providerListingPresenter)
       .do(async ctx => {
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
+
         return providerListingPresenter.present({
-          providerListing: ctx.providerListing
+          providerListing: ctx.providerListing,
+          tenant
         });
       })
   }

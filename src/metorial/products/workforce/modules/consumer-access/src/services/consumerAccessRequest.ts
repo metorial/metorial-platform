@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   ConsumerAccessRequest,
   ConsumerAccessRequestStatus,
@@ -20,6 +21,7 @@ import {
   ProviderTemplate,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { searchConsumerAccessRequestIds, searchConsumerIds } from '@metorial/module-search';
 import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
 import {
@@ -242,6 +244,7 @@ class ConsumerAccessRequestServiceImpl {
       personalConsumerGroup: ConsumerGroup;
     };
     accessRequest: ConsumerAccessRequestCreateInput;
+    auditScope: AuditScope;
     input?: {
       message?: string;
       metadata?: Record<string, unknown>;
@@ -313,6 +316,11 @@ class ConsumerAccessRequestServiceImpl {
         });
       });
 
+      await Fabric.fire('consumer.access_request.created:after', {
+        consumerAccessRequest,
+        auditScope: d.auditScope
+      });
+
       await consumerAccessRequestCreatedQueue.add({
         consumerAccessRequestId: consumerAccessRequest.id
       });
@@ -344,6 +352,7 @@ class ConsumerAccessRequestServiceImpl {
       providerTemplate: ProviderTemplate | null;
       magicMcpServer: MagicMcpServer | null;
     };
+    auditScope: AuditScope;
     input: {
       status: 'approved' | 'rejected';
       resolutionMessage?: string;
@@ -389,6 +398,12 @@ class ConsumerAccessRequestServiceImpl {
         );
       }
     }
+
+    await Fabric.fire('consumer.access_request.reviewed:after', {
+      consumerAccessRequest,
+      previousConsumerAccessRequest: d.consumerAccessRequest,
+      auditScope: d.auditScope
+    });
 
     await consumerAccessRequestUpdatedQueue.add({
       consumerAccessRequestId: consumerAccessRequest.id,

@@ -1,4 +1,6 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
+import type { AuditScope } from '@metorial/audit-scope';
 import type { StoreParticipantPermissions } from '@metorial/db';
 import type { CargoOwnerScope } from '../internal/ownerScope';
 import type { ResourceAuthorization } from '@metorial/module-access';
@@ -8,9 +10,16 @@ import {
   shouldBufferFileContent
 } from './pendingFileContent';
 import { getCargoFilesBucketName, getStorage } from '../storage';
+import {
+  describeInvalidUploadSize,
+  isValidDirectUploadSize,
+  maxDirectUploadSize,
+  useUploadUrlHint
+} from './uploadPolicy';
 
 export let uploadCargoFile = async (
   d: CargoOwnerScope & {
+    auditScope: AuditScope;
     purpose: string;
     file: Blob;
     fileName: string;
@@ -28,6 +37,15 @@ export let uploadCargoFile = async (
     };
   }
 ) => {
+  if (!isValidDirectUploadSize(d.file.size)) {
+    throw new ServiceError(
+      badRequestError({
+        message: describeInvalidUploadSize({ size: d.file.size, max: maxDirectUploadSize }),
+        hint: useUploadUrlHint
+      })
+    );
+  }
+
   let storeId = d.storeId ?? generatePlainId(20);
   let mimeType = d.mimeType || d.file.type || 'application/octet-stream';
 

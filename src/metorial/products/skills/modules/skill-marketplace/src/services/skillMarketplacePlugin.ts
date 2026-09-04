@@ -1,7 +1,8 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { createSlugGenerator } from '@lowerdeck/slugify';
+import { slugify } from '@lowerdeck/slugify';
 import type { Instance, Prisma, Project, SkillMarketplacePluginStatus } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
@@ -54,17 +55,37 @@ export type SkillMarketplacePluginRecord = Prisma.SkillMarketplacePluginGetPaylo
 
 export type SkillMarketplacePluginStatusFilter = SkillMarketplacePluginStatus;
 
-let getMarketplacePluginSlug = createSlugGenerator(
-  async (slug, d: { skillMarketplaceId: string }) =>
-    !(await db.skillMarketplacePlugin.findFirst({
-      where: {
-        skillMarketplace: {
-          id: d.skillMarketplaceId
-        },
-        pluginSlug: slug
-      }
-    }))
-);
+let isMarketplacePluginSlugAvailable = async (
+  slug: string,
+  d: { skillMarketplaceId: string }
+) =>
+  !(await db.skillMarketplacePlugin.findFirst({
+    where: {
+      skillMarketplace: {
+        id: d.skillMarketplaceId
+      },
+      pluginSlug: slug
+    }
+  }));
+
+let getMarketplacePluginSlug = async (
+  d: { input: string; current?: string },
+  opts: { skillMarketplaceId: string }
+) => {
+  let baseSlug = slugify(d.input) || generatePlainId(8).toLowerCase();
+
+  if (d.current === baseSlug) return baseSlug;
+  if (await isMarketplacePluginSlugAvailable(baseSlug, opts)) return baseSlug;
+
+  for (let suffix = 2; suffix < 50; suffix++) {
+    let candidate = `${baseSlug}-${suffix}`;
+
+    if (d.current === candidate) return candidate;
+    if (await isMarketplacePluginSlugAvailable(candidate, opts)) return candidate;
+  }
+
+  return `${baseSlug}-${generatePlainId(6).toLowerCase()}`;
+};
 
 class SkillMarketplacePluginServiceImpl {
   private async getSkillMarketplacePluginRecord(d: {

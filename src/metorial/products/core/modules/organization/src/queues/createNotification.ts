@@ -93,6 +93,7 @@ export let createOrganizationNotificationDestinationProcessor =
 
       if (existingDestination) {
         if (existingDestination.emailStatus != 'pending') return;
+        if (notification.suppressEmail) return;
 
         if (notification.type.severity == 'alert') {
           await sendOrganizationNotificationEmailQueue.add({
@@ -116,6 +117,8 @@ export let createOrganizationNotificationDestinationProcessor =
           notificationOid: notification.oid
         }
       });
+
+      if (notification.suppressEmail) return;
 
       let setting = await getOrCreateOrganizationNotificationSetting({
         member,

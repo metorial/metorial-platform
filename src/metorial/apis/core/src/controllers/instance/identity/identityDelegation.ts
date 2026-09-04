@@ -249,6 +249,7 @@ export let identityDelegationController = Controller.create(
         ]);
         let identityDelegation = await identityDelegationService.createIdentityDelegation({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             identity,
             delegator,
@@ -286,6 +287,7 @@ export let identityDelegationController = Controller.create(
       .do(async ctx => {
         let identityDelegation = await identityDelegationService.revokeIdentityDelegation({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           delegation: ctx.identityDelegation
         });
 

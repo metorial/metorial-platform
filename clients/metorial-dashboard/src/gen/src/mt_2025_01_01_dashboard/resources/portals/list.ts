@@ -24,6 +24,7 @@ export type PortalsListOutput = {
       allowedRedirectUrlFilters: { url: string }[];
     };
     urls: { type: 'default' | 'namespace'; url: string }[];
+    magicMcpUrl: string;
     createdAt: Date;
     updatedAt: Date;
   } & { managedEveryoneGroupId: string | null })[];
@@ -98,6 +99,10 @@ export let mapPortalsListOutput = mtMap.object<PortalsListOutput>({
                   url: mtMap.objectField('url', mtMap.passthrough())
                 })
               )
+            ),
+            magicMcpUrl: mtMap.objectField(
+              'magic_mcp_url',
+              mtMap.passthrough()
             ),
             createdAt: mtMap.objectField('created_at', mtMap.date()),
             updatedAt: mtMap.objectField('updated_at', mtMap.date()),

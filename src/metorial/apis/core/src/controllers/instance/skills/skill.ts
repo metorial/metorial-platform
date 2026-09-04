@@ -207,6 +207,7 @@ export let skillController = Controller.create(
                 organization: ctx.organization,
                 instance: ctx.instance,
                 project: ctx.project,
+                auditScope: ctx.auditScope,
                 consumerSurface: ctx.consumerSurface!,
                 consumerProfile: ctx.consumerProfile,
                 consumerGroups: ctx.consumerGroups!,
@@ -229,6 +230,7 @@ export let skillController = Controller.create(
               let localSkill = await skillService.createSkill({
                 project: access.project,
                 instance: access.instance,
+                auditScope: access.auditScope,
                 parentSkillTemplate: template,
                 input: {
                   id: await ID.generateId('skill'),
@@ -305,6 +307,7 @@ export let skillController = Controller.create(
         let updated = await skillService.updateSkill({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           skill: ctx.skill.localSkill,
           authorization: access.authorization,
           defaultPermissions: access.defaultPermissions,
@@ -386,6 +389,7 @@ export let skillController = Controller.create(
                 organization: ctx.organization,
                 instance: ctx.instance,
                 project: ctx.project,
+                auditScope: ctx.auditScope,
                 consumerSurface: ctx.consumerSurface!,
                 consumerProfile: ctx.consumerProfile,
                 consumerGroups: ctx.consumerGroups!,
@@ -405,6 +409,7 @@ export let skillController = Controller.create(
               let duplicate = await skillService.createSkill({
                 project: access.project,
                 instance: access.instance,
+                auditScope: access.auditScope,
                 parentSkill,
                 parentSkillCloneType: 'duplicate',
                 input: {
@@ -445,6 +450,7 @@ export let skillController = Controller.create(
         let published = await consumerSkillService.publishConsumerSkill({
           organization: ctx.organization,
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           consumerSurface: ctx.consumerSurface!,
           consumerProfile: ctx.consumerProfile,
           consumerGroups: ctx.consumerGroups!,
@@ -484,6 +490,7 @@ export let skillController = Controller.create(
         await consumerSkillService.shareSkill({
           organization: ctx.organization,
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           skill: ctx.skill.localSkill,
           permission: ctx.body.permission,
           consumerProfile: ctx.consumerProfile,
@@ -531,6 +538,7 @@ export let skillController = Controller.create(
         let localSkill = await skillService.createSkill({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           parentSkill,
           parentSkillCloneType: 'duplicate',
           input: {

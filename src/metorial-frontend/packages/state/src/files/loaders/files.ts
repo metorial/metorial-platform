@@ -1,7 +1,8 @@
 import type {
   DashboardInstanceFilesLinksCreateBody,
   DashboardInstanceFilesGetOutput,
-  DashboardInstanceFilesListQuery
+  DashboardInstanceFilesListQuery,
+  MetorialFileUploadProgress
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
@@ -28,6 +29,7 @@ export let useUploadFile = filesLoader.createExternalMutator(
       path: string;
     };
     storeReplace?: boolean;
+    onProgress?: (progress: MetorialFileUploadProgress) => void;
   }) => withAuth(sdk => sdk.files.upload(i))
 );
 

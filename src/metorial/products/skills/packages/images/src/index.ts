@@ -10,6 +10,9 @@ import type {
   StoreParticipantPermissions
 } from '@metorial/db';
 import { db } from '@metorial/db';
+import { maxDownloadedImageBytes, readBoundedResponse } from './boundedFetch';
+
+export * from './boundedFetch';
 
 export type GetImageFieldsParams = {
   id: string;

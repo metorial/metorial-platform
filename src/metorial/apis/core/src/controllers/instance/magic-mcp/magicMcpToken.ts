@@ -183,6 +183,7 @@ export let magicMcpTokenController = Controller.create(
           : undefined;
 
         let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           groups,
           input: {
@@ -229,6 +230,7 @@ export let magicMcpTokenController = Controller.create(
         });
 
         let magicMcpToken = await magicMcpTokenService.deleteMagicMcpToken({
+          auditScope: ctx.auditScope,
           token: ctx.magicMcpToken
         });
 
@@ -266,6 +268,7 @@ export let magicMcpTokenController = Controller.create(
         });
 
         let magicMcpToken = await magicMcpTokenService.updateMagicMcpToken({
+          auditScope: ctx.auditScope,
           token: ctx.magicMcpToken,
           input: {
             name: ctx.body.name,
@@ -304,6 +307,7 @@ export let magicMcpTokenController = Controller.create(
         });
 
         let magicMcpToken = await magicMcpTokenService.addGroupsToToken({
+          auditScope: ctx.auditScope,
           token: ctx.magicMcpToken,
           groupIds: ctx.body.magic_mcp_group_ids
         });
@@ -338,6 +342,7 @@ export let magicMcpTokenController = Controller.create(
         });
 
         let magicMcpToken = await magicMcpTokenService.removeGroupsFromToken({
+          auditScope: ctx.auditScope,
           token: ctx.magicMcpToken,
           groupIds: ctx.body.magic_mcp_group_ids
         });

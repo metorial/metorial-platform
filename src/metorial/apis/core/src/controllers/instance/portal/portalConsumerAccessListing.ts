@@ -163,6 +163,7 @@ export let portalConsumerAccessListingController = Controller.create(
         let access = ctx.body.access;
         let consumerAccessListing = await consumerAccessListingService.create({
           consumerSurface: ctx.portal.surface,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -225,6 +226,7 @@ export let portalConsumerAccessListingController = Controller.create(
       .do(async ctx => {
         let consumerAccessListing = await consumerAccessListingService.update({
           consumerAccessListing: ctx.consumerAccessListing,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -249,7 +251,8 @@ export let portalConsumerAccessListingController = Controller.create(
       .do(async ctx => {
         let consumerAccessListing = await consumerAccessListingService.delete({
           organization: ctx.organization,
-          consumerAccessListing: ctx.consumerAccessListing
+          consumerAccessListing: ctx.consumerAccessListing,
+          auditScope: ctx.auditScope
         });
 
         return consumerAccessListingPresenter.present({ consumerAccessListing });

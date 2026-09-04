@@ -158,13 +158,15 @@ class SkillRepositoryServiceImpl {
         id: await ID.generateId('skillRepository'),
         repoId: d.repoId,
         projectOid: d.project.oid,
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+
+        deletionsAppliedAt: new Date()
       },
       include: skillRepositoryInclude
     });
   }
 
-  assertRepositoryIsAvailable(
+  async assertRepositoryIsAvailable(
     skillRepository: SkillRepositoryRecord,
     allowed?: {
       skillMarketplaceOid?: bigint;

@@ -7,6 +7,7 @@ import {
 } from '@lowerdeck/error';
 import { type Context, createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { omit } from 'lodash';
 import { env } from '../../env';
 import { slateWebhookEventServiceInternal } from '../../internal';
 import { subscribeToWebhookEvent, waitForSignalOrTimeout } from '../../lib/webhookEventBus';
@@ -176,10 +177,11 @@ export let hubApp = createHono()
 
     deleteCookie(c, SETUP_COOKIE_NAME, cookieOpts);
 
-    let code = c.req.query('code');
+    let code = c.req.query('code') ?? c.req.query('oauth_verifier');
     let state = c.req.query('state');
     let error = c.req.query('error');
     let errorDescription = c.req.query('error_description');
+    let callbackParams = omit(Object.fromEntries(new URL(c.req.url).searchParams), 'state');
 
     if (error || !code) {
       let res = await slateOAuthHandlerService.reportError({
@@ -198,7 +200,8 @@ export let hubApp = createHono()
       input: {
         code,
         lastOAuthSetupCookieId: setupCookie,
-        state: state || undefined
+        state: state || undefined,
+        callbackParams
       }
     });
 

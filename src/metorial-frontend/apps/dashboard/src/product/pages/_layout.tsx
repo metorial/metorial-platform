@@ -151,7 +151,7 @@ export let ProjectPageLayout = () => {
         ...(skillsEnabled
           ? [
               {
-                label: 'Magic Skills',
+                label: 'Skills',
                 collapsible: true,
                 items: [
                   {

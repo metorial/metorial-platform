@@ -5,6 +5,7 @@ export type DashboardProjectsConfigureAuthConfigGetOutput = {
   projectId: string;
   allowAuthConfigExport: boolean;
   allowAuthConfigImport: boolean;
+  onlyAllowOauthAuthMethods: boolean;
   consumerAuthClientRegistrationsPerHourLimit: number;
   consumerAuthClientRegistrationsPerMinuteLimit: number;
   updatedAt: Date;
@@ -20,6 +21,10 @@ export let mapDashboardProjectsConfigureAuthConfigGetOutput =
     ),
     allowAuthConfigImport: mtMap.objectField(
       'allow_auth_config_import',
+      mtMap.passthrough()
+    ),
+    onlyAllowOauthAuthMethods: mtMap.objectField(
+      'only_allow_oauth_auth_methods',
       mtMap.passthrough()
     ),
     consumerAuthClientRegistrationsPerHourLimit: mtMap.objectField(

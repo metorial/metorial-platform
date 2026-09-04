@@ -505,6 +505,7 @@ let IntegrationProviderAuthSection = (p: {
                               instanceId: p.instanceId,
                               providerId: p.providerId,
                               deploymentId: p.providerDeploymentId,
+                              providerAuthMethodId: p.selectedAuthMethodId,
                               onCreate: credentials => {
                                 p.onSelectedAuthCredentialsIdChange(
                                   credentials.id,

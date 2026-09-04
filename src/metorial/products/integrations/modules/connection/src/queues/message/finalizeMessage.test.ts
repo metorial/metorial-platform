@@ -1,0 +1,140 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+let mocks = vi.hoisted(() => {
+  let handlerRef: { current: any } = { current: null };
+
+  return {
+    handlerRef,
+    db: {
+      sessionMessage: { findFirst: vi.fn() },
+      instance: { findUnique: vi.fn() },
+      sessionConnection: { updateMany: vi.fn() },
+      sessionProvider: { updateMany: vi.fn() },
+      session: { updateMany: vi.fn() }
+    },
+    protoGuardMessageQueue: { add: vi.fn() },
+    fabricFire: vi.fn(),
+    createQueue: vi.fn(() => ({
+      process: (handler: any) => {
+        handlerRef.current = handler;
+        return { handler };
+      }
+    }))
+  };
+});
+
+vi.mock('@lowerdeck/queue', () => ({ createQueue: mocks.createQueue }));
+vi.mock('@metorial-subspace/db', () => ({ db: mocks.db }));
+vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fabricFire } }));
+vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://localhost:6379' } } }));
+vi.mock('./protoGuard', () => ({ protoGuardMessageQueue: mocks.protoGuardMessageQueue }));
+
+import './finalizeMessage';
+
+let message = (overrides: Record<string, unknown> = {}) => ({
+  id: 'msg_1',
+  oid: 500n,
+  isProductive: true,
+  source: 'client',
+  connectionOid: 60n,
+  sessionProviderOid: 70n,
+  sessionOid: 1n,
+  retentionLevel: 'full',
+  hasOutput: true,
+  output: { type: 'tool.result', data: {} },
+  session: { id: 'ses_1', tenantOid: 10n, projectOid: 11n, solutionOid: 30n },
+  instanceOid: 3n,
+  senderParticipant: { id: 'spa_1', type: 'agent', name: 'Client' },
+  sessionProvider: null,
+  connection: null,
+  toolCall: null,
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+  completedAt: new Date('2026-01-01T00:00:01Z'),
+  ...overrides
+});
+
+let run = (msg: any) => mocks.handlerRef.current({ messageId: msg.id });
+
+describe('finalizeMessage usage accounting', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.db.sessionConnection.updateMany.mockResolvedValue(undefined);
+    mocks.db.sessionProvider.updateMany.mockResolvedValue(undefined);
+    mocks.db.session.updateMany.mockResolvedValue(undefined);
+    mocks.fabricFire.mockResolvedValue(undefined);
+    mocks.protoGuardMessageQueue.add.mockResolvedValue(undefined);
+    // No mirror row: the audit entry resolves no scope and is skipped, which keeps these
+    // usage-accounting cases focused on accounting.
+    mocks.db.instance.findUnique.mockResolvedValue(null);
+  });
+
+  it('records the same usage at none as at full', async () => {
+    mocks.db.sessionMessage.findFirst.mockResolvedValue(message({ retentionLevel: 'full' }));
+    await run(message());
+    let atFull = mocks.fabricFire.mock.calls[0]![1];
+
+    vi.clearAllMocks();
+    mocks.fabricFire.mockResolvedValue(undefined);
+
+    // Under zero data retention the payload is gone, but `hasOutput` is still true.
+    mocks.db.sessionMessage.findFirst.mockResolvedValue(
+      message({ retentionLevel: 'none', output: null })
+    );
+    await run(message());
+    let atNone = mocks.fabricFire.mock.calls[0]![1];
+
+    expect(atNone.clientMessageIncrement).toBe(atFull.clientMessageIncrement);
+    expect(atNone.providerMessageIncrement).toBe(atFull.providerMessageIncrement);
+    expect(atNone.providerMessageIncrement).toBe(1);
+  });
+
+  it('does not count a response that never arrived', async () => {
+    mocks.db.sessionMessage.findFirst.mockResolvedValue(
+      message({ retentionLevel: 'none', output: null, hasOutput: false })
+    );
+
+    await run(message());
+
+    let [event, data] = mocks.fabricFire.mock.calls[0]!;
+    expect(event).toBe('provider.session_message.usage:after');
+    expect(data.clientMessageIncrement).toBe(1);
+    expect(data.providerMessageIncrement).toBe(0);
+  });
+
+  it('counts legacy rows written before hasOutput existed', async () => {
+    // Backfilled to the column default while carrying a real payload.
+    mocks.db.sessionMessage.findFirst.mockResolvedValue(
+      message({ hasOutput: false, output: { type: 'tool.result', data: {} } })
+    );
+
+    await run(message());
+
+    let data = mocks.fabricFire.mock.calls[0]![1];
+    expect(data.providerMessageIncrement).toBe(1);
+  });
+
+  it('does not report usage when the message has no instance', async () => {
+    mocks.db.sessionMessage.findFirst.mockResolvedValue(message({ instanceOid: null }));
+
+    await run(message());
+
+    expect(mocks.fabricFire).not.toHaveBeenCalled();
+  });
+
+  it('runs ProtoGuard only at full', async () => {
+    mocks.db.sessionMessage.findFirst.mockResolvedValue(message({ retentionLevel: 'full' }));
+    await run(message());
+    expect(mocks.protoGuardMessageQueue.add).toHaveBeenCalledWith({ messageId: 'msg_1' });
+
+    for (let level of ['intent_only', 'none']) {
+      vi.clearAllMocks();
+      mocks.fabricFire.mockResolvedValue(undefined);
+      mocks.db.sessionMessage.findFirst.mockResolvedValue(
+        message({ retentionLevel: level, output: null })
+      );
+
+      await run(message());
+      expect(mocks.protoGuardMessageQueue.add).not.toHaveBeenCalled();
+    }
+  });
+});

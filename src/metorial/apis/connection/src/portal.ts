@@ -1,5 +1,5 @@
-import { Context, useRequestContext, useValidatedBody } from '@lowerdeck/hono';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Context, useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { AuthInfo } from '@metorial/module-access';
@@ -21,6 +21,12 @@ import {
   createPortalOAuthServers
 } from './oauth/skeleton';
 import { getClientCredentials, getString, parseOAuthBody } from './oauth/utils';
+import {
+  assertOutpostOAuthRouteAccess,
+  getOutpostAuth,
+  resolveOutpostOrigin,
+  useConnectionRequestContext
+} from './outpost';
 
 export { createPluginOAuthServers, createPortalOAuthServers } from './oauth/skeleton';
 
@@ -120,16 +126,19 @@ export let createPortalHandler = (d: {
       return await consumerOAuthRoutingService.resolvePortalRoute({
         portalId,
         magicMcpTargetId,
-        namespaceHost: getNamespaceHost(c)
+        namespaceHost: getNamespaceHost(c),
+        originOverride: resolveOutpostOrigin(getOutpostAuth(c))
       });
     },
     resolveConnectRoute: async ({ portalId, magicMcpTargetId }, c) => {
       return await consumerOAuthRoutingService.resolvePortalMcpRoute({
         portalId,
         magicMcpTargetId,
-        namespaceHost: getNamespaceHost(c)
+        namespaceHost: getNamespaceHost(c),
+        originOverride: resolveOutpostOrigin(getOutpostAuth(c))
       });
     },
+    authorizeRoute: assertOutpostOAuthRouteAccess,
 
     metadata: async ({ route }, c) => {
       return c.json(buildOAuthClientConfig(route.base));
@@ -174,7 +183,7 @@ export let createPortalHandler = (d: {
 
     register: async ({ route }, c) => {
       let { portal, consumerSurface, magicMcpTarget, base } = route;
-      let { ip } = useRequestContext(c);
+      let { ip } = useConnectionRequestContext(c);
 
       if (!ip) {
         return c.json(
@@ -313,9 +322,13 @@ export let createPluginHandler = (d: {
   connectPluginServer: ReturnType<typeof createPluginOAuthServers>['connectPluginServer'];
 } => {
   return createPluginOAuthServers({
-    resolveRoute: async ({ skillPluginId }) => {
-      return await consumerOAuthRoutingService.resolveSkillPluginRoute({ skillPluginId });
+    resolveRoute: async ({ skillPluginId }, c) => {
+      return await consumerOAuthRoutingService.resolveSkillPluginRoute({
+        skillPluginId,
+        originOverride: resolveOutpostOrigin(getOutpostAuth(c))
+      });
     },
+    authorizeRoute: assertOutpostOAuthRouteAccess,
 
     metadata: async ({ route }, c) => {
       return c.json(buildOAuthClientConfig(route.base));
@@ -359,7 +372,7 @@ export let createPluginHandler = (d: {
 
     register: async ({ route }, c) => {
       let { skillPlugin, base } = route;
-      let { ip } = useRequestContext(c);
+      let { ip } = useConnectionRequestContext(c);
 
       if (!ip) {
         return c.json(

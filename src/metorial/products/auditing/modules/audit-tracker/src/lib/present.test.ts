@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { present } = vi.hoisted(() => ({
-  present: vi.fn()
+let { present, findUnique } = vi.hoisted(() => ({
+  present: vi.fn(),
+  findUnique: vi.fn()
+}));
+
+vi.mock('@metorial/db', () => ({
+  db: {
+    user: {
+      findUnique
+    }
+  }
 }));
 
 vi.mock('@metorial/audit-schema', () => ({

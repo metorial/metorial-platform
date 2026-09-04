@@ -200,6 +200,9 @@ let coreScopesRaw = [
   'organization.api_key:write' as const,
   'organization.api_key:reveal' as const,
 
+  'organization.outpost:read' as const,
+  'organization.outpost:write' as const,
+
   'organization.access_role:read' as const,
   'organization.access_role:write' as const,
 

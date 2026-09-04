@@ -12,6 +12,8 @@ export type PluginOAuthRouteInput = {
 
 export type PortalOAuthResolvedRoute = {
   base: string;
+  projectOid: bigint;
+  instanceOid: bigint;
 };
 
 export let buildOAuthProtectedResource = (base: string) => ({
@@ -37,6 +39,7 @@ export let buildOAuthClientConfig = (base: string) => ({
 type OAuthRouteHandlers<TInput, TRoute> = {
   resolveRoute: (route: TInput, c: Context) => Promise<TRoute>;
   resolveConnectRoute?: (route: TInput, c: Context) => Promise<TRoute>;
+  authorizeRoute?: (c: Context, route: TRoute) => Promise<void>;
   metadata: (d: { route: TRoute }, c: Context) => Promise<Response>;
   portal: (d: { route: TRoute }, c: Context) => Promise<Response>;
   protectedResource: (d: { route: TRoute }, c: Context) => Promise<Response>;
@@ -125,13 +128,22 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
     return await d.handlers.resolveRoute(input, c);
   };
 
+  let resolveAuthorizedRoute = async (
+    c: Context,
+    resolver: (c: Context) => Promise<TRoute>
+  ) => {
+    let route = await resolver(c);
+    if (d.handlers.authorizeRoute) await d.handlers.authorizeRoute(c, route);
+    return route;
+  };
+
   let withResolvedRoute =
     (
       handler: (d: { route: TRoute }, c: Context) => Promise<Response>,
       resolver: (c: Context) => Promise<TRoute> = resolveRoute
     ) =>
     async (c: Context) =>
-      await handler({ route: await resolver(c) }, c);
+      await handler({ route: await resolveAuthorizedRoute(c, resolver) }, c);
 
   let metadataServer = createConnectionHono();
   for (let path of d.paths.metadata) {
@@ -187,7 +199,10 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
   for (let path of d.paths.registration) {
     connectServer = connectServer.get(path, async c => {
       return await d.handlers.registration(
-        { route: await resolveRoute(c), registrationId: c.req.param('registrationId')! },
+        {
+          route: await resolveAuthorizedRoute(c, resolveRoute),
+          registrationId: c.req.param('registrationId')!
+        },
         c
       );
     });

@@ -124,6 +124,7 @@ export class SlateInvocationStack {
 
     if (providerInvocation.type === 'error') {
       storeSlateInvocation({
+        tenant: this.#tenant,
         slateVersion: this.#slateVersion,
         participants: this.#participants,
         record: invocationRecord,
@@ -160,6 +161,7 @@ export class SlateInvocationStack {
     let resultMessages = providerInvocation.result.messages as SlatesResponse[];
 
     storeSlateInvocation({
+      tenant: this.#tenant,
       slateVersion: this.#slateVersion,
       participants: this.#participants,
       record: invocationRecord,

@@ -7,6 +7,7 @@ import { fileQueueProcessor as cargoFileQueueProcessor } from '@metorial/module-
 import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/module-store';
 import { accessQueueProcessor } from '@metorial/module-access';
 import { auditLogStreamQueueProcessor } from '@metorial/module-audit-log-stream';
+import { auditLogQueueProcessor } from '@metorial/module-audit-log';
 import { auditTrackerQueueProcessor } from '@metorial/module-audit-tracker';
 import { communityQueueProcessor } from '@metorial/module-community';
 import { consumerAccessQueueProcessor } from '@metorial/module-consumer-access';
@@ -17,6 +18,7 @@ import { emailQueueProcessor } from '@metorial/module-email';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import { organizationQueueProcessor } from '@metorial/module-organization';
+import { outpostQueueProcessor } from '@metorial/module-outpost';
 import { portalQueueProcessor } from '@metorial/module-portal';
 import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
 import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/module-skill';
@@ -32,11 +34,13 @@ import { multiRegionQueueProcessor } from '@metorial/multi-region';
 
 export let worker = runQueueProcessors([
   auditTrackerQueueProcessor,
+  auditLogQueueProcessor,
   auditLogStreamQueueProcessor,
   productAssistantQueueProcessor,
   userQueueProcessor,
   machineAccessQueueProcessor,
   organizationQueueProcessor,
+  outpostQueueProcessor,
   emailQueueProcessor,
   accessQueueProcessor,
   cargoFileQueueProcessor,

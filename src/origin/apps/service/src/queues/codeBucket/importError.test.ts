@@ -22,10 +22,7 @@ vi.mock('../../db', () => ({
   }
 }));
 
-import {
-  getCodeBucketImportFailureMessage,
-  runCodeBucketImport
-} from './importError';
+import { getCodeBucketImportFailureMessage, runCodeBucketImport } from './importError';
 
 describe('code bucket import errors', () => {
   beforeEach(() => {
@@ -135,6 +132,36 @@ describe('code bucket import errors', () => {
     });
 
     expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('fails an import with an oversized file terminally, naming the file', async () => {
+    let error = Object.assign(
+      new Error(
+        '/rpc.rpc.CodeBucket/CreateBucketFromGithub FAILED_PRECONDITION: GitHub import failed: file exceeds the per-file size limit: assets/test_500.bin is 500.0 MiB, over the 64.0 MiB per-file limit for GitHub import'
+      ),
+      {
+        code: 9,
+        details:
+          'GitHub import failed: file exceeds the per-file size limit: assets/test_500.bin is 500.0 MiB, over the 64.0 MiB per-file limit for GitHub import'
+      }
+    );
+
+    await runCodeBucketImport({
+      provider: 'github',
+      bucketId: 'bucket_789',
+      importFn: async () => {
+        throw error;
+      }
+    });
+
+    expect(mocks.updateMany).toHaveBeenCalledWith({
+      where: { id: 'bucket_789' },
+      data: {
+        status: 'failed',
+        errorMessage:
+          'GitHub could not import the repository: a file is too large (assets/test_500.bin is 500.0 MiB, over the 64.0 MiB per-file limit for GitHub import).'
+      }
+    });
   });
 
   it('marks the bucket ready after a successful import', async () => {

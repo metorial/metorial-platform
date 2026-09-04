@@ -101,6 +101,12 @@ describe('consumerAccessRequestUpdatedQueueProcessor', () => {
       organization,
       consumerSurface: surface,
       consumerGroup: personalConsumerGroup,
+      // The grant is applied by the queue, after the reviewer's request has committed,
+      // so it is attributed to the job rather than to the reviewer.
+      auditScope: expect.objectContaining({
+        organizationOid: organization.oid,
+        actor: { type: 'system', id: 'consumerAccessRequest/approved' }
+      }),
       access: {
         type: 'provider_template',
         providerTemplate

@@ -269,6 +269,7 @@ class codeBucketServiceImpl {
     path: string;
     branchName?: string;
     commitMessage?: string;
+    gitLfsThresholdBytes?: number;
   }) {
     if (d.repo.provider === 'github') {
       await exportGithubQueue.add({
@@ -276,7 +277,8 @@ class codeBucketServiceImpl {
         repoId: d.repo.id,
         path: d.path,
         branchName: d.branchName,
-        commitMessage: d.commitMessage
+        commitMessage: d.commitMessage,
+        gitLfsThresholdBytes: d.gitLfsThresholdBytes
       });
     } else if (d.repo.provider === 'gitlab') {
       await exportGitlabQueue.add({
@@ -309,6 +311,9 @@ class codeBucketServiceImpl {
     path: string;
     branchName?: string;
     commitMessage?: string;
+    deletePaths?: string[];
+    explicitDeletesOnly?: boolean;
+    gitLfsThresholdBytes?: number;
   }) {
     let repo = await db.scmRepository.findFirstOrThrow({
       where: { oid: d.repo.oid },
@@ -316,6 +321,8 @@ class codeBucketServiceImpl {
     });
     let branch = d.branchName ?? repo.defaultBranch ?? 'main';
     let commitMessage = d.commitMessage ?? `Export code bucket ${d.codeBucket.id}`;
+    let deletePaths = d.deletePaths ?? [];
+    let explicitDeletesOnly = d.explicitDeletesOnly ?? false;
 
     await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
 
@@ -336,7 +343,10 @@ class codeBucketServiceImpl {
         path: d.path,
         token,
         branch,
-        commitMessage
+        commitMessage,
+        deletePaths,
+        explicitDeletesOnly,
+        lfsThresholdBytes: Long.fromNumber(d.gitLfsThresholdBytes ?? 0)
       });
       return;
     }
@@ -351,7 +361,9 @@ class codeBucketServiceImpl {
         token,
         gitlabApiUrl: repo.installation.backend.apiUrl,
         branch,
-        commitMessage
+        commitMessage,
+        deletePaths,
+        explicitDeletesOnly
       });
       return;
     }
@@ -366,7 +378,9 @@ class codeBucketServiceImpl {
           username: '',
           token,
           branch,
-          commitMessage
+          commitMessage,
+          deletePaths,
+          explicitDeletesOnly
         });
       } else {
         await codeBucketClient.exportBucketToBitbucketCloud({
@@ -378,7 +392,9 @@ class codeBucketServiceImpl {
           bitbucketApiUrl: repo.installation.backend.apiUrl,
           bitbucketWebUrl: repo.installation.backend.webUrl,
           branch,
-          commitMessage
+          commitMessage,
+          deletePaths,
+          explicitDeletesOnly
         });
       }
       return;

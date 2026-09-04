@@ -15,6 +15,7 @@
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/slugify": "workspace:2.0.0",
     "@metorial/config": "1.0.0",
+    "@metorial/audit-scope": "workspace:*",
     "@metorial/consumer-oauth-utils": "1.0.0",
     "@metorial/context": "1.0.0",
     "@metorial/db": "1.0.0",

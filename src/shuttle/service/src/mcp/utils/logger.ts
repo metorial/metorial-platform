@@ -1,6 +1,9 @@
-import type { ServerConnection } from '../../../prisma/generated/client';
+import type { ServerConnection, Tenant } from '../../../prisma/generated/client';
 import { db, outputTypeReverseMapper } from '../../db';
 import { snowflake } from '../../id';
+
+let isErrorOutputType = (type: PrismaJson.OutputType) =>
+  type === 'debug.error' || type === 'debug.warning';
 
 export class ConnectionLogger {
   #buffer: {
@@ -10,7 +13,10 @@ export class ConnectionLogger {
   }[] = [];
   #flushTo: NodeJS.Timeout | null = null;
 
-  constructor(private readonly connection: ServerConnection) {}
+  constructor(
+    private readonly connection: ServerConnection,
+    private readonly tenant: Tenant
+  ) {}
 
   log(type: PrismaJson.OutputType, lines: string[] | string, ts?: number | string | Date) {
     let lastInBuffer = this.#buffer[this.#buffer.length - 1];
@@ -41,10 +47,15 @@ export class ConnectionLogger {
     let buffer = this.#buffer;
     this.#buffer = [];
 
+    let storable = buffer.filter(b =>
+      isErrorOutputType(b.type) ? this.tenant.collectErrors : this.tenant.storeContent
+    );
+    if (storable.length === 0) return;
+
     await db.serverConnectionLogsTemp.createMany({
       data: {
         oid: snowflake.nextId(),
-        logLines: buffer.map(b => [
+        logLines: storable.map(b => [
           b.timestamp,
           outputTypeReverseMapper.get(b.type) ?? 0,
           b.lines

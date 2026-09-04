@@ -62,6 +62,36 @@ describe('repository sync failure diagnostics', () => {
     expect(JSON.stringify(mocks.updateState.mock.calls)).not.toContain('internal.js');
   });
 
+  it('strips gRPC rpc prefixes from stored export errors', async () => {
+    mocks.findUnique.mockResolvedValue({
+      status: 'syncing_contents',
+      repositoryAccessMode: 'pull_request'
+    });
+
+    let error = Object.assign(
+      new Error(
+        '/rpc.rpc.CodeBucket/ExportBucketToGitlab FAILED_PRECONDITION: failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export'
+      ),
+      {
+        code: 9,
+        details:
+          'failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export'
+      }
+    );
+
+    await markRepositorySyncFailed('sync_too_large', error);
+
+    expect(mocks.updateState).toHaveBeenCalledWith(
+      'sync_too_large',
+      'syncing_contents',
+      expect.objectContaining({
+        status: 'failed',
+        errorMessage:
+          'Failed to upload to GitLab: file exceeds the per-file size limit: plugins/code-review/skills/code-review/1/test_100.bin is 100.0 MiB, over the 64.0 MiB per-file limit for GitLab export'
+      })
+    );
+  });
+
   it('logs structured provider details without serializing the stack', () => {
     let consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     let error = Object.assign(new Error('403 Forbidden'), {
@@ -136,6 +166,23 @@ describe('repository sync failure diagnostics', () => {
     );
   });
 
+  // Readers tell "retrying" from "failed" by whether nextPollAt is still set
+  // next to errorMessage, so a terminal failure has to clear it.
+  it('clears the next poll when a sync fails terminally', async () => {
+    mocks.findUnique.mockResolvedValue({
+      status: 'syncing_contents',
+      repositoryAccessMode: 'pull_request'
+    });
+
+    await markRepositorySyncFailed('sync_terminal', new Error('file is too large'));
+
+    expect(mocks.updateState).toHaveBeenCalledWith(
+      'sync_terminal',
+      'syncing_contents',
+      expect.objectContaining({ status: 'failed', nextPollAt: null })
+    );
+  });
+
   it('does not retry permanent code-bucket failures', () => {
     let permanentError = {
       code: 7,
@@ -149,6 +196,23 @@ describe('repository sync failure diagnostics', () => {
         status: 'syncing_contents',
         attemptCount: 0,
         error: permanentError
+      })
+    ).toBe(false);
+  });
+
+  it('does not retry a file that is too large to export', () => {
+    let oversized = {
+      code: 9,
+      details:
+        'failed to upload to GitHub: file exceeds the per-file size limit: big.bin is 4.0 GiB, over the 2.0 GiB per-file limit for GitHub export'
+    };
+
+    expect(
+      shouldRetryRepositorySyncContents({
+        repositoryAccessMode: 'default_branch',
+        status: 'syncing_contents',
+        attemptCount: 0,
+        error: oversized
       })
     ).toBe(false);
   });

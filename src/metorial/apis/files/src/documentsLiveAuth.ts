@@ -1,3 +1,4 @@
+import type { Context } from '@metorial/context';
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { documentEditTokenService, documentService } from '@metorial/module-documents';
 import { resolveCargoAccess } from '@metorial/module-file';
@@ -9,6 +10,7 @@ export let resolveDocumentsLiveToken = async (d: {
   documentId: string;
   instanceId?: string | null;
   organizationId?: string | null;
+  context: Context;
 }) => {
   let token = await documentEditTokenService.verifyDocumentEditToken({
     token: d.editToken,
@@ -92,6 +94,7 @@ export let resolveDocumentsLiveToken = async (d: {
     instanceId: token.instanceId,
     organizationId: token.organizationId,
     actorId: access.actorId,
+    context: d.context,
     authorization,
     defaultPermissions: token.defaultPermissions,
     overridePermissions: token.overridePermissions,

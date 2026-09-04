@@ -101,7 +101,10 @@ export let fileController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .output(filePresenter)
       .do(async ctx => {
-        let file = await fileService.deleteFile({ file: ctx.file });
+        let file = await fileService.deleteFile({
+          file: ctx.file,
+          auditScope: ctx.auditScope
+        });
 
         return filePresenter.present({ file });
       })

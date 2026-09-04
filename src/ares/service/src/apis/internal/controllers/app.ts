@@ -34,7 +34,8 @@ export let appController = internalApp.controller({
         slug: v.optional(v.string()),
         redirectDomains: v.optional(v.array(v.string())),
         isSessionless: v.optional(v.boolean()),
-        disableEmailAuth: v.optional(v.boolean())
+        disableEmailAuth: v.optional(v.boolean()),
+        mode: v.optional(v.enumOf(['standard', 'horizon']))
       })
     )
     .do(async ({ input }) => {
@@ -50,7 +51,8 @@ export let appController = internalApp.controller({
         slug: v.string(),
         redirectDomains: v.optional(v.array(v.string())),
         isSessionless: v.optional(v.boolean()),
-        disableEmailAuth: v.optional(v.boolean())
+        disableEmailAuth: v.optional(v.boolean()),
+        mode: v.optional(v.enumOf(['standard', 'horizon']))
       })
     )
     .do(async ({ input }) => {
@@ -64,9 +66,11 @@ export let appController = internalApp.controller({
       v.object({
         id: v.string(),
         slug: v.optional(v.string()),
+        defaultRedirectUrl: v.optional(v.string()),
         redirectDomains: v.optional(v.array(v.string())),
         isSessionless: v.optional(v.boolean()),
-        disableEmailAuth: v.optional(v.boolean())
+        disableEmailAuth: v.optional(v.boolean()),
+        mode: v.optional(v.enumOf(['standard', 'horizon']))
       })
     )
     .do(async ({ input }) => {
@@ -75,9 +79,11 @@ export let appController = internalApp.controller({
         app,
         input: {
           slug: input.slug,
+          defaultRedirectUrl: input.defaultRedirectUrl,
           redirectDomains: input.redirectDomains,
           isSessionless: input.isSessionless,
-          disableEmailAuth: input.disableEmailAuth
+          disableEmailAuth: input.disableEmailAuth,
+          mode: input.mode
         }
       });
       return appPresenter(updated);

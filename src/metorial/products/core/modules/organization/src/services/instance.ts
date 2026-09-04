@@ -347,7 +347,7 @@ class InstanceService {
       await addAfterTransactionHook(() =>
         instancePortalSetupQueue.add(
           { instanceId: instance.id, context: d.auditScope.context },
-          { delay: 45_000 }
+          { delay: 5_000 }
         )
       );
 

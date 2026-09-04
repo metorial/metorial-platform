@@ -6,8 +6,8 @@ import type { SlateInstance, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
-import { slateErrorService } from './slateError';
 import { secretService } from './secret';
+import { slateErrorService } from './slateError';
 import { slateInvocationService } from './slateInvocation';
 
 let include = { secret: true, authMethod: true };
@@ -150,6 +150,7 @@ class slateAuthHandlerServiceImpl {
         });
 
         let stack = await slateInvocationService.createInvocation({
+          tenant: d.tenant,
           slateVersion: version,
           participants: []
         });
