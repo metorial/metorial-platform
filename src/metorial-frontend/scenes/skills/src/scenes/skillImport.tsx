@@ -120,7 +120,7 @@ let CreatePluginFromImportForm = (p: {
       });
       if (!added) return;
 
-      let queue = new PQueue({ concurrency: 10 });
+      let queue = new PQueue({ concurrency: 4 });
       await queue.addAll(
         p.skills.map(
           skill => () =>

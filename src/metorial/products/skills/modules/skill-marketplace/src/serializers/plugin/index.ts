@@ -3,8 +3,8 @@ import { Hash } from '@lowerdeck/hash';
 import { slugify } from '@lowerdeck/slugify';
 import { getConfig } from '@metorial/config';
 import { db } from '@metorial/db';
-import semver from 'semver';
 import { internalImageService } from '@metorial/skills-images';
+import semver from 'semver';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import { getPluginPath, getPluginPruneScope } from '../_lib/paths';
@@ -60,30 +60,9 @@ export let applyPlugin = createApplicator(
     if (image?.type !== 'file' && project.organization.image?.type === 'file') {
       image = project.organization.image;
     }
-    let legacySkillHashes = skills
-      .map(skill =>
-        [
-          1,
-          skill.oid,
-          skill.skill.oid,
-          skill.updatedAt.getTime(),
-          skill.skill.updatedAt.getTime(),
-          skill.skill.store!.lastEditedAt.getTime()
-        ].join(':')
-      )
-      .join('|');
-    let legacyHash = await Hash.sha256(
-      [
-        1,
-        input.skillPlugin.oid,
-        input.skillPlugin.updatedAt.getTime(),
-        legacySkillHashes
-      ].join(':')
-    );
-
     let hash = await Hash.sha256(
       canonicalize({
-        serializerVersion: 2,
+        serializerVersion: 3,
         plugin: {
           slug: input.skillPlugin.slug,
           name: input.skillPlugin.name,
@@ -111,8 +90,7 @@ export let applyPlugin = createApplicator(
       project,
       agents,
       image,
-      hash,
-      legacyHash
+      hash
     };
   },
   {
@@ -120,12 +98,9 @@ export let applyPlugin = createApplicator(
 
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { project, agents, image, hash, legacyHash }) => {
+    apply: async (input, context, { project, agents, image, hash }) => {
       if (input.skillPlugin.versionHash !== hash) {
-        let isHashMigration = input.skillPlugin.versionHash === legacyHash;
-        let nextVersion = isHashMigration
-          ? input.skillPlugin.version
-          : semver.inc(input.skillPlugin.version ?? '0.0.0', 'patch')!;
+        let nextVersion = semver.inc(input.skillPlugin.version ?? '0.0.0', 'patch')!;
 
         let updated = await db.skillPlugin.updateMany({
           where: {

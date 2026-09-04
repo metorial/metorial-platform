@@ -50,29 +50,9 @@ export let applyMarketplace = createApplicator(
         }
       }
     });
-    let legacyPluginHashes = plugins
-      .map(plugin =>
-        [
-          1,
-          plugin.oid,
-          plugin.skillPlugin.oid,
-          plugin.updatedAt.getTime(),
-          plugin.skillPlugin.updatedAt.getTime()
-        ].join(':')
-      )
-      .join('|');
-    let legacyHash = await Hash.sha256(
-      [
-        1,
-        input.skillMarketplace.oid,
-        input.skillMarketplace.updatedAt.getTime(),
-        legacyPluginHashes
-      ].join(':')
-    );
-
     let hash = await Hash.sha256(
       canonicalize({
-        serializerVersion: 2,
+        serializerVersion: 3,
         marketplace: {
           slug: input.skillMarketplace.slug,
           name: input.skillMarketplace.name,
@@ -92,8 +72,7 @@ export let applyMarketplace = createApplicator(
     return {
       plugins,
       project,
-      hash,
-      legacyHash
+      hash
     };
   },
   {
@@ -101,12 +80,9 @@ export let applyMarketplace = createApplicator(
 
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { plugins, project, hash, legacyHash }) => {
+    apply: async (input, context, { plugins, project, hash }) => {
       if (input.skillMarketplace.versionHash !== hash) {
-        let isHashMigration = input.skillMarketplace.versionHash === legacyHash;
-        let nextVersion = isHashMigration
-          ? input.skillMarketplace.version
-          : semver.inc(input.skillMarketplace.version ?? '0.0.0', 'patch')!;
+        let nextVersion = semver.inc(input.skillMarketplace.version ?? '0.0.0', 'patch')!;
 
         let updated = await db.skillMarketplace.updateMany({
           where: {
