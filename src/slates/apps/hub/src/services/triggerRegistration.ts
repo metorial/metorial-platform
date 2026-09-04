@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type { Tenant, TriggerRegistration } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { getActiveSlateVersion } from '../lib/slateVersion';
 import { triggerRegistrationCleanupQueue } from '../queues/trigger/registrationCleanup';
 import { triggerRegistrationInstanceSetupQueue } from '../queues/trigger/setup';
 import { slateService } from './slate';
@@ -100,8 +101,21 @@ class triggerRegistrationServiceImpl {
       );
     }
 
+    let version = await getActiveSlateVersion({
+      slate: slateInstance.slate,
+      instance: slateInstance
+    });
+    if (!version.specificationOid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Provider version has no specification set.' })
+      );
+    }
+
     let triggerGroups = await db.slateTriggerGroup.findMany({
-      where: { slateOid: slateInstance.slateOid }
+      where: {
+        slateOid: slateInstance.slateOid,
+        slateSpecifications: { some: { specificationOid: version.specificationOid } }
+      }
     });
 
     let registrationOid = await db.$transaction(async db => {

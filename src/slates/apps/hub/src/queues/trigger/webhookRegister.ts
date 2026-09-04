@@ -28,6 +28,7 @@ let include = {
             include: {
               tenant: true,
               slate: true,
+              instance: true,
               instanceConfig: true,
               authConfig: { include: { authMethod: true } }
             }
@@ -57,7 +58,10 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
       if (!link) return;
       let registration = link.triggerRegistrationInstance.triggerRegistration;
 
-      let version = await getActiveSlateVersion({ slate: registration.slate });
+      let version = await getActiveSlateVersion({
+        slate: registration.slate,
+        instance: registration.instance
+      });
 
       let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
       if (registration.authConfig) {

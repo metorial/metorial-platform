@@ -17,6 +17,7 @@ import { triggerWebhookRegistrationServiceInternal } from '../internal';
 import { getActiveSlateVersion } from '../lib/slateVersion';
 import { validateJsonSchema } from '../lib/validateJsonSchema';
 import { getWebhookUrl } from '../lib/webhookUrl';
+import { triggerWebhookRegistrationRematchQueue } from '../queues/trigger/webhookRegistrationRematch';
 import { secretService } from './secret';
 import { slateService } from './slate';
 import { slateInvocationService } from './slateInvocation';
@@ -193,11 +194,20 @@ class slateWebhookRegistrationServiceImpl {
       userConfig: d.input.userConfig
     });
 
-    return triggerWebhookRegistrationServiceInternal.finalizeWebhookRegistration({
-      tenant: d.tenant,
-      registration: d.registration,
-      webhookRegistrationPayload
+    let registration =
+      await triggerWebhookRegistrationServiceInternal.finalizeWebhookRegistration({
+        tenant: d.tenant,
+        registration: d.registration,
+        webhookRegistrationPayload
+      });
+
+    // When a TriggerRegistrationInstance was created before a suitable webhook existed, it will have
+    // errored - we now patch it up by re-matching it to the newly created webhook registration.
+    await triggerWebhookRegistrationRematchQueue.add({
+      webhookRegistrationId: registration.id
     });
+
+    return registration;
   }
 
   async createGlobalWebhookRegistration(d: {

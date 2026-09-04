@@ -23,6 +23,7 @@ let include = {
         include: {
           tenant: true,
           slate: true,
+          instance: true,
           instanceConfig: true,
           authConfig: { include: { authMethod: true } }
         }
@@ -59,7 +60,10 @@ let processScheduledPoll = async (scheduleId: string) => {
     return;
   }
 
-  let version = await getActiveSlateVersion({ slate: registration.slate });
+  let version = await getActiveSlateVersion({
+    slate: registration.slate,
+    instance: registration.instance
+  });
 
   let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
   if (registration.authConfig) {
