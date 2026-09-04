@@ -27,3 +27,4 @@ export * from './slateWebhookRegistration';
 export * from './tenant';
 export * from './triggerRegistration';
 export * from './triggerRegistrationInstanceError';
+export * from './triggerRoutingMatcherEvaluation';

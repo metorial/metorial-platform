@@ -8,6 +8,7 @@ import { db } from '../db';
 import { getId, snowflake } from '../id';
 import { prepareMatchers, type PreparedMatcher } from '../lib/triggerRoutingMatcherSerialize';
 import { triggerRoutingDropServiceInternal } from './triggerRoutingDropServiceInternal';
+import { triggerRoutingMatcherEvaluationServiceInternal } from './triggerRoutingMatcherEvaluationServiceInternal';
 
 class TriggerRoutingMatcherServiceInternalImpl {
   private async ensureMatcher(d: {
@@ -198,6 +199,15 @@ class TriggerRoutingMatcherServiceInternalImpl {
 
       instanceOidsByHash.set(matcher.hash, instanceOids);
     }
+
+    await triggerRoutingMatcherEvaluationServiceInternal.recordEvaluations({
+      webhookRegistration: registration,
+      evaluations: [...preparedByEvent.values()].flat().map(matcher => ({
+        hash: matcher.hash,
+        values: matcher.values,
+        matched: (instanceOidsByHash.get(matcher.hash)?.length ?? 0) > 0
+      }))
+    });
 
     let matched: { event: TEvent; triggerRegistrationInstanceOids: bigint[] }[] = [];
     let unclaimed: TEvent[] = [];

@@ -1,4 +1,4 @@
-import { renderWithLoader } from '@metorial-io/data-hooks';
+import { renderWithLoader, renderWithPagination } from '@metorial-io/data-hooks';
 import {
   Badge,
   Button,
@@ -9,14 +9,21 @@ import {
   InlineCopy,
   Input,
   RenderDate,
+  Spacer,
   Text,
   Title
 } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '../../components/BackLink.js';
-import { MonoCode } from '../../components/styled.js';
-import { deleteGlobalWebhook, updateGlobalWebhook, useWebhook } from '../../state/index.js';
+import { EmptyState, MonoCode } from '../../components/styled.js';
+import {
+  deleteGlobalWebhook,
+  updateGlobalWebhook,
+  useTriggerRoutingMatcherEvaluations,
+  useWebhook
+} from '../../state/index.js';
 
 let statusColors: Record<string, 'gray' | 'green' | 'red'> = {
   awaiting_setup: 'gray',
@@ -44,7 +51,9 @@ let WebhookDetailContent = ({
 
   let [name, setName] = useState(webhook.name);
   let [description, setDescription] = useState(webhook.description ?? '');
-  let [metadataText, setMetadataText] = useState(JSON.stringify(webhook.metadata ?? {}, null, 2));
+  let [metadataText, setMetadataText] = useState(
+    JSON.stringify(webhook.metadata ?? {}, null, 2)
+  );
   let [error, setError] = useState<string | null>(null);
   let [isSaving, setIsSaving] = useState(false);
   let [isDeleting, setIsDeleting] = useState(false);
@@ -184,6 +193,58 @@ let WebhookDetailContent = ({
           </Flex>
         </Group.Content>
       </Group.Wrapper>
+
+      <MatcherEvaluationsSection webhookRegistrationId={webhook.id} />
     </Flex>
+  );
+};
+
+let MatcherEvaluationsSection = ({
+  webhookRegistrationId
+}: {
+  webhookRegistrationId: string;
+}) => {
+  let evaluations = useTriggerRoutingMatcherEvaluations(webhookRegistrationId);
+
+  let emptyState = (
+    <EmptyState direction="column" align="center">
+      <Title size="4" weight="strong">
+        No matcher evaluations found
+      </Title>
+      <Spacer size={8} />
+      <Text size="2" color="gray600">
+        Matchers received on incoming webhook events for this registration will show up here,
+        most recent first.
+      </Text>
+    </EmptyState>
+  );
+
+  return (
+    <Group.Wrapper>
+      <Group.Header title="Matcher Evaluations" />
+      <Group.Content>
+        {renderWithPagination(evaluations, { emptyState })(({ data }) => {
+          let items = data.items;
+
+          if (items.length === 0) return emptyState;
+
+          return (
+            <Table
+              padding={{ sides: '20px' }}
+              headers={['Matcher', 'Matched', 'Time']}
+              data={items.map(evaluation => ({
+                data: [
+                  <MonoCode>{JSON.stringify(evaluation.matcher)}</MonoCode>,
+                  <Badge color={evaluation.matched ? 'green' : 'red'}>
+                    {evaluation.matched ? 'Yes' : 'No'}
+                  </Badge>,
+                  <RenderDate date={evaluation.createdAt} />
+                ]
+              }))}
+            />
+          );
+        })}
+      </Group.Content>
+    </Group.Wrapper>
   );
 };

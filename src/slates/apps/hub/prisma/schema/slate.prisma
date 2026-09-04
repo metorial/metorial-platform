@@ -275,13 +275,14 @@ model SlateTriggerGroup {
 
   createdAt DateTime @default(now())
 
-  slateSpecifications          SlateSpecificationTriggerGroup[]
-  slateActions                 SlateAction[]
-  webhookRegistrations         SlateWebhookRegistration[]
-  triggerRegistrationInstances TriggerRegistrationInstance[]
-  triggerWebhookTargets        TriggerWebhookTarget[]
-  triggerRoutingMatchers       TriggerRoutingMatcher[]
-  triggerRoutingDrops          TriggerRoutingDrop[]
+  slateSpecifications              SlateSpecificationTriggerGroup[]
+  slateActions                     SlateAction[]
+  webhookRegistrations             SlateWebhookRegistration[]
+  triggerRegistrationInstances     TriggerRegistrationInstance[]
+  triggerWebhookTargets            TriggerWebhookTarget[]
+  triggerRoutingMatchers           TriggerRoutingMatcher[]
+  triggerRoutingDrops              TriggerRoutingDrop[]
+  triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
 
   @@index([key])
 }

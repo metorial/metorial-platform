@@ -35,3 +35,30 @@ model TriggerRegistrationInstanceRoutingMatcher {
   @@unique([triggerRegistrationInstanceOid, matcherOid])
   @@index([matcherOid])
 }
+
+model TriggerRoutingMatcherEvaluation {
+  oid     BigInt  @id
+  id      String  @unique
+  matched Boolean
+
+  // Not set for global registrations
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  webhookRegistrationOid BigInt
+  webhookRegistration    SlateWebhookRegistration @relation(fields: [webhookRegistrationOid], references: [oid], onDelete: Cascade)
+
+  triggerGroupOid BigInt
+  triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid], onDelete: Cascade)
+
+  hash String
+
+  /// [AnyRecord]
+  matcher Json
+
+  createdAt DateTime @default(now())
+
+  @@index([webhookRegistrationOid, createdAt])
+  @@index([triggerGroupOid, createdAt])
+  @@index([createdAt])
+}

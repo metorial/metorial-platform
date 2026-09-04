@@ -61,6 +61,7 @@ model SlateWebhookRegistration {
   triggerWebhookTarget        TriggerWebhookTarget?
   triggerRegistrationWebhooks TriggerRegistrationWebhook[]
   triggerRoutingDrops         TriggerRoutingDrop[]
+  triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
 
   @@index([tenantOid, createdAt])
 }
