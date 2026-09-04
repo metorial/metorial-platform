@@ -1,8 +1,11 @@
 import { createQueue } from '@lowerdeck/queue';
-import type { SlateWebhookRegistrationAuthRouting } from '../../../prisma/generated/client';
+import type { SlatesTriggerRoutingMatcher } from '@slates/proto';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, snowflake } from '../../id';
+import { getActiveSlateVersion } from '../../lib/slateVersion';
+import { secretService } from '../../services/secret';
+import { slateInvocationService } from '../../services/slateInvocation';
 import { TRIGGER_POLL_MIN_INTERVAL_SECONDS } from './_config';
 import { createTriggerRegistrationInstanceError } from './_instanceError';
 import { triggerWebhookTargetSearchQueue } from './webhookTargetSearch';
@@ -18,7 +21,19 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
   triggerRegistrationInstanceSetupQueue.process(async data => {
     let instance = await db.triggerRegistrationInstance.findUnique({
       where: { id: data.triggerRegistrationInstanceId },
-      include: { triggerGroup: true, triggerRegistration: true, schedule: true }
+      include: {
+        triggerGroup: true,
+        triggerRegistration: {
+          include: {
+            tenant: true,
+            slate: true,
+            instance: true,
+            instanceConfig: true,
+            authConfig: { include: { authMethod: true } }
+          }
+        },
+        schedule: true
+      }
     });
     if (!instance || instance.schedule) return;
 
@@ -51,25 +66,103 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
       );
     } else {
       let registration = instance.triggerRegistration;
+      let authConfig = registration.authConfig;
+
+      let nonEmpty = (value: unknown) =>
+        Array.isArray(value) && value.length > 0
+          ? (value as SlatesTriggerRoutingMatcher[])
+          : null;
+
+      let routingMatchers = nonEmpty(instance.routingMatchers);
+
+      if (!routingMatchers) {
+        routingMatchers = nonEmpty(authConfig?.routingMatchers);
+
+        if (routingMatchers) {
+          await db.triggerRegistrationInstance.update({
+            where: { oid: instance.oid },
+            data: { routingMatchers }
+          });
+        } else {
+          let auth: { authenticationMethodId: string; data: Record<string, any> } | null =
+            null;
+          if (authConfig) {
+            let decrypted = await secretService.DANGEROUSLY_decryptSecret({
+              secretOid: authConfig.secretOid,
+              purpose: 'slate_authentication_configuration',
+              tenant: registration.tenant,
+              note: `trigger-routing-matchers:${instance.id}`
+            });
+            auth = {
+              authenticationMethodId: authConfig.authMethod.key,
+              data: decrypted.output ?? decrypted.input ?? {}
+            };
+          }
+
+          let version = await getActiveSlateVersion({
+            slate: registration.slate,
+            instance: registration.instance
+          });
+          let stack = await slateInvocationService.createInvocationWithState({
+            participants: [],
+            slateVersion: version,
+            tenant: registration.tenant,
+            session: { id: instance.id, state: {} },
+            config: registration.instanceConfig.value ?? {},
+            auth
+          });
+
+          let matchersResult = await slateInvocationService.getRoutingMatchers({
+            stack,
+            triggerGroupId: instance.triggerGroup.key
+          });
+
+          if (matchersResult.status === 'error') {
+            await createTriggerRegistrationInstanceError({
+              triggerRegistrationInstanceOid: instance.oid,
+              code: 'routing_matchers_fetch_failed',
+              message: `We couldn't fetch routing matchers: ${matchersResult.error.message}`
+            });
+          } else {
+            routingMatchers = matchersResult.data.matchers;
+            await db.triggerRegistrationInstance.update({
+              where: { oid: instance.oid },
+              data: { routingMatchers }
+            });
+          }
+        }
+      }
 
       let candidates = await db.slateWebhookRegistration.findMany({
         where: {
           triggerGroupOid: instance.triggerGroup.oid,
           status: 'active',
           OR: [{ owner: 'tenant', tenantOid: registration.tenantOid }, { owner: 'global' }]
-        }
+        },
+        include: { authMethods: true, oauthCredentials: true }
       });
 
-      let hasAuthConfig = !!registration.authConfigOid;
       let findMatch = (pool: typeof candidates) => {
-        let byRouting = (routing: SlateWebhookRegistrationAuthRouting) =>
-          pool.find(c => c.authRouting === routing);
-        return (
-          (hasAuthConfig && byRouting('restricted_credential')) ||
-          (hasAuthConfig && byRouting('restricted_method')) ||
-          byRouting('any') ||
-          null
-        );
+        let byCredential = () =>
+          authConfig?.oauthCredentialsOid
+            ? pool.find(
+                c =>
+                  c.authRouting === 'restricted_credential' &&
+                  c.oauthCredentials.some(
+                    oc => oc.oauthCredentialsOid === authConfig.oauthCredentialsOid
+                  )
+              )
+            : undefined;
+        let byMethod = () =>
+          authConfig
+            ? pool.find(
+                c =>
+                  c.authRouting === 'restricted_method' &&
+                  c.authMethods.some(am => am.authMethodOid === authConfig.authMethodOid)
+              )
+            : undefined;
+        let byAny = () => pool.find(c => c.authRouting === 'any');
+        return byCredential() || byMethod() || byAny() || null;
       };
 
       let match =

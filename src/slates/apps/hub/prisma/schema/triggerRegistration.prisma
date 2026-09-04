@@ -43,6 +43,9 @@ model TriggerRegistrationInstance {
   triggerGroupOid BigInt
   triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid], onDelete: Cascade)
 
+  /// [TriggerRawEventMatchers]
+  routingMatchers Json?
+
   createdAt DateTime @default(now())
 
   schedule  TriggerRegistrationSchedule?
