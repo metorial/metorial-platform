@@ -1,0 +1,37 @@
+model TriggerRoutingMatcher {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  triggerGroupOid BigInt
+  triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid], onDelete: Cascade)
+
+  hash String
+
+  /// [AnyRecord]
+  values Json
+
+  createdAt DateTime @default(now())
+
+  instances TriggerRegistrationInstanceRoutingMatcher[]
+
+  @@unique([tenantOid, triggerGroupOid, hash])
+  @@index([triggerGroupOid, hash])
+}
+
+model TriggerRegistrationInstanceRoutingMatcher {
+  oid BigInt @id
+
+  triggerRegistrationInstanceOid BigInt
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  matcherOid BigInt
+  matcher    TriggerRoutingMatcher @relation(fields: [matcherOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([triggerRegistrationInstanceOid, matcherOid])
+  @@index([matcherOid])
+}

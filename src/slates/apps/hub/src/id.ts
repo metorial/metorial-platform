@@ -45,6 +45,7 @@ export let ID = createIdGenerator({
   triggerWebhookTargetRegistrationAttempt: idType.sorted('sttwa'),
   triggerRegistrationInstanceError: idType.sorted('sttre'),
   triggerRawEvent: idType.sorted('sttrv'),
+  triggerRoutingMatcher: idType.sorted('sttrm'),
 
   slateInvocation: idType.sorted('shiv'),
 

@@ -280,6 +280,7 @@ model SlateTriggerGroup {
   webhookRegistrations         SlateWebhookRegistration[]
   triggerRegistrationInstances TriggerRegistrationInstance[]
   triggerWebhookTargets        TriggerWebhookTarget[]
+  triggerRoutingMatchers       TriggerRoutingMatcher[]
 
   @@index([key])
 }

@@ -3,6 +3,7 @@ import type { SlatesTriggerRoutingMatcher } from '@slates/proto';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, snowflake } from '../../id';
+import { triggerRoutingMatcherServiceInternal } from '../../internal/triggerRoutingMatcherServiceInternal';
 import { getActiveSlateVersion } from '../../lib/slateVersion';
 import { secretService } from '../../services/secret';
 import { slateInvocationService } from '../../services/slateInvocation';
@@ -68,69 +69,75 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
       let registration = instance.triggerRegistration;
       let authConfig = registration.authConfig;
 
-      let nonEmpty = (value: unknown) =>
-        Array.isArray(value) && value.length > 0
-          ? (value as SlatesTriggerRoutingMatcher[])
-          : null;
+      let setMatchers = (matchers: SlatesTriggerRoutingMatcher[] | null | undefined) =>
+        triggerRoutingMatcherServiceInternal.setInstanceMatchers({
+          tenantOid: registration.tenantOid,
+          triggerGroupOid: instance.triggerGroupOid,
+          triggerRegistrationInstanceOid: instance.oid,
+          matchers
+        });
 
-      let routingMatchers = nonEmpty(instance.routingMatchers);
+      let matcherCount = await triggerRoutingMatcherServiceInternal.countInstanceMatchers({
+        triggerRegistrationInstanceOid: instance.oid
+      });
 
-      if (!routingMatchers) {
-        routingMatchers = nonEmpty(authConfig?.routingMatchers);
+      if (matcherCount === 0 && authConfig?.routingMatchers?.length) {
+        matcherCount = await setMatchers(authConfig.routingMatchers);
+      }
 
-        if (routingMatchers) {
-          await db.triggerRegistrationInstance.update({
-            where: { oid: instance.oid },
-            data: { routingMatchers }
-          });
-        } else {
-          let auth: { authenticationMethodId: string; data: Record<string, any> } | null =
-            null;
-          if (authConfig) {
-            let decrypted = await secretService.DANGEROUSLY_decryptSecret({
-              secretOid: authConfig.secretOid,
-              purpose: 'slate_authentication_configuration',
-              tenant: registration.tenant,
-              note: `trigger-routing-matchers:${instance.id}`
-            });
-            auth = {
-              authenticationMethodId: authConfig.authMethod.key,
-              data: decrypted.output ?? decrypted.input ?? {}
-            };
-          }
-
-          let version = await getActiveSlateVersion({
-            slate: registration.slate,
-            instance: registration.instance
-          });
-          let stack = await slateInvocationService.createInvocationWithState({
-            participants: [],
-            slateVersion: version,
+      if (matcherCount === 0) {
+        let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
+        if (authConfig) {
+          let decrypted = await secretService.DANGEROUSLY_decryptSecret({
+            secretOid: authConfig.secretOid,
+            purpose: 'slate_authentication_configuration',
             tenant: registration.tenant,
-            session: { id: instance.id, state: {} },
-            config: registration.instanceConfig.value ?? {},
-            auth
+            note: `trigger-routing-matchers:${instance.id}`
           });
-
-          let matchersResult = await slateInvocationService.getRoutingMatchers({
-            stack,
-            triggerGroupId: instance.triggerGroup.key
-          });
-
-          if (matchersResult.status === 'error') {
-            await createTriggerRegistrationInstanceError({
-              triggerRegistrationInstanceOid: instance.oid,
-              code: 'routing_matchers_fetch_failed',
-              message: `We couldn't fetch routing matchers: ${matchersResult.error.message}`
-            });
-          } else {
-            routingMatchers = matchersResult.data.matchers;
-            await db.triggerRegistrationInstance.update({
-              where: { oid: instance.oid },
-              data: { routingMatchers }
-            });
-          }
+          auth = {
+            authenticationMethodId: authConfig.authMethod.key,
+            data: decrypted.output ?? decrypted.input ?? {}
+          };
         }
+
+        let version = await getActiveSlateVersion({
+          slate: registration.slate,
+          instance: registration.instance
+        });
+        let stack = await slateInvocationService.createInvocationWithState({
+          participants: [],
+          slateVersion: version,
+          tenant: registration.tenant,
+          session: { id: instance.id, state: {} },
+          config: registration.instanceConfig.value ?? {},
+          auth
+        });
+
+        let matchersResult = await slateInvocationService.getRoutingMatchers({
+          stack,
+          triggerGroupId: instance.triggerGroup.key
+        });
+
+        if (matchersResult.status === 'error') {
+          await createTriggerRegistrationInstanceError({
+            triggerRegistrationInstanceOid: instance.oid,
+            code: 'routing_matchers_fetch_failed',
+            message: `We couldn't fetch routing matchers: ${matchersResult.error.message}`
+          });
+          return;
+        }
+
+        matcherCount = await setMatchers(matchersResult.data.matchers);
+      }
+
+      if (matcherCount === 0) {
+        await createTriggerRegistrationInstanceError({
+          triggerRegistrationInstanceOid: instance.oid,
+          code: 'no_routing_matchers',
+          message:
+            "We couldn't determine how to route this provider's events to this trigger registration."
+        });
+        return;
       }
 
       let candidates = await db.slateWebhookRegistration.findMany({

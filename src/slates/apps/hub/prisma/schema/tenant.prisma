@@ -31,4 +31,5 @@ model Tenant {
   slateWebhookRegistrations   SlateWebhookRegistration[]
   triggerRegistrations        TriggerRegistration[]
   triggerWebhookTargets       TriggerWebhookTarget[]
+  triggerRoutingMatchers      TriggerRoutingMatcher[]
 }
