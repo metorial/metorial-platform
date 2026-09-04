@@ -56,25 +56,24 @@ export let completeMessage = async (
 
   let currentToolCall = currentMessage.toolCall;
 
-  let toolCallAttachments =
-    currentToolCall &&
-    data.output?.type === 'tool.result' &&
-    retention.storeToolCallAttachments
+  let rawToolCallAttachments =
+    currentToolCall && data.output?.type === 'tool.result'
       ? getRawToolCallAttachmentsFromOutput(data.output)
       : [];
 
-  let toolCallAttachmentRecords = currentToolCall
-    ? toolCallAttachments.map(attachment => ({
-        ...getId('toolCallAttachment'),
-        urlKey: generateCustomId('tca_link_', 50),
-        url: attachment.url,
-        mimeType: attachment.mimeType,
-        expiresAt: attachment.expiresAt,
-        toolCallOid: currentToolCall.oid
-      }))
-    : [];
+  let toolCallAttachmentRecords =
+    currentToolCall && retention.storeToolCallAttachments
+      ? rawToolCallAttachments.map(attachment => ({
+          ...getId('toolCallAttachment'),
+          urlKey: generateCustomId('tca_link_', 50),
+          url: attachment.url,
+          mimeType: attachment.mimeType,
+          expiresAt: attachment.expiresAt,
+          toolCallOid: currentToolCall.oid
+        }))
+      : [];
 
-  if (toolCallAttachmentRecords.length && data.output?.type === 'tool.result') {
+  if (rawToolCallAttachments.length && data.output?.type === 'tool.result') {
     data.output = replaceToolCallAttachmentsInOutput(
       data.output,
       toolCallAttachmentRecords.map(presentToolCallAttachment)

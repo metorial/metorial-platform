@@ -289,4 +289,104 @@ describe('completeMessage', () => {
     expect(mocks.db.sessionEvent.createMany).not.toHaveBeenCalled();
     expect(mocks.finalizeMessageQueue.add).not.toHaveBeenCalled();
   });
+
+  it('rehosts attachments and persists a ToolCallAttachment when storeToolCallAttachments is enabled', async () => {
+    let rawAttachment = { url: 'https://provider.example/raw-file', mimeType: 'image/png', expiresAt: null };
+    mocks.getRawToolCallAttachmentsFromOutput.mockReturnValueOnce([rawAttachment]);
+
+    let currentMessage = {
+      id: 'msg_attach_on',
+      oid: 4n,
+      session: { oid: 41n, dataRetentionLevel: 'full', storeToolCallAttachments: true, collectErrors: true },
+      connection: { oid: 42n },
+      toolCall: { oid: 43n }
+    };
+    let completedMessage = {
+      id: 'msg_attach_on',
+      oid: 4n,
+      status: 'succeeded',
+      toolCall: { oid: 43n, attachments: [] }
+    };
+    let tx = {
+      sessionMessage: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+      },
+      toolCall: {
+        updateMany: vi.fn()
+      },
+      toolCallAttachment: {
+        createMany: vi.fn()
+      }
+    };
+
+    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
+
+    await completeMessage(
+      { messageId: 'msg_attach_on' },
+      {
+        status: 'succeeded',
+        responderParticipant: { oid: 99n } as any,
+        output: { type: 'tool.result', data: {} } as any
+      }
+    );
+
+    expect(mocks.replaceToolCallAttachmentsInOutput).toHaveBeenCalledWith(
+      { type: 'tool.result', data: {} },
+      [expect.objectContaining({ url: rawAttachment.url, toolCallOid: 43n })]
+    );
+    expect(tx.toolCallAttachment.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ url: rawAttachment.url, toolCallOid: 43n })]
+    });
+  });
+
+  it('strips $attachments and skips persisting a ToolCallAttachment when storeToolCallAttachments is disabled', async () => {
+    let rawAttachment = { url: 'https://provider.example/raw-file', mimeType: 'image/png', expiresAt: null };
+    mocks.getRawToolCallAttachmentsFromOutput.mockReturnValueOnce([rawAttachment]);
+
+    let currentMessage = {
+      id: 'msg_attach_off',
+      oid: 5n,
+      session: { oid: 51n, dataRetentionLevel: 'full', storeToolCallAttachments: false, collectErrors: true },
+      connection: { oid: 52n },
+      toolCall: { oid: 53n }
+    };
+    let completedMessage = {
+      id: 'msg_attach_off',
+      oid: 5n,
+      status: 'succeeded',
+      toolCall: { oid: 53n, attachments: [] }
+    };
+    let tx = {
+      sessionMessage: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+      },
+      toolCall: {
+        updateMany: vi.fn()
+      },
+      toolCallAttachment: {
+        createMany: vi.fn()
+      }
+    };
+
+    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
+
+    await completeMessage(
+      { messageId: 'msg_attach_off' },
+      {
+        status: 'succeeded',
+        responderParticipant: { oid: 99n } as any,
+        output: { type: 'tool.result', data: {} } as any
+      }
+    );
+
+    expect(mocks.replaceToolCallAttachmentsInOutput).toHaveBeenCalledWith(
+      { type: 'tool.result', data: {} },
+      []
+    );
+    expect(tx.toolCallAttachment.createMany).not.toHaveBeenCalled();
+  });
 });
