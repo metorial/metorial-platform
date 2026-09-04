@@ -7,10 +7,10 @@ COPY . .
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 
-RUN sh ./src/metorial/subspace/scripts/prepare-docker-build.sh
+RUN sh ./src/metorial/products/integrations/scripts/prepare-docker-build.sh
 
 # Build frontend
-RUN cd /app/src/metorial/subspace/apps/public && bun run build
+RUN cd /app/src/metorial/products/integrations/apps/public && bun run build
 
 # Run in dev mode with hot reloading.
-CMD ["sh", "-c", "cd /app/src/metorial/subspace/apps/public && bun run start:dev"]
+CMD ["sh", "-c", "cd /app/src/metorial/products/integrations/apps/public && bun run start:dev"]

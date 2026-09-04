@@ -8,7 +8,7 @@ COPY . .
 
 # Install CA certificates and native build tools before preparing required workspaces.
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
-RUN sh ./src/metorial/subspace/scripts/prepare-docker-build.sh
+RUN sh ./src/metorial/products/integrations/scripts/prepare-docker-build.sh
 
 # Generate Prisma clients used by the merged service graph
 WORKDIR /app/src/metorial/db
@@ -17,7 +17,7 @@ RUN bun run prisma:generate
 WORKDIR /app/src/metorial/multi-region
 RUN bun run prisma:generate
 
-WORKDIR /app/src/metorial/subspace/db
+WORKDIR /app/src/metorial/products/integrations/db
 RUN bun run prisma:generate
 
 ARG SENTRY_AUTH_TOKEN
@@ -25,7 +25,7 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 
 # Build the application using ncc
 # This bundles all dependencies into a single file
-WORKDIR /app/src/metorial/subspace/apps/worker
+WORKDIR /app/src/metorial/products/integrations/apps/worker
 RUN bun run server:build
 
 # Production stage
@@ -37,10 +37,10 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 # Copy the built application from builder
-COPY --from=builder /app/src/metorial/subspace/apps/worker/dist /app/dist
+COPY --from=builder /app/src/metorial/products/integrations/apps/worker/dist /app/dist
 
 # Copy prisma schema and generated client from builder
-COPY --from=builder /app/src/metorial/subspace/db /app/db
+COPY --from=builder /app/src/metorial/products/integrations/db /app/db
 
 # Copy entire node_modules from builder to ensure prisma has all dependencies
 COPY --from=builder /app/node_modules /app/node_modules

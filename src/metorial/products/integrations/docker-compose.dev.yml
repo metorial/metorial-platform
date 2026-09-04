@@ -388,10 +388,10 @@ services:
   mcp-test-server:
     profiles: ['infra']
     build:
-      context: ../../..
-      dockerfile: ./src/metorial/subspace/apps/worker/dev.Dockerfile
+      context: ../../../..
+      dockerfile: ./src/metorial/products/integrations/apps/worker/dev.Dockerfile
     container_name: subspace-mcp-test-server
-    command: ['sh', '-c', 'PORT=52198 bun ./src/metorial/subspace/test-servers/index.ts']
+    command: ['sh', '-c', 'PORT=52198 bun ./src/metorial/products/integrations/test-servers/index.ts']
     ports:
       - '52198:52198'
     healthcheck:
@@ -409,8 +409,8 @@ services:
   subspace-worker:
     profiles: ['app']
     build:
-      context: ../../..
-      dockerfile: ./src/metorial/subspace/apps/worker/dev.Dockerfile
+      context: ../../../..
+      dockerfile: ./src/metorial/products/integrations/apps/worker/dev.Dockerfile
     container_name: subspace-worker-service
     restart: unless-stopped
     environment:
@@ -441,12 +441,12 @@ services:
       PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: provider-telemetry-error-groups
 
     volumes:
-      - ./apps/worker:/app/src/metorial/subspace/apps/worker:ro
+      - ./apps/worker:/app/src/metorial/products/integrations/apps/worker:ro
       - /app/node_modules
-      - ./modules:/app/src/metorial/subspace/modules:ro
-      - ./packages:/app/src/metorial/subspace/packages:ro
-      - ./provider-backends:/app/src/metorial/subspace/provider-backends:ro
-      - ./db:/app/src/metorial/subspace/db
+      - ./modules:/app/src/metorial/products/integrations/modules:ro
+      - ./packages:/app/src/metorial/products/integrations/packages:ro
+      - ./provider-backends:/app/src/metorial/products/integrations/provider-backends:ro
+      - ./db:/app/src/metorial/products/integrations/db
     depends_on:
       postgres:
         condition: service_healthy
