@@ -1,9 +1,13 @@
 import { Service } from '@lowerdeck/service';
 import type { SlatesTriggerRoutingMatcher } from '@slates/proto';
-import type { SlateWebhookRegistration } from '../../prisma/generated/client';
+import type {
+  SlateWebhookRegistration,
+  TriggerRoutingDropReason
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId, snowflake } from '../id';
 import { prepareMatchers, type PreparedMatcher } from '../lib/triggerRoutingMatcherSerialize';
+import { triggerRoutingDropServiceInternal } from './triggerRoutingDropServiceInternal';
 
 class TriggerRoutingMatcherServiceInternalImpl {
   private async ensureMatcher(d: {
@@ -91,29 +95,68 @@ class TriggerRoutingMatcherServiceInternalImpl {
   async matchWebhookEvents<TEvent extends { matchers: SlatesTriggerRoutingMatcher[] }>(d: {
     webhookRegistration: Pick<
       SlateWebhookRegistration,
-      'oid' | 'type' | 'tenantOid' | 'triggerGroupOid'
+      'id' | 'oid' | 'type' | 'owner' | 'status' | 'tenantOid' | 'triggerGroupOid'
     >;
     events: TEvent[];
   }) {
     let registration = d.webhookRegistration;
-    if (registration.type !== 'manual') return [];
+    if (d.events.length === 0) return [];
+
+    let recordDrop = (d2: {
+      reason: TriggerRoutingDropReason;
+      count: number;
+      lastMatchers?: SlatesTriggerRoutingMatcher[] | null;
+    }) =>
+      triggerRoutingDropServiceInternal.recordDrop({
+        webhookRegistration: registration,
+        ...d2
+      });
+
+    if (registration.type !== 'manual') {
+      await recordDrop({ reason: 'registration_not_matchable', count: d.events.length });
+      return [];
+    }
+
+    if (registration.status !== 'active') {
+      await recordDrop({ reason: 'registration_inactive', count: d.events.length });
+      return [];
+    }
+
+    if (registration.owner === 'tenant' && !registration.tenantOid) {
+      throw new Error(
+        `Webhook registration ${registration.id} is tenant-owned without a tenant`
+      );
+    }
+
+    let tenantOid = registration.owner === 'tenant' ? registration.tenantOid! : undefined;
 
     let preparedByEvent = new Map<TEvent, PreparedMatcher[]>();
     let hashes = new Set<string>();
+    let unroutable: TEvent[] = [];
 
     for (let event of d.events) {
       let prepared = await prepareMatchers(event.matchers);
-      if (prepared.length === 0) continue;
+      if (prepared.length === 0) {
+        unroutable.push(event);
+        continue;
+      }
 
       preparedByEvent.set(event, prepared);
       for (let matcher of prepared) hashes.add(matcher.hash);
     }
 
+    await recordDrop({
+      reason: 'no_matcher',
+      count: unroutable.length,
+      lastMatchers: unroutable.at(-1)?.matchers
+    });
+
     if (hashes.size === 0) return [];
 
     let isSubscribed = {
       triggerRegistrationInstance: {
-        triggerRegistration: { status: { not: 'deleted' as const } },
+        triggerGroupOid: registration.triggerGroupOid,
+        triggerRegistration: { status: { not: 'deleted' as const }, tenantOid },
         webhooks: { some: { webhookRegistrationOid: registration.oid } }
       }
     };
@@ -122,26 +165,42 @@ class TriggerRoutingMatcherServiceInternalImpl {
       where: {
         triggerGroupOid: registration.triggerGroupOid,
         hash: { in: [...hashes] },
-        tenantOid: registration.tenantOid ?? undefined,
+        tenantOid,
         instances: { some: isSubscribed }
       },
       select: {
         hash: true,
-        instances: { where: isSubscribed, select: { triggerRegistrationInstanceOid: true } }
+        tenantOid: true,
+        instances: {
+          where: isSubscribed,
+          select: {
+            triggerRegistrationInstanceOid: true,
+            triggerRegistrationInstance: {
+              select: { triggerRegistration: { select: { tenantOid: true } } }
+            }
+          }
+        }
       }
     });
 
-    // A global registration has no tenant filter, so one hash can come back as several rows - one
-    // per tenant that identifies itself the same way - and they all route.
     let instanceOidsByHash = new Map<string, bigint[]>();
 
     for (let matcher of matchers) {
       let instanceOids = instanceOidsByHash.get(matcher.hash) ?? [];
-      instanceOids.push(...matcher.instances.map(i => i.triggerRegistrationInstanceOid));
+
+      for (let instance of matcher.instances) {
+        let instanceTenantOid =
+          instance.triggerRegistrationInstance.triggerRegistration.tenantOid;
+        if (instanceTenantOid !== matcher.tenantOid) continue;
+
+        instanceOids.push(instance.triggerRegistrationInstanceOid);
+      }
+
       instanceOidsByHash.set(matcher.hash, instanceOids);
     }
 
     let matched: { event: TEvent; triggerRegistrationInstanceOids: bigint[] }[] = [];
+    let unclaimed: TEvent[] = [];
 
     for (let [event, prepared] of preparedByEvent) {
       let instanceOids = new Set<bigint>();
@@ -150,10 +209,19 @@ class TriggerRoutingMatcherServiceInternalImpl {
         for (let oid of instanceOidsByHash.get(matcher.hash) ?? []) instanceOids.add(oid);
       }
 
-      if (instanceOids.size === 0) continue;
+      if (instanceOids.size === 0) {
+        unclaimed.push(event);
+        continue;
+      }
 
       matched.push({ event, triggerRegistrationInstanceOids: [...instanceOids] });
     }
+
+    await recordDrop({
+      reason: 'no_match',
+      count: unclaimed.length,
+      lastMatchers: unclaimed.at(-1)?.matchers
+    });
 
     return matched;
   }

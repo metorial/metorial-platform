@@ -46,6 +46,7 @@ export let ID = createIdGenerator({
   triggerRegistrationInstanceError: idType.sorted('sttre'),
   triggerRawEvent: idType.sorted('sttrv'),
   triggerRoutingMatcher: idType.sorted('sttrm'),
+  triggerRoutingDrop: idType.sorted('sttrd'),
 
   slateInvocation: idType.sorted('shiv'),
 

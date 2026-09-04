@@ -162,7 +162,12 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
         ...new Set(
           (
             await db.triggerRegistrationWebhook.findMany({
-              where: { triggerWebhookTargetOid: target.oid },
+              where: {
+                triggerWebhookTargetOid: target.oid,
+                triggerRegistrationInstance: {
+                  triggerRegistration: { tenantOid: target.tenantOid }
+                }
+              },
               select: { triggerRegistrationInstanceOid: true }
             })
           ).map(w => w.triggerRegistrationInstanceOid)

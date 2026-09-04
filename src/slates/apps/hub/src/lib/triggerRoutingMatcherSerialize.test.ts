@@ -14,7 +14,9 @@ describe('prepareMatchers', () => {
   });
 
   it('hashes nested objects and arrays', async () => {
-    expect(await hashOf({ a: { b: ['x', 'y'] } })).toBe(await hashOf({ a: { b: ['x', 'y'] } }));
+    expect(await hashOf({ a: { b: ['x', 'y'] } })).toBe(
+      await hashOf({ a: { b: ['x', 'y'] } })
+    );
     expect(await hashOf({ a: { b: ['x', 'y'] } })).not.toBe(
       await hashOf({ a: { b: ['y', 'x'] } })
     );
@@ -29,10 +31,27 @@ describe('prepareMatchers', () => {
     expect(await prepareMatchers([])).toEqual([]);
   });
 
-  it('keeps matchers whose values are falsy but present', async () => {
-    expect(await prepareMatchers([{ a: null }])).toHaveLength(1);
+  it('drops matchers whose values only say "unknown"', async () => {
+    expect(await prepareMatchers([{ a: null }])).toEqual([]);
+    expect(await prepareMatchers([{ a: undefined }])).toEqual([]);
+    expect(await prepareMatchers([{ a: '' }, { a: '  ' }])).toEqual([]);
+    expect(await prepareMatchers([{ a: { b: null }, c: [null, ''] }])).toEqual([]);
+  });
+
+  it('keeps a blank value that sits beside an identifying one', async () => {
+    expect(await prepareMatchers([{ enterprise_id: null, team_id: 'T1' }])).toHaveLength(1);
+    expect(await hashOf({ enterprise_id: null, team_id: 'T1' })).not.toBe(
+      await hashOf({ team_id: 'T1' })
+    );
+  });
+
+  it('keeps values that are falsy but still name something', async () => {
     expect(await prepareMatchers([{ a: false }])).toHaveLength(1);
-    expect(await prepareMatchers([{ a: '' }])).toHaveLength(1);
+    expect(await prepareMatchers([{ a: 0 }])).toHaveLength(1);
+  });
+
+  it('drops matchers that are not records', async () => {
+    expect(await prepareMatchers([['team_id', 'T1'] as any])).toEqual([]);
   });
 
   it('distinguishes strings from numbers', async () => {

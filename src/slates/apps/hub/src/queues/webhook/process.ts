@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import {
   slateWebhookEventServiceInternal,
+  triggerRoutingDropServiceInternal,
   triggerRoutingMatcherServiceInternal
 } from '../../internal';
 import { getActiveSlateVersion } from '../../lib/slateVersion';
@@ -135,9 +136,22 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
 
       if (target) {
         let links = await db.triggerRegistrationWebhook.findMany({
-          where: { triggerWebhookTargetOid: target.oid },
+          where: {
+            triggerWebhookTargetOid: target.oid,
+            triggerRegistrationInstance: {
+              triggerRegistration: { tenantOid: target.tenantOid }
+            }
+          },
           select: { triggerRegistrationInstanceOid: true }
         });
+
+        if (links.length === 0) {
+          await triggerRoutingDropServiceInternal.recordDrop({
+            webhookRegistration: registration,
+            reason: 'no_subscribers',
+            count: result.data.events.length
+          });
+        }
 
         await createTriggerRawEvents({
           source: 'webhook',

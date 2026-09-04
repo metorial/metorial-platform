@@ -8,6 +8,7 @@ import type {
 } from '../../prisma/generated/client';
 import { getId, snowflake } from '../id';
 import { triggerRoutingMatcherServiceInternal } from '../internal/triggerRoutingMatcherServiceInternal';
+import { prepareMatchers } from '../lib/triggerRoutingMatcherSerialize';
 import { fixtures } from './fixtures';
 import { cleanDatabase, testDb } from './setup';
 
@@ -334,7 +335,6 @@ describe('triggerRoutingMatcherServiceInternal', () => {
     });
 
     it('only reaches instances subscribed to the registration the event arrived on', async () => {
-      // Instance A stores the same matcher but is subscribed to the tenant webhook, not this one.
       expect(
         await route(scenario.globalWebhook, [{ matchers: [{ team_id: 'T1', user_id: 'U1' }] }])
       ).toEqual([{ event: 0, instanceOids: [b()] }]);
@@ -348,6 +348,126 @@ describe('triggerRoutingMatcherServiceInternal', () => {
       ).toEqual([{ event: 0, instanceOids: [a(), b()].sort() }]);
     });
 
+    it('keeps a tenant-owned webhook inside its tenant', async () => {
+      let prepared = await prepareMatchers([{ team_id: 'T1', user_id: 'U1' }]);
+      let matcher = await testDb.triggerRoutingMatcher.findFirstOrThrow({
+        where: { tenantOid: scenario.tenantA.oid, hash: prepared[0]!.hash }
+      });
+
+      await testDb.triggerRegistrationInstanceRoutingMatcher.create({
+        data: {
+          oid: snowflake.nextId(),
+          triggerRegistrationInstanceOid: scenario.instanceB.oid,
+          matcherOid: matcher.oid
+        }
+      });
+      await link(scenario.instanceB, scenario.tenantWebhook);
+
+      expect(
+        await route(scenario.tenantWebhook, [{ matchers: [{ team_id: 'T1', user_id: 'U1' }] }])
+      ).toEqual([{ event: 0, instanceOids: [a()] }]);
+    });
+
+    it('keeps a shared webhook inside the tenant that claimed the matcher', async () => {
+      await setMatchers(scenario.tenantB.oid, scenario.instanceB, [{ team_id: 'T2' }]);
+
+      let prepared = await prepareMatchers([{ team_id: 'T1', user_id: 'U1' }]);
+      let matcher = await testDb.triggerRoutingMatcher.findFirstOrThrow({
+        where: { tenantOid: scenario.tenantA.oid, hash: prepared[0]!.hash }
+      });
+
+      await testDb.triggerRegistrationInstanceRoutingMatcher.create({
+        data: {
+          oid: snowflake.nextId(),
+          triggerRegistrationInstanceOid: scenario.instanceB.oid,
+          matcherOid: matcher.oid
+        }
+      });
+      await link(scenario.instanceA, scenario.globalWebhook);
+
+      expect(
+        await route(scenario.globalWebhook, [{ matchers: [{ team_id: 'T1', user_id: 'U1' }] }])
+      ).toEqual([{ event: 0, instanceOids: [a()] }]);
+    });
+
+    it('never routes a matcher that identifies nothing', async () => {
+      await setMatchers(scenario.tenantA.oid, scenario.instanceA, [{ team_id: null }]);
+      await setMatchers(scenario.tenantB.oid, scenario.instanceB, [{ team_id: null }]);
+      await link(scenario.instanceA, scenario.globalWebhook);
+
+      expect(await route(scenario.globalWebhook, [{ matchers: [{ team_id: null }] }])).toEqual(
+        []
+      );
+    });
+
+    it('routes a matcher whose blank value sits beside an identifying one', async () => {
+      await setMatchers(scenario.tenantA.oid, scenario.instanceA, [
+        { enterprise_id: null, team_id: 'T1' }
+      ]);
+
+      expect(
+        await route(scenario.tenantWebhook, [
+          { matchers: [{ enterprise_id: null, team_id: 'T1' }] }
+        ])
+      ).toEqual([{ event: 0, instanceOids: [a()] }]);
+      expect(await route(scenario.tenantWebhook, [{ matchers: [{ team_id: 'T1' }] }])).toEqual(
+        []
+      );
+    });
+
+    it('never matches registrations that are not active', async () => {
+      for (let status of ['awaiting_setup', 'deleted'] as const) {
+        let registration = await testDb.slateWebhookRegistration.update({
+          where: { oid: scenario.tenantWebhook.oid },
+          data: { status }
+        });
+
+        expect(
+          await route(registration, [{ matchers: [{ team_id: 'T1', user_id: 'U1' }] }])
+        ).toEqual([]);
+      }
+    });
+
+    it('never matches instances registered for another trigger group', async () => {
+      let otherGroup = await testDb.slateTriggerGroup.create({
+        data: {
+          ...getId('slateTriggerGroup'),
+          identifier: `tg-${crypto.randomUUID()}`,
+          hash: 'hash',
+          key: 'reactions',
+          name: 'Reactions',
+          spec: scenario.triggerGroup.spec as any,
+          slateOid: scenario.triggerGroup.slateOid,
+          mostRecentSpecificationOid: scenario.triggerGroup.mostRecentSpecificationOid
+        }
+      });
+
+      let otherWebhook = await testDb.slateWebhookRegistration.create({
+        data: {
+          ...getId('slateWebhookRegistration'),
+          type: 'manual',
+          owner: 'tenant',
+          status: 'active',
+          urlKey: crypto.randomUUID(),
+          name: 'Reactions webhook',
+          slateOid: scenario.tenantWebhook.slateOid,
+          triggerGroupOid: otherGroup.oid,
+          tenantOid: scenario.tenantA.oid,
+          secretOid: scenario.tenantWebhook.secretOid
+        }
+      });
+
+      await triggerRoutingMatcherServiceInternal.setInstanceMatchers({
+        tenantOid: scenario.tenantA.oid,
+        triggerGroupOid: otherGroup.oid,
+        triggerRegistrationInstanceOid: scenario.instanceA.oid,
+        matchers: [{ team_id: 'T1' }]
+      });
+      await link(scenario.instanceA, otherWebhook);
+
+      expect(await route(otherWebhook, [{ matchers: [{ team_id: 'T1' }] }])).toEqual([]);
+    });
+
     it('never matches automated registrations', async () => {
       await link(scenario.instanceA, scenario.automatedWebhook);
 
@@ -356,6 +476,92 @@ describe('triggerRoutingMatcherServiceInternal', () => {
           { matchers: [{ team_id: 'T1', user_id: 'U1' }] }
         ])
       ).toEqual([]);
+    });
+
+    describe('drop records', () => {
+      let drops = () =>
+        testDb.triggerRoutingDrop.findMany({
+          orderBy: { reason: 'asc' },
+          select: {
+            reason: true,
+            count: true,
+            lastMatchers: true,
+            tenantOid: true,
+            triggerGroupOid: true,
+            webhookRegistrationOid: true
+          }
+        });
+
+      it('counts events the slate gave us nothing to route on', async () => {
+        await route(scenario.tenantWebhook, [
+          { matchers: [] },
+          { matchers: [{ team_id: null }] },
+          { matchers: [{ team_id: 'T1' }] }
+        ]);
+
+        expect(await drops()).toEqual([
+          {
+            reason: 'no_matcher',
+            count: 2,
+            lastMatchers: [{ team_id: null }],
+            tenantOid: scenario.tenantA.oid,
+            triggerGroupOid: scenario.triggerGroup.oid,
+            webhookRegistrationOid: scenario.tenantWebhook.oid
+          }
+        ]);
+      });
+
+      it('counts events no trigger registration claims', async () => {
+        await route(scenario.tenantWebhook, [
+          { matchers: [{ team_id: 'nobody' }] },
+          { matchers: [{ team_id: 'T1' }] }
+        ]);
+
+        expect(await drops()).toEqual([
+          expect.objectContaining({
+            reason: 'no_match',
+            count: 1,
+            lastMatchers: [{ team_id: 'nobody' }]
+          })
+        ]);
+      });
+
+      it('counts events that arrive on a registration we cannot route', async () => {
+        let deleted = await testDb.slateWebhookRegistration.update({
+          where: { oid: scenario.tenantWebhook.oid },
+          data: { status: 'deleted' }
+        });
+
+        await route(deleted, [{ matchers: [{ team_id: 'T1' }] }]);
+        await route(scenario.automatedWebhook, [{ matchers: [{ team_id: 'T1' }] }]);
+
+        expect(await drops()).toEqual([
+          expect.objectContaining({ reason: 'registration_inactive', count: 1 }),
+          expect.objectContaining({ reason: 'registration_not_matchable', count: 1 })
+        ]);
+      });
+
+      it('adds up within the hour it is counted in', async () => {
+        await route(scenario.tenantWebhook, [{ matchers: [{ team_id: 'nobody' }] }]);
+        await route(scenario.tenantWebhook, [
+          { matchers: [{ team_id: 'nobody' }] },
+          { matchers: [{ team_id: 'someone-else' }] }
+        ]);
+
+        expect(await drops()).toEqual([
+          expect.objectContaining({
+            reason: 'no_match',
+            count: 3,
+            lastMatchers: [{ team_id: 'someone-else' }]
+          })
+        ]);
+      });
+
+      it('records nothing when every event routes', async () => {
+        await route(scenario.tenantWebhook, [{ matchers: [{ team_id: 'T1' }] }]);
+
+        expect(await drops()).toEqual([]);
+      });
     });
 
     it('excludes deleted trigger registrations', async () => {

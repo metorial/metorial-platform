@@ -4,6 +4,13 @@ import { db } from '../../db';
 import { env } from '../../env';
 
 export let SLATE_DISCOVERY_RETENTION_DAYS = 5;
+export let TRIGGER_ROUTING_DROP_RETENTION_DAYS = 30;
+
+export let cleanupExpiredTriggerRoutingDrops = async () => {
+  await db.triggerRoutingDrop.deleteMany({
+    where: { bucketStart: { lt: subDays(new Date(), TRIGGER_ROUTING_DROP_RETENTION_DAYS) } }
+  });
+};
 
 export let cleanupExpiredSlateVersionDiscoveries = async () => {
   let fiveDaysAgo = subDays(new Date(), SLATE_DISCOVERY_RETENTION_DAYS);
@@ -31,5 +38,6 @@ export let cleanupCron = createCron(
     });
 
     await cleanupExpiredSlateVersionDiscoveries();
+    await cleanupExpiredTriggerRoutingDrops();
   }
 );

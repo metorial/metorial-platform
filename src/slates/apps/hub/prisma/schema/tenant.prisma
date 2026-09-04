@@ -32,4 +32,5 @@ model Tenant {
   triggerRegistrations        TriggerRegistration[]
   triggerWebhookTargets       TriggerWebhookTarget[]
   triggerRoutingMatchers      TriggerRoutingMatcher[]
+  triggerRoutingDrops         TriggerRoutingDrop[]
 }

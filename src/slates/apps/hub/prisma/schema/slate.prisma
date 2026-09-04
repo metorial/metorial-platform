@@ -281,6 +281,7 @@ model SlateTriggerGroup {
   triggerRegistrationInstances TriggerRegistrationInstance[]
   triggerWebhookTargets        TriggerWebhookTarget[]
   triggerRoutingMatchers       TriggerRoutingMatcher[]
+  triggerRoutingDrops          TriggerRoutingDrop[]
 
   @@index([key])
 }
