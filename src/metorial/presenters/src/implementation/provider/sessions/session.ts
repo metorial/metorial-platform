@@ -24,7 +24,7 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
         .sort((a, b) => a.id.localeCompare(b.id))
         .map(p => v1SessionProviderPresenter.present({ sessionProvider: p }, opts).run())
     ),
-    from_templates_ids: [
+    from_template_ids: [
       ...new Set(
         session.providers.flatMap(provider =>
           provider.fromTemplate ? [provider.fromTemplate.id] : []
@@ -101,8 +101,8 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
         name: 'providers',
         description: 'Session providers'
       }),
-      from_templates_ids: v.array(v.string(), {
-        name: 'from_templates_ids',
+      from_template_ids: v.array(v.string(), {
+        name: 'from_template_ids',
         description: 'Template IDs this session was created from'
       }),
       has_errors: v.boolean({
