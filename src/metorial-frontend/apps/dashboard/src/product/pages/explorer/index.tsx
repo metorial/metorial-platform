@@ -4,7 +4,6 @@ import type {
   ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Explainer } from '@metorial/explainer';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateProviderConfig,
@@ -934,13 +933,6 @@ export let ExplorerPage = () => {
             />
           ))}
       </Main>
-
-      <Explainer
-        title="Using the MCP Explorer"
-        description="Learn how to use the Explorer to explore and interact with your MCP provider."
-        youtubeId="mzGOU3LVuT0"
-        id="explorer"
-      />
     </Wrapper>
   );
 };
