@@ -1,4 +1,8 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
+import { triggerRawEventCleanupQueueProcessor, triggerRawEventFailedSweepCron } from './cleanup';
+import { triggerEventProcessQueueProcessor } from './eventProcess';
+import { triggerRawEventIdempotencyKeyClearCron } from './idempotencyKeyClear';
+import { triggerMapQueueProcessor } from './map';
 import { triggerPollQueueProcessor } from './poll';
 import { triggerRawEventMappingQueueProcessor } from './rawEventMapping';
 import { triggerRegistrationCleanupQueueProcessor } from './registrationCleanup';
@@ -28,5 +32,10 @@ export let triggerQueues = combineQueueProcessors([
   triggerWebhookUnregisterQueueProcessor,
   triggerRegistrationCleanupQueueProcessor,
   triggerRoutingMatcherResyncQueueProcessor,
-  triggerRawEventMappingQueueProcessor
+  triggerRawEventMappingQueueProcessor,
+  triggerMapQueueProcessor,
+  triggerRawEventCleanupQueueProcessor,
+  triggerRawEventFailedSweepCron,
+  triggerRawEventIdempotencyKeyClearCron,
+  triggerEventProcessQueueProcessor
 ]);

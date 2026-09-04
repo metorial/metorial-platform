@@ -1,0 +1,66 @@
+enum TriggerEventStatus {
+  pending
+  mapping_failed
+  mapping_failed_final
+  mapped
+}
+
+model TriggerEvent {
+  oid    BigInt             @id
+  id     String             @unique
+  status TriggerEventStatus @default(pending)
+
+  triggerRegistrationInstanceOid BigInt
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  source    TriggerRawEventSource
+  triggerId String
+
+  rawEventOid BigInt?
+  rawEvent    TriggerRawEvent? @relation(fields: [rawEventOid], references: [oid], onDelete: SetNull)
+
+  attemptCount Int @default(0)
+
+  /// [AnyRecord]
+  payload Json?
+
+  mappedType String?
+  mappedId   String?
+
+  errorCode    String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  invocations TriggerEventInvocation[]
+
+  @@unique([rawEventOid, triggerId])
+  @@index([triggerRegistrationInstanceOid, createdAt])
+  @@index([status])
+}
+
+enum TriggerEventInvocationStatus {
+  failed
+  succeeded
+}
+
+model TriggerEventInvocation {
+  oid     BigInt                       @id
+  id      String                       @unique
+  status  TriggerEventInvocationStatus
+  attempt Int
+
+  triggerEventOid BigInt
+  triggerEvent    TriggerEvent @relation(fields: [triggerEventOid], references: [oid], onDelete: Cascade)
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid])
+
+  errorCode    String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  @@index([triggerEventOid, createdAt])
+}

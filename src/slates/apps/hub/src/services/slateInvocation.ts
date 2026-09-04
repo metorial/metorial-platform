@@ -295,6 +295,17 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async mapTriggerEvent(d: {
+    stack: SlateInvocationStack;
+    actionId: string;
+    input: Record<string, any>;
+  }) {
+    return await d.stack.invoke('slates/action.trigger.map_event', {
+      actionId: d.actionId,
+      input: d.input
+    });
+  }
+
   async listWebhookTargets(d: {
     stack: SlateInvocationStack;
     triggerGroupId: string;

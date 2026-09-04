@@ -21,6 +21,7 @@ export let createTriggerRawEvents = async (d: {
       payload: event.payload,
       idempotencyKey: event.idempotencyKey ?? null,
       triggerIds: event.triggerIds,
+      pendingTriggerMapCount: event.triggerIds.length,
       matchers: event.matchers ?? Prisma.DbNull
     }))
   );
@@ -38,4 +39,18 @@ export let createTriggerRawEvents = async (d: {
   }
 
   return created;
+};
+
+export let decrementPendingTriggerMapCount = async (d: { rawEventOid: bigint }) => {
+  return db.triggerRawEvent.update({
+    where: { oid: d.rawEventOid },
+    data: { pendingTriggerMapCount: { decrement: 1 } }
+  });
+};
+
+export let markRawEventProcessingFailed = async (d: { rawEventOid: bigint }) => {
+  await db.triggerRawEvent.update({
+    where: { oid: d.rawEventOid },
+    data: { processingStatus: 'failed' }
+  });
 };

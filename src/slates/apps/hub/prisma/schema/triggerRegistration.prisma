@@ -49,6 +49,7 @@ model TriggerRegistrationInstance {
   webhooks        TriggerRegistrationWebhook[]
   errors          TriggerRegistrationInstanceError[]
   rawEvents       TriggerRawEvent[]
+  triggerEvents   TriggerEvent[]
   routingMatchers TriggerRegistrationInstanceRoutingMatcher[]
 
   @@unique([triggerRegistrationOid, triggerGroupOid])
@@ -59,10 +60,16 @@ enum TriggerRawEventSource {
   webhook
 }
 
+enum TriggerRawEventProcessingStatus {
+  pending
+  failed
+}
+
 model TriggerRawEvent {
-  oid    BigInt                @id
-  id     String                @unique
-  source TriggerRawEventSource
+  oid              BigInt                           @id
+  id               String                           @unique
+  source           TriggerRawEventSource
+  processingStatus TriggerRawEventProcessingStatus   @default(pending)
 
   triggerRegistrationInstanceOid BigInt
   triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
@@ -73,13 +80,20 @@ model TriggerRawEvent {
   idempotencyKey String?
   triggerIds     String[]
 
+  // Decremented atomically as each triggerId finishes mapping successfully; reaching 0 triggers cleanup.
+  pendingTriggerMapCount Int @default(0)
+
   /// [TriggerRawEventMatchers]
   matchers Json?
 
   createdAt DateTime @default(now())
 
+  events TriggerEvent[]
+
   @@unique([triggerRegistrationInstanceOid, idempotencyKey])
   @@index([triggerRegistrationInstanceOid, createdAt])
+  @@index([processingStatus, createdAt])
+  @@index([createdAt])
 }
 
 model TriggerRegistrationSchedule {
