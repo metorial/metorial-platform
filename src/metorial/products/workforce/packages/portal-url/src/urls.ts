@@ -96,11 +96,13 @@ export let getPortalConnectUrl = (d: {
   namespaces: NamespacePropertyWithNamespace[];
   magicMcpOrigin?: string | null;
 }) => {
-  let origin =
-    toOrigin(d.magicMcpOrigin) ??
-    (d.namespaces.length
+  let config = getConfig();
+  let namespaceOrigin =
+    config.env != 'development' && d.namespaces.length
       ? new URL(getPortalUrls(d)[0]!.url).origin
-      : getConfig().urls.apiUrl.replace(/\/+$/, ''));
+      : null;
+  let origin =
+    toOrigin(d.magicMcpOrigin) ?? namespaceOrigin ?? config.urls.apiUrl.replace(/\/+$/, '');
 
   return `${origin}/connect/portal/${d.portal.slug}`;
 };

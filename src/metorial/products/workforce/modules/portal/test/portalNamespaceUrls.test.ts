@@ -78,6 +78,7 @@ describe('portalService.getPrimaryPortalUrls', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     config.env = 'production';
+    config.urls.apiUrl = 'https://api.metorial.test';
     config.urls.portalsUrl = 'http://localhost:4300';
   });
 
@@ -195,6 +196,22 @@ describe('portalService.getPrimaryPortalUrls', () => {
 
     expect(await portalService.getPrimaryPortalConnectUrl({ portal })).toBe(
       'https://api.metorial.test/connect/portal/acme'
+    );
+  });
+
+  it('uses the API connect URL for namespaced portals in development', async () => {
+    config.env = 'development';
+    config.urls.apiUrl = 'http://metorial-root.localhost:4310';
+    mockNamespaces([
+      namespaceProperty({
+        value: 'acme',
+        compartment: 'portals.metorial.com',
+        purposes: ['metorial_portal']
+      })
+    ]);
+
+    expect(await portalService.getPrimaryPortalConnectUrl({ portal })).toBe(
+      'http://metorial-root.localhost:4310/connect/portal/acme'
     );
   });
 
