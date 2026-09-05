@@ -2,6 +2,7 @@ use std::{
     collections::{BTreeMap, BTreeSet, hash_map::DefaultHasher},
     fs,
     hash::{Hash, Hasher},
+    net::{IpAddr, ToSocketAddrs},
     path::{Path, PathBuf},
 };
 
@@ -9,13 +10,13 @@ use miette::{IntoDiagnostic, Result, WrapErr, bail};
 
 use crate::{
     environment,
+    infrastructure::{self, RenderOptions, Requirements},
     manifest::{self, LoadedManifest},
-    process,
+    process, proxy,
     root::ProjectRoot,
     workspace::{self, WorkspaceMetadata},
 };
 
-const PROXY_PROJECT: &str = "control_proxy";
 const PROXY_NETWORK: &str = "control_proxy";
 const SETUP_VERSION: &str = "v1";
 const VSCODE_EXTENSION: &str = "ms-vscode-remote.remote-containers";
@@ -83,6 +84,7 @@ pub async fn shell(project: &ProjectRoot) -> Result<()> {
 
 pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
     let metadata = workspace::metadata(project).await?;
+    proxy::unregister_workspace(project, &metadata)?;
     let environment = workspace_environment(project, &metadata)?;
     let name = container_name(&metadata);
     if inspect_value(&project.root, &name, "{{.Id}}")
@@ -98,7 +100,7 @@ pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
         .wrap_err("could not stop workspace container")?;
     }
 
-    let assets = workspace_assets(project, &metadata);
+    let assets = generated_assets(project);
     let mut compose = compose_args(
         &assets.join("services.docker-compose.yml"),
         &services_project(&metadata),
@@ -159,7 +161,7 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
     .await
     .unwrap_or_else(|| "not created".into());
     println!("container: {container_status}");
-    let assets = workspace_assets(project, &metadata);
+    let assets = generated_assets(project);
     let mut args = compose_args(
         &assets.join("services.docker-compose.yml"),
         &services_project(&metadata),
@@ -175,7 +177,17 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
         .unwrap_or_default()
         .lines()
         .count();
-    println!("dependencies: {running_services}/5 running");
+    let mut total_args = compose_args(
+        &assets.join("services.docker-compose.yml"),
+        &services_project(&metadata),
+    );
+    total_args.extend(["config".into(), "--services".into()]);
+    let total_services = output_args("docker", &total_args, &project.root)
+        .await
+        .unwrap_or_default()
+        .lines()
+        .count();
+    println!("dependencies: {running_services}/{total_services} running");
     let marker = format!("/control-state/bootstrap-{SETUP_VERSION}");
     if container_status == "running" {
         let initialized = docker_quiet(
@@ -206,25 +218,58 @@ struct RunningWorkspace {
 
 async fn ensure_running(project: &ProjectRoot, rebuild: bool) -> Result<RunningWorkspace> {
     let metadata = workspace::metadata(project).await?;
-    let manifests = manifest::discover(&project.root)?;
-    let selected = manifest::select(&manifests, &[], &project.kind)?;
+    let mut manifests = manifest::discover(&project.root)?;
+    let externals = manifest::load_externals(&project.root, &mut manifests)?;
+    let external_hosts =
+        resolve_external_hosts(&manifest::load_external_hostnames(&project.root)?)?;
+    let mut selected =
+        manifest::select_with_dependencies_excluding(&manifests, &[], &project.kind, &externals)?;
+    selected.retain(|loaded| {
+        loaded
+            .manifest
+            .package
+            .as_ref()
+            .is_none_or(|package| !externals.contains(&package.name))
+    });
     if selected.is_empty() {
         bail!("no control.toml manifests were selected");
     }
     let ports = exposed_ports(&selected);
-    let assets = workspace_assets(project, &metadata);
-    ensure_proxy(&project.root, &assets).await?;
+    let image_assets = workspace_assets(project, &metadata);
+    let assets = generate_runtime_assets(project, &metadata, &selected)?;
+    ensure_proxy_network(&project.root).await?;
     let environment = workspace_environment(project, &metadata)?;
     let service_network =
         start_services(project, &metadata, &selected, &assets, &environment).await?;
-    let image = ensure_image(&project.root, &assets, rebuild).await?;
+    let image = ensure_image(&project.root, &image_assets, rebuild).await?;
     let name = container_name(&metadata);
 
     let existing_image = inspect_value(&project.root, &name, "{{.Config.Image}}").await;
-    if existing_image
-        .as_deref()
-        .is_some_and(|value| value != image)
-    {
+    let external_hosts_label = external_host_label(&external_hosts);
+    let existing_external_hosts = inspect_value(
+        &project.root,
+        &name,
+        "{{index .Config.Labels \"control.external-hosts\"}}",
+    )
+    .await
+    .filter(|value| value != "<no value>")
+    .unwrap_or_default();
+    let proxy_root = proxy::proxy_root(project, &metadata);
+    let existing_proxy_root = inspect_value(
+        &project.root,
+        &name,
+        "{{index .Config.Labels \"control.proxy-root\"}}",
+    )
+    .await
+    .filter(|value| value != "<no value>")
+    .unwrap_or_default();
+    let needs_replacement = container_needs_replacement(
+        existing_image.as_deref(),
+        &image,
+        &existing_external_hosts,
+        &external_hosts_label,
+    ) || existing_proxy_root != proxy_root.to_string_lossy();
+    if needs_replacement {
         docker_run(
             &project.root,
             vec!["rm".into(), "--force".into(), name.clone()],
@@ -233,15 +278,15 @@ async fn ensure_running(project: &ProjectRoot, rebuild: bool) -> Result<RunningW
         .await
         .wrap_err("could not replace an outdated workspace container")?;
     }
-    if existing_image.as_deref() != Some(image.as_str()) {
+    if existing_image.as_deref() != Some(image.as_str()) || needs_replacement {
         create_container(
             project,
             &metadata,
-            &assets,
             &environment,
             &image,
             &name,
             &ports,
+            &external_hosts,
         )
         .await?;
     }
@@ -302,19 +347,20 @@ fn has_network(networks: &str, network: &str) -> Result<bool> {
 async fn create_container(
     project: &ProjectRoot,
     metadata: &WorkspaceMetadata,
-    _assets: &Path,
     environment: &BTreeMap<String, String>,
     image: &str,
     name: &str,
-    ports: &BTreeSet<u16>,
+    _ports: &BTreeSet<u16>,
+    external_hosts: &[(String, String)],
 ) -> Result<()> {
-    let services_host = resolve_services_host()?;
     let mut git_directories = BTreeSet::new();
     git_directories.insert(git_common_directory(&project.root).await?);
     if project.oss != project.root {
         git_directories.insert(git_common_directory(&project.oss).await?);
     }
     let volumes = workspace_volumes(metadata);
+    let proxy_root = proxy::proxy_root(project, metadata);
+    fs::create_dir_all(&proxy_root).into_diagnostic()?;
     let mut args = vec![
         "create".into(),
         "--init".into(),
@@ -328,12 +374,12 @@ async fn create_container(
         "/workspace".into(),
         "--add-host".into(),
         format!("{}:127.0.0.1", metadata.hostname),
-        "--add-host".into(),
-        format!("services:{services_host}"),
         "--env".into(),
         format!("METORIAL_HOSTNAME={}", metadata.hostname),
         "--env".into(),
         format!("CONTROL_WORKSPACE_ID={}", metadata.id),
+        "--env".into(),
+        format!("CONTROL_PROXY_ROOT={}", proxy_root.display()),
         "--env".into(),
         "CONTROL_SERVICE_POSTGRES=postgres-db2:5432".into(),
         "--env".into(),
@@ -366,12 +412,14 @@ async fn create_container(
         format!("{}:/control-state", volumes[6]),
         "--volume".into(),
         format!("{}:/root/.vscode-server", volumes[7]),
-        "--label".into(),
-        "traefik.enable=true".into(),
-        "--label".into(),
-        format!("traefik.docker.network={PROXY_NETWORK}"),
+        "--volume".into(),
+        format!("{}:{}", proxy_root.display(), proxy_root.display()),
+        "--volume".into(),
+        "/var/run/docker.sock:/var/run/docker.sock".into(),
         "--label".into(),
         format!("control.workspace={}", metadata.id),
+        "--label".into(),
+        format!("control.proxy-root={}", proxy_root.display()),
     ];
     for directory in git_directories {
         args.extend([
@@ -379,6 +427,7 @@ async fn create_container(
             format!("{}:{}:rw", directory.display(), directory.display()),
         ]);
     }
+    args.extend(external_host_args(external_hosts));
     if !project.root.join("env.json").is_file() {
         let inherited = metadata.source_root.join("env.json");
         if inherited.is_file() {
@@ -388,11 +437,79 @@ async fn create_container(
             ]);
         }
     }
-    args.extend(proxy_label_args(metadata, ports));
+    let external_hosts_label = external_host_label(external_hosts);
+    if !external_hosts_label.is_empty() {
+        args.extend([
+            "--label".into(),
+            format!("control.external-hosts={external_hosts_label}"),
+        ]);
+    }
     args.push(image.into());
     docker_run(&project.root, args, environment)
         .await
         .wrap_err("could not create workspace development container")
+}
+
+fn resolve_external_hosts(hostnames: &BTreeSet<String>) -> Result<Vec<(String, String)>> {
+    hostnames
+        .iter()
+        .map(|hostname| {
+            let override_address = (hostname == "services")
+                .then(|| std::env::var("CONTROL_SERVICES_HOST").ok())
+                .flatten()
+                .filter(|value| !value.trim().is_empty());
+            let lookup = override_address.as_deref().unwrap_or(hostname);
+            if lookup.parse::<IpAddr>().is_ok() {
+                return Ok((hostname.clone(), lookup.to_string()));
+            }
+            let addresses = (lookup, 0)
+                .to_socket_addrs()
+                .into_diagnostic()
+                .wrap_err_with(|| format!("could not resolve external hostname {lookup:?}"))?
+                .filter_map(|address| match address.ip() {
+                    IpAddr::V4(ip) if !ip.is_loopback() => Some(ip),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            let address = addresses
+                .iter()
+                .find(|ip| {
+                    let octets = ip.octets();
+                    octets[0] == 100 && (64..128).contains(&octets[1])
+                })
+                .or_else(|| addresses.first())
+                .ok_or_else(|| {
+                    miette::miette!("external hostname {lookup:?} has no non-loopback IPv4 address")
+                })?;
+            Ok((hostname.clone(), address.to_string()))
+        })
+        .collect()
+}
+
+fn external_host_args(hosts: &[(String, String)]) -> Vec<String> {
+    hosts
+        .iter()
+        .flat_map(|(hostname, address)| ["--add-host".into(), format!("{hostname}:{address}")])
+        .collect()
+}
+
+fn external_host_label(hosts: &[(String, String)]) -> String {
+    hosts
+        .iter()
+        .map(|(hostname, address)| format!("{hostname}={address}"))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn container_needs_replacement(
+    existing_image: Option<&str>,
+    desired_image: &str,
+    existing_external_hosts: &str,
+    desired_external_hosts: &str,
+) -> bool {
+    existing_image.is_some_and(|image| {
+        image != desired_image || existing_external_hosts != desired_external_hosts
+    })
 }
 
 async fn bootstrap(project: &ProjectRoot, running: &RunningWorkspace) -> Result<()> {
@@ -477,6 +594,33 @@ fn workspace_assets(project: &ProjectRoot, metadata: &WorkspaceMetadata) -> Path
     project.oss.join("scripts/dev-tools/workspace")
 }
 
+fn generated_assets(project: &ProjectRoot) -> PathBuf {
+    project.root.join(".control/workspace")
+}
+
+fn generate_runtime_assets(
+    project: &ProjectRoot,
+    metadata: &WorkspaceMetadata,
+    manifests: &[&LoadedManifest],
+) -> Result<PathBuf> {
+    let directory = generated_assets(project);
+    fs::create_dir_all(&directory).into_diagnostic()?;
+    let requirements = Requirements::from_manifests(manifests);
+    let project_name = services_project(metadata);
+    infrastructure::write_compose(
+        &directory.join("services.docker-compose.yml"),
+        &requirements,
+        &RenderOptions {
+            project_name: Some(&project_name),
+            network: "workspace-services",
+            network_name: None,
+            ports: None,
+            restart: true,
+        },
+    )?;
+    Ok(directory)
+}
+
 fn workspace_environment(
     project: &ProjectRoot,
     metadata: &WorkspaceMetadata,
@@ -490,7 +634,13 @@ fn workspace_environment(
 fn exposed_ports(manifests: &[&LoadedManifest]) -> BTreeSet<u16> {
     manifests
         .iter()
-        .flat_map(|loaded| loaded.manifest.expose.iter().map(|exposure| exposure.port))
+        .flat_map(|loaded| {
+            loaded
+                .manifest
+                .endpoints
+                .values()
+                .map(|endpoint| endpoint.port)
+        })
         .collect()
 }
 
@@ -510,12 +660,19 @@ fn hosts_markdown(metadata: &WorkspaceMetadata, manifests: &[&LoadedManifest]) -
             let name = manifest_name(loaded);
             loaded
                 .manifest
-                .expose
+                .endpoints
                 .iter()
-                .map(move |exposure| (exposure.port, name.clone()))
+                .map(move |(endpoint, definition)| {
+                    (definition.port, name.clone(), endpoint.clone())
+                })
         })
         .collect::<Vec<_>>();
-    entries.sort_by(|left, right| left.0.cmp(&right.0).then(left.1.cmp(&right.1)));
+    entries.sort_by(|left, right| {
+        left.0
+            .cmp(&right.0)
+            .then(left.1.cmp(&right.1))
+            .then(left.2.cmp(&right.2))
+    });
 
     let mut lines = vec![
         "# Workspace hosts".into(),
@@ -531,10 +688,13 @@ fn hosts_markdown(metadata: &WorkspaceMetadata, manifests: &[&LoadedManifest]) -
         String::new(),
     ];
     if entries.is_empty() {
-        lines.push("_No `[[dev.expose]]` ports declared._".into());
+        lines.push("_No named endpoints declared._".into());
     } else {
-        for (port, name) in entries {
-            lines.push(format!("- `{name}` — http://{}:{port}", metadata.hostname));
+        for (port, name, endpoint) in entries {
+            lines.push(format!(
+                "- `{name}` / `{endpoint}` — http://{}:{port}",
+                metadata.hostname
+            ));
         }
     }
     lines.push(String::new());
@@ -553,38 +713,27 @@ fn write_hosts_file(
     Ok(())
 }
 
-fn proxy_label_args(metadata: &WorkspaceMetadata, ports: &BTreeSet<u16>) -> Vec<String> {
-    let mut args = Vec::new();
-    for port in ports {
-        let route = format!("{}-{port}", metadata.id);
-        args.extend([
-            "--label".into(),
-            format!(
-                "traefik.http.routers.{route}.rule=Host(`{}`)",
-                metadata.hostname
-            ),
-            "--label".into(),
-            format!("traefik.http.routers.{route}.entrypoints=port-{port}"),
-            "--label".into(),
-            format!("traefik.http.routers.{route}.service={route}"),
-            "--label".into(),
-            format!("traefik.http.services.{route}.loadbalancer.server.port={port}"),
-        ]);
+async fn ensure_proxy_network(root: &Path) -> Result<()> {
+    if docker_quiet(
+        root,
+        vec!["network".into(), "inspect".into(), PROXY_NETWORK.into()],
+        &Default::default(),
+    )
+    .await
+    .is_ok()
+    {
+        return Ok(());
     }
-    args
+    docker_run(
+        root,
+        vec!["network".into(), "create".into(), PROXY_NETWORK.into()],
+        &Default::default(),
+    )
+    .await
+    .wrap_err("could not create the shared development proxy network")
 }
 
-async fn ensure_proxy(root: &Path, assets: &Path) -> Result<()> {
-    let args = compose_args(&assets.join("proxy.docker-compose.yml"), PROXY_PROJECT)
-        .into_iter()
-        .chain(["up".into(), "--detach".into(), "--wait".into()])
-        .collect();
-    docker_run(root, args, &Default::default())
-        .await
-        .wrap_err("could not start the global development proxy")
-}
-
-async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<String> {
+pub(crate) async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<String> {
     let dockerfile = assets.join("Dockerfile");
     let entrypoint = assets.join("entrypoint.sh");
     let mut hasher = DefaultHasher::new();
@@ -712,39 +861,8 @@ fn services_project(metadata: &WorkspaceMetadata) -> String {
     format!("control_ws_{}", metadata.id.replace('-', "_"))
 }
 
-fn container_name(metadata: &WorkspaceMetadata) -> String {
+pub(crate) fn container_name(metadata: &WorkspaceMetadata) -> String {
     format!("metorial-ws-{}", metadata.id)
-}
-
-fn resolve_services_host() -> Result<String> {
-    if let Ok(value) = std::env::var("CONTROL_SERVICES_HOST")
-        && !value.trim().is_empty()
-    {
-        return Ok(value.trim().to_string());
-    }
-    use std::net::{IpAddr, ToSocketAddrs};
-    let addresses = ("services", 0)
-        .to_socket_addrs()
-        .into_diagnostic()
-        .wrap_err(
-            "could not resolve hostname `services` for the workspace container \
-             (override with CONTROL_SERVICES_HOST)",
-        )?
-        .filter_map(|address| match address.ip() {
-            IpAddr::V4(ip) if !ip.is_loopback() => Some(ip),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    if let Some(ip) = addresses.iter().find(|ip| {
-        let octets = ip.octets();
-        octets[0] == 100 && (64..128).contains(&octets[1])
-    }) {
-        return Ok(ip.to_string());
-    }
-    addresses
-        .first()
-        .map(ToString::to_string)
-        .ok_or_else(|| miette::miette!("hostname `services` has no non-loopback IPv4 address"))
 }
 
 fn compose_args(compose: &Path, project: &str) -> Vec<String> {
@@ -805,16 +923,17 @@ async fn docker_quiet(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::manifest::{Exposure, Manifest, Package};
+    use crate::manifest::{Endpoint, Manifest, Package};
 
     fn metadata() -> WorkspaceMetadata {
         WorkspaceMetadata {
             id: "feature-auth".into(),
-            hostname: "feature-auth.localhost".into(),
+            hostname: "metorial-feature-auth.localhost".into(),
             branch: "feature/auth".into(),
             source_root: "/code/metorial".into(),
             runtime: crate::workspace::WorkspaceRuntime::Docker,
             service_ports: None,
+            endpoint_ports: Default::default(),
         }
     }
 
@@ -829,6 +948,37 @@ mod tests {
     }
 
     #[test]
+    fn generates_configuration_for_arbitrary_external_hosts() {
+        let hosts = vec![
+            ("api.internal.example".into(), "100.70.1.2".into()),
+            ("services".into(), "100.70.1.3".into()),
+        ];
+        assert_eq!(
+            external_host_args(&hosts),
+            [
+                "--add-host",
+                "api.internal.example:100.70.1.2",
+                "--add-host",
+                "services:100.70.1.3",
+            ]
+        );
+        let label = external_host_label(&hosts);
+        assert_eq!(label, "api.internal.example=100.70.1.2,services=100.70.1.3");
+        assert!(container_needs_replacement(
+            Some("dev:image"),
+            "dev:image",
+            "",
+            &label
+        ));
+        assert!(!container_needs_replacement(
+            Some("dev:image"),
+            "dev:image",
+            &label,
+            &label
+        ));
+    }
+
+    #[test]
     fn writes_hosts_markdown_from_workspace_hostname() {
         let metadata = metadata();
         let manifests = [
@@ -839,7 +989,14 @@ mod tests {
                         name: "@metorial/dashboard".into(),
                         groups: vec![],
                     }),
-                    expose: vec![Exposure { port: 4300 }],
+                    endpoints: BTreeMap::from([(
+                        "dashboard".into(),
+                        Endpoint {
+                            port: 4300,
+                            bind_port: None,
+                            env: vec![],
+                        },
+                    )]),
                     ..Default::default()
                 },
             },
@@ -850,36 +1007,49 @@ mod tests {
                         name: "@metorial/core-api".into(),
                         groups: vec![],
                     }),
-                    expose: vec![Exposure { port: 4310 }, Exposure { port: 4318 }],
+                    endpoints: BTreeMap::from([
+                        (
+                            "api".into(),
+                            Endpoint {
+                                port: 4310,
+                                bind_port: None,
+                                env: vec![],
+                            },
+                        ),
+                        (
+                            "events".into(),
+                            Endpoint {
+                                port: 4318,
+                                bind_port: None,
+                                env: vec![],
+                            },
+                        ),
+                    ]),
                     ..Default::default()
                 },
             },
         ];
         let selected = manifests.iter().collect::<Vec<_>>();
         let markdown = hosts_markdown(&metadata, &selected);
-        assert!(markdown.contains("Hostname: `feature-auth.localhost`"));
+        assert!(markdown.contains("Hostname: `metorial-feature-auth.localhost`"));
         assert!(
-            markdown.contains("Port 80 redirects to port 4300: http://feature-auth.localhost/")
+            markdown.contains(
+                "Port 80 redirects to port 4300: http://metorial-feature-auth.localhost/"
+            )
         );
-        assert!(markdown.contains("- `@metorial/dashboard` — http://feature-auth.localhost:4300"));
-        assert!(markdown.contains("- `@metorial/core-api` — http://feature-auth.localhost:4310"));
-        assert!(markdown.contains("- `@metorial/core-api` — http://feature-auth.localhost:4318"));
+        assert!(markdown.contains(
+            "- `@metorial/dashboard` / `dashboard` — http://metorial-feature-auth.localhost:4300"
+        ));
+        assert!(markdown.contains(
+            "- `@metorial/core-api` / `api` — http://metorial-feature-auth.localhost:4310"
+        ));
+        assert!(markdown.contains(
+            "- `@metorial/core-api` / `events` — http://metorial-feature-auth.localhost:4318"
+        ));
         assert!(
             markdown.find("4300").unwrap() < markdown.find("4310").unwrap(),
             "endpoints should be sorted by port"
         );
-    }
-
-    #[test]
-    fn proxy_redirects_port_80_to_4300() {
-        let oss = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let assets = oss.join("scripts/dev-tools/workspace");
-        let compose = fs::read_to_string(assets.join("proxy.docker-compose.yml")).unwrap();
-        let traefik = fs::read_to_string(assets.join("traefik.yml")).unwrap();
-        assert!(compose.contains("'80:80'"));
-        assert!(traefik.contains("port-80:"));
-        assert!(traefik.contains("to: port-4300"));
-        assert!(traefik.contains("scheme: http"));
     }
 
     #[test]
@@ -902,23 +1072,5 @@ mod tests {
         let networks = r#"{"control_proxy":{"NetworkID":"one"}}"#;
         assert!(has_network(networks, "control_proxy").unwrap());
         assert!(!has_network(networks, "control_ws_test_workspace-services").unwrap());
-    }
-
-    #[test]
-    fn proxy_declares_every_repository_exposure() {
-        let oss = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let assets = oss.join("scripts/dev-tools/workspace");
-        let compose = fs::read_to_string(assets.join("proxy.docker-compose.yml")).unwrap();
-        let traefik = fs::read_to_string(assets.join("traefik.yml")).unwrap();
-        let mut manifests = manifest::discover(&oss).unwrap();
-        let enterprise = oss.parent().unwrap();
-        if enterprise.join("package.json").is_file() {
-            manifests.extend(manifest::discover(enterprise).unwrap());
-        }
-        let ports = exposed_ports(&manifests.iter().collect::<Vec<_>>());
-        for port in ports {
-            assert!(compose.contains(&format!("'{port}:{port}'")));
-            assert!(traefik.contains(&format!("port-{port}:")));
-        }
     }
 }

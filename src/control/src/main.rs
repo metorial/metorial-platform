@@ -2,8 +2,10 @@ mod cleanup;
 mod dev;
 mod docker;
 mod environment;
+mod infrastructure;
 mod manifest;
 mod process;
+mod proxy;
 mod root;
 mod turbo;
 mod workspace;
@@ -26,6 +28,9 @@ struct Cli {
     /// Start root detection at this directory.
     #[arg(long, global = true, value_name = "PATH")]
     root: Option<PathBuf>,
+    /// Operate on the OSS source tree in an enterprise checkout.
+    #[arg(long, global = true)]
+    oss: bool,
     #[command(subcommand)]
     command: Commands,
 }
@@ -55,6 +60,11 @@ enum Commands {
         /// Do not start declared Docker dependency services.
         #[arg(long)]
         no_docker: bool,
+    },
+    /// Generate clients or push schemas for selected development databases.
+    Db {
+        #[command(subcommand)]
+        command: DbCommand,
     },
     /// Write resolved development environment files.
     Env {
@@ -87,6 +97,20 @@ enum Commands {
 enum DockerCommand {
     /// Stop declared Compose services without removing volumes.
     Stop { selectors: Vec<String> },
+}
+
+#[derive(Debug, Subcommand)]
+enum DbCommand {
+    /// Run control:db:generate for selected database-owner packages.
+    Generate {
+        /// Package names or group names. All packages are selected when omitted.
+        selectors: Vec<String>,
+    },
+    /// Start required databases and run control:db:push for their owner packages.
+    Push {
+        /// Package names or group names. All packages are selected when omitted.
+        selectors: Vec<String>,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -145,11 +169,15 @@ enum WorkspaceCommand {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let start = match cli.root {
-        Some(root) => root,
+    let start = match &cli.root {
+        Some(root) => root.clone(),
         None => env::current_dir().into_diagnostic()?,
     };
-    let project = root::detect(&start)?;
+    let mut project = root::detect(&start)?;
+    if cli.oss {
+        project.kind = root::RootKind::Standalone;
+        project.root = project.oss.clone();
+    }
 
     match cli.command {
         Commands::Dev {
@@ -173,10 +201,32 @@ async fn main() -> Result<()> {
             selectors,
             no_docker,
         } => dev::run_prepare(&project, &selectors, no_docker).await,
+        Commands::Db { command } => match command {
+            DbCommand::Generate { selectors } => {
+                dev::run_database_task(&project, &selectors, dev::DatabaseTask::Generate).await
+            }
+            DbCommand::Push { selectors } => {
+                dev::run_database_task(&project, &selectors, dev::DatabaseTask::Push).await
+            }
+        },
         Commands::Env { selectors, json } => {
+            workspace::metadata(&project).await?;
             let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
+            workspace::configure_manifests(&project, &mut manifests).await?;
+            let externals = manifest::load_externals(&project.root, &mut manifests)?;
+            let mut selected = manifest::select_with_dependencies_excluding(
+                &manifests,
+                &selectors,
+                &project.kind,
+                &externals,
+            )?;
+            selected.retain(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !externals.contains(&package.name))
+            });
             let root_env = environment::root_environment(&project)?;
             let mut written = Vec::new();
             for loaded in selected {
@@ -203,8 +253,21 @@ async fn main() -> Result<()> {
             selectors,
         } => {
             let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
+            workspace::configure_manifests(&project, &mut manifests).await?;
+            let externals = manifest::load_externals(&project.root, &mut manifests)?;
+            let mut selected = manifest::select_with_dependencies_excluding(
+                &manifests,
+                &selectors,
+                &project.kind,
+                &externals,
+            )?;
+            selected.retain(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !externals.contains(&package.name))
+            });
             if stop_docker {
                 let env = environment::root_environment(&project)?;
                 let projects = docker::compose_projects(&project.root, &selected);
@@ -299,8 +362,21 @@ async fn main() -> Result<()> {
             command: DockerCommand::Stop { selectors },
         } => {
             let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
+            workspace::configure_manifests(&project, &mut manifests).await?;
+            let externals = manifest::load_externals(&project.root, &mut manifests)?;
+            let mut selected = manifest::select_with_dependencies_excluding(
+                &manifests,
+                &selectors,
+                &project.kind,
+                &externals,
+            )?;
+            selected.retain(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !externals.contains(&package.name))
+            });
             let env = environment::root_environment(&project)?;
             let projects = docker::compose_projects(&project.root, &selected);
             docker::stop(&project.root, &projects, &env).await;
@@ -468,4 +544,24 @@ mod tests {
             } if selectors == ["backend"]
         ));
     }
+
+    #[test]
+    fn parses_database_commands() {
+        let generate = Cli::try_parse_from(["control", "db", "generate", "@metorial/db"]).unwrap();
+        assert!(matches!(
+            generate.command,
+            Commands::Db {
+                command: DbCommand::Generate { selectors },
+            } if selectors == ["@metorial/db"]
+        ));
+
+        let push = Cli::try_parse_from(["control", "db", "push", "backend"]).unwrap();
+        assert!(matches!(
+            push.command,
+            Commands::Db {
+                command: DbCommand::Push { selectors },
+            } if selectors == ["backend"]
+        ));
+    }
+
 }
