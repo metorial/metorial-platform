@@ -19,7 +19,8 @@ use crate::{
 
 const PROJECT: &str = "control_proxy";
 const NETWORK: &str = "control_proxy";
-const STATE_VERSION: u32 = 2;
+const STATE_VERSION: u32 = 3;
+const ROOT_REDIRECT_PORT: u16 = 4300;
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 struct ProxyState {
@@ -289,7 +290,10 @@ fn render_static(ports: &BTreeSet<u16>) -> String {
     let mut entrypoints = String::from(
         "  health:\n    address: ':8082'\n  port-80:\n    address: ':80'\n    http:\n      redirections:\n        entryPoint:\n          to: port-4300\n          scheme: http\n          permanent: false\n",
     );
-    for port in ports {
+    let mut public_ports = ports.clone();
+    public_ports.insert(ROOT_REDIRECT_PORT);
+    public_ports.remove(&80);
+    for port in public_ports {
         entrypoints.push_str(&format!("  port-{port}:\n    address: ':{port}'\n"));
     }
     format!(
@@ -300,6 +304,7 @@ fn render_static(ports: &BTreeSet<u16>) -> String {
 fn render_compose(root: &Path, ports: &BTreeSet<u16>) -> String {
     let mut public_ports = ports.clone();
     public_ports.insert(80);
+    public_ports.insert(ROOT_REDIRECT_PORT);
     let mut published = String::new();
     for port in public_ports {
         // The .localhost namespace resolves to both loopback families on macOS and
@@ -438,13 +443,15 @@ mod tests {
     #[test]
     fn renders_dual_stack_loopback_only_public_ports() {
         let root = Path::new("/code/.control/proxy");
-        let text = render_compose(root, &BTreeSet::from([4300, 4310]));
+        let text = render_compose(root, &BTreeSet::from([4310]));
         assert!(text.contains("127.0.0.1:80:80"));
         assert!(text.contains("[::1]:80:80"));
         assert!(text.contains("127.0.0.1:4300:4300"));
         assert!(text.contains("[::1]:4300:4300"));
         assert!(text.contains("host.docker.internal:host-gateway"));
-        assert!(render_static(&BTreeSet::from([4300])).contains("to: port-4300"));
+        let static_text = render_static(&BTreeSet::new());
+        assert!(static_text.contains("to: port-4300"));
+        assert!(static_text.contains("port-4300:\n    address: ':4300'"));
     }
 
     #[test]

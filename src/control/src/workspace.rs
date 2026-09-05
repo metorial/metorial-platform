@@ -511,6 +511,15 @@ async fn allocate_missing_endpoint_ports(
     metadata: &mut WorkspaceMetadata,
     service_ports: &ServicePorts,
 ) -> Result<bool> {
+    let mut unavailable = BTreeSet::new();
+    for worktree in list_worktrees(&project.root).await? {
+        if same_path(&worktree.path, &project.root) {
+            continue;
+        }
+        if let Some(workspace) = read_metadata_file(&worktree.path)? {
+            reserve_workspace_ports(&mut unavailable, &workspace);
+        }
+    }
     let missing = manifests
         .iter()
         .filter_map(|loaded| {
@@ -520,10 +529,11 @@ async fn allocate_missing_endpoint_ports(
                     .endpoints
                     .keys()
                     .filter(|endpoint| {
-                        !metadata
+                        metadata
                             .endpoint_ports
                             .get(&package.name)
-                            .is_some_and(|ports| ports.contains_key(*endpoint))
+                            .and_then(|ports| ports.get(*endpoint))
+                            .is_none_or(|port| unavailable.contains(port))
                     })
                     .map(|endpoint| (package.name.clone(), endpoint.clone()))
                     .collect::<Vec<_>>()
@@ -543,17 +553,7 @@ async fn allocate_missing_endpoint_ports(
             .flat_map(|endpoints| endpoints.values())
             .copied(),
     );
-    for worktree in list_worktrees(&project.root).await? {
-        if let Some(workspace) = read_metadata_file(&worktree.path)? {
-            reserved.extend(
-                workspace
-                    .endpoint_ports
-                    .values()
-                    .flat_map(|endpoints| endpoints.values())
-                    .copied(),
-            );
-        }
-    }
+    reserved.extend(unavailable);
     let allocated = allocate_port_values(&reserved, missing.len())?;
     for ((package, endpoint), port) in missing.into_iter().zip(allocated) {
         metadata
@@ -587,23 +587,34 @@ fn reserved_endpoint_ports(
     reserved
 }
 
+fn reserve_workspace_ports(reserved: &mut BTreeSet<u16>, metadata: &WorkspaceMetadata) {
+    if let Some(ports) = &metadata.service_ports {
+        reserved.extend([
+            ports.postgres,
+            ports.mongo,
+            ports.redis,
+            ports.nats,
+            ports.etcd_client,
+            ports.etcd_peer,
+        ]);
+    }
+    reserved.extend(
+        metadata
+            .endpoint_ports
+            .values()
+            .flat_map(|endpoints| endpoints.values())
+            .copied(),
+    );
+}
+
 async fn allocate_service_ports(project: &ProjectRoot) -> Result<ServicePorts> {
     // Root development services use these stable ports even when currently
     // stopped. Never allocate them to a host workspace, because creation may
     // need to start root Postgres to clone its databases.
     let mut reserved = BTreeSet::from([32379, 32380, 32707, 34222, 35432, 36379]);
     for worktree in list_worktrees(&project.root).await? {
-        if let Some(ports) =
-            read_metadata_file(&worktree.path)?.and_then(|metadata| metadata.service_ports)
-        {
-            reserved.extend([
-                ports.postgres,
-                ports.mongo,
-                ports.redis,
-                ports.nats,
-                ports.etcd_client,
-                ports.etcd_peer,
-            ]);
+        if let Some(metadata) = read_metadata_file(&worktree.path)? {
+            reserve_workspace_ports(&mut reserved, &metadata);
         }
     }
     allocate_available_ports(&reserved)
@@ -631,13 +642,7 @@ async fn allocate_endpoint_ports(
     let mut reserved = reserved_endpoint_ports(&manifests, service_ports);
     for worktree in list_worktrees(&project.root).await? {
         if let Some(metadata) = read_metadata_file(&worktree.path)? {
-            reserved.extend(
-                metadata
-                    .endpoint_ports
-                    .values()
-                    .flat_map(|endpoints| endpoints.values())
-                    .copied(),
-            );
+            reserve_workspace_ports(&mut reserved, &metadata);
         }
     }
     let ports = allocate_port_values(&reserved, declarations.len())?;
@@ -1106,9 +1111,41 @@ mod tests {
         }
     }
 
+    #[test]
+    fn workspace_port_reservations_include_services_and_endpoints() {
+        let metadata = WorkspaceMetadata {
+            id: "host".into(),
+            hostname: "localhost".into(),
+            branch: "host".into(),
+            source_root: PathBuf::from("/code/metorial"),
+            runtime: WorkspaceRuntime::Host,
+            service_ports: Some(ServicePorts {
+                postgres: 41001,
+                mongo: 41002,
+                redis: 41003,
+                nats: 41004,
+                etcd_client: 41005,
+                etcd_peer: 41006,
+            }),
+            endpoint_ports: BTreeMap::from([(
+                "api".into(),
+                BTreeMap::from([("http".into(), 42000)]),
+            )]),
+        };
+        let mut reserved = BTreeSet::new();
+
+        reserve_workspace_ports(&mut reserved, &metadata);
+
+        assert_eq!(
+            reserved,
+            BTreeSet::from([41001, 41002, 41003, 41004, 41005, 41006, 42000])
+        );
+    }
+
     #[tokio::test]
     async fn host_workspace_remaps_generated_compose_and_database_ports() {
         let temp = tempdir().unwrap();
+        initialize_git(temp.path());
         fs::write(
             temp.path().join("package.json"),
             r#"{"name":"test","scripts":{"dev:start":"true","control:db:generate":"true","control:db:push":"true"}}"#,
@@ -1160,6 +1197,7 @@ mod tests {
     #[tokio::test]
     async fn host_dependencies_use_public_workspace_endpoints() {
         let temp = tempdir().unwrap();
+        initialize_git(temp.path());
         for (directory, manifest) in [
             (
                 "api",

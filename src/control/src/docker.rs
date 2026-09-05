@@ -60,7 +60,7 @@ async fn start_with_requirements(
         )?;
     }
     let mut projects = if include_declared_compose {
-        compose_projects(root, manifests)
+        declared_compose_projects(root, manifests)
     } else {
         Vec::new()
     };
@@ -201,6 +201,20 @@ pub async fn stop(
 }
 
 pub fn compose_projects(root: &Path, manifests: &[&LoadedManifest]) -> Vec<(PathBuf, Vec<String>)> {
+    let requirements = Requirements::from_manifests(manifests);
+    let mut projects = declared_compose_projects(root, manifests);
+    let generated = root.join(".control/dev/services.docker-compose.yml");
+    if requirements.count() > 0 && generated.is_file() {
+        projects.push((generated, requirements.service_names()));
+        projects.sort_by(|left, right| left.0.cmp(&right.0));
+    }
+    projects
+}
+
+fn declared_compose_projects(
+    root: &Path,
+    manifests: &[&LoadedManifest],
+) -> Vec<(PathBuf, Vec<String>)> {
     let mut projects = BTreeMap::<PathBuf, BTreeSet<String>>::new();
     for loaded in manifests {
         let base = loaded.path.parent().unwrap_or(root);
@@ -469,5 +483,34 @@ mod tests {
             },
             &ports
         ));
+    }
+
+    #[test]
+    fn includes_generated_services_in_compose_projects() {
+        let temp = tempfile::tempdir().unwrap();
+        let manifest_path = temp.path().join("control.toml");
+        std::fs::write(temp.path().join("package.json"), "{\"name\":\"api\"}").unwrap();
+        std::fs::write(
+            &manifest_path,
+            "name='api'\n[[resources]]\ntype='redis'\n[[resources]]\ntype='nats'\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(temp.path().join(".control/dev")).unwrap();
+        std::fs::write(
+            temp.path().join(".control/dev/services.docker-compose.yml"),
+            "services: {}\n",
+        )
+        .unwrap();
+        let manifest = crate::manifest::load(&manifest_path).unwrap();
+
+        let projects = compose_projects(temp.path(), &[&manifest]);
+
+        assert_eq!(
+            projects,
+            vec![(
+                temp.path().join(".control/dev/services.docker-compose.yml"),
+                vec!["redis-db".into(), "nats-1".into()],
+            )]
+        );
     }
 }

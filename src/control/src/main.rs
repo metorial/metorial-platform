@@ -7,7 +7,9 @@ mod manifest;
 mod process;
 mod proxy;
 mod root;
+mod run;
 mod turbo;
+mod unit;
 mod workspace;
 mod workspace_dev;
 mod workspace_host;
@@ -71,6 +73,19 @@ enum Commands {
         selectors: Vec<String>,
         #[arg(long)]
         json: bool,
+    },
+    /// Run a package script with the resolved development environment.
+    #[command(disable_help_flag = true)]
+    Run {
+        /// Arguments passed directly to `bun run`.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+    /// Run unit tests across the Turbo workspace.
+    #[command(name = "test:unit")]
+    TestUnit {
+        /// Native Turbo filter expressions. All testable packages run when omitted.
+        filters: Vec<String>,
     },
     /// Remove generated development artifacts.
     Cleanup {
@@ -210,30 +225,7 @@ async fn main() -> Result<()> {
             }
         },
         Commands::Env { selectors, json } => {
-            workspace::metadata(&project).await?;
-            let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests).await?;
-            let externals = manifest::load_externals(&project.root, &mut manifests)?;
-            let mut selected = manifest::select_with_dependencies_excluding(
-                &manifests,
-                &selectors,
-                &project.kind,
-                &externals,
-            )?;
-            selected.retain(|loaded| {
-                loaded
-                    .manifest
-                    .package
-                    .as_ref()
-                    .is_none_or(|package| !externals.contains(&package.name))
-            });
-            let root_env = environment::root_environment(&project)?;
-            let mut written = Vec::new();
-            for loaded in selected {
-                if environment::has_values(loaded) {
-                    written.push(environment::write_for_manifest(loaded, &root_env)?);
-                }
-            }
+            let written = environment::write_for_project(&project, &selectors).await?;
             if json {
                 println!(
                     "{}",
@@ -247,6 +239,8 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
+        Commands::Run { args } => run::run(&project, &start, &args).await,
+        Commands::TestUnit { filters } => unit::run(&project, &filters).await,
         Commands::Cleanup {
             dry_run,
             docker: stop_docker,
@@ -564,4 +558,58 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn passes_run_arguments_through() {
+        let run = Cli::try_parse_from([
+            "control",
+            "run",
+            "--help",
+            "--silent",
+            "test",
+            "--",
+            "--update-snapshots",
+        ])
+        .unwrap();
+        let Commands::Run { args } = run.command else {
+            panic!("expected run command");
+        };
+        assert_eq!(
+            args,
+            ["--help", "--silent", "test", "--", "--update-snapshots"]
+        );
+
+        let list = Cli::try_parse_from(["control", "run"]).unwrap();
+        assert!(matches!(list.command, Commands::Run { args } if args.is_empty()));
+    }
+
+    #[test]
+    fn parses_unit_test_filters() {
+        let all = Cli::try_parse_from(["control", "test:unit"]).unwrap();
+        assert!(matches!(
+            all.command,
+            Commands::TestUnit { filters } if filters.is_empty()
+        ));
+
+        let filtered = Cli::try_parse_from([
+            "control",
+            "test:unit",
+            "@lowerdeck/hash",
+            "./oss/src/metorial-frontend/**",
+            "!@metorial/shuttle",
+            "@metorial/api...",
+            "[HEAD^]",
+        ])
+        .unwrap();
+        assert!(matches!(
+            filtered.command,
+            Commands::TestUnit { filters }
+                if filters == [
+                    "@lowerdeck/hash",
+                    "./oss/src/metorial-frontend/**",
+                    "!@metorial/shuttle",
+                    "@metorial/api...",
+                    "[HEAD^]",
+                ]
+        ));
+    }
 }

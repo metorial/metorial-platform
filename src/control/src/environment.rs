@@ -388,6 +388,37 @@ pub fn has_values(loaded: &LoadedManifest) -> bool {
         || !loaded.manifest.resources.is_empty()
 }
 
+pub async fn write_for_project(
+    project: &ProjectRoot,
+    selectors: &[String],
+) -> Result<Vec<PathBuf>> {
+    workspace::metadata(project).await?;
+    let mut manifests = crate::manifest::discover(&project.root)?;
+    workspace::configure_manifests(project, &mut manifests).await?;
+    let externals = crate::manifest::load_externals(&project.root, &mut manifests)?;
+    let mut selected = crate::manifest::select_with_dependencies_excluding(
+        &manifests,
+        selectors,
+        &project.kind,
+        &externals,
+    )?;
+    selected.retain(|loaded| {
+        loaded
+            .manifest
+            .package
+            .as_ref()
+            .is_none_or(|package| !externals.contains(&package.name))
+    });
+    let root_env = root_environment(project)?;
+    let mut written = Vec::new();
+    for loaded in selected {
+        if has_values(loaded) {
+            written.push(write_for_manifest(loaded, &root_env)?);
+        }
+    }
+    Ok(written)
+}
+
 pub fn write_for_manifest(
     loaded: &LoadedManifest,
     root_values: &BTreeMap<String, String>,
