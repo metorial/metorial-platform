@@ -6,7 +6,10 @@ export let env = createValidatedEnv({
     REDIS_URL: v.string(),
     DATABASE_URL: v.string(),
 
-    ORIGIN_SERVICE_PUBLIC_URL: v.string()
+    ORIGIN_SERVICE_PUBLIC_URL: v.string(),
+
+    ORIGIN_API_PORT: v.optional(v.number()),
+    ORIGIN_SCM_PORT: v.optional(v.number())
   },
 
   storage: {

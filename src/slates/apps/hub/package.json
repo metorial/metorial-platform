@@ -27,7 +27,10 @@
     "typecheck": "bun run check-types && bun run admin:typecheck",
     "admin:typecheck": "tsc --noEmit --project admin/tsconfig.json",
     "admin:build": "vite build --config admin/vite.config.ts",
-    "admin:dev": "vite --config admin/vite.config.ts"
+    "admin:dev": "vite --config admin/vite.config.ts",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@types/bun": "latest",

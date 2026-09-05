@@ -1,10 +1,11 @@
 import { RedisClient } from 'bun';
 import { forgeApi } from './controllers';
 import { db } from './db';
+import { env } from './env';
 
 let server = Bun.serve({
   fetch: forgeApi,
-  port: 52020
+  port: env.service.FORGE_API_PORT ?? 52020
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

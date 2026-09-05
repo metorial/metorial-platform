@@ -10,16 +10,19 @@ NODE_ENV = "development"
 INTEGRATIONS_API_URL = "http://{{HOSTNAME}}:4316"
 
 [dev.db.subspace]
+package = "@metorial-subspace/db"
 name = "subspace"
 engine = "postgres"
 env = "SUBSPACE_DATABASE_URL"
 
 [dev.db.main]
+package = "@metorial/db"
 name = "metorial-enterprise"
 engine = "postgres"
 env = "DATABASE_URL"
 
 [dev.db.federation]
+package = "@metorial-subspace/db"
 name = "metorial-enterprise-federation"
 engine = "postgres"
 env = "FEDERATION_CORE_DATABASE_URL"

@@ -8,6 +8,8 @@ export let env = createValidatedEnv({
     SEARCH_DATABASE_URL: v.string(),
     ALGOLIA_APP_ID: v.optional(v.string()),
     ALGOLIA_API_KEY: v.optional(v.string()),
-    ALGOLIA_INDEX_PREFIX: v.optional(v.string())
+    ALGOLIA_INDEX_PREFIX: v.optional(v.string()),
+
+    VOYAGER_PORT: v.optional(v.number())
   }
 });

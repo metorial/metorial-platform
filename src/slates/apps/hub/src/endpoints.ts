@@ -4,16 +4,17 @@ import { adminApi } from './apis/admin';
 import { slatesHubApi } from './apis/internal';
 import { hubApp } from './apis/public';
 import { db } from './db';
+import { env } from './env';
 
 Bun.serve({
   fetch: hubApp.fetch,
-  port: 52045,
+  port: env.service.SLATES_HUB_PUBLIC_PORT ?? 52045,
   idleTimeout: 250
 });
 
 Bun.serve({
   fetch: slatesHubApi,
-  port: 52046,
+  port: env.service.SLATES_HUB_INTERNAL_PORT ?? 52046,
   idleTimeout: 250
 });
 

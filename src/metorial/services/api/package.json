@@ -7,7 +7,10 @@
   "scripts": {
     "oss:server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite",
     "oss:server:start": "bun ./dist/index.js",
-    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts"
+    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "true",
+    "control:db:push": "true"
   },
   "dependencies": {
     "@metorial-subspace/db": "^1.0.0",
