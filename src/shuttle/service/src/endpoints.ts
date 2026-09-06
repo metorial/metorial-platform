@@ -6,6 +6,7 @@ import { connectionApp, websocket } from './apis/connection';
 import { ShuttleRPC } from './apis/controllers';
 import { publicApp } from './apis/public';
 import { db } from './db';
+import { env } from './env';
 
 let shuttleApi = apiMux(
   [{ endpoint: rpcMux({ path: '/metorial-shuttle' }, [ShuttleRPC]) }],
@@ -14,14 +15,14 @@ let shuttleApi = apiMux(
 
 let apiServer = Bun.serve({
   fetch: shuttleApi,
-  port: 52080,
+  port: env.service.SHUTTLE_API_PORT ?? 52080,
   websocket,
   idleTimeout: 240
 });
 
 let publicServer = Bun.serve({
   fetch: publicApp.fetch,
-  port: 52081,
+  port: env.service.SHUTTLE_PUBLIC_PORT ?? 52081,
   websocket
 });
 

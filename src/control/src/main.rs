@@ -2,10 +2,14 @@ mod cleanup;
 mod dev;
 mod docker;
 mod environment;
+mod infrastructure;
 mod manifest;
 mod process;
+mod proxy;
 mod root;
+mod run;
 mod turbo;
+mod unit;
 mod workspace;
 mod workspace_dev;
 mod workspace_host;
@@ -26,6 +30,9 @@ struct Cli {
     /// Start root detection at this directory.
     #[arg(long, global = true, value_name = "PATH")]
     root: Option<PathBuf>,
+    /// Operate on the OSS source tree in an enterprise checkout.
+    #[arg(long, global = true)]
+    oss: bool,
     #[command(subcommand)]
     command: Commands,
 }
@@ -56,11 +63,29 @@ enum Commands {
         #[arg(long)]
         no_docker: bool,
     },
+    /// Generate clients or push schemas for selected development databases.
+    Db {
+        #[command(subcommand)]
+        command: DbCommand,
+    },
     /// Write resolved development environment files.
     Env {
         selectors: Vec<String>,
         #[arg(long)]
         json: bool,
+    },
+    /// Run a package script with the resolved development environment.
+    #[command(disable_help_flag = true)]
+    Run {
+        /// Arguments passed directly to `bun run`.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+    /// Run unit tests across the Turbo workspace.
+    #[command(name = "test:unit")]
+    TestUnit {
+        /// Native Turbo filter expressions. All testable packages run when omitted.
+        filters: Vec<String>,
     },
     /// Remove generated development artifacts.
     Cleanup {
@@ -87,6 +112,20 @@ enum Commands {
 enum DockerCommand {
     /// Stop declared Compose services without removing volumes.
     Stop { selectors: Vec<String> },
+}
+
+#[derive(Debug, Subcommand)]
+enum DbCommand {
+    /// Run control:db:generate for selected database-owner packages.
+    Generate {
+        /// Package names or group names. All packages are selected when omitted.
+        selectors: Vec<String>,
+    },
+    /// Start required databases and run control:db:push for their owner packages.
+    Push {
+        /// Package names or group names. All packages are selected when omitted.
+        selectors: Vec<String>,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -145,11 +184,15 @@ enum WorkspaceCommand {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let start = match cli.root {
-        Some(root) => root,
+    let start = match &cli.root {
+        Some(root) => root.clone(),
         None => env::current_dir().into_diagnostic()?,
     };
-    let project = root::detect(&start)?;
+    let mut project = root::detect(&start)?;
+    if cli.oss {
+        project.kind = root::RootKind::Standalone;
+        project.root = project.oss.clone();
+    }
 
     match cli.command {
         Commands::Dev {
@@ -173,17 +216,16 @@ async fn main() -> Result<()> {
             selectors,
             no_docker,
         } => dev::run_prepare(&project, &selectors, no_docker).await,
-        Commands::Env { selectors, json } => {
-            let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
-            let root_env = environment::root_environment(&project)?;
-            let mut written = Vec::new();
-            for loaded in selected {
-                if environment::has_values(loaded) {
-                    written.push(environment::write_for_manifest(loaded, &root_env)?);
-                }
+        Commands::Db { command } => match command {
+            DbCommand::Generate { selectors } => {
+                dev::run_database_task(&project, &selectors, dev::DatabaseTask::Generate).await
             }
+            DbCommand::Push { selectors } => {
+                dev::run_database_task(&project, &selectors, dev::DatabaseTask::Push).await
+            }
+        },
+        Commands::Env { selectors, json } => {
+            let written = environment::write_for_project(&project, &selectors).await?;
             if json {
                 println!(
                     "{}",
@@ -197,14 +239,29 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
+        Commands::Run { args } => run::run(&project, &start, &args).await,
+        Commands::TestUnit { filters } => unit::run(&project, &filters).await,
         Commands::Cleanup {
             dry_run,
             docker: stop_docker,
             selectors,
         } => {
             let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
+            workspace::configure_manifests(&project, &mut manifests).await?;
+            let externals = manifest::load_externals(&project.root, &mut manifests)?;
+            let mut selected = manifest::select_with_dependencies_excluding(
+                &manifests,
+                &selectors,
+                &project.kind,
+                &externals,
+            )?;
+            selected.retain(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !externals.contains(&package.name))
+            });
             if stop_docker {
                 let env = environment::root_environment(&project)?;
                 let projects = docker::compose_projects(&project.root, &selected);
@@ -299,8 +356,21 @@ async fn main() -> Result<()> {
             command: DockerCommand::Stop { selectors },
         } => {
             let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
+            workspace::configure_manifests(&project, &mut manifests).await?;
+            let externals = manifest::load_externals(&project.root, &mut manifests)?;
+            let mut selected = manifest::select_with_dependencies_excluding(
+                &manifests,
+                &selectors,
+                &project.kind,
+                &externals,
+            )?;
+            selected.retain(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !externals.contains(&package.name))
+            });
             let env = environment::root_environment(&project)?;
             let projects = docker::compose_projects(&project.root, &selected);
             docker::stop(&project.root, &projects, &env).await;
@@ -466,6 +536,80 @@ mod tests {
                 no_docker: true,
                 selectors,
             } if selectors == ["backend"]
+        ));
+    }
+
+    #[test]
+    fn parses_database_commands() {
+        let generate = Cli::try_parse_from(["control", "db", "generate", "@metorial/db"]).unwrap();
+        assert!(matches!(
+            generate.command,
+            Commands::Db {
+                command: DbCommand::Generate { selectors },
+            } if selectors == ["@metorial/db"]
+        ));
+
+        let push = Cli::try_parse_from(["control", "db", "push", "backend"]).unwrap();
+        assert!(matches!(
+            push.command,
+            Commands::Db {
+                command: DbCommand::Push { selectors },
+            } if selectors == ["backend"]
+        ));
+    }
+
+    #[test]
+    fn passes_run_arguments_through() {
+        let run = Cli::try_parse_from([
+            "control",
+            "run",
+            "--help",
+            "--silent",
+            "test",
+            "--",
+            "--update-snapshots",
+        ])
+        .unwrap();
+        let Commands::Run { args } = run.command else {
+            panic!("expected run command");
+        };
+        assert_eq!(
+            args,
+            ["--help", "--silent", "test", "--", "--update-snapshots"]
+        );
+
+        let list = Cli::try_parse_from(["control", "run"]).unwrap();
+        assert!(matches!(list.command, Commands::Run { args } if args.is_empty()));
+    }
+
+    #[test]
+    fn parses_unit_test_filters() {
+        let all = Cli::try_parse_from(["control", "test:unit"]).unwrap();
+        assert!(matches!(
+            all.command,
+            Commands::TestUnit { filters } if filters.is_empty()
+        ));
+
+        let filtered = Cli::try_parse_from([
+            "control",
+            "test:unit",
+            "@lowerdeck/hash",
+            "./oss/src/metorial-frontend/**",
+            "!@metorial/shuttle",
+            "@metorial/api...",
+            "[HEAD^]",
+        ])
+        .unwrap();
+        assert!(matches!(
+            filtered.command,
+            Commands::TestUnit { filters }
+                if filters == [
+                    "@lowerdeck/hash",
+                    "./oss/src/metorial-frontend/**",
+                    "!@metorial/shuttle",
+                    "@metorial/api...",
+                    "[HEAD^]",
+                ]
         ));
     }
 }

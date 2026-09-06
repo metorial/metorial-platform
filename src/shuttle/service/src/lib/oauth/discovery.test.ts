@@ -50,9 +50,14 @@ describe('OAuthDiscovery', () => {
       } as any;
     });
 
-    await expect(OAuthDiscovery.discover('https://mcp.avo.app/mcp')).resolves.toEqual(
-      oauthConfig
-    );
+    await expect(OAuthDiscovery.discover('https://mcp.avo.app/mcp')).resolves.toEqual({
+      ...oauthConfig,
+      resource: 'https://mcp.avo.app/mcp',
+      authorization_servers: ['https://api.avo.app'],
+      authorization_server: 'https://api.avo.app',
+      scopes_supported: ['read', 'write'],
+      bearer_methods_supported: ['header']
+    });
 
     expect(axios).toHaveBeenCalledWith(
       'https://api.avo.app/.well-known/oauth-authorization-server',

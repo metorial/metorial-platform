@@ -12,6 +12,11 @@ export let env = createValidatedEnv({
     ARES_ADMIN_URL: v.string(),
     ARES_SSO_URL: v.string(),
 
+    ARES_AUTH_PORT: v.optional(v.number()),
+    ARES_ADMIN_PORT: v.optional(v.number()),
+    ARES_SSO_PORT: v.optional(v.number()),
+    ARES_INTERNAL_PORT: v.optional(v.number()),
+
     SSO_DATABASE_SSL: v.optional(v.string())
   },
 

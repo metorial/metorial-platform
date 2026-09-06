@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream},
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -9,8 +10,10 @@ use tokio::time::sleep;
 
 use crate::{
     environment::{mongo_url, postgres_url},
+    infrastructure::{self, RenderOptions, Requirements},
     manifest::LoadedManifest,
     process,
+    workspace::ServicePorts,
 };
 
 pub async fn start(
@@ -18,7 +21,53 @@ pub async fn start(
     manifests: &[&LoadedManifest],
     environment: &BTreeMap<String, String>,
 ) -> Result<Vec<(PathBuf, Vec<String>)>> {
-    let projects = compose_projects(root, manifests);
+    let requirements = Requirements::from_manifests(manifests);
+    start_with_requirements(root, manifests, environment, requirements, true).await
+}
+
+pub async fn start_databases(
+    root: &Path,
+    manifests: &[&LoadedManifest],
+    environment: &BTreeMap<String, String>,
+) -> Result<Vec<(PathBuf, Vec<String>)>> {
+    let mut requirements = Requirements::from_manifests(manifests);
+    requirements.redis = false;
+    requirements.nats = false;
+    requirements.etcd = false;
+    start_with_requirements(root, manifests, environment, requirements, false).await
+}
+
+async fn start_with_requirements(
+    root: &Path,
+    manifests: &[&LoadedManifest],
+    environment: &BTreeMap<String, String>,
+    requirements: Requirements,
+    include_declared_compose: bool,
+) -> Result<Vec<(PathBuf, Vec<String>)>> {
+    let generated = root.join(".control/dev/services.docker-compose.yml");
+    let ports = service_ports(environment)?;
+    if requirements.count() > 0 {
+        infrastructure::write_compose(
+            &generated,
+            &requirements,
+            &RenderOptions {
+                project_name: Some(&project_name(root)),
+                network: "control-services",
+                network_name: None,
+                ports: Some(&ports),
+                restart: true,
+            },
+        )?;
+    }
+    let mut projects = if include_declared_compose {
+        declared_compose_projects(root, manifests)
+    } else {
+        Vec::new()
+    };
+    if requirements.count() > 0 {
+        projects.push((generated.clone(), requirements.service_names()));
+        projects.sort_by(|left, right| left.0.cmp(&right.0));
+    }
     for (index, (compose, services)) in projects.iter().enumerate() {
         let mut args = compose_prefix(compose);
         args.extend([
@@ -33,18 +82,47 @@ pub async fn start(
             stop(root, &projects[..=index], environment).await;
             return Err(error);
         }
+        if compose == &generated && !host_ports_reachable(&requirements, &ports) {
+            eprintln!(
+                "generated Docker services have stale host port bindings; recreating containers"
+            );
+            let mut recreate = compose_prefix(compose);
+            recreate.extend([
+                "up".into(),
+                "--detach".into(),
+                "--wait".into(),
+                "--wait-timeout".into(),
+                "60".into(),
+                "--force-recreate".into(),
+            ]);
+            recreate.extend(services.iter().cloned());
+            if let Err(error) = process::run("docker", &recreate, root, environment).await {
+                stop(root, &projects[..=index], environment).await;
+                return Err(error);
+            }
+            if !host_ports_reachable(&requirements, &ports) {
+                stop(root, &projects[..=index], environment).await;
+                bail!("generated Docker services are not reachable on their configured host ports");
+            }
+        }
     }
 
     let provisioning = async {
         for loaded in manifests {
             let base = loaded.path.parent().unwrap_or(root);
             for db in loaded.manifest.postgres.values() {
-                wait_postgres(root, base, db, environment).await?;
-                create_postgres(root, base, db, environment).await?;
+                let mut db = db.clone();
+                db.compose = Some(generated.clone());
+                db.service = Some("postgres-db2".into());
+                wait_postgres(root, base, &db, environment).await?;
+                create_postgres(root, base, &db, environment).await?;
             }
             for db in loaded.manifest.mongo.values() {
-                wait_mongo(root, base, db, environment).await?;
-                create_mongo(root, base, db, environment).await?;
+                let mut db = db.clone();
+                db.compose = Some(generated.clone());
+                db.service = Some("mongodb".into());
+                wait_mongo(root, base, &db, environment).await?;
+                create_mongo(root, base, &db, environment).await?;
             }
         }
         Ok(())
@@ -55,6 +133,52 @@ pub async fn start(
         return Err(error);
     }
     Ok(projects)
+}
+
+fn host_ports_reachable(requirements: &Requirements, ports: &ServicePorts) -> bool {
+    [
+        (requirements.postgres, ports.postgres),
+        (requirements.mongo, ports.mongo),
+        (requirements.redis, ports.redis),
+        (requirements.nats, ports.nats),
+        (requirements.etcd, ports.etcd_client),
+    ]
+    .into_iter()
+    .filter(|(required, _)| *required)
+    .all(|(_, port)| {
+        TcpStream::connect_timeout(
+            &SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port),
+            Duration::from_millis(500),
+        )
+        .is_ok()
+    })
+}
+
+fn service_ports(environment: &BTreeMap<String, String>) -> Result<ServicePorts> {
+    let parse = |key: &str| -> Result<u16> {
+        environment
+            .get(key)
+            .ok_or_else(|| miette::miette!("missing {key}"))?
+            .parse()
+            .map_err(|_| miette::miette!("invalid {key}"))
+    };
+    Ok(ServicePorts {
+        postgres: parse("CONTROL_PORT_POSTGRES")?,
+        mongo: parse("CONTROL_PORT_MONGO")?,
+        redis: parse("CONTROL_PORT_REDIS")?,
+        nats: parse("CONTROL_PORT_NATS")?,
+        etcd_client: parse("CONTROL_PORT_ETCD_CLIENT")?,
+        etcd_peer: parse("CONTROL_PORT_ETCD_PEER")?,
+    })
+}
+
+fn project_name(root: &Path) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    root.canonicalize()
+        .unwrap_or_else(|_| root.to_path_buf())
+        .hash(&mut hasher);
+    format!("control_dev_{:08x}", hasher.finish() as u32)
 }
 
 pub async fn stop(
@@ -77,6 +201,20 @@ pub async fn stop(
 }
 
 pub fn compose_projects(root: &Path, manifests: &[&LoadedManifest]) -> Vec<(PathBuf, Vec<String>)> {
+    let requirements = Requirements::from_manifests(manifests);
+    let mut projects = declared_compose_projects(root, manifests);
+    let generated = root.join(".control/dev/services.docker-compose.yml");
+    if requirements.count() > 0 && generated.is_file() {
+        projects.push((generated, requirements.service_names()));
+        projects.sort_by(|left, right| left.0.cmp(&right.0));
+    }
+    projects
+}
+
+fn declared_compose_projects(
+    root: &Path,
+    manifests: &[&LoadedManifest],
+) -> Vec<(PathBuf, Vec<String>)> {
     let mut projects = BTreeMap::<PathBuf, BTreeSet<String>>::new();
     for loaded in manifests {
         let base = loaded.path.parent().unwrap_or(root);
@@ -311,4 +449,68 @@ fn _urls_compile_check(
     mongo: &crate::manifest::Mongo,
 ) -> (String, String) {
     (postgres_url(postgres), mongo_url(mongo))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::net::TcpListener;
+
+    use super::*;
+
+    #[test]
+    fn checks_required_host_service_ports() {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let open_port = listener.local_addr().unwrap().port();
+        let ports = ServicePorts {
+            postgres: open_port,
+            mongo: 1,
+            redis: 1,
+            nats: 1,
+            etcd_client: 1,
+            etcd_peer: 1,
+        };
+        assert!(host_ports_reachable(
+            &Requirements {
+                postgres: true,
+                ..Default::default()
+            },
+            &ports
+        ));
+        assert!(!host_ports_reachable(
+            &Requirements {
+                mongo: true,
+                ..Default::default()
+            },
+            &ports
+        ));
+    }
+
+    #[test]
+    fn includes_generated_services_in_compose_projects() {
+        let temp = tempfile::tempdir().unwrap();
+        let manifest_path = temp.path().join("control.toml");
+        std::fs::write(temp.path().join("package.json"), "{\"name\":\"api\"}").unwrap();
+        std::fs::write(
+            &manifest_path,
+            "name='api'\n[[resources]]\ntype='redis'\n[[resources]]\ntype='nats'\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(temp.path().join(".control/dev")).unwrap();
+        std::fs::write(
+            temp.path().join(".control/dev/services.docker-compose.yml"),
+            "services: {}\n",
+        )
+        .unwrap();
+        let manifest = crate::manifest::load(&manifest_path).unwrap();
+
+        let projects = compose_projects(temp.path(), &[&manifest]);
+
+        assert_eq!(
+            projects,
+            vec![(
+                temp.path().join(".control/dev/services.docker-compose.yml"),
+                vec!["redis-db".into(), "nats-1".into()],
+            )]
+        );
+    }
 }

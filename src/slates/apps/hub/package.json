@@ -22,12 +22,16 @@
     "db:push:dev": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --schema prisma/schema --accept-data-loss'",
     "db:push:test": "sh -c 'set -a; . ./.env.test; set +a; bun prisma db push --schema prisma/schema'",
     "db:push": "bun run db:push:dev && bun run db:push:test",
-    "test": "bunx vitest run --passWithNoTests",
+    "test": "bun run test:unit",
+    "test:unit": "bunx vitest run --config vitest.unit.config.ts --passWithNoTests",
     "test:watch": "bunx vitest watch",
     "typecheck": "bun run check-types && bun run admin:typecheck",
     "admin:typecheck": "tsc --noEmit --project admin/tsconfig.json",
     "admin:build": "vite build --config admin/vite.config.ts",
-    "admin:dev": "vite --config admin/vite.config.ts"
+    "admin:dev": "vite --config admin/vite.config.ts",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,10 +1,11 @@
 import { RedisClient } from 'bun';
 import { RelayApi } from './controllers';
 import { db } from './db';
+import { env } from './env';
 
 let server = Bun.serve({
   fetch: RelayApi,
-  port: 52110
+  port: env.service.RELAY_PORT ?? 52110
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

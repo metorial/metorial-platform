@@ -44,10 +44,12 @@ export let ProviderLayout = () => {
   useEffect(() => {
     if (!provider.data) return;
 
+    if (provider.input?.providerId !== providerId) return;
+
     if (providerId !== provider.data.slug) {
       navigate(pathname.replace(providerId ?? '', provider.data.slug), { replace: true });
     }
-  }, [providerId, provider.data]);
+  }, [providerId, provider.data, provider.input]);
 
   let versions = useProviderVersions(instance.data?.id, provider.data?.id);
   let allVersions: ProviderVersion[] = versions.data?.items ?? [];

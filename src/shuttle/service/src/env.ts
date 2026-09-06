@@ -5,7 +5,10 @@ export let env = createValidatedEnv({
   service: {
     REDIS_URL: v.string(),
     DATABASE_URL: v.string(),
-    PROVIDER_OAUTH_URL: v.string()
+    PROVIDER_OAUTH_URL: v.string(),
+
+    SHUTTLE_API_PORT: v.optional(v.number()),
+    SHUTTLE_PUBLIC_PORT: v.optional(v.number())
   },
 
   encryption: {

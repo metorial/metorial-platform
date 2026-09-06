@@ -117,6 +117,12 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "control:db:generate": {
+      "cache": false
+    },
+    "control:db:push": {
+      "cache": false
     }
   }
 }

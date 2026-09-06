@@ -30,6 +30,8 @@ target/release/control --help
 target/release/control dev backend
 target/release/control prepare --no-docker
 target/release/control env
+target/release/control run test
+target/release/control test:unit @lowerdeck/hash
 target/release/control cleanup --dry-run
 target/release/control docker stop
 target/release/control workspace create feature/my-change --runtime=docker
@@ -145,6 +147,34 @@ MongoDB follows the same rule using `mongosh`; an empty database receives a
 `control prepare` writes environment files and runs the same preparation
 sequence without starting Turbo or any application processes. It starts
 declared dependencies unless `--no-docker` is passed.
+
+`control run [...ARGS]` can be used from a package directory or any of its
+subdirectories. With arguments, it silently refreshes the development environment
+in the same way as `control env`, then runs `bun run [...ARGS]` from the invoking
+directory. With no arguments, it reads the nearest package.json directly and
+prints the available scripts as `control run <script>` commands. The project root
+(and the nested OSS root in an enterprise checkout) do not count as packages.
+
+## Unit tests
+
+```sh
+control test:unit
+control test:unit @lowerdeck/hash
+control test:unit './oss/src/lowerdeck/**' '!@lowerdeck/redis'
+control test:unit '@metorial/api...'
+```
+
+`control test:unit [FILTER...]` runs the workspace's `test` task directly on
+the host with streaming output and a concurrency of one. Each argument is
+forwarded unchanged as a native Turbo `--filter` expression. With no filters,
+Turbo runs every workspace package that declares a `test` script, including
+packages without a `control.toml`. The existing Turbo task graph still applies,
+so dependency tests selected by `^test` also run.
+
+The `test` package script is the unit-test contract and must not invoke E2E
+tests. E2E suites belong in `test:e2e` and are not run by `control test:unit`.
+This command does not refresh environments, install dependencies, generate
+clients, build packages, start Docker, or prepare databases.
 
 `control workspace create BRANCH --runtime=host|docker` creates a sibling
 worktree. The runtime flag is required and is stored in

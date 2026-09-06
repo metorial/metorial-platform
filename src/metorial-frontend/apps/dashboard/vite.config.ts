@@ -21,6 +21,7 @@ let stripBrokenMonacoSourceMap = () => ({
 export default defineConfig({
   server: {
     host: '0.0.0.0',
+    port: Number(process.env.PORT) || 3300,
     allowedHosts: ['localhost', 'wsx', 'chronos', 'vulcan'],
     fs: { allow: [workspaceRoot] }
   },

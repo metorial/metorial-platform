@@ -3,7 +3,7 @@ group = "oss"
 mode = "oss"
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [[dev.expose]]
 port = 4310
@@ -11,11 +11,15 @@ port = 4310
 [[dev.expose]]
 port = 4311
 
-[[dev.expose]]
+[endpoints.portal]
 port = 4315
 
 [[dev.expose]]
 port = 4318
+
+[[resources]]
+type = "nats"
+env = [{ key = "NATS_URL", value = "nats://{{HOSTNAME}}:{{PORT}}" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -36,20 +40,19 @@ DOWNLOAD_PUBLIC_URL = "http://{{HOSTNAME}}:4318"
 PORTAL_HOST_TEMPLATE = "http://{{HOSTNAME}}:4300/p/{portalId}"
 PORTAL_REDIRECT_DOMAINS = "{{HOSTNAME}}"
 REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
-NATS_URL = "nats://localhost:34222"
 INTEGRATIONS_API_URL = "http://{{HOSTNAME}}:4316"
 INTEGRATIONS_UI_URL = "http://{{HOSTNAME}}:52071"
-SHUTTLE_URL = "http://localhost:52080/metorial-shuttle"
-SHUTTLE_LIVE_URL = "ws://localhost:52080"
+SHUTTLE_URL = "http://{{HOSTNAME}}:52080/metorial-shuttle"
+SHUTTLE_LIVE_URL = "ws://{{HOSTNAME}}:52080"
 SHUTTLE_PUBLIC_URL = "http://{{HOSTNAME}}:52081"
-SLATES_HUB_URL = "http://localhost:52046/slates-hub"
+SLATES_HUB_URL = "http://{{HOSTNAME}}:52046/slates-hub"
 SLATES_HUB_PUBLIC_URL = "http://{{HOSTNAME}}:52045"
 MESSAGE_BUCKET_NAME = "messages"
 PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME = "provider-telemetry-error-groups"
 REGISTRY_URL = "https://metorial-saas-dev2.registry.metorial-enterprise.com/metorial-registry-root"
-SIGNAL_API_URL = "http://localhost:52050/metorial-signal"
-FUNCTION_BAY_API_URL = "http://localhost:52030/metorial-function-bay"
-SYNTHESIS_API_URL = "http://localhost:52160/metorial-synthesis"
+SIGNAL_API_URL = "http://{{HOSTNAME}}:52050/metorial-signal"
+FUNCTION_BAY_API_URL = "http://{{HOSTNAME}}:52030/metorial-function-bay"
+SYNTHESIS_API_URL = "http://{{HOSTNAME}}:52160/metorial-synthesis"
 PROVIDER_OAUTH_TICKET_SECRET = "provider-oauth-ticket-secret"
 AUTH_TICKET_SECRET = "auth-ticket-secret"
 ENCRYPTION_SECRET = "encryption-secret"
@@ -57,48 +60,52 @@ OUTPOST_KEY_ENCRYPTION_SECRET = "outpost-key-encryption-secret"
 OBJECT_STORAGE_URL = "http://services:52010"
 FILES_BUCKET_NAME = "mte-files"
 USAGE_MONGO_URI = "mongodb://mongo:mongo@localhost:{{CONTROL_PORT_MONGO}}/?authSource=admin"
-API_URL = "http://localhost:4310"
-FILES_URL = "http://localhost:4318"
-APP_URL = "http://localhost:4300"
-DASHBOARD_FRONTEND_HOST = "http://localhost:4300"
-PORTALS_URL = "http://localhost:4300"
+API_URL = "http://{{HOSTNAME}}:4310"
+FILES_URL = "http://{{HOSTNAME}}:4318"
+APP_URL = "http://{{HOSTNAME}}:4300"
+DASHBOARD_FRONTEND_HOST = "http://{{HOSTNAME}}:4300"
+PORTALS_URL = "http://{{HOSTNAME}}:4300"
 PORTAL_API_PORT = "4315"
 AWS_ACCESS_KEY_ID = true
 AWS_SECRET_ACCESS_KEY = true
 AWS_REGION = true
 AWS_ACCOUNT_ID = true
-ARES_INTERNAL_URL = "http://localhost:52123/metorial-ares-internal/api"
-ARES_AUTH_URL = "http://localhost:52120"
+ARES_INTERNAL_URL = "http://{{HOSTNAME}}:52123/metorial-ares-internal/api"
+ARES_AUTH_URL = "http://{{HOSTNAME}}:52120"
 RELAY_URL = "http://services:52110/metorial-relay"
 EMAIL_NAME = "Metorial DEV"
 EMAIL_ADDRESS = "dev@metorial.com"
 SUBSPACE_SOLUTION = "metorial-dev"
-VOYAGER_URL = "http://localhost:52060/metorial-voyager"
-ORIGIN_URL = "http://localhost:52090/metorial-origin"
-CODE_BUCKET_SERVICE_URL = "localhost:5050"
-NEBULA_API_URL = "http://localhost:52170/metorial-nebula"
+VOYAGER_URL = "http://{{HOSTNAME}}:52060/metorial-voyager"
+ORIGIN_URL = "http://{{HOSTNAME}}:52090/metorial-origin"
+CODE_BUCKET_SERVICE_URL = "{{HOSTNAME}}:5050"
+NEBULA_API_URL = "http://{{HOSTNAME}}:52170/metorial-nebula"
 AI_GATEWAY_API_KEY = true
 SCOUT_URL = true
 SCOUT_TOKEN = true
-EXTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
-INTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
+EXTERNAL_MULTI_REGION_ENDPOINT = "http://{{HOSTNAME}}:4323"
+INTERNAL_MULTI_REGION_ENDPOINT = "http://{{HOSTNAME}}:4323"
 
 [dev.db.main]
+package = "@metorial/db"
 name = "metorial-oss"
 engine = "postgres"
 env = "DATABASE_URL"
 
 [dev.db.subspace]
+package = "@metorial-subspace/db"
 name = "subspace"
 engine = "postgres"
 env = "SUBSPACE_DATABASE_URL"
 
 [dev.db.global]
+package = "@metorial/multi-region"
 name = "metorial-oss-global"
 engine = "postgres"
 env = "GLOBAL_DATABASE_URL"
 
 [dev.db.usage]
+package = "@metorial/app-api"
 name = "metorial-usage"
 engine = "mongodb"
 env = "USAGE_MONGO_URL"

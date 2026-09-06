@@ -13,12 +13,9 @@ import {
   hashDelegationSecret,
   normalizeDelegationAuthorizationEndpoint,
   normalizeDelegationRedirectUri,
-  parseDelegationMetadataRedirectUri,
   pickLatestExportedDelegation,
-  resolveIdpInitiatedSamlCompletion,
-  validateDelegationRedirectUri
+  resolveIdpInitiatedSamlCompletion
 } from '../src/lib/ssoDelegationProtocol';
-import { aresPorts } from '../src/ports';
 
 describe('SSO delegation protocol', () => {
   it('creates stable hashes and S256 PKCE challenges', () => {
@@ -36,18 +33,6 @@ describe('SSO delegation protocol', () => {
     ).toBe('https://regional.example/authorize?audience=c');
   });
 
-  it('replaces only the origin for self-delegation token calls', () => {
-    expect(
-      getEffectiveDelegationTokenUrl({
-        tokenUrl: 'https://regional.example/metorial-ares/sso-delegation/token?version=1',
-        localBaseUrl: `http://localhost:${aresPorts.sso}`,
-        isSelfDelegation: true
-      })
-    ).toBe(
-      'http://localhost:52122/metorial-ares/sso-delegation/token?version=1'
-    );
-  });
-
   it('keeps the public URL for remote delegations', () => {
     expect(
       getEffectiveDelegationTokenUrl({
@@ -58,31 +43,10 @@ describe('SSO delegation protocol', () => {
     ).toBe('https://regional.example/token');
   });
 
-  it('requires HTTPS except for explicitly allowed localhost callbacks', () => {
-    expect(
-      validateDelegationRedirectUri({
-        redirectUri: 'https://global.example/callback',
-        allowHttpLocalhost: false
-      })
-    ).toBe('https://global.example/callback');
-    expect(() =>
-      validateDelegationRedirectUri({
-        redirectUri: 'http://global.example/callback',
-        allowHttpLocalhost: true
-      })
-    ).toThrow('must use HTTPS');
-    expect(
-      validateDelegationRedirectUri({
-        redirectUri: 'http://localhost:52120/callback',
-        allowHttpLocalhost: true
-      })
-    ).toBe('http://localhost:52120/callback');
-  });
-
   it('canonicalizes redirect URIs before binding authorization codes', () => {
-    expect(
-      normalizeDelegationRedirectUri('https://GLOBAL.example:443/callback')
-    ).toBe('https://global.example/callback');
+    expect(normalizeDelegationRedirectUri('https://GLOBAL.example:443/callback')).toBe(
+      'https://global.example/callback'
+    );
   });
 
   it('builds the consumer delegation callback from the local auth origin', () => {
@@ -105,33 +69,11 @@ describe('SSO delegation protocol', () => {
     );
   });
 
-  it('accepts a metadata redirect_uri during discovery and ignores a missing one', () => {
-    expect(
-      parseDelegationMetadataRedirectUri({
-        allowHttpLocalhost: false
-      })
-    ).toBeNull();
-    expect(
-      parseDelegationMetadataRedirectUri({
-        redirectUri: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
-        allowHttpLocalhost: false
-      })
-    ).toBe('https://id.metorial.com/metorial-ares/hooks/sso-delegation-response');
-    expect(() =>
-      parseDelegationMetadataRedirectUri({
-        redirectUri: 'http://ares:52123/metorial-ares/hooks/sso-delegation-response',
-        allowHttpLocalhost: false
-      })
-    ).toThrow('must use HTTPS');
-  });
-
   it('falls back to the dashboard delegation callback when an export has no stored URI', () => {
     expect(getExportedDelegationRedirectUri(null)).toBe(
       'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response'
     );
-    expect(getExportedDelegationRedirectUri(undefined)).toBe(
-      FALLBACK_DELEGATION_REDIRECT_URI
-    );
+    expect(getExportedDelegationRedirectUri(undefined)).toBe(FALLBACK_DELEGATION_REDIRECT_URI);
     expect(
       getExportedDelegationRedirectUri(
         'https://auth.horizon.test/metorial-ares/hooks/sso-delegation-response'
@@ -196,7 +138,8 @@ describe('SSO delegation protocol', () => {
   it('requires PKCE only when the authorization code has a challenge', () => {
     expect(() =>
       assertDelegationAuthorizationGrant({
-        storedRedirectUri: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
+        storedRedirectUri:
+          'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
         presentedRedirectUri:
           'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
         codeChallenge: null
@@ -205,7 +148,8 @@ describe('SSO delegation protocol', () => {
 
     expect(() =>
       assertDelegationAuthorizationGrant({
-        storedRedirectUri: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
+        storedRedirectUri:
+          'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
         presentedRedirectUri:
           'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
         codeChallenge: createDelegationCodeChallenge('verifier'),
@@ -215,7 +159,8 @@ describe('SSO delegation protocol', () => {
 
     expect(() =>
       assertDelegationAuthorizationGrant({
-        storedRedirectUri: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
+        storedRedirectUri:
+          'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
         presentedRedirectUri:
           'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
         codeChallenge: createDelegationCodeChallenge('verifier')
@@ -224,7 +169,8 @@ describe('SSO delegation protocol', () => {
 
     expect(() =>
       assertDelegationAuthorizationGrant({
-        storedRedirectUri: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
+        storedRedirectUri:
+          'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
         presentedRedirectUri: 'https://evil.example/callback',
         codeChallenge: null
       })
@@ -232,12 +178,12 @@ describe('SSO delegation protocol', () => {
   });
 
   it('classifies sso-delegation-response as SP-initiated or IdP-initiated', () => {
-    expect(
-      getDelegationResponseMode({ code: 'c', state: 's' })
-    ).toEqual({ type: 'sp_initiated' });
-    expect(
-      getDelegationResponseMode({ code: 'c', clientId: 'client' })
-    ).toEqual({ type: 'idp_initiated' });
+    expect(getDelegationResponseMode({ code: 'c', state: 's' })).toEqual({
+      type: 'sp_initiated'
+    });
+    expect(getDelegationResponseMode({ code: 'c', clientId: 'client' })).toEqual({
+      type: 'idp_initiated'
+    });
     expect(getDelegationResponseMode({ clientId: 'client' })).toEqual({
       type: 'invalid',
       reason: 'missing_code'

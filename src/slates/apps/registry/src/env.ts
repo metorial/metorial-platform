@@ -27,6 +27,12 @@ export let env = createValidatedEnv({
     SUB_REGISTRY_BASE_DOMAIN: v.optional(v.string())
   },
 
+  ports: {
+    SLATES_REGISTRY_PUBLIC_PORT: v.optional(v.number()),
+    SLATES_REGISTRY_INTERNAL_PORT: v.optional(v.number()),
+    SLATES_REGISTRY_ADMIN_PORT: v.optional(v.number())
+  },
+
   ares: {
     ARES_AUTH_URL: v.optional(v.string()),
     ARES_CLIENT_ID: v.optional(v.string())
