@@ -155,7 +155,7 @@ let SchemaViewer = ({
   );
 };
 
-type TabType = 'overview' | 'tools' | 'triggers' | 'auth';
+type TabType = 'overview' | 'tools' | 'triggers' | 'triggerGroups' | 'auth';
 
 type ToolCallStats = {
   total: number;
@@ -177,12 +177,14 @@ export let SpecificationViewer = ({
 
   let toolsCount = specification?.tools?.length ?? 0;
   let triggersCount = specification?.triggers?.length ?? 0;
+  let triggerGroupsCount = specification?.triggerGroups?.length ?? 0;
   let authCount = specification?.authMethods?.length ?? 0;
 
   let tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'tools', label: `Tools (${toolsCount})` },
     { id: 'triggers', label: `Triggers (${triggersCount})` },
+    { id: 'triggerGroups', label: `Trigger Groups (${triggerGroupsCount})` },
     { id: 'auth', label: `Auth Methods (${authCount})` }
   ];
 
@@ -358,6 +360,15 @@ export let SpecificationViewer = ({
                         {trigger.name}
                       </Text>
                       <MonoCode>{trigger.key}</MonoCode>
+                      {trigger.triggerGroupId ? (
+                        <Badge color="green" size="1">
+                          Grouped
+                        </Badge>
+                      ) : (
+                        <Badge color="gray" size="1">
+                          No group
+                        </Badge>
+                      )}
                     </Flex>
                   ),
                   content: (
@@ -375,6 +386,64 @@ export let SpecificationViewer = ({
                           <SchemaViewer schema={trigger.outputSchema} title="Output" />
                         </div>
                       </Flex>
+                    </Flex>
+                  )
+                }))}
+              />
+            )}
+          </Flex>
+        )}
+
+        {activeTab === 'triggerGroups' && (
+          <Flex direction="column" gap={8}>
+            {triggerGroupsCount === 0 ? (
+              <Text size="2" color="gray600">
+                No trigger groups discovered.
+              </Text>
+            ) : (
+              <Accordion
+                type="multiple"
+                items={specification.triggerGroups!.map(triggerGroup => ({
+                  id: triggerGroup.key,
+                  title: (
+                    <Flex align="center" gap={8}>
+                      <Text size="2" weight="strong">
+                        {triggerGroup.name}
+                      </Text>
+                      <MonoCode>{triggerGroup.key}</MonoCode>
+                      <Badge color="blue" size="1">
+                        {triggerGroup.invocation?.type}
+                      </Badge>
+                    </Flex>
+                  ),
+                  content: (
+                    <Flex direction="column" gap={16}>
+                      {triggerGroup.description && (
+                        <Text size="2" color="gray600">
+                          {triggerGroup.description}
+                        </Text>
+                      )}
+                      <Datalist
+                        items={[
+                          { label: 'Invocation type', value: triggerGroup.invocation?.type },
+                          ...(triggerGroup.invocation?.type === 'polling'
+                            ? [
+                                {
+                                  label: 'Poll interval (s)',
+                                  value: triggerGroup.invocation?.intervalSeconds
+                                }
+                              ]
+                            : []),
+                          ...(triggerGroup.invocation?.type === 'webhook'
+                            ? [
+                                {
+                                  label: 'Registration mode',
+                                  value: triggerGroup.invocation?.registration?.mode
+                                }
+                              ]
+                            : [])
+                        ]}
+                      />
                     </Flex>
                   )
                 }))}

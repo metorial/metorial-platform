@@ -8,6 +8,7 @@ export let env = createValidatedEnv({
 
     SERVICE_PUBLIC_URL: v.string(),
     METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
+    METORIAL_REGION: v.optional(v.string()),
 
     SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
     SLATES_HUB_INTERNAL_PORT: v.optional(v.number())
@@ -47,7 +48,8 @@ export let env = createValidatedEnv({
 
   slates: {
     SLATES_HUB_INSTANCE_IDENTIFIER: v.string(),
-    SLATES_WEBHOOK_SYNC_TIMEOUT_MS: v.optional(v.number())
+    SLATES_WEBHOOK_SYNC_TIMEOUT_MS: v.optional(v.number()),
+    SLATES_WEBHOOK_TRIGGER_HOST: v.optional(v.string())
   },
 
   nebula: {

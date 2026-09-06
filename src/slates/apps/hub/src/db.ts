@@ -3,7 +3,10 @@ import { readReplicas } from '@prisma/extension-read-replicas';
 import type {
   SlatesAction as ProtoSlatesAction,
   SlateAuthenticationMethod,
-  SlatesMessageProviderIdentifyResponse
+  SlatesMessageProviderIdentifyResponse,
+  SlatesTriggerGroup,
+  SlatesTriggerRoutingMatcher,
+  SlatesWebhookHttpResponse as SlatesWebhookHttpResponseImport
 } from '@slates/proto';
 import { PrismaClient } from '../prisma/generated/client';
 
@@ -81,9 +84,11 @@ declare global {
 
     type SlateAuthMethod = SlateAuthenticationMethod;
     type SlateAction = ProtoSlatesAction;
+    type SlateTriggerGroup = SlatesTriggerGroup;
 
     type SlateAuthMethods = SlateAuthenticationMethod[];
     type SlateActions = ProtoSlatesAction[];
+    type SlateTriggerGroups = SlatesTriggerGroup[];
 
     type AnyRecord = Record<string, any>;
 
@@ -96,5 +101,21 @@ declare global {
       imageUrl?: string;
       [key: string]: any;
     };
+
+    type SlateWebhookEventRequest = {
+      method: string;
+      url: string;
+      headers: Record<string, string>;
+      body: { encoding: 'base64'; content: string } | null;
+    };
+
+    type SlatesWebhookHttpResponse = SlatesWebhookHttpResponseImport;
+
+    type SlateWebhookEventResponseOverride =
+      | { webhookEventId: string }
+      | { webhookEventId: string; warning: { code: string; message: string } }
+      | { webhookEventId: string; error: { code: string; message: string; status: number } };
+
+    type TriggerRawEventMatchers = SlatesTriggerRoutingMatcher[];
   }
 }

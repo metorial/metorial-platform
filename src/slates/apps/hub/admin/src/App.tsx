@@ -11,6 +11,9 @@ import { SlateDetail } from './pages/slates/SlateDetail';
 import { SlateList } from './pages/slates/SlateList';
 import { VersionDetail } from './pages/versions/VersionDetail';
 import { VersionList } from './pages/versions/VersionList';
+import { WebhookCreate } from './pages/webhooks/WebhookCreate';
+import { WebhookDetail } from './pages/webhooks/WebhookDetail';
+import { WebhookList } from './pages/webhooks/WebhookList';
 
 export let App = () => {
   return (
@@ -43,6 +46,10 @@ export let App = () => {
 
         <Route path="/events" element={<EventList />} />
         <Route path="/slates/:slateId/events" element={<EventList />} />
+
+        <Route path="/webhooks" element={<WebhookList />} />
+        <Route path="/webhooks/new" element={<WebhookCreate />} />
+        <Route path="/webhooks/:webhookRegistrationId" element={<WebhookDetail />} />
       </Route>
     </Routes>
   );

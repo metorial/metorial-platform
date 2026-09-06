@@ -7,6 +7,7 @@ import {
 import { Logo } from '@metorial-io/ui';
 import {
   RiFileList3Line,
+  RiGlobalLine,
   RiRefreshLine,
   RiRocketLine,
   RiSearchEyeLine,
@@ -59,6 +60,12 @@ export let Layout = () => {
       label: 'Events',
       to: '/events',
       isActive: pathname === '/events'
+    },
+    {
+      icon: <RiGlobalLine />,
+      label: 'Webhooks',
+      to: '/webhooks',
+      isActive: isPrefixMatch(pathname, '/webhooks')
     }
   ];
 

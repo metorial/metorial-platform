@@ -1,0 +1,256 @@
+enum TriggerRegistrationStatus {
+  active
+  deleted
+}
+
+model TriggerRegistration {
+  oid    BigInt                    @id
+  id     String                    @unique
+  status TriggerRegistrationStatus @default(active)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    SlateInstance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  instanceConfigOid BigInt
+  instanceConfig    SlateInstanceConfig @relation(fields: [instanceConfigOid], references: [oid])
+
+  // Only set if the slate has auth methods.
+  authConfigOid BigInt?
+  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  instances TriggerRegistrationInstance[]
+
+  @@index([tenantOid, createdAt])
+  @@index([instanceOid])
+}
+
+model TriggerRegistrationInstance {
+  oid BigInt @id
+  id  String @unique
+
+  triggerRegistrationOid BigInt
+  triggerRegistration    TriggerRegistration @relation(fields: [triggerRegistrationOid], references: [oid], onDelete: Cascade)
+
+  triggerGroupOid BigInt
+  triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  schedule        TriggerRegistrationSchedule?
+  webhooks        TriggerRegistrationWebhook[]
+  errors          TriggerRegistrationInstanceError[]
+  rawEvents       TriggerRawEvent[]
+  triggerEvents   TriggerEvent[]
+  routingMatchers TriggerRegistrationInstanceRoutingMatcher[]
+
+  @@unique([triggerRegistrationOid, triggerGroupOid])
+}
+
+enum TriggerRawEventSource {
+  polling
+  webhook
+}
+
+enum TriggerRawEventProcessingStatus {
+  pending
+  failed
+}
+
+model TriggerRawEvent {
+  oid              BigInt                           @id
+  id               String                           @unique
+  source           TriggerRawEventSource
+  processingStatus TriggerRawEventProcessingStatus   @default(pending)
+
+  triggerRegistrationInstanceOid BigInt
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  /// [AnyRecord]
+  payload Json
+
+  idempotencyKey String?
+  triggerIds     String[]
+
+  // Decremented atomically as each triggerId finishes mapping successfully; reaching 0 triggers cleanup.
+  pendingTriggerMapCount Int @default(0)
+
+  /// [TriggerRawEventMatchers]
+  matchers Json?
+
+  createdAt DateTime @default(now())
+
+  events TriggerEvent[]
+
+  @@unique([triggerRegistrationInstanceOid, idempotencyKey])
+  @@index([triggerRegistrationInstanceOid, createdAt])
+  @@index([processingStatus, createdAt])
+  @@index([createdAt])
+}
+
+model TriggerRegistrationSchedule {
+  oid BigInt @id
+  id  String @unique
+
+  isDisabled Boolean @default(false)
+
+  intervalSeconds Int
+
+  firstRunAt DateTime?
+  lastRunAt  DateTime?
+  nextRunAt  DateTime
+
+  claimedUntil DateTime?
+
+  triggerRegistrationInstanceOid BigInt                      @unique
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  pollingRuns TriggerPollingRun[]
+
+  @@index([nextRunAt, claimedUntil])
+  @@index([claimedUntil])
+}
+
+enum TriggerPollingRunStatus {
+  succeeded
+  failed
+}
+
+model TriggerPollingRun {
+  oid    BigInt                  @id
+  id     String                  @unique
+  status TriggerPollingRunStatus
+
+  scheduleOid BigInt
+  schedule    TriggerRegistrationSchedule @relation(fields: [scheduleOid], references: [oid], onDelete: Cascade)
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid])
+
+  errorCode    String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  @@index([scheduleOid, createdAt])
+}
+
+enum TriggerWebhookTargetStatus {
+  creating
+  active
+  failed
+  deleting
+  deleted
+}
+
+model TriggerWebhookTarget {
+  oid    BigInt                     @id
+  id     String                     @unique
+  status TriggerWebhookTargetStatus @default(creating)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  triggerGroupOid BigInt
+  triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid], onDelete: Cascade)
+
+  targetIdentifier           String
+  normalizedTargetIdentifier String
+
+  name        String
+  description String?
+
+  /// [AnyRecord]
+  metadata Json
+
+  /// [AnyRecord]
+  webhookTargetPayload Json
+
+  webhookRegistrationOid BigInt?                   @unique
+  webhookRegistration    SlateWebhookRegistration? @relation(fields: [webhookRegistrationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  webhooks             TriggerRegistrationWebhook[]
+  registrationAttempts TriggerWebhookTargetRegistrationAttempt[]
+  instanceErrors       TriggerRegistrationInstanceError[]
+
+  @@unique([tenantOid, triggerGroupOid, normalizedTargetIdentifier])
+}
+
+model TriggerRegistrationWebhook {
+  oid BigInt @id
+
+  triggerRegistrationInstanceOid BigInt
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  triggerWebhookTargetOid BigInt?
+  triggerWebhookTarget    TriggerWebhookTarget? @relation(fields: [triggerWebhookTargetOid], references: [oid])
+
+  webhookRegistrationOid BigInt?
+  webhookRegistration    SlateWebhookRegistration? @relation(fields: [webhookRegistrationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([triggerRegistrationInstanceOid, triggerWebhookTargetOid])
+  @@unique([triggerRegistrationInstanceOid, webhookRegistrationOid])
+}
+
+enum TriggerWebhookTargetRegistrationAttemptStatus {
+  failed
+  succeeded
+}
+
+model TriggerWebhookTargetRegistrationAttempt {
+  oid    BigInt                                        @id
+  id     String                                        @unique
+  status TriggerWebhookTargetRegistrationAttemptStatus
+
+  triggerWebhookTargetOid BigInt
+  triggerWebhookTarget    TriggerWebhookTarget @relation(fields: [triggerWebhookTargetOid], references: [oid], onDelete: Cascade)
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid])
+
+  errorCode    String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  instanceErrors TriggerRegistrationInstanceError[]
+
+  @@index([triggerWebhookTargetOid, createdAt])
+}
+
+model TriggerRegistrationInstanceError {
+  oid BigInt @id
+  id  String @unique
+
+  triggerRegistrationInstanceOid BigInt
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  triggerWebhookTargetOid BigInt?
+  triggerWebhookTarget    TriggerWebhookTarget? @relation(fields: [triggerWebhookTargetOid], references: [oid])
+
+  registrationAttemptOid BigInt?
+  registrationAttempt    TriggerWebhookTargetRegistrationAttempt? @relation(fields: [registrationAttemptOid], references: [oid])
+
+  code    String
+  message String
+
+  createdAt DateTime @default(now())
+
+  @@index([triggerRegistrationInstanceOid, createdAt])
+}

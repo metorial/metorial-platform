@@ -101,6 +101,25 @@ class slateServiceImpl {
     });
   }
 
+  async listCurrentAuthMethods(d: { slate: Slate }) {
+    if (!d.slate.currentVersionOid) return [];
+
+    let version = await db.slateVersion.findFirst({
+      where: { slateOid: d.slate.oid, oid: d.slate.currentVersionOid },
+      include: {
+        specification: {
+          include: {
+            slateAuthMethods: {
+              include: { authMethod: true }
+            }
+          }
+        }
+      }
+    });
+
+    return version?.specification?.slateAuthMethods.map(m => m.authMethod) ?? [];
+  }
+
   async getSlateStats(d: { slate: Slate }) {
     let [versions, deployments, discoveries, events] = await Promise.all([
       db.slateVersion.count({ where: { slateOid: d.slate.oid } }),

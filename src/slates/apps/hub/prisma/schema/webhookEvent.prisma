@@ -1,0 +1,57 @@
+enum SlateWebhookEventStatus {
+  pending // created, no attempt has reached a terminal outcome yet
+  failed_retrying // most recent attempt failed, more attempts remain
+  failed_final // a non-retryable error, or the last allowed attempt, failed
+  succeeded
+}
+
+enum SlateWebhookEventInvocationStatus {
+  failed
+  succeeded
+}
+
+model SlateWebhookEvent {
+  oid          BigInt                  @id
+  id           String                  @unique
+  status       SlateWebhookEventStatus @default(pending)
+  attemptCount Int                     @default(0)
+
+  webhookRegistrationOid BigInt
+  webhookRegistration    SlateWebhookRegistration @relation(fields: [webhookRegistrationOid], references: [oid], onDelete: Cascade)
+
+  /// [SlateWebhookEventRequest]
+  request Json
+
+  /// [SlatesWebhookHttpResponse]
+  slateResponse Json?
+
+  /// [SlateWebhookEventResponseOverride]
+  responseOverride Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  invocations SlateWebhookEventInvocation[]
+
+  @@index([webhookRegistrationOid, createdAt])
+}
+
+model SlateWebhookEventInvocation {
+  oid     BigInt                            @id
+  id      String                            @unique
+  status  SlateWebhookEventInvocationStatus
+  attempt Int
+
+  webhookEventOid BigInt
+  webhookEvent    SlateWebhookEvent @relation(fields: [webhookEventOid], references: [oid], onDelete: Cascade)
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid])
+
+  errorCode    String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  @@index([webhookEventOid, createdAt])
+}

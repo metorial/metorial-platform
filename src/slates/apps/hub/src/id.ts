@@ -22,6 +22,7 @@ export let ID = createIdGenerator({
   slateAction: idType.sorted('shac'),
   slateConfigSchema: idType.sorted('shcs'),
   slateAuthMethod: idType.sorted('sham'),
+  slateTriggerGroup: idType.sorted('sttg'),
 
   slateInstance: idType.sorted('shin'),
   slateInstanceConfig: idType.sorted('shic'),
@@ -32,18 +33,29 @@ export let ID = createIdGenerator({
   slateAuthConfigEvent: idType.sorted('shace'),
   slateInstanceOAuthSetupEvent: idType.sorted('shiose'),
 
+  slateWebhookRegistration: idType.sorted('whr'),
+  slateWebhookEvent: idType.sorted('wev'),
+  slateWebhookEventInvocation: idType.sorted('wei'),
+
+  triggerRegistration: idType.sorted('sttr'),
+  triggerRegistrationInstance: idType.sorted('sttri'),
+  triggerRegistrationSchedule: idType.sorted('sttrs'),
+  triggerPollingRun: idType.sorted('sttrp'),
+  triggerWebhookTarget: idType.sorted('sttwt'),
+  triggerWebhookTargetRegistrationAttempt: idType.sorted('sttwa'),
+  triggerRegistrationInstanceError: idType.sorted('sttre'),
+  triggerRawEvent: idType.sorted('sttrv'),
+  triggerEvent: idType.sorted('sttrev'),
+  triggerEventInvocation: idType.sorted('sttrevi'),
+  triggerRoutingMatcher: idType.sorted('sttrm'),
+  triggerRoutingDrop: idType.sorted('sttrd'),
+  triggerRoutingMatcherEvaluation: idType.sorted('sttrme'),
+
   slateInvocation: idType.sorted('shiv'),
 
   slateOAuthCredentials: idType.sorted('shoc'),
   slateToolCall: idType.sorted('shtc'),
   slateSession: idType.sorted('shses'),
-
-  slateTriggerReceiver: idType.sorted('shtr'),
-  slateTriggerReceiverTrigger: idType.sorted('shtrt'),
-  slateTriggerInvocation: idType.sorted('shtiv'),
-  slateTriggerEventInput: idType.sorted('shtin'),
-  slateTriggerEvent: idType.sorted('shte'),
-  slateTriggerWebhookRequest: idType.sorted('shtwr'),
 
   changeNotification: idType.sorted('shcn'),
 

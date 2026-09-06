@@ -52,3 +52,13 @@ export let tenantService = Service.create(
   'tenantService',
   () => new tenantServiceImpl()
 ).build();
+
+// Sentinel tenant that owns infrastructure (secrets, invocations) for
+// resources that aren't linked to a real tenant, e.g. global webhook
+// registrations configured from the admin panel.
+export let globalTenant = await tenantService.upsertTenant({
+  input: {
+    identifier: '__slates_global__',
+    name: 'Global (Slates Hub)'
+  }
+});

@@ -31,7 +31,14 @@ export let slateDiscoveryController = authedApp.controller({
         v.object({
           slateId: v.optional(v.string()),
           versionIds: v.optional(v.array(v.string())),
-          status: v.optional(v.enumOf(Object.values(SlateVersionDiscoveryStatus) as [SlateVersionDiscoveryStatus, ...SlateVersionDiscoveryStatus[]]))
+          status: v.optional(
+            v.enumOf(
+              Object.values(SlateVersionDiscoveryStatus) as [
+                SlateVersionDiscoveryStatus,
+                ...SlateVersionDiscoveryStatus[]
+              ]
+            )
+          )
         })
       )
     )

@@ -9,6 +9,7 @@ import { reconcileEventIdsQueue } from './queues/instance/reconcileEventIds';
 import { registryQueues } from './queues/registry';
 import { retentionQueues } from './queues/retention';
 import { triggerQueues } from './queues/trigger';
+import { webhookQueues } from './queues/webhook';
 
 await reconcileEventIdsQueue.add({});
 
@@ -21,5 +22,6 @@ await runQueueProcessors([
   instanceQueues,
   cleanupCron,
   retentionQueues,
+  webhookQueues,
   triggerQueues
 ]);

@@ -1,7 +1,7 @@
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { getSentry } from '@lowerdeck/sentry';
-import type { SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
+import type { SlateAuthenticationMethod, SlatesAction, SlatesTriggerGroup } from '@slates/proto';
 import { differenceInMinutes } from 'date-fns';
 import semver from 'semver';
 import { db } from '../../db';
@@ -85,6 +85,31 @@ let syncSpecificationAuthMethods = async (d: {
   });
 };
 
+let syncSpecificationTriggerGroups = async (d: {
+  specificationOid: bigint;
+  triggerGroups: Array<{ oid: bigint }>;
+}) => {
+  let triggerGroupOids = d.triggerGroups.map(triggerGroup => triggerGroup.oid);
+
+  await db.slateSpecificationTriggerGroup.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      triggerGroupOid: triggerGroupOids.length > 0 ? { notIn: triggerGroupOids } : undefined
+    }
+  });
+
+  if (triggerGroupOids.length === 0) return;
+
+  await db.slateSpecificationTriggerGroup.createMany({
+    skipDuplicates: true,
+    data: triggerGroupOids.map(triggerGroupOid => ({
+      oid: snowflake.nextId(),
+      triggerGroupOid,
+      specificationOid: d.specificationOid
+    }))
+  });
+};
+
 let syncSpecificationConfigSchema = async (d: {
   specificationOid: bigint;
   configSchemaOid: bigint;
@@ -118,6 +143,7 @@ let buildActionUpsertData = async (d: {
   specificationOid: bigint;
   identifierBase: string;
   actionHashes: string[];
+  triggerGroupOidByKey: Map<string, bigint>;
 }) =>
   d.actions.map((action, index) => {
     let hash = d.actionHashes[index]!;
@@ -139,7 +165,38 @@ let buildActionUpsertData = async (d: {
       spec: action,
 
       key: action.id,
-      name: action.name
+      name: action.name,
+
+      triggerGroupOid:
+        action.type === 'action.trigger'
+          ? d.triggerGroupOidByKey.get(action.triggerGroupId) ?? null
+          : null
+    };
+  });
+
+let buildTriggerGroupUpsertData = async (d: {
+  triggerGroups: SlatesTriggerGroup[];
+  slateOid: bigint;
+  specificationOid: bigint;
+  identifierBase: string;
+  triggerGroupHashes: string[];
+}) =>
+  d.triggerGroups.map((triggerGroup, index) => {
+    let hash = d.triggerGroupHashes[index]!;
+    let identifier = `${d.identifierBase}::trigger_group::${triggerGroup.id}::${hash}`;
+
+    return {
+      ...getId('slateTriggerGroup'),
+      slateOid: d.slateOid,
+      mostRecentSpecificationOid: d.specificationOid,
+
+      hash,
+      identifier,
+
+      spec: triggerGroup,
+
+      key: triggerGroup.id,
+      name: triggerGroup.name
     };
   });
 
@@ -289,7 +346,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         slateInvocationService.getConfigSchema({ stack }),
         // slateInvocationService.getDefaultConfig({ stack }),
         slateInvocationService.listAuthMethods({ stack }),
-        slateInvocationService.listActions({ stack })
+        slateInvocationService.listActions({ stack }),
+        slateInvocationService.listTriggerGroups({ stack })
       ]);
 
       let invocation = stackResult[0].invocation;
@@ -307,7 +365,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         return;
       }
 
-      let [providerInfo, configSchema, authMethods, actions] =
+      let [providerInfo, configSchema, authMethods, actions, triggerGroups] =
         getStackResultsOrThrow(stackResult);
 
       let discoveredAuthMethods = dedupeDiscoveredItems(authMethods.authenticationMethods, {
@@ -320,6 +378,11 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         slateId: slate.id,
         versionId: version.id,
         getKey: action => `${action.type}:${action.id}`
+      });
+      let discoveredTriggerGroups = dedupeDiscoveredItems(triggerGroups.triggerGroups, {
+        entity: 'trigger_groups',
+        slateId: slate.id,
+        versionId: version.id
       });
 
       let providerDocs = normalizeDiscoveredDocs(providerInfo.docs);
@@ -336,7 +399,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           docs: configSchemaDocs
         },
         authMethods: discoveredAuthMethods,
-        actions: discoveredActions
+        actions: discoveredActions,
+        triggerGroups: discoveredTriggerGroups
       });
       let identifierBase = `slate::spec::${slate.id}`;
       let specificationIdentifier = `${identifierBase}::${discoveryHashes.specificationHash}`;
@@ -351,7 +415,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         configSchema: configSchema.schema,
         configSchemaDocs,
         authMethods: discoveredAuthMethods,
-        actions: discoveredActions
+        actions: discoveredActions,
+        triggerGroups: discoveredTriggerGroups
       };
       let specification = await db.slateSpecification.upsert({
         where: {
@@ -370,12 +435,41 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         update: specificationData
       });
 
+      let triggerGroupUpsertData = await buildTriggerGroupUpsertData({
+        triggerGroups: discoveredTriggerGroups,
+        slateOid: slate.oid,
+        specificationOid: specification.oid,
+        identifierBase,
+        triggerGroupHashes: discoveryHashes.triggerGroupHashes
+      });
+      await db.slateTriggerGroup.createManyAndReturn({
+        skipDuplicates: true,
+        data: triggerGroupUpsertData
+      });
+      let upsertedTriggerGroups = await db.slateTriggerGroup.findMany({
+        where: {
+          slateOid: slate.oid,
+          identifier: {
+            in: triggerGroupUpsertData.map(tg => tg.identifier)
+          }
+        }
+      });
+      let triggerGroupOidByKey = new Map(
+        upsertedTriggerGroups.map(triggerGroup => [triggerGroup.key, triggerGroup.oid])
+      );
+
+      await syncSpecificationTriggerGroups({
+        specificationOid: specification.oid,
+        triggerGroups: upsertedTriggerGroups
+      });
+
       let actionUpsertData = await buildActionUpsertData({
         actions: discoveredActions,
         slateOid: slate.oid,
         specificationOid: specification.oid,
         identifierBase,
-        actionHashes: discoveryHashes.actionHashes
+        actionHashes: discoveryHashes.actionHashes,
+        triggerGroupOidByKey
       });
       await db.slateAction.createManyAndReturn({
         skipDuplicates: true,
@@ -518,6 +612,10 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
             data: { mostRecentSpecificationOid: specification.oid }
           });
           await db.slateConfigSchema.updateMany({
+            where: { slateSpecifications: { some: { specificationOid: specification.oid } } },
+            data: { mostRecentSpecificationOid: specification.oid }
+          });
+          await db.slateTriggerGroup.updateMany({
             where: { slateSpecifications: { some: { specificationOid: specification.oid } } },
             data: { mostRecentSpecificationOid: specification.oid }
           });

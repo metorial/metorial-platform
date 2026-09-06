@@ -6,6 +6,8 @@ import type { SlateInstance, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
+import { matcherSetFingerprint } from '../lib/triggerRoutingMatcherSerialize';
+import { triggerRoutingMatcherResyncQueue } from '../queues/trigger/routingMatcherResync';
 import { secretService } from './secret';
 import { slateErrorService } from './slateError';
 import { slateInvocationService } from './slateInvocation';
@@ -231,8 +233,21 @@ class slateAuthHandlerServiceImpl {
         let tokenExpiresAt = extractExpiresAt(decrypted.output);
         await db.slateAuthConfig.update({
           where: { oid: authConfig.oid },
-          data: { tokenExpiresAt }
+          data: {
+            tokenExpiresAt,
+            routingMatchers: res.data.routingMatchers ?? undefined
+          }
         });
+
+        if (res.data.routingMatchers?.length) {
+          let identifiedDifferently =
+            (await matcherSetFingerprint(authConfig.routingMatchers)) !==
+            (await matcherSetFingerprint(res.data.routingMatchers));
+
+          if (identifiedDifferently) {
+            await triggerRoutingMatcherResyncQueue.add({ authConfigId: authConfig.id });
+          }
+        }
       }
     }
 

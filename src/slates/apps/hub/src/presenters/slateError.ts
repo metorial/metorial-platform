@@ -14,16 +14,11 @@ import type {
   SlateOAuthCredentials,
   SlateSession,
   SlateSessionToolCall,
-  SlateTriggerEvent,
-  SlateTriggerEventInput,
-  SlateTriggerReceiver,
-  SlateTriggerReceiverTrigger,
   SlateVersion,
   Tenant
 } from '../../prisma/generated/client';
 import { slateAuthConfigPresenter } from './slateAuthConfig';
 import { slateInvocationLitePresenter, slateInvocationPresenter } from './slateInvocation';
-import { slateTriggerEventInputPresenter } from './slateTriggerEventInput';
 
 type InvocationWithStoredAttachments = SlateInvocation & {
   slateInvocationAttachment?: Array<{
@@ -85,15 +80,6 @@ type FullSlateError = ListSlateError & {
         oauthCredentials: SlateOAuthCredentials;
         slateVersion: SlateVersion;
         events: SlateInstanceOAuthSetupEvent[];
-      })
-    | null;
-  triggerReceiver: SlateTriggerReceiver | null;
-  triggerEventInput:
-    | (SlateTriggerEventInput & {
-        receiver: SlateTriggerReceiver;
-        receiverTrigger: SlateTriggerReceiverTrigger;
-        action: SlateAction;
-        event: SlateTriggerEvent | null;
       })
     | null;
 };
@@ -167,21 +153,6 @@ export let slateErrorFullPresenter = async (error: FullSlateError) => {
           })),
           createdAt: error.oauthSetup.createdAt
         }
-      : null,
-
-    triggerReceiver: error.triggerReceiver
-      ? {
-          id: error.triggerReceiver.id,
-          status: error.triggerReceiver.status,
-          name: error.triggerReceiver.name,
-          consecutivePollingFailures: error.triggerReceiver.consecutivePollingFailures,
-          consecutiveEventFailures: error.triggerReceiver.consecutiveEventFailures,
-          createdAt: error.triggerReceiver.createdAt
-        }
-      : null,
-
-    triggerEventInput: error.triggerEventInput
-      ? slateTriggerEventInputPresenter(error.triggerEventInput)
       : null
   };
 };

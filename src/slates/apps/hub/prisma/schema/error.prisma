@@ -4,7 +4,6 @@ enum SlateErrorType {
   auth_processing_failed
   oauth_token_refresh_failed
   oauth_setup_failed
-  trigger_event_input_failed
   profile_fetch_failed
 }
 
@@ -46,12 +45,6 @@ model SlateError {
 
   oauthSetupOid BigInt?
   oauthSetup    SlateInstanceOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid], onDelete: Cascade)
-
-  triggerReceiverOid BigInt?
-  triggerReceiver    SlateTriggerReceiver? @relation(fields: [triggerReceiverOid], references: [oid], onDelete: Cascade)
-
-  triggerEventInputOid BigInt?
-  triggerEventInput    SlateTriggerEventInput? @relation(fields: [triggerEventInputOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
