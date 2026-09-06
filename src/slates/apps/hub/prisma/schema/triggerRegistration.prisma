@@ -29,6 +29,8 @@ model TriggerRegistration {
 
   instances TriggerRegistrationInstance[]
 
+  callbackInstance CallbackInstance?
+
   @@index([tenantOid, createdAt])
   @@index([instanceOid])
 }

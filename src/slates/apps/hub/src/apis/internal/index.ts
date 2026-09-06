@@ -1,6 +1,8 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
+import { callbackController } from './callback';
+import { callbackInstanceController } from './callbackInstance';
 import { changeNotificationController } from './changeNotification';
 import { registryController } from './registry';
 import { secretController } from './secret';
@@ -56,7 +58,10 @@ export let rootController = app.controller({
   slateVersionDiscovery: slateVersionDiscoveryController,
   slateSpecificationChange: slateSpecificationChangeController,
   slateWebhookRegistration: slateWebhookRegistrationController,
-  triggerRegistration: triggerRegistrationController
+  triggerRegistration: triggerRegistrationController,
+
+  callback: callbackController,
+  callbackInstance: callbackInstanceController
 });
 
 export let slatesHubRPC = createServer({})(rootController);

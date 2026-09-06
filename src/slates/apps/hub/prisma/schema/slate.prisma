@@ -46,6 +46,7 @@ model Slate {
   slateErrors               SlateError[]
   slateWebhookRegistrations SlateWebhookRegistration[]
   triggerRegistrations      TriggerRegistration[]
+  callbacks                 Callback[]
 
   @@unique([registryOid, slateIdOnRegistry])
   @@unique([registryOid, slateFullIdentifierOnRegistry])

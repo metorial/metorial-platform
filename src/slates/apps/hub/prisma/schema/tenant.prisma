@@ -34,4 +34,6 @@ model Tenant {
   triggerRoutingMatchers           TriggerRoutingMatcher[]
   triggerRoutingDrops              TriggerRoutingDrop[]
   triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
+  callbacks                        Callback[]
+  callbackInstances                CallbackInstance[]
 }

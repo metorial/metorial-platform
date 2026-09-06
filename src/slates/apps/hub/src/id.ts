@@ -51,6 +51,9 @@ export let ID = createIdGenerator({
   triggerRoutingDrop: idType.sorted('sttrd'),
   triggerRoutingMatcherEvaluation: idType.sorted('sttrme'),
 
+  callback: idType.sorted('shcb'),
+  callbackInstance: idType.sorted('shcbi'),
+
   slateInvocation: idType.sorted('shiv'),
 
   slateOAuthCredentials: idType.sorted('shoc'),
