@@ -165,6 +165,9 @@ import {
   storeParticipantController,
   tokenController,
   toolCallController,
+  callbackController,
+  callbackEventController,
+  callbackInstanceController,
   webhookEventController,
   webhookRegistrationController
 } from './instance';
@@ -322,7 +325,13 @@ let setControllerDocsMetadata = <
   })
 );
 
-[webhookRegistrationController, webhookEventController].forEach(controller =>
+[
+  callbackController,
+  callbackEventController,
+  callbackInstanceController,
+  webhookRegistrationController,
+  webhookEventController
+].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: callbackDocsCategory
   })
@@ -450,6 +459,9 @@ export let magnetarController = Controller.create<any>(
     integrationInstanceGroupController,
     integrationInstanceGroupProviderController,
 
+    callbackController,
+    callbackEventController,
+    callbackInstanceController,
     webhookRegistrationController,
     webhookEventController,
 

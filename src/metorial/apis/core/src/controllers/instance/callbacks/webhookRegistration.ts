@@ -6,6 +6,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   getRequiredParam,
@@ -36,6 +37,7 @@ export let webhookRegistrationController = Controller.create(
         description: 'Returns a paginated list of webhook registrations.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled']))
       .outputList(webhookRegistrationPresenter)
       .query(
         'default',
@@ -87,6 +89,7 @@ export let webhookRegistrationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled']))
       .output(webhookRegistrationPresenter)
       .do(async ctx =>
         webhookRegistrationPresenter.present({
@@ -101,6 +104,7 @@ export let webhookRegistrationController = Controller.create(
           'Creates a webhook registration for a provider. Only providers whose type reports `triggers.webhook_registration.status` as `supported` can receive one. The registration starts out awaiting setup.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .use(hasFlags(['callbacks-enabled']))
       .body(
         'default',
         v.object({
@@ -155,6 +159,7 @@ export let webhookRegistrationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .use(hasFlags(['callbacks-enabled']))
       .body(
         'default',
         v.object({
@@ -189,6 +194,7 @@ export let webhookRegistrationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .use(hasFlags(['callbacks-enabled']))
       .body(
         'default',
         v.object({
@@ -244,6 +250,7 @@ export let webhookRegistrationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .use(hasFlags(['callbacks-enabled']))
       .output(webhookRegistrationPresenter)
       .do(async ctx => {
         let webhookRegistration = await webhookRegistrationService.archiveWebhookRegistration({

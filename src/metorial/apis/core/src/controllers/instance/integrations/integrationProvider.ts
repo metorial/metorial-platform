@@ -13,6 +13,16 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
+let callbacksInputValidator = v.object(
+  {
+    status: v.enumOf(['enabled', 'disabled'] as const, {
+      description:
+        'Enabling creates a callback and registers it against every matching integration instance. Disabling tears down the callback and every callback instance registered for it. Only providers whose type reports `triggers.status` as `enabled` can enable callbacks.'
+    })
+  },
+  { description: 'Provider callback state for this integration provider' }
+);
+
 let integrationProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.integrationProviderId) {
     throw new ServiceError(
@@ -132,7 +142,8 @@ export let integrationProviderController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          tool_filters: toolFiltersValidator
+          tool_filters: toolFiltersValidator,
+          callbacks: v.optional(callbacksInputValidator)
         })
       )
       .output(integrationProviderPresenter)
@@ -157,7 +168,11 @@ export let integrationProviderController = Controller.create(
             toolFilters:
               ctx.body.tool_filters === undefined
                 ? undefined
-                : normalizeToolFilters(ctx.body.tool_filters)
+                : normalizeToolFilters(ctx.body.tool_filters),
+            callbacksEnabled:
+              ctx.body.callbacks === undefined
+                ? undefined
+                : ctx.body.callbacks.status === 'enabled'
           }
         });
 
@@ -186,7 +201,8 @@ export let integrationProviderController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
           metadata: v.optional(v.nullable(v.record(v.any()))),
-          tool_filters: toolFiltersValidator
+          tool_filters: toolFiltersValidator,
+          callbacks: v.optional(callbacksInputValidator)
         })
       )
       .output(integrationProviderPresenter)
@@ -206,7 +222,11 @@ export let integrationProviderController = Controller.create(
             toolFilters:
               ctx.body.tool_filters === undefined
                 ? undefined
-                : normalizeToolFilters(ctx.body.tool_filters)
+                : normalizeToolFilters(ctx.body.tool_filters),
+            callbacksEnabled:
+              ctx.body.callbacks === undefined
+                ? undefined
+                : ctx.body.callbacks.status === 'enabled'
           }
         });
 
