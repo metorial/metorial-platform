@@ -18,6 +18,7 @@ model SlateInstance {
   updatedAt DateTime @default(now()) @updatedAt
 
   providerConfigVersions ProviderConfigVersion[]
+  slateCallbackInstances SlateCallbackInstance[]
 
   @@index([projectOid])
 }

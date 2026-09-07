@@ -1,0 +1,55 @@
+enum CallbackStatus {
+  active
+  archived
+  deleted
+}
+
+model Callback {
+  oid BigInt @id
+  id  String @unique
+
+  status     CallbackStatus
+  archivedAt DateTime?
+
+  name        String
+  description String?
+  metadata    Json?
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid])
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  callbackInstances CallbackInstance[]
+  callbackEvents    CallbackEvent[]
+  slateCallback     SlateCallback?
+
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([integrationProviderOid, status])
+  @@index([integrationOid, status])
+  @@index([projectOid])
+  @@index([instanceOid])
+  @@map("CallbackV2")
+}

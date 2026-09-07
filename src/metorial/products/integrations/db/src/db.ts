@@ -5,7 +5,8 @@ import type {
   SpecificationAuthMethod,
   SpecificationFeatures,
   SpecificationTool,
-  SpecificationTrigger
+  SpecificationTrigger,
+  SpecificationTriggerGroup
 } from '@metorial-subspace/provider-utils';
 import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -82,6 +83,7 @@ declare global {
       features: SpecificationFeatures;
       tools: SpecificationTool[];
       triggers?: SpecificationTrigger[];
+      triggerGroups?: SpecificationTriggerGroup[];
     };
 
     type ProviderAuthMethodValue = SpecificationAuthMethod;
@@ -89,6 +91,8 @@ declare global {
     type ProviderToolValue = SpecificationTool;
 
     type ProviderTriggerValue = SpecificationTrigger;
+
+    type ProviderTriggerGroupValue = SpecificationTriggerGroup;
 
     type ActionScopes = {
       AND: {
@@ -220,7 +224,7 @@ declare global {
       triggers:
         | {
             status: 'enabled';
-            receiverUrl: string;
+            webhookRegistration: { status: 'supported' | 'unsupported' };
           }
         | { status: 'disabled' };
 
@@ -247,6 +251,10 @@ declare global {
             read: { status: 'enabled' | 'disabled' };
           }
         | { status: 'disabled'; read?: undefined };
+    };
+
+    type WebhookRegistrationSetup = {
+      document: string;
     };
 
     type ProviderDeploymentConfigPairDiscoveryError =

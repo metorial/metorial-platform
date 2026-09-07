@@ -1,0 +1,96 @@
+model SlateCallback {
+  oid BigInt @id
+  id  String @unique
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  callbackOid BigInt?   @unique
+  callback    Callback? @relation(fields: [callbackOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  slateCallbackInstances SlateCallbackInstance[]
+
+  @@index([projectOid])
+}
+
+model SlateCallbackInstance {
+  oid BigInt @id
+  id  String @unique
+
+  triggerRegistrationId String
+
+  slateCallbackOid BigInt
+  slateCallback    SlateCallback @relation(fields: [slateCallbackOid], references: [oid], onDelete: Cascade)
+
+  slateInstanceOid BigInt
+  slateInstance    SlateInstance @relation(fields: [slateInstanceOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  callbackInstanceOid BigInt?           @unique
+  callbackInstance    CallbackInstance? @relation(fields: [callbackInstanceOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  slateTriggerEvents SlateTriggerEvent[]
+
+  @@index([triggerRegistrationId])
+  @@index([projectOid])
+}
+
+model SlateWebhookRegistration {
+  oid BigInt @id
+  id  String @unique
+
+  triggerGroupKey String
+  urlKey          String
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  webhookRegistrationOid BigInt?              @unique
+  webhookRegistration    WebhookRegistration? @relation(fields: [webhookRegistrationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([projectOid])
+}
+
+model SlateTriggerEvent {
+  oid BigInt @id
+  id  String @unique
+
+  triggerId           String
+  slateWebhookEventId String?
+
+  slateCallbackInstanceOid BigInt
+  slateCallbackInstance    SlateCallbackInstance @relation(fields: [slateCallbackInstanceOid], references: [oid], onDelete: Cascade)
+
+  callbackEventOid BigInt?        @unique
+  callbackEvent    CallbackEvent? @relation(fields: [callbackEventOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([slateCallbackInstanceOid, createdAt])
+}

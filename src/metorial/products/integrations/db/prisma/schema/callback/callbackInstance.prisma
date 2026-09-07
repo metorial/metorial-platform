@@ -1,0 +1,64 @@
+enum CallbackInstanceStatus {
+  active
+  archived
+  deleted
+}
+
+enum CallbackInstanceSyncStatus {
+  pending
+  synced
+  failed
+}
+
+model CallbackInstance {
+  oid BigInt @id
+  id  String @unique
+
+  status          CallbackInstanceStatus
+  syncStatus      CallbackInstanceSyncStatus @default(pending)
+  isParentDeleted Boolean                    @default(false)
+  archivedAt      DateTime?
+
+  lastSyncErrorCode    String?
+  lastSyncErrorMessage String?
+  lastSyncedAt         DateTime?
+
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceOid BigInt
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceProviderOid BigInt
+  integrationInstanceProvider    IntegrationInstanceProvider @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  callbackEvents        CallbackEvent[]
+  slateCallbackInstance SlateCallbackInstance?
+
+  @@unique([callbackOid, integrationInstanceProviderOid])
+  @@index([callbackOid, status])
+  @@index([integrationInstanceOid, status])
+  @@index([integrationInstanceProviderOid, status])
+  @@index([syncStatus])
+  @@index([projectOid])
+  @@index([instanceOid])
+  @@map("CallbackInstanceV2")
+}

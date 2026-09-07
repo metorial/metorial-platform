@@ -71,6 +71,8 @@ export let ID = createIdGenerator({
   providerAuthMethodGlobal: idType.sorted('pamg'),
   providerTrigger: idType.sorted('ptr'),
   providerTriggerGlobal: idType.sorted('ptrg'),
+  providerTriggerGroup: idType.sorted('ptgr'),
+  providerTriggerGroupGlobal: idType.sorted('ptgrg'),
 
   providerAuthCredentials: idType.sorted('par'),
   managedProviderAuthCredentials: idType.sorted('pmac'),
@@ -130,11 +132,15 @@ export let ID = createIdGenerator({
 
   providerRun: idType.sorted('prun'),
 
-  callbackDestination: idType.sorted('cbd'),
-  callback: idType.sorted('cbk'),
+  callback: idType.sorted('cb'),
   callbackInstance: idType.sorted('cbi'),
-  callbackProviderTrigger: idType.sorted('cbpt'),
-  callbackReceiverRegistration: idType.sorted('cbrr'),
+  webhookRegistration: idType.sorted('whr'),
+  callbackEvent: idType.sorted('cbe'),
+
+  slateCallback: idType.sorted('slcb'),
+  slateCallbackInstance: idType.sorted('slcbi'),
+  slateWebhookRegistration: idType.sorted('slwhr'),
+  slateTriggerEvent: idType.sorted('sltev'),
 
   toolCall: idType.sorted('tcl'),
   toolCallAttachment: idType.sorted('tca'),

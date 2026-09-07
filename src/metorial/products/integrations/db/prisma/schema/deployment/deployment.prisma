@@ -74,7 +74,6 @@ model ProviderDeployment {
   sessionProviders            SessionProvider[]
   sessionTemplateProviders    SessionTemplateProvider[]
   providerDeploymentVersions  ProviderDeploymentVersion[]
-  callbacks                   Callback[]
   identityCredentials         IdentityCredential[]
   integrationProviderVersions IntegrationProviderVersion[]
 

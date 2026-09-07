@@ -1,0 +1,61 @@
+enum CallbackEventStatus {
+  pending
+  processed
+  failed
+}
+
+enum CallbackEventSource {
+  webhook
+  polling
+}
+
+model CallbackEvent {
+  oid BigInt @id
+  id  String @unique
+
+  status CallbackEventStatus @default(pending)
+  source CallbackEventSource
+
+  providerTriggerKey String
+
+  providerTriggerOid BigInt?
+  providerTrigger    ProviderTrigger? @relation(fields: [providerTriggerOid], references: [oid])
+
+  mappedType String?
+  mappedId   String?
+
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)
+
+  callbackInstanceOid BigInt
+  callbackInstance    CallbackInstance @relation(fields: [callbackInstanceOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  slateTriggerEvent SlateTriggerEvent?
+
+  @@index([callbackOid, createdAt])
+  @@index([callbackInstanceOid, createdAt])
+  @@index([tenantOid, solutionOid, environmentOid, createdAt])
+  @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
+  @@map("CallbackEventV2")
+}

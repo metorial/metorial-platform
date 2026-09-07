@@ -60,6 +60,7 @@ model IntegrationInstance {
   integrationInstanceGroupSources   IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
   magicMcpServerBackings            MagicMcpServerBacking[]
+  callbackInstances                 CallbackInstance[]
 
   @@index([tenantOid, solutionOid, environmentOid, status, isHiddenDraft])
   @@index([integrationOid, status])
@@ -128,6 +129,7 @@ model IntegrationInstanceProvider {
   integrationInstanceGroupProviders   IntegrationInstanceGroupProvider[]
   integrationSetupSessionProviders    IntegrationSetupSessionProvider[]
   magicMcpServerProviders             MagicMcpServerProvider[]
+  callbackInstances                   CallbackInstance[]
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])

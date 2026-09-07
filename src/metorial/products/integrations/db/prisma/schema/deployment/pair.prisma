@@ -41,8 +41,6 @@ model ProviderDeploymentConfigPair {
   providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
   sessionProviderInstances                 SessionProviderInstance[]
   providerDeploymentConfigPairDiscoveries  ProviderDeploymentConfigPairDiscovery[]
-  callbackInstances                        CallbackInstance[]
-  callbackReceiverRegistrations            CallbackReceiverRegistration[]
 
   @@index([projectOid])
   @@index([instanceOid])
