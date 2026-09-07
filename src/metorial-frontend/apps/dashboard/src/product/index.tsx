@@ -249,30 +249,6 @@ let ManagedServersPage = dynamicPage(() =>
     c => c.CustomerProvidersPage
   )
 );
-let CallbacksListLayout = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
-);
-let CallbacksPage = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/index').then(c => c.CallbacksPage)
-);
-let CallbackLayout = dynamicPage(() =>
-  import('./pages/(callbacks)/_layout').then(c => c.CallbackLayout)
-);
-let CallbackOverviewPage = dynamicPage(() =>
-  import('./pages/(callbacks)/overview').then(c => c.CallbackOverviewPage)
-);
-let CallbackEventsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/events').then(c => c.CallbackEventsPage)
-);
-let CallbackLogsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
-);
-let CallbackTriggersPage = dynamicPage(() =>
-  import('./pages/(callbacks)/triggers').then(c => c.CallbackTriggersPage)
-);
-let CallbackDestinationsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
-);
 let SessionLogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.SessionLogsListLayout)
 );
@@ -859,44 +835,6 @@ export let productIntegrationsSlice = createSlice([
                     element: <MagicMcpServerSessionsPage />
                   }
                 ]
-              }
-            ]
-          },
-
-          {
-            path: 'callback/:callbackId',
-            element: <CallbackLayout />,
-            children: [
-              {
-                path: '',
-                element: <CallbackOverviewPage />
-              },
-              {
-                path: 'events',
-                element: <CallbackEventsPage />
-              },
-              {
-                path: 'logs',
-                element: <CallbackLogsPage />
-              },
-              {
-                path: 'triggers',
-                element: <CallbackTriggersPage />
-              },
-              {
-                path: 'destinations',
-                element: <CallbackDestinationsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'callbacks',
-            element: <CallbacksListLayout />,
-            children: [
-              {
-                path: '',
-                element: <CallbacksPage />
               }
             ]
           },

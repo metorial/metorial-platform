@@ -134,17 +134,6 @@ export let ProjectPageLayout = () => {
               to: Paths.instance.magicMcp.servers(...params),
               getProps: i => ({ isActive: i.pathname.includes('/magic-mcp/') })
             },
-            {
-              icon: <RiWebhookLine />,
-              label: 'Callbacks',
-              to: Paths.instance.callbacks(...params),
-              getProps: i => ({
-                isActive:
-                  i.pathname === Paths.instance.callbacks(...params) ||
-                  i.pathname.includes('/callbacks/') ||
-                  i.pathname.includes('/callback/')
-              })
-            }
           ]
         },
 
