@@ -24,6 +24,9 @@ model WebhookRegistration {
   providerOid BigInt
   provider    Provider @relation(fields: [providerOid], references: [oid])
 
+  providerVariantOid BigInt
+  providerVariant    ProviderVariant @relation(fields: [providerVariantOid], references: [oid])
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
@@ -46,6 +49,7 @@ model WebhookRegistration {
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([providerOid, status])
+  @@index([providerVariantOid])
   @@index([projectOid])
   @@index([instanceOid])
   @@map("WebhookRegistrationV2")

@@ -41,6 +41,7 @@ model ProviderVariant {
   customProvider             CustomProvider?
   providerEnvironments       ProviderEnvironment[]
   providerDeploymentVersions ProviderDeploymentVersion[]
+  webhookRegistrations       WebhookRegistration[]
 
   @@index([isDefault])
 }

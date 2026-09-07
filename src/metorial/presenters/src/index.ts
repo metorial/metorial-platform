@@ -236,6 +236,8 @@ import {
   v1SubspaceSessionEventPresenter,
   v1SubspaceSessionMessagePresenter,
   v1TeamPresenter,
+  v1WebhookEventPresenter,
+  v1WebhookRegistrationPresenter,
   v1TokenPresenter,
   v1UsagePresenter,
   v1UserPresenter
@@ -448,6 +450,8 @@ import {
   storePermissionsType,
   storeType,
   teamType,
+  webhookEventType,
+  webhookRegistrationType,
   tokenType,
   toolCallType,
   usageType,
@@ -944,6 +948,16 @@ export let profilePresenter = declarePresenter(profileType, {
 export let flagsPresenter = declarePresenter(flagsType, {
   mt_2025_01_01_dashboard: v1FlagsPresenter,
   mt_2026_01_01_magnetar: v1FlagsPresenter
+});
+
+export let webhookRegistrationPresenter = declarePresenter(webhookRegistrationType, {
+  mt_2025_01_01_dashboard: v1WebhookRegistrationPresenter,
+  mt_2026_01_01_magnetar: v1WebhookRegistrationPresenter
+});
+
+export let webhookEventPresenter = declarePresenter(webhookEventType, {
+  mt_2025_01_01_dashboard: v1WebhookEventPresenter,
+  mt_2026_01_01_magnetar: v1WebhookEventPresenter
 });
 
 export let teamPresenter = declarePresenter(teamType, {

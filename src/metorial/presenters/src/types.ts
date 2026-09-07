@@ -10,6 +10,10 @@ import type {
 } from '@metorial-subspace/module-custom-provider';
 import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
 import type {
+  WebhookEvent,
+  WebhookRegistrationWithRelations
+} from '@metorial-subspace/module-callback';
+import type {
   integrationInclude,
   integrationInstanceGroupInclude,
   integrationInstanceGroupProviderInclude,
@@ -3251,3 +3255,11 @@ export let scmRepoPreviewType = PresentableType.create<{
 export let scmAccountPreviewType = PresentableType.create<{
   accountPreviews: ScmAccountPreview[];
 }>()('scmAccountPreview');
+
+export let webhookRegistrationType = PresentableType.create<{
+  webhookRegistration: WebhookRegistrationWithRelations;
+}>()('webhook_registration');
+
+export let webhookEventType = PresentableType.create<{
+  webhookEvent: WebhookEvent;
+}>()('webhook_event');

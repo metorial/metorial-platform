@@ -1,3 +1,2 @@
-export * from './callbackEventInternal';
 export * from './webhookEvent';
 export * from './webhookRegistration';
