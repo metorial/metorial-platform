@@ -10,6 +10,10 @@ import type {
 } from '@metorial-subspace/module-custom-provider';
 import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
 import type {
+  CallbackEventDetails,
+  CallbackEventWithRelations,
+  CallbackInstanceWithRelations,
+  CallbackWithRelations,
   WebhookEvent,
   WebhookRegistrationWithRelations
 } from '@metorial-subspace/module-callback';
@@ -1139,6 +1143,7 @@ export let projectDataRetentionConfigurationType = PresentableType.create<{
   dataRetentionLevel: 'full' | 'intent_only' | 'none';
   storeToolCallAttachments: boolean;
   collectErrors: boolean;
+  disableCallbacks: boolean;
 }>()('project_data_retention_configuration');
 
 export let projectIntegrationNamingConfigurationType = PresentableType.create<{
@@ -3256,6 +3261,14 @@ export let scmAccountPreviewType = PresentableType.create<{
   accountPreviews: ScmAccountPreview[];
 }>()('scmAccountPreview');
 
+export let callbackType = PresentableType.create<{
+  callback: CallbackWithRelations;
+}>()('callback');
+
+export let callbackInstanceType = PresentableType.create<{
+  callbackInstance: CallbackInstanceWithRelations;
+}>()('callback_instance');
+
 export let webhookRegistrationType = PresentableType.create<{
   webhookRegistration: WebhookRegistrationWithRelations;
 }>()('webhook_registration');
@@ -3263,3 +3276,8 @@ export let webhookRegistrationType = PresentableType.create<{
 export let webhookEventType = PresentableType.create<{
   webhookEvent: WebhookEvent;
 }>()('webhook_event');
+
+export let callbackEventType = PresentableType.create<{
+  callbackEvent: CallbackEventWithRelations;
+  details?: CallbackEventDetails | null;
+}>()('callback_event');

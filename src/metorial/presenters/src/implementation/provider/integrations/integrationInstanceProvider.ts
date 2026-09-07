@@ -88,6 +88,7 @@ export let v1IntegrationInstanceProviderPresenter = Presenter.create(
             )
             .run()
         : null,
+      callback_instance_id: integrationInstanceProvider.callbackInstances.at(0)?.id ?? null,
       created_at: integrationInstanceProvider.createdAt,
       updated_at: integrationInstanceProvider.updatedAt,
       archived_at: integrationInstanceProvider.archivedAt
@@ -109,6 +110,14 @@ export let v1IntegrationInstanceProviderPresenter = Presenter.create(
       integration_provider: v1IntegrationProviderSnapshot.schema,
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
       auth_config: v.nullable(v1ProviderAuthConfigPreviewPresenter.schema),
+      callback_instance_id: v.nullable(
+        v.string({
+          name: 'callback_instance_id',
+          description:
+            'The active callback instance registered for this integration instance provider, if its integration provider has callbacks enabled.',
+          examples: ['cbi_5gHjKlMnPqRsTuVw']
+        })
+      ),
       created_at: v.date(),
       updated_at: v.date(),
       archived_at: v.nullable(v.date())

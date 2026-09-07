@@ -236,6 +236,11 @@ import {
   v1SubspaceSessionEventPresenter,
   v1SubspaceSessionMessagePresenter,
   v1TeamPresenter,
+  dashboardCallbackInstancePresenter,
+  dashboardCallbackPresenter,
+  v1CallbackEventPresenter,
+  v1CallbackInstancePresenter,
+  v1CallbackPresenter,
   v1WebhookEventPresenter,
   v1WebhookRegistrationPresenter,
   v1TokenPresenter,
@@ -450,6 +455,9 @@ import {
   storePermissionsType,
   storeType,
   teamType,
+  callbackEventType,
+  callbackInstanceType,
+  callbackType,
   webhookEventType,
   webhookRegistrationType,
   tokenType,
@@ -948,6 +956,21 @@ export let profilePresenter = declarePresenter(profileType, {
 export let flagsPresenter = declarePresenter(flagsType, {
   mt_2025_01_01_dashboard: v1FlagsPresenter,
   mt_2026_01_01_magnetar: v1FlagsPresenter
+});
+
+export let callbackPresenter = declarePresenter(callbackType, {
+  mt_2025_01_01_dashboard: dashboardCallbackPresenter,
+  mt_2026_01_01_magnetar: v1CallbackPresenter
+});
+
+export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
+  mt_2025_01_01_dashboard: dashboardCallbackInstancePresenter,
+  mt_2026_01_01_magnetar: v1CallbackInstancePresenter
+});
+
+export let callbackEventPresenter = declarePresenter(callbackEventType, {
+  mt_2025_01_01_dashboard: v1CallbackEventPresenter,
+  mt_2026_01_01_magnetar: v1CallbackEventPresenter
 });
 
 export let webhookRegistrationPresenter = declarePresenter(webhookRegistrationType, {

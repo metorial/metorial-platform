@@ -5,6 +5,7 @@ import type { integrationProviderInclude } from '@metorial-subspace/module-integ
 import { integrationProviderType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthCredentialsPresenter, v1ProviderAuthMethodPresenter } from '../auth';
+import { dashboardCallbackPresenter } from '../callbacks/callback';
 import {
   v1ProviderConfigPreviewPresenter,
   v1ProviderDeploymentPreviewPresenter
@@ -19,7 +20,45 @@ type RawIntegrationProvider = SubspacePrisma.IntegrationProviderGetPayload<{
 }>;
 type RawIntegrationProviderVersion = NonNullable<RawIntegrationProvider['currentVersion']>;
 
-let requireCurrentVersion = (integrationProvider: RawIntegrationProvider) => {
+/** The snapshot shape is embedded in instance-provider payloads, which never load callbacks. */
+type RawIntegrationProviderSnapshot = Omit<RawIntegrationProvider, 'callbacks'>;
+
+let activeCallback = (integrationProvider: RawIntegrationProvider) =>
+  integrationProvider.callbacks.at(0) ?? null;
+
+let integrationProviderCallbacks = Object.assign(
+  (integrationProvider: RawIntegrationProvider) => ({
+    object: 'integration.provider.callbacks' as const,
+    status: integrationProvider.areCallbacksEnabled
+      ? ('enabled' as const)
+      : ('disabled' as const),
+    callback_id: activeCallback(integrationProvider)?.id ?? null
+  }),
+  {
+    properties: {
+      object: v.literal('integration.provider.callbacks', {
+        description: "String representing the object's type"
+      }),
+
+      status: v.enumOf(['enabled', 'disabled'], {
+        name: 'status',
+        description:
+          'Whether this integration provider should receive provider callbacks. Enabling it creates a callback and registers it against every matching integration instance.'
+      }),
+
+      callback_id: v.nullable(
+        v.string({
+          name: 'callback_id',
+          description:
+            'The active callback, once it has been created. Null while callbacks are disabled.',
+          examples: ['cbk_4dEfGhJkLmNpQrSt']
+        })
+      )
+    }
+  }
+);
+
+let requireCurrentVersion = (integrationProvider: RawIntegrationProviderSnapshot) => {
   if (!integrationProvider.currentVersion) {
     throw new Error(
       `Integration provider "${integrationProvider.id}" has no current version to present.`
@@ -31,7 +70,7 @@ let requireCurrentVersion = (integrationProvider: RawIntegrationProvider) => {
 
 export let v1IntegrationProviderSnapshot = Object.assign(
   async (
-    integrationProvider: RawIntegrationProvider,
+    integrationProvider: RawIntegrationProviderSnapshot,
     version: RawIntegrationProviderVersion,
     opts?: any
   ) => {
@@ -101,7 +140,7 @@ export let v1IntegrationProviderSnapshot = Object.assign(
 
 export let dashboardIntegrationProviderSnapshot = Object.assign(
   async (
-    integrationProvider: RawIntegrationProvider,
+    integrationProvider: RawIntegrationProviderSnapshot,
     version: RawIntegrationProviderVersion,
     opts?: any
   ) => {
@@ -168,6 +207,7 @@ export let v1IntegrationProviderPresenter = Presenter.create(integrationProvider
             )
             .run()
         : null,
+      callbacks: integrationProviderCallbacks(integrationProvider),
       created_at: integrationProvider.createdAt,
       updated_at: integrationProvider.updatedAt,
       archived_at: integrationProvider.archivedAt
@@ -188,6 +228,10 @@ export let v1IntegrationProviderPresenter = Presenter.create(integrationProvider
       auth_method_id: v.nullable(v.string()),
       auth_credentials_id: v.nullable(v.string()),
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
+      callbacks: v.object(integrationProviderCallbacks.properties, {
+        name: 'callbacks',
+        description: 'Provider callback state for this integration provider'
+      }),
       created_at: v.date(),
       updated_at: v.date(),
       archived_at: v.nullable(v.date())
@@ -241,7 +285,16 @@ export let dashboardIntegrationProviderPresenter = Presenter.create(integrationP
               opts
             )
             .run()
-        : null
+        : null,
+      callbacks: {
+        ...inner.callbacks,
+        callback: await (async () => {
+          let callback = activeCallback(integrationProvider);
+          if (!callback) return null;
+
+          return await dashboardCallbackPresenter.present({ callback }, opts).run();
+        })()
+      }
     };
   })
   .schema(
@@ -258,7 +311,17 @@ export let dashboardIntegrationProviderPresenter = Presenter.create(integrationP
       provider: v1ProviderPreview.schema,
       deployment: v1ProviderDeploymentPreviewPresenter.schema,
       auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
-      auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema)
+      auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
+      callbacks: v.object(
+        {
+          ...integrationProviderCallbacks.properties,
+          callback: v.nullable(dashboardCallbackPresenter.schema)
+        },
+        {
+          name: 'callbacks',
+          description: 'Provider callback state for this integration provider'
+        }
+      )
     }) as any
   )
   .build();
