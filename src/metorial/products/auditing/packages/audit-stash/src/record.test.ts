@@ -67,7 +67,7 @@ describe('createAuditRecorder', () => {
     }));
     stashAuditEvent.mockResolvedValue(undefined);
     stashAuditEvents.mockResolvedValue(undefined);
-    generateId.mockResolvedValue('evt_test');
+    generateId.mockResolvedValue('aud_test');
   });
 
   it.each([
@@ -86,9 +86,9 @@ describe('createAuditRecorder', () => {
     expect(defaultValidator.validate).toHaveBeenCalledWith({
       oid: 4n
     });
-    expect(generateId).toHaveBeenCalledWith('auditEvent');
+    expect(generateId).toHaveBeenCalledWith('auditLog');
     expect(stashAuditEvent).toHaveBeenCalledWith({
-      id: 'evt_test',
+      id: 'aud_test',
       ...auditScope,
       resource: 'widget',
       action: 'create',

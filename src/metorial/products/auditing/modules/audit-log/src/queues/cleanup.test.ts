@@ -12,7 +12,7 @@ vi.mock('@metorial/db', () => {
   let db = {
     organization: { findMany: vi.fn(), findUnique: vi.fn() },
     auditLog: { deleteMany: vi.fn() },
-    event: { deleteMany: vi.fn() }
+    auditLogEvent: { deleteMany: vi.fn() }
   };
   return {
     db,
@@ -84,7 +84,7 @@ describe('audit log cleanup', () => {
     let recordedAt = new Date('2026-07-29T00:00:00.000Z');
     let where = { organizationOid: 10n, recordedAt: { lt: recordedAt } };
     expect(db.auditLog.deleteMany).toHaveBeenCalledWith({ where });
-    expect(db.event.deleteMany).toHaveBeenCalledWith({ where });
+    expect(db.auditLogEvent.deleteMany).toHaveBeenCalledWith({ where });
     expect(deleteAuditEventsBefore).toHaveBeenCalledWith({
       organizationOid: 10n,
       recordedAt

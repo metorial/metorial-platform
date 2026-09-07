@@ -321,6 +321,37 @@ describe('auditLogService', () => {
     );
   });
 
+  it('falls back to its own id for a self-keyed row with no legacy event', async () => {
+    findAuditLogs.mockResolvedValue([
+      {
+        ...baseAuditLog,
+        id: 'aud_new',
+        eventOid: null,
+        event: null
+      }
+    ]);
+    getAuditEventsByIds.mockResolvedValue([
+      {
+        _id: 'aud_new',
+        payload: { id: 'org_1', name: 'Acme' },
+        previousAttributes: { name: 'Old Acme' }
+      }
+    ]);
+
+    let paginator = await auditLogService.listAuditLogs({ organizationId: 'org_1' });
+    let result = await paginator.run({});
+
+    expect(getAuditEventsByIds).toHaveBeenCalledWith(['aud_new']);
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        id: 'aud_new',
+        eventId: 'aud_new',
+        payload: { id: 'org_1', name: 'Acme' },
+        previousAttributes: { name: 'Old Acme' }
+      })
+    );
+  });
+
   it('does not query Mongo for an empty page', async () => {
     findAuditLogs.mockResolvedValue([]);
 

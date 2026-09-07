@@ -13,6 +13,7 @@ import {
   dashboardCustomProviderPresenter,
   dashboardFilePresenter,
   dashboardIdentityActorPresenter,
+  dashboardIncomingWebhookPresenter,
   dashboardIntegrationInstanceGroupPresenter,
   dashboardIntegrationInstanceGroupProviderPresenter,
   dashboardIntegrationInstancePresenter,
@@ -85,6 +86,7 @@ import {
   v1IdentityDelegationPresenter,
   v1IdentityDelegationRequestPresenter,
   v1IdentityPresenter,
+  v1IncomingWebhookPresenter,
   v1InstanceListPresenter,
   v1InstancePresenter,
   v1IntegrationInstanceGroupPresenter,
@@ -241,7 +243,6 @@ import {
   v1CallbackEventPresenter,
   v1CallbackInstancePresenter,
   v1CallbackPresenter,
-  v1WebhookEventPresenter,
   v1WebhookRegistrationPresenter,
   v1TokenPresenter,
   v1UsagePresenter,
@@ -458,7 +459,7 @@ import {
   callbackEventType,
   callbackInstanceType,
   callbackType,
-  webhookEventType,
+  incomingWebhookType,
   webhookRegistrationType,
   tokenType,
   toolCallType,
@@ -978,9 +979,9 @@ export let webhookRegistrationPresenter = declarePresenter(webhookRegistrationTy
   mt_2026_01_01_magnetar: v1WebhookRegistrationPresenter
 });
 
-export let webhookEventPresenter = declarePresenter(webhookEventType, {
-  mt_2025_01_01_dashboard: v1WebhookEventPresenter,
-  mt_2026_01_01_magnetar: v1WebhookEventPresenter
+export let incomingWebhookPresenter = declarePresenter(incomingWebhookType, {
+  mt_2025_01_01_dashboard: dashboardIncomingWebhookPresenter,
+  mt_2026_01_01_magnetar: v1IncomingWebhookPresenter
 });
 
 export let teamPresenter = declarePresenter(teamType, {

@@ -23,7 +23,6 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
 
           status: details.status,
           payload: details.payload,
-          attempt_count: details.attemptCount,
 
           error: details.error
             ? {
@@ -38,7 +37,6 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
                 object: 'callback_event.details.webhook' as const,
 
                 status: details.webhook.status,
-                attempt_count: details.webhook.attemptCount,
 
                 request: details.webhook.request
                   ? {
@@ -137,12 +135,6 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
               })
             ),
 
-            attempt_count: v.number({
-              name: 'attempt_count',
-              description: 'Number of processing attempts made for this event',
-              examples: [1]
-            }),
-
             error: v.nullable(
               v.object(
                 {
@@ -181,12 +173,6 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
                     description:
                       'Processing status of the inbound webhook, as reported by the provider backend',
                     examples: ['succeeded']
-                  }),
-
-                  attempt_count: v.number({
-                    name: 'attempt_count',
-                    description: 'Number of processing attempts made for the inbound webhook',
-                    examples: [1]
                   }),
 
                   request: v.nullable(
@@ -249,7 +235,8 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
                 },
                 {
                   name: 'webhook',
-                  description: 'The inbound webhook delivery behind this event, if there was one'
+                  description:
+                    'The inbound webhook delivery behind this event, if there was one'
                 }
               )
             )

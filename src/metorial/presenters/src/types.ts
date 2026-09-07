@@ -3273,9 +3273,9 @@ export let webhookRegistrationType = PresentableType.create<{
   webhookRegistration: WebhookRegistrationWithRelations;
 }>()('webhook_registration');
 
-export let webhookEventType = PresentableType.create<{
-  webhookEvent: WebhookEvent;
-}>()('webhook_event');
+export let incomingWebhookType = PresentableType.create<{
+  incomingWebhook: WebhookEvent;
+}>()('incoming_webhook');
 
 export let callbackEventType = PresentableType.create<{
   callbackEvent: CallbackEventWithRelations;

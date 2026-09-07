@@ -145,7 +145,7 @@ model Instance {
   oauthAuthorizationFlows              OAuthAuthorizationFlow[]
   internalOAuthTokens                  InternalOAuthToken[]
   auditLogs                            AuditLog[]
-  events                               Event[]
+  events                               AuditLogEvent[]
 
   fileLinks             FileLink[]
   fileReferences        FileReference[]

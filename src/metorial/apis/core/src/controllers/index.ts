@@ -168,7 +168,7 @@ import {
   callbackController,
   callbackEventController,
   callbackInstanceController,
-  webhookEventController,
+  incomingWebhookController,
   webhookRegistrationController
 } from './instance';
 import {
@@ -330,7 +330,7 @@ let setControllerDocsMetadata = <
   callbackEventController,
   callbackInstanceController,
   webhookRegistrationController,
-  webhookEventController
+  incomingWebhookController
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: callbackDocsCategory
@@ -462,8 +462,6 @@ export let magnetarController = Controller.create<any>(
     callbackController,
     callbackEventController,
     callbackInstanceController,
-    webhookRegistrationController,
-    webhookEventController,
 
     networkController,
     enclaveController,
@@ -641,6 +639,9 @@ export let dashboardController = Controller.create<any>(
     integrationInstanceProviderController,
     integrationInstanceGroupController,
     integrationInstanceGroupProviderController,
+
+    webhookRegistrationController,
+    incomingWebhookController,
 
     documentController,
     documentVersionController,

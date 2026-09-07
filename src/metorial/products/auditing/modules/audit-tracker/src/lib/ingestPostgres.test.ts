@@ -1,21 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { withTransaction, generateId } = vi.hoisted(() => ({
-  withTransaction: vi.fn(),
-  generateId: vi.fn()
+let { withTransaction } = vi.hoisted(() => ({
+  withTransaction: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
-  ID: {
-    generateId
-  },
   withTransaction
 }));
 
 import { ingestAuditEventsToPostgres, ingestAuditEventToPostgres } from './ingestPostgres';
 
 let baseEvent = {
-  id: 'evt_test',
+  id: 'aud_test',
   organizationOid: 1n,
   instanceOid: 3n,
   organizationActorOid: 4n,
@@ -46,29 +42,18 @@ let expectedRow = {
 };
 
 describe('ingestAuditEventsToPostgres', () => {
-  let eventCreateMany = vi.fn();
-  let eventFindMany = vi.fn();
   let auditLogCreateMany = vi.fn();
   let auditLogFindMany = vi.fn();
   let dirtyTrackerUpsert = vi.fn();
-  let generatedAuditLogIds: string[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    generatedAuditLogIds = ['aud_1', 'aud_2', 'aud_3'];
-    generateId.mockImplementation(async () => generatedAuditLogIds.shift() ?? 'aud_extra');
-    eventCreateMany.mockResolvedValue({ count: 1 });
-    eventFindMany.mockResolvedValue([{ id: 'evt_test', oid: 10n }]);
     auditLogCreateMany.mockResolvedValue({ count: 1 });
     auditLogFindMany.mockResolvedValue([]);
     dirtyTrackerUpsert.mockResolvedValue({});
 
     withTransaction.mockImplementation(async (fn: any) =>
       fn({
-        event: {
-          createMany: eventCreateMany,
-          findMany: eventFindMany
-        },
         auditLog: {
           createMany: auditLogCreateMany,
           findMany: auditLogFindMany
@@ -80,16 +65,15 @@ describe('ingestAuditEventsToPostgres', () => {
     );
   });
 
-  it('creates events and linked audit logs in postgres', async () => {
+  it('creates a self-keyed audit log in postgres', async () => {
     await ingestAuditEventToPostgres(baseEvent);
 
-    expect(eventCreateMany).toHaveBeenCalledWith({
-      data: [{ id: 'evt_test', ...expectedRow }],
-      skipDuplicates: true
+    expect(auditLogFindMany).toHaveBeenCalledWith({
+      where: { id: { in: ['aud_test'] } },
+      select: { id: true }
     });
-    expect(generateId).toHaveBeenCalledWith('auditLog');
     expect(auditLogCreateMany).toHaveBeenCalledWith({
-      data: [{ id: 'aud_1', eventOid: 10n, ...expectedRow }],
+      data: [{ id: 'aud_test', ...expectedRow }],
       skipDuplicates: true
     });
     expect(dirtyTrackerUpsert).toHaveBeenCalledWith({
@@ -100,40 +84,27 @@ describe('ingestAuditEventsToPostgres', () => {
   });
 
   it('writes a whole batch with a fixed number of queries', async () => {
-    eventFindMany.mockResolvedValueOnce([
-      { id: 'evt_1', oid: 10n },
-      { id: 'evt_2', oid: 11n },
-      { id: 'evt_3', oid: 12n }
-    ]);
-
     await ingestAuditEventsToPostgres([
-      { ...baseEvent, id: 'evt_1' },
-      { ...baseEvent, id: 'evt_2' },
-      { ...baseEvent, id: 'evt_3', organizationOid: 2n }
+      { ...baseEvent, id: 'aud_1' },
+      { ...baseEvent, id: 'aud_2' },
+      { ...baseEvent, id: 'aud_3', organizationOid: 2n }
     ]);
 
-    expect(eventCreateMany).toHaveBeenCalledTimes(1);
-    expect(eventCreateMany.mock.calls[0]![0].data).toHaveLength(3);
+    expect(auditLogFindMany).toHaveBeenCalledTimes(1);
     expect(auditLogCreateMany).toHaveBeenCalledTimes(1);
     expect(auditLogCreateMany.mock.calls[0]![0].data).toEqual([
-      { id: 'aud_1', eventOid: 10n, ...expectedRow },
-      { id: 'aud_2', eventOid: 11n, ...expectedRow },
-      { id: 'aud_3', eventOid: 12n, ...expectedRow, organizationOid: 2n }
+      { id: 'aud_1', ...expectedRow },
+      { id: 'aud_2', ...expectedRow },
+      { id: 'aud_3', ...expectedRow, organizationOid: 2n }
     ]);
     expect(withTransaction).toHaveBeenCalledTimes(1);
   });
 
   it('bumps the dirty tracker once per organization, not once per event', async () => {
-    eventFindMany.mockResolvedValueOnce([
-      { id: 'evt_1', oid: 10n },
-      { id: 'evt_2', oid: 11n },
-      { id: 'evt_3', oid: 12n }
-    ]);
-
     await ingestAuditEventsToPostgres([
-      { ...baseEvent, id: 'evt_1' },
-      { ...baseEvent, id: 'evt_2' },
-      { ...baseEvent, id: 'evt_3', organizationOid: 2n }
+      { ...baseEvent, id: 'aud_1' },
+      { ...baseEvent, id: 'aud_2' },
+      { ...baseEvent, id: 'aud_3', organizationOid: 2n }
     ]);
 
     expect(dirtyTrackerUpsert).toHaveBeenCalledTimes(2);
@@ -149,7 +120,7 @@ describe('ingestAuditEventsToPostgres', () => {
     await ingestAuditEventsToPostgres([
       {
         ...baseEvent,
-        id: 'evt_fine_grained',
+        id: 'aud_fine_grained',
         organizationActorOid: undefined,
         actor: {
           type: 'fine_grained_token',
@@ -160,9 +131,8 @@ describe('ingestAuditEventsToPostgres', () => {
         }
       }
     ]);
-    eventFindMany.mockResolvedValue([{ id: 'evt_fine_grained', oid: 10n }]);
 
-    expect(eventCreateMany).toHaveBeenCalledWith({
+    expect(auditLogCreateMany).toHaveBeenCalledWith({
       data: [
         expect.objectContaining({
           organizationActorOid: null,
@@ -178,7 +148,7 @@ describe('ingestAuditEventsToPostgres', () => {
   });
 
   it('does not create a second audit log for an already ingested event', async () => {
-    auditLogFindMany.mockResolvedValueOnce([{ eventOid: 10n }]);
+    auditLogFindMany.mockResolvedValueOnce([{ id: 'aud_test' }]);
 
     await ingestAuditEventToPostgres(baseEvent);
 
@@ -187,8 +157,6 @@ describe('ingestAuditEventsToPostgres', () => {
   });
 
   it('creates a single audit log when an event repeats within one batch', async () => {
-    eventFindMany.mockResolvedValueOnce([{ id: 'evt_test', oid: 10n }]);
-
     await ingestAuditEventsToPostgres([baseEvent, baseEvent]);
 
     expect(auditLogCreateMany.mock.calls[0]![0].data).toHaveLength(1);
@@ -201,7 +169,7 @@ describe('ingestAuditEventsToPostgres', () => {
   });
 
   it('propagates database errors', async () => {
-    eventCreateMany.mockRejectedValueOnce({ code: 'P2003' });
+    auditLogFindMany.mockRejectedValueOnce({ code: 'P2003' });
 
     await expect(ingestAuditEventToPostgres(baseEvent)).rejects.toEqual({ code: 'P2003' });
   });

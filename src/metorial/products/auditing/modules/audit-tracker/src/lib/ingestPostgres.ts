@@ -1,4 +1,4 @@
-import { ID, withTransaction } from '@metorial/db';
+import { withTransaction } from '@metorial/db';
 import type { StashedAuditEvent } from './stash';
 
 let toOid = (value: bigint | string | number) => BigInt(value);
@@ -24,40 +24,20 @@ export let ingestAuditEventsToPostgres = async (events: StashedAuditEvent[]) => 
   if (events.length == 0) return;
 
   await withTransaction(async db => {
-    await db.event.createMany({
-      data: events.map(event => ({
-        id: event.id,
-        ...toEventRow(event)
-      })),
-      skipDuplicates: true
-    });
-
     let eventIds = events.map(event => event.id);
-    let storedEvents = await db.event.findMany({
-      where: { id: { in: eventIds } },
-      select: { id: true, oid: true }
-    });
-    let eventOidsById = new Map(storedEvents.map(event => [event.id, event.oid]));
-
     let existingAuditLogs = await db.auditLog.findMany({
-      where: { eventOid: { in: [...eventOidsById.values()] } },
-      select: { eventOid: true }
+      where: { id: { in: eventIds } },
+      select: { id: true }
     });
-    let alreadyIngestedEventOids = new Set(
-      existingAuditLogs.flatMap(auditLog => (auditLog.eventOid ? [auditLog.eventOid] : []))
-    );
+    let alreadyIngestedIds = new Set(existingAuditLogs.map(auditLog => auditLog.id));
 
-    let auditLogs: ({ id: string; eventOid: bigint } & ReturnType<typeof toEventRow>)[] = [];
+    let auditLogs: ({ id: string } & ReturnType<typeof toEventRow>)[] = [];
     for (let event of events) {
-      let eventOid = eventOidsById.get(event.id);
-      if (eventOid === undefined) continue;
-      if (alreadyIngestedEventOids.has(eventOid)) continue;
-
-      alreadyIngestedEventOids.add(eventOid);
+      if (alreadyIngestedIds.has(event.id)) continue;
+      alreadyIngestedIds.add(event.id);
 
       auditLogs.push({
-        id: await ID.generateId('auditLog'),
-        eventOid,
+        id: event.id,
         ...toEventRow(event)
       });
     }

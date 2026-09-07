@@ -66,7 +66,7 @@ export let cleanupOrganizationAuditLogsQueueProcessor =
       await tx.auditLog.deleteMany({
         where: { organizationOid: organization.oid, recordedAt: { lt: recordedAt } }
       });
-      await tx.event.deleteMany({
+      await tx.auditLogEvent.deleteMany({
         where: { organizationOid: organization.oid, recordedAt: { lt: recordedAt } }
       });
     });

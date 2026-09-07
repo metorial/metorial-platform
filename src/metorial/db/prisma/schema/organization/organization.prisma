@@ -103,7 +103,7 @@ model Organization {
   layouts                                OrganizationLayout[]
   namespaceProperties                    NamespaceProperty[]
   auditLogs                              AuditLog[]
-  events                                 Event[]
+  events                                 AuditLogEvent[]
   auditLogDirtyTrackers                  AuditLogDirtyTracker[]
   auditLogStreams                        AuditLogStream[]
   outpostAccesses                        OutpostAccess[]

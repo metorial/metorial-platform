@@ -71,7 +71,7 @@ export let buildStashedAuditEvent = async (
   let auditScope = 'auditScope' in event.scope ? event.scope.auditScope : event.scope;
 
   return {
-    id: await ID.generateId('auditEvent'),
+    id: await ID.generateId('auditLog'),
     organizationOid: auditScope.organizationOid,
     instanceOid: auditScope.instanceOid,
     organizationActorOid: auditScope.organizationActorOid,

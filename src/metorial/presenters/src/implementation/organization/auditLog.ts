@@ -2,9 +2,7 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { auditLogType } from '../../types';
 
-type AuditLogActorRecord = NonNullable<
-  NonNullable<Parameters<typeof presentActorRecord>[0]>
->;
+type AuditLogActorRecord = NonNullable<NonNullable<Parameters<typeof presentActorRecord>[0]>>;
 
 let presentActorRecord = (
   record:
@@ -90,7 +88,7 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
   .presenter(async ({ auditLog }) => ({
     object: 'organization.audit_log',
     id: auditLog.id,
-    event_id: auditLog.eventId ?? null,
+    event_id: auditLog.eventId,
     resource: auditLog.resource,
     action: auditLog.action,
     organization_id: auditLog.organizationId,
@@ -98,7 +96,8 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
     organization_actor_id: auditLog.organizationActorId ?? null,
     actor: auditLog.actor
       ? {
-          type: auditLog.actor.type === 'org_actor' ? 'organization_actor' : auditLog.actor.type,
+          type:
+            auditLog.actor.type === 'org_actor' ? 'organization_actor' : auditLog.actor.type,
           id: auditLog.actor.id,
           metadata: auditLog.actor.metadata ?? null,
           record: presentActorRecord(auditLog.actor.record as AuditLogActorRecord | undefined)
@@ -114,7 +113,7 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
     v.object({
       object: v.literal('organization.audit_log'),
       id: v.string(),
-      event_id: v.nullable(v.string()),
+      event_id: v.string(),
       resource: v.string(),
       action: v.string(),
       organization_id: v.string(),

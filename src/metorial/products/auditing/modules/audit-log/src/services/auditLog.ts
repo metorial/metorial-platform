@@ -52,7 +52,7 @@ class AuditLogService {
   }
 
   async hydrateAuditLogs(auditLogs: AuditLogWithRelations[], organizationOid: bigint) {
-    let eventIds = auditLogs.flatMap(auditLog => (auditLog.event ? [auditLog.event.id] : []));
+    let eventIds = auditLogs.map(auditLog => auditLog.event?.id ?? auditLog.id);
     let consumerProfileIds = [
       ...new Set(
         auditLogs.flatMap(auditLog =>
@@ -120,7 +120,7 @@ class AuditLogService {
 
     return await Promise.all(
       auditLogs.map(async auditLog => {
-        let auditEvent = auditLog.event ? auditEventsById.get(auditLog.event.id) : undefined;
+        let auditEvent = auditEventsById.get(auditLog.event?.id ?? auditLog.id);
         let actorRecord =
           auditLog.actorType == 'org_actor' && auditLog.organizationActor
             ? {
@@ -179,7 +179,7 @@ class AuditLogService {
 
         return {
           id: auditLog.id,
-          eventId: auditLog.event?.id,
+          eventId: auditLog.event?.id ?? auditLog.id,
           resource: auditLog.resource,
           action: auditLog.action,
           organizationId: auditLog.organization.id,
