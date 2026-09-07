@@ -693,6 +693,7 @@ let providerInvocationPresenter = (invocation: ProviderInvocation) => ({
   status: invocation.status,
   providerRunIds: invocation.providerRunIds,
   sessionMessageIds: invocation.sessionMessageIds,
+  callbackEventIds: invocation.callbackEventIds,
   authConfigEventIds: invocation.authConfigEventIds,
   providerOAuthSetupIds: invocation.providerOAuthSetupIds,
   toolCallId: invocation.toolCallId,

@@ -27,6 +27,9 @@ let mergeInvocation = (
   existing.sessionMessageIds = Array.from(
     new Set([...existing.sessionMessageIds, ...invocation.sessionMessageIds])
   );
+  existing.callbackEventIds = Array.from(
+    new Set([...existing.callbackEventIds, ...invocation.callbackEventIds])
+  );
   existing.authConfigEventIds = Array.from(
     new Set([...existing.authConfigEventIds, ...invocation.authConfigEventIds])
   );

@@ -1,5 +1,5 @@
 import { db, snowflake } from '@metorial-subspace/db';
-import { callbackEventInternalService } from '@metorial-subspace/module-callback';
+import type { CallbackEventRecorder } from '@metorial-subspace/provider-utils';
 
 export interface SlatesCallbackEventReceiveParam {
   tenantIdentifier: string;
@@ -16,7 +16,10 @@ export interface SlatesCallbackEventReceiveParam {
   occurredAt: Date;
 }
 
-export let receiveSlatesCallbackEvent = async (input: SlatesCallbackEventReceiveParam) => {
+export let receiveSlatesCallbackEvent = async (
+  input: SlatesCallbackEventReceiveParam,
+  ports: { recordEvent: CallbackEventRecorder }
+) => {
   let existing = await db.slateTriggerEvent.findUnique({
     where: { id: input.triggerEventId },
     select: { oid: true }
@@ -44,7 +47,7 @@ export let receiveSlatesCallbackEvent = async (input: SlatesCallbackEventReceive
     return { received: false };
   }
 
-  let callbackEvent = await callbackEventInternalService.recordEvent({
+  let callbackEvent = await ports.recordEvent({
     callbackInstance: slateCallbackInstance.callbackInstance,
     source: input.source,
     providerTriggerKey: input.triggerKey,

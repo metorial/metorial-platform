@@ -5,11 +5,12 @@ import { IProviderFunctionality } from '../providerFunctionality';
 export interface ProviderInvocation {
   id: string;
   source: 'slates' | 'shuttle' | 'native';
-  type: 'tool_call' | 'auth_config_event' | 'oauth_setup' | 'unknown';
+  type: 'tool_call' | 'auth_config_event' | 'oauth_setup' | 'callback_event' | 'unknown';
   status: 'succeeded' | 'failed' | 'processing' | 'unknown';
 
   providerRunIds: string[];
   sessionMessageIds: string[];
+  callbackEventIds: string[];
   authConfigEventIds: string[];
   providerOAuthSetupIds: string[];
 

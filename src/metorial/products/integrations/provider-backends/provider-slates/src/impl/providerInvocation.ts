@@ -27,6 +27,9 @@ let mergeInvocation = (
   existing.sessionMessageIds = Array.from(
     new Set([...existing.sessionMessageIds, ...invocation.sessionMessageIds])
   );
+  existing.callbackEventIds = Array.from(
+    new Set([...existing.callbackEventIds, ...invocation.callbackEventIds])
+  );
   existing.authConfigEventIds = Array.from(
     new Set([...existing.authConfigEventIds, ...invocation.authConfigEventIds])
   );
@@ -53,6 +56,9 @@ let getInvocationStatus = (status: string) =>
       ? ('succeeded' as const)
       : ('failed' as const);
 
+let getCallbackInvocationActionName = (type: 'map_event' | 'webhook_handle') =>
+  type === 'webhook_handle' ? 'Receive Webhook Event' : 'Map Trigger Event';
+
 let toLogs = (logs: Array<{ timestamp: number | Date; message: string }> = []) =>
   logs.map(log => ({
     timestamp: log.timestamp,
@@ -62,19 +68,6 @@ let toLogs = (logs: Array<{ timestamp: number | Date; message: string }> = []) =
 
 let getSlateProviderInvocationId = (slateInvocationId: string) =>
   createProviderInvocationId('slate.invocation', slateInvocationId);
-
-let getCallbackInvocationActionName = (type: string) => {
-  switch (type) {
-    case 'webhook_handle':
-      return 'Receive Webhook Event';
-    case 'poll':
-      return 'Poll For Callback Events';
-    case 'map_event':
-      return 'Process Callback Result';
-    default:
-      return 'Callback Invocation';
-  }
-};
 
 export class ProviderInvocation extends IProviderInvocation {
   override async listProviderInvocations(
@@ -123,6 +116,7 @@ export class ProviderInvocation extends IProviderInvocation {
           status: getInvocationStatus(remote.invocation.status),
           providerRunIds: [localToolCall.session.providerRun.id],
           sessionMessageIds: localToolCall.sessionMessages.map(message => message.id),
+          callbackEventIds: [],
           authConfigEventIds: [],
           providerOAuthSetupIds: [],
           toolCallId: remote.id,
@@ -143,51 +137,87 @@ export class ProviderInvocation extends IProviderInvocation {
       })
     );
 
-    let callbackInvocations = data.inputs.callbackEventSourceIds?.length
-      ? (
-          await slates.slateTriggerInvocation.list({
-            tenantId: tenant.id,
-            slateTriggerEventInputIds: data.inputs.callbackEventSourceIds,
-            limit: data.inputs.callbackEventSourceIds.length * 3
+    if (data.inputs.callbackEventSourceIds?.length) {
+      let callbackEvents = await db.callbackEvent.findMany({
+        where: {
+          id: { in: data.inputs.callbackEventSourceIds },
+          tenantOid: data.tenant.oid
+        },
+        select: { oid: true, id: true }
+      });
+
+      let slateTriggerEvents = callbackEvents.length
+        ? await db.slateTriggerEvent.findMany({
+            where: { callbackEventOid: { in: callbackEvents.map(e => e.oid) } },
+            select: { id: true, callbackEventOid: true }
           })
-        ).items
-      : [];
+        : [];
 
-    await queue.addAll(
-      callbackInvocations.map(triggerInvocation => async () => {
-        let remote = triggerInvocation.invocation;
+      let callbackEventIdByOid = new Map(callbackEvents.map(e => [e.oid, e.id]));
+      let callbackEventIdsByTriggerEventId = new Map(
+        slateTriggerEvents.flatMap(mirror => {
+          let callbackEventId = mirror.callbackEventOid
+            ? callbackEventIdByOid.get(mirror.callbackEventOid)
+            : undefined;
 
-        mergeInvocation(invocationMap, {
-          id: getSlateProviderInvocationId(remote.id),
-          source: 'slates',
-          type: 'tool_call',
-          status: getInvocationStatus(remote.status),
-          providerRunIds: [],
-          sessionMessageIds: [],
-          authConfigEventIds: [],
-          providerOAuthSetupIds: [],
-          toolCallId: null,
-          action: {
-            id: triggerInvocation.id,
-            key: triggerInvocation.type,
-            name: getCallbackInvocationActionName(triggerInvocation.type)
-          },
-          requests: remote.requests ?? [],
-          responses: remote.responses ?? [],
-          requestTraces: remote.requestTraces ?? [],
-          logs: toLogs(remote.logs ?? []),
-          attachments: remote.attachments ?? [],
-          error: toInvocationError(remote.error),
-          provider: remote.provider ?? null,
-          metadata: {
-            slateTriggerInvocationId: triggerInvocation.id,
-            slateTriggerInvocationType: triggerInvocation.type,
-            slateTriggerEventId: triggerInvocation.triggerEventId
-          },
-          createdAt: remote.createdAt
+          return callbackEventId ? [[mirror.id, callbackEventId] as const] : [];
+        })
+      );
+
+      if (callbackEventIdsByTriggerEventId.size > 0) {
+        let callbackInvocations = await slates.triggerEventInvocation.getMany({
+          tenantId: tenant.id,
+          triggerEventIds: [...callbackEventIdsByTriggerEventId.keys()]
         });
-      })
-    );
+
+        await queue.addAll(
+          callbackInvocations.map(triggerInvocation => async () => {
+            let remote = triggerInvocation.invocation;
+
+            mergeInvocation(invocationMap, {
+              id: getSlateProviderInvocationId(remote.id),
+              source: 'slates',
+              type: 'callback_event',
+              status: getInvocationStatus(remote.status),
+              providerRunIds: [],
+              sessionMessageIds: [],
+              callbackEventIds: Array.from(
+                new Set(
+                  triggerInvocation.triggerEventIds.flatMap(triggerEventId => {
+                    let callbackEventId = callbackEventIdsByTriggerEventId.get(triggerEventId);
+
+                    return callbackEventId ? [callbackEventId] : [];
+                  })
+                )
+              ),
+              authConfigEventIds: [],
+              providerOAuthSetupIds: [],
+              toolCallId: null,
+              action: {
+                id: triggerInvocation.id,
+                key: triggerInvocation.type,
+                name: getCallbackInvocationActionName(triggerInvocation.type)
+              },
+              requests: remote.requests ?? [],
+              responses: remote.responses ?? [],
+              requestTraces: remote.requestTraces ?? [],
+              logs: toLogs(remote.logs ?? []),
+              attachments: remote.attachments ?? [],
+              error:
+                toInvocationError(remote.error) ?? toInvocationError(triggerInvocation.error),
+              provider: remote.provider ?? null,
+              metadata: {
+                slateTriggerEventInvocationId: triggerInvocation.id,
+                slateTriggerEventInvocationType: triggerInvocation.type,
+                slateTriggerEventIds: triggerInvocation.triggerEventIds,
+                slateWebhookEventId: triggerInvocation.webhookEventId
+              },
+              createdAt: remote.createdAt
+            });
+          })
+        );
+      }
+    }
 
     let authConfigEvents = data.inputs.authConfigEventIds?.length
       ? await db.providerAuthConfigEvent.findMany({
@@ -225,6 +255,7 @@ export class ProviderInvocation extends IProviderInvocation {
           status: getInvocationStatus(remote.status),
           providerRunIds: [],
           sessionMessageIds: [],
+          callbackEventIds: [],
           authConfigEventIds: [event.id],
           providerOAuthSetupIds: event.oauthSetup ? [event.oauthSetup.id] : [],
           toolCallId: null,
@@ -291,6 +322,7 @@ export class ProviderInvocation extends IProviderInvocation {
       status: getInvocationStatus(remote.status),
       providerRunIds: [],
       sessionMessageIds: [],
+      callbackEventIds: [],
       authConfigEventIds: relatedEvents.map(event => event.id),
       providerOAuthSetupIds: Array.from(
         new Set(

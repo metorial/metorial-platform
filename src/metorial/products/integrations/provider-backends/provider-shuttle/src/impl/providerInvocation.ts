@@ -27,6 +27,9 @@ let mergeInvocation = (
   existing.sessionMessageIds = Array.from(
     new Set([...existing.sessionMessageIds, ...invocation.sessionMessageIds])
   );
+  existing.callbackEventIds = Array.from(
+    new Set([...existing.callbackEventIds, ...invocation.callbackEventIds])
+  );
   existing.authConfigEventIds = Array.from(
     new Set([...existing.authConfigEventIds, ...invocation.authConfigEventIds])
   );
@@ -189,6 +192,7 @@ export class ProviderInvocation extends IProviderInvocation {
             status: 'unknown',
             providerRunIds: [providerRunId],
             sessionMessageIds: sessionMessageIdsByProviderRunId.get(providerRunId) ?? [],
+            callbackEventIds: [],
             authConfigEventIds: [],
             providerOAuthSetupIds: [],
             toolCallId: null,
@@ -229,6 +233,7 @@ export class ProviderInvocation extends IProviderInvocation {
           sessionMessageIds: providerRunId
             ? (sessionMessageIdsByProviderRunId.get(providerRunId) ?? [])
             : [],
+          callbackEventIds: [],
           authConfigEventIds: [],
           providerOAuthSetupIds: [],
           toolCallId: null,
@@ -287,6 +292,7 @@ export class ProviderInvocation extends IProviderInvocation {
                 ? [providerRunIdByConnectionId.get(invocation.serverConnectionId)!]
                 : [],
             sessionMessageIds: [],
+            callbackEventIds: [],
             authConfigEventIds: [event.id],
             providerOAuthSetupIds: event.oauthSetup ? [event.oauthSetup.id] : [],
             toolCallId: null,
@@ -336,6 +342,7 @@ export class ProviderInvocation extends IProviderInvocation {
           sessionMessageIds: providerRunId
             ? (sessionMessageIdsByProviderRunId.get(providerRunId) ?? [])
             : [],
+          callbackEventIds: [],
           authConfigEventIds: [event.id],
           providerOAuthSetupIds: event.oauthSetup ? [event.oauthSetup.id] : [],
           toolCallId: null,
@@ -435,6 +442,7 @@ export class ProviderInvocation extends IProviderInvocation {
         status: invocation.isError ? 'failed' : 'succeeded',
         providerRunIds: connection ? [connection.providerRun.id] : [],
         sessionMessageIds: sessionMessages.map(message => message.id),
+        callbackEventIds: [],
         authConfigEventIds: relatedEvents.map(event => event.id),
         providerOAuthSetupIds: Array.from(
           new Set(
@@ -523,6 +531,7 @@ export class ProviderInvocation extends IProviderInvocation {
       status,
       providerRunIds: connection ? [connection.providerRun.id] : [],
       sessionMessageIds: sessionMessages.map(message => message.id),
+      callbackEventIds: [],
       authConfigEventIds: relatedEvents.map(event => event.id),
       providerOAuthSetupIds: Array.from(
         new Set(

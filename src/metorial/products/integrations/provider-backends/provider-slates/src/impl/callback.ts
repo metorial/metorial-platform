@@ -1,4 +1,4 @@
-import { db, snowflake } from '@metorial-subspace/db';
+import { db, snowflake, type Provider, type Tenant } from '@metorial-subspace/db';
 import {
   IProviderCallbacks,
   type CallbackCreateParam,
@@ -13,14 +13,82 @@ import {
   type CallbackInstanceDeleteRes,
   type CallbackWebhookEventGetManyParam,
   type CallbackWebhookEventGetManyRes,
+  type ProviderWebhookEvent,
+  type WebhookEventGetParam,
+  type WebhookEventListParam,
+  type WebhookEventListRes,
   type WebhookRegistrationCreateParam,
   type WebhookRegistrationCreateRes,
   type WebhookRegistrationDeleteParam,
   type WebhookRegistrationDeleteRes,
   type WebhookRegistrationSetupFinishParam,
-  type WebhookRegistrationSetupFinishRes
+  type WebhookRegistrationSetupFinishRes,
+  type WebhookRegistrationUpdateParam,
+  type WebhookRegistrationUpdateRes
 } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
+
+type SlateWebhookEventRecord = Awaited<ReturnType<typeof slates.slateWebhookEvent.get>>;
+
+let resolveSubspaceRefs = async (d: { tenant: Tenant; events: SlateWebhookEventRecord[] }) => {
+  let slateIds = [...new Set(d.events.map(e => e.slateId))];
+  let slatesRegistrationIds = [...new Set(d.events.map(e => e.webhookRegistrationId))];
+
+  let [variants, mirrors] = await Promise.all([
+    db.providerVariant.findMany({
+      where: { slate: { id: { in: slateIds } } },
+      select: { provider: true, slate: { select: { id: true } } },
+      // A slate is expected to back a single variant; prefer the default if that stops holding.
+      orderBy: { isDefault: 'desc' }
+    }),
+    db.slateWebhookRegistration.findMany({
+      where: {
+        id: { in: slatesRegistrationIds },
+        tenantOid: d.tenant.oid,
+        webhookRegistrationOid: { not: null }
+      },
+      select: { id: true, webhookRegistrationOid: true }
+    })
+  ]);
+
+  let providerBySlateId = new Map<string, Provider>();
+  for (let variant of variants) {
+    if (!variant.slate || providerBySlateId.has(variant.slate.id)) continue;
+    providerBySlateId.set(variant.slate.id, variant.provider);
+  }
+
+  return {
+    providerBySlateId,
+    webhookRegistrationOidById: new Map(
+      mirrors.map(m => [m.id, m.webhookRegistrationOid!] as const)
+    )
+  };
+};
+
+let presentSlateWebhookEvent = (
+  event: SlateWebhookEventRecord,
+  refs: Awaited<ReturnType<typeof resolveSubspaceRefs>>
+): ProviderWebhookEvent => {
+  let provider = refs.providerBySlateId.get(event.slateId);
+  if (!provider) {
+    throw new Error(`No provider variant is backed by slate ${event.slateId}`);
+  }
+
+  return {
+    id: event.id,
+
+    status: event.status,
+    attemptCount: event.attemptCount,
+
+    request: event.request,
+
+    provider,
+    webhookRegistrationOid:
+      refs.webhookRegistrationOidById.get(event.webhookRegistrationId) ?? null,
+
+    receivedAt: event.createdAt
+  };
+};
 
 export class ProviderCallbacks extends IProviderCallbacks {
   override async createCallback(data: CallbackCreateParam): Promise<CallbackCreateRes> {
@@ -200,6 +268,77 @@ export class ProviderCallbacks extends IProviderCallbacks {
     });
 
     return { receiveUrl: res.receiveUrl };
+  }
+
+  override async updateWebhookRegistration(
+    data: WebhookRegistrationUpdateParam
+  ): Promise<WebhookRegistrationUpdateRes> {
+    let slateWebhookRegistration = await db.slateWebhookRegistration.findUniqueOrThrow({
+      where: { webhookRegistrationOid: data.webhookRegistration.oid }
+    });
+
+    let tenant = await getTenantForSlates(data.tenant);
+
+    await slates.slateWebhookRegistration.update({
+      tenantId: tenant.id,
+      webhookRegistrationId: slateWebhookRegistration.id,
+
+      name: data.input.name,
+      description: data.input.description ?? undefined,
+      metadata: data.input.metadata ?? undefined
+    });
+
+    return {};
+  }
+
+  override async listWebhookEvents(data: WebhookEventListParam): Promise<WebhookEventListRes> {
+    let slatesRegistrationIds: string[] | undefined;
+
+    if (data.webhookRegistrations) {
+      let mirrors = await db.slateWebhookRegistration.findMany({
+        where: { webhookRegistrationOid: { in: data.webhookRegistrations.map(r => r.oid) } },
+        select: { id: true }
+      });
+      if (mirrors.length === 0)
+        return { items: [], hasMoreAfter: false, hasMoreBefore: false };
+
+      slatesRegistrationIds = mirrors.map(m => m.id);
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+
+    let list = await slates.slateWebhookEvent.list({
+      tenantId: tenant.id,
+      webhookRegistrationIds: slatesRegistrationIds,
+
+      limit: data.input.limit,
+      after: data.input.after,
+      before: data.input.before,
+      order: data.input.order
+    });
+
+    let refs = await resolveSubspaceRefs({ tenant: data.tenant, events: list.items });
+
+    return {
+      items: list.items.map(event => presentSlateWebhookEvent(event, refs)),
+      hasMoreAfter: list.pagination.has_more_after,
+      hasMoreBefore: list.pagination.has_more_before
+    };
+  }
+
+  override async getWebhookEvent(data: WebhookEventGetParam): Promise<ProviderWebhookEvent> {
+    let tenant = await getTenantForSlates(data.tenant);
+
+    // Deliberately unscoped by registration: slates decides whether this tenant may see the event,
+    // which includes events it only reached through a callback event of its own.
+    let event = await slates.slateWebhookEvent.get({
+      tenantId: tenant.id,
+      webhookEventId: data.webhookEventId
+    });
+
+    let refs = await resolveSubspaceRefs({ tenant: data.tenant, events: [event] });
+
+    return presentSlateWebhookEvent(event, refs);
   }
 
   override async deleteWebhookRegistration(

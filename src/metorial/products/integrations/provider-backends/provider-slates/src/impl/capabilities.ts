@@ -12,6 +12,31 @@ import {
 } from '@metorial-subspace/provider-utils';
 import { slates } from '../client';
 
+type SlateSpecificationRecord = Awaited<ReturnType<typeof slates.slateSpecification.get>>;
+
+type SlateSpecificationTrigger = SlateSpecificationRecord['triggers'][number];
+
+/**
+ * Invocation moved from the individual trigger onto its trigger group in slates, so a trigger
+ * without a group is no longer invocable and is dropped from the specification.
+ */
+let toTriggerInvocation = (trigger: SlateSpecificationTrigger) => {
+  let invocation = trigger.triggerGroup?.invocation;
+  if (!invocation) return null;
+
+  if (invocation.type === 'polling') {
+    return { type: 'polling' as const, intervalSeconds: invocation.intervalSeconds };
+  }
+
+  let isAuto = invocation.registration.mode === 'auto';
+
+  return {
+    type: 'webhook' as const,
+    autoRegistration: isAuto,
+    autoUnregistration: isAuto
+  };
+};
+
 export class ProviderCapabilities extends IProviderCapabilities {
   override async getSpecificationBehavior(
     data: ProviderSpecificationBehaviorParam
@@ -96,7 +121,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
         configVisibility: 'plain',
         triggers: specRecord.triggers
           .map(t => {
-            let invocation = t.invocation;
+            let invocation = toTriggerInvocation(t);
             if (!invocation) return null;
 
             return {
@@ -108,17 +133,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
               description: t.description,
               inputJsonSchema: t.inputSchema,
               outputJsonSchema: t.outputSchema,
-              invocation:
-                invocation.type === 'polling'
-                  ? {
-                      type: 'polling' as const,
-                      intervalSeconds: invocation.intervalSeconds
-                    }
-                  : {
-                      type: 'webhook' as const,
-                      autoRegistration: invocation.autoRegistration,
-                      autoUnregistration: invocation.autoUnregistration
-                    },
+              invocation,
               capabilities: t.capabilities ?? {},
               metadata: t.metadata ?? {},
               triggerGroupKey: t.triggerGroup?.key ?? null
@@ -138,7 +153,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
       },
       triggers: specRecord.triggers
         .map(t => {
-          let invocation = t.invocation;
+          let invocation = toTriggerInvocation(t);
           if (!invocation) return null;
 
           return {
@@ -154,17 +169,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
             metadata: t.metadata ?? {},
             scopes: t.scopes ?? null,
             triggerGroupKey: t.triggerGroup?.key ?? null,
-            invocation:
-              invocation.type === 'polling'
-                ? {
-                    type: 'polling' as const,
-                    intervalSeconds: invocation.intervalSeconds
-                  }
-                : {
-                    type: 'webhook' as const,
-                    autoRegistration: invocation.autoRegistration,
-                    autoUnregistration: invocation.autoUnregistration
-                  }
+            invocation
           };
         })
         .filter((t): t is NonNullable<typeof t> => t !== null),
