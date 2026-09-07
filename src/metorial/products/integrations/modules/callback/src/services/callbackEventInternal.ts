@@ -43,9 +43,9 @@ class callbackEventInternalServiceImpl {
         callbackInstanceOid: d.callbackInstance.oid,
 
         tenantOid: d.callbackInstance.tenantOid,
-        projectOid: d.callbackInstance.projectOid,
+        projectOid: d.callbackInstance.projectOid!,
         environmentOid: d.callbackInstance.environmentOid,
-        instanceOid: d.callbackInstance.instanceOid,
+        instanceOid: d.callbackInstance.instanceOid!,
         solutionOid: d.callbackInstance.solutionOid,
 
         occurredAt: d.occurredAt

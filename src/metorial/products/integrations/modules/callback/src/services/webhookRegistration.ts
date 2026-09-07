@@ -254,10 +254,10 @@ class webhookRegistrationServiceImpl {
         providerVariantOid: providerVariant.oid,
 
         tenantOid: d.tenant.oid,
-        projectOid: d.tenant.projectOid,
+        projectOid: d.tenant.projectOid!,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
-        instanceOid: d.environment.instanceOid
+        instanceOid: d.environment.instanceOid!
       }
     });
 
