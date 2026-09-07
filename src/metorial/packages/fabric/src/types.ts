@@ -194,6 +194,16 @@ export type AuditSubspaceProviderSetupSession = SubspaceProviderSetupSession & {
   provider?: { id: string; name: string } | null;
 };
 
+export type AuditSubspaceCallback = {
+  id: string;
+  status: string;
+  name: string;
+  description: string | null;
+  integration: { id: string };
+  integrationProvider: { id: string };
+  provider: { id: string; name: string };
+};
+
 export type AuditSubspaceWebhookRegistration = {
   id: string;
   status: string;
@@ -311,6 +321,7 @@ export type AuditSubspaceIntegrationProvider = {
   integration: { id: string; name: string };
   provider: { id: string; name: string };
   currentVersion?: { id: string } | null;
+  areCallbacksEnabled: boolean;
 };
 
 export type AuditSubspaceIntegrationInstanceGroup = {
@@ -871,8 +882,8 @@ export interface FabricEvents {
   'organization.project.integration_naming_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean }; previousConfiguration: { useIntegrationNames: boolean } };
   'organization.project.tool_calling_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number } };
   'organization.project.tool_calling_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number }; configuration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs: number }; previousConfiguration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs: number } };
-  'organization.project.data_retention_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean } };
-  'organization.project.data_retention_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean }; configuration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean }; previousConfiguration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean } };
+  'organization.project.data_retention_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean, disableCallbacks?: boolean } };
+  'organization.project.data_retention_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean, disableCallbacks?: boolean }; configuration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean }; previousConfiguration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean } };
   'organization.project.skill_sync_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.skill_sync_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.brand.updated:before': { organization: Organization; project: Project; brand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
@@ -1419,6 +1430,8 @@ export interface FabricEvents {
   'provider.setup_session.updated:before': ProviderEventBase;
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
 
+  'provider.callback.updated:before': ProviderEventBase;
+  'provider.callback.updated:after': ProviderEventBase & { callback: AuditSubspaceCallback; previousCallback: AuditSubspaceCallback };
   'provider.webhook_registration.created:before': ProviderEventBase;
   'provider.webhook_registration.created:after': ProviderEventBase & { webhookRegistration: AuditSubspaceWebhookRegistration };
   'provider.webhook_registration.setup_completed:before': ProviderEventBase;

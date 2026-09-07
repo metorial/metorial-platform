@@ -35,6 +35,7 @@ export type {
   AuditSubspaceIntegrationInstance,
   AuditSubspaceIntegrationInstanceGroup,
   AuditSubspaceIntegrationInstanceProvider,
+  AuditSubspaceCallback,
   AuditSubspaceIntegrationProvider,
   AuditSubspaceIntegrationSetupSession,
   AuditSubspaceNetworkPolicy,

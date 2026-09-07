@@ -85,6 +85,8 @@ model IntegrationProvider {
   description String?
   metadata    Json?
 
+  areCallbacksEnabled Boolean @default(false)
+
   currentVersionIndex Int
 
   /// [ToolFilter]

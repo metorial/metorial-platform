@@ -245,7 +245,7 @@ model ProviderTriggerGroup {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  currentInGlobal ProviderTriggerGroupGlobal[] @relation("currentTriggerGroupInstance")
+  currentInGlobal  ProviderTriggerGroupGlobal[] @relation("currentTriggerGroupInstance")
   providerTriggers ProviderTrigger[]
 
   @@unique([providerOid, specificationOid, hash])

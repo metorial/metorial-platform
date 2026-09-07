@@ -36,8 +36,8 @@ model Tenant {
   messageProcessingTimeoutMs Int     @default(30000)
   enforceSessionExpiry       Boolean @default(false)
 
-  allowAuthConfigExport Boolean @default(false)
-  allowAuthConfigImport Boolean @default(false)
+  allowAuthConfigExport     Boolean @default(false)
+  allowAuthConfigImport     Boolean @default(false)
   onlyAllowOAuthAuthMethods Boolean @default(false)
 
   collectOperationDescriptionForToolCalls Boolean @default(true)
@@ -45,6 +45,7 @@ model Tenant {
   dataRetentionLevel       SessionDataRetentionLevel @default(full)
   storeToolCallAttachments Boolean                   @default(true)
   collectErrors            Boolean                   @default(true)
+  disableCallbacks         Boolean                   @default(false)
 
   retiredAt DateTime?
 

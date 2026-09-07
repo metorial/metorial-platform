@@ -42,6 +42,7 @@ model ProviderVariant {
   providerEnvironments       ProviderEnvironment[]
   providerDeploymentVersions ProviderDeploymentVersion[]
   webhookRegistrations       WebhookRegistration[]
+  callbacks                  Callback[]
 
   @@index([isDefault])
 }
