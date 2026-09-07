@@ -47,7 +47,7 @@ export let slateWebhookEventController = app.controller({
         webhookEventId: v.string()
       })
     )
-    .do(async ctx => slateWebhookEventPresenter(ctx.webhookEvent)),
+    .do(async ctx => await slateWebhookEventPresenter(ctx.webhookEvent)),
 
   getMany: tenantApp
     .handler()
@@ -63,6 +63,6 @@ export let slateWebhookEventController = app.controller({
         ids: ctx.input.webhookEventIds
       });
 
-      return events.map(slateWebhookEventPresenter);
+      return await Promise.all(events.map(slateWebhookEventPresenter));
     })
 });

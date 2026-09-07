@@ -5,8 +5,9 @@ import type {
   TriggerRegistration,
   TriggerRegistrationInstance
 } from '../../prisma/generated/client';
+import { loadOffloadedTriggerEventPayload } from '../queues/trigger/payloadOffload';
 
-export let triggerEventPresenter = (
+export let triggerEventPresenter = async (
   event: TriggerEvent & {
     triggerRegistrationInstance: TriggerRegistrationInstance & {
       triggerGroup: SlateTriggerGroup;
@@ -14,30 +15,37 @@ export let triggerEventPresenter = (
     };
     webhookEvent: { id: string } | null;
   }
-) => ({
-  object: 'trigger_event',
+) => {
+  let payload = event.payload;
+  if (payload === null && event.payloadStorageKey) {
+    payload = await loadOffloadedTriggerEventPayload(event.payloadStorageKey);
+  }
 
-  id: event.id,
-  status: event.status,
-  source: event.source,
+  return {
+    object: 'trigger_event',
 
-  triggerId: event.triggerId,
-  triggerGroupId: event.triggerRegistrationInstance.triggerGroup.id,
-  triggerRegistrationId: event.triggerRegistrationInstance.triggerRegistration.id,
-  triggerRegistrationInstanceId: event.triggerRegistrationInstance.id,
-  callbackInstanceId:
-    event.triggerRegistrationInstance.triggerRegistration.callbackInstance?.id ?? null,
+    id: event.id,
+    status: event.status,
+    source: event.source,
 
-  mappedType: event.mappedType,
-  mappedId: event.mappedId,
-  payload: event.payload,
+    triggerId: event.triggerId,
+    triggerGroupId: event.triggerRegistrationInstance.triggerGroup.id,
+    triggerRegistrationId: event.triggerRegistrationInstance.triggerRegistration.id,
+    triggerRegistrationInstanceId: event.triggerRegistrationInstance.id,
+    callbackInstanceId:
+      event.triggerRegistrationInstance.triggerRegistration.callbackInstance?.id ?? null,
 
-  webhookEventId: event.webhookEvent?.id ?? null,
+    mappedType: event.mappedType,
+    mappedId: event.mappedId,
+    payload,
 
-  attemptCount: event.attemptCount,
-  errorCode: event.errorCode,
-  errorMessage: event.errorMessage,
+    webhookEventId: event.webhookEvent?.id ?? null,
 
-  createdAt: event.createdAt,
-  updatedAt: event.updatedAt
-});
+    attemptCount: event.attemptCount,
+    errorCode: event.errorCode,
+    errorMessage: event.errorMessage,
+
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt
+  };
+};

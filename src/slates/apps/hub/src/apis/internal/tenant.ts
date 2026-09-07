@@ -22,7 +22,8 @@ export let tenantController = app.controller({
         logRetentionInDays: v.optional(v.number()),
         storeContent: v.optional(v.boolean()),
         collectErrors: v.optional(v.boolean()),
-        storeToolCallAttachments: v.optional(v.boolean())
+        storeToolCallAttachments: v.optional(v.boolean()),
+        disableCallbacks: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -33,7 +34,8 @@ export let tenantController = app.controller({
           logRetentionInDays: ctx.input.logRetentionInDays,
           storeContent: ctx.input.storeContent,
           collectErrors: ctx.input.collectErrors,
-          storeToolCallAttachments: ctx.input.storeToolCallAttachments
+          storeToolCallAttachments: ctx.input.storeToolCallAttachments,
+          disableCallbacks: ctx.input.disableCallbacks
         }
       });
       return tenantPresenter(tenant);

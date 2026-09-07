@@ -67,7 +67,54 @@ let scenario = async () => {
       }
     });
 
-  return { tenant, slate, triggerGroup, makeRegistration, makeEvent };
+  /**
+   * Links an inbound webhook to the tenant the way routing does, which is what makes an event on a
+   * registration the tenant does not own visible to it.
+   */
+  let reachTenant = async (d: { eventOid: bigint }) => {
+    let configSchema = await f.slateConfigSchema.default({
+      slateOid: slate.oid,
+      specificationOid: specification.oid
+    });
+    let slateInstance = await testDb.slateInstance.create({
+      data: { ...getId('slateInstance'), slateOid: slate.oid, tenantOid: tenant.oid }
+    });
+    let instanceConfig = await f.slateInstanceConfig.default({
+      instanceOid: slateInstance.oid,
+      schemaOid: configSchema.oid,
+      tenantOid: tenant.oid
+    });
+    let triggerRegistration = await testDb.triggerRegistration.create({
+      data: {
+        ...getId('triggerRegistration'),
+        tenantOid: tenant.oid,
+        slateOid: slate.oid,
+        instanceOid: slateInstance.oid,
+        instanceConfigOid: instanceConfig.oid
+      }
+    });
+    let registrationInstance = await testDb.triggerRegistrationInstance.create({
+      data: {
+        ...getId('triggerRegistrationInstance'),
+        triggerRegistrationOid: triggerRegistration.oid,
+        triggerGroupOid: triggerGroup.oid
+      }
+    });
+
+    return testDb.triggerRawEvent.create({
+      data: {
+        ...getId('triggerRawEvent'),
+        source: 'webhook',
+        triggerRegistrationInstanceOid: registrationInstance.oid,
+        webhookEventOid: d.eventOid,
+        payload: {},
+        triggerIds: ['message.created'],
+        pendingTriggerMapCount: 1
+      }
+    });
+  };
+
+  return { tenant, slate, triggerGroup, makeRegistration, makeEvent, reachTenant };
 };
 
 describe('slateWebhookEvent:list E2E', () => {
@@ -112,6 +159,59 @@ describe('slateWebhookEvent:list E2E', () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0]!.id).toBe(event.id);
+  });
+
+  it('lists an event on a registration the tenant does not own once it reached them', async () => {
+    let s = await scenario();
+    let global = await s.makeRegistration({ owner: 'global' });
+
+    let unreached = await s.makeEvent({ registrationOid: global.oid });
+    let reached = await s.makeEvent({ registrationOid: global.oid });
+    await s.reachTenant({ eventOid: reached.oid });
+
+    let result = await slatesHubClient.slateWebhookEvent.list({
+      tenantId: s.tenant.id,
+      limit: 10
+    });
+
+    expect(result.items.map(e => e.id)).toEqual([reached.id]);
+    expect(result.items.map(e => e.id)).not.toContain(unreached.id);
+  });
+
+  it('filters by a registration the tenant does not own', async () => {
+    let s = await scenario();
+    let global = await s.makeRegistration({ owner: 'global' });
+    let own = await s.makeRegistration();
+
+    let reached = await s.makeEvent({ registrationOid: global.oid });
+    await s.reachTenant({ eventOid: reached.oid });
+    await s.makeEvent({ registrationOid: own.oid });
+
+    let result = await slatesHubClient.slateWebhookEvent.list({
+      tenantId: s.tenant.id,
+      webhookRegistrationIds: [global.id],
+      limit: 10
+    });
+
+    expect(result.items.map(e => e.id)).toEqual([reached.id]);
+  });
+
+  it('does not list another tenant events on a shared registration', async () => {
+    let s = await scenario();
+    let global = await s.makeRegistration({ owner: 'global' });
+
+    let reached = await s.makeEvent({ registrationOid: global.oid });
+    await s.reachTenant({ eventOid: reached.oid });
+
+    let otherTenant = await f.tenant.default();
+
+    let result = await slatesHubClient.slateWebhookEvent.list({
+      tenantId: otherTenant.id,
+      webhookRegistrationIds: [global.id],
+      limit: 10
+    });
+
+    expect(result.items).toHaveLength(0);
   });
 });
 
@@ -164,45 +264,7 @@ describe('slateWebhookEvent:get E2E', () => {
       })
     ).rejects.toThrow();
 
-    let configSchema = await f.slateConfigSchema.default({
-      slateOid: s.slate.oid,
-      specificationOid: s.slate.currentVersion.specification.oid
-    });
-    let slateInstance = await testDb.slateInstance.create({
-      data: { ...getId('slateInstance'), slateOid: s.slate.oid, tenantOid: s.tenant.oid }
-    });
-    let instanceConfig = await f.slateInstanceConfig.default({
-      instanceOid: slateInstance.oid,
-      schemaOid: configSchema.oid,
-      tenantOid: s.tenant.oid
-    });
-    let triggerRegistration = await testDb.triggerRegistration.create({
-      data: {
-        ...getId('triggerRegistration'),
-        tenantOid: s.tenant.oid,
-        slateOid: s.slate.oid,
-        instanceOid: slateInstance.oid,
-        instanceConfigOid: instanceConfig.oid
-      }
-    });
-    let registrationInstance = await testDb.triggerRegistrationInstance.create({
-      data: {
-        ...getId('triggerRegistrationInstance'),
-        triggerRegistrationOid: triggerRegistration.oid,
-        triggerGroupOid: s.triggerGroup.oid
-      }
-    });
-    await testDb.triggerRawEvent.create({
-      data: {
-        ...getId('triggerRawEvent'),
-        source: 'webhook',
-        triggerRegistrationInstanceOid: registrationInstance.oid,
-        webhookEventOid: event.oid,
-        payload: {},
-        triggerIds: ['message.created'],
-        pendingTriggerMapCount: 1
-      }
-    });
+    await s.reachTenant({ eventOid: event.oid });
 
     let result = await slatesHubClient.slateWebhookEvent.get({
       tenantId: s.tenant.id,

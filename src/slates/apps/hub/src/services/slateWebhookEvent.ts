@@ -16,8 +16,6 @@ let visibleTo = (tenant: Tenant): Prisma.SlateWebhookEventWhereInput => ({
         }
       }
     },
-    // triggerRawEvents are cleaned up once mapping completes, so also check the
-    // durable link on triggerEvents to keep visibility working afterwards.
     {
       triggerEvents: {
         some: {
@@ -39,22 +37,19 @@ class slateWebhookEventServiceImpl {
   }
 
   async listSlateWebhookEvents(d: { tenant: Tenant; webhookRegistrationIds?: string[] }) {
-    let registrations = d.webhookRegistrationIds
-      ? await db.slateWebhookRegistration.findMany({
-          where: { tenantOid: d.tenant.oid, id: { in: d.webhookRegistrationIds } },
-          select: { oid: true }
-        })
-      : undefined;
-
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.slateWebhookEvent.findMany({
             ...opts,
             where: {
-              webhookRegistrationOid: registrations
-                ? { in: registrations.map(r => r.oid) }
+              webhookRegistration: d.webhookRegistrationIds
+                ? { id: { in: d.webhookRegistrationIds } }
                 : undefined,
+
+              // Visibility is per-event not per-registration,
+              // that also means that above webhook id filter is fine because
+              // the user will still only ever see their events
               ...visibleTo(d.tenant)
             },
             include

@@ -14,6 +14,7 @@ class tenantServiceImpl {
       storeContent?: boolean;
       collectErrors?: boolean;
       storeToolCallAttachments?: boolean;
+      disableCallbacks?: boolean;
     };
   }) {
     return await db.tenant.upsert({
@@ -23,7 +24,8 @@ class tenantServiceImpl {
         logRetentionInDays: d.input.logRetentionInDays,
         storeContent: d.input.storeContent,
         collectErrors: d.input.collectErrors,
-        storeToolCallAttachments: d.input.storeToolCallAttachments
+        storeToolCallAttachments: d.input.storeToolCallAttachments,
+        disableCallbacks: d.input.disableCallbacks
       },
       create: {
         ...getId('tenant'),
@@ -32,7 +34,8 @@ class tenantServiceImpl {
         logRetentionInDays: d.input.logRetentionInDays,
         storeContent: d.input.storeContent ?? true,
         collectErrors: d.input.collectErrors ?? true,
-        storeToolCallAttachments: d.input.storeToolCallAttachments ?? true
+        storeToolCallAttachments: d.input.storeToolCallAttachments ?? true,
+        disableCallbacks: d.input.disableCallbacks ?? false
       },
       include
     });

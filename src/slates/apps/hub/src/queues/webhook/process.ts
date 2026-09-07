@@ -12,6 +12,7 @@ import { publishWebhookEventResolved } from '../../lib/webhookEventBus';
 import { secretService, slateInvocationService } from '../../services';
 import { globalTenant } from '../../services/tenant';
 import { createTriggerRawEvents } from '../trigger/_rawEvent';
+import { webhookEventPayloadOffloadQueue } from './payloadOffload';
 
 export let processWebhookEventQueue = createQueue<{ webhookEventId: string }>({
   name: 'shub/whk/process',
@@ -31,6 +32,12 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
       triggerGroup: registration.triggerGroup
     });
     let tenant = registration.tenant ?? globalTenant;
+
+    if (event.request === null) {
+      // Invariant: request is only offloaded once a webhook event reaches a terminal
+      // status, and this is the only place that still processes a pending event.
+      throw new Error(`Webhook event ${event.id} has no request to process`);
+    }
 
     let webhookRegistrationPayload = await secretService.DANGEROUSLY_decryptSecret({
       secretOid: registration.secretOid,
@@ -85,6 +92,7 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
           }
         });
         await publishWebhookEventResolved(event.id);
+        await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
         return;
       }
 
@@ -105,6 +113,7 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
           }
         });
         await publishWebhookEventResolved(event.id);
+        await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
 
         return;
       }
@@ -133,9 +142,18 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
 
     await slateWebhookEventServiceInternal.resolveSuccess({ eventOid: event.oid });
     await publishWebhookEventResolved(event.id);
+    await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
 
     if (result.data.events.length > 0) {
       let target = registration.triggerWebhookTarget;
+
+      let eventsForCreation: {
+        triggerRegistrationInstanceOids: bigint[];
+        payload: PrismaJson.AnyRecord;
+        idempotencyKey?: string | null;
+        triggerIds: string[];
+        matchers?: PrismaJson.TriggerRawEventMatchers | null;
+      }[];
 
       if (target) {
         let links = await db.triggerRegistrationWebhook.findMany({
@@ -156,36 +174,47 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
           });
         }
 
-        await createTriggerRawEvents({
-          source: 'webhook',
-          webhookEventOid: event.oid,
-          events: result.data.events.map(webhookEvent => ({
-            triggerRegistrationInstanceOids: links.map(
-              link => link.triggerRegistrationInstanceOid
-            ),
-            payload: webhookEvent.payload,
-            idempotencyKey: webhookEvent.idempotencyKey,
-            triggerIds: webhookEvent.triggerIds,
-            matchers: webhookEvent.matchers
-          }))
-        });
+        eventsForCreation = result.data.events.map(webhookEvent => ({
+          triggerRegistrationInstanceOids: links.map(
+            link => link.triggerRegistrationInstanceOid
+          ),
+          payload: webhookEvent.payload,
+          idempotencyKey: webhookEvent.idempotencyKey,
+          triggerIds: webhookEvent.triggerIds,
+          matchers: webhookEvent.matchers
+        }));
       } else {
         let matched = await triggerRoutingMatcherServiceInternal.matchWebhookEvents({
           webhookRegistration: registration,
           events: result.data.events
         });
 
-        await createTriggerRawEvents({
-          source: 'webhook',
-          webhookEventOid: event.oid,
-          events: matched.map(({ event: webhookEvent, triggerRegistrationInstanceOids }) => ({
+        eventsForCreation = matched.map(
+          ({ event: webhookEvent, triggerRegistrationInstanceOids }) => ({
             triggerRegistrationInstanceOids,
             payload: webhookEvent.payload,
             idempotencyKey: webhookEvent.idempotencyKey,
             triggerIds: webhookEvent.triggerIds,
             matchers: webhookEvent.matchers
-          }))
+          })
+        );
+      }
+
+      let { hadCandidates, hasRemainingCandidates } = await createTriggerRawEvents({
+        source: 'webhook',
+        webhookEventOid: event.oid,
+        events: eventsForCreation
+      });
+
+      // Every tenant this webhook would have fanned out to has callbacks disabled -
+      // nothing downstream will ever read this event, so discard it entirely.
+      if (hadCandidates && !hasRemainingCandidates) {
+        await triggerRoutingDropServiceInternal.recordDrop({
+          webhookRegistration: registration,
+          reason: 'callbacks_disabled',
+          count: result.data.events.length
         });
+        await db.slateWebhookEvent.deleteMany({ where: { oid: event.oid } });
       }
     }
   }

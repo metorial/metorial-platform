@@ -4,6 +4,7 @@ enum TriggerRoutingDropReason {
   registration_inactive
   registration_not_matchable
   no_subscribers
+  callbacks_disabled
 }
 
 model TriggerRoutingDrop {

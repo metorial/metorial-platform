@@ -1,13 +1,14 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
-import { getActiveSlateVersion } from '../../lib/slateVersion';
 import { triggerEventServiceInternal } from '../../internal';
+import { getActiveSlateVersion } from '../../lib/slateVersion';
 import { secretService, slateInvocationService } from '../../services';
 import { TRIGGER_EVENT_MAP_MAX_ATTEMPTS, triggerEventMapBackoffMs } from './_config';
 import { decrementPendingTriggerMapCount, markRawEventProcessingFailed } from './_rawEvent';
 import { triggerRawEventCleanupQueue } from './cleanup';
 import { triggerEventProcessQueue } from './eventProcess';
+import { triggerEventPayloadOffloadQueue } from './payloadOffload';
 
 let include = {
   triggerRegistrationInstance: {
@@ -93,6 +94,12 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
     auth
   });
 
+  if (rawEvent.payload === null) {
+    // Invariant: a raw event's payload is only offloaded once every triggerId on it has
+    // reached a terminal status, so an in-flight mapping attempt should never see this.
+    throw new Error(`Trigger raw event ${rawEvent.id} has no payload to map`);
+  }
+
   let result = await slateInvocationService.mapTriggerEvent({
     stack,
     actionId: data.triggerId,
@@ -155,6 +162,7 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
     mappedType: result.data.type,
     mappedId: result.data.id
   });
+  await triggerEventPayloadOffloadQueue.add({ triggerEventId: event.id });
 
   await triggerEventProcessQueue.add({ eventId: event.id });
 

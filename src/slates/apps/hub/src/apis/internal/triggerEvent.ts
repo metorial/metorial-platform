@@ -51,7 +51,7 @@ export let triggerEventController = app.controller({
         triggerEventId: v.string()
       })
     )
-    .do(async ctx => triggerEventPresenter(ctx.triggerEvent)),
+    .do(async ctx => await triggerEventPresenter(ctx.triggerEvent)),
 
   getMany: tenantApp
     .handler()
@@ -67,6 +67,6 @@ export let triggerEventController = app.controller({
         ids: ctx.input.triggerEventIds
       });
 
-      return events.map(triggerEventPresenter);
+      return await Promise.all(events.map(triggerEventPresenter));
     })
 });

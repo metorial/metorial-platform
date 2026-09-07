@@ -248,6 +248,84 @@ let cleanupTenantDeployments = async (d: { tenantOid: bigint; cutoffDate: Date }
   });
 };
 
+let cleanupTenantTriggerEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch({
+    findMany: () =>
+      db.triggerEvent.findMany({
+        where: {
+          triggerRegistrationInstance: { triggerRegistration: { tenantOid: d.tenantOid } },
+          status: { in: ['mapped', 'mapping_failed_final'] },
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { id: true, payloadStorageKey: true }
+      }),
+    beforeDelete: async records => {
+      await enqueueStorageDeletes(
+        records.flatMap(record => (record.payloadStorageKey ? [record.payloadStorageKey] : []))
+      );
+    },
+    deleteMany: records =>
+      // TriggerEventInvocation rows cascade-delete along with their TriggerEvent.
+      db.triggerEvent.deleteMany({
+        where: { id: { in: records.map(record => record.id) } }
+      })
+  });
+};
+
+let cleanupTenantTriggerRawEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch({
+    findMany: () =>
+      db.triggerRawEvent.findMany({
+        where: {
+          triggerRegistrationInstance: { triggerRegistration: { tenantOid: d.tenantOid } },
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { id: true, payloadStorageKey: true }
+      }),
+    beforeDelete: async records => {
+      await enqueueStorageDeletes(
+        records.flatMap(record => (record.payloadStorageKey ? [record.payloadStorageKey] : []))
+      );
+    },
+    deleteMany: records =>
+      db.triggerRawEvent.deleteMany({
+        where: { id: { in: records.map(record => record.id) } }
+      })
+  });
+};
+
+let cleanupTenantSlateWebhookEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch({
+    findMany: () =>
+      db.slateWebhookEvent.findMany({
+        where: {
+          webhookRegistration: { owner: 'tenant', tenantOid: d.tenantOid },
+          status: { in: ['succeeded', 'failed_final'] },
+          createdAt: { lt: d.cutoffDate },
+          triggerRawEvents: { none: {} },
+          triggerEvents: { none: {} }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { id: true, requestStorageKey: true }
+      }),
+    beforeDelete: async records => {
+      await enqueueStorageDeletes(
+        records.flatMap(record => (record.requestStorageKey ? [record.requestStorageKey] : []))
+      );
+    },
+    deleteMany: records =>
+      // SlateWebhookEventInvocation rows cascade-delete along with their SlateWebhookEvent.
+      db.slateWebhookEvent.deleteMany({
+        where: { id: { in: records.map(record => record.id) } }
+      })
+  });
+};
+
 export let slatesRetentionCron = createCron(
   {
     name: 'shub/ret/cron',
@@ -339,6 +417,18 @@ export let slatesTenantRetentionCleanupQueueProcessor =
       cutoffDate
     });
     await cleanupTenantDeployments({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupTenantTriggerEvents({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupTenantTriggerRawEvents({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupTenantSlateWebhookEvents({
       tenantOid: tenant.oid,
       cutoffDate
     });

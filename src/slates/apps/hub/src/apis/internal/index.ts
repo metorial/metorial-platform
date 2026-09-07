@@ -29,6 +29,7 @@ import { slateWebhookEventController } from './slateWebhookEvent';
 import { slateWebhookRegistrationController } from './slateWebhookRegistration';
 import { tenantController } from './tenant';
 import { triggerEventController } from './triggerEvent';
+import { triggerEventInvocationController } from './triggerEventInvocation';
 import { triggerRegistrationController } from './triggerRegistration';
 
 export let rootController = app.controller({
@@ -63,6 +64,7 @@ export let rootController = app.controller({
   slateWebhookEvent: slateWebhookEventController,
   triggerRegistration: triggerRegistrationController,
   triggerEvent: triggerEventController,
+  triggerEventInvocation: triggerEventInvocationController,
 
   callback: callbackController,
   callbackInstance: callbackInstanceController

@@ -68,10 +68,10 @@ enum TriggerRawEventProcessingStatus {
 }
 
 model TriggerRawEvent {
-  oid              BigInt                           @id
-  id               String                           @unique
+  oid              BigInt                          @id
+  id               String                          @unique
   source           TriggerRawEventSource
-  processingStatus TriggerRawEventProcessingStatus   @default(pending)
+  processingStatus TriggerRawEventProcessingStatus @default(pending)
 
   triggerRegistrationInstanceOid BigInt
   triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
@@ -80,7 +80,9 @@ model TriggerRawEvent {
   webhookEvent    SlateWebhookEvent? @relation(fields: [webhookEventOid], references: [oid], onDelete: SetNull)
 
   /// [AnyRecord]
-  payload Json
+  payload Json?
+
+  payloadStorageKey String?
 
   idempotencyKey String?
   triggerIds     String[]

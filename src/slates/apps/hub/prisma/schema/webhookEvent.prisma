@@ -20,7 +20,9 @@ model SlateWebhookEvent {
   webhookRegistration    SlateWebhookRegistration @relation(fields: [webhookRegistrationOid], references: [oid], onDelete: Cascade)
 
   /// [SlateWebhookEventRequest]
-  request Json
+  request Json?
+
+  requestStorageKey String?
 
   /// [SlatesWebhookHttpResponse]
   slateResponse Json?
@@ -31,7 +33,7 @@ model SlateWebhookEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  invocations    SlateWebhookEventInvocation[]
+  invocations      SlateWebhookEventInvocation[]
   triggerRawEvents TriggerRawEvent[]
   triggerEvents    TriggerEvent[]
 
