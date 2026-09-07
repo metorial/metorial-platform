@@ -194,6 +194,17 @@ export type AuditSubspaceProviderSetupSession = SubspaceProviderSetupSession & {
   provider?: { id: string; name: string } | null;
 };
 
+export type AuditSubspaceWebhookRegistration = {
+  id: string;
+  status: string;
+  name: string;
+  description: string | null;
+  metadata: unknown;
+  isSetupComplete: boolean;
+  provider: { id: string; name: string };
+  archivedAt: Date | null;
+};
+
 export type AuditSubspaceProviderAuthExport = SubspaceProviderAuthExport & {
   authConfig: { id: string; provider: { id: string; name: string } };
 };
@@ -1407,6 +1418,15 @@ export interface FabricEvents {
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
+
+  'provider.webhook_registration.created:before': ProviderEventBase;
+  'provider.webhook_registration.created:after': ProviderEventBase & { webhookRegistration: AuditSubspaceWebhookRegistration };
+  'provider.webhook_registration.setup_completed:before': ProviderEventBase;
+  'provider.webhook_registration.setup_completed:after': ProviderEventBase & { webhookRegistration: AuditSubspaceWebhookRegistration };
+  'provider.webhook_registration.updated:before': ProviderEventBase;
+  'provider.webhook_registration.updated:after': ProviderEventBase & { webhookRegistration: AuditSubspaceWebhookRegistration; previousWebhookRegistration: AuditSubspaceWebhookRegistration };
+  'provider.webhook_registration.archived:before': ProviderEventBase;
+  'provider.webhook_registration.archived:after': ProviderEventBase & { webhookRegistration: AuditSubspaceWebhookRegistration };
 
   'provider.session.created:before': ProviderEventBase;
   'provider.session.created:after': ProviderEventBase & { session: AuditSubspaceSession };

@@ -56,6 +56,7 @@ export type {
   AuditSubspaceSessionProvider,
   AuditSubspaceSessionTemplate,
   AuditSubspaceSessionTemplateProvider,
+  AuditSubspaceWebhookRegistration,
   FabricBillingAccount,
   FabricBillingPlan,
   FabricEvents,

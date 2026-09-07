@@ -1,4 +1,5 @@
 export * from './auth';
+export * from './callback';
 export * from './customProvider';
 export * from './deployment';
 export * from './identity';
