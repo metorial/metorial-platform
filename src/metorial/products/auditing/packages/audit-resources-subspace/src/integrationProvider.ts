@@ -10,6 +10,7 @@ export let integrationProviderAuditResource = resource({
     integration: { id: string; name: string };
     provider: SubspaceProviderSummary;
     currentVersionId: string | null;
+    areCallbacksEnabled: boolean;
   }>('integration_provider'),
   presenter: undefined,
   actions: {

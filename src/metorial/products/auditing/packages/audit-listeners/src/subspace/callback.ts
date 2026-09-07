@@ -1,10 +1,40 @@
 import {
   Fabric,
+  type AuditSubspaceCallback,
   type AuditSubspaceWebhookRegistration,
   type FabricEvents
 } from '@metorial/fabric';
 import { auditTrackerService } from '@metorial/module-audit-tracker';
 import { getSubspaceAuditScope, recordSubspaceAuditEvent } from './_shared';
+
+let callbackPayload = (callback: AuditSubspaceCallback) => ({
+  id: callback.id,
+  status: callback.status,
+  name: callback.name,
+  description: callback.description,
+  integrationId: callback.integration.id,
+  integrationProviderId: callback.integrationProvider.id,
+  provider: {
+    id: callback.provider.id,
+    name: callback.provider.name
+  }
+});
+
+export let recordCallbackUpdated = async (
+  event: FabricEvents['provider.callback.updated:after']
+) => {
+  let scope = getSubspaceAuditScope(event);
+  if (!scope) return;
+
+  await recordSubspaceAuditEvent(() =>
+    auditTrackerService.recordEvent(scope, 'callback', 'update', {
+      payload: callbackPayload(event.callback),
+      previousPayload: callbackPayload(event.previousCallback)
+    })
+  );
+};
+
+Fabric.listen('provider.callback.updated:after', recordCallbackUpdated);
 
 let webhookRegistrationPayload = (webhookRegistration: AuditSubspaceWebhookRegistration) => ({
   id: webhookRegistration.id,

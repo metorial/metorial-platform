@@ -6,7 +6,7 @@ import {
   providerAuthImportAuditResource,
   providerSetupSessionAuditResource
 } from './auth';
-import { webhookRegistrationAuditResource } from './callback';
+import { callbackAuditResource, webhookRegistrationAuditResource } from './callback';
 import {
   customProviderAuditResource,
   customProviderCommitAuditResource,
@@ -77,6 +77,7 @@ export let subspaceAuditResources = resourceSet({
   provider_auth_export: providerAuthExportAuditResource,
   provider_auth_import: providerAuthImportAuditResource,
 
+  callback: callbackAuditResource,
   webhook_registration: webhookRegistrationAuditResource,
 
   provider_deployment: providerDeploymentAuditResource,

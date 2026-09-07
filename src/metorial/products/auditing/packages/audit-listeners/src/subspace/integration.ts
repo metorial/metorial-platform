@@ -139,7 +139,8 @@ let integrationProviderPayload = (integrationProvider: AuditSubspaceIntegrationP
     id: integrationProvider.provider.id,
     name: integrationProvider.provider.name
   },
-  currentVersionId: integrationProvider.currentVersion?.id ?? null
+  currentVersionId: integrationProvider.currentVersion?.id ?? null,
+  areCallbacksEnabled: integrationProvider.areCallbacksEnabled
 });
 
 let instanceGroupPayload = (group: AuditSubspaceIntegrationInstanceGroup) => ({

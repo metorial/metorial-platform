@@ -2,11 +2,23 @@ import { v } from '@lowerdeck/validation';
 import { resource } from '@metorial/audit-stash';
 import type { SubspaceProviderSummary } from './_shared';
 
-/**
- * A webhook receiver a tenant registered on a provider. `receiveUrl` and the provider's setup
- * document are omitted: the URL is the shared secret that authenticates inbound webhooks, and
- * the setup document embeds it.
- */
+export let callbackAuditResource = resource({
+  name: 'callback',
+  payload: v.typedAny<{
+    id: string;
+    status: string;
+    name: string;
+    description: string | null;
+    integrationId: string;
+    integrationProviderId: string;
+    provider: SubspaceProviderSummary;
+  }>('callback'),
+  presenter: undefined,
+  actions: {
+    update: true
+  }
+});
+
 export let webhookRegistrationAuditResource = resource({
   name: 'webhook_registration',
   payload: v.typedAny<{

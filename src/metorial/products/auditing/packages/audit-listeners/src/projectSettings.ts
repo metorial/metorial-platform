@@ -170,13 +170,15 @@ export let recordProjectDataRetentionUpdated = async (
           project: event.project,
           dataRetentionLevel: event.configuration.dataRetentionLevel,
           storeToolCallAttachments: event.configuration.storeToolCallAttachments,
-          collectErrors: event.configuration.collectErrors
+          collectErrors: event.configuration.collectErrors,
+          disableCallbacks: event.configuration.disableCallbacks
         },
         previousPayload: {
           project: event.project,
           dataRetentionLevel: event.previousConfiguration.dataRetentionLevel,
           storeToolCallAttachments: event.previousConfiguration.storeToolCallAttachments,
-          collectErrors: event.previousConfiguration.collectErrors
+          collectErrors: event.previousConfiguration.collectErrors,
+          disableCallbacks: event.previousConfiguration.disableCallbacks
         },
         recordedAt
       }
