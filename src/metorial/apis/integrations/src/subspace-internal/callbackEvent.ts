@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { callbackEventInternalService } from '@metorial-subspace/module-callback';
 import { receiveSlatesCallbackEvent } from '@metorial-subspace/provider-slates';
 import { app } from './_app';
 
@@ -21,5 +22,10 @@ export let callbackEventController = app.controller({
         occurredAt: v.date()
       })
     )
-    .do(async ctx => await receiveSlatesCallbackEvent(ctx.input))
+    .do(
+      async ctx =>
+        await receiveSlatesCallbackEvent(ctx.input, {
+          recordEvent: d => callbackEventInternalService.recordEvent(d)
+        })
+    )
 });

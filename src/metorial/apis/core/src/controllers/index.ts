@@ -1,5 +1,6 @@
 import { Controller } from '@metorial/rest';
 import {
+  callbackDocsCategory,
   configurationDocsCategory,
   customProviderDocsCategory,
   fileCollectionDocsCategory,
@@ -163,7 +164,9 @@ import {
   storeItemController,
   storeParticipantController,
   tokenController,
-  toolCallController
+  toolCallController,
+  webhookEventController,
+  webhookRegistrationController
 } from './instance';
 import {
   accessPolicyManagementController,
@@ -319,6 +322,12 @@ let setControllerDocsMetadata = <
   })
 );
 
+[webhookRegistrationController, webhookEventController].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: callbackDocsCategory
+  })
+);
+
 [
   documentController,
   documentVersionController,
@@ -440,6 +449,9 @@ export let magnetarController = Controller.create<any>(
     integrationInstanceProviderController,
     integrationInstanceGroupController,
     integrationInstanceGroupProviderController,
+
+    webhookRegistrationController,
+    webhookEventController,
 
     networkController,
     enclaveController,

@@ -72,6 +72,12 @@ export let customProviderDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
+export let callbackDocsCategory = createCategory({
+  id: 'callback',
+  name: 'Callbacks',
+  indexHint: getIndexHint()
+});
+
 export let fileCollectionDocsCategory = createCategory({
   id: 'file-collection',
   name: 'File Collections',
