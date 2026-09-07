@@ -43,11 +43,6 @@ import {
   v1AuditLogStreamPresenter,
   v1BootPresenter,
   v1BucketEditorTokenPresenter,
-  v1CallbackDestinationPresenter,
-  v1CallbackEventPresenter,
-  v1CallbackInstancePresenter,
-  v1CallbackNotificationPresenter,
-  v1CallbackPresenter,
   v1CliDevicePresenter,
   v1ConfigPresenter,
   v1ConsumerAccessListingPresenter,
@@ -263,11 +258,6 @@ import {
   authImportSchemaType,
   bootType,
   bucketEditorTokenType,
-  callbackDestinationType,
-  callbackEventType,
-  callbackInstanceType,
-  callbackNotificationType,
-  callbackType,
   cliDeviceType,
   configPreviewType,
   configSchemaType,
@@ -954,31 +944,6 @@ export let profilePresenter = declarePresenter(profileType, {
 export let flagsPresenter = declarePresenter(flagsType, {
   mt_2025_01_01_dashboard: v1FlagsPresenter,
   mt_2026_01_01_magnetar: v1FlagsPresenter
-});
-
-export let callbackPresenter = declarePresenter(callbackType, {
-  mt_2025_01_01_dashboard: v1CallbackPresenter,
-  mt_2026_01_01_magnetar: v1CallbackPresenter
-});
-
-export let callbackEventPresenter = declarePresenter(callbackEventType, {
-  mt_2025_01_01_dashboard: v1CallbackEventPresenter,
-  mt_2026_01_01_magnetar: v1CallbackEventPresenter
-});
-
-export let callbackNotificationPresenter = declarePresenter(callbackNotificationType, {
-  mt_2025_01_01_dashboard: v1CallbackNotificationPresenter,
-  mt_2026_01_01_magnetar: v1CallbackNotificationPresenter
-});
-
-export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
-  mt_2025_01_01_dashboard: v1CallbackDestinationPresenter,
-  mt_2026_01_01_magnetar: v1CallbackDestinationPresenter
-});
-
-export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
-  mt_2025_01_01_dashboard: v1CallbackInstancePresenter,
-  mt_2026_01_01_magnetar: v1CallbackInstancePresenter
 });
 
 export let teamPresenter = declarePresenter(teamType, {

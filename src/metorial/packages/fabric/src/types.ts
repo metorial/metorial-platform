@@ -1,8 +1,5 @@
 import type {
   SessionDataRetentionLevel as ProjectDataRetentionLevel,
-  Callback as SubspaceCallback,
-  CallbackDestination as SubspaceCallbackDestination,
-  CallbackInstance as SubspaceCallbackInstance,
   CustomProvider as SubspaceCustomProvider,
   CustomProviderCommit as SubspaceCustomProviderCommit,
   CustomProviderVersion as SubspaceCustomProviderVersion,
@@ -1410,21 +1407,6 @@ export interface FabricEvents {
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
-
-  'provider.callback.created:before': ProviderEventBase;
-  'provider.callback.created:after': ProviderEventBase & { callback: SubspaceCallback };
-  'provider.callback.archived:before': ProviderEventBase;
-  'provider.callback.archived:after': ProviderEventBase & { callback: SubspaceCallback };
-
-  'provider.callback_instance.attached:before': ProviderEventBase;
-  'provider.callback_instance.attached:after': ProviderEventBase & { callbackInstance: SubspaceCallbackInstance };
-  'provider.callback_instance.detached:before': ProviderEventBase;
-  'provider.callback_instance.detached:after': ProviderEventBase & { callbackInstance: SubspaceCallbackInstance };
-
-  'provider.callback_destination.created:before': ProviderEventBase;
-  'provider.callback_destination.created:after': ProviderEventBase & { callbackDestination: SubspaceCallbackDestination };
-  'provider.callback_destination.archived:before': ProviderEventBase;
-  'provider.callback_destination.archived:after': ProviderEventBase & { callbackDestination: SubspaceCallbackDestination };
 
   'provider.session.created:before': ProviderEventBase;
   'provider.session.created:after': ProviderEventBase & { session: AuditSubspaceSession };

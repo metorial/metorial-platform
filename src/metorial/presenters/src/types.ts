@@ -1,9 +1,4 @@
 import type { SessionWarning, Prisma as SubspacePrisma } from '@metorial-subspace/db';
-import type {
-  CallbackInstanceReceiver,
-  callbackDeliveryService,
-  callbackEventService
-} from '@metorial-subspace/module-callback';
 import type { publisherService } from '@metorial-subspace/module-catalog';
 import type {
   customProviderDeploymentService,
@@ -2383,59 +2378,6 @@ export let portalOAuthAuthorizationType = PresentableType.create<{
     skillPluginSupportedProviderIds?: string[];
   };
 }>()('portal.oauth_authorization');
-
-export let callbackType = PresentableType.create<{
-  callback: SubspacePrisma.CallbackGetPayload<{
-    include: {
-      providerDeployment: {
-        include: {
-          provider: { include: { type: true } };
-          currentVersion: true;
-        };
-      };
-      callbackProviderTriggers: { include: { providerTrigger: true } };
-      callbackDestinationLinks: { include: { callbackDestination: true } };
-    };
-  }>;
-}>()('callback');
-
-export let callbackEventType = PresentableType.create<{
-  callbackEvent: Awaited<ReturnType<typeof callbackEventService.getCallbackEvent>>;
-}>()('callback.event');
-
-export let callbackDestinationType = PresentableType.create<{
-  callbackDestination: SubspacePrisma.CallbackDestinationGetPayload<{}>;
-}>()('callback.destination');
-
-export let callbackNotificationType = PresentableType.create<{
-  callbackNotification: Awaited<
-    ReturnType<typeof callbackDeliveryService.getCallbackDelivery>
-  >;
-}>()('callback.notification');
-
-export let callbackInstanceType = PresentableType.create<{
-  callbackInstance: SubspacePrisma.CallbackInstanceGetPayload<{
-    include: {
-      providerDeploymentConfigPair: {
-        include: {
-          providerDeploymentVersion: {
-            include: {
-              deployment: { include: { provider: true } };
-            };
-          };
-          providerConfigVersion: {
-            include: { config: true };
-          };
-          providerAuthConfigVersion: {
-            include: { authConfig: true };
-          };
-        };
-      };
-      activeRegistration: true;
-    };
-  }>;
-  receiver?: CallbackInstanceReceiver;
-}>()('callback.instance');
 
 export let portalType = PresentableType.create<{
   portal: Portal & {
