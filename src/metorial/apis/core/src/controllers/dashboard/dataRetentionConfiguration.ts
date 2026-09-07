@@ -83,7 +83,12 @@ export let dashboardDataRetentionConfigurationController = Controller.create(
         v.object({
           data_retention_level: dataRetentionLevelValidator,
           store_tool_call_attachments: v.optional(v.boolean()),
-          collect_errors: v.optional(v.boolean())
+          collect_errors: v.optional(v.boolean()),
+          disable_callbacks: v.optional(
+            v.boolean({
+              description: 'Whether callbacks are disabled for this project'
+            })
+          )
         })
       )
       .output(projectDataRetentionConfigurationPresenter)
@@ -91,7 +96,8 @@ export let dashboardDataRetentionConfigurationController = Controller.create(
         if (
           ctx.body.data_retention_level === undefined &&
           ctx.body.store_tool_call_attachments === undefined &&
-          ctx.body.collect_errors === undefined
+          ctx.body.collect_errors === undefined &&
+          ctx.body.disable_callbacks === undefined
         ) {
           throw new ServiceError(
             badRequestError({
@@ -124,7 +130,8 @@ export let dashboardDataRetentionConfigurationController = Controller.create(
               input: {
                 dataRetentionLevel: ctx.body.data_retention_level,
                 storeToolCallAttachments: ctx.body.store_tool_call_attachments,
-                collectErrors: ctx.body.collect_errors
+                collectErrors: ctx.body.collect_errors,
+                disableCallbacks: ctx.body.disable_callbacks
               }
             }
           );

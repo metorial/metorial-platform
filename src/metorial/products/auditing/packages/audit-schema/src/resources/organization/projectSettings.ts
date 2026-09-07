@@ -105,6 +105,7 @@ export let projectDataRetentionConfigurationResource = resource({
     dataRetentionLevel: 'full' | 'intent_only' | 'none';
     storeToolCallAttachments: boolean;
     collectErrors: boolean;
+    disableCallbacks: boolean;
   }>('project_data_retention_configuration'),
   presenter: projectDataRetentionConfigurationPresenter,
   actions: {

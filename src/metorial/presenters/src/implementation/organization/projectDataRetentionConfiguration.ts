@@ -6,13 +6,20 @@ export let v1ProjectDataRetentionConfigurationPresenter = Presenter.create(
   projectDataRetentionConfigurationType
 )
   .presenter(
-    async ({ project, dataRetentionLevel, storeToolCallAttachments, collectErrors }) => ({
+    async ({
+      project,
+      dataRetentionLevel,
+      storeToolCallAttachments,
+      collectErrors,
+      disableCallbacks
+    }) => ({
       object: 'organization.project.data_retention_configuration' as const,
 
       project_id: project.id,
       data_retention_level: dataRetentionLevel,
       store_tool_call_attachments: storeToolCallAttachments,
       collect_errors: collectErrors,
+      disable_callbacks: disableCallbacks,
       updated_at: project.updatedAt
     })
   )
@@ -31,6 +38,9 @@ export let v1ProjectDataRetentionConfigurationPresenter = Presenter.create(
       collect_errors: v.boolean({
         description:
           'Whether session errors are recorded at all. Always true when data_retention_level is full. When true below full, only the error code and message are stored verbatim -- the error payload is stored with its shape preserved but every value redacted.'
+      }),
+      disable_callbacks: v.boolean({
+        description: 'Whether callbacks are disabled for this project.'
       }),
       updated_at: v.date()
     })

@@ -30,7 +30,8 @@ class ProjectDataRetentionConfigurationService {
     return {
       dataRetentionLevel: tenant.dataRetentionLevel,
       storeToolCallAttachments: tenant.storeToolCallAttachments,
-      collectErrors: tenant.collectErrors
+      collectErrors: tenant.collectErrors,
+      disableCallbacks: tenant.disableCallbacks
     };
   }
 
@@ -42,6 +43,7 @@ class ProjectDataRetentionConfigurationService {
       dataRetentionLevel?: SessionDataRetentionLevel;
       storeToolCallAttachments?: boolean;
       collectErrors?: boolean;
+      disableCallbacks?: boolean;
     };
   }) {
     await this.ensureProjectActive(d.project);
@@ -69,7 +71,8 @@ class ProjectDataRetentionConfigurationService {
         environments: [],
         dataRetentionLevel,
         storeToolCallAttachments,
-        collectErrors
+        collectErrors,
+        disableCallbacks: d.input.disableCallbacks ?? tenant.disableCallbacks
       }
     });
 
@@ -80,12 +83,14 @@ class ProjectDataRetentionConfigurationService {
       configuration: {
         dataRetentionLevel: updatedTenant.dataRetentionLevel,
         storeToolCallAttachments: updatedTenant.storeToolCallAttachments,
-        collectErrors: updatedTenant.collectErrors
+        collectErrors: updatedTenant.collectErrors,
+        disableCallbacks: updatedTenant.disableCallbacks
       },
       previousConfiguration: {
         dataRetentionLevel: tenant.dataRetentionLevel,
         storeToolCallAttachments: tenant.storeToolCallAttachments,
-        collectErrors: tenant.collectErrors
+        collectErrors: tenant.collectErrors,
+        disableCallbacks: tenant.disableCallbacks
       },
       auditScope: d.auditScope
     });
@@ -93,7 +98,8 @@ class ProjectDataRetentionConfigurationService {
     return {
       dataRetentionLevel: updatedTenant.dataRetentionLevel,
       storeToolCallAttachments: updatedTenant.storeToolCallAttachments,
-      collectErrors: updatedTenant.collectErrors
+      collectErrors: updatedTenant.collectErrors,
+      disableCallbacks: updatedTenant.disableCallbacks
     };
   }
 }
