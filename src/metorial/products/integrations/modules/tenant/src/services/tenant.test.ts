@@ -291,6 +291,32 @@ describe('tenantService.upsertTenant retention downgrade sync', () => {
     expect(mocks.retentionDowngradeAdd).toHaveBeenCalled();
   });
 
+  it('syncs retention settings when callbacks are disabled without enqueueing session cleanup', async () => {
+    mocks.tenantFindUnique.mockResolvedValue({
+      id: tenant.id,
+      logRetentionInDays: 30,
+      dataRetentionLevel: 'full',
+      collectErrors: true,
+      storeToolCallAttachments: true,
+      disableCallbacks: false
+    });
+    mocks.tenantUpsert.mockResolvedValue({
+      ...tenant,
+      dataRetentionLevel: 'full',
+      collectErrors: true,
+      storeToolCallAttachments: true,
+      disableCallbacks: true
+    });
+
+    await tenantService.upsertTenant({ input: { ...input, disableCallbacks: true } });
+
+    expect(mocks.retentionAdd).toHaveBeenCalledWith(
+      { tenantId: tenant.id },
+      { id: `tenant-retention-sync:${tenant.id}` }
+    );
+    expect(mocks.retentionDowngradeAdd).not.toHaveBeenCalled();
+  });
+
   it('does not enqueue a downgrade sync for a brand-new tenant', async () => {
     mocks.tenantFindUnique.mockResolvedValue(null);
     mocks.tenantUpsert.mockResolvedValue({

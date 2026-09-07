@@ -41,6 +41,7 @@ class tenantServiceImpl {
       dataRetentionLevel?: SessionDataRetentionLevel;
       storeToolCallAttachments?: boolean;
       collectErrors?: boolean;
+      disableCallbacks?: boolean;
       projectOid?: bigint;
       skipNetworks?: boolean;
       environments: {
@@ -61,7 +62,8 @@ class tenantServiceImpl {
           logRetentionInDays: true,
           dataRetentionLevel: true,
           collectErrors: true,
-          storeToolCallAttachments: true
+          storeToolCallAttachments: true,
+          disableCallbacks: true
         }
       });
 
@@ -85,7 +87,8 @@ class tenantServiceImpl {
             d.input.useIntegrationNamesForSessionProviderNameTemplates,
           dataRetentionLevel: d.input.dataRetentionLevel,
           storeToolCallAttachments: d.input.storeToolCallAttachments,
-          collectErrors: d.input.collectErrors
+          collectErrors: d.input.collectErrors,
+          disableCallbacks: d.input.disableCallbacks
         },
         create: {
           ...getId('tenant'),
@@ -108,6 +111,7 @@ class tenantServiceImpl {
           dataRetentionLevel: d.input.dataRetentionLevel ?? 'full',
           storeToolCallAttachments: d.input.storeToolCallAttachments ?? true,
           collectErrors: d.input.collectErrors ?? true,
+          disableCallbacks: d.input.disableCallbacks ?? false,
 
           urlKey: generatePlainId(10).toLowerCase()
         }
@@ -125,7 +129,9 @@ class tenantServiceImpl {
         (d.input.collectErrors !== undefined &&
           existingTenant?.collectErrors !== tenant.collectErrors) ||
         (d.input.storeToolCallAttachments !== undefined &&
-          existingTenant?.storeToolCallAttachments !== tenant.storeToolCallAttachments);
+          existingTenant?.storeToolCallAttachments !== tenant.storeToolCallAttachments) ||
+        (d.input.disableCallbacks !== undefined &&
+          existingTenant?.disableCallbacks !== tenant.disableCallbacks);
 
       if (retentionRelevantFieldsChanged) {
         await tenantLogRetentionSyncQueue.add(
