@@ -34,7 +34,8 @@ export let getTenantForSlates = async (tenant: Tenant) => {
       storeContent: tenant.dataRetentionLevel === 'full',
       collectErrors: tenant.collectErrors,
       storeToolCallAttachments:
-        tenant.dataRetentionLevel === 'none' ? false : tenant.storeToolCallAttachments
+        tenant.dataRetentionLevel === 'none' ? false : tenant.storeToolCallAttachments,
+      disableCallbacks: tenant.disableCallbacks
     });
 
     tenant = await db.tenant.update({

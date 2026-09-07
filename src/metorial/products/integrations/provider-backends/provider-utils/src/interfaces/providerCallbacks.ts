@@ -14,6 +14,8 @@ import { IProviderFunctionality } from '../providerFunctionality';
 export abstract class IProviderCallbacks extends IProviderFunctionality {
   abstract createCallback(data: CallbackCreateParam): Promise<CallbackCreateRes>;
 
+  abstract updateCallback(data: CallbackUpdateParam): Promise<CallbackUpdateRes>;
+
   abstract deleteCallback(data: CallbackDeleteParam): Promise<CallbackDeleteRes>;
 
   abstract createCallbackInstance(
@@ -59,6 +61,17 @@ export interface CallbackCreateParam {
 }
 
 export interface CallbackCreateRes {}
+
+export interface CallbackUpdateParam {
+  tenant: Tenant;
+  callback: Callback;
+  input: {
+    name?: string;
+    description?: string | null;
+  };
+}
+
+export interface CallbackUpdateRes {}
 
 export interface CallbackDeleteParam {
   tenant: Tenant;

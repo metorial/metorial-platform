@@ -11,6 +11,8 @@ import {
   type CallbackInstanceCreateRes,
   type CallbackInstanceDeleteParam,
   type CallbackInstanceDeleteRes,
+  type CallbackUpdateParam,
+  type CallbackUpdateRes,
   type CallbackWebhookEventGetManyParam,
   type CallbackWebhookEventGetManyRes,
   type ProviderWebhookEvent,
@@ -96,6 +98,12 @@ export class ProviderCallbacks extends IProviderCallbacks {
       throw new Error('Provider variant does not have a slate associated with it');
     }
 
+    // Retried after a partial failure: the slates-side callback already exists.
+    let mirror = await db.slateCallback.findUnique({
+      where: { callbackOid: data.callback.oid }
+    });
+    if (mirror) return {};
+
     let slate = await db.slate.findUniqueOrThrow({
       where: { oid: data.providerVariant.slateOid }
     });
@@ -124,6 +132,24 @@ export class ProviderCallbacks extends IProviderCallbacks {
     return {};
   }
 
+  override async updateCallback(data: CallbackUpdateParam): Promise<CallbackUpdateRes> {
+    let slateCallback = await db.slateCallback.findUnique({
+      where: { callbackOid: data.callback.oid }
+    });
+    if (!slateCallback) return {};
+
+    let tenant = await getTenantForSlates(data.tenant);
+
+    await slates.callback.update({
+      tenantId: tenant.id,
+      callbackId: slateCallback.id,
+      name: data.input.name,
+      description: data.input.description ?? undefined
+    });
+
+    return {};
+  }
+
   override async deleteCallback(data: CallbackDeleteParam): Promise<CallbackDeleteRes> {
     let slateCallback = await db.slateCallback.findUnique({
       where: { callbackOid: data.callback.oid }
@@ -143,6 +169,12 @@ export class ProviderCallbacks extends IProviderCallbacks {
   override async createCallbackInstance(
     data: CallbackInstanceCreateParam
   ): Promise<CallbackInstanceCreateRes> {
+    // Retried after a partial failure: the slates-side instance already exists.
+    let mirror = await db.slateCallbackInstance.findUnique({
+      where: { callbackInstanceOid: data.callbackInstance.oid }
+    });
+    if (mirror) return {};
+
     let slateCallback = await db.slateCallback.findUniqueOrThrow({
       where: { callbackOid: data.callback.oid }
     });
