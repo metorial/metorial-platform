@@ -199,6 +199,9 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   let hasAuthConfig = !!(spec && spec.authMethods.length > 0);
   let hasOAuth = spec?.authMethods.some(am => am.type === 'oauth');
   let hasTriggers = !!(spec ? spec.triggers.length > 0 : false);
+  let hasManualWebhookTriggerGroup = !!spec?.triggerGroups.some(
+    g => g.invocation.type === 'webhook' && g.invocation.registration.mode === 'manual'
+  );
   let docs = buildProviderListingDocs(spec);
 
   let type = {
@@ -211,7 +214,9 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
       triggers: hasTriggers
         ? {
             status: 'enabled',
-            receiverUrl: `${env.service.SLATES_HUB_PUBLIC_URL}/slates-hub/triggers/webhook/{callback.slatesTriggerId}`
+            webhookRegistration: {
+              status: hasManualWebhookTriggerGroup ? 'supported' : 'unsupported'
+            }
           }
         : { status: 'disabled' },
 

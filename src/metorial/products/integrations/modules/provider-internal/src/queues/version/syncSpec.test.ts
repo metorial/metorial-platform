@@ -96,7 +96,8 @@ describe('providerVersionSyncSpecificationQueue', () => {
           authMethods: [],
           features: { supportsAuthMethod: false, configContainsAuth: true },
           tools: [],
-          triggers: []
+          triggers: [],
+          triggerGroups: []
         })
       }
     };

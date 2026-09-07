@@ -15,7 +15,8 @@ import type {
   SpecificationAuthMethod,
   SpecificationFeatures,
   SpecificationTool,
-  SpecificationTrigger
+  SpecificationTrigger,
+  SpecificationTriggerGroup
 } from '../types/specification';
 
 export abstract class IProviderCapabilities extends IProviderFunctionality {
@@ -71,6 +72,7 @@ export type ProviderSpecificationGetRes =
       tools: SpecificationTool[];
       authMethods: SpecificationAuthMethod[];
       triggers: SpecificationTrigger[];
+      triggerGroups: SpecificationTriggerGroup[];
       type: ProviderSpecificationType;
       warnings?: {
         code: string;

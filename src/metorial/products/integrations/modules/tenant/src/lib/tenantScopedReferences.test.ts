@@ -54,13 +54,11 @@ describe('buildScopedModelPlan', () => {
       fakeClient({
         Session: [{ name: 'oid' }, { name: 'tenantOid' }, { name: 'environmentOid' }],
         Brand: [{ name: 'oid' }, { name: 'tenantOid' }],
-        Callback: [{ name: 'oid' }, { name: 'environmentOid' }],
         SkillItem: [{ name: 'oid' }, { name: 'skillOid' }]
       })
     );
 
     expect(plan.environmentScoped).toEqual([
-      { model: 'Callback', delegate: 'callback', hasTenantOid: false },
       { model: 'Session', delegate: 'session', hasTenantOid: true }
     ]);
     expect(plan.tenantScopedOnly).toEqual([

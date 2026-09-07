@@ -7,7 +7,8 @@ import type {
   SpecificationAuthMethod,
   SpecificationFeatures,
   SpecificationTool,
-  SpecificationTrigger
+  SpecificationTrigger,
+  SpecificationTriggerGroup
 } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import { providerSpecificationInternalService } from './providerSpecification';
@@ -41,6 +42,7 @@ class providerVersionSpecificationMergeServiceImpl {
       features: SpecificationFeatures;
       tools: SpecificationTool[];
       triggers: SpecificationTrigger[];
+      triggerGroups: SpecificationTriggerGroup[];
     };
   }) {
     return await mergeLock.usingLock([String(d.providerVersion.oid)], async () => {
@@ -68,11 +70,16 @@ class providerVersionSpecificationMergeServiceImpl {
       let tools = unionByKey(currentValue.tools, d.discovered.tools);
       let authMethods = unionByKey(currentValue.authMethods, d.discovered.authMethods);
       let triggers = unionByKey(currentValue.triggers ?? [], d.discovered.triggers);
+      let triggerGroups = unionByKey(
+        currentValue.triggerGroups ?? [],
+        d.discovered.triggerGroups
+      );
 
       let hasChanges =
         tools.addedKeys.length > 0 ||
         authMethods.addedKeys.length > 0 ||
-        triggers.addedKeys.length > 0;
+        triggers.addedKeys.length > 0 ||
+        triggerGroups.addedKeys.length > 0;
       if (!hasChanges) return { specification: current, addedKeys: [] };
 
       let spec = await providerSpecificationInternalService.ensureProviderSpecification({
@@ -86,7 +93,8 @@ class providerVersionSpecificationMergeServiceImpl {
 
         tools: tools.merged,
         authMethods: authMethods.merged,
-        triggers: triggers.merged
+        triggers: triggers.merged,
+        triggerGroups: triggerGroups.merged
       });
 
       if (spec.oid === current.oid) return { specification: spec, addedKeys: [] };

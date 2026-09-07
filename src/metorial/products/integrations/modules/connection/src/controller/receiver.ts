@@ -612,7 +612,8 @@ export let startReceiver = () => {
             authMethods: res.authMethods,
             features: res.features,
             tools: res.tools,
-            triggers: res.triggers
+            triggers: res.triggers,
+            triggerGroups: res.triggerGroups
           });
 
           if (
@@ -628,7 +629,8 @@ export let startReceiver = () => {
                     authMethods: res.authMethods,
                     features: res.features,
                     tools: res.tools,
-                    triggers: res.triggers
+                    triggers: res.triggers,
+                    triggerGroups: res.triggerGroups
                   }
                 }
               );

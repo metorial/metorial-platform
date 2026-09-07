@@ -125,7 +125,8 @@ describe('providerDeploymentConfigPairSyncSpecificationQueue', () => {
           authMethods: [],
           features: { supportsAuthMethod: false, configContainsAuth: true },
           tools: [],
-          triggers: []
+          triggers: [],
+          triggerGroups: []
         })
       }
     };

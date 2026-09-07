@@ -291,7 +291,8 @@ class ProviderRunConnection extends IProviderRunConnection {
         },
         tools: buildMcpTools(source, discovery),
         authMethods: buildMcpAuthMethods(source),
-        triggers: []
+        triggers: [],
+        triggerGroups: []
       };
     } catch (error) {
       return { status: 'failure', error: this.#toNormalized(error) };

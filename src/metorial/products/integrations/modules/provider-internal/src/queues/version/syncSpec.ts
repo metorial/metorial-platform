@@ -114,7 +114,8 @@ export let providerVersionSyncSpecificationQueueProcessor =
         authMethods: capabilities.authMethods,
         features: capabilities.features,
         tools: capabilities.tools,
-        triggers: capabilities.triggers
+        triggers: capabilities.triggers,
+        triggerGroups: capabilities.triggerGroups
       });
 
       await providerVersionSetSpecificationQueue.add({

@@ -148,6 +148,36 @@ export interface SpecificationTrigger {
   scopes?: SpecificationActionScopes | null;
 
   metadata: Record<string, any>;
+
+  triggerGroupKey: string | null;
+}
+
+export interface SpecificationTriggerGroup {
+  specId: string;
+  specUniqueIdentifier?: string;
+
+  key: string;
+
+  name: string;
+  description?: string;
+
+  invocation:
+    | {
+        type: 'polling';
+        intervalSeconds: number;
+      }
+    | {
+        type: 'webhook';
+        registration:
+          | { mode: 'auto' }
+          | {
+              mode: 'manual';
+              userConfigSchema: Record<string, any>;
+              fullConfigSchema: Record<string, any>;
+            };
+      };
+
+  metadata: Record<string, any>;
 }
 
 export interface Specification {
@@ -164,6 +194,7 @@ export interface Specification {
 
   metadata: Record<string, any>;
   triggers?: SpecificationTrigger[];
+  triggerGroups?: SpecificationTriggerGroup[];
 
   mcp: {
     serverInfo: InitializeResult['serverInfo'];

@@ -14,7 +14,8 @@ export let specificationCreatedQueueProcessor = specificationCreatedQueue.proces
       include: {
         providerAuthMethods: { select: { oid: true, globalOid: true } },
         providerTools: { select: { oid: true, globalOid: true } },
-        providerTriggers: { select: { oid: true, globalOid: true } }
+        providerTriggers: { select: { oid: true, globalOid: true } },
+        providerTriggerGroups: { select: { oid: true, globalOid: true } }
       }
     });
     if (!spec) throw new QueueRetryError();
@@ -34,6 +35,13 @@ export let specificationCreatedQueueProcessor = specificationCreatedQueue.proces
       spec.providerTriggers.map(t => ({
         triggerOid: t.oid,
         globalOid: t.globalOid
+      }))
+    );
+
+    await specificationCreatedAssocTriggerGroupQueue.addMany(
+      spec.providerTriggerGroups.map(triggerGroup => ({
+        triggerGroupOid: triggerGroup.oid,
+        globalOid: triggerGroup.globalOid
       }))
     );
   }
@@ -84,5 +92,21 @@ export let specificationCreatedAssocTriggerQueueProcessor =
     await db.providerTriggerGlobal.updateMany({
       where: { oid: data.globalOid },
       data: { currentInstanceOid: data.triggerOid }
+    });
+  });
+
+let specificationCreatedAssocTriggerGroupQueue = createQueue<{
+  triggerGroupOid: bigint;
+  globalOid: bigint;
+}>({
+  name: 'sub/pint/lc/specification/created/assoc-trigger-group',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let specificationCreatedAssocTriggerGroupQueueProcessor =
+  specificationCreatedAssocTriggerGroupQueue.process(async data => {
+    await db.providerTriggerGroupGlobal.updateMany({
+      where: { oid: data.globalOid },
+      data: { currentInstanceOid: data.triggerGroupOid }
     });
   });

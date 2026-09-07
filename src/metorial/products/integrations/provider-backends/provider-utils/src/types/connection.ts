@@ -5,7 +5,8 @@ import type {
   SpecificationAuthMethod,
   SpecificationFeatures,
   SpecificationTool,
-  SpecificationTrigger
+  SpecificationTrigger,
+  SpecificationTriggerGroup
 } from './specification';
 
 export interface ConnectionSpecificationBehavior {
@@ -23,6 +24,7 @@ export type ConnectionToolListRes =
       tools: SpecificationTool[];
       authMethods: SpecificationAuthMethod[];
       triggers: SpecificationTrigger[];
+      triggerGroups: SpecificationTriggerGroup[];
     }
   | {
       status: 'failure';

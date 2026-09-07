@@ -182,6 +182,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
 
       specification: buildMcpSpecification(source, mapped),
       triggers: [],
+      triggerGroups: [],
       authMethods: buildMcpAuthMethods(source),
       tools: buildMcpTools(source, mapped)
     };

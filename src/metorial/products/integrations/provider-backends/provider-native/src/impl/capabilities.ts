@@ -48,6 +48,7 @@ let mapIntegrationToSpecification = (
     mcp: null
   },
   triggers: [],
+  triggerGroups: [],
   authMethods: [],
   tools: integration.tools.map(tool => ({
     specId: `native::${integration.identifier}::tool::${tool.key}`,
