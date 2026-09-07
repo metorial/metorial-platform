@@ -97,6 +97,23 @@ class slateWebhookRegistrationServiceImpl {
     );
   }
 
+  async getManyWebhookRegistrationsByIds(d: {
+    tenant: Tenant;
+    ids: string[];
+    type?: SlateWebhookRegistrationType;
+  }) {
+    return db.slateWebhookRegistration.findMany({
+      where: {
+        tenantOid: d.tenant.oid,
+        owner: 'tenant',
+        id: { in: d.ids },
+        status: { not: 'deleted' },
+        type: d.type
+      },
+      include
+    });
+  }
+
   async createManualWebhookSetup(d: {
     tenant: Tenant;
     input: {
@@ -157,6 +174,7 @@ class slateWebhookRegistrationServiceImpl {
         metadata: d.input.metadata,
 
         webhookRegistrationPayload: partialWebhookRegistrationPayload,
+        authRouting,
         authMethods,
         oauthCredentials
       });
@@ -255,7 +273,7 @@ class slateWebhookRegistrationServiceImpl {
       userConfig: d.input.userConfig
     });
 
-    return triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
+    let registration = await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
       tenant: globalTenant,
       slate,
       triggerGroup,
@@ -269,8 +287,17 @@ class slateWebhookRegistrationServiceImpl {
       metadata: d.input.metadata,
 
       webhookRegistrationPayload,
+      authRouting,
       authMethods
     });
+
+    // A global registration is a candidate for every tenant's instances, so instances that
+    // previously errored with no matching webhook registration may now be able to match it.
+    await triggerWebhookRegistrationRematchQueue.add({
+      webhookRegistrationId: registration.id
+    });
+
+    return registration;
   }
 
   async getGlobalWebhookRegistrationById(d: { id: string }) {

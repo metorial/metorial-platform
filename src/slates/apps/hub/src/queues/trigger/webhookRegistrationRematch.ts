@@ -18,13 +18,19 @@ export let triggerWebhookRegistrationRematchQueueProcessor =
   triggerWebhookRegistrationRematchQueue.process(async data => {
     let registration = await db.slateWebhookRegistration.findUnique({
       where: { id: data.webhookRegistrationId },
-      select: { triggerGroupOid: true, tenantOid: true }
+      select: { triggerGroupOid: true, tenantOid: true, owner: true }
     });
-    if (!registration || !registration.tenantOid) return;
+    if (!registration) return;
+    if (registration.owner === 'tenant' && !registration.tenantOid) return;
+
+    // A tenant-owned registration can only ever match that tenant's instances. A global
+    // registration is a candidate for every tenant's instances, so it must rematch across all of them.
+    let tenantFilter =
+      registration.owner === 'tenant' ? { tenantOid: registration.tenantOid! } : undefined;
 
     let instances = await db.triggerRegistrationInstance.findMany({
       where: {
-        triggerRegistration: { tenantOid: registration.tenantOid },
+        triggerRegistration: tenantFilter,
 
         // Same trigger group means we don't match polling or auto webhook
         // instances - so we don't need to worry about handling those here.

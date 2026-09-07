@@ -76,6 +76,23 @@ export let triggerRegistrationController = app.controller({
     )
     .do(async ctx => triggerRegistrationPresenter(ctx.triggerRegistration)),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        triggerRegistrationIds: v.array(v.string())
+      })
+    )
+    .do(async ctx => {
+      let registrations = await triggerRegistrationService.getManyTriggerRegistrationsByIds({
+        tenant: ctx.tenant,
+        ids: ctx.input.triggerRegistrationIds
+      });
+
+      return registrations.map(triggerRegistrationPresenter);
+    }),
+
   delete: triggerRegistrationApp
     .handler()
     .input(

@@ -4,6 +4,7 @@ import { callbackInstancePresenter } from '../../presenters';
 import { callbackInstanceService } from '../../services';
 import { app } from './_app';
 import { callbackApp } from './callback';
+import { tenantApp } from './tenant';
 
 export let callbackInstanceApp = callbackApp.use(async ctx => {
   let callbackInstanceId = ctx.body.callbackInstanceId;
@@ -66,6 +67,23 @@ export let callbackInstanceController = app.controller({
       })
     )
     .do(async ctx => callbackInstancePresenter(ctx.callbackInstance)),
+
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        callbackInstanceIds: v.array(v.string())
+      })
+    )
+    .do(async ctx => {
+      let instances = await callbackInstanceService.getManyCallbackInstancesByIds({
+        tenant: ctx.tenant,
+        ids: ctx.input.callbackInstanceIds
+      });
+
+      return instances.map(callbackInstancePresenter);
+    }),
 
   delete: callbackInstanceApp
     .handler()

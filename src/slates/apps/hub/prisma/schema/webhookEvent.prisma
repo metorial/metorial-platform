@@ -31,7 +31,9 @@ model SlateWebhookEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  invocations SlateWebhookEventInvocation[]
+  invocations    SlateWebhookEventInvocation[]
+  triggerRawEvents TriggerRawEvent[]
+  triggerEvents    TriggerEvent[]
 
   @@index([webhookRegistrationOid, createdAt])
 }

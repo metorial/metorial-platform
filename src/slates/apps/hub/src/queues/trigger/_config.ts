@@ -18,6 +18,8 @@ export let TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS = 5;
 
 export let TRIGGER_EVENT_MAP_MAX_ATTEMPTS = 25;
 
+export let TRIGGER_EVENT_DELIVER_MAX_ATTEMPTS = 25;
+
 export let TRIGGER_EVENT_MAP_MAX_BACKOFF_MS = 5 * 60 * 1000;
 
 export let triggerEventMapBackoffMs = (attempt: number) =>

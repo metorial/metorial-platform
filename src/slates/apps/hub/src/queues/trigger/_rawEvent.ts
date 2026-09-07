@@ -5,6 +5,7 @@ import { triggerRawEventMappingQueue } from './rawEventMapping';
 
 export let createTriggerRawEvents = async (d: {
   source: TriggerRawEventSource;
+  webhookEventOid?: bigint;
   events: {
     triggerRegistrationInstanceOids: bigint[];
     payload: PrismaJson.AnyRecord;
@@ -18,6 +19,7 @@ export let createTriggerRawEvents = async (d: {
       ...getId('triggerRawEvent'),
       source: d.source,
       triggerRegistrationInstanceOid,
+      webhookEventOid: d.webhookEventOid ?? null,
       payload: event.payload,
       idempotencyKey: event.idempotencyKey ?? null,
       triggerIds: event.triggerIds,

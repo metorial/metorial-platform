@@ -76,6 +76,9 @@ model TriggerRawEvent {
   triggerRegistrationInstanceOid BigInt
   triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
 
+  webhookEventOid BigInt?
+  webhookEvent    SlateWebhookEvent? @relation(fields: [webhookEventOid], references: [oid], onDelete: SetNull)
+
   /// [AnyRecord]
   payload Json
 

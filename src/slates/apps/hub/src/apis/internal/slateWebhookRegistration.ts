@@ -106,6 +106,25 @@ export let slateWebhookRegistrationController = app.controller({
     )
     .do(async ctx => slateWebhookRegistrationPresenter(ctx.webhookRegistration)),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        webhookRegistrationIds: v.array(v.string())
+      })
+    )
+    .do(async ctx => {
+      let registrations =
+        await slateWebhookRegistrationService.getManyWebhookRegistrationsByIds({
+          tenant: ctx.tenant,
+          ids: ctx.input.webhookRegistrationIds,
+          type: 'manual'
+        });
+
+      return registrations.map(slateWebhookRegistrationPresenter);
+    }),
+
   update: slateWebhookRegistrationApp
     .handler()
     .input(

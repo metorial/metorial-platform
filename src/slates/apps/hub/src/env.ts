@@ -60,5 +60,9 @@ export let env = createValidatedEnv({
 
   secrets: {
     SLATES_DELEGATE_SECRETS_TO_NEBULA: v.boolean()
+  },
+
+  subspace: {
+    SUBSPACE_INTERNAL_URL: v.optional(v.string())
   }
 });

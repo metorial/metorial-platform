@@ -111,7 +111,8 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
             description: target.description ?? undefined,
             metadata: target.metadata as Record<string, any>,
             webhookRegistrationPayload: result.data.webhookRegistrationPayload,
-            webhookRegistrationIdentifier: result.data.webhookRegistrationIdentifier
+            webhookRegistrationIdentifier: result.data.webhookRegistrationIdentifier,
+            authRouting: 'any'
           });
 
         await db.$transaction([

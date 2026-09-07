@@ -35,6 +35,7 @@ export let slateWebhookRegistrationPresenter = (
 
   slateId: registration.slate.id,
   triggerGroupId: registration.triggerGroup.id,
+  triggerGroupKey: registration.triggerGroup.key,
 
   authRouting: registration.authRouting,
   authMethodIds: registration.authMethods.map(m => m.authMethod.id),

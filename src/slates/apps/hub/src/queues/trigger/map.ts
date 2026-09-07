@@ -49,6 +49,7 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
   let event = await triggerEventServiceInternal.upsertPending({
     triggerRegistrationInstanceOid: instance.oid,
     rawEventOid: rawEvent.oid,
+    webhookEventOid: rawEvent.webhookEventOid,
     triggerId: data.triggerId,
     source: rawEvent.source
   });

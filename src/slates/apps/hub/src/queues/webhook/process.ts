@@ -7,7 +7,7 @@ import {
   triggerRoutingDropServiceInternal,
   triggerRoutingMatcherServiceInternal
 } from '../../internal';
-import { getActiveSlateVersion } from '../../lib/slateVersion';
+import { getLatestSlateVersionSupportingTriggerGroup } from '../../lib/slateVersion';
 import { publishWebhookEventResolved } from '../../lib/webhookEventBus';
 import { secretService, slateInvocationService } from '../../services';
 import { globalTenant } from '../../services/tenant';
@@ -26,7 +26,10 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
     let attempt = await slateWebhookEventServiceInternal.beginAttempt({ eventOid: event.oid });
     let isFinalAttempt = job.attemptsMade >= (job.opts.attempts ?? 25);
 
-    let version = await getActiveSlateVersion({ slate: registration.slate });
+    let version = await getLatestSlateVersionSupportingTriggerGroup({
+      slate: registration.slate,
+      triggerGroup: registration.triggerGroup
+    });
     let tenant = registration.tenant ?? globalTenant;
 
     let webhookRegistrationPayload = await secretService.DANGEROUSLY_decryptSecret({
@@ -155,6 +158,7 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
 
         await createTriggerRawEvents({
           source: 'webhook',
+          webhookEventOid: event.oid,
           events: result.data.events.map(webhookEvent => ({
             triggerRegistrationInstanceOids: links.map(
               link => link.triggerRegistrationInstanceOid
@@ -173,6 +177,7 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
 
         await createTriggerRawEvents({
           source: 'webhook',
+          webhookEventOid: event.oid,
           events: matched.map(({ event: webhookEvent, triggerRegistrationInstanceOids }) => ({
             triggerRegistrationInstanceOids,
             payload: webhookEvent.payload,

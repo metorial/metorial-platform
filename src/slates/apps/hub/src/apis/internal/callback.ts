@@ -62,6 +62,23 @@ export let callbackController = app.controller({
     )
     .do(async ctx => callbackPresenter(ctx.callback)),
 
+  getMany: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        callbackIds: v.array(v.string())
+      })
+    )
+    .do(async ctx => {
+      let callbacks = await callbackService.getManyCallbacksByIds({
+        tenant: ctx.tenant,
+        ids: ctx.input.callbackIds
+      });
+
+      return callbacks.map(callbackPresenter);
+    }),
+
   update: callbackApp
     .handler()
     .input(

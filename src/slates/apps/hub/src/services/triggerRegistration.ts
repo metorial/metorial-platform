@@ -52,6 +52,13 @@ class triggerRegistrationServiceImpl {
     );
   }
 
+  async getManyTriggerRegistrationsByIds(d: { tenant: Tenant; ids: string[] }) {
+    return db.triggerRegistration.findMany({
+      where: { tenantOid: d.tenant.oid, id: { in: d.ids }, status: { not: 'deleted' } },
+      include
+    });
+  }
+
   async createTriggerRegistration(d: {
     tenant: Tenant;
     input: {

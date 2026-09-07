@@ -32,6 +32,13 @@ class callbackServiceImpl {
     );
   }
 
+  async getManyCallbacksByIds(d: { tenant: Tenant; ids: string[] }) {
+    return db.callback.findMany({
+      where: { tenantOid: d.tenant.oid, id: { in: d.ids }, status: { not: 'deleted' } },
+      include
+    });
+  }
+
   async createCallback(d: {
     tenant: Tenant;
     input: { slateId: string; name?: string; description?: string };

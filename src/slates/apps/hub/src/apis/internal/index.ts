@@ -25,8 +25,10 @@ import { slateSpecificationController } from './slateSpecification';
 import { slateSpecificationChangeController } from './slateSpecificationChange';
 import { slateVersionController } from './slateVersion';
 import { slateVersionDiscoveryController } from './slateVersionDiscovery';
+import { slateWebhookEventController } from './slateWebhookEvent';
 import { slateWebhookRegistrationController } from './slateWebhookRegistration';
 import { tenantController } from './tenant';
+import { triggerEventController } from './triggerEvent';
 import { triggerRegistrationController } from './triggerRegistration';
 
 export let rootController = app.controller({
@@ -58,7 +60,9 @@ export let rootController = app.controller({
   slateVersionDiscovery: slateVersionDiscoveryController,
   slateSpecificationChange: slateSpecificationChangeController,
   slateWebhookRegistration: slateWebhookRegistrationController,
+  slateWebhookEvent: slateWebhookEventController,
   triggerRegistration: triggerRegistrationController,
+  triggerEvent: triggerEventController,
 
   callback: callbackController,
   callbackInstance: callbackInstanceController

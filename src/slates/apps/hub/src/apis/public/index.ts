@@ -59,10 +59,7 @@ let toHttpResponse = (response: PrismaJson.SlatesWebhookHttpResponse) =>
     headers: response.headers
   });
 
-let handleWebhookReceive = async (c: Context, next: () => Promise<void>) => {
-  // Let the CORS preflight and default-404 handling registered further down take over.
-  if (c.req.method === 'HEAD' || c.req.method === 'OPTIONS') return next();
-
+let handleWebhookReceive = async (c: Context) => {
   let urlKey = c.req.param('urlKey');
   if (!urlKey) throw new ServiceError(badRequestError({ message: 'urlKey is required' }));
 

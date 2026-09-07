@@ -7,6 +7,7 @@ class triggerEventServiceInternalImpl {
   async upsertPending(d: {
     triggerRegistrationInstanceOid: bigint;
     rawEventOid: bigint;
+    webhookEventOid: bigint | null;
     triggerId: string;
     source: TriggerRawEventSource;
   }) {
@@ -17,6 +18,7 @@ class triggerEventServiceInternalImpl {
           status: 'pending',
           triggerRegistrationInstanceOid: d.triggerRegistrationInstanceOid,
           rawEventOid: d.rawEventOid,
+          webhookEventOid: d.webhookEventOid,
           triggerId: d.triggerId,
           source: d.source
         }

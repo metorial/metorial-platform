@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import type { Slate, SlateInstance } from '../../prisma/generated/client';
+import type { Slate, SlateInstance, SlateTriggerGroup } from '../../prisma/generated/client';
 import { db } from '../db';
 
 export let getActiveSlateVersion = async (d: {
@@ -23,4 +23,31 @@ export let getActiveSlateVersion = async (d: {
   }
 
   return fullVersion;
+};
+
+export let getLatestSlateVersionSupportingTriggerGroup = async (d: {
+  slate: Slate;
+  triggerGroup: SlateTriggerGroup;
+}) => {
+  let version = await db.slateVersion.findFirst({
+    where: {
+      slateOid: d.slate.oid,
+      status: 'active',
+      activeDeploymentOid: { not: null },
+      specification: {
+        slateTriggerGroups: { some: { triggerGroupOid: d.triggerGroup.oid } }
+      }
+    },
+    orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }]
+  });
+
+  if (!version) {
+    throw new ServiceError(
+      badRequestError({
+        message: `No deployed provider version supports trigger group "${d.triggerGroup.key}".`
+      })
+    );
+  }
+
+  return version;
 };

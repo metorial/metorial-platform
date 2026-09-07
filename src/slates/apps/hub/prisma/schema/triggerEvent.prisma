@@ -19,6 +19,10 @@ model TriggerEvent {
   rawEventOid BigInt?
   rawEvent    TriggerRawEvent? @relation(fields: [rawEventOid], references: [oid], onDelete: SetNull)
 
+  // Copied from the raw event at create time so it survives the raw event's cleanup deletion.
+  webhookEventOid BigInt?
+  webhookEvent    SlateWebhookEvent? @relation(fields: [webhookEventOid], references: [oid], onDelete: SetNull)
+
   attemptCount Int @default(0)
 
   /// [AnyRecord]

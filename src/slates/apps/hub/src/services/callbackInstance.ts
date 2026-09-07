@@ -56,6 +56,13 @@ class callbackInstanceServiceImpl {
     );
   }
 
+  async getManyCallbackInstancesByIds(d: { tenant: Tenant; ids: string[] }) {
+    return db.callbackInstance.findMany({
+      where: { tenantOid: d.tenant.oid, id: { in: d.ids }, status: { not: 'deleted' } },
+      include
+    });
+  }
+
   async createCallbackInstance(d: {
     tenant: Tenant;
     callback: Callback;
