@@ -1,6 +1,7 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metorial/module-skill';
 import { db } from '@metorial-subspace/db';
+import { enqueueCallbackReconcile } from '@metorial-subspace/module-callback/src/queues/reconcile/callback';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { enqueueSyncIntegrationInstanceSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
@@ -52,6 +53,8 @@ export let integrationProviderCreatedQueueProcessor = integrationProviderCreated
       where: { integrationProviderOid: integrationProvider.oid },
       data: { isParentDeleted: false }
     });
+
+    await enqueueCallbackReconcile({ integrationProviderId: data.integrationProviderId });
   }
 );
 
@@ -79,6 +82,8 @@ export let integrationProviderUpdatedQueueProcessor = integrationProviderUpdated
     await integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueue.add({
       integrationProviderId: data.integrationProviderId
     });
+
+    await enqueueCallbackReconcile({ integrationProviderId: data.integrationProviderId });
   }
 );
 
@@ -248,6 +253,8 @@ export let integrationProviderArchivedQueueProcessor =
     await reconcileSkillProviderLinksForIntegrationProviderQueue.add({
       integrationProviderId: data.integrationProviderId
     });
+
+    await enqueueCallbackReconcile({ integrationProviderId: data.integrationProviderId });
   });
 
 export let integrationProviderArchiveInstanceProvidersManyQueue = createQueue<{

@@ -18,7 +18,6 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
-import { Fabric, type AuditSubspaceIntegrationProvider } from '@metorial/fabric';
 import {
   checkDeletedEdit,
   checkDeletedRelation,
@@ -34,6 +33,7 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { providerAuthCredentialsService } from '@metorial-subspace/module-auth';
+import { callbackInclude, callbackInternalService } from '@metorial-subspace/module-callback';
 import { providerAuthMethodService, providerService } from '@metorial-subspace/module-catalog';
 import {
   providerConfigService,
@@ -48,9 +48,10 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
-  toProviderEventBase,
-  resolveMetorialFacing
+  resolveMetorialFacing,
+  toProviderEventBase
 } from '@metorial-subspace/module-tenant';
+import { type AuditSubspaceIntegrationProvider, Fabric } from '@metorial/fabric';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   createIntegrationProviderVersion,
@@ -69,6 +70,13 @@ export let integrationProviderInclude = {
   provider: true,
   currentVersion: {
     include: integrationProviderVersionInclude
+  },
+  // At most one callback is ever active; older generations are kept as archived history.
+  callbacks: {
+    where: { status: 'active' as const },
+    include: callbackInclude,
+    orderBy: { oid: 'desc' as const },
+    take: 1
   }
 };
 
@@ -78,6 +86,43 @@ let maxIntegrationProvidersError = () =>
   badRequestError({
     message: `Cannot associate more than ${MAX_INTEGRATION_PROVIDERS} providers to an integration`
   });
+
+let assertCallbacksAllowed = (d: {
+  tenant: Tenant;
+  provider: Pick<Provider, 'id'> & {
+    type: ProviderType;
+    defaultVariant: ProviderVariant | null;
+  };
+}) => {
+  if (d.tenant.disableCallbacks) {
+    throw new ServiceError(
+      badRequestError({
+        code: 'callbacks_disabled',
+        message: 'Callbacks are disabled for this project.',
+        description:
+          'Enable callbacks in the project data retention settings before turning them on for an integration provider.'
+      })
+    );
+  }
+
+  if (d.provider.type.attributes.triggers.status !== 'enabled') {
+    throw new ServiceError(
+      badRequestError({
+        code: 'callbacks_not_supported',
+        message: 'This provider does not support callbacks.'
+      })
+    );
+  }
+
+  if (!d.provider.defaultVariant) {
+    throw new ServiceError(
+      badRequestError({
+        code: 'provider_variant_missing',
+        message: 'This provider has no default variant to create a callback on.'
+      })
+    );
+  }
+};
 
 let resolveAuthMethod = async (d: {
   tenant: Tenant;
@@ -350,6 +395,7 @@ export type CreateIntegrationProviderParams = {
     description?: string;
     metadata?: Record<string, any>;
     toolFilters?: PrismaJson.ToolFilter | null;
+    callbacksEnabled?: boolean;
   };
 };
 
@@ -364,6 +410,7 @@ export type UpdateIntegrationProviderParams = {
     description?: string | null;
     metadata?: Record<string, any> | null;
     toolFilters?: PrismaJson.ToolFilter | null;
+    callbacksEnabled?: boolean;
   };
 };
 
@@ -383,6 +430,20 @@ export type ArchiveIntegrationProviderParams = {
   integrationProvider: IntegrationProvider;
 };
 
+export type EnableIntegrationProviderCallbacksParams = {
+  integration: Pick<Integration, 'oid' | 'id'>;
+  integrationProvider: IntegrationProvider & AuditSubspaceIntegrationProvider;
+  input: {
+    name?: string;
+    description?: string | null;
+  };
+};
+
+export type DisableIntegrationProviderCallbacksParams = {
+  integration: Pick<Integration, 'oid' | 'id'>;
+  integrationProvider: IntegrationProvider & AuditSubspaceIntegrationProvider;
+};
+
 class integrationProviderServiceImpl {
   private integrationProviderCreateData(d: {
     context: {
@@ -397,6 +458,7 @@ class integrationProviderServiceImpl {
       name?: string | null;
       description?: string | null;
       metadata?: unknown;
+      callbacksEnabled?: boolean;
     };
     toolFilter: PrismaJson.ToolFilter;
   }) {
@@ -407,6 +469,7 @@ class integrationProviderServiceImpl {
       name: d.input.name?.trim() || d.provider.name,
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
+      areCallbacksEnabled: d.input.callbacksEnabled ?? false,
       toolFilter: d.toolFilter,
       integrationOid: d.context.integration.oid,
       providerOid: d.provider.oid,
@@ -424,6 +487,7 @@ class integrationProviderServiceImpl {
       name?: string | null;
       description?: string | null;
       metadata?: unknown;
+      callbacksEnabled?: boolean;
     };
     toolFilter: PrismaJson.ToolFilter;
   }) {
@@ -433,6 +497,7 @@ class integrationProviderServiceImpl {
       name: d.input.name?.trim() || d.provider.name,
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
+      areCallbacksEnabled: d.input.callbacksEnabled ?? false,
       toolFilter: d.toolFilter
     };
   }
@@ -603,7 +668,9 @@ class integrationProviderServiceImpl {
       requiresAuth: provider.type.supportsAuth
     });
 
-    return await withTransaction(async db => {
+    if (d.input.callbacksEnabled) assertCallbacksAllowed({ tenant: d.tenant, provider });
+
+    let res = await withTransaction(async db => {
       let existing = await db.integrationProvider.findUnique({
         where: {
           integrationOid_providerOid: {
@@ -681,6 +748,19 @@ class integrationProviderServiceImpl {
 
       return res;
     });
+
+    if (d.input.callbacksEnabled) {
+      await callbackInternalService.reconcileCallbackForIntegrationProvider({
+        integrationProviderId: res.id
+      });
+
+      res = await db.integrationProvider.findUniqueOrThrow({
+        where: { oid: res.oid },
+        include: integrationProviderInclude
+      });
+    }
+
+    return res;
   }
 
   async ensureIntegrationProviderForDeploymentInternal(d: {
@@ -907,7 +987,11 @@ class integrationProviderServiceImpl {
       });
     }
 
-    return await withTransaction(async db => {
+    if (d.input.callbacksEnabled && !current.areCallbacksEnabled) {
+      assertCallbacksAllowed({ tenant: d.tenant, provider });
+    }
+
+    let res = await withTransaction(async db => {
       let integrationProvider = await db.integrationProvider.update({
         where: {
           oid: d.integrationProvider.oid,
@@ -923,6 +1007,7 @@ class integrationProviderServiceImpl {
               : d.input.description?.trim() || null,
           metadata:
             d.input.metadata === undefined ? d.integrationProvider.metadata : d.input.metadata,
+          areCallbacksEnabled: d.input.callbacksEnabled ?? current.areCallbacksEnabled,
           toolFilter
         }
       });
@@ -951,6 +1036,153 @@ class integrationProviderServiceImpl {
       );
 
       return res;
+    });
+
+    if (
+      d.input.callbacksEnabled !== undefined &&
+      d.input.callbacksEnabled !== current.areCallbacksEnabled
+    ) {
+      await callbackInternalService.reconcileCallbackForIntegrationProvider({
+        integrationProviderId: res.id
+      });
+
+      res = await db.integrationProvider.findUniqueOrThrow({
+        where: { oid: res.oid },
+        include: integrationProviderInclude
+      });
+    }
+
+    return res;
+  }
+
+  async enableIntegrationProviderCallbacks(
+    d: MetorialFacing<EnableIntegrationProviderCallbacksParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_provider.updated:before', eventBase);
+
+    let res = await this.enableIntegrationProviderCallbacksInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.integration_provider.updated:after', {
+      ...eventBase,
+      integrationProvider: res.integrationProvider,
+      previousIntegrationProvider: d.integrationProvider
+    });
+
+    return res.callback;
+  }
+
+  async enableIntegrationProviderCallbacksInternal(
+    d: { tenant: Tenant; environment: Environment } & EnableIntegrationProviderCallbacksParams
+  ) {
+    checkTenant(d, d.integrationProvider);
+    checkDeletedEdit(d.integrationProvider, 'update');
+
+    if (d.integrationProvider.integrationOid !== d.integration.oid) {
+      throw new ServiceError(notFoundError('integration.provider', d.integrationProvider.id));
+    }
+
+    let current = await db.integrationProvider.findUniqueOrThrow({
+      where: { oid: d.integrationProvider.oid },
+      include: { provider: { include: { defaultVariant: true, type: true } } }
+    });
+
+    assertCallbacksAllowed({ tenant: d.tenant, provider: current.provider });
+
+    let existing = await db.callback.findFirst({
+      where: { integrationProviderOid: current.oid, status: 'active' },
+      select: { id: true }
+    });
+    if (existing) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_exists',
+          message: 'This integration provider already has a callback.',
+          description: `Update callback "${existing.id}" instead, or disable callbacks on the integration provider to tear it down.`
+        })
+      );
+    }
+
+    await db.integrationProvider.update({
+      where: { oid: current.oid },
+      data: { areCallbacksEnabled: true }
+    });
+
+    let callback = await callbackInternalService.reconcileCallbackForIntegrationProvider({
+      integrationProviderId: current.id,
+      input: d.input
+    });
+    if (!callback) {
+      throw new Error(
+        `Enabling callbacks for integration provider "${current.id}" did not produce a callback.`
+      );
+    }
+
+    let integrationProvider = await db.integrationProvider.findUniqueOrThrow({
+      where: { oid: current.oid },
+      include: integrationProviderInclude
+    });
+
+    return { integrationProvider, callback };
+  }
+
+  async disableIntegrationProviderCallbacks(
+    d: MetorialFacing<DisableIntegrationProviderCallbacksParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration_provider.updated:before', eventBase);
+
+    let integrationProvider = await this.disableIntegrationProviderCallbacksInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.integration_provider.updated:after', {
+      ...eventBase,
+      integrationProvider,
+      previousIntegrationProvider: d.integrationProvider
+    });
+
+    return integrationProvider;
+  }
+
+  async disableIntegrationProviderCallbacksInternal(
+    d: { tenant: Tenant; environment: Environment } & DisableIntegrationProviderCallbacksParams
+  ) {
+    checkTenant(d, d.integrationProvider);
+    checkDeletedEdit(d.integrationProvider, 'update');
+
+    if (d.integrationProvider.integrationOid !== d.integration.oid) {
+      throw new ServiceError(notFoundError('integration.provider', d.integrationProvider.id));
+    }
+
+    let current = await db.integrationProvider.findUniqueOrThrow({
+      where: { oid: d.integrationProvider.oid }
+    });
+
+    await db.integrationProvider.update({
+      where: { oid: current.oid },
+      data: { areCallbacksEnabled: false }
+    });
+
+    await callbackInternalService.reconcileCallbackForIntegrationProvider({
+      integrationProviderId: current.id
+    });
+
+    return await db.integrationProvider.findUniqueOrThrow({
+      where: { oid: current.oid },
+      include: integrationProviderInclude
     });
   }
 

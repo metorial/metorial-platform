@@ -32,7 +32,11 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { identityActorService, identityService } from '@metorial-subspace/module-identity';
-import { finalizeSessionCreate, sessionService, sessionTemplateService } from '@metorial-subspace/module-session';
+import {
+  finalizeSessionCreate,
+  sessionService,
+  sessionTemplateService
+} from '@metorial-subspace/module-session';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import {
@@ -196,12 +200,12 @@ export type UpdateIntegrationInstanceGroupParams = {
   };
 };
 
-/**
- * The public entry point takes the record with its relations already loaded, so the
- * audit event can carry a previous payload without reading the row a second time.
- */
-export type UpdateIntegrationInstanceGroupFacingParams = Omit<UpdateIntegrationInstanceGroupParams, 'integrationInstanceGroup'> & {
-  integrationInstanceGroup: UpdateIntegrationInstanceGroupParams['integrationInstanceGroup'] & AuditSubspaceIntegrationInstanceGroup;
+export type UpdateIntegrationInstanceGroupFacingParams = Omit<
+  UpdateIntegrationInstanceGroupParams,
+  'integrationInstanceGroup'
+> & {
+  integrationInstanceGroup: UpdateIntegrationInstanceGroupParams['integrationInstanceGroup'] &
+    AuditSubspaceIntegrationInstanceGroup;
 };
 
 export type CreateSessionTemplateForIntegrationInstanceGroupParams = {
@@ -473,7 +477,9 @@ class integrationInstanceGroupServiceImpl {
     );
   }
 
-  async getIntegrationInstanceGroupById(d: MetorialFacing<GetIntegrationInstanceGroupByIdParams>) {
+  async getIntegrationInstanceGroupById(
+    d: MetorialFacing<GetIntegrationInstanceGroupByIdParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -508,7 +514,9 @@ class integrationInstanceGroupServiceImpl {
     return integrationInstanceGroup;
   }
 
-  async createIntegrationInstanceGroup(d: MetorialFacing<CreateIntegrationInstanceGroupParams>) {
+  async createIntegrationInstanceGroup(
+    d: MetorialFacing<CreateIntegrationInstanceGroupParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -582,7 +590,10 @@ class integrationInstanceGroupServiceImpl {
   }
 
   async upsertMagicMcpIntegrationInstanceGroupInternal(
-    d: { tenant: Tenant; environment: Environment } & UpsertMagicMcpIntegrationInstanceGroupParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & UpsertMagicMcpIntegrationInstanceGroupParams
   ) {
     let solution = await getMetorialSolution();
 
@@ -652,7 +663,9 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async updateIntegrationInstanceGroup(d: MetorialFacing<UpdateIntegrationInstanceGroupFacingParams>) {
+  async updateIntegrationInstanceGroup(
+    d: MetorialFacing<UpdateIntegrationInstanceGroupFacingParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -892,16 +905,21 @@ class integrationInstanceGroupServiceImpl {
   }
 
   async createSessionForIntegrationInstanceGroupInternal(
-    d: { tenant: Tenant; environment: Environment } & CreateSessionForIntegrationInstanceGroupParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & CreateSessionForIntegrationInstanceGroupParams
   ) {
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedRelation(d.integrationInstanceGroup);
 
-    let template = await this.waitForDefaultSessionTemplateForIntegrationInstanceGroupInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      integrationInstanceGroup: d.integrationInstanceGroup
-    });
+    let template = await this.waitForDefaultSessionTemplateForIntegrationInstanceGroupInternal(
+      {
+        tenant: d.tenant,
+        environment: d.environment,
+        integrationInstanceGroup: d.integrationInstanceGroup
+      }
+    );
 
     return await sessionService.createSessionInternal({
       tenant: d.tenant,
@@ -918,7 +936,9 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async archiveIntegrationInstanceGroup(d: MetorialFacing<ArchiveIntegrationInstanceGroupParams>) {
+  async archiveIntegrationInstanceGroup(
+    d: MetorialFacing<ArchiveIntegrationInstanceGroupParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -980,7 +1000,9 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async deleteIntegrationInstanceGroup(d: MetorialFacing<ArchiveIntegrationInstanceGroupParams>) {
+  async deleteIntegrationInstanceGroup(
+    d: MetorialFacing<ArchiveIntegrationInstanceGroupParams>
+  ) {
     return await this.archiveIntegrationInstanceGroup(d);
   }
 

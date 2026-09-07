@@ -22,6 +22,7 @@ import {
   resolveIntegrationProviders,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import { callbackInclude } from '@metorial-subspace/module-callback';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
   checkTenant,
@@ -53,6 +54,12 @@ export let integrationInclude = {
       provider: true,
       currentVersion: {
         include: integrationProviderVersionInclude
+      },
+      callbacks: {
+        where: { status: 'active' as const },
+        include: callbackInclude,
+        orderBy: { oid: 'desc' as const },
+        take: 1
       }
     }
   },

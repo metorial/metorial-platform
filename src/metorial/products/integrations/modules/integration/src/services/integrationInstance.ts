@@ -87,6 +87,12 @@ export let integrationInstanceProviderInclude = {
   },
   currentVersion: {
     include: integrationInstanceProviderVersionInclude
+  },
+  // At most one callback instance is ever active; older generations are kept as archived history.
+  callbackInstances: {
+    where: { status: 'active' as const },
+    orderBy: { oid: 'desc' as const },
+    take: 1
   }
 } as const;
 

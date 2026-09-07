@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
+import { enqueueCallbackInstanceReconcile } from '@metorial-subspace/module-callback/src/queues/reconcile/callbackInstance';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { queueJobId } from '@metorial-subspace/module-session/src/lib/sessionTemplateSync';
@@ -74,6 +75,10 @@ export let integrationInstanceProviderSetQueueProcessor =
     });
 
     await enqueueIntegrationInstanceProviderSyncGroupProvidersMany({
+      integrationInstanceProviderId: data.integrationInstanceProviderId
+    });
+
+    await enqueueCallbackInstanceReconcile({
       integrationInstanceProviderId: data.integrationInstanceProviderId
     });
 
