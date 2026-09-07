@@ -4,7 +4,7 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
-import { integrationsApi } from '@metorial/api-integrations';
+import { integrationsApi, subspaceInternalApi } from '@metorial/api-integrations';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { outpostApi } from '@metorial/api-outpost';
 import { authenticate } from '@metorial/auth';
@@ -18,7 +18,7 @@ let mcpPort = parseInt(process.env.MCP_PORT || '4311');
 let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
 let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
-let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
+let subspaceInternalApiPort = parseInt(process.env.SUBSPACE_INTERNAL_API_PORT || '4317');
 
 let server = apiMux(
   [
@@ -54,6 +54,11 @@ Bun.serve({
 Bun.serve({
   port: integrationsApiPort,
   fetch: integrationsApi.fetch
+});
+
+Bun.serve({
+  port: subspaceInternalApiPort,
+  fetch: subspaceInternalApi
 });
 
 Bun.serve({

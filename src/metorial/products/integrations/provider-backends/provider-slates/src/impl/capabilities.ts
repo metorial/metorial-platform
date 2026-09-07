@@ -120,10 +120,20 @@ export class ProviderCapabilities extends IProviderCapabilities {
                       autoUnregistration: invocation.autoUnregistration
                     },
               capabilities: t.capabilities ?? {},
-              metadata: t.metadata ?? {}
+              metadata: t.metadata ?? {},
+              triggerGroupKey: t.triggerGroup?.key ?? null
             };
           })
           .filter((t): t is NonNullable<typeof t> => t !== null),
+        triggerGroups: specRecord.triggerGroups.map(triggerGroup => ({
+          specId: triggerGroup.id,
+          specUniqueIdentifier: triggerGroup.identifier,
+          key: triggerGroup.key,
+          name: triggerGroup.name,
+          description: triggerGroup.description,
+          invocation: triggerGroup.invocation,
+          metadata: triggerGroup.metadata ?? {}
+        })),
         mcp: null
       },
       triggers: specRecord.triggers
@@ -143,6 +153,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
             capabilities: t.capabilities ?? {},
             metadata: t.metadata ?? {},
             scopes: t.scopes ?? null,
+            triggerGroupKey: t.triggerGroup?.key ?? null,
             invocation:
               invocation.type === 'polling'
                 ? {
@@ -157,6 +168,15 @@ export class ProviderCapabilities extends IProviderCapabilities {
           };
         })
         .filter((t): t is NonNullable<typeof t> => t !== null),
+      triggerGroups: specRecord.triggerGroups.map(triggerGroup => ({
+        specId: triggerGroup.id,
+        specUniqueIdentifier: triggerGroup.identifier,
+        key: triggerGroup.key,
+        name: triggerGroup.name,
+        description: triggerGroup.description,
+        invocation: triggerGroup.invocation,
+        metadata: triggerGroup.metadata ?? {}
+      })),
       authMethods: specRecord.authMethods.map(am => ({
         specId: am.id,
         specUniqueIdentifier: am.identifier,

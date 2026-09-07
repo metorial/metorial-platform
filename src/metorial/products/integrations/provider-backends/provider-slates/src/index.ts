@@ -5,6 +5,7 @@ import { syncQueues } from './queues/sync';
 
 export let slatesProviderQueues = combineQueueProcessors([syncQueues, registryQueues]);
 
+export * from './callbackReceiver';
 export * from './impl';
 
 export let slatesClient = slates;

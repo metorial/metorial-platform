@@ -1,5 +1,6 @@
 import type {
   IProviderAuth,
+  IProviderCallbacks,
   IProviderCapabilities,
   IProviderDeployment,
   IProviderEnclaveInstanceConfiguration,
@@ -21,6 +22,7 @@ export interface ProviderImpl {
   ) => IProviderEnclaveInstanceConfiguration;
   capabilities: new (params: ProviderFunctionalityCtorParams) => IProviderCapabilities;
   enrichment: new (params: ProviderFunctionalityCtorParams) => IProviderEnrichments;
+  callbacks?: new (params: ProviderFunctionalityCtorParams) => IProviderCallbacks;
 }
 
 export let createProvider = (impl: ProviderImpl) => ({
@@ -33,6 +35,9 @@ export let createProvider = (impl: ProviderImpl) => ({
     providerInvocation: new impl.providerInvocation(params),
     capabilities: new impl.capabilities(params),
     enrichment: new impl.enrichment(params),
+    callbacks: (impl.callbacks ? new impl.callbacks(params) : undefined) as
+      | IProviderCallbacks
+      | undefined,
 
     backend: params.backend
   })

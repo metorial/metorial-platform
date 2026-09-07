@@ -1,5 +1,6 @@
 import { createProvider } from '@metorial-subspace/provider-utils';
 import { ProviderAuth } from './auth';
+import { ProviderCallbacks } from './callback';
 import { ProviderCapabilities } from './capabilities';
 import { ProviderDeployment } from './deployment';
 import { ProviderEnclaveInstanceConfiguration } from './enclaveInstanceConfiguration';
@@ -16,5 +17,6 @@ export let slatesProvider = createProvider({
   deployment: ProviderDeployment,
   enclaveInstanceConfiguration: ProviderEnclaveInstanceConfiguration,
   enrichment: ProviderEnrichments,
-  capabilities: ProviderCapabilities
+  capabilities: ProviderCapabilities,
+  callbacks: ProviderCallbacks
 });

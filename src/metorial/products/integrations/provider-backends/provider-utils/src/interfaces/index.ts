@@ -1,4 +1,5 @@
 export * from './providerAuth';
+export * from './providerCallbacks';
 export * from './providerCapabilities';
 export * from './providerDeployment';
 export * from './providerEnrichment';
