@@ -48,12 +48,6 @@ export let magicMcpDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
-export let callbackDocsCategory = createCategory({
-  id: 'callback',
-  name: 'Callbacks',
-  indexHint: getIndexHint()
-});
-
 export let networkDocsCategory = createCategory({
   id: 'network',
   name: 'Network Access',

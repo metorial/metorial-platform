@@ -34,5 +34,6 @@ export let integrationsApi = {
 };
 
 export type { IntegrationsClient };
+export { subspaceInternalApi, type SubspaceInternalClient } from './subspace-internal';
 export { integrationsRedirectUrl, integrationsUrl } from './urls';
 export { isIntegrationsCorsOriginAllowed } from './cors';

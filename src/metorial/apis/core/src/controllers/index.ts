@@ -1,6 +1,5 @@
 import { Controller } from '@metorial/rest';
 import {
-  callbackDocsCategory,
   configurationDocsCategory,
   customProviderDocsCategory,
   fileCollectionDocsCategory,
@@ -45,11 +44,6 @@ import {
 } from './dashboard';
 import {
   agentController,
-  callbackController,
-  callbackDestinationController,
-  callbackEventController,
-  callbackInstanceController,
-  callbackNotificationController,
   consumerController,
   consumerSurfaceController,
   customProviderCodeController,
@@ -300,18 +294,6 @@ let setControllerDocsMetadata = <
 );
 
 [
-  callbackController,
-  callbackDestinationController,
-  callbackEventController,
-  callbackInstanceController,
-  callbackNotificationController
-].forEach(controller =>
-  setControllerDocsMetadata(controller, {
-    category: callbackDocsCategory
-  })
-);
-
-[
   networkController,
   enclaveController,
   firewallController,
@@ -458,12 +440,6 @@ export let magnetarController = Controller.create<any>(
     integrationInstanceProviderController,
     integrationInstanceGroupController,
     integrationInstanceGroupProviderController,
-
-    callbackController,
-    callbackDestinationController,
-    callbackEventController,
-    callbackInstanceController,
-    callbackNotificationController,
 
     networkController,
     enclaveController,
@@ -717,12 +693,6 @@ export let dashboardController = Controller.create<any>(
 
     providerAuthImportController,
     providerAuthExportController,
-
-    callbackController,
-    callbackDestinationController,
-    callbackEventController,
-    callbackInstanceController,
-    callbackNotificationController,
 
     networkController,
     dashboardEnclaveController,
