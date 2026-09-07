@@ -8,11 +8,6 @@ import {
   MetorialDashboardInstanceAgentsEndpoint,
   MetorialDashboardInstanceAgentsInstancesEndpoint,
   MetorialDashboardInstanceAssistantsEndpoint,
-  MetorialDashboardInstanceCallbacksDestinationsEndpoint,
-  MetorialDashboardInstanceCallbacksEndpoint,
-  MetorialDashboardInstanceCallbacksEventsEndpoint,
-  MetorialDashboardInstanceCallbacksInstancesEndpoint,
-  MetorialDashboardInstanceCallbacksNotificationsEndpoint,
   MetorialDashboardInstanceConsumersEndpoint,
   MetorialDashboardInstanceConsumersProfilesEndpoint,
   MetorialDashboardInstanceConsumerSurfacesEndpoint,
@@ -148,8 +143,8 @@ import {
   MetorialDashboardOrganizationsApiKeysEndpoint,
   MetorialDashboardOrganizationsAuditLogStreamsEndpoint,
   MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint,
-  MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint,
+  MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
   MetorialDashboardOrganizationsJoinEndpoint,
@@ -998,13 +993,6 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       )
     }
   ),
-
-  callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
-    destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager),
-    events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
-    notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
-    instances: new MetorialDashboardInstanceCallbacksInstancesEndpoint(manager)
-  }),
 
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
     events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),

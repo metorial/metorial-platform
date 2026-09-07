@@ -6,6 +6,7 @@ export type DashboardProjectsConfigureDataRetentionUpdateOutput = {
   dataRetentionLevel: 'full' | 'intent_only' | 'none';
   storeToolCallAttachments: boolean;
   collectErrors: boolean;
+  disableCallbacks: boolean;
   updatedAt: Date;
 };
 
@@ -22,6 +23,10 @@ export let mapDashboardProjectsConfigureDataRetentionUpdateOutput =
       mtMap.passthrough()
     ),
     collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
+    disableCallbacks: mtMap.objectField(
+      'disable_callbacks',
+      mtMap.passthrough()
+    ),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
@@ -29,6 +34,7 @@ export type DashboardProjectsConfigureDataRetentionUpdateBody = {
   dataRetentionLevel?: 'full' | 'intent_only' | 'none' | undefined;
   storeToolCallAttachments?: boolean | undefined;
   collectErrors?: boolean | undefined;
+  disableCallbacks?: boolean | undefined;
 };
 
 export let mapDashboardProjectsConfigureDataRetentionUpdateBody =
@@ -41,6 +47,10 @@ export let mapDashboardProjectsConfigureDataRetentionUpdateBody =
       'store_tool_call_attachments',
       mtMap.passthrough()
     ),
-    collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough())
+    collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
+    disableCallbacks: mtMap.objectField(
+      'disable_callbacks',
+      mtMap.passthrough()
+    )
   });
 

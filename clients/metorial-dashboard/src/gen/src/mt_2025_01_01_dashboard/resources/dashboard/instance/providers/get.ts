@@ -51,7 +51,10 @@ export type DashboardInstanceProvidersGetOutput = {
       | 'mcp.function'
       | 'mcp.remote';
     triggers:
-      | { status: 'enabled'; receiverUrl: string }
+      | {
+          status: 'enabled';
+          webhookRegistration: { status: 'supported' | 'unsupported' };
+        }
       | { status: 'disabled' };
     config:
       | { status: 'enabled'; read: { status: 'enabled' | 'disabled' } }
@@ -148,9 +151,11 @@ export let mapDashboardInstanceProvidersGetOutput = mtMap.union([
                 'object',
                 mtMap.object({
                   status: mtMap.objectField('status', mtMap.passthrough()),
-                  receiverUrl: mtMap.objectField(
-                    'receiver_url',
-                    mtMap.passthrough()
+                  webhookRegistration: mtMap.objectField(
+                    'webhook_registration',
+                    mtMap.object({
+                      status: mtMap.objectField('status', mtMap.passthrough())
+                    })
                   )
                 })
               )

@@ -6,6 +6,7 @@ export type DashboardProjectsConfigureDataRetentionGetOutput = {
   dataRetentionLevel: 'full' | 'intent_only' | 'none';
   storeToolCallAttachments: boolean;
   collectErrors: boolean;
+  disableCallbacks: boolean;
   updatedAt: Date;
 };
 
@@ -22,6 +23,10 @@ export let mapDashboardProjectsConfigureDataRetentionGetOutput =
       mtMap.passthrough()
     ),
     collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
+    disableCallbacks: mtMap.objectField(
+      'disable_callbacks',
+      mtMap.passthrough()
+    ),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 

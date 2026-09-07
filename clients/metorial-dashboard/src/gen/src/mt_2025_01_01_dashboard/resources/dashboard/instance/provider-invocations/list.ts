@@ -6,10 +6,16 @@ export type DashboardInstanceProviderInvocationsListOutput = {
     object: 'provider.invocation';
     id: string;
     source: 'slates' | 'shuttle' | 'native';
-    type: 'tool_call' | 'auth_config_event' | 'oauth_setup' | 'unknown';
+    type:
+      | 'tool_call'
+      | 'auth_config_event'
+      | 'oauth_setup'
+      | 'callback_event'
+      | 'unknown';
     status: 'success' | 'error';
     providerRunIds: string[];
     sessionMessageIds: string[];
+    callbackEventIds: string[];
     authConfigEventIds: string[];
     providerOauthSetupIds: string[];
     toolCallId: string | null;
@@ -49,6 +55,10 @@ export let mapDashboardInstanceProviderInvocationsListOutput =
           ),
           sessionMessageIds: mtMap.objectField(
             'session_message_ids',
+            mtMap.array(mtMap.passthrough())
+          ),
+          callbackEventIds: mtMap.objectField(
+            'callback_event_ids',
             mtMap.array(mtMap.passthrough())
           ),
           authConfigEventIds: mtMap.objectField(
