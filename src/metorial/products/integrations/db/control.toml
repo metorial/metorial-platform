@@ -8,6 +8,7 @@ IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 INTEGRATIONS_API_URL = "http://{{HOSTNAME}}:4316"
+SLATE_ATTACHMENT_SIGNING_SECRET = "dev-slate-attachment-signing-secret"
 
 [dev.db.subspace]
 package = "@metorial-subspace/db"

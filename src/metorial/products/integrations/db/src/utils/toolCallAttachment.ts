@@ -1,31 +1,59 @@
+import { generateCustomId } from '@lowerdeck/id';
+import {
+  getToolCallAttachmentTokenExpiresAt,
+  mintToolCallAttachmentToken
+} from './toolCallAttachmentToken';
+
 let isObject = (value: unknown): value is Record<string, any> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export let getToolCallAttachmentPath = (urlKey: string) => `/tool-call-attachments/${urlKey}`;
 
-export let getToolCallAttachmentPublicUrl = (urlKey: string) => {
-  let path = getToolCallAttachmentPath(urlKey);
-  let baseUrl = process.env.INTEGRATIONS_API_URL;
+export let getToolCallAttachmentRouterPath = (urlKey: string) => `/attachments/${urlKey}`;
 
-  if (!baseUrl) return path;
+export let getToolCallAttachmentPublicUrl = async (urlKey: string, tokenExpiresAt: Date) => {
+  let routerUrl = process.env.TOOL_CALL_ROUTER_URL;
+  let path = routerUrl
+    ? getToolCallAttachmentRouterPath(urlKey)
+    : getToolCallAttachmentPath(urlKey);
+  let baseUrl = routerUrl || process.env.INTEGRATIONS_API_URL;
+  let token = await mintToolCallAttachmentToken(urlKey, tokenExpiresAt);
+
+  if (!baseUrl) return `${path}?token=${encodeURIComponent(token)}`;
 
   try {
-    return new URL(path, baseUrl).toString();
+    let url = new URL(path, baseUrl);
+    url.searchParams.set('token', token);
+    return url.toString();
   } catch {
-    return path;
+    return `${path}?token=${encodeURIComponent(token)}`;
   }
 };
 
-export let presentToolCallAttachment = (attachment: {
+export let getToolCallAttachmentUrlKey = () => {
+  let random = generateCustomId('tca_link_', 50);
+  let region = process.env.METORIAL_REGION;
+  return region ? `${random}_${region}` : random;
+};
+
+export let presentToolCallAttachment = async (attachment: {
   urlKey: string;
   mimeType?: string | null;
   expiresAt?: Date | null;
-}) => ({
-  type: 'url' as const,
-  url: getToolCallAttachmentPublicUrl(attachment.urlKey),
-  mimeType: attachment.mimeType ?? undefined,
-  urlExpiresAt: attachment.expiresAt ?? undefined
-});
+}) => {
+  let tokenExpiresAt = getToolCallAttachmentTokenExpiresAt();
+  let urlExpiresAt =
+    attachment.expiresAt && attachment.expiresAt < tokenExpiresAt
+      ? attachment.expiresAt
+      : tokenExpiresAt;
+
+  return {
+    type: 'url' as const,
+    url: await getToolCallAttachmentPublicUrl(attachment.urlKey, urlExpiresAt),
+    mimeType: attachment.mimeType ?? undefined,
+    urlExpiresAt
+  };
+};
 
 export let getRawToolCallAttachmentsFromOutput = (output: PrismaJson.SessionMessageOutput) => {
   if (output.type !== 'tool.result' || !isObject(output.data)) return [];
@@ -45,6 +73,8 @@ export let getRawToolCallAttachmentsFromOutput = (output: PrismaJson.SessionMess
     return [
       {
         url: attachment.url,
+        slateAttachmentId:
+          typeof attachment.attachmentId === 'string' ? attachment.attachmentId : null,
         mimeType: typeof attachment.mimeType === 'string' ? attachment.mimeType : null,
         expiresAt: expiresAt && !Number.isNaN(expiresAt.getTime()) ? expiresAt : null
       }
@@ -54,7 +84,7 @@ export let getRawToolCallAttachmentsFromOutput = (output: PrismaJson.SessionMess
 
 export let replaceToolCallAttachmentsInOutput = (
   output: PrismaJson.SessionMessageOutput,
-  attachments: Array<ReturnType<typeof presentToolCallAttachment>>
+  attachments: Array<Awaited<ReturnType<typeof presentToolCallAttachment>>>
 ) => {
   if (output.type !== 'tool.result' || !isObject(output.data)) return output;
 
