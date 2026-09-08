@@ -56,6 +56,7 @@ declare global {
     interface FunctionConfiguration {
       memorySizeMb: number;
       timeoutSeconds: number;
+      disableNetworkIsolation?: boolean;
     }
 
     interface RuntimeConfiguration {
