@@ -2,15 +2,20 @@ import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
-import { getStoredAttachmentsStorageKey } from '../../lib/invocation/store';
-import { invocationsBucketRecord, storage } from '../../storage';
-import { RETENTION_BATCH_SIZE, retentionStorageCleanupWorkerOpts } from '../retention/_config';
+import { storage } from '../../storage';
+import {
+  getRetentionCutoffDate,
+  RETENTION_BATCH_SIZE,
+  retentionStorageCleanupWorkerOpts
+} from '../retention/_config';
+
+let UPLOAD_RETENTION_DAYS = 1;
 
 export let slateAttachmentCleanupCron = createCron(
   {
     name: 'shub/att/cleanup/cron',
     redisUrl: env.service.REDIS_URL,
-    cron: '0 0 * * *'
+    cron: '0 9 * * *'
   },
   async () => {
     await slateAttachmentCleanupManyQueue.add({});
@@ -29,19 +34,19 @@ export let slateAttachmentUploadCleanupManyQueueProcessor =
   slateAttachmentUploadCleanupManyQueue.process(async data => {
     let uploads = await db.slateAttachmentUpload.findMany({
       where: {
-        status: 'pending',
-        expiresAt: { lt: new Date() },
+        createdAt: { lt: getRetentionCutoffDate(UPLOAD_RETENTION_DAYS) },
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },
       take: RETENTION_BATCH_SIZE,
-      select: { id: true, storageBucket: true, storageKey: true }
+      select: { id: true, status: true, storageBucket: true, storageKey: true }
     });
     if (uploads.length === 0) return;
 
     await slateAttachmentUploadCleanupSingleQueue.addMany(
       uploads.map(upload => ({
         uploadId: upload.id,
+        deleteObject: upload.status !== 'confirmed',
         bucket: upload.storageBucket,
         key: upload.storageKey
       }))
@@ -54,6 +59,7 @@ export let slateAttachmentUploadCleanupManyQueueProcessor =
 
 export let slateAttachmentUploadCleanupSingleQueue = createQueue<{
   uploadId: string;
+  deleteObject: boolean;
   bucket: string;
   key: string;
 }>({
@@ -64,15 +70,11 @@ export let slateAttachmentUploadCleanupSingleQueue = createQueue<{
 
 export let slateAttachmentUploadCleanupSingleQueueProcessor =
   slateAttachmentUploadCleanupSingleQueue.process(async data => {
-    let upload = await db.slateAttachmentUpload.findUnique({ where: { id: data.uploadId } });
-    if (!upload || upload.status !== 'pending' || upload.expiresAt >= new Date()) return;
+    if (data.deleteObject) {
+      await storage.deleteObject(data.bucket, data.key).catch(() => {});
+    }
 
-    await storage.deleteObject(data.bucket, data.key).catch(() => {});
-
-    await db.slateAttachmentUpload.updateMany({
-      where: { id: data.uploadId, status: 'pending' },
-      data: { status: 'expired' }
-    });
+    await db.slateAttachmentUpload.deleteMany({ where: { id: data.uploadId } });
   });
 
 export let slateAttachmentCleanupManyQueue = createQueue<{
@@ -103,7 +105,7 @@ export let slateAttachmentCleanupManyQueueProcessor = slateAttachmentCleanupMany
     let digestBacked = attachments.filter(
       (a): a is typeof a & { digest: Uint8Array } => a.digest !== null
     );
-    let uploadBacked = attachments.filter(a => a.digest === null);
+    let selfStored = attachments.filter(a => a.digest === null);
 
     if (digestBacked.length > 0) {
       await slateAttachmentCleanupSingleQueue.addMany(
@@ -114,9 +116,9 @@ export let slateAttachmentCleanupManyQueueProcessor = slateAttachmentCleanupMany
       );
     }
 
-    if (uploadBacked.length > 0) {
-      await slateAttachmentUploadedContentCleanupQueue.addMany(
-        uploadBacked.map(attachment => ({ attachmentId: attachment.id }))
+    if (selfStored.length > 0) {
+      await slateAttachmentStoredContentCleanupQueue.addMany(
+        selfStored.map(attachment => ({ attachmentId: attachment.id }))
       );
     }
 
@@ -126,25 +128,21 @@ export let slateAttachmentCleanupManyQueueProcessor = slateAttachmentCleanupMany
   }
 );
 
-export let slateAttachmentUploadedContentCleanupQueue = createQueue<{
+export let slateAttachmentStoredContentCleanupQueue = createQueue<{
   attachmentId: string;
 }>({
-  name: 'shub/att/uploaded-content/cleanup',
+  name: 'shub/att/stored-content/cleanup',
   redisUrl: env.service.REDIS_URL,
   workerOpts: retentionStorageCleanupWorkerOpts
 });
 
-export let slateAttachmentUploadedContentCleanupQueueProcessor =
-  slateAttachmentUploadedContentCleanupQueue.process(async data => {
+export let slateAttachmentStoredContentCleanupQueueProcessor =
+  slateAttachmentStoredContentCleanupQueue.process(async data => {
     let now = new Date();
     let attachment = await db.slateAttachment.findFirst({
       where: { id: data.attachmentId, expiresAt: { lt: now } }
     });
-    if (!attachment) return;
-
-    let upload = await db.slateAttachmentUpload.findFirst({
-      where: { attachmentOid: attachment.oid }
-    });
+    if (!attachment || attachment.digest) return;
 
     await db.slateInvocationAttachment.deleteMany({
       where: { attachmentsOid: attachment.oid }
@@ -153,8 +151,10 @@ export let slateAttachmentUploadedContentCleanupQueueProcessor =
       where: { oid: attachment.oid, expiresAt: { lt: now } }
     });
 
-    if (upload) {
-      await storage.deleteObject(upload.storageBucket, upload.storageKey).catch(() => {});
+    if (attachment.storageBucket && attachment.storageKey) {
+      await storage
+        .deleteObject(attachment.storageBucket, attachment.storageKey)
+        .catch(() => {});
     }
   });
 
@@ -170,48 +170,31 @@ export let slateAttachmentCleanupSingleQueue = createQueue<{
 export let slateAttachmentCleanupSingleQueueProcessor =
   slateAttachmentCleanupSingleQueue.process(async data => {
     let now = new Date();
-    let attachment = await db.slateAttachment.findUnique({
-      where: {
-        id: data.attachmentId
-      }
+    let attachment = await db.slateAttachment.findFirst({
+      where: { id: data.attachmentId, expiresAt: { lt: now } }
     });
-    if (attachment && attachment.expiresAt >= now) return;
 
     if (attachment) {
-      let current = await db.slateAttachment.findUnique({
-        where: {
-          oid: attachment.oid
-        }
+      await db.slateInvocationAttachment.deleteMany({
+        where: { attachmentsOid: attachment.oid }
       });
 
-      if (current && current.expiresAt < now) {
-        await db.slateInvocationAttachment.deleteMany({
-          where: {
-            attachmentsOid: current.oid
-          }
-        });
-
-        await db.slateAttachment.deleteMany({
-          where: {
-            oid: current.oid,
-            expiresAt: { lt: now }
-          }
-        });
-      }
+      await db.slateAttachment.deleteMany({
+        where: { oid: attachment.oid, expiresAt: { lt: now } }
+      });
     }
 
+    let digest = Buffer.from(data.digest, 'hex');
+
     let isDigestStillTracked = await db.slateAttachment.findFirst({
-      where: {
-        digest: Buffer.from(data.digest, 'hex')
-      },
-      select: {
-        oid: true
-      }
+      where: { digest },
+      select: { oid: true }
     });
     if (isDigestStillTracked) return;
 
-    await storage.deleteObject(
-      invocationsBucketRecord.bucket,
-      getStoredAttachmentsStorageKey(data.digest)
-    );
+    let blob = await db.slateAttachmentBlob.findUnique({ where: { digest } });
+    if (!blob) return;
+
+    await db.slateAttachmentBlob.deleteMany({ where: { oid: blob.oid } });
+    await storage.deleteObject(blob.storageBucket, blob.storageKey).catch(() => {});
   });

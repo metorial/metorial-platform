@@ -3,9 +3,9 @@ import {
   slateAttachmentCleanupCron,
   slateAttachmentCleanupManyQueueProcessor,
   slateAttachmentCleanupSingleQueueProcessor,
+  slateAttachmentStoredContentCleanupQueueProcessor,
   slateAttachmentUploadCleanupManyQueueProcessor,
-  slateAttachmentUploadCleanupSingleQueueProcessor,
-  slateAttachmentUploadedContentCleanupQueueProcessor
+  slateAttachmentUploadCleanupSingleQueueProcessor
 } from './cleanup';
 import { slateAttachmentUploadDeleteQueueProcessor } from './uploadDelete';
 
@@ -15,6 +15,6 @@ export let attachmentQueues = combineQueueProcessors([
   slateAttachmentCleanupSingleQueueProcessor,
   slateAttachmentUploadCleanupManyQueueProcessor,
   slateAttachmentUploadCleanupSingleQueueProcessor,
-  slateAttachmentUploadedContentCleanupQueueProcessor,
+  slateAttachmentStoredContentCleanupQueueProcessor,
   slateAttachmentUploadDeleteQueueProcessor
 ]);

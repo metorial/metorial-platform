@@ -332,34 +332,50 @@ class slateSessionToolCallServiceImpl {
     let contentBuffer = Buffer.from(d.content.content, d.content.encoding);
     let digest = new Uint8Array(await crypto.subtle.digest('SHA-256', contentBuffer));
     let digestString = Buffer.from(digest).toString('hex');
-    let storageKey = getStoredAttachmentsStorageKey(digestString);
 
-    let attachment = await db.slateAttachment.findFirst({
-      where: { digest }
-    });
-    if (!attachment) {
+    let blob = await db.slateAttachmentBlob.findFirst({ where: { digest } });
+    if (!blob) {
+      let storageKey = getStoredAttachmentsStorageKey(digestString);
+
       await storage.putObject(
         invocationsBucketRecord.bucket,
         storageKey,
         contentBuffer,
         d.mimeType ?? 'application/octet-stream'
       );
+
+      try {
+        blob = await db.slateAttachmentBlob.upsert({
+          where: { digest },
+          create: {
+            ...getId('slateAttachmentBlob'),
+            digest,
+            storageBucket: invocationsBucketRecord.bucket,
+            storageKey,
+            mimeType: d.mimeType,
+            sizeBytes: contentBuffer.byteLength
+          },
+          update: {}
+        });
+      } catch (e) {
+        try {
+          blob = await db.slateAttachmentBlob.findFirst({ where: { digest } });
+        } catch {}
+
+        if (!blob) throw e;
+      }
     }
 
     let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
-    let inner = {
-      digest,
-      expiresAt,
-      lastCreatedAt: new Date()
-    };
 
-    attachment = await db.slateAttachment.upsert({
-      where: { digest },
-      create: {
+    let attachment = await db.slateAttachment.create({
+      data: {
         ...getId('slateAttachment'),
-        ...inner
-      },
-      update: inner
+        digest,
+        storageBucket: blob.storageBucket,
+        storageKey: blob.storageKey,
+        expiresAt
+      }
     });
 
     await db.slateInvocationAttachment.createMany({
@@ -371,8 +387,8 @@ class slateSessionToolCallServiceImpl {
     });
 
     let url = await storage.getPublicURL(
-      invocationsBucketRecord.bucket,
-      storageKey,
+      blob.storageBucket,
+      blob.storageKey,
       ATTACHMENT_EXPIRATION_DAYS * 24 * 60 * 60,
       PublicUrlPurpose.Retrieve
     );
@@ -432,8 +448,7 @@ class slateSessionToolCallServiceImpl {
         mimeType: d.mimeType,
         refreshReference: d.content.refreshReference ?? undefined,
         refreshAfter: d.content.refreshAt ? new Date(d.content.refreshAt) : null,
-        expiresAt,
-        lastCreatedAt: new Date()
+        expiresAt
       }
     });
 
@@ -463,6 +478,12 @@ class slateSessionToolCallServiceImpl {
     });
     if (!upload) return null;
 
+    let claimed = await db.slateAttachmentUpload.updateMany({
+      where: { oid: upload.oid, status: 'pending' },
+      data: { status: 'processing' }
+    });
+    if (claimed.count === 0) return null;
+
     let info: ObjectMetadata | null;
     try {
       info = await storage.headObject(upload.storageBucket, upload.storageKey);
@@ -472,7 +493,7 @@ class slateSessionToolCallServiceImpl {
 
     if (!info) {
       await db.slateAttachmentUpload.updateMany({
-        where: { oid: upload.oid, status: 'pending' },
+        where: { oid: upload.oid, status: 'processing' },
         data: { status: 'failed' }
       });
       return null;
@@ -489,7 +510,7 @@ class slateSessionToolCallServiceImpl {
       totalConfirmedBytes > MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION
     ) {
       await db.slateAttachmentUpload.updateMany({
-        where: { oid: upload.oid, status: 'pending' },
+        where: { oid: upload.oid, status: 'processing' },
         data: { status: 'oversized' }
       });
       await slateAttachmentUploadDeleteQueue.add({
@@ -504,14 +525,15 @@ class slateSessionToolCallServiceImpl {
       data: {
         ...getId('slateAttachment'),
         digest: null,
-        expiresAt,
-        lastCreatedAt: new Date()
+        storageBucket: upload.storageBucket,
+        storageKey: upload.storageKey,
+        expiresAt
       }
     });
 
     await db.slateAttachmentUpload.updateMany({
-      where: { oid: upload.oid, status: 'pending' },
-      data: { status: 'confirmed', sizeBytes: info.size, attachmentOid: attachment.oid }
+      where: { oid: upload.oid, status: 'processing' },
+      data: { status: 'confirmed', sizeBytes: info.size }
     });
 
     await db.slateInvocationAttachment.createMany({
@@ -523,8 +545,8 @@ class slateSessionToolCallServiceImpl {
     });
 
     let url = await storage.getPublicURL(
-      upload.storageBucket,
-      upload.storageKey,
+      attachment.storageBucket!,
+      attachment.storageKey!,
       ATTACHMENT_EXPIRATION_DAYS * 24 * 60 * 60,
       PublicUrlPurpose.Retrieve
     );

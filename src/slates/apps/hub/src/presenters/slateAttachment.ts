@@ -1,8 +1,8 @@
 import { addDays } from 'date-fns';
 import type { SlateAttachment, SlateInvocation } from '../../prisma/generated/client';
 import { db } from '../db';
-import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
-import { invocationsBucketRecord, storage } from '../storage';
+import { env } from '../env';
+import { storage } from '../storage';
 
 let ATTACHMENT_PUBLIC_URL_EXPIRATION_DAYS = 7;
 
@@ -31,26 +31,21 @@ let getStoredAttachments = async (invocation: InvocationWithStoredAttachments) =
 };
 
 export let slateStoredAttachmentPresenter = async (attachment: SlateAttachment) => {
-  let bucket = invocationsBucketRecord.bucket;
-  let storageKey: string;
+  if (attachment.isProxied) {
+    return {
+      type: 'url' as const,
+      url: `${env.service.SERVICE_PUBLIC_URL}/integration-attachment/${attachment.id}`,
+      urlExpiresAt: attachment.expiresAt
+    };
+  }
 
-  if (attachment.digest) {
-    storageKey = getStoredAttachmentsStorageKey(
-      Buffer.from(attachment.digest).toString('hex')
-    );
-  } else {
-    let upload = await db.slateAttachmentUpload.findFirst({
-      where: { attachmentOid: attachment.oid }
-    });
-    if (!upload) throw new Error(`No upload record found for attachment ${attachment.id}`);
-
-    bucket = upload.storageBucket;
-    storageKey = upload.storageKey;
+  if (!attachment.storageBucket || !attachment.storageKey) {
+    throw new Error(`Attachment ${attachment.id} has no stored object`);
   }
 
   let url = await storage.getPublicURL(
-    bucket,
-    storageKey,
+    attachment.storageBucket,
+    attachment.storageKey,
     ATTACHMENT_PUBLIC_URL_EXPIRATION_DAYS * 24 * 60 * 60
   );
 

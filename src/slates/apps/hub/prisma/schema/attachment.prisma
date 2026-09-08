@@ -2,7 +2,8 @@ model SlateAttachment {
   oid BigInt @id
   id  String @unique
 
-  digest Bytes? @unique
+  // Non-unique: many attachments can share the same digest - deduped via SlateAttachmentBlob.
+  digest Bytes?
 
   isProxied Boolean @default(false)
 
@@ -16,9 +17,13 @@ model SlateAttachment {
   slateInstance    SlateInstance? @relation(fields: [slateInstanceOid], references: [oid], onDelete: SetNull)
 
   targetUrl String?
-  headers   Json?
-  query     Json?
-  mimeType  String?
+
+  storageBucket String?
+  storageKey    String?
+
+  headers  Json?
+  query    Json?
+  mimeType String?
 
   refreshReference        Json?
   refreshAfter            DateTime?
@@ -27,15 +32,29 @@ model SlateAttachment {
   lastRefreshErrorCode    String?
   lastRefreshErrorMessage String?
 
-  createdAt     DateTime @default(now())
-  expiresAt     DateTime
-  lastCreatedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 
   slateInvocationAttachments SlateInvocationAttachment[]
-  slateAttachmentUploads     SlateAttachmentUpload[]
 
+  @@index([digest])
   @@index([expiresAt])
   @@index([refreshAfter])
+}
+
+model SlateAttachmentBlob {
+  oid BigInt @id
+  id  String @unique
+
+  digest Bytes @unique
+
+  storageBucket String
+  storageKey    String
+
+  mimeType  String?
+  sizeBytes Int?
+
+  createdAt DateTime @default(now())
 }
 
 model SlateAttachmentUpload {
@@ -54,9 +73,6 @@ model SlateAttachmentUpload {
 
   storageBucket String
   storageKey    String
-
-  attachmentOid BigInt?
-  attachment    SlateAttachment? @relation(fields: [attachmentOid], references: [oid])
 
   createdAt DateTime @default(now())
   expiresAt DateTime // signed upload URL expiry
