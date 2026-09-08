@@ -47,7 +47,7 @@ export let storeSlateInvocation = (
     invocationResult: FunctionInvokeResponse;
   }
 ) => {
-  storeQueue
+  return storeQueue
     .add(async () => {
       let storeContent = d.tenant?.storeContent !== false;
 
