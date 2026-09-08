@@ -85,6 +85,7 @@ export let hubApp = createHono()
     c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
+  .get('/ping', c => c.text('OK'))
   .get('/slates-hub/authorization', async c => {
     let oauthSetupId = c.req.query('setup_id');
     if (!oauthSetupId)
@@ -145,7 +146,6 @@ export let hubApp = createHono()
     '/slates-hub/triggers/receiver-webhook/:receiverId/:key*?',
     handleTriggerWebhookRequest('receiver')
   )
-  .route('/', liveInvocationApp)
   .route('/', integrationAttachmentApp)
-  .options('*', c => c.text(''))
-  .get('/ping', c => c.text('OK'));
+  .route('/', liveInvocationApp)
+  .options('*', c => c.text(''));

@@ -51,7 +51,7 @@ export let liveInvocationApp = createHono<{
     liveInvocationPayload: LiveInvocationTokenPayload;
   };
 }>()
-  .use(async (c, next) => {
+  .use('/slates-hub/live-invocation/*', async (c, next) => {
     let auth = c.req.header('authorization');
     let token = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
     let payload = token ? await resolveLiveInvocationToken(token) : null;
