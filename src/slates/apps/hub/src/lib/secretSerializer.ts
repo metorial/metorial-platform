@@ -1,3 +1,12 @@
+let PLACEHOLDER_PREFIX = '$$MT$secret$authConfig$';
+
+export let containsSecretPlaceholder = (value: unknown): boolean => {
+  if (typeof value === 'string') return value.startsWith(PLACEHOLDER_PREFIX);
+  if (Array.isArray(value)) return value.some(containsSecretPlaceholder);
+  if (value && typeof value === 'object') return Object.values(value).some(containsSecretPlaceholder);
+  return false;
+};
+
 export class AuthConfigSecretSerializer {
   private readonly secretToPlaceholder = new Map<string, string>();
   private readonly placeholderToSecret = new Map<string, string>();
@@ -20,7 +29,10 @@ export class AuthConfigSecretSerializer {
 
   private buildSecretMap(value: unknown, path: string[] = []): void {
     if (typeof value === 'string') {
-      let placeholder = `$$MT$secret$authConfig$${path.join('.')}`;
+      // Never register "" -- it would replace every empty header/query value with a placeholder.
+      if (value.length === 0) return;
+
+      let placeholder = `${PLACEHOLDER_PREFIX}${path.join('.')}`;
 
       this.secretToPlaceholder.set(value, placeholder);
       this.placeholderToSecret.set(placeholder, value);

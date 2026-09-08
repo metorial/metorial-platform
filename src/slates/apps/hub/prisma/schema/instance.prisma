@@ -182,6 +182,7 @@ model SlateAuthConfig {
   slateAuthConfigManualDecrypts SlateAuthConfigManualDecrypt[]
   slateTriggerReceivers         SlateTriggerReceiver[]
   slateErrors                   SlateError[]
+  slateAttachments              SlateAttachment[]
 }
 
 model SlateAuthConfigManualDecrypt {

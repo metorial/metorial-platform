@@ -6,6 +6,7 @@ import { env } from '../../env';
 import { createSanitizedWebhookResponse } from '../../lib/triggerWebhookSync';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
 import { slateTriggerWebhookSyncService } from '../../services/slateTriggerWebhookSync';
+import { integrationAttachmentApp } from './integrationAttachment';
 import { liveInvocationApp } from './liveInvocation';
 
 let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';
@@ -145,5 +146,6 @@ export let hubApp = createHono()
     handleTriggerWebhookRequest('receiver')
   )
   .route('/', liveInvocationApp)
+  .route('/', integrationAttachmentApp)
   .options('*', c => c.text(''))
   .get('/ping', c => c.text('OK'));

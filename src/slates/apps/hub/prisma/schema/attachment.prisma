@@ -4,6 +4,19 @@ model SlateAttachment {
 
   digest Bytes? @unique
 
+  isProxied Boolean @default(false)
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  authConfigOid BigInt?
+  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
+
+  targetUrl String?
+  headers   Json?
+  query     Json?
+  mimeType  String?
+
   createdAt     DateTime @default(now())
   expiresAt     DateTime
   lastCreatedAt DateTime @default(now())

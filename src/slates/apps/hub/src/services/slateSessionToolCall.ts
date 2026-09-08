@@ -9,6 +9,7 @@ import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
 import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
+import { containsSecretPlaceholder } from '../lib/secretSerializer';
 import { slateAttachmentUploadDeleteQueue } from '../queues/attachment/uploadDelete';
 import { invocationsBucketRecord, storage } from '../storage';
 import { slateErrorService } from './slateError';
@@ -41,6 +42,8 @@ type SlateToolCallAttachment = {
     | {
         type: 'url';
         url: string;
+        headers?: Record<string, string>;
+        query?: Record<string, string>;
       }
     | {
         type: 'content';
@@ -268,7 +271,9 @@ class slateSessionToolCallServiceImpl {
               this.ensureAttachment({
                 content: attachment.content,
                 mimeType: attachment.mimeType,
-                invocation: callRes.invocation
+                invocation: callRes.invocation,
+                tenant: session.tenant,
+                authConfig
               })
             )
           )
@@ -290,13 +295,26 @@ class slateSessionToolCallServiceImpl {
     content: SlateToolCallAttachment['content'];
     mimeType?: string | undefined;
     invocation: SlateInvocation;
+    tenant: Tenant;
+    authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
   }) {
     if (d.content.type === 'url') {
-      return {
-        type: 'url' as const,
-        url: d.content.url,
-        mimeType: d.mimeType
-      };
+      if (!d.content.headers && !d.content.query) {
+        // No auth attached -- cheap passthrough, no need for a DB row or proxy hop.
+        return {
+          type: 'url' as const,
+          url: d.content.url,
+          mimeType: d.mimeType
+        };
+      }
+
+      return this.ensureProxiedUrlAttachment({
+        content: d.content,
+        mimeType: d.mimeType,
+        invocation: d.invocation,
+        tenant: d.tenant,
+        authConfig: d.authConfig
+      });
     }
 
     if (d.content.type === 'upload_reference') {
@@ -360,6 +378,59 @@ class slateSessionToolCallServiceImpl {
       url: url.url,
       mimeType: d.mimeType,
       urlExpiresAt: addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS)
+    };
+  }
+
+  private async ensureProxiedUrlAttachment(d: {
+    content: Extract<SlateToolCallAttachment['content'], { type: 'url' }>;
+    mimeType?: string | undefined;
+    invocation: SlateInvocation;
+    tenant: Tenant;
+    authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
+  }) {
+    let needsAuthConfig =
+      containsSecretPlaceholder(d.content.headers) || containsSecretPlaceholder(d.content.query);
+
+    if (needsAuthConfig && !d.authConfig) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'attachment_missing_auth_config',
+          message:
+            'Attachment references an auth-config secret placeholder, but this tool call has no auth config to resolve it against.'
+        })
+      );
+    }
+
+    let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
+
+    let attachment = await db.slateAttachment.create({
+      data: {
+        ...getId('slateAttachment'),
+        isProxied: true,
+        tenantOid: d.tenant.oid,
+        authConfigOid: needsAuthConfig ? d.authConfig!.authConfig.oid : null,
+        targetUrl: d.content.url,
+        headers: d.content.headers ?? undefined,
+        query: d.content.query ?? undefined,
+        mimeType: d.mimeType,
+        expiresAt,
+        lastCreatedAt: new Date()
+      }
+    });
+
+    await db.slateInvocationAttachment.createMany({
+      data: {
+        ...getId('slateInvocationAttachment'),
+        invocationOid: d.invocation.oid,
+        attachmentsOid: attachment.oid
+      }
+    });
+
+    return {
+      type: 'url' as const,
+      url: `${env.service.SERVICE_PUBLIC_URL}/integration-attachment/${attachment.id}`,
+      mimeType: d.mimeType,
+      urlExpiresAt: expiresAt
     };
   }
 
