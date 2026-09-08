@@ -110,8 +110,9 @@ export let integrationAttachmentApp = createHono().get(
 
       let ts = c.req.query('ts');
       let sig = c.req.query('sig');
-      if (ts !== undefined && sig !== undefined) {
-        let verified = await verifyAttachmentSignature(attachmentId, Number(ts), sig);
+      let hasSignature = ts !== undefined && sig !== undefined;
+      if (hasSignature) {
+        let verified = await verifyAttachmentSignature(attachmentId, Number(ts), sig!);
         if (!verified) {
           throw new ServiceError(
             forbiddenError({
@@ -120,6 +121,13 @@ export let integrationAttachmentApp = createHono().get(
             })
           );
         }
+      } else if (!env.secrets.TOOL_ATTACHMENT_ROUTER_SECRET) {
+        throw new ServiceError(
+          forbiddenError({
+            code: 'integration_attachment_invalid_signature',
+            message: 'This attachment link is invalid or has expired.'
+          })
+        );
       }
 
       let attachment = await db.slateAttachment.findFirst({

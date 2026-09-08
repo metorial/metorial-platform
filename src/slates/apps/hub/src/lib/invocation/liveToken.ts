@@ -10,7 +10,8 @@ export interface LiveInvocationTokenPayload {
   tenantOid: bigint;
 }
 
-let TOKEN_TTL_SECONDS = 45;
+let TOKEN_TTL_SECONDS = 60;
+let TOKEN_INTERNALS_TTL_SECONDS = 60 * 15;
 let RENEW_INTERVAL_MS = 20_000;
 
 let tokenKey = (token: string) => `slates-hub:live-invocation:${token}`;
@@ -69,8 +70,8 @@ export let reserveAttachmentBudget = async (
     r.incrBy(sizeKey(token), d.declaredSizeBytes)
   ]);
   await Promise.all([
-    r.expire(countKey(token), TOKEN_TTL_SECONDS),
-    r.expire(sizeKey(token), TOKEN_TTL_SECONDS)
+    r.expire(countKey(token), TOKEN_INTERNALS_TTL_SECONDS),
+    r.expire(sizeKey(token), TOKEN_INTERNALS_TTL_SECONDS)
   ]);
 
   return { newCount, newSize };

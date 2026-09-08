@@ -8,6 +8,7 @@ import type { SlateInstance, SlateInvocation, Tenant } from '../../prisma/genera
 import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
+import { signedIntegrationAttachmentUrl } from '../lib/attachmentSignature';
 import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
 import { containsSecretPlaceholder } from '../lib/secretSerializer';
 import { slateAttachmentUploadDeleteQueue } from '../queues/attachment/uploadDelete';
@@ -461,7 +462,8 @@ class slateSessionToolCallServiceImpl {
 
     return {
       type: 'url' as const,
-      url: `${env.service.SERVICE_PUBLIC_URL}/integration-attachment/${attachment.id}`,
+      attachmentId: attachment.id,
+      url: await signedIntegrationAttachmentUrl(attachment.id),
       mimeType: d.mimeType,
       urlExpiresAt: expiresAt
     };

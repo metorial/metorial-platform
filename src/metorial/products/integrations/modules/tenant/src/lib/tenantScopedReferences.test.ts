@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.hoisted(() => {
   process.env.DATABASE_URL ??= 'postgresql://user:pass@localhost:5432/scoped-plan-test';
   process.env.INTEGRATIONS_API_URL ??= 'http://localhost';
+  process.env.SLATE_ATTACHMENT_SIGNING_SECRET ??= 'test-tool-call-attachment-secret';
 });
 
 import { buildScopedModelPlan, type ScopedClient } from './tenantScopedReferences';
