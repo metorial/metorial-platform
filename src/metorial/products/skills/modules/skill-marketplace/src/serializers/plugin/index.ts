@@ -220,7 +220,8 @@ export let applyPlugin = createApplicator(
             name: project.organization.name
           },
           metadata: {
-            description: 'Official WorkOS skills for AI coding agents',
+            description:
+              input.skillPlugin.description ?? input.skillPlugin.longDescription ?? '',
             version: input.skillPlugin.version
           },
           plugins: [

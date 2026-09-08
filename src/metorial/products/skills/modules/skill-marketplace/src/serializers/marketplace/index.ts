@@ -138,7 +138,7 @@ export let applyMarketplace = createApplicator(
           name: project.organization.name
         },
         metadata: {
-          description: 'Official WorkOS skills for AI coding agents',
+          description: input.skillMarketplace.description ?? '',
           version: input.skillMarketplace.version
         },
         plugins: plugins.map(p => ({
@@ -159,7 +159,7 @@ export let applyMarketplace = createApplicator(
           name: project.organization.name
         },
         metadata: {
-          description: 'Official WorkOS skills for AI coding agents',
+          description: input.skillMarketplace.description ?? '',
           version: input.skillMarketplace.version
         },
         plugins: plugins.map(p => ({
