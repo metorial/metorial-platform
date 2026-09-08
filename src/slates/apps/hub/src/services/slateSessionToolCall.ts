@@ -3,16 +3,23 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
 import { addDays, differenceInMinutes } from 'date-fns';
-import { PublicUrlPurpose } from 'object-storage-client';
+import { type ObjectMetadata, PublicUrlPurpose } from 'object-storage-client';
 import type { SlateInvocation, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
+import { env } from '../env';
 import { getId } from '../id';
 import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
+import { slateAttachmentUploadDeleteQueue } from '../queues/attachment/uploadDelete';
 import { invocationsBucketRecord, storage } from '../storage';
 import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
 import { slateSessionService } from './slateSession';
+
+let DEFAULT_MAX_ATTACHMENT_SIZE_BYTES = 100 * 1024 * 1024;
+let MAX_ATTACHMENT_SIZE_BYTES =
+  env.storage.MAX_ATTACHMENT_SIZE_BYTES ?? DEFAULT_MAX_ATTACHMENT_SIZE_BYTES;
+let MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION = MAX_ATTACHMENT_SIZE_BYTES * 5;
 
 let include = {
   action: true,
@@ -39,6 +46,10 @@ type SlateToolCallAttachment = {
         type: 'content';
         encoding: 'base64' | 'utf-8';
         content: string;
+      }
+    | {
+        type: 'upload_reference';
+        referenceId: string;
       };
   mimeType?: string;
 };
@@ -251,15 +262,17 @@ class slateSessionToolCallServiceImpl {
     }
 
     let attachments = session.tenant.storeToolCallAttachments
-      ? await Promise.all(
-          (callRes.data.attachments ?? []).map(attachment =>
-            this.ensureAttachment({
-              content: attachment.content,
-              mimeType: attachment.mimeType,
-              invocation: callRes.invocation
-            })
+      ? (
+          await Promise.all(
+            (callRes.data.attachments ?? []).map(attachment =>
+              this.ensureAttachment({
+                content: attachment.content,
+                mimeType: attachment.mimeType,
+                invocation: callRes.invocation
+              })
+            )
           )
-        )
+        ).filter(a => a !== null)
       : [];
 
     return {
@@ -284,6 +297,14 @@ class slateSessionToolCallServiceImpl {
         url: d.content.url,
         mimeType: d.mimeType
       };
+    }
+
+    if (d.content.type === 'upload_reference') {
+      return this.ensureUploadedAttachment({
+        referenceId: d.content.referenceId,
+        mimeType: d.mimeType,
+        invocation: d.invocation
+      });
     }
 
     let contentBuffer = Buffer.from(d.content.content, d.content.encoding);
@@ -339,6 +360,90 @@ class slateSessionToolCallServiceImpl {
       url: url.url,
       mimeType: d.mimeType,
       urlExpiresAt: addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS)
+    };
+  }
+
+  private async ensureUploadedAttachment(d: {
+    referenceId: string;
+    mimeType?: string | undefined;
+    invocation: SlateInvocation;
+  }) {
+    let upload = await db.slateAttachmentUpload.findFirst({
+      where: { id: d.referenceId, invocationOid: d.invocation.oid }
+    });
+    if (!upload) return null;
+
+    let info: ObjectMetadata | null;
+    try {
+      info = await storage.headObject(upload.storageBucket, upload.storageKey);
+    } catch {
+      info = null;
+    }
+
+    if (!info) {
+      await db.slateAttachmentUpload.updateMany({
+        where: { oid: upload.oid, status: 'pending' },
+        data: { status: 'failed' }
+      });
+      return null;
+    }
+
+    let alreadyConfirmed = await db.slateAttachmentUpload.aggregate({
+      where: { invocationOid: d.invocation.oid, status: 'confirmed' },
+      _sum: { sizeBytes: true }
+    });
+    let totalConfirmedBytes = (alreadyConfirmed._sum.sizeBytes ?? 0) + info.size;
+
+    if (
+      info.size > MAX_ATTACHMENT_SIZE_BYTES ||
+      totalConfirmedBytes > MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION
+    ) {
+      await db.slateAttachmentUpload.updateMany({
+        where: { oid: upload.oid, status: 'pending' },
+        data: { status: 'oversized' }
+      });
+      await slateAttachmentUploadDeleteQueue.add({
+        bucket: upload.storageBucket,
+        key: upload.storageKey
+      });
+      return null;
+    }
+
+    let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
+    let attachment = await db.slateAttachment.create({
+      data: {
+        ...getId('slateAttachment'),
+        digest: null,
+        expiresAt,
+        lastCreatedAt: new Date()
+      }
+    });
+
+    await db.slateAttachmentUpload.updateMany({
+      where: { oid: upload.oid, status: 'pending' },
+      data: { status: 'confirmed', sizeBytes: info.size, attachmentOid: attachment.oid }
+    });
+
+    await db.slateInvocationAttachment.createMany({
+      data: {
+        ...getId('slateInvocationAttachment'),
+        invocationOid: d.invocation.oid,
+        attachmentsOid: attachment.oid
+      }
+    });
+
+    let url = await storage.getPublicURL(
+      upload.storageBucket,
+      upload.storageKey,
+      ATTACHMENT_EXPIRATION_DAYS * 24 * 60 * 60,
+      PublicUrlPurpose.Retrieve
+    );
+
+    return {
+      type: 'url' as const,
+      url: url.url,
+      mimeType: d.mimeType ?? info.content_type ?? upload.mimeType ?? undefined,
+      urlExpiresAt: expiresAt
     };
   }
 

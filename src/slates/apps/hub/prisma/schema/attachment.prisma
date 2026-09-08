@@ -2,13 +2,41 @@ model SlateAttachment {
   oid BigInt @id
   id  String @unique
 
-  digest Bytes @unique
+  digest Bytes? @unique
 
   createdAt     DateTime @default(now())
   expiresAt     DateTime
   lastCreatedAt DateTime @default(now())
 
   slateInvocationAttachments SlateInvocationAttachment[]
+  slateAttachmentUploads     SlateAttachmentUpload[]
 
   @@index([expiresAt])
+}
+
+model SlateAttachmentUpload {
+  oid BigInt @id
+  id  String @unique
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  mimeType String?
+  filename String?
+
+  sizeBytes Int?
+
+  status String @default("pending")
+
+  storageBucket String
+  storageKey    String
+
+  attachmentOid BigInt?
+  attachment    SlateAttachment? @relation(fields: [attachmentOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime // signed upload URL expiry
+
+  @@index([expiresAt, status])
+  @@index([invocationOid])
 }

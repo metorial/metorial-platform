@@ -52,6 +52,7 @@ export let ID = createIdGenerator({
 
   slateAttachment: idType.sorted('shsa'),
   slateInvocationAttachment: idType.sorted('shsia'),
+  slateAttachmentUpload: idType.sorted('shau'),
 
   slateError: idType.sorted('sher')
 });

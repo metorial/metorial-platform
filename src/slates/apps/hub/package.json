@@ -70,6 +70,7 @@
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/programmable-promise": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/rpc-client": "workspace:2.0.0",
     "@lowerdeck/rpc-server": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",

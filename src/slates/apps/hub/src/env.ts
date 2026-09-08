@@ -28,7 +28,8 @@ export let env = createValidatedEnv({
 
   storage: {
     OBJECT_STORAGE_URL: v.string(),
-    INVOCATIONS_BUCKET_NAME: v.string()
+    INVOCATIONS_BUCKET_NAME: v.string(),
+    MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number())
   },
 
   encryption: {

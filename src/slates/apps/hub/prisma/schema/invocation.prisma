@@ -29,6 +29,7 @@ model SlateInvocation {
   slateTriggerInvocations       SlateTriggerInvocation[]
   slateTriggerEvents            SlateTriggerEvent[]
   slateInvocationAttachment     SlateInvocationAttachment[]
+  slateAttachmentUploads        SlateAttachmentUpload[]
   slateErrors                   SlateError[]
 
   @@index([deploymentOid, createdAt])

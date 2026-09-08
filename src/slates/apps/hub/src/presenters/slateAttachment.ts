@@ -31,11 +31,25 @@ let getStoredAttachments = async (invocation: InvocationWithStoredAttachments) =
 };
 
 export let slateStoredAttachmentPresenter = async (attachment: SlateAttachment) => {
-  let storageKey = getStoredAttachmentsStorageKey(
-    Buffer.from(attachment.digest).toString('hex')
-  );
+  let bucket = invocationsBucketRecord.bucket;
+  let storageKey: string;
+
+  if (attachment.digest) {
+    storageKey = getStoredAttachmentsStorageKey(
+      Buffer.from(attachment.digest).toString('hex')
+    );
+  } else {
+    let upload = await db.slateAttachmentUpload.findFirst({
+      where: { attachmentOid: attachment.oid }
+    });
+    if (!upload) throw new Error(`No upload record found for attachment ${attachment.id}`);
+
+    bucket = upload.storageBucket;
+    storageKey = upload.storageKey;
+  }
+
   let url = await storage.getPublicURL(
-    invocationsBucketRecord.bucket,
+    bucket,
     storageKey,
     ATTACHMENT_PUBLIC_URL_EXPIRATION_DAYS * 24 * 60 * 60
   );
