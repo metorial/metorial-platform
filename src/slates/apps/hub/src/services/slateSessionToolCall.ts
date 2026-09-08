@@ -437,7 +437,6 @@ class slateSessionToolCallServiceImpl {
     let attachment = await db.slateAttachment.create({
       data: {
         ...getId('slateAttachment'),
-        isProxied: true,
         tenantOid: d.tenant.oid,
         authConfigOid: needsAuthConfig ? d.authConfig!.authConfig.oid : null,
         slateInstanceOid:

@@ -58,6 +58,8 @@ export let env = createValidatedEnv({
   },
 
   secrets: {
-    SLATES_DELEGATE_SECRETS_TO_NEBULA: v.boolean()
+    SLATES_DELEGATE_SECRETS_TO_NEBULA: v.boolean(),
+    SLATE_ATTACHMENT_SIGNING_SECRET: v.string(),
+    TOOL_ATTACHMENT_ROUTER_SECRET: v.optional(v.string())
   }
 });

@@ -5,8 +5,6 @@ model SlateAttachment {
   // Non-unique: many attachments can share the same digest - deduped via SlateAttachmentBlob.
   digest Bytes?
 
-  isProxied Boolean @default(false)
-
   tenantOid BigInt?
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 

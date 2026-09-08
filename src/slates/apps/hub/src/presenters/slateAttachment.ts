@@ -2,6 +2,7 @@ import { addDays } from 'date-fns';
 import type { SlateAttachment, SlateInvocation } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
+import { signAttachmentId } from '../lib/attachmentSignature';
 import { storage } from '../storage';
 
 let ATTACHMENT_PUBLIC_URL_EXPIRATION_DAYS = 7;
@@ -30,11 +31,20 @@ let getStoredAttachments = async (invocation: InvocationWithStoredAttachments) =
   return records.map(record => record.attachments);
 };
 
+let signedIntegrationAttachmentUrl = async (attachmentId: string) => {
+  let { ts, sig } = await signAttachmentId(attachmentId);
+  let url = new URL(`${env.service.SERVICE_PUBLIC_URL}/integration-attachment/${attachmentId}`);
+  url.searchParams.set('ts', String(ts));
+  url.searchParams.set('sig', sig);
+  return url.toString();
+};
+
 export let slateStoredAttachmentPresenter = async (attachment: SlateAttachment) => {
-  if (attachment.isProxied) {
+  if (attachment.targetUrl) {
     return {
       type: 'url' as const,
-      url: `${env.service.SERVICE_PUBLIC_URL}/integration-attachment/${attachment.id}`,
+      attachmentId: attachment.id,
+      url: await signedIntegrationAttachmentUrl(attachment.id),
       urlExpiresAt: attachment.expiresAt
     };
   }
@@ -51,6 +61,7 @@ export let slateStoredAttachmentPresenter = async (attachment: SlateAttachment) 
 
   return {
     type: 'url' as const,
+    attachmentId: attachment.id,
     url: url.url,
     urlExpiresAt: addDays(new Date(), ATTACHMENT_PUBLIC_URL_EXPIRATION_DAYS)
   };

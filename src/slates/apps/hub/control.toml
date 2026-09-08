@@ -56,6 +56,7 @@ SUPPORTS_PREBUILT_SLATES = "true"
 NEBULA_CONSUMER_IDENTIFIER = "dev-slates-hub"
 NEBULA_CONSUMER_TOKEN = "local-dev-nebula-slates-registration-secret"
 SLATES_DELEGATE_SECRETS_TO_NEBULA = "true"
+SLATE_ATTACHMENT_SIGNING_SECRET = "dev-slate-attachment-signing-secret"
 
 [dev.db.main]
 package = "@metorial/slates"
