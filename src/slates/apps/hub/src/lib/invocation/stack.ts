@@ -11,6 +11,7 @@ import type {
 import z from 'zod';
 import type { SlateInvocation, SlateVersion } from '../../../prisma/generated/client';
 import { db } from '../../db';
+import { env } from '../../env';
 import {
   functionBay,
   functionBayTenant,
@@ -19,6 +20,7 @@ import {
 import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
 import { invocationsBucketRecord } from '../../storage';
+import { mintLiveInvocationToken } from './liveToken';
 import { storeSlateInvocation } from './store';
 import type {
   InvocationError,
@@ -28,6 +30,8 @@ import type {
   SlatesRequest,
   SlatesResponse
 } from './types';
+
+let DEFAULT_MAX_ATTACHMENT_SIZE_BYTES = 100 * 1024 * 1024;
 
 let Sentry = getSentry();
 
@@ -76,6 +80,12 @@ export class SlateInvocationStack {
 
     this.#alreadyInvoked = true;
 
+    let invocationId = await ID.generateId('slateInvocation');
+
+    let liveInvocationToken = this.#tenant
+      ? await mintLiveInvocationToken({ invocationId, tenantOid: this.#tenant.oid })
+      : null;
+
     let messages: SlatesRequest[] = [
       { jsonrpc: '2.0', method: 'slates/hello', params: { protocol: 'slates@2026-01-01' } },
       {
@@ -88,12 +98,40 @@ export class SlateInvocationStack {
           ]
         }
       },
+      ...(liveInvocationToken
+        ? ([
+            {
+              jsonrpc: '2.0',
+              method: 'slates/hub.capabilities.set',
+              params: {
+                capabilities: {
+                  attachments: {
+                    directUpload: {
+                      enabled: true,
+                      maxAttachmentSizeBytes:
+                        env.storage.MAX_ATTACHMENT_SIZE_BYTES ??
+                        DEFAULT_MAX_ATTACHMENT_SIZE_BYTES
+                    }
+                  }
+                }
+              }
+            },
+            {
+              jsonrpc: '2.0',
+              method: 'slates/hub.live_invocation.set',
+              params: {
+                token: liveInvocationToken.token,
+                baseUrl: env.service.SERVICE_PUBLIC_URL
+              }
+            }
+            // TODO: slates proto update
+          ] as unknown as SlatesRequest[])
+        : []),
 
       ...this.#initialMessages,
       ...this.#productiveMessages
     ];
 
-    let invocationId = await ID.generateId('slateInvocation');
     let [runtimeTenant, deploymentTenant] = await Promise.all([
       this.#tenant ? getFunctionBayTenantForTenant(this.#tenant) : functionBayTenant,
       functionBayTenant
@@ -121,6 +159,8 @@ export class SlateInvocationStack {
         }
       })
     ]);
+
+    liveInvocationToken?.release().catch(e => Sentry.captureException(e));
 
     if (providerInvocation.type === 'error') {
       storeSlateInvocation({
