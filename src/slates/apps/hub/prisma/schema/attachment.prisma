@@ -12,10 +12,20 @@ model SlateAttachment {
   authConfigOid BigInt?
   authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
 
+  slateInstanceOid BigInt?
+  slateInstance    SlateInstance? @relation(fields: [slateInstanceOid], references: [oid], onDelete: SetNull)
+
   targetUrl String?
   headers   Json?
   query     Json?
   mimeType  String?
+
+  refreshReference        Json?
+  refreshAfter            DateTime?
+  lastRefreshedAt         DateTime?
+  refreshFailureCount     Int       @default(0)
+  lastRefreshErrorCode    String?
+  lastRefreshErrorMessage String?
 
   createdAt     DateTime @default(now())
   expiresAt     DateTime
@@ -25,6 +35,7 @@ model SlateAttachment {
   slateAttachmentUploads     SlateAttachmentUpload[]
 
   @@index([expiresAt])
+  @@index([refreshAfter])
 }
 
 model SlateAttachmentUpload {

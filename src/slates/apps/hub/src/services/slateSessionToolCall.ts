@@ -4,7 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
 import { addDays, differenceInMinutes } from 'date-fns';
 import { type ObjectMetadata, PublicUrlPurpose } from 'object-storage-client';
-import type { SlateInvocation, Tenant } from '../../prisma/generated/client';
+import type { SlateInstance, SlateInvocation, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
@@ -44,6 +44,8 @@ type SlateToolCallAttachment = {
         url: string;
         headers?: Record<string, string>;
         query?: Record<string, string>;
+        refreshReference?: unknown;
+        refreshAt?: string;
       }
     | {
         type: 'content';
@@ -273,6 +275,7 @@ class slateSessionToolCallServiceImpl {
                 mimeType: attachment.mimeType,
                 invocation: callRes.invocation,
                 tenant: session.tenant,
+                slateInstance: session.slateInstance,
                 authConfig
               })
             )
@@ -296,11 +299,11 @@ class slateSessionToolCallServiceImpl {
     mimeType?: string | undefined;
     invocation: SlateInvocation;
     tenant: Tenant;
+    slateInstance: SlateInstance;
     authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
   }) {
     if (d.content.type === 'url') {
-      if (!d.content.headers && !d.content.query) {
-        // No auth attached -- cheap passthrough, no need for a DB row or proxy hop.
+      if (!d.content.headers && !d.content.query && !d.content.refreshReference) {
         return {
           type: 'url' as const,
           url: d.content.url,
@@ -313,6 +316,7 @@ class slateSessionToolCallServiceImpl {
         mimeType: d.mimeType,
         invocation: d.invocation,
         tenant: d.tenant,
+        slateInstance: d.slateInstance,
         authConfig: d.authConfig
       });
     }
@@ -386,10 +390,12 @@ class slateSessionToolCallServiceImpl {
     mimeType?: string | undefined;
     invocation: SlateInvocation;
     tenant: Tenant;
+    slateInstance: SlateInstance;
     authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
   }) {
     let needsAuthConfig =
-      containsSecretPlaceholder(d.content.headers) || containsSecretPlaceholder(d.content.query);
+      containsSecretPlaceholder(d.content.headers) ||
+      containsSecretPlaceholder(d.content.query);
 
     if (needsAuthConfig && !d.authConfig) {
       throw new ServiceError(
@@ -397,6 +403,15 @@ class slateSessionToolCallServiceImpl {
           code: 'attachment_missing_auth_config',
           message:
             'Attachment references an auth-config secret placeholder, but this tool call has no auth config to resolve it against.'
+        })
+      );
+    }
+
+    if (d.content.refreshReference !== undefined && !d.content.refreshAt) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'attachment_refresh_expiry_missing',
+          message: 'Attachment has a refreshReference but no refreshAt expiry was provided.'
         })
       );
     }
@@ -409,10 +424,14 @@ class slateSessionToolCallServiceImpl {
         isProxied: true,
         tenantOid: d.tenant.oid,
         authConfigOid: needsAuthConfig ? d.authConfig!.authConfig.oid : null,
+        slateInstanceOid:
+          d.content.refreshReference !== undefined ? d.slateInstance.oid : null,
         targetUrl: d.content.url,
         headers: d.content.headers ?? undefined,
         query: d.content.query ?? undefined,
         mimeType: d.mimeType,
+        refreshReference: d.content.refreshReference ?? undefined,
+        refreshAfter: d.content.refreshAt ? new Date(d.content.refreshAt) : null,
         expiresAt,
         lastCreatedAt: new Date()
       }

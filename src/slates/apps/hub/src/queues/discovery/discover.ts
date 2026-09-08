@@ -9,6 +9,7 @@ import { env } from '../../env';
 import { getId, snowflake } from '../../id';
 import { getStackError, getStackResultsOrThrow } from '../../lib/invocation/error';
 import type { InvocationError } from '../../lib/invocation/types';
+import { isReservedActionId } from '../../lib/reservedActions';
 import {
   buildDiscoveredSpecificationHashes,
   dedupeDiscoveredItems
@@ -315,12 +316,18 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         slateId: slate.id,
         versionId: version.id
       });
-      let discoveredActions = dedupeDiscoveredItems(actions.actions, {
-        entity: 'actions',
-        slateId: slate.id,
-        versionId: version.id,
-        getKey: action => `${action.type}:${action.id}`
-      });
+      let discoveredActions = dedupeDiscoveredItems(
+        // Reserved hub-internal tools (e.g. metorial$getFileUrl) are never persisted as
+        // SlateAction rows or exposed via the specification -- the hub invokes them
+        // directly by their literal id, without going through discovery at all.
+        actions.actions.filter(action => !isReservedActionId(action.id)),
+        {
+          entity: 'actions',
+          slateId: slate.id,
+          versionId: version.id,
+          getKey: action => `${action.type}:${action.id}`
+        }
+      );
 
       let providerDocs = normalizeDiscoveredDocs(providerInfo.docs);
       let configSchemaDocs = normalizeDiscoveredDocs(configSchema.docs);

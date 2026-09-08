@@ -30,6 +30,7 @@ model SlateInstance {
   slateTriggerEvents      SlateTriggerEvent[]
   slateTriggerEventInputs SlateTriggerEventInput[]
   slateErrors             SlateError[]
+  slateAttachments        SlateAttachment[]
 }
 
 model SlateInstanceConfiguration {
