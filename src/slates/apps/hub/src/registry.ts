@@ -51,10 +51,13 @@ let predefinedRegistryMap = new Map(predefinedRegistries.map(r => [r.registryUrl
 
 export let upsertRegistry = async (registry: { registryUrl: string; name?: string }) => {
   let identifier = `reg::default::${await Hash.sha256(JSON.stringify([registry.registryUrl]))}`;
+  let name = registry.name ?? `Default Registry ${registry.registryUrl}`;
+
   await db.registry.upsert({
     where: { identifier },
     update: {
       url: registry.registryUrl,
+      name,
       status: 'active',
       isPredefined: true
     },
@@ -65,10 +68,28 @@ export let upsertRegistry = async (registry: { registryUrl: string; name?: strin
 
       identifier,
       url: registry.registryUrl,
-      name: registry.name ?? `Default Registry ${registry.registryUrl}`
+      name
     }
   });
 };
+
+if (predefinedRegistries.length === 1) {
+  let predefined = await db.registry.findMany({ where: { isPredefined: true } });
+  let stale = predefined.filter(r => !predefinedRegistryMap.has(r.url));
+  if (predefined.length === 1 && stale.length === 1) {
+    let registry = predefinedRegistries[0]!;
+    let identifier = `reg::default::${await Hash.sha256(JSON.stringify([registry.registryUrl]))}`;
+    await db.registry.update({
+      where: { id: stale[0]!.id },
+      data: {
+        identifier,
+        url: registry.registryUrl,
+        name: registry.name ?? `Default Registry ${registry.registryUrl}`,
+        status: 'active'
+      }
+    });
+  }
+}
 
 for (let registry of predefinedRegistries) {
   await upsertRegistry(registry);

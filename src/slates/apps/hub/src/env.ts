@@ -10,7 +10,8 @@ export let env = createValidatedEnv({
     METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
 
     SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
-    SLATES_HUB_INTERNAL_PORT: v.optional(v.number())
+    SLATES_HUB_INTERNAL_PORT: v.optional(v.number()),
+    SLATES_HUB_ADMIN_PORT: v.optional(v.number())
   },
 
   functionBay: {

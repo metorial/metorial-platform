@@ -19,6 +19,12 @@ env = [
   { endpoint = "api", key = "NEBULA_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-nebula" },
 ]
 
+[[dependencies]]
+identifier = "@metorial/slates-registry"
+env = [
+  { endpoint = "public", key = "INITIAL_REGISTRIES", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev]
 prepare = ["admin:build"]
 run = ["dev:start"]
@@ -33,6 +39,10 @@ env = [
 [endpoints.internal]
 port = 52046
 env = [{ key = "SLATES_HUB_INTERNAL_PORT", value = "{{BIND_PORT}}" }]
+
+[endpoints.admin]
+port = 52047
+env = [{ key = "SLATES_HUB_ADMIN_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"
