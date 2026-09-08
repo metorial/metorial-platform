@@ -10,12 +10,12 @@ export type TokenKeys =
       secret: string;
     };
 
-type Signer = {
+export type Signer = {
   sign: (data: string) => Promise<string>;
   verify: (data: string, signature: string) => Promise<boolean>;
 };
 
-let getSigner = (keys: TokenKeys): Signer => {
+export let getSigner = (keys: TokenKeys): Signer => {
   if ('secret' in keys) {
     let keyMemo = memo(() =>
       crypto.subtle.importKey(
