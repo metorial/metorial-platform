@@ -1,30 +1,65 @@
 let PLACEHOLDER_PREFIX = '$$MT$secret$authConfig$';
 
 export let containsSecretPlaceholder = (value: unknown): boolean => {
-  if (typeof value === 'string') return value.startsWith(PLACEHOLDER_PREFIX);
+  if (typeof value === 'string') return value.includes(PLACEHOLDER_PREFIX);
   if (Array.isArray(value)) return value.some(containsSecretPlaceholder);
-  if (value && typeof value === 'object') return Object.values(value).some(containsSecretPlaceholder);
+  if (value && typeof value === 'object')
+    return Object.values(value).some(containsSecretPlaceholder);
   return false;
 };
 
 export class AuthConfigSecretSerializer {
   private readonly secretToPlaceholder = new Map<string, string>();
   private readonly placeholderToSecret = new Map<string, string>();
+  private readonly secretPattern: RegExp | undefined;
+  private readonly placeholderPattern: RegExp | undefined;
 
   public constructor(authConfig: Record<string, unknown>) {
     this.buildSecretMap(authConfig);
+    this.secretPattern = this.buildPattern([...this.secretToPlaceholder.keys()]);
+    this.placeholderPattern = this.buildPattern(
+      [...this.placeholderToSecret.keys()].map(placeholder => `${placeholder}$$`)
+    );
   }
 
   public serialize<T>(value: T): T {
     return this.transform(value, stringValue => {
-      return this.secretToPlaceholder.get(stringValue) ?? stringValue;
+      let exact = this.secretToPlaceholder.get(stringValue);
+      if (exact !== undefined) return exact;
+      if (!this.secretPattern) return stringValue;
+
+      return stringValue.replace(
+        this.secretPattern,
+        secret => `${this.secretToPlaceholder.get(secret)}$$`
+      );
     });
   }
 
   public deserialize<T>(value: T): T {
     return this.transform(value, stringValue => {
-      return this.placeholderToSecret.get(stringValue) ?? stringValue;
+      let exact = this.placeholderToSecret.get(stringValue);
+      if (exact !== undefined) return exact;
+      if (!this.placeholderPattern) return stringValue;
+
+      return stringValue.replace(
+        this.placeholderPattern,
+        // Remove the two-character "$$" terminator before looking up the legacy key.
+        placeholder => this.placeholderToSecret.get(placeholder.slice(0, -2)) ?? placeholder
+      );
     });
+  }
+
+  private buildPattern(values: string[]): RegExp | undefined {
+    if (!values.length) return undefined;
+
+    return new RegExp(
+      values
+        .sort((a, b) => b.length - a.length)
+        // Escape regex metacharacters so values match literally; $& inserts the matched character.
+        .map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('|'),
+      'g'
+    );
   }
 
   private buildSecretMap(value: unknown, path: string[] = []): void {
