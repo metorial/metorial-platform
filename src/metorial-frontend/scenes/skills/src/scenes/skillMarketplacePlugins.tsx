@@ -1160,8 +1160,8 @@ export let SkillMarketplacePluginsScene = (p: {
         let [plugin] = await createPlugin.mutate({
           instanceId: p.instanceId!,
           skillMarketplaceId: p.skillMarketplaceId!,
-          name: skill.name,
-          description: skill.description ?? undefined
+          name: skill.clientName || skill.name,
+          description: skill.clientDescription ?? undefined
         });
         if (!plugin) return false;
         let [membership] = await addPluginSkill.mutate({
@@ -1204,8 +1204,8 @@ export let SkillMarketplacePluginsScene = (p: {
     let [plugin] = await createPlugin.mutate({
       instanceId: p.instanceId,
       skillMarketplaceId: p.skillMarketplaceId,
-      name: p2.skill.skill.name,
-      description: p2.skill.skill.description ?? undefined
+      name: p2.skill.skill.clientName || p2.skill.skill.name,
+      description: p2.skill.skill.clientDescription ?? undefined
     });
     if (!plugin) return;
 
