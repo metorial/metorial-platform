@@ -4,6 +4,7 @@ import { db } from '@metorial/db';
 import semver from 'semver';
 import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
 import { getMarketplacePruneScope } from '../_lib/paths';
 
 let json = (data: any) => JSON.stringify(data, null, 2);
@@ -53,6 +54,7 @@ export let applyMarketplace = createApplicator(
     let hash = await Hash.sha256(
       canonicalize({
         serializerVersion: 3,
+        ...getMarketplaceForceSyncHashInput(input.skillMarketplace),
         marketplace: {
           slug: input.skillMarketplace.slug,
           name: input.skillMarketplace.name,
