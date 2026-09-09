@@ -31,7 +31,7 @@ export let getToolCallAttachmentPublicUrl = async (urlKey: string, tokenExpiresA
 };
 
 export let getToolCallAttachmentUrlKey = () => {
-  let random = generateCustomId('tca_link_', 50);
+  let random = generateCustomId('tca_link_', 20);
   let region = process.env.METORIAL_REGION;
   return region ? `${random}_${region}` : random;
 };

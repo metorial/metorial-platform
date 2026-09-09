@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
+  ATTACHMENT_SIGNATURE_MAX_AGE_MS: 5 * 60_000,
   signedIntegrationAttachmentUrl: vi.fn(
     async (attachmentId: string) =>
       `https://slates.example.com/integration-attachment/${attachmentId}?ts=1&sig=2`
@@ -9,6 +10,7 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('../db', () => ({ db: {} }));
 vi.mock('../lib/attachmentSignature', () => ({
+  ATTACHMENT_SIGNATURE_MAX_AGE_MS: mocks.ATTACHMENT_SIGNATURE_MAX_AGE_MS,
   signedIntegrationAttachmentUrl: mocks.signedIntegrationAttachmentUrl
 }));
 
@@ -29,7 +31,7 @@ describe('slateStoredAttachmentPresenter', () => {
       type: 'url',
       attachmentId: 'shsa_123',
       url: 'https://slates.example.com/integration-attachment/shsa_123?ts=1&sig=2',
-      urlExpiresAt: expiresAt
+      urlExpiresAt: new Date(1 + mocks.ATTACHMENT_SIGNATURE_MAX_AGE_MS)
     });
   });
 

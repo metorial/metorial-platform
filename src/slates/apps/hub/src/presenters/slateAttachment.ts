@@ -1,6 +1,9 @@
 import type { SlateAttachment, SlateInvocation } from '../../prisma/generated/client';
 import { db } from '../db';
-import { signedIntegrationAttachmentUrl } from '../lib/attachmentSignature';
+import {
+  ATTACHMENT_SIGNATURE_MAX_AGE_MS,
+  signedIntegrationAttachmentUrl
+} from '../lib/attachmentSignature';
 
 type InvocationWithStoredAttachments = SlateInvocation & {
   slateInvocationAttachment?: { attachments: SlateAttachment }[];
@@ -31,11 +34,14 @@ export let slateStoredAttachmentPresenter = async (attachment: SlateAttachment) 
     throw new Error(`Attachment ${attachment.id} has no stored object`);
   }
 
+  let url = await signedIntegrationAttachmentUrl(attachment.id);
+  let ts = Number(new URL(url).searchParams.get('ts'));
+
   return {
     type: 'url' as const,
     attachmentId: attachment.id,
-    url: await signedIntegrationAttachmentUrl(attachment.id),
-    urlExpiresAt: attachment.expiresAt
+    url,
+    urlExpiresAt: new Date(ts + ATTACHMENT_SIGNATURE_MAX_AGE_MS)
   };
 };
 
