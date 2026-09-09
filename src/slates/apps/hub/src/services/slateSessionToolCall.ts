@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
 import { addDays, differenceInMinutes } from 'date-fns';
-import { type ObjectMetadata, PublicUrlPurpose } from 'object-storage-client';
+import type { ObjectMetadata } from 'object-storage-client';
 import type { SlateInstance, SlateInvocation, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
@@ -304,14 +304,6 @@ class slateSessionToolCallServiceImpl {
     authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
   }) {
     if (d.content.type === 'url') {
-      if (!d.content.headers && !d.content.query && !d.content.refreshReference) {
-        return {
-          type: 'url' as const,
-          url: d.content.url,
-          mimeType: d.mimeType
-        };
-      }
-
       return this.ensureProxiedUrlAttachment({
         content: d.content,
         mimeType: d.mimeType,
@@ -387,18 +379,12 @@ class slateSessionToolCallServiceImpl {
       }
     });
 
-    let url = await storage.getPublicURL(
-      blob.storageBucket,
-      blob.storageKey,
-      ATTACHMENT_EXPIRATION_DAYS * 24 * 60 * 60,
-      PublicUrlPurpose.Retrieve
-    );
-
     return {
       type: 'url' as const,
-      url: url.url,
+      attachmentId: attachment.id,
+      url: await signedIntegrationAttachmentUrl(attachment.id),
       mimeType: d.mimeType,
-      urlExpiresAt: addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS)
+      urlExpiresAt: expiresAt
     };
   }
 
@@ -545,16 +531,10 @@ class slateSessionToolCallServiceImpl {
       }
     });
 
-    let url = await storage.getPublicURL(
-      attachment.storageBucket!,
-      attachment.storageKey!,
-      ATTACHMENT_EXPIRATION_DAYS * 24 * 60 * 60,
-      PublicUrlPurpose.Retrieve
-    );
-
     return {
       type: 'url' as const,
-      url: url.url,
+      attachmentId: attachment.id,
+      url: await signedIntegrationAttachmentUrl(attachment.id),
       mimeType: d.mimeType ?? info.content_type ?? upload.mimeType ?? undefined,
       urlExpiresAt: expiresAt
     };

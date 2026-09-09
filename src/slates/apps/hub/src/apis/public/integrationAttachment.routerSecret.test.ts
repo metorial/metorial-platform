@@ -7,7 +7,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   findFirst: vi.fn(),
-  usingLock: vi.fn(async (_key: unknown, fn: () => Promise<unknown>) => fn())
+  usingLock: vi.fn(async (_key: unknown, fn: () => Promise<unknown>) => fn()),
+  getPublicURL: vi.fn(),
+  getObject: vi.fn()
 }));
 
 vi.mock('../../db', () => ({
@@ -39,7 +41,7 @@ vi.mock('../../services/slateInstanceAuthHandler', () => ({
 // `../../storage` performs top-level DB/bucket-provisioning calls on import.
 // None of our test attachments use stored objects, so mock it out entirely.
 vi.mock('../../storage', () => ({
-  storage: { getPublicURL: vi.fn(), getObject: vi.fn() }
+  storage: { getPublicURL: mocks.getPublicURL, getObject: mocks.getObject }
 }));
 
 process.env.SLATE_ATTACHMENT_SIGNING_SECRET ??= 'test-signing-secret';
@@ -99,5 +101,46 @@ describe('integration attachment endpoint with a router secret configured', () =
     await expect(response.json()).resolves.toMatchObject({
       url: 'https://provider.example/file'
     });
+  });
+
+  it('mints stored-object URLs with seven minutes of headroom', async () => {
+    mocks.findFirst.mockResolvedValueOnce({
+      id: 'shsa_stored',
+      oid: 2n,
+      targetUrl: null,
+      storageBucket: 'attachments',
+      storageKey: 'uploads/shau_123',
+      expiresAt: new Date(Date.now() + 60_000),
+      refreshAfter: null,
+      refreshFailureCount: 0,
+      lastRefreshErrorCode: null,
+      lastRefreshErrorMessage: null,
+      authConfigOid: null,
+      headers: null,
+      query: null,
+      mimeType: 'application/octet-stream'
+    });
+    mocks.getPublicURL.mockResolvedValueOnce({
+      url: 'https://s3.example.com/object?signed=1'
+    });
+
+    let response = await integrationAttachmentApp.request(
+      '/integration-attachment/shsa_stored',
+      {
+        headers: {
+          'metorial-tool-attachment-router-secret': 'test-router-secret',
+          'metorial-prefer-url': '1'
+        }
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('metorial-attachment-result')).toBe('url');
+    expect(mocks.getPublicURL).toHaveBeenCalledWith(
+      'attachments',
+      'uploads/shau_123',
+      7 * 60,
+      'retrieve'
+    );
   });
 });

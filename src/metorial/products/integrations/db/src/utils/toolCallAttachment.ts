@@ -64,6 +64,7 @@ export let getRawToolCallAttachmentsFromOutput = (output: PrismaJson.SessionMess
   return attachments.flatMap(attachment => {
     if (!isObject(attachment)) return [];
     if (attachment.type !== 'url' || typeof attachment.url !== 'string') return [];
+    if (typeof attachment.attachmentId !== 'string' || !attachment.attachmentId) return [];
 
     let expiresAt =
       typeof attachment.urlExpiresAt === 'string' || attachment.urlExpiresAt instanceof Date
@@ -72,9 +73,7 @@ export let getRawToolCallAttachmentsFromOutput = (output: PrismaJson.SessionMess
 
     return [
       {
-        url: attachment.url,
-        slateAttachmentId:
-          typeof attachment.attachmentId === 'string' ? attachment.attachmentId : null,
+        slateAttachmentId: attachment.attachmentId,
         mimeType: typeof attachment.mimeType === 'string' ? attachment.mimeType : null,
         expiresAt: expiresAt && !Number.isNaN(expiresAt.getTime()) ? expiresAt : null
       }
@@ -87,6 +86,7 @@ export let replaceToolCallAttachmentsInOutput = (
   attachments: Array<Awaited<ReturnType<typeof presentToolCallAttachment>>>
 ) => {
   if (output.type !== 'tool.result' || !isObject(output.data)) return output;
+  if (!Array.isArray(output.data.$attachments)) return output;
 
   return {
     ...output,

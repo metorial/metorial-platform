@@ -4,9 +4,11 @@ process.env.DATABASE_URL ??= 'postgresql://localhost/test';
 process.env.INTEGRATIONS_API_URL ??= 'https://integrations.example.com';
 process.env.SLATE_ATTACHMENT_SIGNING_SECRET ??= 'test-tool-call-attachment-secret';
 
-let { getRawToolCallAttachmentsFromOutput, presentToolCallAttachment } = await import(
-  './toolCallAttachment'
-);
+let {
+  getRawToolCallAttachmentsFromOutput,
+  presentToolCallAttachment,
+  replaceToolCallAttachmentsInOutput
+} = await import('./toolCallAttachment');
 let { verifyToolCallAttachmentToken } = await import('./toolCallAttachmentToken');
 
 describe('tool call attachment URLs', () => {
@@ -69,7 +71,6 @@ describe('getRawToolCallAttachmentsFromOutput', () => {
 
     expect(attachments).toEqual([
       {
-        url: 'https://slates-hub.example/integration-attachment/shsa_123?ts=1&sig=abc',
         slateAttachmentId: 'shsa_123',
         mimeType: 'image/png',
         expiresAt: new Date('2026-01-01T00:00:00.000Z')
@@ -77,8 +78,8 @@ describe('getRawToolCallAttachmentsFromOutput', () => {
     ]);
   });
 
-  it('leaves slateAttachmentId null when the hub omitted attachmentId', () => {
-    let attachments = getRawToolCallAttachmentsFromOutput({
+  it('does not retain an attachment URL when the hub omitted attachmentId', () => {
+    let output = {
       type: 'tool.result',
       data: {
         $attachments: [
@@ -89,15 +90,13 @@ describe('getRawToolCallAttachmentsFromOutput', () => {
           }
         ]
       }
-    } as PrismaJson.SessionMessageOutput);
+    } as PrismaJson.SessionMessageOutput;
+    let attachments = getRawToolCallAttachmentsFromOutput(output);
 
-    expect(attachments).toEqual([
-      {
-        url: 'https://slates-hub.example/integration-attachment/shsa_123',
-        slateAttachmentId: null,
-        mimeType: 'image/png',
-        expiresAt: null
-      }
-    ]);
+    expect(attachments).toEqual([]);
+    expect(replaceToolCallAttachmentsInOutput(output, [])).toEqual({
+      type: 'tool.result',
+      data: { $attachments: [] }
+    });
   });
 });

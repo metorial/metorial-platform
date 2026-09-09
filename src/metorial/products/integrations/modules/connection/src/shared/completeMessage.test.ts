@@ -292,8 +292,8 @@ describe('completeMessage', () => {
     expect(mocks.finalizeMessageQueue.add).not.toHaveBeenCalled();
   });
 
-  it('rehosts attachments and persists a ToolCallAttachment when storeToolCallAttachments is enabled', async () => {
-    let rawAttachment = { url: 'https://provider.example/raw-file', mimeType: 'image/png', expiresAt: null };
+  it('rehosts delegated attachments without persisting their URL', async () => {
+    let rawAttachment = { slateAttachmentId: 'shsa_123', mimeType: 'image/png', expiresAt: null };
     mocks.getRawToolCallAttachmentsFromOutput.mockReturnValueOnce([rawAttachment]);
 
     let currentMessage = {
@@ -336,16 +336,15 @@ describe('completeMessage', () => {
 
     expect(mocks.replaceToolCallAttachmentsInOutput).toHaveBeenCalledWith(
       { type: 'tool.result', data: {} },
-      [expect.objectContaining({ url: rawAttachment.url, toolCallOid: 43n })]
+      [expect.objectContaining({ url: null, slateAttachmentId: 'shsa_123', toolCallOid: 43n })]
     );
     expect(tx.toolCallAttachment.createMany).toHaveBeenCalledWith({
-      data: [expect.objectContaining({ url: rawAttachment.url, toolCallOid: 43n })]
+      data: [expect.objectContaining({ url: null, slateAttachmentId: 'shsa_123', toolCallOid: 43n })]
     });
   });
 
   it('persists slateAttachmentId and leaves url null for slate-sourced attachments', async () => {
     let rawAttachment = {
-      url: 'https://slates-hub.example/integration-attachment/shsa_123',
       slateAttachmentId: 'shsa_123',
       mimeType: 'image/png',
       expiresAt: null
