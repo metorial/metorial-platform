@@ -11,7 +11,10 @@ import { PublicUrlPurpose } from 'object-storage-client';
 import { db } from '../../db';
 import { env } from '../../env';
 import { verifyAttachmentSignature } from '../../lib/attachmentSignature';
-import { AuthConfigSecretSerializer } from '../../lib/secretSerializer';
+import {
+  AuthConfigSecretSerializer,
+  containsSecretPlaceholder
+} from '../../lib/secretSerializer';
 import {
   refreshableAttachmentInclude,
   slateAttachmentRefreshService,
@@ -193,7 +196,10 @@ export let integrationAttachmentApp = createHono().get(
       let needsHeaderOrQueryProxy =
         Object.keys(headers).length > 0 || Object.keys(query).length > 0;
 
-      if (attachment.authConfigOid) {
+      if (
+        attachment.authConfigOid &&
+        (containsSecretPlaceholder(headers) || containsSecretPlaceholder(query))
+      ) {
         let freshAuth = await slateAuthHandlerService.getSlateInstanceAuth({
           tenant: attachment.tenant!,
           authConfigId: attachment.authConfig!.id,

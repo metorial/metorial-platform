@@ -425,7 +425,10 @@ class slateSessionToolCallServiceImpl {
       data: {
         ...getId('slateAttachment'),
         tenantOid: d.tenant.oid,
-        authConfigOid: needsAuthConfig ? d.authConfig!.authConfig.oid : null,
+        authConfigOid:
+          needsAuthConfig || d.content.refreshReference !== undefined
+            ? (d.authConfig?.authConfig.oid ?? null)
+            : null,
         slateInstanceOid:
           d.content.refreshReference !== undefined ? d.slateInstance.oid : null,
         targetUrl: d.content.url,
