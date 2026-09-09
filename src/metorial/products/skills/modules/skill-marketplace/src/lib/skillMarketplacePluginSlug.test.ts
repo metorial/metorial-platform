@@ -35,6 +35,12 @@ describe('skill plugin slugs', () => {
     expect(findFirst).not.toHaveBeenCalled();
   });
 
+  it('uses a random plugin slug when the name has no slug characters', () => {
+    expect(getSkillPluginSlug('!!!')).toBe('randomslugvalue123456');
+    expect(generatePlainId).toHaveBeenCalledWith(8);
+    expect(findFirst).not.toHaveBeenCalled();
+  });
+
   it('uses the nice marketplace slug when it is available', async () => {
     findFirst.mockResolvedValue(null);
 

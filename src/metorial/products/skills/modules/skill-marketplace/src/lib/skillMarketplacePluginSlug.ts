@@ -2,7 +2,8 @@ import { generatePlainId } from '@lowerdeck/id';
 import { slugify } from '@lowerdeck/slugify';
 import { db } from '@metorial/db';
 
-export let getSkillPluginSlug = (input: string) => slugify(input.replaceAll('_', '-'));
+export let getSkillPluginSlug = (input: string) =>
+  slugify(input.replaceAll('_', '-')) || generatePlainId(8).toLowerCase();
 
 let isMarketplacePluginSlugAvailable = async (
   slug: string,
