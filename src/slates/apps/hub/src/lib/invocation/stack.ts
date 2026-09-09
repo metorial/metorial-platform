@@ -51,6 +51,7 @@ export class SlateInvocationStack {
   #tenant?: SlateInvocationBaseParams['tenant'];
   #enclaveId?: string;
   #egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  #suppressServerErrorReporting: boolean;
   #productiveMessages: SlatesRequest[] = [];
   #alreadyInvoked = false;
   #runPromise: ReturnType<typeof this.run>;
@@ -63,6 +64,7 @@ export class SlateInvocationStack {
     this.#tenant = d.tenant;
     this.#enclaveId = d.enclaveId;
     this.#egressPolicy = d.egressPolicy;
+    this.#suppressServerErrorReporting = d.suppressServerErrorReporting ?? false;
 
     this.#runPromise = this.run();
   }
@@ -182,7 +184,8 @@ export class SlateInvocationStack {
           providerInvocationId: providerInvocation.id,
           error: providerInvocation.error,
           logs: providerInvocation.logs,
-          methods: messages.map(m => m.method)
+          methods: messages.map(m => m.method),
+          suppressSentry: this.#suppressServerErrorReporting
         });
 
         await storeSlateInvocation({
@@ -237,7 +240,8 @@ export class SlateInvocationStack {
           providerInvocationId: providerInvocation.id,
           error: jsonRpcServerErrors,
           logs: providerInvocation.logs,
-          methods: messages.map(m => m.method)
+          methods: messages.map(m => m.method),
+          suppressSentry: this.#suppressServerErrorReporting
         });
       }
 
@@ -378,7 +382,8 @@ export class SlateInvocationStack {
         slateVersionId: this.#slateVersion.id,
         tenantIdentifier: this.#tenant?.identifier,
         error: err,
-        methods: messages.map(m => m.method)
+        methods: messages.map(m => m.method),
+        suppressSentry: this.#suppressServerErrorReporting
       });
 
       await storeSlateInvocation({
@@ -422,6 +427,7 @@ export class SlateInvocationStack {
         participants: this.#participants,
         enclaveId: this.#enclaveId,
         egressPolicy: this.#egressPolicy,
+        suppressServerErrorReporting: this.#suppressServerErrorReporting,
         initialMessages: this.#initialMessages
       }).invoke(method, params);
     }

@@ -266,6 +266,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
     let slate = version.slate;
 
+    let suppressServerErrorReporting =
+      !stagedDeployment && version.status === 'discovery_failed';
+
     await db.slateEvent.create({
       data: {
         ...getId('slateEvent'),
@@ -282,7 +285,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         deploymentTarget: {
           providerDeploymentInfo: target.providerDeploymentInfo,
           activeDeploymentOid: target.activeDeploymentOid
-        }
+        },
+        suppressServerErrorReporting
       });
 
       let stack = await slateInvocationService.createInvocation({
@@ -291,7 +295,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           providerDeploymentInfo: target.providerDeploymentInfo,
           activeDeploymentOid: target.activeDeploymentOid
         },
-        participants: [] // Only the hub
+        participants: [], // Only the hub
+        suppressServerErrorReporting
       });
 
       let stackResult = await Promise.all([

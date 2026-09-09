@@ -54,6 +54,7 @@ export let reportSlateInvocationServerError = (d: {
   error?: unknown;
   logs?: { timestamp: number; message: string }[];
   methods?: string[];
+  suppressSentry?: boolean;
 }) => {
   let extra = {
     reason: d.reason,
@@ -68,6 +69,8 @@ export let reportSlateInvocationServerError = (d: {
   };
 
   console.error('[SlateInvocation] Server error during invocation', extra);
+
+  if (d.suppressSentry) return;
 
   if (d.error instanceof Error) {
     Sentry.captureException(d.error, {

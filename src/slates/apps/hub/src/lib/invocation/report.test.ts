@@ -98,4 +98,28 @@ describe('reportSlateInvocationServerError', () => {
     expect(extra.logs).toHaveLength(50);
     expect(extra.logs[0]).toEqual({ timestamp: 10, message: 'log 10' });
   });
+
+  it('logs but does not report to Sentry when suppressSentry is set', () => {
+    let err = new Error('lambda exploded again');
+
+    reportSlateInvocationServerError({
+      reason: 'invocation_exception',
+      invocationId: 'shiv_3',
+      slateVersionId: 'shvr_1',
+      error: err,
+      suppressSentry: true
+    });
+
+    reportSlateInvocationServerError({
+      reason: 'jsonrpc_server_error',
+      invocationId: 'shiv_4',
+      slateVersionId: 'shvr_1',
+      error: [{ code: -32000, message: 'Internal server error' }],
+      suppressSentry: true
+    });
+
+    expect(mocks.captureException).not.toHaveBeenCalled();
+    expect(mocks.captureMessage).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledTimes(2);
+  });
 });
