@@ -1,9 +1,7 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
 import type {
   EntityImage,
   Instance,
@@ -37,6 +35,11 @@ import {
   CargoSkillLimitError,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
+import {
+  getArchivedMarketplacePluginSlug,
+  getMarketplacePluginSlug,
+  getSkillPluginSlug
+} from '../lib/skillMarketplacePluginSlug';
 import {
   assertSkillMarketplaceWriteAccess,
   assertSkillPluginArchiveAccess,
@@ -394,6 +397,12 @@ class SkillPluginServiceImpl {
       organizationOid: d.instance.organizationOid,
       instance: d.instance
     });
+    let marketplacePluginSlug = skillMarketplace
+      ? await getMarketplacePluginSlug(
+          { input: d.input.slug ?? d.input.name },
+          { skillMarketplaceId: skillMarketplace.id }
+        )
+      : undefined;
 
     return await withTransaction(async db => {
       await Fabric.fire('skill.plugin.created:before', {
@@ -412,7 +421,7 @@ class SkillPluginServiceImpl {
           description: d.input.description,
           longDescription: d.input.longDescription,
           category: d.input.category,
-          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
+          slug: getSkillPluginSlug(d.input.slug ?? d.input.name),
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
           organizationOid: d.project.organizationOid,
@@ -455,7 +464,7 @@ class SkillPluginServiceImpl {
           data: {
             id: await ID.generateId('skillMarketplacePlugin'),
             status: 'active',
-            pluginSlug: skillPlugin.slug!,
+            pluginSlug: marketplacePluginSlug!,
             skillMarketplaceOid: skillMarketplace.oid,
             skillPluginOid: skillPlugin.oid
           }
@@ -599,16 +608,36 @@ class SkillPluginServiceImpl {
         }
       });
 
-      await db.skillMarketplacePlugin.updateMany({
+      let activeMarketplacePlugins = await db.skillMarketplacePlugin.findMany({
         where: {
           skillPluginOid: d.skillPlugin.oid,
           status: 'active'
         },
-        data: {
-          status: 'archived',
-          skillConfigurationOid: null
+        select: {
+          id: true,
+          skillMarketplace: {
+            select: {
+              id: true
+            }
+          }
         }
       });
+      for (let marketplacePlugin of activeMarketplacePlugins) {
+        let pluginSlug = await getArchivedMarketplacePluginSlug({
+          skillMarketplaceId: marketplacePlugin.skillMarketplace.id
+        });
+
+        await db.skillMarketplacePlugin.update({
+          where: {
+            id: marketplacePlugin.id
+          },
+          data: {
+            status: 'archived',
+            pluginSlug,
+            skillConfigurationOid: null
+          }
+        });
+      }
 
       await db.skillPlugin.update({
         where: {
