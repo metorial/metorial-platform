@@ -15,6 +15,7 @@ import {
   dedupeDiscoveredItems
 } from '../../lib/specificationHash';
 import { slateInvocationService } from '../../services';
+import { discoverSlateCapabilities } from './discoverCapabilities';
 
 let Sentry = getSentry();
 
@@ -276,6 +277,14 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
     });
 
     try {
+      let capabilities = await discoverSlateCapabilities({
+        slateVersion: version,
+        deploymentTarget: {
+          providerDeploymentInfo: target.providerDeploymentInfo,
+          activeDeploymentOid: target.activeDeploymentOid
+        }
+      });
+
       let stack = await slateInvocationService.createInvocation({
         slateVersion: version,
         deploymentTarget: {
@@ -358,7 +367,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         configSchema: configSchema.schema,
         configSchemaDocs,
         authMethods: discoveredAuthMethods,
-        actions: discoveredActions
+        actions: discoveredActions,
+        capabilities
       };
       let specification = await db.slateSpecification.upsert({
         where: {
@@ -479,6 +489,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         status: 'active' as const,
         specificationOid: specification.oid,
         lastDiscoveredAt: new Date(),
+        capabilities,
         ...(stagedDeployment
           ? {
               providerDeploymentInfo: target.providerDeploymentInfo,

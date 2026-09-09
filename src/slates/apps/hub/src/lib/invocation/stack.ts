@@ -84,9 +84,14 @@ export class SlateInvocationStack {
 
     let invocationId = await ID.generateId('slateInvocation');
 
-    let liveInvocationToken = this.#tenant
-      ? await mintLiveInvocationToken({ invocationId, tenantOid: this.#tenant.oid })
-      : null;
+    let capabilities = this.#slateVersion.capabilities?.hub;
+    let supportsHubCapabilities = !!capabilities?.capabilitiesNotification;
+    let supportsLiveInvocation = !!capabilities?.liveInvocation;
+
+    let liveInvocationToken =
+      this.#tenant && supportsLiveInvocation
+        ? await mintLiveInvocationToken({ invocationId, tenantOid: this.#tenant.oid })
+        : null;
 
     let messages: SlatesRequest[] = [
       { jsonrpc: '2.0', method: 'slates/hello', params: { protocol: 'slates@2026-01-01' } },
@@ -100,11 +105,11 @@ export class SlateInvocationStack {
           ]
         }
       },
-      ...(liveInvocationToken
-        ? ([
+      ...(supportsHubCapabilities
+        ? [
             {
-              jsonrpc: '2.0',
-              method: 'slates/hub.capabilities.set',
+              jsonrpc: '2.0' as const,
+              method: 'slates/hub.capabilities.set' as const,
               params: {
                 capabilities: {
                   attachments: {
@@ -117,17 +122,20 @@ export class SlateInvocationStack {
                   }
                 }
               }
-            },
+            }
+          ]
+        : []),
+      ...(liveInvocationToken
+        ? [
             {
-              jsonrpc: '2.0',
-              method: 'slates/hub.live_invocation.set',
+              jsonrpc: '2.0' as const,
+              method: 'slates/hub.live_invocation.set' as const,
               params: {
                 token: liveInvocationToken.token,
                 baseUrl: env.service.SERVICE_PUBLIC_URL
               }
             }
-            // TODO: slates proto update
-          ] as unknown as SlatesRequest[])
+          ]
         : []),
 
       ...this.#initialMessages,

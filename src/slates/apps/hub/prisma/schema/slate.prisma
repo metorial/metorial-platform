@@ -80,6 +80,9 @@ model SlateVersion {
   /// [SlateDeploymentProviderDeploymentInfo]
   providerDeploymentInfo Json @default("null")
 
+  /// [SlateCapabilities]
+  capabilities Json @default("{}")
+
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])
 
@@ -280,6 +283,9 @@ model SlateSpecification {
 
   /// [SlateActions]
   actions Json
+
+  /// [SlateCapabilities]
+  capabilities Json @default("{}")
 
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])
