@@ -7,6 +7,7 @@ import { internalImageService } from '@metorial/skills-images';
 import semver from 'semver';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
 import { getPluginPath, getPluginPruneScope } from '../_lib/paths';
 
 export { getPluginPath };
@@ -63,6 +64,7 @@ export let applyPlugin = createApplicator(
     let hash = await Hash.sha256(
       canonicalize({
         serializerVersion: 3,
+        ...getMarketplaceForceSyncHashInput(input.skillMarketplace),
         plugin: {
           slug: input.skillPlugin.slug,
           name: input.skillPlugin.name,

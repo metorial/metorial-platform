@@ -1,12 +1,20 @@
-import type { SkillDestination, SkillRepository } from '@metorial/db';
+import type { SkillDestination, SkillMarketplace, SkillRepository } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import { syncStartQueue } from '../queues/sync/start';
 
 export let forceSkillDestinationSync = async (d: {
   destination: Pick<SkillDestination, 'oid'>;
   repository?: Pick<SkillRepository, 'id'>;
+  incrementForceSyncCounterFor?: Pick<SkillMarketplace, 'oid'>;
 }) => {
   let sync = await withTransaction(async db => {
+    if (d.incrementForceSyncCounterFor) {
+      await db.skillMarketplace.update({
+        where: { oid: d.incrementForceSyncCounterFor.oid },
+        data: { forceSyncCounter: { increment: 1 } }
+      });
+    }
+
     await db.skillDestination.update({
       where: {
         oid: d.destination.oid

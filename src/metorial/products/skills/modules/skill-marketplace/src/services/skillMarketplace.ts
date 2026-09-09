@@ -458,7 +458,8 @@ class SkillMarketplaceServiceImpl {
     skillMarketplace: SkillMarketplaceRecord;
   }) {
     await forceSkillDestinationSync({
-      destination: d.skillMarketplace.destination!
+      destination: d.skillMarketplace.destination!,
+      incrementForceSyncCounterFor: d.skillMarketplace
     });
 
     return await this.getSkillMarketplaceRecord({
