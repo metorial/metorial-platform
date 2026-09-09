@@ -66,7 +66,7 @@ export let completeMessage = async (
       ? rawToolCallAttachments.map(attachment => ({
           ...getId('toolCallAttachment'),
           urlKey: getToolCallAttachmentUrlKey(),
-          url: attachment.slateAttachmentId ? null : attachment.url,
+          url: null,
           slateAttachmentId: attachment.slateAttachmentId,
           mimeType: attachment.mimeType,
           expiresAt: attachment.expiresAt,
@@ -74,7 +74,7 @@ export let completeMessage = async (
         }))
       : [];
 
-  if (rawToolCallAttachments.length && data.output?.type === 'tool.result') {
+  if (currentToolCall && data.output?.type === 'tool.result') {
     data.output = replaceToolCallAttachmentsInOutput(
       data.output,
       await Promise.all(toolCallAttachmentRecords.map(presentToolCallAttachment))
