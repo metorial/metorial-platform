@@ -6,6 +6,8 @@ export * from './auditLogStream';
 export * from './consumer';
 export * from './consumerAccess';
 export * from './consumerProvider';
+export * from './eventDestination';
+export * from './eventDestinationListener';
 export * from './instance';
 export * from './invite';
 export * from './magicMcp';

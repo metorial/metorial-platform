@@ -46,6 +46,8 @@ import {
   ConsumerSession,
   ConsumerSurface,
   Document,
+  EventDestination,
+  EventDestinationListener,
   File,
   FileUpload,
   Instance,
@@ -92,6 +94,7 @@ import {
   TeamProject,
   User,
   UserSession,
+  WebhookDestination,
   Workspace,
   WorkspaceGroup,
   WorkspaceGroupAssignment,
@@ -832,6 +835,22 @@ export interface FabricEvents {
   'organization.audit_log_stream.paused:after': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream; previousAuditLogStream: AuditLogStream };
   'organization.audit_log_stream.resumed:before': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream };
   'organization.audit_log_stream.resumed:after': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream; previousAuditLogStream: AuditLogStream };
+
+  'organization.event_destination.created:before': { organization: Organization; auditScope: AuditScope; input: { type: EventDestination['type'] } };
+  'organization.event_destination.created:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; input: { type: EventDestination['type'] } };
+  'organization.event_destination.updated:before': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; input: { name?: string; description?: string | null } };
+  'organization.event_destination.updated:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; previousEventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; input: { name?: string; description?: string | null } };
+  'organization.event_destination.archived:before': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination };
+  'organization.event_destination.archived:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; previousEventDestination: EventDestination };
+  'organization.event_destination.webhook_secret_rotated:before': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null } };
+  'organization.event_destination.webhook_secret_rotated:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; previousEventDestination: EventDestination & { webhookDestination: WebhookDestination | null } };
+
+  'instance.event_destination_listener.created:before': { instance: Instance; auditScope: AuditScope; input: { type: EventDestinationListener['type'] } };
+  'instance.event_destination_listener.created:after': { instance: Instance; auditScope: AuditScope; listener: EventDestinationListener & { eventDestination: EventDestination }; input: { type: EventDestinationListener['type'] } };
+  'instance.event_destination_listener.updated:before': { instance: Instance; auditScope: AuditScope; listener: EventDestinationListener & { eventDestination: EventDestination }; input: { eventTypes?: string[]; triggers?: string[] } };
+  'instance.event_destination_listener.updated:after': { instance: Instance; auditScope: AuditScope; listener: EventDestinationListener & { eventDestination: EventDestination }; previousListener: EventDestinationListener & { eventDestination: EventDestination }; input: { eventTypes?: string[]; triggers?: string[] } };
+  'instance.event_destination_listener.deleted:before': { instance: Instance; auditScope: AuditScope; listener: EventDestinationListener & { eventDestination: EventDestination } };
+  'instance.event_destination_listener.deleted:after': { instance: Instance; auditScope: AuditScope; listener: EventDestinationListener & { eventDestination: EventDestination } };
 
   'organization.actor.created:before': { organization: Organization; input: { type: OrganizationActor['type'] | 'primary_system'; name: string; email?: string; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
   'organization.actor.created:after': { organization: Organization; actor: AuditOrganizationActor; auditScope: AuditScope };
