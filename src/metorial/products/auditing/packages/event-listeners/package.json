@@ -5,7 +5,10 @@
   "license": "FSL-1.1",
   "type": "module",
   "main": "src/index.ts",
-  "files": ["src/**", "package.json"],
+  "files": [
+    "src/**",
+    "package.json"
+  ],
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",

@@ -13,10 +13,18 @@ import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
 import { slateSessionService } from './slateSession';
-import { buildInvocationAuth } from './slateTriggerReceiverShared';
 
 let REFRESH_BACKOFF_BASE_MS = 30_000;
 let REFRESH_BACKOFF_MAX_MS = 60 * 60_000;
+
+let buildInvocationAuth = (auth: {
+  output?: Record<string, any> | null;
+  input?: Record<string, any> | null;
+  authMethod: { key: string };
+}) => ({
+  authenticationMethodId: auth.authMethod.key,
+  data: auth.output ?? auth.input ?? {}
+});
 
 export type RefreshableAttachment = SlateAttachment & {
   tenant: Tenant | null;
