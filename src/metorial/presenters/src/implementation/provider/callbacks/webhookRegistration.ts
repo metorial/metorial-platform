@@ -22,7 +22,10 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
         webhookRegistration.status === 'awaiting_setup'
           ? ('pending' as const)
           : ('completed' as const),
-      document: webhookRegistration.setup?.document ?? null
+      document: webhookRegistration.setup?.document ?? null,
+      schema: webhookRegistration.setup?.schema
+        ? { type: 'json_schema' as const, schema: webhookRegistration.setup.schema }
+        : null
     },
 
     provider: v1ProviderPreview(webhookRegistration.provider),
@@ -99,6 +102,24 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
                 'Provider-supplied instructions describing how to finish registering the webhook',
               examples: ['Add the receive URL under Settings -> Webhooks.']
             })
+          ),
+
+          schema: v.nullable(
+            v.object(
+              {
+                type: v.literal('json_schema'),
+                schema: v.record(v.any(), {
+                  name: 'schema',
+                  description: 'JSON Schema describing the setup values the provider expects',
+                  examples: [{ type: 'object', properties: { secret: { type: 'string' } } }]
+                })
+              },
+              {
+                name: 'schema',
+                description:
+                  'JSON Schema for the setup values this webhook registration expects, if the provider declared one'
+              }
+            )
           )
         },
         {

@@ -7,6 +7,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDashboardFlags,
   useIntegration
 } from '@metorial/state';
 import {
@@ -128,6 +129,7 @@ export let IntegrationLayout = () => {
   let project = useCurrentProject();
   let { integrationId } = useParams();
   let integration = useIntegration(instance.data?.id, integrationId);
+  let flags = useDashboardFlags();
   let pathname = useLocation().pathname;
   let navigate = useNavigate();
 
@@ -227,6 +229,17 @@ export let IntegrationLayout = () => {
                   label: 'Instances',
                   to: Paths.instance.integration(...params, 'instances')
                 },
+                ...(flags.data?.flags['callbacks-enabled'] &&
+                integration.data.providers?.some(
+                  provider => provider.callbacks.status === 'enabled'
+                )
+                  ? [
+                      {
+                        label: 'Callbacks',
+                        to: Paths.instance.integration(...params, 'callbacks')
+                      }
+                    ]
+                  : []),
                 {
                   label: 'Settings',
                   to: Paths.instance.integration(...params, 'settings')

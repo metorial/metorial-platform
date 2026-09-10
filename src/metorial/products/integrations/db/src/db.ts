@@ -255,6 +255,7 @@ declare global {
 
     type WebhookRegistrationSetup = {
       document: string;
+      schema?: Record<string, any> | null;
     };
 
     type ProviderDeploymentConfigPairDiscoveryError =

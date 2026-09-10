@@ -1,4 +1,4 @@
-import { Toaster } from '@metorial-io/ui';
+import { Toaster, ModalRoot } from '@metorial-io/ui';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -14,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <App />
         <Toaster />
+        <ModalRoot />
       </BrowserRouter>
     </AuthProvider>
   </StrictMode>

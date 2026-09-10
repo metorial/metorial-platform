@@ -50,7 +50,7 @@ let getRegion = () => {
 
 export let generateWebhookRegistrationUrlKey = (
   owner: SlateWebhookRegistrationOwner = 'tenant'
-) => `${generateCustomId(owner === 'global' ? 'whk_global_' : 'whk_')}_${getRegion()}`;
+) => `${generateCustomId(owner === 'global' ? 'whk_global_' : 'whk_', 35)}_${getRegion()}`;
 
 let getManualWebhookRegistrationSpec = (triggerGroup: SlateTriggerGroup) => {
   let invocation = triggerGroup.spec.invocation;
@@ -167,6 +167,8 @@ class slateWebhookRegistrationServiceImpl {
         urlKey
       });
 
+    let registrationSpec = getManualWebhookRegistrationSpec(triggerGroup);
+
     let registration =
       await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
         tenant: d.tenant,
@@ -187,7 +189,11 @@ class slateWebhookRegistrationServiceImpl {
         oauthCredentials
       });
 
-    return { registration, webhookSetupDocument };
+    return {
+      registration,
+      webhookSetupDocument,
+      userConfigSchema: registrationSpec?.userConfigSchema ?? null
+    };
   }
 
   async finishManualWebhookSetup(d: {
@@ -281,23 +287,24 @@ class slateWebhookRegistrationServiceImpl {
       userConfig: d.input.userConfig
     });
 
-    let registration = await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
-      tenant: globalTenant,
-      slate,
-      triggerGroup,
-      type: 'manual',
-      owner: 'global',
-      status: 'active',
-      urlKey,
+    let registration =
+      await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
+        tenant: globalTenant,
+        slate,
+        triggerGroup,
+        type: 'manual',
+        owner: 'global',
+        status: 'active',
+        urlKey,
 
-      name: d.input.name,
-      description: d.input.description,
-      metadata: d.input.metadata,
+        name: d.input.name,
+        description: d.input.description,
+        metadata: d.input.metadata,
 
-      webhookRegistrationPayload,
-      authRouting,
-      authMethods
-    });
+        webhookRegistrationPayload,
+        authRouting,
+        authMethods
+      });
 
     // A global registration is a candidate for every tenant's instances, so instances that
     // previously errored with no matching webhook registration may now be able to match it.
@@ -418,9 +425,7 @@ class slateWebhookRegistrationServiceImpl {
     statuses?: SlateWebhookRegistrationStatus[];
   }) {
     let search = d.search?.trim();
-    let contains = search
-      ? { contains: search, mode: 'insensitive' as const }
-      : undefined;
+    let contains = search ? { contains: search, mode: 'insensitive' as const } : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(

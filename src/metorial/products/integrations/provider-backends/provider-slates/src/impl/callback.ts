@@ -280,7 +280,7 @@ export class ProviderCallbacks extends IProviderCallbacks {
 
     return {
       receiveUrl: res.webhookRegistration.receiveUrl,
-      setup: { document: res.webhookSetupDocument }
+      setup: { document: res.webhookSetupDocument, schema: res.webhookSetupSchema ?? null }
     };
   }
 

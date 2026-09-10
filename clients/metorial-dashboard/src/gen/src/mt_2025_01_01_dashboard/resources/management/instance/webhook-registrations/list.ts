@@ -13,6 +13,7 @@ export type ManagementInstanceWebhookRegistrationsListOutput = {
       object: 'webhook_registration.setup';
       status: 'pending' | 'completed';
       document: string | null;
+      schema: { type: 'json_schema'; schema: Record<string, any> } | null;
     };
     provider: {
       object: 'provider#preview';
@@ -47,7 +48,8 @@ export let mapManagementInstanceWebhookRegistrationsListOutput =
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
-              document: mtMap.objectField('document', mtMap.passthrough())
+              document: mtMap.objectField('document', mtMap.passthrough()),
+              schema: mtMap.objectField('schema', mtMap.passthrough())
             })
           ),
           provider: mtMap.objectField(
