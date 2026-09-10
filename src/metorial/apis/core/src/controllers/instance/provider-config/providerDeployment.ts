@@ -229,6 +229,7 @@ export let providerDeploymentController = Controller.create(
                 supportsAuth: v.optional(v.boolean()),
                 supportsOAuth: v.optional(v.boolean()),
                 supportsCallbacks: v.optional(v.boolean()),
+                supportsWebhookRegistration: v.optional(v.boolean()),
                 supportsOAuthAutoRegistration: v.optional(v.boolean()),
                 supportsAuthExport: v.optional(v.boolean()),
                 supportsAuthImport: v.optional(v.boolean())

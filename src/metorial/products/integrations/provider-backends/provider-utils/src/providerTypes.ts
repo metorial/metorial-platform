@@ -26,6 +26,9 @@ export let ensureProviderType = async (
       attributes.auth.oauth.status == 'enabled' &&
       attributes.auth.oauth.oauthAutoRegistration?.status == 'supported',
     supportsCallbacks: attributes.triggers.status == 'enabled',
+    supportsWebhookRegistration:
+      attributes.triggers.status == 'enabled' &&
+      attributes.triggers.webhookRegistration.status == 'supported',
     supportsAuthExport:
       attributes.auth.status == 'enabled' && attributes.auth.export.status == 'enabled',
     supportsAuthImport:

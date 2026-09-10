@@ -14,6 +14,7 @@ model ProviderType {
   supportsAuth                  Boolean @default(false)
   supportsOAuth                 Boolean @default(false)
   supportsCallbacks             Boolean @default(false)
+  supportsWebhookRegistration   Boolean @default(false)
   supportsOAuthAutoRegistration Boolean @default(false)
   supportsAuthExport            Boolean @default(false)
   supportsAuthImport            Boolean @default(false)

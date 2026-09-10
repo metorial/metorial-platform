@@ -90,6 +90,7 @@ export type ProviderCapabilityFilter = {
   supportsAuth?: boolean;
   supportsOAuth?: boolean;
   supportsCallbacks?: boolean;
+  supportsWebhookRegistration?: boolean;
   supportsOAuthAutoRegistration?: boolean;
   supportsAuthExport?: boolean;
   supportsAuthImport?: boolean;
@@ -104,6 +105,8 @@ export let getProviderCapabilityFilter = (d: ProviderCapabilityFilter) => {
   if (isSet(d.supportsAuth)) filters.push({ supportsAuth: d.supportsAuth });
   if (isSet(d.supportsOAuth)) filters.push({ supportsOAuth: d.supportsOAuth });
   if (isSet(d.supportsCallbacks)) filters.push({ supportsCallbacks: d.supportsCallbacks });
+  if (isSet(d.supportsWebhookRegistration))
+    filters.push({ supportsWebhookRegistration: d.supportsWebhookRegistration });
   if (isSet(d.supportsOAuthAutoRegistration))
     filters.push({ supportsOAuthAutoRegistration: d.supportsOAuthAutoRegistration });
   if (isSet(d.supportsAuthExport)) filters.push({ supportsAuthExport: d.supportsAuthExport });
