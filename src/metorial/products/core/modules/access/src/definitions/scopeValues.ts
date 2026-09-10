@@ -193,6 +193,11 @@ let coreScopesRaw = [
   'organization.audit_log_stream:read' as const,
   'organization.audit_log_stream:write' as const,
 
+  'organization.event_destination:read' as const,
+  'organization.event_destination:write' as const,
+
+  'organization.event:read' as const,
+
   'organization.team:read' as const,
   'organization.team:write' as const,
 

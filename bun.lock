@@ -2065,6 +2065,8 @@
         "@metorial/module-consumer-entities": "^1.0.0",
         "@metorial/module-consumer-oauth": "^1.0.0",
         "@metorial/module-documents": "^1.0.0",
+        "@metorial/module-event-destination": "workspace:*",
+        "@metorial/module-event-log": "workspace:*",
         "@metorial/module-file": "^1.0.0",
         "@metorial/module-machine-access": "^1.0.0",
         "@metorial/module-magic": "^1.0.0",
@@ -2564,6 +2566,7 @@
         "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-consumer-core": "^1.0.0",
         "@metorial/module-consumer-entities": "^1.0.0",
+        "@metorial/module-event-tracker": "workspace:*",
         "@metorial/module-file": "^1.0.0",
         "@metorial/module-flags": "^1.0.0",
         "@metorial/module-machine-access": "^1.0.0",
@@ -2701,6 +2704,65 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial/products/auditing/modules/event-destination": {
+      "name": "@metorial/module-event-destination",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial-subspace/module-callback": "^1.0.0",
+        "@metorial-subspace/module-catalog": "^1.0.0",
+        "@metorial/audit-scope": "workspace:*",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/webhook-event-schema": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/auditing/modules/event-log": {
+      "name": "@metorial/module-event-log",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/webhook-event-schema": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/auditing/modules/event-tracker": {
+      "name": "@metorial/module-event-tracker",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/presenter": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/webhook-event-schema": "workspace:*",
+        "object-storage-client": "^0.2.5",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial/products/auditing/packages/audit-listeners": {
       "name": "@metorial/audit-listeners",
       "version": "1.0.0",
@@ -2786,6 +2848,35 @@
         "@metorial/db": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
         "@metorial/redis": "1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/auditing/packages/event-listeners": {
+      "name": "@metorial/webhook-listeners",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/module-event-tracker": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/auditing/packages/event-schema": {
+      "name": "@metorial/webhook-event-schema",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:*",
+        "@metorial/db": "^1.0.0",
+        "@metorial/presenter": "^1.0.0",
+        "@metorial/presenters": "^1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3296,7 +3387,9 @@
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial-subspace/provider": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
+        "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/module-event-tracker": "workspace:*",
         "date-fns": "^4.1.0",
       },
       "devDependencies": {
@@ -4586,6 +4679,7 @@
         "@metorial/api-files": "1.0.0",
         "@metorial/api-integrations": "1.0.0",
         "@metorial/api-outpost": "1.0.0",
+        "@metorial/audit-listeners": "1.0.0",
         "@metorial/auth": "1.0.0",
         "@metorial/logging": "1.0.0",
         "@metorial/module-access": "1.0.0",
@@ -4598,6 +4692,7 @@
         "@metorial/module-consumer-oauth": "1.0.0",
         "@metorial/module-documents": "1.0.0",
         "@metorial/module-email": "1.0.0",
+        "@metorial/module-event-tracker": "1.0.0",
         "@metorial/module-file": "1.0.0",
         "@metorial/module-machine-access": "1.0.0",
         "@metorial/module-organization": "1.0.0",
@@ -4614,6 +4709,7 @@
         "@metorial/module-usage": "1.0.0",
         "@metorial/module-user": "1.0.0",
         "@metorial/queue": "1.0.0",
+        "@metorial/webhook-listeners": "1.0.0",
         "@vercel/ncc": "^0.38.4",
       },
       "devDependencies": {
@@ -7130,6 +7226,12 @@
 
     "@metorial/module-email": ["@metorial/module-email@workspace:src/metorial/products/core/modules/email"],
 
+    "@metorial/module-event-destination": ["@metorial/module-event-destination@workspace:src/metorial/products/auditing/modules/event-destination"],
+
+    "@metorial/module-event-log": ["@metorial/module-event-log@workspace:src/metorial/products/auditing/modules/event-log"],
+
+    "@metorial/module-event-tracker": ["@metorial/module-event-tracker@workspace:src/metorial/products/auditing/modules/event-tracker"],
+
     "@metorial/module-file": ["@metorial/module-file@workspace:src/metorial/products/storage/modules/file"],
 
     "@metorial/module-flags": ["@metorial/module-flags@workspace:src/metorial/products/core/modules/flags"],
@@ -7265,6 +7367,10 @@
     "@metorial/util-websocket": ["@metorial/util-websocket@1.0.0", "", { "dependencies": { "mitt": "^3.0.1", "ws": "^8.18.2" } }, "sha512-o0qRqbrjlmpjuKGyND4WDDCKBBRPztV8VkaX1HFSnbbKl/Jftz8CPtKnKmLQ38O4XPWPwl7Y7+9OPW7nqDg7UA=="],
 
     "@metorial/voyager": ["@metorial/voyager@workspace:src/voyager/service"],
+
+    "@metorial/webhook-event-schema": ["@metorial/webhook-event-schema@workspace:src/metorial/products/auditing/packages/event-schema"],
+
+    "@metorial/webhook-listeners": ["@metorial/webhook-listeners@workspace:src/metorial/products/auditing/packages/event-listeners"],
 
     "@mixmark-io/domino": ["@mixmark-io/domino@2.2.0", "", {}, "sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw=="],
 
@@ -11443,6 +11549,10 @@
     "@metorial/voyager/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
     "@metorial/voyager/vitest": ["vitest@4.1.9", "", { "dependencies": { "@vitest/expect": "4.1.9", "@vitest/mocker": "4.1.9", "@vitest/pretty-format": "4.1.9", "@vitest/runner": "4.1.9", "@vitest/snapshot": "4.1.9", "@vitest/spy": "4.1.9", "@vitest/utils": "4.1.9", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.9", "@vitest/browser-preview": "4.1.9", "@vitest/browser-webdriverio": "4.1.9", "@vitest/coverage-istanbul": "4.1.9", "@vitest/coverage-v8": "4.1.9", "@vitest/ui": "4.1.9", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-nE3/LEyc0z87uHYLZebqCUOaJr2hdtuPp7BQ4BosVFnfltxgAvMG08NyrSGlPpOUWvR27c5flSmYFTNr78L9GQ=="],
+
+    "@metorial/webhook-event-schema/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/webhook-listeners/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@modelcontextprotocol/sdk/jose": ["jose@6.2.3", "", {}, "sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw=="],
 

@@ -7,6 +7,7 @@ export type Flags = {
   'custom-providers-enabled': boolean;
   'magic-mcp-enabled': boolean;
   'callbacks-enabled': boolean;
+  'webhooks-enabled': boolean;
   'identity-management': boolean;
   'portals-access': boolean;
   'skills-enabled': boolean;
@@ -42,6 +43,7 @@ export let defaultFlags: Flags = {
   'custom-providers-enabled': false,
   'magic-mcp-enabled': false,
   'callbacks-enabled': false,
+  'webhooks-enabled': false,
   'portals-access': false,
   'identity-management': false,
   'skills-enabled': false,
