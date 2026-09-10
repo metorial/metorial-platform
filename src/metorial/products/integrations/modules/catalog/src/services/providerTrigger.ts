@@ -146,6 +146,26 @@ class providerTriggerServiceImpl {
     });
   }
 
+  async getValidTriggerKeysForProviderVariant(d: {
+    providerVariantOid: bigint;
+    keys: string[];
+  }): Promise<string[]> {
+    if (d.keys.length === 0) return [];
+
+    let version = await db.providerVersion.findFirst({
+      where: { providerVariantOid: d.providerVariantOid, isCurrent: true },
+      select: { specificationOid: true }
+    });
+    if (!version?.specificationOid) return [];
+
+    let triggers = await db.providerTrigger.findMany({
+      where: { specificationOid: version.specificationOid, key: { in: d.keys } },
+      select: { key: true }
+    });
+
+    return triggers.map(trigger => trigger.key);
+  }
+
   async getProviderTriggerByIdInternal(
     d: {
       tenant?: Tenant;
