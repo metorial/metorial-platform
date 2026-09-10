@@ -24,9 +24,9 @@ import {
   dashboardAuditLogRetentionController,
   dashboardAuthConfigConfigurationController,
   dashboardBootController,
+  dashboardDataRetentionConfigurationController,
   dashboardIntegrationNamingConfigurationController,
   dashboardKeyProviderController,
-  dashboardDataRetentionConfigurationController,
   dashboardOAuthAuthorizationRequestController,
   dashboardOrganizationConfigController,
   dashboardOrganizationController,
@@ -45,6 +45,9 @@ import {
 } from './dashboard';
 import {
   agentController,
+  callbackController,
+  callbackEventController,
+  callbackInstanceController,
   consumerController,
   consumerSurfaceController,
   customProviderCodeController,
@@ -68,6 +71,7 @@ import {
   identityDelegationConfigController,
   identityDelegationController,
   identityDelegationRequestController,
+  incomingWebhookController,
   instanceController,
   instancesController,
   integrationController,
@@ -165,10 +169,6 @@ import {
   storeParticipantController,
   tokenController,
   toolCallController,
-  callbackController,
-  callbackEventController,
-  callbackInstanceController,
-  incomingWebhookController,
   webhookRegistrationController
 } from './instance';
 import {
@@ -178,6 +178,9 @@ import {
   auditLogStreamEventManagementController,
   auditLogStreamManagementController,
   cliDeviceManagementController,
+  eventDestinationListenerController,
+  eventDestinationManagementController,
+  eventManagementController,
   instanceManagementController,
   managementApiKeyController,
   oauthApplicationManagementController,
@@ -463,6 +466,10 @@ export let magnetarController = Controller.create<any>(
     callbackEventController,
     callbackInstanceController,
 
+    eventDestinationManagementController,
+    eventDestinationListenerController,
+    eventManagementController,
+
     networkController,
     enclaveController,
     firewallController,
@@ -616,6 +623,8 @@ export let dashboardController = Controller.create<any>(
     auditLogManagementController,
     auditLogStreamManagementController,
     auditLogStreamEventManagementController,
+    eventDestinationManagementController,
+    eventManagementController,
     accessRoleManagementController,
     accessPolicyManagementController,
     oauthScopeManagementController,
@@ -642,6 +651,7 @@ export let dashboardController = Controller.create<any>(
 
     webhookRegistrationController,
     incomingWebhookController,
+    eventDestinationListenerController,
 
     documentController,
     documentVersionController,
