@@ -645,6 +645,7 @@ export type ManagementInstanceProviderListingsListQuery = {
         supportsAuth?: boolean | undefined;
         supportsOauth?: boolean | undefined;
         supportsCallbacks?: boolean | undefined;
+        supportsWebhookRegistration?: boolean | undefined;
         supportsOauthAutoRegistration?: boolean | undefined;
         supportsAuthExport?: boolean | undefined;
         supportsAuthImport?: boolean | undefined;
@@ -755,6 +756,10 @@ export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
           ),
           supportsCallbacks: mtMap.objectField(
             'supportsCallbacks',
+            mtMap.passthrough()
+          ),
+          supportsWebhookRegistration: mtMap.objectField(
+            'supportsWebhookRegistration',
             mtMap.passthrough()
           ),
           supportsOauthAutoRegistration: mtMap.objectField(

@@ -8,6 +8,9 @@ import {
   MetorialDashboardInstanceAgentsEndpoint,
   MetorialDashboardInstanceAgentsInstancesEndpoint,
   MetorialDashboardInstanceAssistantsEndpoint,
+  MetorialDashboardInstanceCallbackEventsEndpoint,
+  MetorialDashboardInstanceCallbackInstancesEndpoint,
+  MetorialDashboardInstanceCallbacksEndpoint,
   MetorialDashboardInstanceConsumersEndpoint,
   MetorialDashboardInstanceConsumersProfilesEndpoint,
   MetorialDashboardInstanceConsumerSurfacesEndpoint,
@@ -36,6 +39,7 @@ import {
   MetorialDashboardInstanceIdentitiesDelegationsEndpoint,
   MetorialDashboardInstanceIdentitiesEndpoint,
   MetorialDashboardInstanceIdentityActorsEndpoint,
+  MetorialDashboardInstanceIncomingWebhooksEndpoint,
   MetorialDashboardInstanceIntegrationsEndpoint,
   MetorialDashboardInstanceIntegrationsInstanceGroupsEndpoint,
   MetorialDashboardInstanceIntegrationsInstanceGroupsProvidersEndpoint,
@@ -137,6 +141,7 @@ import {
   MetorialDashboardInstanceStoresParticipantsEndpoint,
   MetorialDashboardInstanceStoresPermissionsEndpoint,
   MetorialDashboardInstanceToolCallsEndpoint,
+  MetorialDashboardInstanceWebhookRegistrationsEndpoint,
   MetorialDashboardOauthAuthorizationRequestsEndpoint,
   MetorialDashboardOrganizationsAccessPoliciesEndpoint,
   MetorialDashboardOrganizationsAccessRolesEndpoint,
@@ -165,6 +170,10 @@ import {
   MetorialDashboardOrganizationsSandboxesEndpoint,
   MetorialDashboardOrganizationsServiceAccountsClientSecretsEndpoint,
   MetorialDashboardOrganizationsServiceAccountsCredentialsEndpoint,
+  MetorialDashboardOrganizationsEventDestinationListenersEndpoint,
+  MetorialDashboardOrganizationsEventDestinationsEndpoint,
+  MetorialDashboardOrganizationsEventsEndpoint,
+  MetorialDashboardOrganizationsWebhookEventsEndpoint,
   MetorialDashboardOrganizationsServiceAccountsEndpoint,
   MetorialDashboardOrganizationsServiceAccountsPoliciesEndpoint,
   MetorialDashboardOrganizationsTeamsEndpoint,
@@ -1051,6 +1060,24 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       }
     ),
     setupSessions: new MetorialDashboardInstanceIntegrationsSetupSessionsEndpoint(manager)
+  }),
+
+  callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
+    events: new MetorialDashboardInstanceCallbackEventsEndpoint(manager),
+    instances: new MetorialDashboardInstanceCallbackInstancesEndpoint(manager),
+    incomingWebhooks: new MetorialDashboardInstanceIncomingWebhooksEndpoint(manager),
+    registrations: new MetorialDashboardInstanceWebhookRegistrationsEndpoint(manager)
+  }),
+
+  eventDestinations: Object.assign(
+    new MetorialDashboardOrganizationsEventDestinationsEndpoint(manager),
+    {
+      listeners: new MetorialDashboardOrganizationsEventDestinationListenersEndpoint(manager)
+    }
+  ),
+
+  events: Object.assign(new MetorialDashboardOrganizationsEventsEndpoint(manager), {
+    types: new MetorialDashboardOrganizationsWebhookEventsEndpoint(manager)
   }),
 
   scm: {

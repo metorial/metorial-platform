@@ -309,6 +309,7 @@ export type ProvidersListQuery = {
         supportsAuth?: boolean | undefined;
         supportsOauth?: boolean | undefined;
         supportsCallbacks?: boolean | undefined;
+        supportsWebhookRegistration?: boolean | undefined;
         supportsOauthAutoRegistration?: boolean | undefined;
         supportsAuthExport?: boolean | undefined;
         supportsAuthImport?: boolean | undefined;
@@ -364,6 +365,10 @@ export let mapProvidersListQuery = mtMap.union([
           ),
           supportsCallbacks: mtMap.objectField(
             'supportsCallbacks',
+            mtMap.passthrough()
+          ),
+          supportsWebhookRegistration: mtMap.objectField(
+            'supportsWebhookRegistration',
             mtMap.passthrough()
           ),
           supportsOauthAutoRegistration: mtMap.objectField(
