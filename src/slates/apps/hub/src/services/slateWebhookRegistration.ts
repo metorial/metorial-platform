@@ -8,6 +8,7 @@ import type {
   SlateWebhookRegistration,
   SlateWebhookRegistrationAuthRouting,
   SlateWebhookRegistrationOwner,
+  SlateWebhookRegistrationStatus,
   SlateWebhookRegistrationType,
   Tenant
 } from '../../prisma/generated/client';
@@ -28,6 +29,13 @@ let include = {
   triggerGroup: true,
   authMethods: { include: { authMethod: true as const } },
   oauthCredentials: { include: { oauthCredentials: true as const } }
+};
+
+let adminInclude = {
+  slate: true,
+  triggerGroup: true,
+  tenant: true,
+  triggerWebhookTarget: true
 };
 
 let getRegion = () => {
@@ -392,6 +400,77 @@ class slateWebhookRegistrationServiceImpl {
       where: { oid: d.registration.oid },
       data: { status: 'deleted' }
     });
+  }
+
+  async getWebhookRegistrationForAdmin(d: { id: string }) {
+    let registration = await db.slateWebhookRegistration.findFirst({
+      where: { id: d.id, status: { not: 'deleted' } },
+      include: adminInclude
+    });
+    if (!registration) throw new ServiceError(notFoundError('slate.webhook_registration'));
+    return registration;
+  }
+
+  async listWebhookRegistrationsForAdmin(d: {
+    search?: string;
+    types?: SlateWebhookRegistrationType[];
+    owners?: SlateWebhookRegistrationOwner[];
+    statuses?: SlateWebhookRegistrationStatus[];
+  }) {
+    let search = d.search?.trim();
+    let contains = search
+      ? { contains: search, mode: 'insensitive' as const }
+      : undefined;
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.slateWebhookRegistration.findMany({
+            ...opts,
+            where: {
+              status: d.statuses?.length ? { in: d.statuses } : { not: 'deleted' },
+              type: d.types?.length ? { in: d.types } : undefined,
+              owner: d.owners?.length ? { in: d.owners } : undefined,
+              ...(contains
+                ? {
+                    OR: [
+                      { name: contains },
+                      { description: contains },
+                      { urlKey: contains },
+                      { id: contains },
+                      {
+                        slate: {
+                          OR: [
+                            { name: contains },
+                            { identifier: contains },
+                            { slateFullIdentifierOnRegistry: contains }
+                          ]
+                        }
+                      },
+                      {
+                        tenant: {
+                          OR: [{ name: contains }, { identifier: contains }, { id: contains }]
+                        }
+                      },
+                      {
+                        triggerGroup: {
+                          OR: [{ name: contains }, { key: contains }]
+                        }
+                      },
+                      {
+                        triggerWebhookTarget: {
+                          OR: [{ name: contains }, { targetIdentifier: contains }]
+                        }
+                      }
+                    ]
+                  }
+                : {})
+            },
+            orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
+            include: adminInclude
+          })
+      )
+    );
   }
 
   private async resolveAuthMethods(d: { slate: Slate; authMethodIds: string[] }) {

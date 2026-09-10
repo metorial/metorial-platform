@@ -101,6 +101,11 @@ declare global {
         // Understands slates/hub.live_invocation.set
         liveInvocation?: boolean;
       };
+      provider?: {
+        // Implements slates/trigger_groups.list and the rest of the
+        // trigger_group.* protocol
+        triggerGroups?: boolean;
+      };
     };
 
     type AuthProfile = {

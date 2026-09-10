@@ -8,6 +8,7 @@ import { slateEventController } from './slateEvent';
 import { slateVersionController } from './slateVersion';
 import { triggerRoutingMatcherEvaluationController } from './triggerRoutingMatcherEvaluation';
 import { webhookController } from './webhook';
+import { devWebhookTriggerController } from './devWebhookTrigger';
 
 export let rootController = app.controller({
   auth: authController,
@@ -17,7 +18,8 @@ export let rootController = app.controller({
   slateEvent: slateEventController,
   slateDiscovery: slateDiscoveryController,
   webhook: webhookController,
-  triggerRoutingMatcherEvaluation: triggerRoutingMatcherEvaluationController
+  triggerRoutingMatcherEvaluation: triggerRoutingMatcherEvaluationController,
+  devWebhookTrigger: devWebhookTriggerController
 });
 
 export let slatesHubAdminRPC = createServer({})(rootController);

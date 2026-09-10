@@ -1,3 +1,4 @@
+export * from './adminWebhookTrigger';
 export * from './callback';
 export * from './callbackInstance';
 export * from './changeNotification';

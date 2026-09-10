@@ -121,7 +121,8 @@ export class SlateInvocationStack {
                         env.storage.MAX_ATTACHMENT_SIZE_BYTES ??
                         DEFAULT_MAX_ATTACHMENT_SIZE_BYTES
                     }
-                  }
+                  },
+                  triggers: true
                 }
               }
             }

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { DevOnly } from './components/DevOnly';
 import { Layout } from './components/Layout';
 import { AuthCallback } from './pages/auth/AuthCallback';
 import { DeploymentDetail } from './pages/deployments/DeploymentDetail';
@@ -11,6 +12,8 @@ import { SlateDetail } from './pages/slates/SlateDetail';
 import { SlateList } from './pages/slates/SlateList';
 import { VersionDetail } from './pages/versions/VersionDetail';
 import { VersionList } from './pages/versions/VersionList';
+import { WebhookTriggerDetail } from './pages/webhookTriggers/WebhookTriggerDetail';
+import { WebhookTriggerList } from './pages/webhookTriggers/WebhookTriggerList';
 import { WebhookCreate } from './pages/webhooks/WebhookCreate';
 import { WebhookDetail } from './pages/webhooks/WebhookDetail';
 import { WebhookList } from './pages/webhooks/WebhookList';
@@ -50,6 +53,23 @@ export let App = () => {
         <Route path="/webhooks" element={<WebhookList />} />
         <Route path="/webhooks/new" element={<WebhookCreate />} />
         <Route path="/webhooks/:webhookRegistrationId" element={<WebhookDetail />} />
+
+        <Route
+          path="/dev/webhook-triggers"
+          element={
+            <DevOnly>
+              <WebhookTriggerList />
+            </DevOnly>
+          }
+        />
+        <Route
+          path="/dev/webhook-triggers/:webhookRegistrationId"
+          element={
+            <DevOnly>
+              <WebhookTriggerDetail />
+            </DevOnly>
+          }
+        />
       </Route>
     </Routes>
   );

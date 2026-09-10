@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { isDevOnlyEnabled } from '../../../lib/isDevOnly';
 import { adminAuthService } from '../../../services';
 import { app, authedApp } from './_app';
 
@@ -9,7 +10,10 @@ export let authController = app.controller({
     .handler()
     .input(v.object({}))
     .do(async () => {
-      return { enabled: await adminAuthService.isEnabled() };
+      return {
+        enabled: await adminAuthService.isEnabled(),
+        devTools: isDevOnlyEnabled()
+      };
     }),
 
   getAuthUrl: app

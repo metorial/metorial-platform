@@ -5,3 +5,4 @@ export * from './slates';
 export * from './triggerRoutingMatcherEvaluations';
 export * from './versions';
 export * from './webhooks';
+export * from './webhookTriggers';

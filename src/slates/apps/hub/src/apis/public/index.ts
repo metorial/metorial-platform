@@ -1,6 +1,5 @@
 import {
   badRequestError,
-  createError,
   goneError,
   preconditionFailedError,
   ServiceError
@@ -9,22 +8,15 @@ import { type Context, createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { omit } from 'lodash';
 import { env } from '../../env';
-import { slateWebhookEventServiceInternal } from '../../internal';
-import { subscribeToWebhookEvent, waitForSignalOrTimeout } from '../../lib/webhookEventBus';
-import { processWebhookEventQueue } from '../../queues/webhook/process';
+import {
+  ingestWebhookRequest,
+  MAX_WEBHOOK_BODY_BYTES,
+  payloadTooLargeError
+} from '../../lib/ingestWebhookRequest';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
 import { slateWebhookRegistrationService } from '../../services/slateWebhookRegistration';
 import { integrationAttachmentApp } from './integrationAttachment';
 import { liveInvocationApp } from './liveInvocation';
-
-let MAX_WEBHOOK_BODY_BYTES = 2 * 1024 * 1024;
-let DEFAULT_WEBHOOK_SYNC_TIMEOUT_MS = 60_000;
-
-let payloadTooLargeError = createError({
-  status: 413,
-  code: 'payload_too_large',
-  message: `The webhook payload exceeds the ${MAX_WEBHOOK_BODY_BYTES} byte limit.`
-});
 
 let readBodyWithLimit = async (request: Request, maxBytes: number) => {
   if (!request.body) return new Uint8Array(0);
@@ -92,7 +84,7 @@ let handleWebhookReceive = async (c: Context) => {
       ? { encoding: 'base64' as const, content: Buffer.from(bodyBytes).toString('base64') }
       : null;
 
-  let event = await slateWebhookEventServiceInternal.createPendingEvent({
+  let result = await ingestWebhookRequest({
     registration,
     request: {
       method: c.req.method,
@@ -102,32 +94,11 @@ let handleWebhookReceive = async (c: Context) => {
     }
   });
 
-  let timeoutMs = env.slates.SLATES_WEBHOOK_SYNC_TIMEOUT_MS ?? DEFAULT_WEBHOOK_SYNC_TIMEOUT_MS;
-
-  let subscription = await subscribeToWebhookEvent(event.id);
-  try {
-    await processWebhookEventQueue.add({ webhookEventId: event.id });
-    await waitForSignalOrTimeout(subscription, timeoutMs);
-  } finally {
-    await subscription.close();
+  if (result.discarded) {
+    return c.json({ webhookEventId: result.eventId }, 200 as any);
   }
 
-  let final = await slateWebhookEventServiceInternal.getById({ id: event.id });
-
-  if (!final.slateResponse && !final.responseOverride) {
-    await slateWebhookEventServiceInternal.trySetResponseOverride({
-      eventOid: final.oid,
-      override: {
-        webhookEventId: final.id,
-        warning: {
-          code: 'deadline_exceeded',
-          message: `No response within ${timeoutMs}ms.`
-        }
-      }
-    });
-    final = await slateWebhookEventServiceInternal.getById({ id: event.id });
-  }
-
+  let final = result.event;
   if (final.slateResponse) return toHttpResponse(final.slateResponse);
 
   let override = final.responseOverride ?? { webhookEventId: final.id };
