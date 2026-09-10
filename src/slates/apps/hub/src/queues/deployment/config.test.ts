@@ -15,7 +15,8 @@ describe('resolveSlateDeploymentConfig', () => {
       })
     ).toEqual({
       memorySizeMb: 512,
-      timeoutSeconds: 45
+      timeoutSeconds: 45,
+      disableNetworkIsolation: true
     });
   });
 
@@ -31,7 +32,8 @@ describe('resolveSlateDeploymentConfig', () => {
       })
     ).toEqual({
       memorySizeMb: 512,
-      timeoutSeconds: 60
+      timeoutSeconds: 60,
+      disableNetworkIsolation: true
     });
   });
 });

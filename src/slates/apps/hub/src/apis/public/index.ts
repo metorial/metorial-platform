@@ -14,6 +14,8 @@ import { subscribeToWebhookEvent, waitForSignalOrTimeout } from '../../lib/webho
 import { processWebhookEventQueue } from '../../queues/webhook/process';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
 import { slateWebhookRegistrationService } from '../../services/slateWebhookRegistration';
+import { integrationAttachmentApp } from './integrationAttachment';
+import { liveInvocationApp } from './liveInvocation';
 
 let MAX_WEBHOOK_BODY_BYTES = 2 * 1024 * 1024;
 let DEFAULT_WEBHOOK_SYNC_TIMEOUT_MS = 60_000;
@@ -154,6 +156,7 @@ export let hubApp = createHono()
     c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
+  .get('/ping', c => c.text('OK'))
   .get('/slates-hub/authorization', async c => {
     let oauthSetupId = c.req.query('setup_id');
     if (!oauthSetupId)
@@ -207,4 +210,7 @@ export let hubApp = createHono()
   .all('/receive/:urlKey', handleWebhookReceive)
   .all('/receive/:urlKey/*', handleWebhookReceive)
   .options('*', c => c.text(''))
-  .get('/ping', c => c.text('OK'));
+  .get('/ping', c => c.text('OK'))
+  .route('/', integrationAttachmentApp)
+  .route('/', liveInvocationApp)
+  .options('*', c => c.text(''));

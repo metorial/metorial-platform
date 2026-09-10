@@ -28,6 +28,7 @@ model SlateInstance {
   slateSessions        SlateSession[]
   slateErrors          SlateError[]
   triggerRegistrations TriggerRegistration[]
+  slateAttachments     SlateAttachment[]
 }
 
 model SlateInstanceConfiguration {
@@ -185,6 +186,7 @@ model SlateAuthConfig {
   slateAuthConfigManualDecrypts SlateAuthConfigManualDecrypt[]
   slateErrors                   SlateError[]
   triggerRegistrations          TriggerRegistration[]
+  slateAttachments              SlateAttachment[]
 }
 
 model SlateAuthConfigManualDecrypt {

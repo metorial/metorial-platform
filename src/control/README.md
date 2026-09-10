@@ -34,7 +34,7 @@ target/release/control run test
 target/release/control test:unit @lowerdeck/hash
 target/release/control cleanup --dry-run
 target/release/control docker stop
-target/release/control workspace create feature/my-change --runtime=docker
+target/release/control workspace create feature/my-change
 target/release/control workspace list
 target/release/control workspace remove feature/my-change
 target/release/control workspace start
@@ -176,12 +176,11 @@ tests. E2E suites belong in `test:e2e` and are not run by `control test:unit`.
 This command does not refresh environments, install dependencies, generate
 clients, build packages, start Docker, or prepare databases.
 
-`control workspace create BRANCH --runtime=host|docker` creates a sibling
-worktree. The runtime flag is required and is stored in
-`.control/workspace.json`. Enterprise mode creates the enterprise worktree and
-a paired OSS worktree at its `oss/` path. Both runtimes run `bun install`, build
-Control, and run the normal preparation sequence during first initialization.
-Application services are not started.
+`control workspace create BRANCH` creates a sibling host-runtime worktree and
+stores that runtime in `.control/workspace.json`. Enterprise mode creates the
+enterprise worktree and a paired OSS worktree at its `oss/` path. It runs
+`bun install`, builds Control, and runs the normal preparation sequence during
+first initialization. Application services are not started.
 
 Docker workspaces perform setup inside a persistent Ubuntu development
 container. Host workspaces perform setup directly on the host and generate an
@@ -199,14 +198,15 @@ paired OSS worktree in enterprise mode.
 
 ## Workspace runtimes
 
-Create a workspace by choosing its execution runtime:
+New workspaces currently always use the host runtime:
 
 ```sh
-control workspace create feature/docker-change --runtime=docker
-control workspace create feature/host-change --runtime=host
+control workspace create feature/my-change
 ```
 
-Existing workspace metadata without a runtime is treated as `docker`.
+The Docker workspace implementation is retained for existing workspaces but is
+not selectable through the CLI. Existing workspace metadata without a runtime
+is still treated as `docker` for compatibility.
 
 For a host workspace, `workspace start` starts its generated dependency stack,
 ensures host setup is current, and opens the local worktree in VS Code.

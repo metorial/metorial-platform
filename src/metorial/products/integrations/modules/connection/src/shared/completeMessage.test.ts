@@ -19,7 +19,8 @@ let mocks = vi.hoisted(() => ({
   messageFailureReasonToErrorType: vi.fn(() => 'message_processing_timeout'),
   getId: vi.fn(() => ({ id: 'sessionEvent_test', oid: 100n })),
   getRawToolCallAttachmentsFromOutput: vi.fn(() => []),
-  presentToolCallAttachment: vi.fn((attachment: unknown) => attachment),
+  getToolCallAttachmentUrlKey: vi.fn(() => 'tca_link_test'),
+  presentToolCallAttachment: vi.fn(async (attachment: unknown) => attachment),
   replaceToolCallAttachmentsInOutput: vi.fn((output: unknown) => output)
 }));
 
@@ -27,6 +28,7 @@ vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
   getId: mocks.getId,
   getRawToolCallAttachmentsFromOutput: mocks.getRawToolCallAttachmentsFromOutput,
+  getToolCallAttachmentUrlKey: mocks.getToolCallAttachmentUrlKey,
   presentToolCallAttachment: mocks.presentToolCallAttachment,
   replaceToolCallAttachmentsInOutput: mocks.replaceToolCallAttachmentsInOutput
 }));
@@ -290,8 +292,8 @@ describe('completeMessage', () => {
     expect(mocks.finalizeMessageQueue.add).not.toHaveBeenCalled();
   });
 
-  it('rehosts attachments and persists a ToolCallAttachment when storeToolCallAttachments is enabled', async () => {
-    let rawAttachment = { url: 'https://provider.example/raw-file', mimeType: 'image/png', expiresAt: null };
+  it('rehosts delegated attachments without persisting their URL', async () => {
+    let rawAttachment = { slateAttachmentId: 'shsa_123', mimeType: 'image/png', expiresAt: null };
     mocks.getRawToolCallAttachmentsFromOutput.mockReturnValueOnce([rawAttachment]);
 
     let currentMessage = {
@@ -334,10 +336,67 @@ describe('completeMessage', () => {
 
     expect(mocks.replaceToolCallAttachmentsInOutput).toHaveBeenCalledWith(
       { type: 'tool.result', data: {} },
-      [expect.objectContaining({ url: rawAttachment.url, toolCallOid: 43n })]
+      [expect.objectContaining({ url: null, slateAttachmentId: 'shsa_123', toolCallOid: 43n })]
     );
     expect(tx.toolCallAttachment.createMany).toHaveBeenCalledWith({
-      data: [expect.objectContaining({ url: rawAttachment.url, toolCallOid: 43n })]
+      data: [expect.objectContaining({ url: null, slateAttachmentId: 'shsa_123', toolCallOid: 43n })]
+    });
+  });
+
+  it('persists slateAttachmentId and leaves url null for slate-sourced attachments', async () => {
+    let rawAttachment = {
+      slateAttachmentId: 'shsa_123',
+      mimeType: 'image/png',
+      expiresAt: null
+    };
+    mocks.getRawToolCallAttachmentsFromOutput.mockReturnValueOnce([rawAttachment]);
+
+    let currentMessage = {
+      id: 'msg_attach_slate',
+      oid: 5n,
+      session: { oid: 41n, dataRetentionLevel: 'full', storeToolCallAttachments: true, collectErrors: true },
+      connection: { oid: 42n },
+      toolCall: { oid: 44n }
+    };
+    let completedMessage = {
+      id: 'msg_attach_slate',
+      oid: 5n,
+      status: 'succeeded',
+      toolCall: { oid: 44n, attachments: [] }
+    };
+    let tx = {
+      sessionMessage: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+      },
+      toolCall: {
+        updateMany: vi.fn()
+      },
+      toolCallAttachment: {
+        createMany: vi.fn()
+      }
+    };
+
+    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
+
+    await completeMessage(
+      { messageId: 'msg_attach_slate' },
+      {
+        status: 'succeeded',
+        responderParticipant: { oid: 99n } as any,
+        output: { type: 'tool.result', data: {} } as any
+      }
+    );
+
+    expect(tx.toolCallAttachment.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          url: null,
+          slateAttachmentId: 'shsa_123',
+          toolCallOid: 44n
+        })
+      ]
     });
   });
 

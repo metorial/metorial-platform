@@ -62,7 +62,8 @@ export let functionDeploymentController = app.controller({
 
         config: v.object({
           memorySizeMb: v.number(),
-          timeoutSeconds: v.number()
+          timeoutSeconds: v.number(),
+          disableNetworkIsolation: v.optional(v.boolean())
         }),
 
         env: v.record(v.string()),

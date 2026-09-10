@@ -38,4 +38,5 @@ model Tenant {
   triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
   callbacks                        Callback[]
   callbackInstances                CallbackInstance[]
+  slateAttachments                 SlateAttachment[]
 }

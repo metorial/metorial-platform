@@ -32,6 +32,7 @@ model SlateInvocation {
   triggerPollingRuns                       TriggerPollingRun[]
   triggerWebhookTargetRegistrationAttempts TriggerWebhookTargetRegistrationAttempt[]
   triggerEventInvocations                  TriggerEventInvocation[]
+  slateAttachmentUploads                   SlateAttachmentUpload[]
 
   @@index([deploymentOid, createdAt])
 }

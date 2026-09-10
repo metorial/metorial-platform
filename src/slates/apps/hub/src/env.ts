@@ -11,7 +11,8 @@ export let env = createValidatedEnv({
     METORIAL_REGION: v.optional(v.string()),
 
     SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
-    SLATES_HUB_INTERNAL_PORT: v.optional(v.number())
+    SLATES_HUB_INTERNAL_PORT: v.optional(v.number()),
+    SLATES_HUB_ADMIN_PORT: v.optional(v.number())
   },
 
   functionBay: {
@@ -29,7 +30,8 @@ export let env = createValidatedEnv({
 
   storage: {
     OBJECT_STORAGE_URL: v.string(),
-    INVOCATIONS_BUCKET_NAME: v.string()
+    INVOCATIONS_BUCKET_NAME: v.string(),
+    MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number())
   },
 
   encryption: {
@@ -63,6 +65,9 @@ export let env = createValidatedEnv({
   },
 
   subspace: {
-    SUBSPACE_INTERNAL_URL: v.optional(v.string())
+    SUBSPACE_INTERNAL_URL: v.optional(v.string()),
+    SLATES_DELEGATE_SECRETS_TO_NEBULA: v.boolean(),
+    SLATE_ATTACHMENT_SIGNING_SECRET: v.string(),
+    TOOL_ATTACHMENT_ROUTER_SECRET: v.optional(v.string())
   }
 });

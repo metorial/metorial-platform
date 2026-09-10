@@ -2,13 +2,79 @@ model SlateAttachment {
   oid BigInt @id
   id  String @unique
 
-  digest Bytes @unique
+  // Non-unique: many attachments can share the same digest - deduped via SlateAttachmentBlob.
+  digest Bytes?
 
-  createdAt     DateTime @default(now())
-  expiresAt     DateTime
-  lastCreatedAt DateTime @default(now())
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  authConfigOid BigInt?
+  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
+
+  slateInstanceOid BigInt?
+  slateInstance    SlateInstance? @relation(fields: [slateInstanceOid], references: [oid], onDelete: SetNull)
+
+  targetUrl String?
+
+  storageBucket String?
+  storageKey    String?
+
+  headers  Json?
+  query    Json?
+  mimeType String?
+
+  refreshReference        Json?
+  refreshAfter            DateTime?
+  lastRefreshedAt         DateTime?
+  refreshFailureCount     Int       @default(0)
+  lastRefreshErrorCode    String?
+  lastRefreshErrorMessage String?
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 
   slateInvocationAttachments SlateInvocationAttachment[]
 
+  @@index([digest])
   @@index([expiresAt])
+  @@index([refreshAfter])
+}
+
+model SlateAttachmentBlob {
+  oid BigInt @id
+  id  String @unique
+
+  digest Bytes @unique
+
+  storageBucket String
+  storageKey    String
+
+  mimeType  String?
+  sizeBytes Int?
+
+  createdAt DateTime @default(now())
+}
+
+model SlateAttachmentUpload {
+  oid BigInt @id
+  id  String @unique
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  mimeType String?
+  filename String?
+
+  sizeBytes Int?
+
+  status String @default("pending")
+
+  storageBucket String
+  storageKey    String
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime // signed upload URL expiry
+
+  @@index([expiresAt, status])
+  @@index([invocationOid])
 }

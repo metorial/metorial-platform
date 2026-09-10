@@ -5,6 +5,7 @@ export * from './changeNotification';
 export * from './registry';
 export * from './secret';
 export * from './slate';
+export * from './slateAttachmentRefresh';
 export * from './slateAuthConfig';
 export * from './slateAuthConfigEvent';
 export * from './slateDeployment';

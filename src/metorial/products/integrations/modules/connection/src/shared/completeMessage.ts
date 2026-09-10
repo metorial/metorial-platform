@@ -1,8 +1,8 @@
-import { generateCustomId } from '@lowerdeck/id';
 import {
   db,
   getId,
   getRawToolCallAttachmentsFromOutput,
+  getToolCallAttachmentUrlKey,
   presentToolCallAttachment,
   Prisma,
   replaceToolCallAttachmentsInOutput,
@@ -65,18 +65,19 @@ export let completeMessage = async (
     currentToolCall && retention.storeToolCallAttachments
       ? rawToolCallAttachments.map(attachment => ({
           ...getId('toolCallAttachment'),
-          urlKey: generateCustomId('tca_link_', 50),
-          url: attachment.url,
+          urlKey: getToolCallAttachmentUrlKey(),
+          url: null,
+          slateAttachmentId: attachment.slateAttachmentId,
           mimeType: attachment.mimeType,
           expiresAt: attachment.expiresAt,
           toolCallOid: currentToolCall.oid
         }))
       : [];
 
-  if (rawToolCallAttachments.length && data.output?.type === 'tool.result') {
+  if (currentToolCall && data.output?.type === 'tool.result') {
     data.output = replaceToolCallAttachmentsInOutput(
       data.output,
-      toolCallAttachmentRecords.map(presentToolCallAttachment)
+      await Promise.all(toolCallAttachmentRecords.map(presentToolCallAttachment))
     );
   }
 

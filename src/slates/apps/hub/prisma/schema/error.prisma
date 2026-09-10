@@ -5,6 +5,7 @@ enum SlateErrorType {
   oauth_token_refresh_failed
   oauth_setup_failed
   profile_fetch_failed
+  attachment_refresh_failed
 }
 
 model SlateError {

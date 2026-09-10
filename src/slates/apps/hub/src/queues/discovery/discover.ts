@@ -1,7 +1,11 @@
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { getSentry } from '@lowerdeck/sentry';
-import type { SlateAuthenticationMethod, SlatesAction, SlatesTriggerGroup } from '@slates/proto';
+import type {
+  SlateAuthenticationMethod,
+  SlatesAction,
+  SlatesTriggerGroup
+} from '@slates/proto';
 import { differenceInMinutes } from 'date-fns';
 import semver from 'semver';
 import { db } from '../../db';
@@ -9,11 +13,13 @@ import { env } from '../../env';
 import { getId, snowflake } from '../../id';
 import { getStackError, getStackResultsOrThrow } from '../../lib/invocation/error';
 import type { InvocationError } from '../../lib/invocation/types';
+import { isReservedActionId } from '../../lib/reservedActions';
 import {
   buildDiscoveredSpecificationHashes,
   dedupeDiscoveredItems
 } from '../../lib/specificationHash';
 import { slateInvocationService } from '../../services';
+import { discoverSlateCapabilities } from './discoverCapabilities';
 
 let Sentry = getSentry();
 
@@ -169,7 +175,7 @@ let buildActionUpsertData = async (d: {
 
       triggerGroupOid:
         action.type === 'action.trigger'
-          ? d.triggerGroupOidByKey.get(action.triggerGroupId) ?? null
+          ? (d.triggerGroupOidByKey.get(action.triggerGroupId) ?? null)
           : null
     };
   });
@@ -321,6 +327,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
     let slate = version.slate;
 
+    let suppressServerErrorReporting =
+      !stagedDeployment && version.status === 'discovery_failed';
+
     await db.slateEvent.create({
       data: {
         ...getId('slateEvent'),
@@ -332,13 +341,23 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
     });
 
     try {
+      let capabilities = await discoverSlateCapabilities({
+        slateVersion: version,
+        deploymentTarget: {
+          providerDeploymentInfo: target.providerDeploymentInfo,
+          activeDeploymentOid: target.activeDeploymentOid
+        },
+        suppressServerErrorReporting
+      });
+
       let stack = await slateInvocationService.createInvocation({
         slateVersion: version,
         deploymentTarget: {
           providerDeploymentInfo: target.providerDeploymentInfo,
           activeDeploymentOid: target.activeDeploymentOid
         },
-        participants: [] // Only the hub
+        participants: [], // Only the hub
+        suppressServerErrorReporting
       });
 
       let stackResult = await Promise.all([
@@ -373,12 +392,17 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         slateId: slate.id,
         versionId: version.id
       });
-      let discoveredActions = dedupeDiscoveredItems(actions.actions, {
-        entity: 'actions',
-        slateId: slate.id,
-        versionId: version.id,
-        getKey: action => `${action.type}:${action.id}`
-      });
+
+      let discoveredActions = dedupeDiscoveredItems(
+        actions.actions.filter(action => !isReservedActionId(action.id)),
+        {
+          entity: 'actions',
+          slateId: slate.id,
+          versionId: version.id,
+          getKey: action => `${action.type}:${action.id}`
+        }
+      );
+
       let discoveredTriggerGroups = dedupeDiscoveredItems(triggerGroups.triggerGroups, {
         entity: 'trigger_groups',
         slateId: slate.id,
@@ -416,7 +440,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         configSchemaDocs,
         authMethods: discoveredAuthMethods,
         actions: discoveredActions,
-        triggerGroups: discoveredTriggerGroups
+        triggerGroups: discoveredTriggerGroups,
+        capabilities
       };
       let specification = await db.slateSpecification.upsert({
         where: {
@@ -566,6 +591,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         status: 'active' as const,
         specificationOid: specification.oid,
         lastDiscoveredAt: new Date(),
+        capabilities,
         ...(stagedDeployment
           ? {
               providerDeploymentInfo: target.providerDeploymentInfo,

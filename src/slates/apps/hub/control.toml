@@ -19,6 +19,12 @@ env = [
   { endpoint = "api", key = "NEBULA_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-nebula" },
 ]
 
+[[dependencies]]
+identifier = "@metorial/slates-registry"
+env = [
+  { endpoint = "public", key = "INITIAL_REGISTRIES", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev]
 prepare = ["admin:build"]
 run = ["dev:start"]
@@ -33,6 +39,10 @@ env = [
 [endpoints.internal]
 port = 52046
 env = [{ key = "SLATES_HUB_INTERNAL_PORT", value = "{{BIND_PORT}}" }]
+
+[endpoints.admin]
+port = 52047
+env = [{ key = "SLATES_HUB_ADMIN_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"
@@ -57,6 +67,7 @@ NEBULA_CONSUMER_IDENTIFIER = "dev-slates-hub"
 NEBULA_CONSUMER_TOKEN = "local-dev-nebula-slates-registration-secret"
 SLATES_DELEGATE_SECRETS_TO_NEBULA = "true"
 SUBSPACE_INTERNAL_URL = "http://{{HOSTNAME}}:4317/subspace-internal"
+SLATE_ATTACHMENT_SIGNING_SECRET = "dev-slate-attachment-signing-secret"
 
 [dev.db.main]
 package = "@metorial/slates"

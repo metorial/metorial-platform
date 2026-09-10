@@ -85,6 +85,10 @@ class slateInvocationServiceImpl {
     return await d.stack.invoke('slates/provider.identify', {});
   }
 
+  async getProviderCapabilities(d: { stack: SlateInvocationStack }) {
+    return await d.stack.invoke('slates/provider.capabilities.get', {});
+  }
+
   async listAuthMethods(d: { stack: SlateInvocationStack }) {
     return await d.stack.invoke('slates/auth.methods.list', {});
   }

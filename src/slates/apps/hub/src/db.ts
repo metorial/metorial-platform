@@ -94,6 +94,15 @@ declare global {
 
     type SlateProviderInfo = SlatesMessageProviderIdentifyResponse['result']['provider'];
 
+    type SlateCapabilities = {
+      hub?: {
+        // Understands slates/hub.capabilities.set
+        capabilitiesNotification?: boolean;
+        // Understands slates/hub.live_invocation.set
+        liveInvocation?: boolean;
+      };
+    };
+
     type AuthProfile = {
       id?: string;
       email?: string;

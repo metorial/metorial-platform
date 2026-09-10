@@ -72,6 +72,7 @@ pub async fn run(
                 "prepare: turbo run control:db:push ({})",
                 database_packages.join(", ")
             );
+            println!("prepare: bun run build");
         }
         for loaded in &selected {
             let cwd = loaded.path.parent().unwrap_or(&project.root);
@@ -357,6 +358,19 @@ async fn prepare_workspace(
             return Err(error).wrap_err_with(|| format!("turbo run {task} failed"));
         }
     }
+
+    // Root `build` applies the repository's workspace filters and builds shared
+    // packages before package-local prepares such as frontend bundling.
+    println!("Building packages");
+    if let Err(error) =
+        process::run("bun", &["run".into(), "build".into()], &project.root, env).await
+    {
+        if process::is_interrupted(&error) {
+            return Err(error);
+        }
+        return Err(error).wrap_err("bun run build failed");
+    }
+
     prepare_scripts(&project.root, selected, env).await
 }
 

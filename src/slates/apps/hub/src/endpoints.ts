@@ -20,7 +20,7 @@ Bun.serve({
 
 Bun.serve({
   fetch: adminApi,
-  port: 52047
+  port: env.service.SLATES_HUB_ADMIN_PORT ?? 52047
 });
 
 console.log('Slates hub server is running');

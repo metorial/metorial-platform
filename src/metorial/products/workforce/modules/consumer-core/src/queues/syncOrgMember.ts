@@ -19,17 +19,17 @@ export let syncOrgMemberQueueProcessor = syncOrgMemberQueue.process(async data =
   syncOrgMemberLock.usingLock(data.memberId, async () => {
     let member = await db.organizationMember.findUnique({
       where: {
-        id: data.memberId,
-        actor: { type: 'member' }
+        id: data.memberId
       },
       include: {
         organization: true,
         instanceConsumers: true,
-        user: true
+        user: true,
+        actor: true
       }
     });
     if (!member) throw new QueueRetryError();
-    if (member.user.type === 'system') return;
+    if (member.user.type === 'system' || member.actor.type !== 'member') return;
 
     if (member.instanceConsumers.length) {
       await syncOrgMemberConsumerQueue.addManyWithOps(

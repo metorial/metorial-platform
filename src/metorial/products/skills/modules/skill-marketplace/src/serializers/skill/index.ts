@@ -9,6 +9,7 @@ import { stringify } from 'yaml';
 import { combineConfigs } from '../../lib/combineConfigs';
 import { assertSkillStoreByteLimit, assertSkillStoreFileLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
 import { getSkillPath, getSkillPruneScope } from '../_lib/paths';
 import type { SkillSerializerInput } from '../_lib/types';
 import {
@@ -135,6 +136,7 @@ export let applySkill = createApplicator(
       return await Hash.sha256(
         canonicalize({
           serializerVersion: 4,
+          ...getMarketplaceForceSyncHashInput(input.skillMarketplace),
           path: getSkillPath(input),
           skill: {
             name: input.skill.name,
