@@ -1,0 +1,33 @@
+enum EventDestinationType {
+  webhook
+}
+
+enum EventDestinationStatus {
+  active
+  archived
+}
+
+model EventDestination {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name        String
+  description String?
+
+  status EventDestinationStatus @default(active)
+  type   EventDestinationType
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  webhookDestinationOid BigInt?             @unique
+  webhookDestination    WebhookDestination? @relation(fields: [webhookDestinationOid], references: [oid], onDelete: SetNull)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  listeners EventDestinationListener[]
+
+  @@index([organizationOid, status])
+}

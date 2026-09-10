@@ -1,0 +1,21 @@
+enum WebhookMethod {
+  POST
+}
+
+model WebhookDestination {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  url    String
+  method WebhookMethod @default(POST)
+
+  signingSecret String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  eventDestination EventDestination?
+}

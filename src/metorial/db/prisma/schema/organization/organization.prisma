@@ -109,6 +109,9 @@ model Organization {
   outpostAccesses                        OutpostAccess[]
   outposts                               Outpost[]
   outpostTokenKeyPairs                   OutpostTokenKeyPair[]
+  eventDestinations                      EventDestination[]
+  webhookDestinations                    WebhookDestination[]
+  systemEvents                           SystemEvent[]
 
   @@index([authVersion])
   @@index([previousSlugs])

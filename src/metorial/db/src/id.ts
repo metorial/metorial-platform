@@ -287,5 +287,15 @@ export let ID = createIdGenerator({
   auditLogStream: idType.sorted('als_'),
   auditLogStreamEvent: idType.sorted('alse_'),
   auditLogStreamRun: idType.sorted('alsr_'),
-  auditLogStreamBatch: idType.sorted('alsb_')
+  auditLogStreamBatch: idType.sorted('alsb_'),
+
+  eventDestination: idType.sorted('evtd'),
+  webhookDestination: idType.sorted('whd'),
+  webhookSigningSecret: idType.key('whsec'),
+  eventDestinationListener: idType.sorted('evtl'),
+  // Note: `evt` isn't actually available — `createIdGenerator` normalizes every prefix to end with
+  // `_` (so 'evt' -> 'evt_'), which is an exact collision with `auditEvent: idType.sorted('evt_')`
+  // above (AuditLogEvent, mapped to table "Event") and throws at import time. `evnt` is the closest
+  // available prefix to what was asked for.
+  systemEvent: idType.sorted('evnt')
 });

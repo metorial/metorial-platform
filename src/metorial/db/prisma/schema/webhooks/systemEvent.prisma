@@ -1,0 +1,34 @@
+enum SystemEventSource {
+  resource
+  callback
+}
+
+model SystemEvent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  source    SystemEventSource
+  eventType String // "<resource>.<action>" for source = resource, "callback.<triggerKey>"
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
+
+  /// [SystemEventPayload]
+  payloadJson       Json?
+  payloadStorageKey String?
+
+  callbackEventId    String? @unique
+  callbackId         String?
+  callbackTriggerKey String?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationOid, createdAt])
+  @@index([instanceOid, createdAt])
+  @@index([eventType])
+  @@index([callbackId, callbackTriggerKey])
+  @@index([payloadStorageKey])
+}
