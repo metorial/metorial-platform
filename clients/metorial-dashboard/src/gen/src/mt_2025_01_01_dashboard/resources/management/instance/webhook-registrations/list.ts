@@ -1,0 +1,155 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type ManagementInstanceWebhookRegistrationsListOutput = {
+  items: {
+    object: 'webhook_registration';
+    id: string;
+    status: 'awaiting_setup' | 'active' | 'archived' | 'deleted';
+    name: string;
+    description: string | null;
+    metadata: Record<string, any> | null;
+    receiveUrl: string | null;
+    setup: {
+      object: 'webhook_registration.setup';
+      status: 'pending' | 'completed';
+      document: string | null;
+    };
+    provider: {
+      object: 'provider#preview';
+      id: string;
+      name: string;
+      description: string | null;
+      slug: string;
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+};
+
+export let mapManagementInstanceWebhookRegistrationsListOutput =
+  mtMap.object<ManagementInstanceWebhookRegistrationsListOutput>({
+    items: mtMap.objectField(
+      'items',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          receiveUrl: mtMap.objectField('receive_url', mtMap.passthrough()),
+          setup: mtMap.objectField(
+            'setup',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              document: mtMap.objectField('document', mtMap.passthrough())
+            })
+          ),
+          provider: mtMap.objectField(
+            'provider',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              slug: mtMap.objectField('slug', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    ),
+    pagination: mtMap.objectField(
+      'pagination',
+      mtMap.object({
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
+        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+      })
+    )
+  });
+
+export type ManagementInstanceWebhookRegistrationsListQuery = {
+  limit?: number | undefined;
+  after?: string | undefined;
+  before?: string | undefined;
+  cursor?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+} & {
+  id?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
+  status?:
+    | 'awaiting_setup'
+    | 'active'
+    | 'archived'
+    | 'deleted'
+    | ('awaiting_setup' | 'active' | 'archived' | 'deleted')[]
+    | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+};
+
+export let mapManagementInstanceWebhookRegistrationsListQuery = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      limit: mtMap.objectField('limit', mtMap.passthrough()),
+      after: mtMap.objectField('after', mtMap.passthrough()),
+      before: mtMap.objectField('before', mtMap.passthrough()),
+      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerId: mtMap.objectField(
+        'provider_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
+    })
+  )
+]);
+

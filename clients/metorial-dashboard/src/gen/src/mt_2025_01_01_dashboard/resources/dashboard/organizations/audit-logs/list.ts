@@ -4,7 +4,7 @@ export type DashboardOrganizationsAuditLogsListOutput = {
   items: {
     object: 'organization.audit_log';
     id: string;
-    eventId: string | null;
+    eventId: string;
     resource: string;
     action: string;
     organizationId: string;
