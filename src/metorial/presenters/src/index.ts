@@ -75,6 +75,9 @@ import {
   v1DocumentPresenter,
   v1DocumentVersionPresenter,
   v1EnclavePresenter,
+  v1EventDestinationListenerPresenter,
+  v1EventDestinationPresenter,
+  v1SystemEventPresenter,
   v1FileLinkPresenter,
   v1FilePresenter,
   v1FirewallBindingPresenter,
@@ -246,7 +249,8 @@ import {
   v1WebhookRegistrationPresenter,
   v1TokenPresenter,
   v1UsagePresenter,
-  v1UserPresenter
+  v1UserPresenter,
+  v1WebhookEventPresenter
 } from './implementation';
 import {
   accessPolicyType,
@@ -299,6 +303,8 @@ import {
   documentType,
   documentVersionType,
   enclaveType,
+  eventDestinationListenerType,
+  eventDestinationType,
   fileLinkType,
   fileType,
   firewallBindingType,
@@ -423,6 +429,7 @@ import {
   sessionProviderType,
   sessionTemplateProviderType,
   sessionTemplateType,
+  systemEventType,
   skillAgentType,
   skillConfigurationType,
   skillExportType,
@@ -464,7 +471,8 @@ import {
   tokenType,
   toolCallType,
   usageType,
-  userType
+  userType,
+  webhookEventType
 } from './types';
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
@@ -651,6 +659,26 @@ export let auditLogStreamPresenter = declarePresenter(auditLogStreamType, {
 export let auditLogStreamEventPresenter = declarePresenter(auditLogStreamEventType, {
   mt_2025_01_01_dashboard: v1AuditLogStreamEventPresenter,
   mt_2026_01_01_magnetar: v1AuditLogStreamEventPresenter
+});
+
+export let eventDestinationPresenter = declarePresenter(eventDestinationType, {
+  mt_2025_01_01_dashboard: v1EventDestinationPresenter,
+  mt_2026_01_01_magnetar: v1EventDestinationPresenter
+});
+
+export let eventDestinationListenerPresenter = declarePresenter(eventDestinationListenerType, {
+  mt_2025_01_01_dashboard: v1EventDestinationListenerPresenter,
+  mt_2026_01_01_magnetar: v1EventDestinationListenerPresenter
+});
+
+export let eventPresenter = declarePresenter(systemEventType, {
+  mt_2025_01_01_dashboard: v1SystemEventPresenter,
+  mt_2026_01_01_magnetar: v1SystemEventPresenter
+});
+
+export let webhookEventPresenter = declarePresenter(webhookEventType, {
+  mt_2025_01_01_dashboard: v1WebhookEventPresenter,
+  mt_2026_01_01_magnetar: v1WebhookEventPresenter
 });
 
 export let projectBrandPresenter = declarePresenter(projectBrandType, {

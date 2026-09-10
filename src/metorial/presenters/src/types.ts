@@ -74,6 +74,9 @@ import {
   ConsumerToken,
   Document,
   DocumentParticipant,
+  EventDestination,
+  EventDestinationListener,
+  SystemEvent,
   File,
   FileLink,
   Instance,
@@ -139,7 +142,8 @@ import {
   TeamProject,
   User,
   UserStatus,
-  UserType
+  UserType,
+  WebhookDestination
 } from '@metorial/db';
 import type { AnyAccessTagSelector } from '@metorial/module-access';
 import type { AuditLog } from '@metorial/module-audit-log';
@@ -1094,6 +1098,34 @@ export let auditLogStreamEventType = PresentableType.create<{
     auditLogStream: AuditLogStream;
   };
 }>()('auditLogStreamEvent');
+
+export let eventDestinationType = PresentableType.create<{
+  eventDestination: EventDestination & {
+    organization: Organization;
+    webhookDestination: WebhookDestination | null;
+    listeners: (EventDestinationListener & { instance: Instance })[];
+  };
+  // Only passed by the create and rotate-secret controller actions — every other read path (list,
+  // get, update, archive) omits this, so `signing_secret` renders as `null` there. Mirrors the
+  // API-key "reveal once" convention (`apiKeyPresenter`'s `secret` field).
+  revealSecret?: string;
+}>()('eventDestination');
+
+export let eventDestinationListenerType = PresentableType.create<{
+  listener: EventDestinationListener & {
+    eventDestination: EventDestination;
+  };
+  instance: Instance;
+}>()('eventDestinationListener');
+
+export let systemEventType = PresentableType.create<{
+  event: SystemEvent & { instance: Instance | null };
+  organization: Organization;
+}>()('event');
+
+export let webhookEventType = PresentableType.create<{
+  webhookEvent: { name: string };
+}>()('webhookEvent');
 
 export let organizationConfigType = PresentableType.create<{
   config: OrganizationConfig & {
