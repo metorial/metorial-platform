@@ -38,6 +38,18 @@ export let callbackEventController = Controller.create(
             callback_instance_id: v.optional(stringOrArray(), {
               description: 'Filter by callback instance ID(s)'
             }),
+            integration_id: v.optional(stringOrArray(), {
+              description: 'Filter by the integration the callback belongs to'
+            }),
+            integration_provider_id: v.optional(stringOrArray(), {
+              description: 'Filter by the integration provider the callback belongs to'
+            }),
+            provider_id: v.optional(stringOrArray(), {
+              description: 'Filter by the provider the callback belongs to'
+            }),
+            provider_trigger_key: v.optional(stringOrArray(), {
+              description: 'Filter by the provider trigger key that produced the event'
+            }),
             status: v.optional(
               v.union([callbackEventStatusValidator, v.array(callbackEventStatusValidator)]),
               { description: 'Filter by callback event processing status' }
@@ -56,6 +68,10 @@ export let callbackEventController = Controller.create(
           instance: ctx.instance,
           callbackIds: normalizeArrayParam(ctx.query.callback_id),
           callbackInstanceIds: normalizeArrayParam(ctx.query.callback_instance_id),
+          integrationIds: normalizeArrayParam(ctx.query.integration_id),
+          integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerTriggerKeys: normalizeArrayParam(ctx.query.provider_trigger_key),
           status: normalizeArrayParam(ctx.query.status),
           source: normalizeArrayParam(ctx.query.source),
           occurredAt: ctx.query.occurred_at,

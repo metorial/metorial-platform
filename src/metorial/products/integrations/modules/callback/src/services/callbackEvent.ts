@@ -13,7 +13,10 @@ import {
   type DateFilter,
   normalizeDateFilter,
   resolveCallbackInstances,
-  resolveCallbacks
+  resolveCallbacks,
+  resolveIntegrationProviders,
+  resolveIntegrations,
+  resolveProviders
 } from '@metorial-subspace/list-utils';
 import {
   getMetorialSolution,
@@ -30,6 +33,10 @@ import {
 export type ListCallbackEventsParams = {
   callbackIds?: string[];
   callbackInstanceIds?: string[];
+  integrationIds?: string[];
+  integrationProviderIds?: string[];
+  providerIds?: string[];
+  providerTriggerKeys?: string[];
   status?: CallbackEventStatus[];
   source?: CallbackEventSource[];
   occurredAt?: DateFilter;
@@ -75,10 +82,20 @@ class callbackEventServiceImpl {
     let solution = await getMetorialSolution();
     let selector = { tenant: d.tenant, environment: d.environment, solution };
 
-    let [callbacks, callbackInstances] = await Promise.all([
-      resolveCallbacks(selector, d.callbackIds),
-      resolveCallbackInstances(selector, d.callbackInstanceIds)
-    ]);
+    let [callbacks, callbackInstances, integrations, integrationProviders, providers] =
+      await Promise.all([
+        resolveCallbacks(selector, d.callbackIds),
+        resolveCallbackInstances(selector, d.callbackInstanceIds),
+        resolveIntegrations(selector, d.integrationIds),
+        resolveIntegrationProviders(selector, d.integrationProviderIds),
+        resolveProviders(selector, d.providerIds)
+      ]);
+
+    let callbackFilters = [
+      integrations ? { integrationOid: integrations.in } : undefined!,
+      integrationProviders ? { integrationProviderOid: integrationProviders.in } : undefined!,
+      providers ? { providerOid: providers.in } : undefined!
+    ].filter(Boolean) as Prisma.CallbackWhereInput[];
 
     return Paginator.create<CallbackEventWithRelations>(({ prisma }) =>
       prisma(async opts =>
@@ -91,6 +108,10 @@ class callbackEventServiceImpl {
             AND: [
               callbacks ? { callbackOid: callbacks.in } : undefined!,
               callbackInstances ? { callbackInstanceOid: callbackInstances.in } : undefined!,
+              callbackFilters.length ? { callback: { AND: callbackFilters } } : undefined!,
+              d.providerTriggerKeys?.length
+                ? { providerTriggerKey: { in: d.providerTriggerKeys } }
+                : undefined!,
               d.status?.length ? { status: { in: d.status } } : undefined!,
               d.source?.length ? { source: { in: d.source } } : undefined!,
               d.occurredAt ? { occurredAt: normalizeDateFilter(d.occurredAt) } : undefined!,

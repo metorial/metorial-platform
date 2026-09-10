@@ -14,6 +14,13 @@ export let callbackEventStatusValidator = v.enumOf(['pending', 'processed', 'fai
 
 export let callbackEventSourceValidator = v.enumOf(['webhook', 'polling'] as const);
 
+export let incomingWebhookStatusValidator = v.enumOf([
+  'pending',
+  'failed_retrying',
+  'failed_final',
+  'succeeded'
+] as const);
+
 export let stringOrArray = () => v.union([v.string(), v.array(v.string())]);
 
 export let getRequiredParam = (params: Record<string, string | undefined>, key: string) => {

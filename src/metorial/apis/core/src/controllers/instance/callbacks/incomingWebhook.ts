@@ -6,7 +6,11 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { getRequiredParam, stringOrArray } from './_shared';
+import {
+  getRequiredParam,
+  incomingWebhookStatusValidator,
+  stringOrArray
+} from './_shared';
 
 export let incomingWebhookController = Controller.create(
   {
@@ -28,14 +32,26 @@ export let incomingWebhookController = Controller.create(
           v.object({
             webhook_registration_id: v.optional(stringOrArray(), {
               description: 'Filter by webhook registration ID(s)'
-            })
+            }),
+            provider_id: v.optional(stringOrArray(), {
+              description: 'Filter by the provider the request was received for'
+            }),
+            status: v.optional(
+              v.union([
+                incomingWebhookStatusValidator,
+                v.array(incomingWebhookStatusValidator)
+              ]),
+              { description: 'Filter by inbound delivery status' }
+            )
           })
         )
       )
       .do(async ctx => {
         let paginator = await webhookEventService.listWebhookEvents({
           instance: ctx.instance,
-          webhookRegistrationIds: normalizeArrayParam(ctx.query.webhook_registration_id)
+          webhookRegistrationIds: normalizeArrayParam(ctx.query.webhook_registration_id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          statuses: normalizeArrayParam(ctx.query.status)
         });
 
         return Paginator.present(await paginator.run(ctx.query), incomingWebhook =>

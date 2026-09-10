@@ -19,6 +19,8 @@ export type WebhookEvent = ProviderWebhookEvent & {
 
 export type ListWebhookEventsParams = {
   webhookRegistrationIds?: string[];
+  providerIds?: string[];
+  statuses?: string[];
 };
 
 export type GetWebhookEventParams = {
@@ -57,6 +59,12 @@ class webhookEventServiceImpl {
           })
       )
     );
+  }
+
+  private async resolveProviderFilter(d: { providerIds?: string[] }) {
+    if (!d.providerIds?.length) return undefined;
+
+    return await db.provider.findMany({ where: { id: { in: d.providerIds } } });
   }
 
   private async hydrate(events: ProviderWebhookEvent[]): Promise<WebhookEvent[]> {
@@ -99,7 +107,10 @@ class webhookEventServiceImpl {
     d: { tenant: Tenant; environment: Environment } & ListWebhookEventsParams
   ) {
     let backend = await this.getWebhookEventsBackend();
-    let webhookRegistrations = await this.resolveRegistrationFilter(d);
+    let [webhookRegistrations, providers] = await Promise.all([
+      this.resolveRegistrationFilter(d),
+      this.resolveProviderFilter(d)
+    ]);
 
     return Paginator.create<WebhookEvent>(() => async input => {
       if (!backend) {
@@ -109,6 +120,8 @@ class webhookEventServiceImpl {
       let res = await backend.listWebhookEvents({
         tenant: d.tenant,
         webhookRegistrations,
+        providers,
+        statuses: d.statuses,
         input
       });
 

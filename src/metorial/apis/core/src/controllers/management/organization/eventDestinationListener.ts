@@ -38,7 +38,7 @@ export let eventDestinationListenerController = Controller.create(
       "Event destination listeners subscribe an event destination to events for a specific instance — either generic resource events, or a callback's trigger events."
   },
   {
-    list: eventDestinationListenerManagementGroup
+    list: organizationGroup
       .get(
         organizationManagementPath(
           'event-destination-listeners',
@@ -62,7 +62,17 @@ export let eventDestinationListenerController = Controller.create(
             }),
             instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by instance ID(s)'
-            })
+            }),
+            callback_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by callback ID(s), for listeners whose `type` is `callback`'
+            }),
+            type: v.optional(
+              v.union([
+                v.enumOf(['event', 'callback']),
+                v.array(v.enumOf(['event', 'callback']))
+              ]),
+              { description: 'Filter by listener type' }
+            )
           })
         )
       )
@@ -70,7 +80,9 @@ export let eventDestinationListenerController = Controller.create(
         let paginator = await eventDestinationListenerService.listEventDestinationListeners({
           organization: ctx.organization,
           instanceIds: normalizeArrayParam(ctx.query.instance_id),
-          eventDestinationIds: normalizeArrayParam(ctx.query.event_destination_id)
+          eventDestinationIds: normalizeArrayParam(ctx.query.event_destination_id),
+          callbackIds: normalizeArrayParam(ctx.query.callback_id),
+          types: normalizeArrayParam(ctx.query.type)
         });
         let list = await paginator.run(ctx.query);
 
@@ -100,7 +112,7 @@ export let eventDestinationListenerController = Controller.create(
         })
       ),
 
-    create: eventDestinationListenerManagementGroup
+    create: organizationGroup
       .post(
         organizationManagementPath(
           'event-destination-listeners',

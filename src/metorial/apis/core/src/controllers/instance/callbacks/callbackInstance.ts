@@ -43,6 +43,9 @@ export let callbackInstanceController = Controller.create(
             callback_id: v.optional(stringOrArray(), {
               description: 'Filter by callback ID(s)'
             }),
+            integration_id: v.optional(stringOrArray(), {
+              description: 'Filter by the integration the callback belongs to'
+            }),
             integration_instance_id: v.optional(stringOrArray(), {
               description: 'Filter by integration instance ID(s)'
             }),
@@ -64,6 +67,7 @@ export let callbackInstanceController = Controller.create(
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
           callbackIds: normalizeArrayParam(ctx.query.callback_id),
+          integrationIds: normalizeArrayParam(ctx.query.integration_id),
           integrationInstanceIds: normalizeArrayParam(ctx.query.integration_instance_id),
           integrationInstanceProviderIds: normalizeArrayParam(
             ctx.query.integration_instance_provider_id

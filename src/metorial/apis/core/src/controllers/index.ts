@@ -649,6 +649,9 @@ export let dashboardController = Controller.create<any>(
     integrationInstanceGroupController,
     integrationInstanceGroupProviderController,
 
+    callbackController,
+    callbackEventController,
+    callbackInstanceController,
     webhookRegistrationController,
     incomingWebhookController,
     eventDestinationListenerController,

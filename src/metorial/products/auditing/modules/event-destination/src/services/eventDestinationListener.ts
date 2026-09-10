@@ -8,6 +8,7 @@ import {
   db,
   EventDestination,
   EventDestinationListener,
+  type EventDestinationListenerType,
   ID,
   Instance,
   Organization,
@@ -88,6 +89,8 @@ class EventDestinationListenerServiceImpl {
     organization: Organization;
     instanceIds?: string[];
     eventDestinationIds?: string[];
+    callbackIds?: string[];
+    types?: EventDestinationListenerType[];
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -100,7 +103,9 @@ class EventDestinationListenerServiceImpl {
             },
             eventDestination: d.eventDestinationIds
               ? { id: { in: d.eventDestinationIds } }
-              : undefined
+              : undefined,
+            callbackId: d.callbackIds ? { in: d.callbackIds } : undefined,
+            type: d.types ? { in: d.types } : undefined
           },
           include: eventDestinationListenerInclude
         })

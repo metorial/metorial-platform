@@ -141,11 +141,9 @@ export interface WebhookRegistrationDeleteRes {}
 
 export interface WebhookEventListParam {
   tenant: Tenant;
-  /**
-   * Narrows the listing to these registrations. Omitted lists every event the tenant can see,
-   * which includes events received on registrations it does not own.
-   */
   webhookRegistrations?: WebhookRegistration[];
+  providers?: Provider[];
+  statuses?: string[];
   input: {
     limit: number;
     after?: string;

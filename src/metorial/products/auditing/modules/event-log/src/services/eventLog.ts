@@ -18,6 +18,8 @@ class EventLogServiceImpl {
     instanceId?: string;
     eventTypes?: string[];
     sources?: SystemEventSource[];
+    callbackIds?: string[];
+    callbackTriggerKeys?: string[];
   }) {
     let instanceOid: bigint | undefined;
     if (d.instanceId) {
@@ -39,7 +41,11 @@ class EventLogServiceImpl {
             organizationOid: d.organization.oid,
             instanceOid,
             eventType: d.eventTypes?.length ? { in: d.eventTypes } : undefined,
-            source: d.sources?.length ? { in: d.sources } : undefined
+            source: d.sources?.length ? { in: d.sources } : undefined,
+            callbackId: d.callbackIds?.length ? { in: d.callbackIds } : undefined,
+            callbackTriggerKey: d.callbackTriggerKeys?.length
+              ? { in: d.callbackTriggerKeys }
+              : undefined
           },
           include: systemEventInclude
         })

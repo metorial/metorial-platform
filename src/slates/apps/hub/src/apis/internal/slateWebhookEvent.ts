@@ -24,14 +24,20 @@ export let slateWebhookEventController = app.controller({
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          webhookRegistrationIds: v.optional(v.array(v.string()))
+          webhookRegistrationIds: v.optional(v.array(v.string())),
+          slateIds: v.optional(v.array(v.string())),
+          statuses: v.optional(
+            v.array(v.enumOf(['pending', 'failed_retrying', 'failed_final', 'succeeded']))
+          )
         })
       )
     )
     .do(async ctx => {
       let paginator = await slateWebhookEventService.listSlateWebhookEvents({
         tenant: ctx.tenant,
-        webhookRegistrationIds: ctx.input.webhookRegistrationIds
+        webhookRegistrationIds: ctx.input.webhookRegistrationIds,
+        slateIds: ctx.input.slateIds,
+        statuses: ctx.input.statuses
       });
 
       let list = await paginator.run(ctx.input);

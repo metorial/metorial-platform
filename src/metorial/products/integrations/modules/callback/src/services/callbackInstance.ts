@@ -15,7 +15,8 @@ import {
   normalizeStatusForList,
   resolveCallbacks,
   resolveIntegrationInstanceProviders,
-  resolveIntegrationInstances
+  resolveIntegrationInstances,
+  resolveIntegrations
 } from '@metorial-subspace/list-utils';
 import {
   getMetorialSolution,
@@ -30,6 +31,7 @@ import {
 export type ListCallbackInstancesParams = {
   ids?: string[];
   callbackIds?: string[];
+  integrationIds?: string[];
   integrationInstanceIds?: string[];
   integrationInstanceProviderIds?: string[];
   status?: CallbackInstanceStatus[];
@@ -61,11 +63,13 @@ class callbackInstanceServiceImpl {
     let solution = await getMetorialSolution();
     let selector = { tenant: d.tenant, environment: d.environment, solution };
 
-    let [callbacks, integrationInstances, integrationInstanceProviders] = await Promise.all([
-      resolveCallbacks(selector, d.callbackIds),
-      resolveIntegrationInstances(selector, d.integrationInstanceIds),
-      resolveIntegrationInstanceProviders(selector, d.integrationInstanceProviderIds)
-    ]);
+    let [callbacks, integrations, integrationInstances, integrationInstanceProviders] =
+      await Promise.all([
+        resolveCallbacks(selector, d.callbackIds),
+        resolveIntegrations(selector, d.integrationIds),
+        resolveIntegrationInstances(selector, d.integrationInstanceIds),
+        resolveIntegrationInstanceProviders(selector, d.integrationInstanceProviderIds)
+      ]);
 
     return Paginator.create<CallbackInstanceWithRelations>(({ prisma }) =>
       prisma(async opts =>
@@ -79,6 +83,7 @@ class callbackInstanceServiceImpl {
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               callbacks ? { callbackOid: callbacks.in } : undefined!,
+              integrations ? { callback: { integrationOid: integrations.in } } : undefined!,
               integrationInstances
                 ? { integrationInstanceOid: integrationInstances.in }
                 : undefined!,

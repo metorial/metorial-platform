@@ -69,6 +69,17 @@ export let eventManagementController = Controller.create(
                   description: 'Filter by event source'
                 }
               )
+            ),
+            callback_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Filter by callback ID(s), for events whose source is `callback`'
+              })
+            ),
+            callback_trigger_key: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description:
+                  'Filter by callback trigger key(s), for events whose source is `callback`'
+              })
             )
           })
         )
@@ -78,7 +89,9 @@ export let eventManagementController = Controller.create(
           organization: ctx.organization,
           instanceId: ctx.query.instance_id,
           eventTypes: normalizeArrayParam(ctx.query.event_type),
-          sources: normalizeArrayParam(ctx.query.source)
+          sources: normalizeArrayParam(ctx.query.source),
+          callbackIds: normalizeArrayParam(ctx.query.callback_id),
+          callbackTriggerKeys: normalizeArrayParam(ctx.query.callback_trigger_key)
         });
         let list = await paginator.run(ctx.query);
 

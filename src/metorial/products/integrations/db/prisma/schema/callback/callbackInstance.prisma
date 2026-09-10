@@ -2,6 +2,8 @@ enum CallbackInstanceStatus {
   active
   archived
   deleted
+
+  @@map("CallbackInstanceStatusV2")
 }
 
 enum CallbackInstanceSyncStatus {

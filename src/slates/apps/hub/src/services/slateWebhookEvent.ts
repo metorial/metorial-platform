@@ -1,7 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, Tenant } from '../../prisma/generated/client';
+import type {
+  Prisma,
+  SlateWebhookEventStatus,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 
 let include = { webhookRegistration: { include: { slate: true, triggerGroup: true } } };
@@ -36,16 +40,29 @@ class slateWebhookEventServiceImpl {
     return event;
   }
 
-  async listSlateWebhookEvents(d: { tenant: Tenant; webhookRegistrationIds?: string[] }) {
+  async listSlateWebhookEvents(d: {
+    tenant: Tenant;
+    webhookRegistrationIds?: string[];
+    slateIds?: string[];
+    statuses?: SlateWebhookEventStatus[];
+  }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.slateWebhookEvent.findMany({
             ...opts,
             where: {
-              webhookRegistration: d.webhookRegistrationIds
-                ? { id: { in: d.webhookRegistrationIds } }
-                : undefined,
+              status: d.statuses?.length ? { in: d.statuses } : undefined,
+
+              webhookRegistration:
+                d.webhookRegistrationIds || d.slateIds
+                  ? {
+                      id: d.webhookRegistrationIds
+                        ? { in: d.webhookRegistrationIds }
+                        : undefined,
+                      slate: d.slateIds ? { id: { in: d.slateIds } } : undefined
+                    }
+                  : undefined,
 
               // Visibility is per-event not per-registration,
               // that also means that above webhook id filter is fine because

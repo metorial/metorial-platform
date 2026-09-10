@@ -337,11 +337,33 @@ export class ProviderCallbacks extends IProviderCallbacks {
       slatesRegistrationIds = mirrors.map(m => m.id);
     }
 
+    let slateIds: string[] | undefined;
+
+    if (data.providers) {
+      let variants = await db.providerVariant.findMany({
+        where: {
+          providerOid: { in: data.providers.map(provider => provider.oid) },
+          slateOid: { not: null }
+        },
+        select: { slate: { select: { id: true } } }
+      });
+      slateIds = [
+        ...new Set(variants.flatMap(variant => (variant.slate ? [variant.slate.id] : [])))
+      ];
+
+      if (slateIds.length === 0)
+        return { items: [], hasMoreAfter: false, hasMoreBefore: false };
+    }
+
     let tenant = await getTenantForSlates(data.tenant);
 
     let list = await slates.slateWebhookEvent.list({
       tenantId: tenant.id,
       webhookRegistrationIds: slatesRegistrationIds,
+      slateIds,
+      statuses: data.statuses as
+        | ('pending' | 'failed_retrying' | 'failed_final' | 'succeeded')[]
+        | undefined,
 
       limit: data.input.limit,
       after: data.input.after,
