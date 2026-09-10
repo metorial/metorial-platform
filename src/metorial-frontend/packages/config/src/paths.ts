@@ -277,6 +277,128 @@ let InstancePaths = Object.assign(
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'integration', id, ...subPages);
     },
+
+    callbacks: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'callbacks', ...subPages),
+    callback: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'callback', id, ...subPages);
+    },
+    callbackEvents: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'callback-events', ...subPages),
+    callbackEventErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'callback-event-errors', ...subPages),
+    callbackEvent: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'callback-event',
+        id,
+        ...subPages
+      );
+    },
+    incomingWebhooks: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'incoming-webhooks', ...subPages),
+    incomingWebhookErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(organization, project, instance, 'incoming-webhook-errors', ...subPages),
+    incomingWebhook: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'incoming-webhook',
+        id,
+        ...subPages
+      );
+    },
+    webhookRegistrations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(organization, project, instance, 'webhook-registrations', ...subPages),
+    eventDestinations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'event-destinations', ...subPages),
+    eventDestination: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'event-destination',
+        id,
+        ...subPages
+      );
+    },
+    events: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'events', ...subPages),
+    event: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'event', id, ...subPages);
+    },
     skills: (
       organization: EntityParam,
       project: EntityParam,
