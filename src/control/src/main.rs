@@ -133,9 +133,6 @@ enum WorkspaceCommand {
     /// Create a branch worktree (paired enterprise and OSS worktrees when applicable).
     Create {
         branch: String,
-        /// Execution runtime for this workspace.
-        #[arg(long, value_enum)]
-        runtime: WorkspaceRuntime,
         /// Do not open the resulting workspace with VS Code.
         #[arg(long)]
         no_open: bool,
@@ -275,12 +272,8 @@ async fn main() -> Result<()> {
             Ok(())
         }
         Commands::Workspace { command } => match command {
-            WorkspaceCommand::Create {
-                branch,
-                runtime,
-                no_open,
-            } => {
-                workspace::create(&project, &branch, runtime, !no_open).await?;
+            WorkspaceCommand::Create { branch, no_open } => {
+                workspace::create(&project, &branch, WorkspaceRuntime::Host, !no_open).await?;
                 Ok(())
             }
             WorkspaceCommand::List => {
@@ -436,25 +429,27 @@ mod tests {
             Cli::try_parse_from(["control", "workspace", "feature/control", "--no-open"]).is_err()
         );
 
-        let create = Cli::try_parse_from([
-            "control",
-            "workspace",
-            "create",
-            "feature/cli",
-            "--runtime=host",
-        ])
-        .unwrap();
+        let create =
+            Cli::try_parse_from(["control", "workspace", "create", "feature/cli"]).unwrap();
         assert!(matches!(
             create.command,
             Commands::Workspace {
                 command: WorkspaceCommand::Create {
                     branch,
-                    runtime: WorkspaceRuntime::Host,
                     no_open: false,
                 },
             } if branch == "feature/cli"
         ));
-        assert!(Cli::try_parse_from(["control", "workspace", "create", "feature/cli"]).is_err());
+        assert!(
+            Cli::try_parse_from([
+                "control",
+                "workspace",
+                "create",
+                "feature/cli",
+                "--runtime=docker",
+            ])
+            .is_err()
+        );
 
         let shell = Cli::try_parse_from(["control", "workspace", "shell"]).unwrap();
         assert!(matches!(
