@@ -9,7 +9,7 @@
     "enterprise:dev": "bun run dev",
     "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only",
     "server:start": "bun ./dist/index.js",
-    "prisma:generate": "bun run db:generate",
+    "prisma:generate": "bash ./prisma-generate.sh",
     "prisma:push": "bun run db:push:dev",
     "dev:docker": "docker compose -p relay -f ./docker-compose.dev.yml --profile infra --profile service up -d --pull always --build",
     "infra:up": "docker compose -p relay -f ./docker-compose.dev.yml --profile infra up -d --pull always",
