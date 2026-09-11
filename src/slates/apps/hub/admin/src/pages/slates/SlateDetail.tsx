@@ -12,12 +12,15 @@ import {
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
+import { BackLink } from '../../components/BackLink.js';
+import { MonoCode, SlateLogoPlaceholder } from '../../components/styled.js';
 import {
   deploymentStatusColors,
   discoveryStatusColors,
   eventTypeColors,
   versionStatusColors
 } from '../../constants/statusColors.js';
+import { redeployLatestSlate, waitForRedeployDeployment } from '../../state/deployments.js';
 import {
   useSlate,
   useSlateDeployments,
@@ -26,9 +29,6 @@ import {
   useSlateStats,
   useSlateVersions
 } from '../../state/index.js';
-import { redeployLatestSlate, waitForRedeployDeployment } from '../../state/deployments.js';
-import { BackLink } from '../../components/BackLink.js';
-import { MonoCode, SlateLogoPlaceholder } from '../../components/styled.js';
 
 type SlateVersion = NonNullable<ReturnType<typeof useSlateVersions>['data']>['items'][number];
 type SlateDeployment = NonNullable<
@@ -121,8 +121,8 @@ export let SlateDetail = () => {
   let discoveries = useSlateDiscoveries(slateId);
   let events = useSlateEvents(slateId);
 
-  return renderWithLoader({ slate, versions, deployments, discoveries, events } as any)(
-    ({ slate, versions, deployments, discoveries, events }: any) => {
+  return renderWithLoader({ slate, versions, deployments, discoveries, events })(
+    ({ slate, versions, deployments, discoveries, events }) => {
       let slateData = slate.data!;
       let statsData = stats.data;
       let versionItems = versions.data?.items ?? [];

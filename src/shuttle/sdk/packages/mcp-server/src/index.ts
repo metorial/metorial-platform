@@ -1,5 +1,6 @@
 export {
   createMcpServer,
+  type McpServerDiscovery,
   type McpServerInstance,
   type McpServerInstanceOpts,
   type McpServerInstanceServer

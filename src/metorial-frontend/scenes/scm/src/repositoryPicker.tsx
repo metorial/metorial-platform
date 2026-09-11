@@ -1026,8 +1026,8 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
                             <Spacer size={4} />
                             <Text size="2" color="gray600">
                               {search
-                                ? 'Try another search or switch to a different account.'
-                                : 'This account has no available repositories.'}
+                                ? 'Try another search or switch to a different account. Make sure Metorial has access to the repository you are looking for.'
+                                : 'This account has no available repositories. Make sure Metorial has access to the repository you are looking for.'}
                             </Text>
                           </EmptyState>
                         )}

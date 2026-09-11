@@ -34,10 +34,10 @@ if (
     },
 
     ignoreErrors: [
-      'The client is closed',
+      'The client is closed'
 
-      // Temp filter for https://metorial.sentry.io/issues/145778492
-      /invalid_provider_authentication_configuration/
+      // // Temp filter for https://metorial.sentry.io/issues/145778492
+      // /invalid_provider_authentication_configuration/
     ]
   });
 
