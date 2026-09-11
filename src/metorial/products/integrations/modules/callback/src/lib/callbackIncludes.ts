@@ -41,6 +41,10 @@ export type ReconcileIntegrationProvider = Prisma.IntegrationProviderGetPayload<
 
 export let reconcileIntegrationInstanceProviderInclude = {
   tenant: true,
+  integrationProvider: {
+    include: { integration: true, provider: { include: { type: true } } }
+  },
+  integrationInstance: true,
   currentVersion: {
     include: {
       config: { include: { currentVersion: true } },

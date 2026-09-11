@@ -36,10 +36,9 @@ export let callbackRetrySyncManyQueueProcessor = callbackRetrySyncManyQueue.proc
     });
     if (callbacks.length === 0) return;
 
-    await callbackReconcileQueue.addManyWithOps(
+    await callbackReconcileQueue.addMany(
       callbacks.map(callback => ({
-        data: { integrationProviderId: callback.integrationProvider.id },
-        opts: { id: callback.integrationProvider.id }
+        integrationProviderId: callback.integrationProvider.id
       }))
     );
 
@@ -69,12 +68,9 @@ export let callbackInstanceRetrySyncManyQueueProcessor =
     });
     if (callbackInstances.length === 0) return;
 
-    await callbackInstanceReconcileQueue.addManyWithOps(
+    await callbackInstanceReconcileQueue.addMany(
       callbackInstances.map(callbackInstance => ({
-        data: {
-          integrationInstanceProviderId: callbackInstance.integrationInstanceProvider.id
-        },
-        opts: { id: callbackInstance.integrationInstanceProvider.id }
+        integrationInstanceProviderId: callbackInstance.integrationInstanceProvider.id
       }))
     );
 

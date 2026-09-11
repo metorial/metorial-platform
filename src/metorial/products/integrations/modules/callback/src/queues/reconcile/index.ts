@@ -1,6 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
-import { callbackReconcileQueueProcessor } from './callback';
 import {
+  callbackReconcileForIntegrationManyQueueProcessor,
+  callbackReconcileQueueProcessor
+} from './callback';
+import {
+  callbackInstanceReconcileForIntegrationInstanceManyQueueProcessor,
   callbackInstanceReconcileManyQueueProcessor,
   callbackInstanceReconcileQueueProcessor
 } from './callbackInstance';
@@ -16,7 +20,9 @@ export * from './retrySync';
 
 export let reconcileQueues = combineQueueProcessors([
   callbackReconcileQueueProcessor,
+  callbackReconcileForIntegrationManyQueueProcessor,
   callbackInstanceReconcileManyQueueProcessor,
+  callbackInstanceReconcileForIntegrationInstanceManyQueueProcessor,
   callbackInstanceReconcileQueueProcessor,
   callbackRetrySyncCron,
   callbackRetrySyncManyQueueProcessor,

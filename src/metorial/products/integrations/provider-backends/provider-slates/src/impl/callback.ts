@@ -1,3 +1,4 @@
+import { isServiceError } from '@lowerdeck/error';
 import { db, snowflake, type Provider, type Tenant } from '@metorial-subspace/db';
 import {
   IProviderCallbacks,
@@ -158,10 +159,14 @@ export class ProviderCallbacks extends IProviderCallbacks {
 
     let tenant = await getTenantForSlates(data.tenant);
 
-    await slates.callback.delete({
-      tenantId: tenant.id,
-      callbackId: slateCallback.id
-    });
+    try {
+      await slates.callback.delete({
+        tenantId: tenant.id,
+        callbackId: slateCallback.id
+      });
+    } catch (error) {
+      if (!isServiceError(error) || error.data.code !== 'not_found') throw error;
+    }
 
     return {};
   }
@@ -232,11 +237,15 @@ export class ProviderCallbacks extends IProviderCallbacks {
 
     let tenant = await getTenantForSlates(data.tenant);
 
-    await slates.callbackInstance.delete({
-      tenantId: tenant.id,
-      callbackId: slateCallbackInstance.slateCallback.id,
-      callbackInstanceId: slateCallbackInstance.id
-    });
+    try {
+      await slates.callbackInstance.delete({
+        tenantId: tenant.id,
+        callbackId: slateCallbackInstance.slateCallback.id,
+        callbackInstanceId: slateCallbackInstance.id
+      });
+    } catch (error) {
+      if (!isServiceError(error) || error.data.code !== 'not_found') throw error;
+    }
 
     return {};
   }

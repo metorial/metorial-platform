@@ -91,7 +91,8 @@ class callbackInstanceServiceImpl {
                 ? { integrationInstanceProviderOid: integrationInstanceProviders.in }
                 : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
-              d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
+              d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!,
+              !d.status && !d.allowDeleted ? { generationStatus: 'primary' } : undefined!
             ].filter(Boolean) as Prisma.CallbackInstanceWhereInput[]
           },
           include: callbackInstanceInclude

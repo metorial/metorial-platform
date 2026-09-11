@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { identityDeletedQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/identity';
+import { enqueueCallbackInstanceReconcileForIntegrationInstance } from '@metorial-subspace/module-callback/src/queues/reconcile/callbackInstance';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import {
   enqueueArchiveIntegrationInstanceSessionTemplates,
@@ -102,6 +103,9 @@ export let runIntegrationInstanceArchivedEffects = async (d: {
     integrationInstanceId: d.integrationInstanceId
   });
   await syncIntegrationInstanceProviderCredentials(d.integrationInstanceId);
+  await enqueueCallbackInstanceReconcileForIntegrationInstance({
+    integrationInstanceId: d.integrationInstanceId
+  });
 };
 
 export let integrationInstanceArchiveGroupSourcesManyQueue = createQueue<{
@@ -213,6 +217,9 @@ export let integrationInstanceCreatedQueueProcessor = integrationInstanceCreated
       integrationInstanceId: data.integrationInstanceId
     });
     await syncIntegrationInstanceProviderCredentials(data.integrationInstanceId);
+    await enqueueCallbackInstanceReconcileForIntegrationInstance({
+      integrationInstanceId: data.integrationInstanceId
+    });
   }
 );
 
@@ -242,6 +249,9 @@ export let integrationInstanceUpdatedQueueProcessor = integrationInstanceUpdated
       integrationInstanceId: data.integrationInstanceId
     });
     await syncIntegrationInstanceProviderCredentials(data.integrationInstanceId);
+    await enqueueCallbackInstanceReconcileForIntegrationInstance({
+      integrationInstanceId: data.integrationInstanceId
+    });
   }
 );
 

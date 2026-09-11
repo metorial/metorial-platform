@@ -8,9 +8,26 @@ export let callbackReconcileQueue = createQueue<{ integrationProviderId: string 
 });
 
 export let enqueueCallbackReconcile = async (d: { integrationProviderId: string }) => {
-  await callbackReconcileQueue.add(d, { id: d.integrationProviderId });
+  await callbackReconcileQueue.add(d);
 };
 
 export let callbackReconcileQueueProcessor = callbackReconcileQueue.process(async data => {
   await callbackInternalService.reconcileCallbackForIntegrationProvider(data);
 });
+
+export let callbackReconcileForIntegrationManyQueue = createQueue<{
+  integrationId: string;
+  cursor?: string;
+}>({
+  name: 'sub/cb/rec/callback/integrationMany',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let enqueueCallbackReconcileForIntegration = async (d: { integrationId: string }) => {
+  await callbackReconcileForIntegrationManyQueue.add(d);
+};
+
+export let callbackReconcileForIntegrationManyQueueProcessor =
+  callbackReconcileForIntegrationManyQueue.process(
+    async data => await callbackInternalService.reconcileCallbacksForIntegration(data)
+  );

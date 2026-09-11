@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { reconcileSkillProviderLinksQueue } from '@metorial/module-skill';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
+import { enqueueCallbackReconcileForIntegration } from '@metorial-subspace/module-callback/src/queues/reconcile/callback';
 import { env } from '../../env';
 import {
   createIntegrationProviderVersion,
@@ -19,6 +20,7 @@ export let integrationCreatedQueue = createQueue<{ integrationId: string }>({
 
 export let integrationCreatedQueueProcessor = integrationCreatedQueue.process(async data => {
   await indexIntegrationQueue.add({ integrationId: data.integrationId });
+  await enqueueCallbackReconcileForIntegration({ integrationId: data.integrationId });
 });
 
 export let integrationUpdatedQueue = createQueue<{ integrationId: string }>({
@@ -28,6 +30,7 @@ export let integrationUpdatedQueue = createQueue<{ integrationId: string }>({
 
 export let integrationUpdatedQueueProcessor = integrationUpdatedQueue.process(async data => {
   await indexIntegrationQueue.add({ integrationId: data.integrationId });
+  await enqueueCallbackReconcileForIntegration({ integrationId: data.integrationId });
 });
 
 export let integrationArchivedQueue = createQueue<{ integrationId: string }>({
@@ -71,6 +74,7 @@ export let integrationArchivedQueueProcessor = integrationArchivedQueue.process(
   }
 
   await indexIntegrationQueue.add({ integrationId: data.integrationId });
+  await enqueueCallbackReconcileForIntegration({ integrationId: data.integrationId });
   await integrationArchiveInstancesManyQueue.add({ integrationId: data.integrationId });
   await integrationArchiveProvidersManyQueue.add({ integrationId: data.integrationId });
 });
