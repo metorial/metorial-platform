@@ -10,7 +10,7 @@ export let triggerRoutingMatcherResyncQueue = createQueue<{
   authConfigId: string;
   cursor?: string;
 }>({
-  name: 'shub/trg/mtch/resync',
+  name: 'shub/trg/mtch/resync/1',
   redisUrl: env.service.REDIS_URL,
   workerOpts: { concurrency: 1 }
 });

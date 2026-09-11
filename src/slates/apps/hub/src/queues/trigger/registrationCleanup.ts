@@ -4,7 +4,7 @@ import { env } from '../../env';
 import { triggerWebhookUnregisterQueue } from './webhookUnregister';
 
 export let triggerRegistrationCleanupQueue = createQueue<{ triggerRegistrationId: string }>({
-  name: 'shub/trg/cleanup',
+  name: 'shub/trg/cleanup/1',
   redisUrl: env.service.REDIS_URL
 });
 

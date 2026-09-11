@@ -5,7 +5,11 @@ import { env } from '../../env';
 import { TRIGGER_RAW_EVENT_IDEMPOTENCY_KEY_TTL_HOURS } from './_config';
 
 export let triggerRawEventIdempotencyKeyClearCron = createCron(
-  { name: 'shub/trg/evt/idempotencyKeyClear', redisUrl: env.service.REDIS_URL, cron: '0 * * * *' },
+  {
+    name: 'shub/trg/evt/idempotencyKeyClear/1',
+    redisUrl: env.service.REDIS_URL,
+    cron: '0 * * * *'
+  },
   async () => {
     await db.triggerRawEvent.updateMany({
       where: {

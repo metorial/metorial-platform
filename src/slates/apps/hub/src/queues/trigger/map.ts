@@ -32,7 +32,7 @@ export let triggerMapQueue = createQueue<{
   triggerId: string;
   attempt: number;
 }>({
-  name: 'shub/trg/evt/mapOne',
+  name: 'shub/trg/evt/mapOne/1',
   redisUrl: env.service.REDIS_URL,
   workerOpts: { concurrency: 10 }
 });

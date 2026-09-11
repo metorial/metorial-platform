@@ -40,7 +40,7 @@ let include = {
 };
 
 export let triggerWebhookRegisterQueue = createQueue<{ triggerWebhookTargetId: string }>({
-  name: 'shub/trg/whk/register',
+  name: 'shub/trg/whk/register/1',
   redisUrl: env.service.REDIS_URL,
   jobOpts: { attempts: TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS }
 });

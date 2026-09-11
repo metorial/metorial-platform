@@ -24,7 +24,7 @@ export let triggerWebhookTargetSearchQueue = createQueue<{
   triggerRegistrationInstanceId: string;
   pageToken?: any;
 }>({
-  name: 'shub/trg/whk/search',
+  name: 'shub/trg/whk/search/1',
   redisUrl: env.service.REDIS_URL
 });
 

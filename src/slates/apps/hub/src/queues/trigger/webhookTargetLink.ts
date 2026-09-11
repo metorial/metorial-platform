@@ -18,7 +18,7 @@ export let triggerWebhookTargetLinkQueue = createQueue<{
   triggerRegistrationInstanceId: string;
   target: DiscoveredTarget;
 }>({
-  name: 'shub/trg/whk/link',
+  name: 'shub/trg/whk/link/1',
   redisUrl: env.service.REDIS_URL
 });
 

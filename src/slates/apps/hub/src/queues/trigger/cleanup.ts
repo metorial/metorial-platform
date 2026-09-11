@@ -7,7 +7,7 @@ import { slatesRetentionStorageCleanupQueue } from '../retention/cleanup';
 import { TRIGGER_RAW_EVENT_FAILED_RETENTION_DAYS } from './_config';
 
 export let triggerRawEventCleanupQueue = createQueue<{ rawEventId: string }>({
-  name: 'shub/trg/evt/cleanup',
+  name: 'shub/trg/evt/cleanup/1',
   redisUrl: env.service.REDIS_URL
 });
 
@@ -22,7 +22,7 @@ export let triggerRawEventCleanupQueueProcessor = triggerRawEventCleanupQueue.pr
 let failedSweepBatchSize = 500;
 
 export let triggerRawEventFailedSweepCron = createCron(
-  { name: 'shub/trg/evt/failedSweep', redisUrl: env.service.REDIS_URL, cron: '0 0 * * *' },
+  { name: 'shub/trg/evt/failedSweep/1', redisUrl: env.service.REDIS_URL, cron: '0 0 * * *' },
   async () => {
     let cutoffDate = subDays(new Date(), TRIGGER_RAW_EVENT_FAILED_RETENTION_DAYS);
 
