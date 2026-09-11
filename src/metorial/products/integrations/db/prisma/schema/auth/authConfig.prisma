@@ -137,6 +137,7 @@ model ProviderAuthConfigVersion {
   providerAuthConfigUpdates     ProviderAuthConfigUpdate[]     @relation("fromVersion")
   providerAuthConfigUpdatesTo   ProviderAuthConfigUpdate[]     @relation("toVersion")
   providerDeploymentConfigPairs ProviderDeploymentConfigPair[]
+  callbackInstances             CallbackInstance[]
 }
 
 model ProviderAuthConfigUpdate {

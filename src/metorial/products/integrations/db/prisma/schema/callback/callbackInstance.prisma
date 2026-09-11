@@ -12,14 +12,21 @@ enum CallbackInstanceSyncStatus {
   failed
 }
 
+enum CallbackInstanceGenerationStatus {
+  provisioning
+  primary
+  replaced
+}
+
 model CallbackInstance {
   oid BigInt @id
   id  String @unique
 
-  status          CallbackInstanceStatus
-  syncStatus      CallbackInstanceSyncStatus @default(pending)
-  isParentDeleted Boolean                    @default(false)
-  archivedAt      DateTime?
+  status           CallbackInstanceStatus
+  syncStatus       CallbackInstanceSyncStatus       @default(pending)
+  generationStatus CallbackInstanceGenerationStatus @default(primary)
+  isParentDeleted  Boolean                          @default(false)
+  archivedAt       DateTime?
 
   lastSyncErrorCode    String?
   lastSyncErrorMessage String?
@@ -33,6 +40,12 @@ model CallbackInstance {
 
   integrationInstanceProviderOid BigInt
   integrationInstanceProvider    IntegrationInstanceProvider @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+
+  providerConfigVersionOid BigInt?
+  providerConfigVersion    ProviderConfigVersion? @relation(fields: [providerConfigVersionOid], references: [oid])
+
+  providerAuthConfigVersionOid BigInt?
+  providerAuthConfigVersion    ProviderAuthConfigVersion? @relation(fields: [providerAuthConfigVersionOid], references: [oid])
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -59,6 +72,9 @@ model CallbackInstance {
   @@index([callbackOid, status])
   @@index([integrationInstanceOid, status])
   @@index([integrationInstanceProviderOid, status])
+  @@index([integrationInstanceProviderOid, status, generationStatus])
+  @@index([providerConfigVersionOid])
+  @@index([providerAuthConfigVersionOid])
   @@index([syncStatus])
   @@index([status, archivedAt])
   @@index([projectOid])
