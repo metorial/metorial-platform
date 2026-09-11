@@ -1,6 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { enqueueCallbackInstanceReconcileForIntegrationInstance } from '@metorial-subspace/module-callback/src/queues/reconcile/callbackInstance';
 import { env } from '../../env';
 import { integrationInstanceDeletedQueue } from '../lifecycle/integrationInstance';
 import { getCutoffDate } from './_config';
@@ -60,6 +61,16 @@ export let integrationInstanceDeleteQueueProcessor = integrationInstanceDeleteQu
       where: { id: data.integrationInstanceId }
     });
     if (!integrationInstance || integrationInstance.status !== 'archived') return;
+
+    let activeCallbackInstances = await db.callbackInstance.count({
+      where: { integrationInstanceOid: integrationInstance.oid, status: 'active' }
+    });
+    if (activeCallbackInstances) {
+      await enqueueCallbackInstanceReconcileForIntegrationInstance({
+        integrationInstanceId: integrationInstance.id
+      });
+      throw new QueueRetryError();
+    }
 
     await db.integrationInstanceProvider.updateMany({
       where: { integrationInstanceOid: integrationInstance.oid, status: { not: 'deleted' } },

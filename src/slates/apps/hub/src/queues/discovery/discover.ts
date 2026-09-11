@@ -350,6 +350,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         suppressServerErrorReporting
       });
 
+      // First discovery has not persisted version.capabilities yet. Without
+      // these, the stack skips hub.capabilities.set and the provider hides
+      // trigger actions while still listing trigger groups.
       let stack = await slateInvocationService.createInvocation({
         slateVersion: version,
         deploymentTarget: {

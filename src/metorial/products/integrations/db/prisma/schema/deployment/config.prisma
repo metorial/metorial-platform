@@ -107,6 +107,7 @@ model ProviderConfigVersion {
   configUpdatesTo               ProviderConfigUpdate[]         @relation("toVersion")
   currentForConfigs             ProviderConfig[]               @relation("currentVersion")
   providerDeploymentConfigPairs ProviderDeploymentConfigPair[]
+  callbackInstances             CallbackInstance[]
 }
 
 model ProviderConfigUpdate {

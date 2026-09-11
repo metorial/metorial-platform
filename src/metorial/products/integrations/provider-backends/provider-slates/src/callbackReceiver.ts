@@ -33,7 +33,10 @@ export let receiveSlatesCallbackEvent = async (
 
   // Slates retries on failure, so an event for something we don't track is dropped rather than
   // thrown - it would never succeed.
-  if (!slateCallbackInstance?.callbackInstance) {
+  if (
+    !slateCallbackInstance?.callbackInstance ||
+    slateCallbackInstance.callbackInstance.status !== 'active'
+  ) {
     console.warn(
       `[Callbacks] Dropping slates trigger event ${input.triggerEventId}: no callback instance for ${input.callbackInstanceId}`
     );
