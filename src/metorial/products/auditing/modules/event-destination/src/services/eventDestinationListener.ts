@@ -42,6 +42,14 @@ class EventDestinationListenerServiceImpl {
       );
     }
 
+    if (eventDestination.status != 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot perform this action on an archived event destination'
+        })
+      );
+    }
+
     return eventDestination;
   }
 

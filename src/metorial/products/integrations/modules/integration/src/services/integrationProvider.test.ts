@@ -70,6 +70,13 @@ vi.mock('@metorial-subspace/module-auth', () => ({
   providerAuthCredentialsService: providerAuthCredentialsServiceMock
 }));
 
+vi.mock('@metorial-subspace/module-callback', () => ({
+  callbackInclude: {},
+  callbackInternalService: {
+    reconcileCallbackForIntegrationProvider: vi.fn()
+  }
+}));
+
 vi.mock('@metorial-subspace/module-provider-internal', () => ({
   assertAuthMethodAllowedForTenant: assertAuthMethodAllowedForTenantMock,
   checkProviderMatch: vi.fn(),

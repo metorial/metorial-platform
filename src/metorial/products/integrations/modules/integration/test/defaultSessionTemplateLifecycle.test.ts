@@ -80,6 +80,10 @@ vi.mock('@metorial-subspace/module-identity/src/queues/lifecycle/identity', () =
   identityDeletedQueue: { addMany: vi.fn() }
 }));
 
+vi.mock('@metorial-subspace/module-callback/src/queues/reconcile/callbackInstance', () => ({
+  enqueueCallbackInstanceReconcileForIntegrationInstance: vi.fn()
+}));
+
 vi.mock('../src/queues/search/integrationInstance', () => ({
   indexIntegrationInstanceQueue: {
     add: indexIntegrationInstanceQueueAddMock

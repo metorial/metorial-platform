@@ -72,6 +72,10 @@ vi.mock('@metorial-subspace/module-identity', () => ({
   }
 }));
 
+vi.mock('@metorial-subspace/module-callback/src/queues/reconcile/callback', () => ({
+  enqueueCallbackReconcile: vi.fn()
+}));
+
 vi.mock(
   '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate',
   () => ({

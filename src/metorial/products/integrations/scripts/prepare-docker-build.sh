@@ -24,6 +24,7 @@ bunx turbo run --ui=stream build --filter=@metorial-platform-systems/synthesis-c
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/voyager-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/ares-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/relay-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/nebula-client
 
 # bunx turbo run --ui=stream build --filter=./src/slates/packages/**
 bunx turbo run --ui=stream build --filter=./src/shuttle/sdk/packages/**

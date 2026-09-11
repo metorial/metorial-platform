@@ -49,6 +49,10 @@ vi.mock('@metorial-subspace/module-search', () => ({
   voyagerSource: Promise.resolve({ id: 'src_1' })
 }));
 
+vi.mock('@metorial-subspace/module-callback', () => ({
+  callbackInclude: {}
+}));
+
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn(),
   getMetorialSolution: vi.fn(async () => ({ oid: 2 })),
