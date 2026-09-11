@@ -29,15 +29,15 @@ import {
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
-  getMetorialSolution,
   checkTenant,
+  getMetorialSolution,
   type MetorialFacing,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
-import { Fabric, type AuditSubspaceProviderAuthCredentials } from '@metorial/fabric';
 import { getBackend } from '@metorial-subspace/provider';
+import { type AuditSubspaceProviderAuthCredentials, Fabric } from '@metorial/fabric';
 import { env } from '../env';
 import { normalizeManagedOAuthScopeIds } from '../lib/managedOAuthScopes';
 import {
@@ -148,9 +148,21 @@ let getManagedBackingWhereForTenantList = (d: {
         managedCredentialsBacking: {
           is: {
             managedCredentials: {
-              providerAuthMethodGlobalOid: {
-                in: d.providerAuthMethodGlobalOids
-              }
+              OR: [
+                {
+                  providerAuthMethodGlobalOid: {
+                    in: d.providerAuthMethodGlobalOids
+                  }
+                },
+                {
+                  providerAuthMethodGlobalOid: null,
+                  initialProviderAuthMethod: {
+                    globalOid: {
+                      in: d.providerAuthMethodGlobalOids
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -173,13 +185,12 @@ export type UpdateProviderAuthCredentialsParams = {
   };
 };
 
-/**
- * The public entry point takes the record with its relations already loaded -- every
- * caller has just read it through this service's `include` -- so the audit event can
- * carry a previous payload without reading the row a second time.
- */
-export type UpdateProviderAuthCredentialsFacingParams = Omit<UpdateProviderAuthCredentialsParams, 'providerAuthCredentials'> & {
-  providerAuthCredentials: UpdateProviderAuthCredentialsParams['providerAuthCredentials'] & AuditSubspaceProviderAuthCredentials;
+export type UpdateProviderAuthCredentialsFacingParams = Omit<
+  UpdateProviderAuthCredentialsParams,
+  'providerAuthCredentials'
+> & {
+  providerAuthCredentials: UpdateProviderAuthCredentialsParams['providerAuthCredentials'] &
+    AuditSubspaceProviderAuthCredentials;
 };
 
 export type ArchiveProviderAuthCredentialsParams = {
@@ -251,7 +262,9 @@ class providerAuthCredentialsServiceImpl {
     return authCredentials;
   }
 
-  async updateProviderAuthCredentials(d: MetorialFacing<UpdateProviderAuthCredentialsFacingParams>) {
+  async updateProviderAuthCredentials(
+    d: MetorialFacing<UpdateProviderAuthCredentialsFacingParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 

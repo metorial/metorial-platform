@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   providerAuthCredentialsCreate: vi.fn(),
+  providerAuthCredentialsFindMany: vi.fn(),
   providerAuthCredentialsUpdate: vi.fn(),
   providerAuthCredentialsUpdateMany: vi.fn(),
   addAfterTransactionHook: vi.fn(),
   queueAdd: vi.fn(),
   backendCreateProviderAuthCredentials: vi.fn(),
-  backendGetScopes: vi.fn()
+  backendGetScopes: vi.fn(),
+  resolveAuthMethodsGlobal: vi.fn(),
+  resolveProviders: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -23,7 +26,12 @@ vi.mock('@lowerdeck/lock', () => ({
 }));
 
 vi.mock('@lowerdeck/pagination', () => ({
-  Paginator: { create: vi.fn(), validate: vi.fn() }
+  Paginator: {
+    create: vi.fn(factory => ({
+      run: (_query?: object) => factory({ prisma: (fn: (opts: object) => unknown) => fn({}) })
+    })),
+    validate: vi.fn()
+  }
 }));
 
 vi.mock('@metorial-subspace/db', () => {
@@ -33,7 +41,7 @@ vi.mock('@metorial-subspace/db', () => {
       update: mocks.providerAuthCredentialsUpdate,
       updateMany: mocks.providerAuthCredentialsUpdateMany,
       findFirst: vi.fn(),
-      findMany: vi.fn(),
+      findMany: mocks.providerAuthCredentialsFindMany,
       findUniqueOrThrow: vi.fn()
     },
     managedProviderAuthCredentials: { findFirstOrThrow: vi.fn() },
@@ -55,8 +63,8 @@ vi.mock('@metorial-subspace/list-utils', () => ({
   normalizeDateFilter: vi.fn(),
   normalizeStatusForGet: vi.fn(() => ({ noParent: {} })),
   normalizeStatusForList: vi.fn(() => ({ noParent: {} })),
-  resolveAuthMethodsGlobal: vi.fn(),
-  resolveProviders: vi.fn()
+  resolveAuthMethodsGlobal: mocks.resolveAuthMethodsGlobal,
+  resolveProviders: mocks.resolveProviders
 }));
 
 vi.mock('@metorial-subspace/module-search', () => ({
@@ -189,5 +197,47 @@ describe('createProviderAuthCredentialsInternal double writes', () => {
     expect(where).toMatchObject({ tenantOid: 10n, environmentOid: 30n });
     expect(where).not.toHaveProperty('projectOid');
     expect(where).not.toHaveProperty('instanceOid');
+  });
+});
+
+describe('listProviderAuthCredentialsInternal auth method filtering', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.resolveProviders.mockResolvedValue(undefined);
+    mocks.resolveAuthMethodsGlobal.mockResolvedValue({
+      oids: [70n],
+      in: { in: [70n] },
+      oidIn: { oid: { in: [70n] } }
+    });
+    mocks.providerAuthCredentialsFindMany.mockResolvedValue([]);
+  });
+
+  it('matches managed credentials through their global family, including legacy rows', async () => {
+    let paginator = await providerAuthCredentialsService.listProviderAuthCredentialsInternal({
+      tenant: { oid: 10n, id: 'ten_1' } as any,
+      environment: { oid: 30n } as any,
+      providerAuthMethodIds: ['pam_1']
+    });
+
+    await paginator.run({});
+
+    let where = mocks.providerAuthCredentialsFindMany.mock.calls[0]![0].where;
+    let managedBackingFilter = where.AND.at(-1).OR[1];
+
+    expect(managedBackingFilter.managedCredentialsBacking.is.managedCredentials.OR).toEqual([
+      {
+        providerAuthMethodGlobalOid: {
+          in: [70n]
+        }
+      },
+      {
+        providerAuthMethodGlobalOid: null,
+        initialProviderAuthMethod: {
+          globalOid: {
+            in: [70n]
+          }
+        }
+      }
+    ]);
   });
 });

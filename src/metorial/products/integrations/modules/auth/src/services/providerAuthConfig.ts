@@ -28,11 +28,11 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
+  resolveAuthMethodsGlobal,
   resolveIdentities,
   resolveIdentityActors,
   resolveIdentityCredentials,
   resolveProviderAuthCredentials,
-  resolveProviderAuthMethods,
   resolveProviderDeployments,
   resolveProviders
 } from '@metorial-subspace/list-utils';
@@ -280,7 +280,7 @@ class providerAuthConfigServiceImpl {
         })
       : null;
     let credentials = await resolveProviderAuthCredentials(ts, d.providerAuthCredentialsIds);
-    let authMethods = await resolveProviderAuthMethods(ts, d.providerAuthMethodIds);
+    let authMethodsGlobal = await resolveAuthMethodsGlobal(ts, d.providerAuthMethodIds);
     let actors = await resolveIdentityActors(ts, actorIds);
     let identities = await resolveIdentities(ts, d.identityIds);
     let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
@@ -329,7 +329,9 @@ class providerAuthConfigServiceImpl {
                     }
                   : undefined!,
                 credentials ? { authCredentialsOid: credentials.in } : undefined!,
-                authMethods ? { authMethodOid: authMethods.in } : undefined!,
+                authMethodsGlobal
+                  ? { authMethod: { globalOid: authMethodsGlobal.in } }
+                  : undefined!,
                 actors
                   ? { identityCredentials: { some: { identity: { actor: actors.oidIn } } } }
                   : undefined!,
