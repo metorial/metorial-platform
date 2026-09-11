@@ -73,7 +73,8 @@ export let slateWebhookRegistrationController = app.controller({
 
       return {
         webhookRegistration: slateWebhookRegistrationPresenter(res.registration),
-        webhookSetupDocument: res.webhookSetupDocument
+        webhookSetupDocument: res.webhookSetupDocument,
+        webhookSetupSchema: res.userConfigSchema
       };
     }),
 

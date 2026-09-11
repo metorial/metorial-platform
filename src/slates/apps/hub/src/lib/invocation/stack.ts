@@ -52,6 +52,7 @@ export class SlateInvocationStack {
   #enclaveId?: string;
   #egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
   #suppressServerErrorReporting: boolean;
+  #capabilities?: PrismaJson.SlateCapabilities;
   #productiveMessages: SlatesRequest[] = [];
   #alreadyInvoked = false;
   #runPromise: ReturnType<typeof this.run>;
@@ -65,6 +66,7 @@ export class SlateInvocationStack {
     this.#enclaveId = d.enclaveId;
     this.#egressPolicy = d.egressPolicy;
     this.#suppressServerErrorReporting = d.suppressServerErrorReporting ?? false;
+    this.#capabilities = d.capabilities ?? d.slateVersion.capabilities;
 
     this.#runPromise = this.run();
   }
@@ -86,7 +88,7 @@ export class SlateInvocationStack {
 
     let invocationId = await ID.generateId('slateInvocation');
 
-    let capabilities = this.#slateVersion.capabilities?.hub;
+    let capabilities = this.#capabilities?.hub;
     let supportsHubCapabilities = !!capabilities?.capabilitiesNotification;
     let supportsLiveInvocation = !!capabilities?.liveInvocation;
 
@@ -425,10 +427,12 @@ export class SlateInvocationStack {
       return new SlateInvocationStack({
         tenant: this.#tenant,
         slateVersion: this.#slateVersion,
+        deploymentTarget: this.#deploymentTarget,
         participants: this.#participants,
         enclaveId: this.#enclaveId,
         egressPolicy: this.#egressPolicy,
         suppressServerErrorReporting: this.#suppressServerErrorReporting,
+        capabilities: this.#capabilities,
         initialMessages: this.#initialMessages
       }).invoke(method, params);
     }

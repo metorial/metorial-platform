@@ -31,6 +31,7 @@ export interface SlateInvocationBaseParams {
   enclaveId?: string;
   egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
   suppressServerErrorReporting?: boolean;
+  capabilities?: PrismaJson.SlateCapabilities;
 }
 
 export type SlatesRequest = SlatesNotifications | SlatesRequests;

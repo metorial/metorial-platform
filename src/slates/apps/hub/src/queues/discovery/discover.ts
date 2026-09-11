@@ -357,29 +357,28 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           activeDeploymentOid: target.activeDeploymentOid
         },
         participants: [], // Only the hub
-        suppressServerErrorReporting
+        suppressServerErrorReporting,
+        capabilities
       });
 
-      // A slate that hasn't been redeployed with trigger_group support yet
-      // has no handler for slates/trigger_groups.list at all, so calling it
-      // unconditionally fails discovery outright with resource.not_found.
-      // Only call it once the provider has actually declared support -- and
-      // still fire it inside the same Promise.all as everything else, since
-      // the stack batches every message from one invocation into a single
-      // Function Bay call; invoking it afterwards would start a second one.
       let supportsTriggerGroups = !!capabilities?.provider?.triggerGroups;
 
-      let [providerInfoResult, configSchemaResult, authMethodsResult, actionsResult, rawTriggerGroupsResult] =
-        await Promise.all([
-          slateInvocationService.getProviderInfo({ stack }),
-          slateInvocationService.getConfigSchema({ stack }),
-          // slateInvocationService.getDefaultConfig({ stack }),
-          slateInvocationService.listAuthMethods({ stack }),
-          slateInvocationService.listActions({ stack }),
-          supportsTriggerGroups
-            ? slateInvocationService.listTriggerGroups({ stack })
-            : Promise.resolve(null)
-        ]);
+      let [
+        providerInfoResult,
+        configSchemaResult,
+        authMethodsResult,
+        actionsResult,
+        rawTriggerGroupsResult
+      ] = await Promise.all([
+        slateInvocationService.getProviderInfo({ stack }),
+        slateInvocationService.getConfigSchema({ stack }),
+        // slateInvocationService.getDefaultConfig({ stack }),
+        slateInvocationService.listAuthMethods({ stack }),
+        slateInvocationService.listActions({ stack }),
+        supportsTriggerGroups
+          ? slateInvocationService.listTriggerGroups({ stack })
+          : Promise.resolve(null)
+      ]);
 
       let triggerGroupsResult: InvocationResult<'slates/trigger_groups.list'> =
         rawTriggerGroupsResult ?? {
@@ -394,7 +393,13 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         typeof authMethodsResult,
         typeof actionsResult,
         typeof triggerGroupsResult
-      ] = [providerInfoResult, configSchemaResult, authMethodsResult, actionsResult, triggerGroupsResult];
+      ] = [
+        providerInfoResult,
+        configSchemaResult,
+        authMethodsResult,
+        actionsResult,
+        triggerGroupsResult
+      ];
 
       let invocation = stackResult[0].invocation;
       let error = getStackError(stackResult);
