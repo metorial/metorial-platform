@@ -19,3 +19,19 @@ export let skillDestinationSyncCleanupCron = createCron(
     });
   }
 );
+
+export let skillDestinationDeletedFileCleanupCron = createCron(
+  {
+    name: 'cargo/skill/sync/deletedFiles/cleanup/cron',
+    cron: '0 0 * * *'
+  },
+  async () => {
+    await db.skillDestinationDeletedFile.deleteMany({
+      where: {
+        createdAt: {
+          lt: subDays(new Date(), 14)
+        }
+      }
+    });
+  }
+);

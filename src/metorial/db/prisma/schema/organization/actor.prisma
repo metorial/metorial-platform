@@ -51,7 +51,7 @@ model OrganizationActor {
   resourceActors             ResourceActor[]
   consumerOrganizationActors ConsumerOrganizationActor[]
   auditLogs                  AuditLog[]
-  events                     Event[]
+  events                     AuditLogEvent[]
 
   @@unique([isSystem, organizationOid])
 }

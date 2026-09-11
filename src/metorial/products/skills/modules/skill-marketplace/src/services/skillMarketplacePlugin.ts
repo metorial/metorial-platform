@@ -1,7 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { createSlugGenerator } from '@lowerdeck/slugify';
 import type { Instance, Prisma, Project, SkillMarketplacePluginStatus } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
@@ -23,6 +22,10 @@ import {
   assertSkillMarketplaceWriteAccess,
   type SkillMarketplaceAccessInput
 } from '../lib/skillMarketplaceAccess';
+import {
+  getArchivedMarketplacePluginSlug,
+  getMarketplacePluginSlug
+} from '../lib/skillMarketplacePluginSlug';
 import { enqueueSkillMarketplacePluginLifecycle } from '../queues/lifecycle';
 import type { SkillMarketplaceRecord } from './skillMarketplace';
 import {
@@ -53,18 +56,6 @@ export type SkillMarketplacePluginRecord = Prisma.SkillMarketplacePluginGetPaylo
 }>;
 
 export type SkillMarketplacePluginStatusFilter = SkillMarketplacePluginStatus;
-
-let getMarketplacePluginSlug = createSlugGenerator(
-  async (slug, d: { skillMarketplaceId: string }) =>
-    !(await db.skillMarketplacePlugin.findFirst({
-      where: {
-        skillMarketplace: {
-          id: d.skillMarketplaceId
-        },
-        pluginSlug: slug
-      }
-    }))
-);
 
 class SkillMarketplacePluginServiceImpl {
   private async getSkillMarketplacePluginRecord(d: {
@@ -190,13 +181,17 @@ class SkillMarketplacePluginServiceImpl {
         skillPluginOid: skillPlugin.oid
       },
       select: {
-        pluginSlug: true
+        pluginSlug: true,
+        status: true
       }
     });
     let pluginSlug = await getMarketplacePluginSlug(
       {
         input: d.input.pluginSlug ?? skillPlugin.name ?? skillPlugin.slug ?? skillPlugin.id,
-        current: existingSkillMarketplacePlugin?.pluginSlug
+        current:
+          existingSkillMarketplacePlugin?.status === 'active'
+            ? existingSkillMarketplacePlugin.pluginSlug
+            : undefined
       },
       { skillMarketplaceId: d.skillMarketplace.id }
     );
@@ -257,7 +252,10 @@ class SkillMarketplacePluginServiceImpl {
       }
 
       if (skillMarketplacePlugin) {
-        if (skillMarketplacePlugin.pluginSlug !== pluginSlug) {
+        if (
+          skillMarketplacePlugin.status === 'active' &&
+          skillMarketplacePlugin.pluginSlug !== pluginSlug
+        ) {
           throw new ServiceError(
             badRequestError({
               message: 'Marketplace plugin slug cannot be changed'
@@ -271,6 +269,7 @@ class SkillMarketplacePluginServiceImpl {
           },
           data: {
             status: 'active',
+            pluginSlug,
             skillPluginOid: skillPlugin.oid,
             skillConfigurationOid
           },
@@ -312,12 +311,17 @@ class SkillMarketplacePluginServiceImpl {
     });
     assertPluginIsNotManaged(d.skillMarketplacePlugin.skillPlugin);
 
+    let pluginSlug = await getArchivedMarketplacePluginSlug({
+      skillMarketplaceId: d.skillMarketplacePlugin.skillMarketplace.id
+    });
+
     let skillMarketplacePlugin = await db.skillMarketplacePlugin.update({
       where: {
         id: d.skillMarketplacePlugin.id
       },
       data: {
         status: 'archived',
+        pluginSlug,
         skillConfigurationOid: null
       },
       include: skillMarketplacePluginInclude

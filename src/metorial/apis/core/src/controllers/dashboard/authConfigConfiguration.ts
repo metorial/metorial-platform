@@ -80,6 +80,7 @@ export let dashboardAuthConfigConfigurationController = Controller.create(
         v.object({
           allow_auth_config_export: v.optional(v.boolean()),
           allow_auth_config_import: v.optional(v.boolean()),
+          only_allow_oauth_auth_methods: v.optional(v.boolean()),
           consumer_auth_client_registrations_per_hour_limit:
             consumerAuthClientRegistrationLimitValidator,
           consumer_auth_client_registrations_per_minute_limit:
@@ -91,6 +92,7 @@ export let dashboardAuthConfigConfigurationController = Controller.create(
         if (
           ctx.body.allow_auth_config_export === undefined &&
           ctx.body.allow_auth_config_import === undefined &&
+          ctx.body.only_allow_oauth_auth_methods === undefined &&
           ctx.body.consumer_auth_client_registrations_per_hour_limit === undefined &&
           ctx.body.consumer_auth_client_registrations_per_minute_limit === undefined
         ) {
@@ -124,6 +126,7 @@ export let dashboardAuthConfigConfigurationController = Controller.create(
             input: {
               allowAuthConfigExport: ctx.body.allow_auth_config_export,
               allowAuthConfigImport: ctx.body.allow_auth_config_import,
+              onlyAllowOAuthAuthMethods: ctx.body.only_allow_oauth_auth_methods,
               consumerAuthClientRegistrationsPerHourLimit:
                 ctx.body.consumer_auth_client_registrations_per_hour_limit,
               consumerAuthClientRegistrationsPerMinuteLimit:

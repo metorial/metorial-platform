@@ -130,7 +130,7 @@ class SkillMarketplaceRepositoryServiceImpl {
       repoId: d.repoId
     });
 
-    skillRepositoryService.assertRepositoryIsAvailable(skillRepository, {
+    await skillRepositoryService.assertRepositoryIsAvailable(skillRepository, {
       skillMarketplaceOid: marketplace.oid
     });
 

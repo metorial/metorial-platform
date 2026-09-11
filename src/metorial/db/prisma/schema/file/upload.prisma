@@ -1,20 +1,24 @@
-enum UploadStatus {
-  active
+enum FileUploadStatus {
+  pending
   completed
   canceled
-  used
+  expired
 }
 
-model Upload {
-  oid    BigInt     @id @default(autoincrement())
-  id     String     @unique
-  status FileStatus @default(active)
+model FileUpload {
+  oid    BigInt           @id @default(autoincrement())
+  id     String           @unique
+  status FileUploadStatus @default(pending)
 
   storeId String @unique
 
-  fileName String?
-  fileSize Int?
-  fileType String?
+  fileName String
+  fileSize Int
+  fileType String
+  title    String?
+
+  purposeOid Int
+  purpose    FilePurpose @relation(fields: [purposeOid], references: [oid], onDelete: Cascade)
 
   userOid BigInt?
   user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
@@ -25,6 +29,21 @@ model Upload {
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  createdByResourceActorOid BigInt?
+  createdByResourceActor    ResourceActor? @relation("FileUploadCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: SetNull)
+
+  attachStoreId String?
+  attachPath    String?
+  attachReplace Boolean @default(false)
+
+  fileOid BigInt? @unique
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: SetNull)
+
+  uploadUrlExpiresAt DateTime
+  expiresAt          DateTime
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([status, expiresAt, oid])
 }

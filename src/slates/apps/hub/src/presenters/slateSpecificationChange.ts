@@ -8,9 +8,22 @@ import type {
   SlateSpecificationAction,
   SlateSpecificationAuthMethod,
   SlateSpecificationChange,
+  SlateSpecificationTriggerGroup,
+  SlateTriggerGroup,
   SlateVersion
 } from '../../prisma/generated/client';
 import { slateSpecificationPresenter } from './slateSpecification';
+
+type SpecificationWithRelations = SlateSpecification & {
+  slateAuthMethods: (SlateSpecificationAuthMethod & { authMethod: SlateAuthMethod })[];
+  slateActions: (SlateSpecificationAction & {
+    action: SlateAction & {
+      slateAdapter: (SlateAdapter & { adapter: Adapter }) | null;
+      triggerGroup: SlateTriggerGroup | null;
+    };
+  })[];
+  slateTriggerGroups: (SlateSpecificationTriggerGroup & { triggerGroup: SlateTriggerGroup })[];
+};
 
 export let slateSpecificationChangePresenter = (
   spec: SlateSpecificationChange & {
@@ -19,18 +32,8 @@ export let slateSpecificationChangePresenter = (
     fromVersion: SlateVersion;
     toVersion: SlateVersion;
 
-    fromSpecification: SlateSpecification & {
-      slateAuthMethods: (SlateSpecificationAuthMethod & { authMethod: SlateAuthMethod })[];
-      slateActions: (SlateSpecificationAction & {
-        action: SlateAction & { slateAdapter: (SlateAdapter & { adapter: Adapter }) | null };
-      })[];
-    };
-    toSpecification: SlateSpecification & {
-      slateAuthMethods: (SlateSpecificationAuthMethod & { authMethod: SlateAuthMethod })[];
-      slateActions: (SlateSpecificationAction & {
-        action: SlateAction & { slateAdapter: (SlateAdapter & { adapter: Adapter }) | null };
-      })[];
-    };
+    fromSpecification: SpecificationWithRelations;
+    toSpecification: SpecificationWithRelations;
   }
 ) => ({
   object: 'slate.specification_change',

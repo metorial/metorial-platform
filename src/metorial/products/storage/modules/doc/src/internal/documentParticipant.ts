@@ -1,5 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import { storeAccessService } from '@metorial/module-store';
+import type { Context } from '@metorial/context';
 import type { Document, ResourceActor } from '@metorial/db';
 import { ID, withTransaction } from '@metorial/db';
 
@@ -97,6 +98,7 @@ class InternalDocumentParticipantServiceImpl {
     version: { oid: bigint };
     document: { oid: bigint };
     actor: { oid: bigint };
+    context?: Context;
   }) {
     return await withTransaction(async db => {
       let existing = await db.documentVersionEditors.findFirst({
@@ -124,7 +126,9 @@ class InternalDocumentParticipantServiceImpl {
         data: {
           id: await ID.generateId('documentVersionEditor'),
           documentVersionOid: d.version.oid,
-          resourceActorOid: d.actor.oid
+          resourceActorOid: d.actor.oid,
+          ip: d.context?.ip ?? null,
+          ua: d.context?.ua ?? null
         }
       });
     });

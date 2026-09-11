@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { slatePresenter } from '../../../presenters';
+import { slateAuthMethodPresenter, slatePresenter } from '../../../presenters';
 import { slateService } from '../../../services';
 import { authedApp } from './_app';
 
@@ -61,5 +61,18 @@ export let slateController = authedApp.controller({
         slateId: ctx.slate.id,
         ...stats
       };
+    }),
+
+  authMethods: slateApp
+    .handler()
+    .input(
+      v.object({
+        slateId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let methods = await slateService.listCurrentAuthMethods({ slate: ctx.slate });
+
+      return methods.map(method => slateAuthMethodPresenter({ ...method, slate: ctx.slate }));
     })
 });

@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite --port 3300 --host",
     "_frontend:build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:start": "vite --host 0.0.0.0"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",

@@ -9,14 +9,24 @@ let include = {
     include: { authMethod: true }
   },
   slateActions: {
-    include: { action: { include: { slateAdapter: { include: { adapter: true } } } } }
+    include: {
+      action: {
+        include: {
+          slateAdapter: { include: { adapter: true } },
+          triggerGroup: true
+        }
+      }
+    }
   },
   slateConfigSchemas: {
     include: { configSchema: true }
+  },
+  slateTriggerGroups: {
+    include: { triggerGroup: true }
   }
 };
 
-let omit = { authMethods: true, actions: true };
+let omit = { authMethods: true, actions: true, triggerGroups: true };
 
 class slateSpecificationServiceImpl {
   async getSlateSpecificationById(d: { id: string }) {

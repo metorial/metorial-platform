@@ -36,18 +36,20 @@ let providerListingDocsSchema = v.nullable(
   })
 );
 
-let presentProviderListingDocs = (docs: any) => {
+let presentProviderListingDocs = (docs: any, onlyAllowOAuthAuthMethods: boolean) => {
   if (!docs) return null;
 
   return {
     provider: docs.provider ?? [],
     config: docs.config ?? [],
-    auth_methods: (docs.authMethods ?? []).map((authMethod: any) => ({
-      key: authMethod.key,
-      name: authMethod.name,
-      type: authMethod.type,
-      docs: authMethod.docs ?? []
-    })),
+    auth_methods: (docs.authMethods ?? [])
+      .filter((authMethod: any) => !onlyAllowOAuthAuthMethods || authMethod.type === 'oauth')
+      .map((authMethod: any) => ({
+        key: authMethod.key,
+        name: authMethod.name,
+        type: authMethod.type,
+        docs: authMethod.docs ?? []
+      })),
     actions: (docs.actions ?? []).map((action: any) => ({
       key: action.key,
       name: action.name,
@@ -205,7 +207,10 @@ export let dashboardProviderListingPresenter = Presenter.create(providerListingT
 
     return {
       ...inner,
-      docs: presentProviderListingDocs((input.providerListing as any).docs),
+      docs: presentProviderListingDocs(
+        (input.providerListing as any).docs,
+        input.tenant?.onlyAllowOAuthAuthMethods ?? false
+      ),
       provider: await dashboardProviderPresenter
         .present(
           {

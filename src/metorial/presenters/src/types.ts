@@ -1,9 +1,4 @@
 import type { SessionWarning, Prisma as SubspacePrisma } from '@metorial-subspace/db';
-import type {
-  CallbackInstanceReceiver,
-  callbackDeliveryService,
-  callbackEventService
-} from '@metorial-subspace/module-callback';
 import type { publisherService } from '@metorial-subspace/module-catalog';
 import type {
   customProviderDeploymentService,
@@ -14,6 +9,14 @@ import type {
   scmRepositoryService
 } from '@metorial-subspace/module-custom-provider';
 import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
+import type {
+  CallbackEventDetails,
+  CallbackEventWithRelations,
+  CallbackInstanceWithRelations,
+  CallbackWithRelations,
+  WebhookEvent,
+  WebhookRegistrationWithRelations
+} from '@metorial-subspace/module-callback';
 import type {
   integrationInclude,
   integrationInstanceGroupInclude,
@@ -71,6 +74,9 @@ import {
   ConsumerToken,
   Document,
   DocumentParticipant,
+  EventDestination,
+  EventDestinationListener,
+  SystemEvent,
   File,
   FileLink,
   Instance,
@@ -99,6 +105,9 @@ import {
   OrganizationLayout,
   OrganizationLayoutType,
   OrganizationMember,
+  Outpost,
+  OutpostAccess,
+  OutpostCredential,
   Portal,
   Prisma,
   Profile,
@@ -133,7 +142,8 @@ import {
   TeamProject,
   User,
   UserStatus,
-  UserType
+  UserType,
+  WebhookDestination
 } from '@metorial/db';
 import type { AnyAccessTagSelector } from '@metorial/module-access';
 import type { AuditLog } from '@metorial/module-audit-log';
@@ -1089,6 +1099,34 @@ export let auditLogStreamEventType = PresentableType.create<{
   };
 }>()('auditLogStreamEvent');
 
+export let eventDestinationType = PresentableType.create<{
+  eventDestination: EventDestination & {
+    organization: Organization;
+    webhookDestination: WebhookDestination | null;
+    listeners: (EventDestinationListener & { instance: Instance })[];
+  };
+  // Only passed by the create and rotate-secret controller actions — every other read path (list,
+  // get, update, archive) omits this, so `signing_secret` renders as `null` there. Mirrors the
+  // API-key "reveal once" convention (`apiKeyPresenter`'s `secret` field).
+  revealSecret?: string;
+}>()('eventDestination');
+
+export let eventDestinationListenerType = PresentableType.create<{
+  listener: EventDestinationListener & {
+    eventDestination: EventDestination;
+  };
+  instance: Instance;
+}>()('eventDestinationListener');
+
+export let systemEventType = PresentableType.create<{
+  event: SystemEvent & { instance: Instance | null };
+  organization: Organization;
+}>()('event');
+
+export let webhookEventType = PresentableType.create<{
+  webhookEvent: { name: string };
+}>()('webhookEvent');
+
 export let organizationConfigType = PresentableType.create<{
   config: OrganizationConfig & {
     type: OrganizationConfigType;
@@ -1109,13 +1147,22 @@ export let projectRetentionType = PresentableType.create<{
   project: Project;
 }>()('project_retention');
 
+export let organizationAuditLogRetentionType = PresentableType.create<{
+  organization: Organization;
+}>()('organization_audit_log_retention');
+
 export let projectAuthConfigConfigurationType = PresentableType.create<{
   project: Project;
   allowAuthConfigExport: boolean;
   allowAuthConfigImport: boolean;
+  onlyAllowOAuthAuthMethods: boolean;
   consumerAuthClientRegistrationsPerHourLimit: number;
   consumerAuthClientRegistrationsPerMinuteLimit: number;
 }>()('project_auth_config_configuration');
+
+export let projectWorkforceConfigurationType = PresentableType.create<{
+  project: Project;
+}>()('project_workforce_configuration');
 
 export let projectToolCallingConfigurationType = PresentableType.create<{
   project: Project;
@@ -1123,10 +1170,22 @@ export let projectToolCallingConfigurationType = PresentableType.create<{
   messageProcessingTimeoutMs: number;
 }>()('project_tool_calling_configuration');
 
+export let projectDataRetentionConfigurationType = PresentableType.create<{
+  project: Project;
+  dataRetentionLevel: 'full' | 'intent_only' | 'none';
+  storeToolCallAttachments: boolean;
+  collectErrors: boolean;
+  disableCallbacks: boolean;
+}>()('project_data_retention_configuration');
+
 export let projectIntegrationNamingConfigurationType = PresentableType.create<{
   project: Project;
   useIntegrationNames: boolean;
 }>()('project_integration_naming_configuration');
+
+export let projectSkillSyncConfigurationType = PresentableType.create<{
+  project: Project;
+}>()('project_skill_sync_configuration');
 
 export let tokenType = PresentableType.create<{
   token: {
@@ -1245,6 +1304,25 @@ export let apiKeyType = PresentableType.create<{
   secret?: ApiKeySecret;
   canReveal: boolean;
 }>()('api_key');
+
+export let outpostType = PresentableType.create<{
+  outpost: Outpost & { organization: Organization };
+}>()('outpost');
+
+export let outpostCredentialType = PresentableType.create<{
+  outpost: Outpost;
+  credential: OutpostCredential;
+  envelope?: string;
+}>()('outpost_credential');
+
+export let outpostAccessType = PresentableType.create<{
+  access: OutpostAccess & {
+    project: Project;
+    instance: Instance;
+    organization: Organization;
+    outpost: Outpost;
+  };
+}>()('outpost_access');
 
 export let oauthApplicationType = PresentableType.create<{
   oauthApplication: OAuthApplication & {
@@ -2025,6 +2103,10 @@ export let flagsType = PresentableType.create<{
   flags: Flags;
 }>()('flags');
 
+export let organizationScopesType = PresentableType.create<{
+  scopes: string[];
+}>()('organization_scopes');
+
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
     aliases: MagicMcpServerAlias[];
@@ -2286,6 +2368,7 @@ export let consumerSessionType = PresentableType.create<{
 
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('consumer.provider');
 
 export let consumerActivityAgentType = PresentableType.create<ConsumerActivityAgent>()(
@@ -2336,59 +2419,6 @@ export let portalOAuthAuthorizationType = PresentableType.create<{
     skillPluginSupportedProviderIds?: string[];
   };
 }>()('portal.oauth_authorization');
-
-export let callbackType = PresentableType.create<{
-  callback: SubspacePrisma.CallbackGetPayload<{
-    include: {
-      providerDeployment: {
-        include: {
-          provider: { include: { type: true } };
-          currentVersion: true;
-        };
-      };
-      callbackProviderTriggers: { include: { providerTrigger: true } };
-      callbackDestinationLinks: { include: { callbackDestination: true } };
-    };
-  }>;
-}>()('callback');
-
-export let callbackEventType = PresentableType.create<{
-  callbackEvent: Awaited<ReturnType<typeof callbackEventService.getCallbackEvent>>;
-}>()('callback.event');
-
-export let callbackDestinationType = PresentableType.create<{
-  callbackDestination: SubspacePrisma.CallbackDestinationGetPayload<{}>;
-}>()('callback.destination');
-
-export let callbackNotificationType = PresentableType.create<{
-  callbackNotification: Awaited<
-    ReturnType<typeof callbackDeliveryService.getCallbackDelivery>
-  >;
-}>()('callback.notification');
-
-export let callbackInstanceType = PresentableType.create<{
-  callbackInstance: SubspacePrisma.CallbackInstanceGetPayload<{
-    include: {
-      providerDeploymentConfigPair: {
-        include: {
-          providerDeploymentVersion: {
-            include: {
-              deployment: { include: { provider: true } };
-            };
-          };
-          providerConfigVersion: {
-            include: { config: true };
-          };
-          providerAuthConfigVersion: {
-            include: { authConfig: true };
-          };
-        };
-      };
-      activeRegistration: true;
-    };
-  }>;
-  receiver?: CallbackInstanceReceiver;
-}>()('callback.instance');
 
 export let portalType = PresentableType.create<{
   portal: Portal & {
@@ -2531,7 +2561,7 @@ export let providerVersionType = PresentableType.create<{
 
 export let providerType = PresentableType.create<{
   provider: RawProvider | NonNullable<RawCustomProvider['provider']>;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('provider');
 
 export let identityType = PresentableType.create<{
@@ -2578,7 +2608,7 @@ export let providerListingGroupType = PresentableType.create<{
 
 export let providerListingType = PresentableType.create<{
   providerListing: RawProviderListing;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('providerListing');
 
 export let providerToolType = PresentableType.create<{ tool: RawProviderTool }>()('tool');
@@ -3152,7 +3182,7 @@ export let authConfigSchemaType = PresentableType.create<{
 
 export let customProviderType = PresentableType.create<{
   customProvider: RawCustomProvider;
-  tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  tenant: SubspacePrisma.TenantGetPayload<{}>;
 }>()('customProvider');
 
 export let customProviderVersionType = PresentableType.create<{
@@ -3262,3 +3292,24 @@ export let scmRepoPreviewType = PresentableType.create<{
 export let scmAccountPreviewType = PresentableType.create<{
   accountPreviews: ScmAccountPreview[];
 }>()('scmAccountPreview');
+
+export let callbackType = PresentableType.create<{
+  callback: CallbackWithRelations;
+}>()('callback');
+
+export let callbackInstanceType = PresentableType.create<{
+  callbackInstance: CallbackInstanceWithRelations;
+}>()('callback_instance');
+
+export let webhookRegistrationType = PresentableType.create<{
+  webhookRegistration: WebhookRegistrationWithRelations;
+}>()('webhook_registration');
+
+export let incomingWebhookType = PresentableType.create<{
+  incomingWebhook: WebhookEvent;
+}>()('incoming_webhook');
+
+export let callbackEventType = PresentableType.create<{
+  callbackEvent: CallbackEventWithRelations;
+  details?: CallbackEventDetails | null;
+}>()('callback_event');

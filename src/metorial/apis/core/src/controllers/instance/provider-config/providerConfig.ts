@@ -212,6 +212,7 @@ export let providerConfigController = Controller.create(
 
         let config = await providerConfigService.createProviderConfig({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           provider,
           providerDeployment,
           input: {
@@ -262,6 +263,7 @@ export let providerConfigController = Controller.create(
       .do(async ctx => {
         let config = await providerConfigService.updateProviderConfig({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerConfig: ctx.config,
           input: {
             name: ctx.body.name,
@@ -292,6 +294,7 @@ export let providerConfigController = Controller.create(
       .do(async ctx => {
         let config = await providerConfigService.archiveProviderConfig({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerConfig: ctx.config
         });
 

@@ -2,6 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerConnection } from '../../../prisma/generated/browser';
 import { db } from '../../db';
+import { getHolopodHttpEndpoint } from '../../env';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { FunctionConnection } from '../function/connection';
 import { HolopodConnection } from '../holopod/connection';
@@ -51,6 +52,8 @@ export class ConnectionBackend implements McpConnectionBackendAdapter {
       if (!serverVersion.repositoryVersion) {
         throw new Error('Server version missing repository version');
       }
+
+      getHolopodHttpEndpoint();
 
       let backend = new HolopodConnection(
         instance.tenant,

@@ -30,7 +30,16 @@ let instance = {
   oid: 1n,
   id: 'ins_1',
   projectOid: project.oid
-};
+} as any;
+let auditScope = {
+  organizationOid: 5n,
+  instanceOid: 1n,
+  actor: {
+    type: 'consumer_profile' as const,
+    id: 'cpf_1'
+  },
+  context: { ip: '127.0.0.1' }
+} as any;
 let profileActor = {
   oid: 6n,
   id: 'rac_1',
@@ -46,6 +55,7 @@ describe('cargoAccess', () => {
       hasInstanceConsumerAccess({
         instance,
         project,
+        auditScope,
         consumerProfile: {
           oid: 2n,
           id: 'cpf_1',
@@ -65,6 +75,7 @@ describe('cargoAccess', () => {
       hasInstanceConsumerAccess({
         instance,
         project,
+        auditScope,
         member: {
           actor: {
             id: 'ora_1',
@@ -90,6 +101,7 @@ describe('cargoAccess', () => {
       getInstanceCargoActorInput({
         instance,
         project,
+        auditScope,
         consumerProfile: {
           oid: 2n,
           id: 'cpf_1',
@@ -114,6 +126,7 @@ describe('cargoAccess', () => {
       getInstanceCargoActorInput({
         instance,
         project,
+        auditScope,
         member: {
           actor: {
             oid: 2n,
@@ -135,6 +148,7 @@ describe('cargoAccess', () => {
     let access = await getInstanceCargoAccess({
       instance,
       project,
+      auditScope,
       resourceActor: profileActor,
       consumerProfile: {
         oid: 2n,
@@ -153,6 +167,7 @@ describe('cargoAccess', () => {
     expect(access).toEqual({
       project,
       instance,
+      auditScope,
       authorization: {
         type: 'restricted',
         resourceActor: profileActor,
@@ -170,6 +185,7 @@ describe('cargoAccess', () => {
     let access = await getInstanceCargoAccess({
       instance,
       project,
+      auditScope,
       resourceActor: profileActor,
       member: {
         actor: {
@@ -183,6 +199,7 @@ describe('cargoAccess', () => {
     expect(access).toEqual({
       project,
       instance,
+      auditScope,
       authorization: {
         type: 'privileged',
         resourceActor: profileActor

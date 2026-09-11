@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bindAuditScope,
   createAuditScope,
+  createSystemAuditScope,
   createOrganizationActorAuditActor,
   createOrganizationActorAuditScope,
   isOrganizationActorAuditActor,
@@ -204,6 +205,50 @@ describe('bindAuditScope', () => {
       ...scope,
       organizationOid: 2n,
       instanceOid: undefined
+    });
+  });
+});
+
+describe('createSystemAuditScope', () => {
+  it('creates a system scope with the job as the actor id', () => {
+    expect(
+      createSystemAuditScope({
+        organization: { oid: 1n },
+        instance: { oid: 3n },
+        job: 'document-draft-flush'
+      })
+    ).toEqual({
+      organizationOid: 1n,
+      instanceOid: 3n,
+      organizationActorOid: undefined,
+      actor: {
+        type: 'system',
+        id: 'document-draft-flush'
+      },
+      context: { ip: '' }
+    });
+  });
+
+  it('carries metadata and an explicit context when given', () => {
+    let context = { ip: '10.0.0.1', ua: 'worker' };
+
+    expect(
+      createSystemAuditScope({
+        organization: { oid: 1n },
+        job: 'store-template-sync',
+        metadata: { storeTemplateId: 'stp_1' },
+        context
+      })
+    ).toEqual({
+      organizationOid: 1n,
+      instanceOid: undefined,
+      organizationActorOid: undefined,
+      actor: {
+        type: 'system',
+        id: 'store-template-sync',
+        metadata: { storeTemplateId: 'stp_1' }
+      },
+      context
     });
   });
 });

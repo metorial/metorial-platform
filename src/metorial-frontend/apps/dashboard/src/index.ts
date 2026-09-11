@@ -9,6 +9,7 @@ export {
 export {
   deploySlice,
   productAssistantSlice,
+  productCallbacksSlice,
   productDocumentSlice,
   productExplorerSlice,
   productHomeSlice,

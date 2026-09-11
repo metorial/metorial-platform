@@ -15,7 +15,9 @@ vi.mock('@metorial/module-resource-actor', () => ({
 vi.mock(
   '@metorial/module-access',
   async () =>
-    await vi.importActual('../../../../../modules/access/src/services/resourceAuthorization')
+    await vi.importActual(
+      '../../../../../core/modules/access/src/services/resourceAuthorization'
+    )
 );
 
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from './access';

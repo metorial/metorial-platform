@@ -18,13 +18,20 @@ export interface SlateInvocationDeploymentTarget {
 export interface SlateInvocationBaseParams {
   tenant?: Pick<
     Tenant,
-    'oid' | 'identifier' | 'name' | 'functionBayTenantId' | 'functionBayTenantIdentifier'
+    | 'oid'
+    | 'identifier'
+    | 'name'
+    | 'functionBayTenantId'
+    | 'functionBayTenantIdentifier'
+    | 'storeContent'
   >;
   slateVersion: SlateVersion;
   deploymentTarget?: SlateInvocationDeploymentTarget;
   participants: SlatesParticipant[];
   enclaveId?: string;
   egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  suppressServerErrorReporting?: boolean;
+  capabilities?: PrismaJson.SlateCapabilities;
 }
 
 export type SlatesRequest = SlatesNotifications | SlatesRequests;
@@ -34,6 +41,9 @@ export type SlatesRequestTrace = z.infer<typeof slatesRequestTrace>;
 export interface InvocationError {
   code: string;
   message: string;
+  kind?: string;
+  retryable?: boolean;
+  status?: number;
   [key: string]: unknown;
 }
 

@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { db } from '../../../db';
 
 export let resolveClient = async (clientId: string) => {
@@ -24,4 +24,22 @@ export let resolveClient = async (clientId: string) => {
 
 export let resolveApp = async (clientId: string) => {
   return (await resolveClient(clientId)).app;
+};
+
+export let getHorizonApp = () =>
+  db.app.findFirst({ where: { mode: 'horizon' }, orderBy: { oid: 'desc' } });
+
+export let resolveClientOrDefault = async (clientId?: string | null) => {
+  if (clientId) return resolveClient(clientId);
+
+  let app = await getHorizonApp();
+  if (!app) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'client_id is required: no default app is configured'
+      })
+    );
+  }
+
+  return { app, account: null };
 };

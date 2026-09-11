@@ -189,6 +189,7 @@ export type ManagementInstanceIntegrationsInstanceGroupsProvidersListOutput = {
         createdAt: Date;
         updatedAt: Date;
       } | null;
+      callbackInstanceId: string | null;
       createdAt: Date;
       updatedAt: Date;
       archivedAt: Date | null;
@@ -663,6 +664,10 @@ export let mapManagementInstanceIntegrationsInstanceGroupsProvidersListOutput =
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
                     updatedAt: mtMap.objectField('updated_at', mtMap.date())
                   })
+                ),
+                callbackInstanceId: mtMap.objectField(
+                  'callback_instance_id',
+                  mtMap.passthrough()
                 ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date()),

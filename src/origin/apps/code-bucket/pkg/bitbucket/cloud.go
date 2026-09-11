@@ -47,30 +47,47 @@ func PrepareCloudRepo(
 	return PrepareDataCenterRepo(ctx, cloneURL, repoPath, ref, "x-token-auth", token)
 }
 
-func UploadToCloudRepo(
-	workspace, repo, targetPath, branch, commitMessage, token, apiURL, webURL string,
-	iter FileIterator,
-) error {
-	if token == "" {
+type CloudUploadOptions struct {
+	Workspace           string
+	Repo                string
+	TargetPath          string
+	Branch              string
+	CommitMessage       string
+	Token               string
+	APIURL              string
+	WebURL              string
+	DeletePaths         []string
+	ExplicitDeletesOnly bool
+}
+
+func (o CloudUploadOptions) withDefaults() CloudUploadOptions {
+	if o.Branch == "" {
+		o.Branch = "main"
+	}
+	if o.CommitMessage == "" {
+		o.CommitMessage = "Upload files"
+	}
+	return o
+}
+
+func UploadToCloudRepo(opts CloudUploadOptions, iter FileIterator) error {
+	if opts.Token == "" {
 		return fmt.Errorf("Bitbucket token is required")
 	}
-	if branch == "" {
-		branch = "main"
-	}
-	if commitMessage == "" {
-		commitMessage = "Upload files"
-	}
+	opts = opts.withDefaults()
 
-	normalizedTarget, err := normalizeRepoPath(targetPath, true)
+	normalizedTarget, err := normalizeRepoPath(opts.TargetPath, true)
 	if err != nil {
 		return err
 	}
-	apiBaseURL, err := cleanHTTPSBaseURL(apiURL, defaultCloudAPIURL)
+	apiBaseURL, err := cleanHTTPSBaseURL(opts.APIURL, defaultCloudAPIURL)
 	if err != nil {
 		return err
 	}
 
-	existing, err := cloudRepoFiles(workspace, repo, normalizedTarget, branch, token, webURL)
+	existing, err := cloudRepoFiles(
+		opts.Workspace, opts.Repo, normalizedTarget, opts.Branch, opts.Token, opts.WebURL,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to inspect existing Bitbucket files: %w", err)
 	}
@@ -83,16 +100,16 @@ func UploadToCloudRepo(
 	defer os.Remove(bodyName)
 
 	writer := multipart.NewWriter(body)
-	if err := writer.WriteField("branch", branch); err != nil {
+	if err := writer.WriteField("branch", opts.Branch); err != nil {
 		body.Close()
 		return err
 	}
-	if err := writer.WriteField("message", commitMessage); err != nil {
+	if err := writer.WriteField("message", opts.CommitMessage); err != nil {
 		body.Close()
 		return err
 	}
 
-	changed, err := writeCloudChanges(writer, normalizedTarget, existing, iter)
+	changed, err := writeCloudChanges(writer, normalizedTarget, existing, opts, iter)
 	if err != nil {
 		body.Close()
 		return err
@@ -118,14 +135,14 @@ func UploadToCloudRepo(
 	endpoint := fmt.Sprintf(
 		"%s/repositories/%s/%s/src",
 		apiBaseURL,
-		url.PathEscape(workspace),
-		url.PathEscape(repo),
+		url.PathEscape(opts.Workspace),
+		url.PathEscape(opts.Repo),
 	)
 	req, err := http.NewRequest(http.MethodPost, endpoint, body)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+opts.Token)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
@@ -146,6 +163,7 @@ func writeCloudChanges(
 	writer *multipart.Writer,
 	normalizedTarget string,
 	existing map[string][]byte,
+	opts CloudUploadOptions,
 	iter FileIterator,
 ) (bool, error) {
 	changed := false
@@ -174,7 +192,26 @@ func writeCloudChanges(
 		return false, err
 	}
 
-	for filePath := range existing {
+	deletePaths := make([]string, 0, len(existing))
+	if opts.ExplicitDeletesOnly {
+		for _, deletePath := range opts.DeletePaths {
+			normalized, err := normalizeRepoPath(deletePath, false)
+			if err != nil {
+				return false, err
+			}
+			fullPath := path.Join(normalizedTarget, normalized)
+			if _, exists := existing[fullPath]; !exists {
+				continue
+			}
+			deletePaths = append(deletePaths, fullPath)
+		}
+	} else {
+		for filePath := range existing {
+			deletePaths = append(deletePaths, filePath)
+		}
+	}
+
+	for _, filePath := range deletePaths {
 		if err := writer.WriteField("files", "/"+filePath); err != nil {
 			return false, err
 		}

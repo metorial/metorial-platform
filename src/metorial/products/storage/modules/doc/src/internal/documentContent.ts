@@ -1,4 +1,5 @@
 import { Service } from '@lowerdeck/service';
+import type { Context } from '@metorial/context';
 import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
 import { documentInclude } from '../services/document';
@@ -166,7 +167,7 @@ class InternalDocumentContentServiceImpl {
           instance: d.instance,
           document: d.document,
           contentOid: liveContentOid,
-          previousVersionOid: d.document.currentVersion?.oid,
+          previousVersion: d.document.currentVersion,
           listEditedAt: d.listEditedAt
         });
         didCreateVersion = true;
@@ -292,7 +293,7 @@ class InternalDocumentContentServiceImpl {
     instance: Instance;
     document: DocumentRecord;
     draft: DocumentDraft;
-    actors: ResourceActor[];
+    actors: { actor: ResourceActor; context?: Context }[];
   }) {
     return await withTransaction(async db => {
       let nextTitle = d.draft.title;
@@ -426,12 +427,13 @@ class InternalDocumentContentServiceImpl {
         }
       });
 
-      for (let actor of d.actors) {
+      for (let { actor, context } of d.actors) {
         if (hasContentChange && activeVersion) {
           await internalDocumentParticipantService.ensureVersionEditor({
             version: activeVersion,
             document: updatedDocument,
-            actor
+            actor,
+            context
           });
         }
       }

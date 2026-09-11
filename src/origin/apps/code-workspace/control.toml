@@ -3,7 +3,8 @@ group = "oss"
 
 [dev]
 prepare = ["setup_vscode"]
-run = ["vite --port 3302 --host 0.0.0.0"]
+run = ["dev:start"]
 
-[[dev.expose]]
+[endpoints.web]
 port = 3302
+env = [{ key = "PORT", value = "{{BIND_PORT}}" }]

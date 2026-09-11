@@ -112,6 +112,7 @@ export let integrationController = Controller.create(
       .do(async ctx => {
         let integration = await integrationService.createIntegration({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -149,6 +150,7 @@ export let integrationController = Controller.create(
       .do(async ctx => {
         let integration = await integrationService.updateIntegration({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integration: ctx.integration,
           input: {
             name: ctx.body.name,
@@ -175,6 +177,7 @@ export let integrationController = Controller.create(
       .do(async ctx => {
         let integration = await integrationService.archiveIntegration({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integration: ctx.integration
         });
 

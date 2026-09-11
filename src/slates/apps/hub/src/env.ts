@@ -7,7 +7,12 @@ export let env = createValidatedEnv({
     DATABASE_URL: v.string(),
 
     SERVICE_PUBLIC_URL: v.string(),
-    METORIAL_ENV: v.enumOf(['development', 'staging', 'production'])
+    METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
+    METORIAL_REGION: v.optional(v.string()),
+
+    SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
+    SLATES_HUB_INTERNAL_PORT: v.optional(v.number()),
+    SLATES_HUB_ADMIN_PORT: v.optional(v.number())
   },
 
   functionBay: {
@@ -25,7 +30,8 @@ export let env = createValidatedEnv({
 
   storage: {
     OBJECT_STORAGE_URL: v.string(),
-    INVOCATIONS_BUCKET_NAME: v.string()
+    INVOCATIONS_BUCKET_NAME: v.string(),
+    MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number())
   },
 
   encryption: {
@@ -44,7 +50,8 @@ export let env = createValidatedEnv({
 
   slates: {
     SLATES_HUB_INSTANCE_IDENTIFIER: v.string(),
-    SLATES_WEBHOOK_SYNC_TIMEOUT_MS: v.optional(v.number())
+    SLATES_WEBHOOK_SYNC_TIMEOUT_MS: v.optional(v.number()),
+    SLATES_WEBHOOK_TRIGGER_HOST: v.optional(v.string())
   },
 
   nebula: {
@@ -54,6 +61,12 @@ export let env = createValidatedEnv({
   },
 
   secrets: {
-    SLATES_DELEGATE_SECRETS_TO_NEBULA: v.boolean()
+    SLATES_DELEGATE_SECRETS_TO_NEBULA: v.boolean(),
+    SLATE_ATTACHMENT_SIGNING_SECRET: v.string(),
+    TOOL_ATTACHMENT_ROUTER_SECRET: v.optional(v.string())
+  },
+
+  subspace: {
+    SUBSPACE_INTERNAL_URL: v.optional(v.string())
   }
 });

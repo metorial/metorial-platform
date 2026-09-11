@@ -34,6 +34,15 @@ vi.mock('../src/mcp', () => ({
   handleMcpRequest: vi.fn()
 }));
 
+// `../src/outpost` only reaches into `@metorial/module-outpost` when an outpost signature is
+// actually present, but importing it eagerly initializes Redis-backed caches -- stub it out so
+// these unit tests don't need a live Redis/env setup.
+vi.mock('@metorial/module-outpost', () => ({
+  outpostAccessService: { isServiceGrantedForInstance: vi.fn(async () => true) },
+  outpostVerificationTokens: {},
+  metorialOutpostResolver: {}
+}));
+
 import { consumerIntegrationService } from '@metorial/module-consumer-entities';
 import {
   ensureMagicMcpSubspaceSession,

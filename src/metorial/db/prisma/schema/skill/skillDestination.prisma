@@ -14,14 +14,48 @@ model SkillDestination {
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
 
-  syncs                 SkillDestinationSync[]
-  skillMarketplace      SkillMarketplace?
-  skillPlugin           SkillPlugin?
-  skillDestinationItems SkillDestinationItem[]
+  syncs                        SkillDestinationSync[]
+  skillMarketplace             SkillMarketplace?
+  skillPlugin                  SkillPlugin?
+  skillDestinationItems        SkillDestinationItem[]
+  skillDestinationFiles        SkillDestinationFile[]
+  skillDestinationDeletedFiles SkillDestinationDeletedFile[]
 
   @@index([isDirty])
   @@index([shouldFlushAt])
   @@index([mustFlushAt])
+}
+
+model SkillDestinationFile {
+  oid BigInt @id @default(autoincrement())
+
+  destinationOid BigInt
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  path      String
+  signature String
+
+  itemKey String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([destinationOid, path])
+  @@index([destinationOid])
+  @@index([destinationOid, itemKey])
+}
+
+model SkillDestinationDeletedFile {
+  oid BigInt @id @default(autoincrement())
+
+  destinationOid BigInt
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  path      String
+  createdAt DateTime @default(now())
+
+  @@unique([destinationOid, path])
+  @@index([destinationOid, createdAt])
 }
 
 model SkillDestinationItem {
@@ -101,6 +135,8 @@ model SkillDestinationSyncRepositoryPropagation {
   prDescription String?
   commitMessage String?
   errorMessage  String?
+
+  deletionsUpTo DateTime?
 
   skillDestinationSyncOid BigInt
   skillDestinationSync    SkillDestinationSync @relation(fields: [skillDestinationSyncOid], references: [oid], onDelete: Cascade)

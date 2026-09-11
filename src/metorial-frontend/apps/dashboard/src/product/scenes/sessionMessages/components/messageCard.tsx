@@ -308,8 +308,7 @@ export let MessageCard = ({
           ) : (
             <EmptyState>
               <Text size="1" color="gray700">
-                No structured properties available. Switch to `Raw JSON` to inspect the full
-                payload.
+                No data properties available.
               </Text>
             </EmptyState>
           )}

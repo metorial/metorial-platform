@@ -20,7 +20,10 @@
     "db:push:dev": "sh -c 'set -a; [ -f ./.env ] && . ./.env; set +a; bun prisma db push --config ./prisma.config.ts --accept-data-loss'",
     "test": "bunx vitest run --passWithNoTests",
     "test:watch": "bunx vitest watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@types/bun": "latest",

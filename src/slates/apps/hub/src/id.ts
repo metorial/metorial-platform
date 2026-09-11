@@ -27,6 +27,7 @@ export let ID = createIdGenerator({
   slateVersionAdapterCapability: idType.sorted('shsvac'),
   slateConfigSchema: idType.sorted('shcs'),
   slateAuthMethod: idType.sorted('sham'),
+  slateTriggerGroup: idType.sorted('sttg'),
 
   slateInstance: idType.sorted('shin'),
   slateInstanceConfig: idType.sorted('shic'),
@@ -37,19 +38,33 @@ export let ID = createIdGenerator({
   slateAuthConfigEvent: idType.sorted('shace'),
   slateInstanceOAuthSetupEvent: idType.sorted('shiose'),
 
+  slateWebhookRegistration: idType.sorted('whr'),
+  slateWebhookEvent: idType.sorted('wev'),
+  slateWebhookEventInvocation: idType.sorted('wei'),
+
+  triggerRegistration: idType.sorted('sttr'),
+  triggerRegistrationInstance: idType.sorted('sttri'),
+  triggerRegistrationSchedule: idType.sorted('sttrs'),
+  triggerPollingRun: idType.sorted('sttrp'),
+  triggerWebhookTarget: idType.sorted('sttwt'),
+  triggerWebhookTargetRegistrationAttempt: idType.sorted('sttwa'),
+  triggerRegistrationInstanceError: idType.sorted('sttre'),
+  triggerRawEvent: idType.sorted('sttrv'),
+  triggerEvent: idType.sorted('sttrev'),
+  triggerEventInvocation: idType.sorted('sttrevi'),
+  triggerRoutingMatcher: idType.sorted('sttrm'),
+  triggerRoutingDrop: idType.sorted('sttrd'),
+  triggerRoutingMatcherEvaluation: idType.sorted('sttrme'),
+
+  callback: idType.sorted('shcb'),
+  callbackInstance: idType.sorted('shcbi'),
+
   slateInvocation: idType.sorted('shiv'),
 
   slateOAuthCredentials: idType.sorted('shoc'),
   slateToolCall: idType.sorted('shtc'),
   slatePublicToolCall: idType.sorted('shptc'),
   slateSession: idType.sorted('shses'),
-
-  slateTriggerReceiver: idType.sorted('shtr'),
-  slateTriggerReceiverTrigger: idType.sorted('shtrt'),
-  slateTriggerInvocation: idType.sorted('shtiv'),
-  slateTriggerEventInput: idType.sorted('shtin'),
-  slateTriggerEvent: idType.sorted('shte'),
-  slateTriggerWebhookRequest: idType.sorted('shtwr'),
 
   changeNotification: idType.sorted('shcn'),
 
@@ -58,6 +73,8 @@ export let ID = createIdGenerator({
 
   slateAttachment: idType.sorted('shsa'),
   slateInvocationAttachment: idType.sorted('shsia'),
+  slateAttachmentUpload: idType.sorted('shau'),
+  slateAttachmentBlob: idType.sorted('shab'),
 
   slateError: idType.sorted('sher')
 });

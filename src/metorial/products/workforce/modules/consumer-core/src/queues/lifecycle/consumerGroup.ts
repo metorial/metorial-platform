@@ -1,3 +1,4 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { consumerAccessService } from '@metorial/module-consumer-access';
 import { createQueue } from '@metorial/queue';
@@ -70,10 +71,16 @@ export let consumerGroupArchivedQueueProcessor = consumerGroupArchivedQueue.proc
       consumerAccesses
     );
 
+    let auditScope = createSystemAuditScope({
+      organization: consumerGroup.surface.organization,
+      job: 'consumerGroup/archivedCleanup'
+    });
+
     for (let consumerAccess of consumerAccesses) {
       await consumerAccessService.deleteConsumerAccess({
         organization: consumerGroup.surface.organization,
-        consumerAccess: consumerAccess
+        consumerAccess: consumerAccess,
+        auditScope
       });
     }
 

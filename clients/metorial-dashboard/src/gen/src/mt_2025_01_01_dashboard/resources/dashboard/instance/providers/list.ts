@@ -52,7 +52,10 @@ export type DashboardInstanceProvidersListOutput = {
         | 'mcp.function'
         | 'mcp.remote';
       triggers:
-        | { status: 'enabled'; receiverUrl: string }
+        | {
+            status: 'enabled';
+            webhookRegistration: { status: 'supported' | 'unsupported' };
+          }
         | { status: 'disabled' };
       config:
         | { status: 'enabled'; read: { status: 'enabled' | 'disabled' } }
@@ -179,9 +182,14 @@ export let mapDashboardInstanceProvidersListOutput =
                             'status',
                             mtMap.passthrough()
                           ),
-                          receiverUrl: mtMap.objectField(
-                            'receiver_url',
-                            mtMap.passthrough()
+                          webhookRegistration: mtMap.objectField(
+                            'webhook_registration',
+                            mtMap.object({
+                              status: mtMap.objectField(
+                                'status',
+                                mtMap.passthrough()
+                              )
+                            })
                           )
                         })
                       )
@@ -298,12 +306,20 @@ export type DashboardInstanceProvidersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   id?: string | string[] | undefined;
+  search?: string | undefined;
+  authMethod?: string | string[] | undefined;
+  authSetup?:
+    | 'configured'
+    | 'not_configured'
+    | ('configured' | 'not_configured')[]
+    | undefined;
   capabilities?:
     | {
         supportsConfig?: boolean | undefined;
         supportsAuth?: boolean | undefined;
         supportsOauth?: boolean | undefined;
         supportsCallbacks?: boolean | undefined;
+        supportsWebhookRegistration?: boolean | undefined;
         supportsOauthAutoRegistration?: boolean | undefined;
         supportsAuthExport?: boolean | undefined;
         supportsAuthImport?: boolean | undefined;
@@ -330,6 +346,21 @@ export let mapDashboardInstanceProvidersListQuery = mtMap.union([
           )
         ])
       ),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      authMethod: mtMap.objectField(
+        'auth_method',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      authSetup: mtMap.objectField(
+        'auth_setup',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
       capabilities: mtMap.objectField(
         'capabilities',
         mtMap.object({
@@ -344,6 +375,10 @@ export let mapDashboardInstanceProvidersListQuery = mtMap.union([
           ),
           supportsCallbacks: mtMap.objectField(
             'supportsCallbacks',
+            mtMap.passthrough()
+          ),
+          supportsWebhookRegistration: mtMap.objectField(
+            'supportsWebhookRegistration',
             mtMap.passthrough()
           ),
           supportsOauthAutoRegistration: mtMap.objectField(

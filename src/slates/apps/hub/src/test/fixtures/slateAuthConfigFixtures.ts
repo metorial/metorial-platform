@@ -1,19 +1,23 @@
-import { Prisma } from '../../../prisma/generated/client';
+import { defineFactory } from '@lowerdeck/testing-tools';
 import type {
   PrismaClient,
+  Secret,
+  Slate,
   SlateAuthConfig,
   SlateAuthMethod,
-  Slate,
-  Tenant,
-  Secret
+  Tenant
 } from '../../../prisma/generated/client';
-import { SlateAuthConfigType, SecretType, type SlateStatus } from '../../../prisma/generated/client';
+import {
+  Prisma,
+  SecretType,
+  SlateAuthConfigType,
+  type SlateStatus
+} from '../../../prisma/generated/client';
 import { getId } from '../../id';
-import { defineFactory } from '@lowerdeck/testing-tools';
 
-import { TenantFixtures } from './tenantFixtures';
 import { SecretFixtures } from './secretFixtures';
 import { SlateAuthMethodFixtures } from './slateAuthMethodFixtures';
+import { TenantFixtures } from './tenantFixtures';
 
 export const SlateAuthConfigFixtures = (db: PrismaClient) => {
   const defaultConfig = async (data: {
@@ -40,13 +44,14 @@ export const SlateAuthConfigFixtures = (db: PrismaClient) => {
       } as SlateAuthConfig,
       {
         persist: value => {
-          const { profile, ...rest } = value;
+          const { profile, routingMatchers, ...rest } = value;
           const data: Prisma.SlateAuthConfigUncheckedCreateInput = {
             ...rest,
-            ...(profile === null
-              ? { profile: Prisma.DbNull }
-              : profile
-                ? { profile }
+            ...(profile === null ? { profile: Prisma.DbNull } : profile ? { profile } : {}),
+            ...(routingMatchers === null
+              ? { routingMatchers: Prisma.DbNull }
+              : routingMatchers
+                ? { routingMatchers }
                 : {})
           };
           return db.slateAuthConfig.create({ data });

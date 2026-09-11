@@ -12,20 +12,31 @@ let createStoredAttachment = async (invocationOid: bigint) => {
   let content = Buffer.from('invocation-attachment');
   let digest = new Uint8Array(new Bun.CryptoHasher('sha256').update(content).digest());
   let digestString = Buffer.from(digest).toString('hex');
+  let storageKey = getStoredAttachmentsStorageKey(digestString);
 
   await storage.putObject(
     invocationsBucketRecord.bucket,
-    getStoredAttachmentsStorageKey(digestString),
+    storageKey,
     content,
     'application/octet-stream'
   );
+
+  await testDb.slateAttachmentBlob.create({
+    data: {
+      ...getId('slateAttachmentBlob'),
+      digest,
+      storageBucket: invocationsBucketRecord.bucket,
+      storageKey
+    }
+  });
 
   let attachment = await testDb.slateAttachment.create({
     data: {
       ...getId('slateAttachment'),
       digest,
-      expiresAt: addDays(new Date(), 7),
-      lastCreatedAt: new Date()
+      storageBucket: invocationsBucketRecord.bucket,
+      storageKey,
+      expiresAt: addDays(new Date(), 7)
     }
   });
 

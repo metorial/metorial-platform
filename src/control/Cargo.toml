@@ -12,6 +12,7 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 console = "0.15"
+fs2 = "0.4"
 indicatif = "0.17"
 miette = { version = "7", features = ["fancy"] }
 percent-encoding = "2.3.2"

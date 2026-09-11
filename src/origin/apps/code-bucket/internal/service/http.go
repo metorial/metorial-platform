@@ -4,14 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
 	"github.com/metorial/metorial/services/code-bucket/pkg/util"
 )
+
+const maxServedFileBytes int64 = 10 << 20
+
+const FileTooLargeHeader = "X-Metorial-File-Too-Large"
 
 type HttpService struct {
 	fsm       *fs.FileSystemManager
@@ -80,6 +87,10 @@ func (hs *HttpService) setCorsHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+
+	// Without this the browser hides the header from the editor, which would then
+	// mistake a placeholder for real content.
+	w.Header().Set("Access-Control-Expose-Headers", FileTooLargeHeader)
 }
 
 func (hs *HttpService) handleGetFiles(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +126,7 @@ func (hs *HttpService) handleGetFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, content, err := hs.fsm.GetBucketFile(r.Context(), authBucketID, filePath)
+	body, info, err := hs.fsm.OpenBucketFile(r.Context(), authBucketID, filePath)
 	if err != nil {
 		if err.Error() == "file not found" {
 			http.Error(w, "File not found", http.StatusNotFound)
@@ -124,9 +135,44 @@ func (hs *HttpService) handleGetFile(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	defer body.Close()
 
-	w.Header().Set("Content-Type", content.ContentType)
-	w.Write(content.Content)
+	placeholder, err := writeFileResponse(w, info, body)
+	if placeholder {
+		log.Printf(
+			"[code-bucket http] served placeholder bucket=%s path=%s size=%d limit=%d",
+			authBucketID, filePath, info.Size, maxServedFileBytes,
+		)
+	}
+	if err != nil {
+		log.Printf(
+			"[code-bucket http] failed to write body bucket=%s path=%s err=%v",
+			authBucketID, filePath, err,
+		)
+	}
+}
+
+func writeFileResponse(w http.ResponseWriter, info *fs.FileInfo, body io.Reader) (bool, error) {
+	if info.Size > maxServedFileBytes {
+		w.Header().Set(FileTooLargeHeader, "true")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+		_, err := fmt.Fprintf(w, "%s\n", fileTooLargeMessage(info.Size))
+		return true, err
+	}
+
+	w.Header().Set("Content-Type", info.ContentType)
+	w.Header().Set("Content-Length", strconv.FormatInt(info.Size, 10))
+
+	_, err := io.Copy(w, body)
+	return false, err
+}
+
+func fileTooLargeMessage(size int64) string {
+	return fmt.Sprintf(
+		"This file is too large to display (%s, over the %s limit).",
+		filelimit.HumanBytes(size), filelimit.HumanBytes(maxServedFileBytes),
+	)
 }
 
 func (hs *HttpService) handlePutFile(w http.ResponseWriter, r *http.Request) {

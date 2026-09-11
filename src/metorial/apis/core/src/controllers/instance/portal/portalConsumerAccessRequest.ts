@@ -128,6 +128,7 @@ export let portalConsumerAccessRequestController = Controller.create(
           await consumerAccessRequestService.reviewConsumerAccessRequest({
             organization: ctx.organization,
             consumerAccessRequest: ctx.consumerAccessRequest,
+            auditScope: ctx.auditScope,
             input: {
               status: ctx.body.status,
               resolutionMessage: ctx.body.resolution_message,

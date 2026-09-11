@@ -336,10 +336,15 @@ export let buildNodeProxyWrapperScriptWithDeflector = (originalHandler: string) 
 let prepareZip = async (d: {
   zipFile: Buffer;
   runtimeConfig: FunctionBayRuntimeConfig;
+  disableNetworkIsolation?: boolean;
 }) => {
   let zipBytes = d.zipFile;
 
-  if (d.runtimeConfig.runtime.identifier !== 'nodejs' || !getDeflectorProxyUrl()) {
+  if (
+    d.runtimeConfig.runtime.identifier !== 'nodejs' ||
+    d.disableNetworkIsolation ||
+    !getDeflectorProxyUrl()
+  ) {
     return {
       zipBytes,
       handler: d.runtimeConfig.handler
@@ -369,7 +374,8 @@ let deployFunctionZip = async (d: {
   let role = await ensureLambdaExecutionRole();
   let zip = await prepareZip({
     zipFile: d.zipFile,
-    runtimeConfig: d.runtimeConfig
+    runtimeConfig: d.runtimeConfig,
+    disableNetworkIsolation: d.config.disableNetworkIsolation
   });
 
   let res = await lambdaClient.send(
@@ -384,12 +390,13 @@ let deployFunctionZip = async (d: {
       },
       Timeout: d.config.timeoutSeconds,
       MemorySize: d.config.memorySizeMb,
-      VpcConfig: lambdaNetworkConfig
-        ? {
-            SubnetIds: lambdaNetworkConfig.subnetIds,
-            SecurityGroupIds: lambdaNetworkConfig.securityGroupIds
-          }
-        : undefined,
+      VpcConfig:
+        lambdaNetworkConfig && !d.config.disableNetworkIsolation
+          ? {
+              SubnetIds: lambdaNetworkConfig.subnetIds,
+              SecurityGroupIds: lambdaNetworkConfig.securityGroupIds
+            }
+          : undefined,
       Environment: {
         Variables: {
           ...d.env,
@@ -397,7 +404,9 @@ let deployFunctionZip = async (d: {
           METORIAL_FUNCTION_VERSION_ID: d.functionVersion.id,
           METORIAL_EXECUTION_ENV: 'function-bay',
           METORIAL_RUNTIME: d.runtime.identifier,
-          ...(getDeflectorProxyUrl() ? { DEFLECTOR_PROXY_URL: getDeflectorProxyUrl()! } : {})
+          ...(!d.config.disableNetworkIsolation && getDeflectorProxyUrl()
+            ? { DEFLECTOR_PROXY_URL: getDeflectorProxyUrl()! }
+            : {})
         }
       }
     })

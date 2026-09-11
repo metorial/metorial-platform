@@ -1,9 +1,11 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db, type Prisma } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { consumerAccessService } from '../../services/consumerAccess';
 import { consumerAccessListingService } from '../../services/consumerAccessListing';
 
 let consumerAccessInclude = {
+  surface: true,
   consumerGroup: true,
   providerTemplate: true,
   magicMcpServer: true,
@@ -16,6 +18,7 @@ let consumerAccessInclude = {
 } satisfies Prisma.ConsumerAccessInclude;
 
 let consumerAccessListingInclude = {
+  surface: true,
   providerTemplate: true,
   magicMcpServer: true,
   skill: true,
@@ -199,7 +202,11 @@ export let consumerAccessListingDeleteQueueProcessor =
 
     await consumerAccessListingService.delete({
       organization,
-      consumerAccessListing
+      consumerAccessListing,
+      auditScope: createSystemAuditScope({
+        organization,
+        job: 'consumerAccess/listingCleanup'
+      })
     });
   });
 
@@ -216,7 +223,11 @@ export let consumerAccessDeleteQueueProcessor = consumerAccessDeleteQueue.proces
 
     await consumerAccessService.deleteConsumerAccess({
       organization,
-      consumerAccess
+      consumerAccess,
+      auditScope: createSystemAuditScope({
+        organization,
+        job: 'consumerAccess/cleanup'
+      })
     });
   }
 );

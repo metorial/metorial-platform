@@ -6,7 +6,6 @@ import {
 } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import type { Context } from '@lowerdeck/hono';
-import { useRequestContext } from '@lowerdeck/hono';
 import { getSentry } from '@lowerdeck/sentry';
 import { extractToken } from '@metorial/bearer';
 import { Instance } from '@metorial/db';
@@ -28,6 +27,7 @@ import {
 import { Authenticator } from '@metorial/rest';
 import { authenticateAndResolveInstance } from './getSession';
 import { type ConnectionMcpAgentClient, handleMcpRequest } from './mcp';
+import { useConnectionRequestContext } from './outpost';
 
 let Sentry = getSentry();
 
@@ -302,7 +302,7 @@ export let handleMagicMcpRequest = async (d: {
   instanceForTokenRouting?: Instance;
   authenticate: Authenticator<AuthInfo>;
 }) => {
-  let context = useRequestContext(d.c);
+  let context = useConnectionRequestContext(d.c);
   let url = new URL(d.c.req.url);
   let request = d.c.req.raw;
 

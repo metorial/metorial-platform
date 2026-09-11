@@ -15,8 +15,8 @@ import { oauthCallbackUrl } from '../../../config';
 import { db } from '../../../db';
 import { getId } from '../../../id';
 import { callFunction } from '../../../lib/function/call';
-import { oauthErrorDescriptions } from '../../../lib/oauth/oauthErrors';
 import { normalizeAuthorizationUrl } from '../../../lib/oauth/normalizeAuthorizationUrl';
+import { oauthErrorDescriptions } from '../../../lib/oauth/oauthErrors';
 import { functionServerInvocationService } from '../../functionServerInvocation';
 import { secretService } from '../../secret';
 import { serverEventService } from '../serverEvent';
@@ -233,7 +233,7 @@ class delegatedOauthAuthorizationServiceImpl {
 
           let serverOAuthSetup = await db.serverOAuthSetup.findFirst({
             where: { delegatedOAuthConnectionSetupOid: res.oid },
-            select: { oid: true }
+            select: { oid: true, tenantOid: true }
           });
           if (serverOAuthSetup) {
             await serverEventService.recordServerOAuthSetupEvent({

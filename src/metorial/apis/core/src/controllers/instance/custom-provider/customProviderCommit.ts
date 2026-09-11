@@ -209,6 +209,7 @@ export let customProviderCommitController = Controller.create(
         let customProviderCommit =
           await customProviderCommitService.createCustomProviderCommit({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             organizationActor: ctx.actor!,
             input: {
               message: ctx.body.message,

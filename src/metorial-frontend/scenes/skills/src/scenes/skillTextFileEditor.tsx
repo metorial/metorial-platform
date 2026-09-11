@@ -90,6 +90,7 @@ let Center = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 0;
+  padding: 20px;
 `;
 
 let basename = (path: string) => path.split('/').filter(Boolean).pop() ?? path;
@@ -512,7 +513,10 @@ export let SkillTextFileEditorScene = (p: {
   let item = useStoreItem(p.instanceId, p.storeId, p.itemId);
   let permissions = useStorePermissions(p.instanceId, p.storeId);
 
-  return renderWithLoader({ item, permissions })(({ item, permissions }) => (
+  return renderWithLoader(
+    { item, permissions },
+    { spaceTop: 20 }
+  )(({ item, permissions }) => (
     <SkillTextFileEditorInner
       instanceId={p.instanceId!}
       item={item.data}

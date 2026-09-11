@@ -180,6 +180,7 @@ export let integrationInstanceProviderController = Controller.create(
         let integrationInstanceProvider =
           await integrationInstanceProviderService.setIntegrationInstanceProvider({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             integrationInstance: ctx.integrationInstance,
             input: {
               providerId: ctx.params.providerId,

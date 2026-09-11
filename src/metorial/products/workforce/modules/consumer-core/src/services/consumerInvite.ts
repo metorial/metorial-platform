@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   ConsumerSurface,
   db,
@@ -33,6 +34,7 @@ class ConsumerInviteServiceImpl {
   async inviteConsumer(d: {
     consumerSurface: ConsumerSurface;
     performedBy: OrganizationActor;
+    auditScope: AuditScope;
     input: {
       name: string;
       email: string;
@@ -43,6 +45,7 @@ class ConsumerInviteServiceImpl {
       surface: d.consumerSurface,
       email: d.input.email,
       name: d.input.name,
+      auditScope: d.auditScope,
       inviteStatus: 'invited',
       rejectIfActiveProfileExists: true
     });
@@ -111,7 +114,8 @@ class ConsumerInviteServiceImpl {
         consumerInvite: invite,
         consumerProfile,
         consumerSurface: d.consumerSurface,
-        performedBy: d.performedBy
+        performedBy: d.performedBy,
+        auditScope: d.auditScope
       });
       await consumerInviteUpdatedQueue.add({ consumerInviteId: invite.id });
     } else {
@@ -119,7 +123,8 @@ class ConsumerInviteServiceImpl {
         consumerInvite: invite,
         consumerProfile,
         consumerSurface: d.consumerSurface,
-        performedBy: d.performedBy
+        performedBy: d.performedBy,
+        auditScope: d.auditScope
       });
       await consumerInviteCreatedQueue.add({ consumerInviteId: invite.id });
     }
@@ -148,6 +153,7 @@ class ConsumerInviteServiceImpl {
   async deleteConsumerInvite(d: {
     consumerSurface: ConsumerSurface;
     consumerInviteId: string;
+    auditScope: AuditScope;
   }) {
     let consumerInvite = await db.consumerInvite.findFirst({
       where: {
@@ -168,6 +174,13 @@ class ConsumerInviteServiceImpl {
       where: {
         oid: consumerInvite.oid
       }
+    });
+
+    await Fabric.fire('consumer.invite.deleted:after', {
+      consumerInvite,
+      consumerProfile: consumerInvite.consumerProfile,
+      consumerSurface: d.consumerSurface,
+      auditScope: d.auditScope
     });
 
     return consumerInvite;

@@ -52,25 +52,20 @@ export let recordServiceAccountCredentialCreated = async (
   let auditScope = event.auditScope;
 
   await recordAuditEventAfterCommit(async recordedAt => {
-    await auditTrackerService.recordEvent(
-      auditScope,
-      'service_account_credential',
-      'create',
-      {
-        payload: {
-          id: event.serviceAccountCredential.id,
-          serviceAccount: {
-            id: event.serviceAccount.id,
-            name: event.serviceAccount.name
-          },
-          oauthApplication: {
-            id: event.oauthApplication.id,
-            name: event.oauthApplication.name
-          }
+    await auditTrackerService.recordEvent(auditScope, 'service_account_credential', 'create', {
+      payload: {
+        id: event.serviceAccountCredential.id,
+        serviceAccount: {
+          id: event.serviceAccount.id,
+          name: event.serviceAccount.name
         },
-        recordedAt
-      }
-    );
+        oauthApplication: {
+          id: event.oauthApplication.id,
+          name: event.oauthApplication.name
+        }
+      },
+      recordedAt
+    });
   });
 };
 

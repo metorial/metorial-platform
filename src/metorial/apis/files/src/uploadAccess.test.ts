@@ -111,6 +111,7 @@ describe('file upload access', () => {
 
     let target = await resolveUploadTarget({
       auth,
+      context: { ip: '127.0.0.1' },
       instanceId: instance.id
     });
 
@@ -147,6 +148,7 @@ describe('file upload access', () => {
 
     let target = await resolveUploadTarget({
       auth,
+      context: { ip: '127.0.0.1' },
       instanceId: instance.id
     });
 

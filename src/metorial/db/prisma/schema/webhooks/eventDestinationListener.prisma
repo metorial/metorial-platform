@@ -1,0 +1,31 @@
+enum EventDestinationListenerType {
+  event
+  callback
+}
+
+model EventDestinationListener {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type EventDestinationListenerType
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  // populated when type = event
+  eventTypes String[]
+
+  // populated when type = callback
+  callbackId String?
+  triggers   String[]
+
+  eventDestinationOid BigInt
+  eventDestination    EventDestination @relation(fields: [eventDestinationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([eventDestinationOid])
+  @@index([instanceOid])
+  @@index([type, callbackId])
+}

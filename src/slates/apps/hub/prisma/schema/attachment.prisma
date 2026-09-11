@@ -2,27 +2,79 @@ model SlateAttachment {
   oid BigInt @id
   id  String @unique
 
-  // Content-addressed dedup key. Null for URL-downloaded attachments, where we stream
-  // straight into storage without buffering the whole body to compute a digest.
-  digest Bytes? @unique
+  // Non-unique: many attachments can share the same digest - deduped via SlateAttachmentBlob.
+  digest Bytes?
 
-  // Caller-supplied stable identifier for the underlying attachment (e.g. `slack:file:F123`),
-  // scoped to a tenant + slate so a repeated tool call referencing the same file reuses the
-  // stored copy instead of re-downloading/re-uploading it.
-  tenantOid      BigInt?
-  tenant         Tenant? @relation(fields: [tenantOid], references: [oid])
-  slateOid       BigInt?
-  slate          Slate?  @relation(fields: [slateOid], references: [oid])
-  attachmentHash String?
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
-  sourceUrl String?
+  authConfigOid BigInt?
+  authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
 
-  createdAt     DateTime @default(now())
-  expiresAt     DateTime
-  lastCreatedAt DateTime @default(now())
+  slateInstanceOid BigInt?
+  slateInstance    SlateInstance? @relation(fields: [slateInstanceOid], references: [oid], onDelete: SetNull)
+
+  targetUrl String?
+
+  storageBucket String?
+  storageKey    String?
+
+  headers  Json?
+  query    Json?
+  mimeType String?
+
+  refreshReference        Json?
+  refreshAfter            DateTime?
+  lastRefreshedAt         DateTime?
+  refreshFailureCount     Int       @default(0)
+  lastRefreshErrorCode    String?
+  lastRefreshErrorMessage String?
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 
   slateInvocationAttachments SlateInvocationAttachment[]
 
-  @@unique([tenantOid, slateOid, attachmentHash])
+  @@index([digest])
   @@index([expiresAt])
+  @@index([refreshAfter])
+}
+
+model SlateAttachmentBlob {
+  oid BigInt @id
+  id  String @unique
+
+  digest Bytes @unique
+
+  storageBucket String
+  storageKey    String
+
+  mimeType  String?
+  sizeBytes Int?
+
+  createdAt DateTime @default(now())
+}
+
+model SlateAttachmentUpload {
+  oid BigInt @id
+  id  String @unique
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
+
+  mimeType String?
+  filename String?
+
+  sizeBytes Int?
+
+  status String @default("pending")
+
+  storageBucket String
+  storageKey    String
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime // signed upload URL expiry
+
+  @@index([expiresAt, status])
+  @@index([invocationOid])
 }

@@ -86,9 +86,17 @@ vi.mock('../queues/lifecycle', () => ({
 
 import { skillTemplateService } from './skillTemplate';
 
+let auditScope = {
+  organizationOid: 9n,
+  instanceOid: 2n,
+  actor: { type: 'org_actor' as const, id: 'oac_1' },
+  context: { ip: '127.0.0.1' }
+} as any;
+
 let scope = {
   project: { oid: 1n },
-  instance: { oid: 2n }
+  instance: { oid: 2n },
+  auditScope
 };
 
 describe('skillTemplateService.createSkillTemplate', () => {

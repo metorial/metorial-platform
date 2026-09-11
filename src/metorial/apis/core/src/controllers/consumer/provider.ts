@@ -1,6 +1,7 @@
 import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { db } from '@metorial-subspace/db';
 import { consumerAccessRequestService } from '@metorial/module-consumer-access';
 import {
   consumerProfileService,
@@ -320,9 +321,12 @@ export let consumerProviderController = Controller.create(
             order: ctx.query.order
           }
         });
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
 
         return Paginator.present(list, consumerProvider =>
-          consumerProviderPresenter.present({ consumerProvider })
+          consumerProviderPresenter.present({ consumerProvider, tenant })
         );
       }),
 
@@ -335,8 +339,13 @@ export let consumerProviderController = Controller.create(
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerProviderPresenter)
       .do(async ctx => {
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
+
         return consumerProviderPresenter.present({
-          consumerProvider: ctx.consumerProvider
+          consumerProvider: ctx.consumerProvider,
+          tenant
         });
       }),
 
@@ -373,6 +382,7 @@ export let consumerProviderController = Controller.create(
         let consumerAccessRequest =
           await consumerAccessRequestService.createConsumerAccessRequest({
             consumerProfile,
+            auditScope: ctx.auditScope,
             accessRequest:
               ctx.consumerProvider.type == 'provider_template'
                 ? {
@@ -412,6 +422,7 @@ export let consumerProviderController = Controller.create(
         let setupSession = await consumerProviderSetupSessionService.startSetupSession({
           instance: ctx.instance,
           context: ctx.context,
+          auditScope: ctx.auditScope,
           accessTags: ctx.accessTags!,
           consumerSurface: ctx.consumerSurface,
           consumerProfile: ctx.consumerProfile,
@@ -478,6 +489,7 @@ export let consumerProviderController = Controller.create(
           performedBy: ctx.actor!,
           instance: ctx.instance,
           context: ctx.context,
+          auditScope: ctx.auditScope,
           consumerProfile: ctx.consumerProfile,
           accessTags: ctx.accessTags!,
           providerTemplateId: consumerProvider.providerTemplate.id,

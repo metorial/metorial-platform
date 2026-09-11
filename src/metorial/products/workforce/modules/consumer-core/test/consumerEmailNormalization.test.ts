@@ -5,6 +5,7 @@ let mocks = vi.hoisted(() => {
     findMany: vi.fn(),
     findFirst: vi.fn(),
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     create: vi.fn(),
     upsert: vi.fn(),
     update: vi.fn(),
@@ -44,6 +45,8 @@ vi.mock('@metorial/lock', () => ({
 
 vi.mock('@metorial/module-search', () => ({ searchConsumerIds: vi.fn() }));
 
+vi.mock('@metorial/fabric', () => ({ Fabric: { fire: vi.fn(), listen: vi.fn() } }));
+
 vi.mock('../src/queues/lifecycle/consumer', () => ({
   consumerCreatedQueue: { add: mocks.consumerCreatedAdd },
   consumerUpdatedQueue: { add: mocks.consumerUpdatedAdd }
@@ -54,6 +57,12 @@ import { consumerService } from '../src/services/consumer';
 
 let organization = { oid: 900n } as any;
 let instance = { oid: 800n } as any;
+let auditScope = {
+  organizationOid: 900n,
+  instanceOid: 800n,
+  actor: { type: 'system' as const, id: 'test' },
+  context: { ip: '' }
+};
 
 describe('normalizeConsumerEmail', () => {
   it('lowercases and trims', () => {
@@ -72,6 +81,13 @@ describe('consumerService.upsertConsumer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.consumerProfile.findMany.mockResolvedValue([]);
+    mocks.instanceConsumer.findUniqueOrThrow.mockResolvedValue({
+      id: 'icn_legacy',
+      oid: 2n,
+      name: 'Test',
+      email: 'VgBmzap@herber.space',
+      consumer: { id: 'cns_1', organizationMember: null, user: null }
+    });
   });
 
   it('looks consumers up case-insensitively', async () => {
@@ -83,6 +99,7 @@ describe('consumerService.upsertConsumer', () => {
     await consumerService.upsertConsumer({
       organization,
       instance,
+      auditScope,
       input: { name: 'Test', email: 'VgBmzap@herber.space' }
     });
 
@@ -105,6 +122,7 @@ describe('consumerService.upsertConsumer', () => {
     await consumerService.upsertConsumer({
       organization,
       instance,
+      auditScope,
       input: { name: 'Test', email: 'VgBmzap@herber.space' }
     });
 
@@ -135,6 +153,7 @@ describe('consumerService.upsertConsumer', () => {
     await consumerService.upsertConsumer({
       organization,
       instance,
+      auditScope,
       input: { name: 'Test', email: 'vgbmzap@herber.space' }
     });
 
@@ -160,6 +179,7 @@ describe('consumerService.upsertConsumer', () => {
     await consumerService.upsertConsumer({
       organization,
       instance,
+      auditScope,
       input: { name: 'Test', email: 'vgbmzap@herber.space' }
     });
 
@@ -186,6 +206,7 @@ describe('consumerService.upsertConsumer', () => {
     await consumerService.upsertConsumer({
       organization,
       instance,
+      auditScope,
       input: { name: 'Test', email: 'vgbmzap@herber.space' }
     });
 

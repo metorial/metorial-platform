@@ -2,6 +2,7 @@ import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { RedisClient } from 'bun';
 import { originApi } from './controllers';
 import { db } from './db';
+import { env } from './env';
 import { scmController } from './public/scm';
 import { scmBackendService } from './services';
 
@@ -9,13 +10,13 @@ await scmBackendService.ensureDefaultBackends();
 
 let originServer = Bun.serve({
   fetch: originApi,
-  port: 52090,
+  port: env.service.ORIGIN_API_PORT ?? 52090,
   idleTimeout: 250
 });
 
 let scmServer = Bun.serve({
   fetch: scmController.fetch,
-  port: 52093,
+  port: env.service.ORIGIN_SCM_PORT ?? 52093,
   idleTimeout: 60
 });
 

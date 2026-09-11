@@ -2,6 +2,7 @@ import { documentService } from '@metorial/module-documents';
 import { filePurposeService, fileService } from '@metorial/module-file';
 import { skillService } from '@metorial/module-skill';
 import { storeItemMutationService } from '@metorial/module-store';
+import type { AuditScope } from '@metorial/audit-scope';
 import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { parseSkillDocumentFrontmatter } from '@metorial/module-skill-marketplace';
@@ -49,6 +50,7 @@ let titleForMarkdown = (filePath: string, content: string) => {
 export let materializeImportedSkill = async (d: {
   project: Project;
   instance: Instance;
+  auditScope: AuditScope;
   codeBucketId: string;
   skillId: string;
   rootPath: string;
@@ -105,6 +107,7 @@ export let materializeImportedSkill = async (d: {
   let skill = await skillService.createSkill({
     project: d.project,
     instance: d.instance,
+    auditScope: d.auditScope,
     input: {
       id: d.skillId,
       authorization,
@@ -128,6 +131,7 @@ export let materializeImportedSkill = async (d: {
       await documentService.createDocument({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         input: {
           title:
             file.relativePath === '/SKILL.md'
@@ -147,6 +151,7 @@ export let materializeImportedSkill = async (d: {
     let importedFile = await fileService.createUploadedFile({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       purpose: genericPurpose.id,
       file: new Blob([file.content], {
         type: file.contentType || 'application/octet-stream'

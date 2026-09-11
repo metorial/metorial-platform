@@ -3,7 +3,11 @@ import {
   CreateMcpServerOpts
 } from '@metorial/mcp';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
+import {
+  Implementation,
+  JSONRPCMessage,
+  ServerCapabilities
+} from '@modelcontextprotocol/sdk/types.js';
 import {
   authConfigs,
   getOAuthConfigImplementation,
@@ -38,6 +42,24 @@ export type McpServerInstanceOpts = McpServerInstanceServer & {
   authConfig?: any;
 };
 
+export type McpServerDiscovery = {
+  server: {
+    info: Implementation | undefined;
+    capabilities: ServerCapabilities | undefined;
+    instructions: string | undefined;
+  };
+  configSchema: Record<string, unknown> | null;
+  oauth:
+    | {
+        status: 'enabled';
+        authConfig: Record<string, unknown>;
+        hasTokenRefresh: boolean;
+      }
+    | {
+        status: 'disabled';
+      };
+};
+
 export class McpServerInstance {
   #server: McpServer;
   #sessionQueue: Promise<void> = Promise.resolve();
@@ -66,7 +88,7 @@ export class McpServerInstance {
     return result;
   }
 
-  async discover() {
+  async discover(): Promise<McpServerDiscovery> {
     return this.#withSession(() =>
       withClient(
         this.#server,

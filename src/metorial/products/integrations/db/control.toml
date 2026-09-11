@@ -1,0 +1,29 @@
+name = "@metorial-subspace/db"
+group = "oss"
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+INTEGRATIONS_API_URL = "http://{{HOSTNAME}}:4316"
+SLATE_ATTACHMENT_SIGNING_SECRET = "dev-slate-attachment-signing-secret"
+
+[dev.db.subspace]
+package = "@metorial-subspace/db"
+name = "subspace"
+engine = "postgres"
+env = "SUBSPACE_DATABASE_URL"
+
+[dev.db.main]
+package = "@metorial/db"
+name = "metorial-enterprise"
+engine = "postgres"
+env = "DATABASE_URL"
+
+[dev.db.federation]
+package = "@metorial-subspace/db"
+name = "metorial-enterprise-federation"
+engine = "postgres"
+env = "FEDERATION_CORE_DATABASE_URL"

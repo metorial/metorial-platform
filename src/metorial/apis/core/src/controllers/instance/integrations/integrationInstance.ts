@@ -156,6 +156,7 @@ export let integrationInstanceController = Controller.create(
         let sessionTemplate =
           await integrationInstanceService.createSessionTemplateForIntegrationInstance({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             integrationInstance: ctx.integrationInstance,
             input: {
               name: ctx.body.name,
@@ -192,6 +193,7 @@ export let integrationInstanceController = Controller.create(
       .do(async ctx => {
         let session = await integrationInstanceService.createSessionForIntegrationInstance({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integrationInstance: ctx.integrationInstance,
           input: {
             name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
@@ -229,6 +231,7 @@ export let integrationInstanceController = Controller.create(
         });
         let integrationInstance = await integrationInstanceService.createIntegrationInstance({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integration,
           input: {
             name: ctx.body.name,
@@ -279,6 +282,7 @@ export let integrationInstanceController = Controller.create(
       .do(async ctx => {
         let integrationInstance = await integrationInstanceService.updateIntegrationInstance({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integrationInstance: ctx.integrationInstance,
           input: {
             name: ctx.body.name,
@@ -318,6 +322,7 @@ export let integrationInstanceController = Controller.create(
       .do(async ctx => {
         let integrationInstance = await integrationInstanceService.archiveIntegrationInstance({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           integrationInstance: ctx.integrationInstance
         });
 

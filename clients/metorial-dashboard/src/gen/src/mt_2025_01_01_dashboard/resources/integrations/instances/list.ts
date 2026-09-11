@@ -117,6 +117,7 @@ export type IntegrationsInstancesListOutput = {
         createdAt: Date;
         updatedAt: Date;
       } | null;
+      callbackInstanceId: string | null;
       createdAt: Date;
       updatedAt: Date;
       archivedAt: Date | null;
@@ -124,6 +125,7 @@ export type IntegrationsInstancesListOutput = {
     createdAt: Date;
     updatedAt: Date;
     archivedAt: Date | null;
+    isOauthCompatible: boolean;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -419,6 +421,10 @@ export let mapIntegrationsInstancesListOutput =
                     updatedAt: mtMap.objectField('updated_at', mtMap.date())
                   })
                 ),
+                callbackInstanceId: mtMap.objectField(
+                  'callback_instance_id',
+                  mtMap.passthrough()
+                ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date()),
                 archivedAt: mtMap.objectField('archived_at', mtMap.date())
@@ -427,7 +433,11 @@ export let mapIntegrationsInstancesListOutput =
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          archivedAt: mtMap.objectField('archived_at', mtMap.date())
+          archivedAt: mtMap.objectField('archived_at', mtMap.date()),
+          isOauthCompatible: mtMap.objectField(
+            'is_oauth_compatible',
+            mtMap.passthrough()
+          )
         })
       )
     ),

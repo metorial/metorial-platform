@@ -22,7 +22,7 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
       : null;
     let newConfig = await db.slateInstanceConfig.findUnique({
       where: { id: data.newConfigId },
-      include: { instance: true }
+      include: { instance: true, tenant: true }
     });
     let version = await db.slateVersion.findUnique({
       where: { id: data.versionId },
@@ -31,6 +31,7 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
     if (!newConfig || !version) throw new QueueRetryError();
 
     let stack = await slateInvocationService.createInvocation({
+      tenant: newConfig.tenant,
       slateVersion: version,
       participants: []
     });

@@ -2,14 +2,30 @@ name = "@metorial/origin"
 group = "oss"
 mode = "enterprise"
 
+[[dependencies]]
+identifier = "@metorial/code-bucket-service-generated"
+env = [
+  { endpoint = "rpc", key = "CODE_BUCKET_SERVICE_URL", value = "{{HOSTNAME}}:{{PORT}}" },
+  { endpoint = "workspace", key = "CODE_BUCKET_EDITOR_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
-[[dev.expose]]
+[endpoints.api]
 port = 52090
+env = [{ key = "ORIGIN_API_PORT", value = "{{BIND_PORT}}" }]
 
-[[dev.expose]]
+[endpoints.scm]
 port = 52093
+env = [
+  { key = "ORIGIN_SCM_PORT", value = "{{BIND_PORT}}" },
+  { key = "ORIGIN_SERVICE_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[resources]]
+type = "redis"
+env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -17,12 +33,8 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
-ORIGIN_SERVICE_PUBLIC_URL = "http://{{HOSTNAME}}:52093"
 OBJECT_STORAGE_URL = "http://services:52010"
 CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
-CODE_BUCKET_SERVICE_URL = "localhost:5050"
-CODE_BUCKET_EDITOR_URL = "http://localhost:52092"
 SCM_GITHUB_APP_ID = true
 SCM_GITHUB_APP_SLUG = true
 SCM_GITHUB_APP_PRIVATE_KEY_BASE_64 = true
@@ -34,6 +46,7 @@ SCM_BITBUCKET_CLIENT_ID = true
 SCM_BITBUCKET_CLIENT_SECRET = true
 
 [dev.db.main]
+package = "@metorial/origin"
 name = "origin"
 engine = "postgres"
 env = "DATABASE_URL"

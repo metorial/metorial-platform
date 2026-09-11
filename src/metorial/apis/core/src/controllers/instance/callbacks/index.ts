@@ -1,5 +1,5 @@
 export * from './callback';
-export * from './callbackDestination';
 export * from './callbackEvent';
 export * from './callbackInstance';
-export * from './callbackNotification';
+export * from './incomingWebhook';
+export * from './webhookRegistration';

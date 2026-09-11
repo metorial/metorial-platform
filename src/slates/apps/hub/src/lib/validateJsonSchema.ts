@@ -21,8 +21,9 @@ export let validateJsonSchema = ({
     valRes = z.fromJSONSchema(schema).safeParse(data);
   } catch (e) {
     console.error(e);
+
     Sentry.captureException(e, {
-      extra: { schema, data }
+      extra: { schema, entity }
     });
 
     return data;

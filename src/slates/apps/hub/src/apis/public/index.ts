@@ -1,10 +1,110 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { createHono } from '@lowerdeck/hono';
+import {
+  badRequestError,
+  goneError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
+import { type Context, createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { omit } from 'lodash';
 import { env } from '../../env';
-import { createSanitizedWebhookResponse } from '../../lib/triggerWebhookSync';
+import {
+  ingestWebhookRequest,
+  MAX_WEBHOOK_BODY_BYTES,
+  payloadTooLargeError
+} from '../../lib/ingestWebhookRequest';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
-import { slateTriggerWebhookSyncService } from '../../services/slateTriggerWebhookSync';
+import { slateWebhookRegistrationService } from '../../services/slateWebhookRegistration';
+import { integrationAttachmentApp } from './integrationAttachment';
+import { liveInvocationApp } from './liveInvocation';
+
+let readBodyWithLimit = async (request: Request, maxBytes: number) => {
+  if (!request.body) return new Uint8Array(0);
+
+  let reader = request.body.getReader();
+  let chunks: Uint8Array[] = [];
+  let size = 0;
+
+  while (true) {
+    let { done, value } = await reader.read();
+    if (done) break;
+
+    size += value!.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new ServiceError(payloadTooLargeError);
+    }
+
+    chunks.push(value!);
+  }
+
+  let out = new Uint8Array(size);
+  let offset = 0;
+  for (let chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+};
+
+let toHttpResponse = (response: PrismaJson.SlatesWebhookHttpResponse) =>
+  new Response(response.body ? Buffer.from(response.body.content, 'base64') : null, {
+    status: response.status,
+    headers: response.headers
+  });
+
+let handleWebhookReceive = async (c: Context) => {
+  let urlKey = c.req.param('urlKey');
+  if (!urlKey) throw new ServiceError(badRequestError({ message: 'urlKey is required' }));
+
+  let registration = await slateWebhookRegistrationService.getWebhookRegistrationByUrlKey({
+    urlKey
+  });
+
+  if (registration.status === 'deleted') {
+    throw new ServiceError(
+      goneError({
+        message: 'This webhook registration has been deleted and no longer accepts requests.'
+      })
+    );
+  }
+
+  if (registration.status === 'awaiting_setup') {
+    throw new ServiceError(
+      preconditionFailedError({
+        message:
+          'This webhook registration has not finished being set up yet and cannot accept requests.'
+      })
+    );
+  }
+
+  let bodyBytes = await readBodyWithLimit(c.req.raw, MAX_WEBHOOK_BODY_BYTES);
+  let body =
+    bodyBytes.byteLength > 0
+      ? { encoding: 'base64' as const, content: Buffer.from(bodyBytes).toString('base64') }
+      : null;
+
+  let result = await ingestWebhookRequest({
+    registration,
+    request: {
+      method: c.req.method,
+      url: c.req.url,
+      headers: Object.fromEntries(c.req.raw.headers.entries()),
+      body
+    }
+  });
+
+  if (result.discarded) {
+    return c.json({ webhookEventId: result.eventId }, 200 as any);
+  }
+
+  let final = result.event;
+  if (final.slateResponse) return toHttpResponse(final.slateResponse);
+
+  let override = final.responseOverride ?? { webhookEventId: final.id };
+  let status = 'error' in override ? override.error.status : 200;
+  return c.json(override, status as any);
+};
 
 let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';
 
@@ -14,61 +114,6 @@ let cookieOpts = {
   sameSite: 'lax' as const,
   path: '/'
 };
-
-let getWebhookRequestPayload = async (c: any) => {
-  let headers = Object.fromEntries(c.req.raw.headers.entries());
-  let bodyBuffer = await c.req.arrayBuffer();
-  let body =
-    bodyBuffer.byteLength > 0
-      ? {
-          encoding: 'base64' as const,
-          content: Buffer.from(bodyBuffer).toString('base64')
-        }
-      : null;
-
-  return {
-    url: c.req.url,
-    method: c.req.method,
-    headers,
-    body
-  };
-};
-
-let handleTriggerWebhookRequest =
-  (targetType: 'receiverTrigger' | 'receiver') => async (c: any) => {
-    if (c.req.method === 'OPTIONS' && c.req.header('access-control-request-method')) {
-      return c.text('');
-    }
-
-    let targetId = c.req.param(
-      targetType === 'receiverTrigger' ? 'receiverTriggerId' : 'receiverId'
-    );
-    if (!targetId) return c.text('Missing trigger receiver ID', 400);
-
-    let result = await slateTriggerWebhookSyncService.handleWebhookRequest({
-      receiverTriggerId: targetType === 'receiverTrigger' ? targetId : undefined,
-      receiverId: targetType === 'receiver' ? targetId : undefined,
-      request: await getWebhookRequestPayload(c)
-    });
-
-    if (result.type === 'methodNotAllowed') {
-      return new Response('Method Not Allowed', {
-        status: 405,
-        headers: { Allow: result.allowedMethods.join(', ') }
-      });
-    }
-
-    if (result.type === 'response') {
-      return createSanitizedWebhookResponse(result.response);
-    }
-
-    return c.json({
-      status: 'queued',
-      webhookRequestId: result.webhookRequestId
-    });
-  };
-
-let WEBHOOK_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
 export let hubApp = createHono()
   .use(async (c, next) => {
@@ -82,6 +127,7 @@ export let hubApp = createHono()
     c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
+  .get('/ping', c => c.text('OK'))
   .get('/slates-hub/authorization', async c => {
     let oauthSetupId = c.req.query('setup_id');
     if (!oauthSetupId)
@@ -102,10 +148,11 @@ export let hubApp = createHono()
 
     deleteCookie(c, SETUP_COOKIE_NAME, cookieOpts);
 
-    let code = c.req.query('code');
+    let code = c.req.query('code') ?? c.req.query('oauth_verifier');
     let state = c.req.query('state');
     let error = c.req.query('error');
     let errorDescription = c.req.query('error_description');
+    let callbackParams = omit(Object.fromEntries(new URL(c.req.url).searchParams), 'state');
 
     if (error || !code) {
       let res = await slateOAuthHandlerService.reportError({
@@ -124,21 +171,17 @@ export let hubApp = createHono()
       input: {
         code,
         lastOAuthSetupCookieId: setupCookie,
-        state: state || undefined
+        state: state || undefined,
+        callbackParams
       }
     });
 
     return c.redirect(res.redirectUrl);
   })
-  .on(
-    WEBHOOK_METHODS,
-    '/slates-hub/triggers/webhook/:receiverTriggerId/:key*?',
-    handleTriggerWebhookRequest('receiverTrigger')
-  )
-  .on(
-    WEBHOOK_METHODS,
-    '/slates-hub/triggers/receiver-webhook/:receiverId/:key*?',
-    handleTriggerWebhookRequest('receiver')
-  )
+  .all('/receive/:urlKey', handleWebhookReceive)
+  .all('/receive/:urlKey/*', handleWebhookReceive)
   .options('*', c => c.text(''))
-  .get('/ping', c => c.text('OK'));
+  .get('/ping', c => c.text('OK'))
+  .route('/', integrationAttachmentApp)
+  .route('/', liveInvocationApp)
+  .options('*', c => c.text(''));

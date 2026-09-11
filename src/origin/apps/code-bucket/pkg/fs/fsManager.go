@@ -2,14 +2,18 @@ package fs
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -22,12 +26,42 @@ import (
 )
 
 const (
-	redisFlushDelay    = 5 * time.Minute
-	zipExpiration      = 3 * 24 * time.Hour
-	maxRedisCacheSize  = 1 * 1024 * 1024
-	maxFileBatchSize   = 8 * 1024 * 1024
-	zipStreamChunkSize = 64 * 1024
+	redisFlushDelay              = 5 * time.Minute
+	zipExpiration                = 3 * 24 * time.Hour
+	maxRedisCacheSize            = 1 * 1024 * 1024
+	maxFileBatchSize             = 8 * 1024 * 1024
+	zipStreamChunkSize           = 64 * 1024
+	deleteBatchSize              = 1000
+	copyConcurrency              = 16
+	cloneBatchSize               = 500
+	maxImportBytesInFlight int64 = 32 * 1024 * 1024
 )
+
+func canonicalFilePath(filePath string) string {
+	if filePath == "" {
+		return "/"
+	}
+	if !strings.HasPrefix(filePath, "/") {
+		return "/" + filePath
+	}
+	return filePath
+}
+
+func redisFileKey(bucketID, filePath string) string {
+	return fmt.Sprintf("bucket:%s:file:%s", bucketID, canonicalFilePath(filePath))
+}
+
+func redisFlushKey(bucketID, filePath string) string {
+	return fmt.Sprintf("flush:%s:%s", bucketID, canonicalFilePath(filePath))
+}
+
+func objectStorageKey(bucketID, filePath string) string {
+	return bucketID + "/" + strings.TrimPrefix(filePath, "/")
+}
+
+func shouldBufferInRedis(size int) bool {
+	return size < maxRedisCacheSize
+}
 
 type FileInfo struct {
 	Path        string    `json:"path"`
@@ -55,6 +89,12 @@ type FileSystemManager struct {
 type FileContentsBase struct {
 	Path    string `json:"path"`
 	Content []byte `json:"content"`
+}
+
+type CopyFileSource struct {
+	Path         string
+	SourceBucket string
+	SourceKey    string
 }
 
 type FileContentItem struct {
@@ -116,13 +156,15 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		util.Must(redis.ParseURL(options.RedisURL)),
 	)
 
-	objectStorageClient := objectstorage.NewClient(options.ObjectStorageEndpoint)
+	httpClient := newDebugObjectStorageHTTPClient(30 * time.Minute)
+	objectStorageClient := objectstorage.NewClientWithHTTP(options.ObjectStorageEndpoint, httpClient)
+	log.Printf("[object-storage debug] client ready endpoint=%s bucket=%s timeout=%s", options.ObjectStorageEndpoint, options.ObjectStorageBucket, 30*time.Minute)
 
 	fsm := &FileSystemManager{
 		redis:            rdb,
 		objectStorage:    objectStorageClient,
 		objectStorageURL: options.ObjectStorageEndpoint,
-		httpClient:       &http.Client{Timeout: 30 * time.Minute},
+		httpClient:       httpClient,
 		bucketName:       options.ObjectStorageBucket,
 		flushTicker:      time.NewTicker(60 * time.Second),
 		importSemaphore:  make(chan struct{}, 15),
@@ -132,6 +174,53 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 	go fsm.cleanupZipFiles()
 
 	return fsm
+}
+
+func newDebugObjectStorageHTTPClient(timeout time.Duration) *http.Client {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			started := time.Now()
+			log.Printf("[object-storage debug] dial start network=%s addr=%s", network, addr)
+			conn, err := dialer.DialContext(ctx, network, addr)
+			if err != nil {
+				log.Printf("[object-storage debug] dial failed network=%s addr=%s duration=%s err=%v", network, addr, time.Since(started), err)
+				return nil, err
+			}
+			log.Printf("[object-storage debug] dial ok network=%s addr=%s local=%s remote=%s duration=%s", network, addr, conn.LocalAddr(), conn.RemoteAddr(), time.Since(started))
+			return conn, nil
+		},
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: &debugRoundTripper{base: transport},
+	}
+}
+
+type debugRoundTripper struct {
+	base http.RoundTripper
+}
+
+func (t *debugRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	started := time.Now()
+	log.Printf("[object-storage debug] http start method=%s url=%s content_length=%d host=%s", req.Method, req.URL.String(), req.ContentLength, req.URL.Host)
+	resp, err := t.base.RoundTrip(req)
+	if err != nil {
+		log.Printf("[object-storage debug] http failed method=%s url=%s content_length=%d duration=%s err=%v", req.Method, req.URL.String(), req.ContentLength, time.Since(started), err)
+		return nil, err
+	}
+	log.Printf("[object-storage debug] http done method=%s url=%s content_length=%d status=%d duration=%s", req.Method, req.URL.String(), req.ContentLength, resp.StatusCode, time.Since(started))
+	return resp, nil
 }
 
 func normalizeSeenPath(filePath string) string {
@@ -146,6 +235,17 @@ func pathMatchesPrefix(filePath, prefix string) bool {
 	normalizedPath := normalizeSeenPath(filePath)
 	normalizedPrefix := normalizeSeenPath(prefix)
 	return strings.HasPrefix(normalizedPath, normalizedPrefix)
+}
+
+func pathWithinPrefix(filePath, prefix string) bool {
+	normalizedPrefix := strings.TrimSuffix(normalizeSeenPath(prefix), "/")
+	if normalizedPrefix == "" {
+		return true
+	}
+
+	normalizedPath := normalizeSeenPath(filePath)
+	return normalizedPath == normalizedPrefix ||
+		strings.HasPrefix(normalizedPath, normalizedPrefix+"/")
 }
 
 func (a *contentBatchAccumulator) Add(item FileContentItem) error {
@@ -274,6 +374,7 @@ func (fsm *FileSystemManager) WalkBucketFiles(ctx context.Context, bucketID, pre
 
 func (fsm *FileSystemManager) putObjectFromReader(bucket, key string, reader io.Reader, contentType *string, metadata map[string]string) error {
 	urlPath := fmt.Sprintf("%s/buckets/%s/objects/%s", fsm.objectStorageURL, bucket, key)
+	log.Printf("[object-storage debug] putObjectFromReader start bucket=%s key=%s url=%s", bucket, key, urlPath)
 	req, err := http.NewRequest("PUT", urlPath, reader)
 	if err != nil {
 		return err
@@ -328,27 +429,76 @@ func (fsm *FileSystemManager) WalkBucketFileContentBatches(ctx context.Context, 
 	return accumulator.Flush()
 }
 
-func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, error) {
-	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
+func (fsm *FileSystemManager) getRedisFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, bool) {
+	result, err := fsm.redis.Get(ctx, redisFileKey(bucketID, filePath)).Result()
+	if err != nil {
+		legacyRedisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, strings.TrimPrefix(filePath, "/"))
+		result, err = fsm.redis.Get(ctx, legacyRedisKey).Result()
+	}
+	if err != nil {
+		return nil, nil, false
+	}
 
-	result, err := fsm.redis.Get(ctx, redisKey).Result()
-	if err == nil {
-		var fileData FileData
-		if err := json.Unmarshal([]byte(result), &fileData); err == nil {
+	var fileData FileData
+	if err := json.Unmarshal([]byte(result), &fileData); err != nil {
+		return nil, nil, false
+	}
 
-			info := &FileInfo{
-				Path:        filePath,
-				Size:        int64(len(fileData.Content)),
-				ContentType: fileData.ContentType,
-				ModifiedAt:  fileData.ModifiedAt,
-			}
+	return &FileInfo{
+		Path:        filePath,
+		Size:        int64(len(fileData.Content)),
+		ContentType: fileData.ContentType,
+		ModifiedAt:  fileData.ModifiedAt,
+	}, &fileData, true
+}
 
-			return info, &fileData, nil
+func (fsm *FileSystemManager) OpenBucketFile(ctx context.Context, bucketID, filePath string) (io.ReadCloser, *FileInfo, error) {
+	filePath = canonicalFilePath(filePath)
+
+	if info, data, ok := fsm.getRedisFile(ctx, bucketID, filePath); ok {
+		return io.NopCloser(bytes.NewReader(data.Content)), info, nil
+	}
+
+	stream, err := fsm.objectStorage.GetObjectStream(ctx, fsm.bucketName, objectStorageKey(bucketID, filePath))
+	if err != nil {
+		stream, err = fsm.objectStorage.GetObjectStream(ctx, fsm.bucketName, fmt.Sprintf("%s/%s", bucketID, filePath))
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("file not found")
+	}
+
+	contentType := "application/octet-stream"
+	if stream.Metadata.ContentType != nil {
+		contentType = *stream.Metadata.ContentType
+	}
+
+	modifiedAt := time.Now()
+	if stream.Metadata.LastModified != "" {
+		if parsedTime, err := time.Parse(time.RFC3339, stream.Metadata.LastModified); err == nil {
+			modifiedAt = parsedTime
 		}
 	}
 
-	objectKey := fmt.Sprintf("%s/%s", bucketID, filePath)
-	obj, err := fsm.objectStorage.GetObject(fsm.bucketName, objectKey)
+	return stream.Body, &FileInfo{
+		Path:        filePath,
+		Size:        int64(stream.Metadata.Size),
+		ContentType: contentType,
+		ModifiedAt:  modifiedAt,
+	}, nil
+}
+
+func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, error) {
+	filePath = canonicalFilePath(filePath)
+	redisKey := redisFileKey(bucketID, filePath)
+
+	if info, data, ok := fsm.getRedisFile(ctx, bucketID, filePath); ok {
+		return info, data, nil
+	}
+
+	obj, err := fsm.objectStorage.GetObject(fsm.bucketName, objectStorageKey(bucketID, filePath))
+	if err != nil {
+		obj, err = fsm.objectStorage.GetObject(fsm.bucketName, fmt.Sprintf("%s/%s", bucketID, filePath))
+	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("file not found")
 	}
@@ -374,7 +524,7 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 		ModifiedAt:  modifiedAt,
 	}
 
-	if len(content) <= maxRedisCacheSize {
+	if shouldBufferInRedis(len(content)) {
 		if data, err := json.Marshal(fileData); err == nil {
 			fsm.redis.Set(ctx, redisKey, data, redisFlushDelay*2)
 		}
@@ -391,17 +541,22 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 }
 
 func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, filePath string, content []byte, contentType string) error {
-	if len(content) > maxRedisCacheSize {
-		objectKey := fmt.Sprintf("%s/%s", bucketID, filePath)
+	filePath = canonicalFilePath(filePath)
+
+	if !shouldBufferInRedis(len(content)) {
+		objectKey := objectStorageKey(bucketID, filePath)
+		log.Printf("[object-storage debug] PutBucketFile direct-put bucket_id=%s path=%s key=%s size=%d content_type=%s", bucketID, filePath, objectKey, len(content), contentType)
 		_, err := fsm.objectStorage.PutObject(fsm.bucketName, objectKey, content, &contentType, nil)
-		return err
+		if err != nil {
+			log.Printf("[object-storage debug] PutBucketFile direct-put failed bucket_id=%s path=%s key=%s size=%d err=%v", bucketID, filePath, objectKey, len(content), err)
+			return err
+		}
+
+		fsm.deleteRedisFileKeys(ctx, bucketID, filePath)
+		return nil
 	}
 
-	if !strings.HasPrefix(filePath, "/") {
-		filePath = "/" + filePath
-	}
-
-	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
+	redisKey := redisFileKey(bucketID, filePath)
 	fileData := FileData{
 		Content:     content,
 		ContentType: contentType,
@@ -418,77 +573,293 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 		return err
 	}
 
-	flushKey := fmt.Sprintf("flush:%s:%s", bucketID, filePath)
-	fsm.redis.Set(ctx, flushKey, time.Now().Unix(), redisFlushDelay*2)
+	fsm.redis.Set(ctx, redisFlushKey(bucketID, filePath), time.Now().Unix(), redisFlushDelay*2)
 
 	return nil
 }
 
-func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, filePath string) error {
-	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
-	exists := fsm.redis.Exists(ctx, redisKey).Val()
-
-	if exists != 0 {
-		fsm.redis.Del(ctx, redisKey)
-	}
-
-	objectKey := fmt.Sprintf("%s/%s", bucketID, filePath)
-	err := fsm.objectStorage.DeleteObject(fsm.bucketName, objectKey)
-
-	return err
+func (fsm *FileSystemManager) deleteRedisFileKeys(ctx context.Context, bucketID, filePath string) {
+	fsm.redis.Del(ctx,
+		redisFileKey(bucketID, filePath),
+		redisFlushKey(bucketID, filePath),
+		fmt.Sprintf("bucket:%s:file:%s", bucketID, strings.TrimPrefix(filePath, "/")),
+		fmt.Sprintf("flush:%s:%s", bucketID, strings.TrimPrefix(filePath, "/")),
+	)
 }
 
-func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) error {
-	if !strings.HasPrefix(filePath, "/") {
-		filePath = "/" + filePath
+func (fsm *FileSystemManager) CopyBucketFiles(ctx context.Context, bucketID string, files []CopyFileSource) ([]string, error) {
+	if len(files) == 0 {
+		return []string{}, nil
 	}
 
-	filePrefix := filePath
-	if !strings.HasSuffix(filePrefix, "/") {
-		filePrefix += "/"
+	type result struct {
+		index int
+		path  string
+		err   error
 	}
 
-	queue := memoryQueue.NewBlockingJobQueue(15)
+	results := make([]result, len(files))
+	sem := make(chan struct{}, copyConcurrency)
+	var wg sync.WaitGroup
 
-	pattern := fmt.Sprintf("bucket:%s:file:*", bucketID)
-	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
+	for i, file := range files {
+		wg.Add(1)
+
+		go func(index int, file CopyFileSource) {
+			defer wg.Done()
+
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			if err := ctx.Err(); err != nil {
+				results[index] = result{index: index, err: err}
+				return
+			}
+
+			filePath := canonicalFilePath(file.Path)
+			destKey := objectStorageKey(bucketID, filePath)
+
+			_, err := fsm.objectStorage.CopyObject(
+				fsm.bucketName,
+				destKey,
+				file.SourceBucket,
+				file.SourceKey,
+			)
+			if err != nil {
+				results[index] = result{
+					index: index,
+					err: fmt.Errorf(
+						"failed to copy %s/%s into %s: %w",
+						file.SourceBucket, file.SourceKey, filePath, err,
+					),
+				}
+				return
+			}
+
+			fsm.deleteRedisFileKeys(ctx, bucketID, filePath)
+			results[index] = result{index: index, path: filePath}
+		}(i, file)
+	}
+
+	wg.Wait()
+
+	copied := make([]string, 0, len(files))
+	for _, r := range results {
+		if r.err != nil {
+			return nil, r.err
+		}
+		copied = append(copied, r.path)
+	}
+
+	return copied, nil
+}
+
+func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, filePath string) error {
+	filePath = canonicalFilePath(filePath)
+	fsm.deleteRedisFileKeys(ctx, bucketID, filePath)
+
+	_ = fsm.objectStorage.DeleteObject(fsm.bucketName, fmt.Sprintf("%s/%s", bucketID, filePath))
+	return fsm.objectStorage.DeleteObject(fsm.bucketName, objectStorageKey(bucketID, filePath))
+}
+
+func (fsm *FileSystemManager) deleteRedisKeysUnderPrefix(ctx context.Context, bucketID, filePath string) error {
+	redisPrefix := fmt.Sprintf("bucket:%s:file:", bucketID)
+	keys := make([]string, 0)
+
+	iter := fsm.redis.Scan(ctx, 0, redisPrefix+"*", 100).Iterator()
 	for iter.Next(ctx) {
 		key := iter.Val()
-		path := strings.TrimPrefix(key, fmt.Sprintf("bucket:%s:file:", bucketID))
-		if path != filePath && !strings.HasPrefix(path, filePrefix) {
+
+		if !pathWithinPrefix(strings.TrimPrefix(key, redisPrefix), filePath) {
 			continue
 		}
 
-		redisKey := key
-		queue.AddAndBlockIfFull(func() error {
-			fileKey := strings.TrimPrefix(redisKey, "bucket:")
-			flushKey := "flush:" + fileKey
-			return fsm.redis.Del(ctx, redisKey, flushKey).Err()
-		})
+		keys = append(keys, key, "flush:"+strings.TrimPrefix(key, "bucket:"))
 	}
 	if err := iter.Err(); err != nil {
 		return err
 	}
 
-	objectPrefix := fmt.Sprintf("%s/%s", bucketID, filePath)
-	objects, err := fsm.objectStorage.ListObjects(fsm.bucketName, &objectPrefix, nil)
-	if err != nil {
-		return err
+	for start := 0; start < len(keys); start += deleteBatchSize {
+		end := start + deleteBatchSize
+		if end > len(keys) {
+			end = len(keys)
+		}
+
+		if err := fsm.redis.Del(ctx, keys[start:end]...).Err(); err != nil {
+			return err
+		}
 	}
 
+	return nil
+}
+
+func (fsm *FileSystemManager) listObjectKeysUnderPrefix(bucketID, filePath string) ([]string, error) {
+	objectPrefix := objectStorageKey(bucketID, filePath)
+
+	objects, err := fsm.objectStorage.ListObjects(fsm.bucketName, &objectPrefix, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	keys := make([]string, 0, len(objects))
 	for _, obj := range objects {
-		objectKey := obj.Key
-		fileObjectPath := strings.TrimPrefix(objectKey, bucketID+"/")
-		if fileObjectPath != filePath && !strings.HasPrefix(fileObjectPath, filePrefix) {
+		if !pathWithinPrefix(strings.TrimPrefix(obj.Key, bucketID+"/"), filePath) {
 			continue
 		}
 
-		queue.AddAndBlockIfFull(func() error {
-			return fsm.objectStorage.DeleteObject(fsm.bucketName, objectKey)
-		})
+		keys = append(keys, obj.Key)
 	}
 
-	return queue.Wait()
+	return keys, nil
+}
+
+func (fsm *FileSystemManager) deleteObjectKeys(keys []string) error {
+	for start := 0; start < len(keys); start += deleteBatchSize {
+		end := start + deleteBatchSize
+		if end > len(keys) {
+			end = len(keys)
+		}
+
+		results, err := fsm.objectStorage.DeleteObjects(fsm.bucketName, keys[start:end])
+		if err != nil {
+			return err
+		}
+
+		for _, result := range results {
+			if result.Deleted {
+				continue
+			}
+
+			message := "unknown error"
+			if result.Error != nil {
+				message = *result.Error
+			}
+			return fmt.Errorf("failed to delete %s: %s", result.Key, message)
+		}
+	}
+
+	return nil
+}
+
+// DeleteBucketPath removes everything under filePath and reports the paths it
+// removed, so a caller can propagate those deletions elsewhere. It is a prune
+// that keeps nothing.
+func (fsm *FileSystemManager) DeleteBucketPath(ctx context.Context, bucketID, filePath string) ([]string, error) {
+	return fsm.PruneBucketPath(ctx, bucketID, canonicalFilePath(filePath), nil, nil)
+}
+
+type prunePlan struct {
+	prefix          string
+	keep            map[string]struct{}
+	excludePrefixes []string
+}
+
+func newPrunePlan(prefix string, keepPaths, excludePrefixes []string) prunePlan {
+	keep := make(map[string]struct{}, len(keepPaths))
+	for _, path := range keepPaths {
+		keep[normalizeSeenPath(path)] = struct{}{}
+	}
+
+	return prunePlan{prefix: prefix, keep: keep, excludePrefixes: excludePrefixes}
+}
+
+func (p prunePlan) shouldDelete(filePath string) bool {
+	if !pathWithinPrefix(filePath, p.prefix) {
+		return false
+	}
+
+	normalized := normalizeSeenPath(filePath)
+	if _, ok := p.keep[normalized]; ok {
+		return false
+	}
+
+	for _, excluded := range p.excludePrefixes {
+		if pathWithinPrefix(normalized, excluded) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (fsm *FileSystemManager) PruneBucketPath(
+	ctx context.Context,
+	bucketID string,
+	prefix string,
+	keepPaths []string,
+	excludePrefixes []string,
+) ([]string, error) {
+	plan := newPrunePlan(prefix, keepPaths, excludePrefixes)
+
+	deletedPaths := make([]string, 0)
+	redisKeys := make([]string, 0)
+	redisPrefix := fmt.Sprintf("bucket:%s:file:", bucketID)
+
+	iter := fsm.redis.Scan(ctx, 0, redisPrefix+"*", 100).Iterator()
+	for iter.Next(ctx) {
+		key := iter.Val()
+		filePath := strings.TrimPrefix(key, redisPrefix)
+
+		if !plan.shouldDelete(filePath) {
+			continue
+		}
+
+		redisKeys = append(redisKeys, key, "flush:"+strings.TrimPrefix(key, "bucket:"))
+		deletedPaths = append(deletedPaths, canonicalFilePath(filePath))
+	}
+	if err := iter.Err(); err != nil {
+		return nil, err
+	}
+
+	objectKeys, err := fsm.listObjectKeysUnderPrefix(bucketID, prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	toDelete := make([]string, 0, len(objectKeys))
+	for _, objectKey := range objectKeys {
+		filePath := strings.TrimPrefix(objectKey, bucketID+"/")
+		if !plan.shouldDelete(filePath) {
+			continue
+		}
+
+		toDelete = append(toDelete, objectKey)
+		deletedPaths = append(deletedPaths, canonicalFilePath(filePath))
+	}
+
+	for start := 0; start < len(redisKeys); start += deleteBatchSize {
+		end := start + deleteBatchSize
+		if end > len(redisKeys) {
+			end = len(redisKeys)
+		}
+
+		if err := fsm.redis.Del(ctx, redisKeys[start:end]...).Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := fsm.deleteObjectKeys(toDelete); err != nil {
+		return nil, err
+	}
+
+	return dedupePaths(deletedPaths), nil
+}
+
+func dedupePaths(paths []string) []string {
+	seen := make(map[string]struct{}, len(paths))
+	unique := make([]string, 0, len(paths))
+
+	for _, path := range paths {
+		if _, ok := seen[path]; ok {
+			continue
+		}
+
+		seen[path] = struct{}{}
+		unique = append(unique, path)
+	}
+
+	return unique
 }
 
 func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, prefix string) ([]FileInfo, error) {
@@ -499,6 +870,29 @@ func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, pref
 	})
 
 	return files, err
+}
+
+func (fsm *FileSystemManager) copyBucketFileToZip(
+	ctx context.Context,
+	zipWriter *zip.Writer,
+	bucketID, filePath string,
+) (bool, error) {
+	body, _, err := fsm.OpenBucketFile(ctx, bucketID, filePath)
+	if err != nil {
+		return true, nil
+	}
+	defer body.Close()
+
+	entry, err := zipWriter.Create(filePath)
+	if err != nil {
+		return false, fmt.Errorf("failed to create zip entry %s: %w", filePath, err)
+	}
+
+	if _, err := io.Copy(entry, body); err != nil {
+		return false, fmt.Errorf("failed to write zip entry %s: %w", filePath, err)
+	}
+
+	return false, nil
 }
 
 func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId, prefix string) (*string, *time.Time, error) {
@@ -515,17 +909,7 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	zipWriter := zip.NewWriter(multiWriter)
 
 	err = fsm.WalkBucketFiles(ctx, bucketId, prefix, func(file FileInfo) error {
-		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
-		if err != nil {
-			return nil
-		}
-
-		f, err := zipWriter.Create(file.Path)
-		if err != nil {
-			return nil
-		}
-
-		_, err = f.Write(data.Content)
+		_, err := fsm.copyBucketFileToZip(ctx, zipWriter, bucketId, file.Path)
 		return err
 	})
 	if err != nil {
@@ -557,6 +941,118 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	return &url, &expiresAt, nil
 }
 
+type ZipUploadDestination struct {
+	URL         string
+	Bucket      string
+	Key         string
+	ContentType string
+}
+
+type ZipUploadResult struct {
+	ByteSize  int64
+	Sha256    string
+	FileCount int64
+}
+
+func (fsm *FileSystemManager) ExportBucketFilesAsZipToUpload(
+	ctx context.Context,
+	bucketId, prefix string,
+	destination ZipUploadDestination,
+) (*ZipUploadResult, error) {
+	tmpFile, err := os.CreateTemp("", "bucket-zip-upload-*.zip")
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	hash := sha256.New()
+	zipWriter := zip.NewWriter(io.MultiWriter(tmpFile, hash))
+
+	var fileCount int64
+
+	err = fsm.WalkBucketFiles(ctx, bucketId, prefix, func(file FileInfo) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		skipped, err := fsm.copyBucketFileToZip(ctx, zipWriter, bucketId, file.Path)
+		if err != nil {
+			return err
+		}
+		if !skipped {
+			fileCount++
+		}
+		return nil
+	})
+	if err != nil {
+		zipWriter.Close()
+		return nil, status.Errorf(codes.Internal, "failed to build zip: %v", err)
+	}
+
+	if err := zipWriter.Close(); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to close zip: %v", err)
+	}
+
+	byteSize, err := tmpFile.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to measure zip: %v", err)
+	}
+
+	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to rewind zip: %v", err)
+	}
+
+	contentType := destination.ContentType
+	if contentType == "" {
+		contentType = "application/zip"
+	}
+
+	if destination.URL != "" {
+		err = fsm.putSignedURLFromReader(ctx, destination.URL, tmpFile, byteSize, contentType)
+	} else {
+		err = fsm.putObjectFromReader(destination.Bucket, destination.Key, tmpFile, &contentType, nil)
+	}
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upload zip: %v", err)
+	}
+
+	return &ZipUploadResult{
+		ByteSize:  byteSize,
+		Sha256:    fmt.Sprintf("%x", hash.Sum(nil)),
+		FileCount: fileCount,
+	}, nil
+}
+
+func (fsm *FileSystemManager) putSignedURLFromReader(
+	ctx context.Context,
+	url string,
+	reader io.Reader,
+	size int64,
+	contentType string,
+) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, reader)
+	if err != nil {
+		return err
+	}
+
+	req.ContentLength = size
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := fsm.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("signed upload failed (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 func (fsm *FileSystemManager) StreamBucketFilesAsZip(ctx context.Context, bucketId, prefix string, send ZipChunkSender) error {
 	zipWriter := zip.NewWriter(&zipStreamWriter{
 		ctx:  ctx,
@@ -571,20 +1067,9 @@ func (fsm *FileSystemManager) StreamBucketFilesAsZip(ctx context.Context, bucket
 		default:
 		}
 
-		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
-		if err != nil {
-			return nil
-		}
-
-		f, err := zipWriter.Create(file.Path)
-		if err != nil {
+		if _, err := fsm.copyBucketFileToZip(ctx, zipWriter, bucketId, file.Path); err != nil {
 			zipWriter.Close()
-			return status.Errorf(codes.Internal, "failed to create zip entry: %v", err)
-		}
-
-		if _, err := f.Write(data.Content); err != nil {
-			zipWriter.Close()
-			return status.Errorf(codes.Internal, "failed to write zip entry: %v", err)
+			return status.Errorf(codes.Internal, "%v", err)
 		}
 		return nil
 	})
@@ -607,32 +1092,42 @@ func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBuck
 		return ctx.Err()
 	}
 
-	queue := memoryQueue.NewBlockingJobQueue(15)
+	batch := make([]CopyFileSource, 0, cloneBatchSize)
+
+	flush := func() error {
+		if len(batch) == 0 {
+			return nil
+		}
+
+		if _, err := fsm.CopyBucketFiles(ctx, newBucketId, batch); err != nil {
+			return err
+		}
+
+		batch = batch[:0]
+		return nil
+	}
 
 	err := fsm.WalkBucketFiles(ctx, sourceBucketId, "", func(file FileInfo) error {
-		f := file
-		queue.AddAndBlockIfFull(func() error {
-			info, content, err := fsm.GetBucketFile(ctx, sourceBucketId, f.Path)
-			if err != nil && !strings.Contains(err.Error(), "not found") {
-				return err
-			}
-			if err != nil {
-				return nil
-			}
-
-			return fsm.PutBucketFile(ctx, newBucketId, f.Path, content.Content, info.ContentType)
-
+		batch = append(batch, CopyFileSource{
+			Path:         file.Path,
+			SourceBucket: fsm.bucketName,
+			SourceKey:    objectStorageKey(sourceBucketId, file.Path),
 		})
-		return nil
+
+		if len(batch) < cloneBatchSize {
+			return nil
+		}
+
+		return flush()
 	})
 	if err != nil {
 		return status.Errorf(codes.NotFound, "source bucket not found: %v", err)
 	}
 
-	return queue.Wait()
+	return flush()
 }
 
-func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string, iterator *zipImporter.ZipFileIterator) error {
+func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string, iterator zipImporter.Importer) error {
 	select {
 	case fsm.importSemaphore <- struct{}{}:
 		defer func() { <-fsm.importSemaphore }()
@@ -640,7 +1135,17 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 		return ctx.Err()
 	}
 
-	queue := memoryQueue.NewBlockingJobQueue(15)
+	admission := newByteAdmission(maxImportBytesInFlight)
+
+	var (
+		wg       sync.WaitGroup
+		firstErr error
+		errOnce  sync.Once
+	)
+
+	fail := func(err error) {
+		errOnce.Do(func() { firstErr = err })
+	}
 
 	for {
 		file, ok := iterator.Next()
@@ -648,17 +1153,80 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 			break
 		}
 
-		queue.AddAndBlockIfFull(func() error {
-			fsm.PutBucketFile(ctx, newBucketId, file.Path, file.Content, "application/octet-stream")
+		size := int64(len(file.Content))
+		if err := admission.acquire(ctx, size); err != nil {
+			fail(err)
+			break
+		}
 
-			return nil
-		})
+		wg.Add(1)
+		go func(file zipImporter.ZipFileItem, size int64) {
+			defer wg.Done()
+			defer admission.release(size)
+
+			if err := fsm.PutBucketFile(
+				ctx,
+				newBucketId,
+				file.Path,
+				file.Content,
+				"application/octet-stream",
+			); err != nil {
+				fail(err)
+			}
+		}(*file, size)
 	}
+
+	wg.Wait()
+
 	if err := iterator.Err(); err != nil {
 		return err
 	}
 
-	return queue.Wait()
+	return firstErr
+}
+
+type byteAdmission struct {
+	mu        sync.Mutex
+	cond      *sync.Cond
+	budget    int64
+	inFlight  int64
+	waiterCnt int
+}
+
+func newByteAdmission(budget int64) *byteAdmission {
+	a := &byteAdmission{budget: budget}
+	a.cond = sync.NewCond(&a.mu)
+	return a
+}
+
+func (a *byteAdmission) acquire(ctx context.Context, size int64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	for a.inFlight > 0 && a.inFlight+size > a.budget {
+		a.waiterCnt++
+		a.cond.Wait()
+		a.waiterCnt--
+
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+
+	a.inFlight += size
+	return nil
+}
+
+func (a *byteAdmission) release(size int64) {
+	a.mu.Lock()
+	a.inFlight -= size
+	a.mu.Unlock()
+
+	a.cond.Broadcast()
 }
 
 func (fsm *FileSystemManager) ImportContents(ctx context.Context, newBucketId string, contents []*FileContentsBase) error {

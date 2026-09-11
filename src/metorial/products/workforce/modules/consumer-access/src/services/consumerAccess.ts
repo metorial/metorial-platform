@@ -1,6 +1,7 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { createSystemAuditScope, type AuditScope } from '@metorial/audit-scope';
 import {
   ConsumerAccess,
   ConsumerAccessListing,
@@ -20,10 +21,12 @@ import {
   SkillTemplate,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { isPreconfiguredMagicMcpServer } from '../lib/magicMcpServerSource';
 import { consumerAccessPolicyService } from './accessPolicy';
 
 let include = {
+  surface: true,
   consumerGroup: true,
   providerTemplate: true,
   magicMcpServer: true,
@@ -68,6 +71,7 @@ type ConsumerAccessCreateInput =
     };
 
 type ConsumerAccessWithRelations = ConsumerAccess & {
+  surface: ConsumerSurface;
   consumerGroup: ConsumerGroup;
   providerTemplate: ProviderTemplate | null;
   magicMcpServer: MagicMcpServer | null;
@@ -664,6 +668,7 @@ class ConsumerAccessServiceImpl {
     organization: Organization;
     consumerSurface: ConsumerSurface;
     consumerGroup: ConsumerGroup;
+    auditScope: AuditScope;
     access: ConsumerAccessCreateInput;
     input?: {
       name?: string;
@@ -846,7 +851,8 @@ class ConsumerAccessServiceImpl {
           skillGroupOid: d.access.type == 'skill_group' ? d.access.skillGroup.oid : undefined,
           skillMarketplaceOid:
             d.access.type == 'skill_marketplace' ? d.access.skillMarketplace.oid : undefined,
-          skillPluginOid: d.access.type == 'skill_plugin' ? d.access.skillPlugin.oid : undefined
+          skillPluginOid:
+            d.access.type == 'skill_plugin' ? d.access.skillPlugin.oid : undefined
         },
         update:
           d.access.type == 'skill_marketplace' && d.access.accessLevel == 'manage'
@@ -1000,17 +1006,25 @@ class ConsumerAccessServiceImpl {
         input: d.input ?? {}
       });
 
-      return (await db.consumerAccess.findUnique({
+      let created = (await db.consumerAccess.findUnique({
         where: {
           oid: consumerAccess.oid
         },
         include
       }))!;
+
+      await Fabric.fire('consumer.access.created:after', {
+        consumerAccess: created,
+        auditScope: d.auditScope
+      });
+
+      return created;
     });
   }
 
   async updateConsumerAccess(d: {
     consumerAccess: ConsumerAccessWithRelations;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string | null;
@@ -1026,12 +1040,20 @@ class ConsumerAccessServiceImpl {
         input: d.input
       });
 
-      return (await db.consumerAccess.findUnique({
+      let updated = (await db.consumerAccess.findUnique({
         where: {
           oid: d.consumerAccess.oid
         },
         include
       }))!;
+
+      await Fabric.fire('consumer.access.updated:after', {
+        consumerAccess: updated,
+        previousConsumerAccess: d.consumerAccess,
+        auditScope: d.auditScope
+      });
+
+      return updated;
     });
   }
 
@@ -1040,6 +1062,7 @@ class ConsumerAccessServiceImpl {
     consumerGroupOid: bigint;
     surfaceOid: bigint;
     skillMarketplaceOid: bigint;
+    auditScope: AuditScope;
   }) {
     let memberships = await db.skillMarketplacePlugin.findMany({
       where: {
@@ -1069,7 +1092,8 @@ class ConsumerAccessServiceImpl {
     for (let consumerAccess of pluginAccesses) {
       await this.deleteConsumerAccess({
         organization: d.organization,
-        consumerAccess
+        consumerAccess,
+        auditScope: d.auditScope
       });
     }
   }
@@ -1122,10 +1146,18 @@ class ConsumerAccessServiceImpl {
       include
     });
 
+    // Reconciliation follows a marketplace or plugin change rather than a request of its
+    // own, so the revocations it cascades are attributed to the job that made them.
+    let auditScope = createSystemAuditScope({
+      organization,
+      job: 'consumerAccess/reconcileSkillPlugin'
+    });
+
     for (let consumerAccess of remainingAccesses) {
       await this.deleteConsumerAccess({
         organization,
-        consumerAccess
+        consumerAccess,
+        auditScope
       });
     }
   }
@@ -1219,6 +1251,7 @@ class ConsumerAccessServiceImpl {
   async deleteConsumerAccess(d: {
     organization: Organization;
     consumerAccess: ConsumerAccessWithRelations;
+    auditScope: AuditScope;
   }) {
     if (
       d.consumerAccess.type == 'skill_marketplace' &&
@@ -1229,7 +1262,8 @@ class ConsumerAccessServiceImpl {
         organization: d.organization,
         consumerGroupOid: d.consumerAccess.consumerGroupOid,
         surfaceOid: d.consumerAccess.surfaceOid,
-        skillMarketplaceOid: d.consumerAccess.skillMarketplaceOid
+        skillMarketplaceOid: d.consumerAccess.skillMarketplaceOid,
+        auditScope: d.auditScope
       });
     }
 
@@ -1258,6 +1292,11 @@ class ConsumerAccessServiceImpl {
       await consumerAccessPolicyService.revokeAccessForConsumerAccess({
         organization: d.organization,
         consumerAccess
+      });
+
+      await Fabric.fire('consumer.access.deleted:after', {
+        consumerAccess,
+        auditScope: d.auditScope
       });
 
       return consumerAccess;

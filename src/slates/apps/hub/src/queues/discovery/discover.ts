@@ -1,19 +1,26 @@
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { getSentry } from '@lowerdeck/sentry';
-import type { SlateAdapter, SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
+import type {
+  SlateAdapter,
+  SlateAuthenticationMethod,
+  SlatesAction,
+  SlatesTriggerGroup
+} from '@slates/proto';
 import { differenceInMinutes } from 'date-fns';
 import semver from 'semver';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, snowflake } from '../../id';
 import { getStackError, getStackResultsOrThrow } from '../../lib/invocation/error';
-import type { InvocationError } from '../../lib/invocation/types';
+import type { InvocationError, InvocationResult } from '../../lib/invocation/types';
+import { isReservedActionId } from '../../lib/reservedActions';
 import {
   buildDiscoveredSpecificationHashes,
   dedupeDiscoveredItems
 } from '../../lib/specificationHash';
 import { slateInvocationService } from '../../services';
+import { discoverSlateCapabilities } from './discoverCapabilities';
 
 let Sentry = getSentry();
 
@@ -80,6 +87,31 @@ let syncSpecificationAuthMethods = async (d: {
     data: authMethodOids.map(authMethodOid => ({
       oid: snowflake.nextId(),
       authMethodOid,
+      specificationOid: d.specificationOid
+    }))
+  });
+};
+
+let syncSpecificationTriggerGroups = async (d: {
+  specificationOid: bigint;
+  triggerGroups: Array<{ oid: bigint }>;
+}) => {
+  let triggerGroupOids = d.triggerGroups.map(triggerGroup => triggerGroup.oid);
+
+  await db.slateSpecificationTriggerGroup.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      triggerGroupOid: triggerGroupOids.length > 0 ? { notIn: triggerGroupOids } : undefined
+    }
+  });
+
+  if (triggerGroupOids.length === 0) return;
+
+  await db.slateSpecificationTriggerGroup.createMany({
+    skipDuplicates: true,
+    data: triggerGroupOids.map(triggerGroupOid => ({
+      oid: snowflake.nextId(),
+      triggerGroupOid,
       specificationOid: d.specificationOid
     }))
   });
@@ -306,6 +338,7 @@ let buildActionUpsertData = async (d: {
   identifierBase: string;
   actionHashes: string[];
   slateAdapterOidById: Map<string, bigint>;
+  triggerGroupOidByKey: Map<string, bigint>;
 }) =>
   d.actions.map((action, index) => {
     let hash = d.actionHashes[index]!;
@@ -336,7 +369,38 @@ let buildActionUpsertData = async (d: {
       spec: action,
 
       key: action.id,
-      name: action.name
+      name: action.name,
+
+      triggerGroupOid:
+        action.type === 'action.trigger'
+          ? (d.triggerGroupOidByKey.get(action.triggerGroupId) ?? null)
+          : null
+    };
+  });
+
+let buildTriggerGroupUpsertData = async (d: {
+  triggerGroups: SlatesTriggerGroup[];
+  slateOid: bigint;
+  specificationOid: bigint;
+  identifierBase: string;
+  triggerGroupHashes: string[];
+}) =>
+  d.triggerGroups.map((triggerGroup, index) => {
+    let hash = d.triggerGroupHashes[index]!;
+    let identifier = `${d.identifierBase}::trigger_group::${triggerGroup.id}::${hash}`;
+
+    return {
+      ...getId('slateTriggerGroup'),
+      slateOid: d.slateOid,
+      mostRecentSpecificationOid: d.specificationOid,
+
+      hash,
+      identifier,
+
+      spec: triggerGroup,
+
+      key: triggerGroup.id,
+      name: triggerGroup.name
     };
   });
 
@@ -461,6 +525,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
     let slate = version.slate;
 
+    let suppressServerErrorReporting =
+      !stagedDeployment && version.status === 'discovery_failed';
+
     await db.slateEvent.create({
       data: {
         ...getId('slateEvent'),
@@ -472,23 +539,69 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
     });
 
     try {
+      let capabilities = await discoverSlateCapabilities({
+        slateVersion: version,
+        deploymentTarget: {
+          providerDeploymentInfo: target.providerDeploymentInfo,
+          activeDeploymentOid: target.activeDeploymentOid
+        },
+        suppressServerErrorReporting
+      });
+
       let stack = await slateInvocationService.createInvocation({
         slateVersion: version,
         deploymentTarget: {
           providerDeploymentInfo: target.providerDeploymentInfo,
           activeDeploymentOid: target.activeDeploymentOid
         },
-        participants: [] // Only the hub
+        participants: [],
+        suppressServerErrorReporting,
+        capabilities
       });
 
-      let stackResult = await Promise.all([
+      let supportsTriggerGroups = !!capabilities?.provider?.triggerGroups;
+
+      let [
+        providerInfoResult,
+        configSchemaResult,
+        authMethodsResult,
+        actionsResult,
+        adaptersResult,
+        rawTriggerGroupsResult
+      ] = await Promise.all([
         slateInvocationService.getProviderInfo({ stack }),
         slateInvocationService.getConfigSchema({ stack }),
         // slateInvocationService.getDefaultConfig({ stack }),
         slateInvocationService.listAuthMethods({ stack }),
         slateInvocationService.listActions({ stack }),
-        slateInvocationService.listAdapters({ stack })
+        slateInvocationService.listAdapters({ stack }),
+        supportsTriggerGroups
+          ? slateInvocationService.listTriggerGroups({ stack })
+          : Promise.resolve(null)
       ]);
+
+      let triggerGroupsResult: InvocationResult<'slates/trigger_groups.list'> =
+        rawTriggerGroupsResult ?? {
+          status: 'success',
+          invocation: providerInfoResult.invocation,
+          data: { triggerGroups: [] }
+        };
+
+      let stackResult: [
+        typeof providerInfoResult,
+        typeof configSchemaResult,
+        typeof authMethodsResult,
+        typeof actionsResult,
+        typeof adaptersResult,
+        typeof triggerGroupsResult
+      ] = [
+        providerInfoResult,
+        configSchemaResult,
+        authMethodsResult,
+        actionsResult,
+        adaptersResult,
+        triggerGroupsResult
+      ];
 
       let invocation = stackResult[0].invocation;
       let error = getStackError(stackResult);
@@ -505,7 +618,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         return;
       }
 
-      let [providerInfo, configSchema, authMethods, actions, adapters] =
+      let [providerInfo, configSchema, authMethods, actions, adapters, triggerGroups] =
         getStackResultsOrThrow(stackResult);
 
       let discoveredAuthMethods = dedupeDiscoveredItems(authMethods.authenticationMethods, {
@@ -513,11 +626,21 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         slateId: slate.id,
         versionId: version.id
       });
-      let discoveredActions = dedupeDiscoveredItems(actions.actions, {
-        entity: 'actions',
+
+      let discoveredActions = dedupeDiscoveredItems(
+        actions.actions.filter(action => !isReservedActionId(action.id)),
+        {
+          entity: 'actions',
+          slateId: slate.id,
+          versionId: version.id,
+          getKey: action => `${action.type}:${action.id}`
+        }
+      );
+
+      let discoveredTriggerGroups = dedupeDiscoveredItems(triggerGroups.triggerGroups, {
+        entity: 'trigger_groups',
         slateId: slate.id,
-        versionId: version.id,
-        getKey: action => `${action.type}:${action.id}`
+        versionId: version.id
       });
 
       let providerDocs = normalizeDiscoveredDocs(providerInfo.docs);
@@ -534,7 +657,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           docs: configSchemaDocs
         },
         authMethods: discoveredAuthMethods,
-        actions: discoveredActions
+        actions: discoveredActions,
+        triggerGroups: discoveredTriggerGroups
       });
       let identifierBase = `slate::spec::${slate.id}`;
       let specificationIdentifier = `${identifierBase}::${discoveryHashes.specificationHash}`;
@@ -549,7 +673,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         configSchema: configSchema.schema,
         configSchemaDocs,
         authMethods: discoveredAuthMethods,
-        actions: discoveredActions
+        actions: discoveredActions,
+        triggerGroups: discoveredTriggerGroups,
+        capabilities
       };
       let specification = await db.slateSpecification.upsert({
         where: {
@@ -568,6 +694,34 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         update: specificationData
       });
 
+      let triggerGroupUpsertData = await buildTriggerGroupUpsertData({
+        triggerGroups: discoveredTriggerGroups,
+        slateOid: slate.oid,
+        specificationOid: specification.oid,
+        identifierBase,
+        triggerGroupHashes: discoveryHashes.triggerGroupHashes
+      });
+      await db.slateTriggerGroup.createManyAndReturn({
+        skipDuplicates: true,
+        data: triggerGroupUpsertData
+      });
+      let upsertedTriggerGroups = await db.slateTriggerGroup.findMany({
+        where: {
+          slateOid: slate.oid,
+          identifier: {
+            in: triggerGroupUpsertData.map(tg => tg.identifier)
+          }
+        }
+      });
+      let triggerGroupOidByKey = new Map(
+        upsertedTriggerGroups.map(triggerGroup => [triggerGroup.key, triggerGroup.oid])
+      );
+
+      await syncSpecificationTriggerGroups({
+        specificationOid: specification.oid,
+        triggerGroups: upsertedTriggerGroups
+      });
+
       let actionUpsertData = await buildActionUpsertData({
         actions: discoveredActions,
         slateOid: slate.oid,
@@ -579,7 +733,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           slateOid: slate.oid,
           slateId: slate.id,
           slateVersionOid: version.oid
-        })
+        }),
+        triggerGroupOidByKey
       });
       await db.slateAction.createManyAndReturn({
         skipDuplicates: true,
@@ -676,6 +831,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         status: 'active' as const,
         specificationOid: specification.oid,
         lastDiscoveredAt: new Date(),
+        capabilities,
         ...(stagedDeployment
           ? {
               providerDeploymentInfo: target.providerDeploymentInfo,
@@ -722,6 +878,10 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
             data: { mostRecentSpecificationOid: specification.oid }
           });
           await db.slateConfigSchema.updateMany({
+            where: { slateSpecifications: { some: { specificationOid: specification.oid } } },
+            data: { mostRecentSpecificationOid: specification.oid }
+          });
+          await db.slateTriggerGroup.updateMany({
             where: { slateSpecifications: { some: { specificationOid: specification.oid } } },
             data: { mostRecentSpecificationOid: specification.oid }
           });

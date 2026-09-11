@@ -1,5 +1,6 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { attachmentQueues } from './queues/attachment';
+import { callbackQueues } from './queues/callback';
 import { cleanupCron } from './queues/cron/cleanup';
 import { deploymentQueues } from './queues/deployment';
 import { discoveryQueues } from './queues/discovery';
@@ -9,6 +10,7 @@ import { reconcileEventIdsQueue } from './queues/instance/reconcileEventIds';
 import { registryQueues } from './queues/registry';
 import { retentionQueues } from './queues/retention';
 import { triggerQueues } from './queues/trigger';
+import { webhookQueues } from './queues/webhook';
 
 await reconcileEventIdsQueue.add({});
 
@@ -21,5 +23,7 @@ await runQueueProcessors([
   instanceQueues,
   cleanupCron,
   retentionQueues,
-  triggerQueues
+  webhookQueues,
+  triggerQueues,
+  callbackQueues
 ]);

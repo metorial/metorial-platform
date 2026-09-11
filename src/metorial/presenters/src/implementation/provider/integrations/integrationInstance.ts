@@ -67,6 +67,15 @@ export let dashboardIntegrationInstancePresenter = Presenter.create(integrationI
 
     return {
       ...inner,
+      is_oauth_compatible: integrationInstance.integrationInstanceProviders.every(
+        integrationInstanceProvider => {
+          let authMethod =
+            integrationInstanceProvider.currentVersion?.authConfig?.authMethod ??
+            integrationInstanceProvider.currentVersion?.integrationProviderVersion.authMethod;
+
+          return !authMethod || authMethod.type === 'oauth';
+        }
+      ),
       providers: await Promise.all(
         integrationInstance.integrationInstanceProviders.map(integrationInstanceProvider =>
           dashboardIntegrationInstanceProviderPresenter
@@ -79,6 +88,7 @@ export let dashboardIntegrationInstancePresenter = Presenter.create(integrationI
   .schema(
     v.object({
       ...v1IntegrationInstancePresenter.schema.properties,
+      is_oauth_compatible: v.boolean(),
       providers: v.array(dashboardIntegrationInstanceProviderPresenter.schema)
     }) as any
   )

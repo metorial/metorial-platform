@@ -24,6 +24,15 @@ export let ID = createIdGenerator({
   organizationLayout: idType.sorted('oly'),
   account: idType.sorted('acc'),
 
+  outpost: idType.sorted('otp_'),
+  outpostCredential: idType.sorted('otc_'),
+  outpostAccess: idType.sorted('ota_'),
+  outpostInstance: idType.sorted('otn_'),
+  outpostInstanceService: idType.sorted('otsv_'),
+  outpostInstanceKeyRotation: idType.sorted('otr_'),
+  outpostInstanceEvent: idType.sorted('ote_'),
+  outpostTokenKeyPair: idType.sorted('otkp_'),
+
   project: idType.sorted('prj'),
   projectBrand: idType.sorted('pbr'),
   projectBrandUpdate: idType.sorted('pbu'),
@@ -61,6 +70,7 @@ export let ID = createIdGenerator({
   fileLink: idType.sorted('flk'),
   fileRef: idType.sorted('frf'),
   fileContentDelegator: idType.sorted('fcd'),
+  fileUpload: idType.sorted('fup'),
 
   secretType: idType.sorted('sty'),
   secret: idType.sorted('sec'),
@@ -278,5 +288,15 @@ export let ID = createIdGenerator({
   auditLogStream: idType.sorted('als_'),
   auditLogStreamEvent: idType.sorted('alse_'),
   auditLogStreamRun: idType.sorted('alsr_'),
-  auditLogStreamBatch: idType.sorted('alsb_')
+  auditLogStreamBatch: idType.sorted('alsb_'),
+
+  eventDestination: idType.sorted('evtd'),
+  webhookDestination: idType.sorted('whd'),
+  webhookSigningSecret: idType.key('whsec'),
+  eventDestinationListener: idType.sorted('evtl'),
+  // Note: `evt` isn't actually available — `createIdGenerator` normalizes every prefix to end with
+  // `_` (so 'evt' -> 'evt_'), which is an exact collision with `auditEvent: idType.sorted('evt_')`
+  // above (AuditLogEvent, mapped to table "Event") and throws at import time. `evnt` is the closest
+  // available prefix to what was asked for.
+  systemEvent: idType.sorted('evnt')
 });

@@ -1,5 +1,6 @@
 import { createCron } from '@metorial/cron';
 import type { SkillVersion } from '@metorial/db';
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { skillMergeRequestApplyInternalService } from '../internal/skillMergeRequestApplyInternal';
@@ -110,6 +111,12 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
       await skillMergeRequestApplyInternalService.applyResolvedItems({
         project: mergeRequest.project,
         instance: mergeRequest.instance,
+        auditScope: createSystemAuditScope({
+          organization: { oid: mergeRequest.instance.organizationOid },
+          instance: mergeRequest.instance,
+          job: 'skill-merge-request',
+          metadata: { skillMergeRequestId: mergeRequest.id }
+        }),
         mergeRequest,
         items,
         actor: mergeActor

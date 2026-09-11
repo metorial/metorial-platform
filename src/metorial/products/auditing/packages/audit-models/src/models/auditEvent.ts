@@ -90,11 +90,7 @@ let toOidString = (value: bigint | string | number) => String(value);
 let toOptionalOidString = (value?: bigint | string | number) =>
   value === undefined ? undefined : toOidString(value);
 
-export let ingestAuditEvent = async (event: AuditEventInput) => {
-  if (!isAuditDbEnabled()) return;
-
-  await dbConnect();
-
+let toAuditEventDocument = (event: AuditEventInput): AuditEvent => {
   let doc: AuditEvent = {
     _id: event.id,
     organizationOid: toOidString(event.organizationOid),
@@ -123,7 +119,33 @@ export let ingestAuditEvent = async (event: AuditEventInput) => {
     recordedAt: event.recordedAt
   };
 
-  await AuditEventModel.updateOne({ _id: doc._id }, { $setOnInsert: doc }, { upsert: true });
+  return doc;
+};
+
+export let ingestAuditEvent = async (event: AuditEventInput) => {
+  await ingestAuditEvents([event]);
+};
+
+export let ingestAuditEvents = async (events: AuditEventInput[]) => {
+  if (!isAuditDbEnabled()) return;
+  if (events.length == 0) return;
+
+  await dbConnect();
+
+  await AuditEventModel.bulkWrite(
+    events.map(event => {
+      let doc = toAuditEventDocument(event);
+
+      return {
+        updateOne: {
+          filter: { _id: doc._id },
+          update: { $setOnInsert: doc },
+          upsert: true
+        }
+      };
+    }),
+    { ordered: false }
+  );
 };
 
 export let getAuditEventsByIds = async (eventIds: string[]): Promise<AuditEvent[]> => {
@@ -134,4 +156,18 @@ export let getAuditEventsByIds = async (eventIds: string[]): Promise<AuditEvent[
   return await AuditEventModel.find({ _id: { $in: eventIds } })
     .lean()
     .exec();
+};
+
+export let deleteAuditEventsBefore = async (d: {
+  organizationOid: bigint | string | number;
+  recordedAt: Date;
+}) => {
+  if (!isAuditDbEnabled()) return;
+
+  await dbConnect();
+
+  await AuditEventModel.deleteMany({
+    organizationOid: toOidString(d.organizationOid),
+    recordedAt: { $lt: d.recordedAt }
+  }).exec();
 };

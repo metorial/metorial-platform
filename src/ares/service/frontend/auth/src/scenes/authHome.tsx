@@ -66,7 +66,7 @@ export let AuthHomeScene = ({
 
   setAuthIntent
 }: {
-  clientId: string;
+  clientId: string | null;
   email: string | undefined;
   type: 'login' | 'signup' | 'switch';
   nextUrl: string;
@@ -76,6 +76,15 @@ export let AuthHomeScene = ({
   setAuthIntent?: (d: { authIntentId: string; authIntentClientSecret: string }) => void;
 }) => {
   let auth = authState.use({ clientId });
+
+  let resolvedClientId = clientId ?? undefined;
+
+  let crossLinkQuery = (target: string) => {
+    let params = new URLSearchParams();
+    if (clientId) params.set('client_id', clientId);
+    params.set('nextUrl', nextUrl);
+    return `${target}?${params.toString()}`;
+  };
   let startAuthentication = useMutation(auth.mutators.start);
   let selectUserAuthentication = useUserSelect();
 
@@ -122,7 +131,7 @@ export let AuthHomeScene = ({
 
       let [res] = await startAuthentication.mutate({
         type: 'email',
-        clientId,
+        clientId: resolvedClientId,
         email: values.email,
         redirectUrl: nextUrl,
         captchaToken: nextCaptchaToken
@@ -154,7 +163,7 @@ export let AuthHomeScene = ({
     }
 
     selectUserAuthentication
-      .mutate({ clientId, email: debouncedEmail })
+      .mutate({ clientId: resolvedClientId, email: debouncedEmail })
       .then(([selection]) => {
         if (request === userSelectionRequest.current && selection) {
           setUserSelection(selection);
@@ -182,7 +191,7 @@ export let AuthHomeScene = ({
     startAuthentication
       .mutate({
         type: 'session',
-        clientId,
+        clientId: resolvedClientId,
         userOrSessionId: sessionOrUserIdToLogInWith,
         redirectUrl: nextUrl
       })
@@ -245,8 +254,7 @@ export let AuthHomeScene = ({
   let userSelectionSupportsSso =
     userSelection?.options.some(option => option.type === 'sso') ?? false;
   let activeUserSelection =
-    userSelectionMatchesEmail ||
-    (resemblesEmail(normalizedEmail) && userSelectionSupportsSso)
+    userSelectionMatchesEmail || (resemblesEmail(normalizedEmail) && userSelectionSupportsSso)
       ? userSelection
       : null;
   let options = activeUserSelection?.options ?? auth.data?.options ?? [];
@@ -266,7 +274,8 @@ export let AuthHomeScene = ({
     setLoadingSource(`sso_${option.connectionId}`);
     startAuthentication.mutate({
       type: 'sso',
-      clientId: connectionSelection?.clientId ?? activeUserSelection?.clientId ?? clientId,
+      clientId:
+        connectionSelection?.clientId ?? activeUserSelection?.clientId ?? resolvedClientId,
       ssoTenantId: option.tenantId,
       ssoConnectionId: option.connectionId,
       email: connectionSelection?.email ?? form.values.email,
@@ -346,7 +355,7 @@ export let AuthHomeScene = ({
               <Text color="gray600" weight="medium" size="1">
                 {type == 'login' ? (
                   <Link
-                    to={`/signup?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}
+                    to={crossLinkQuery('/signup')}
                     style={{ color: 'inherit' }}
                     aria-disabled={startAuthentication.isLoading || form.isSubmitting}
                   >
@@ -355,7 +364,7 @@ export let AuthHomeScene = ({
                   </Link>
                 ) : (
                   <Link
-                    to={`/login?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}
+                    to={crossLinkQuery('/login')}
                     style={{ color: 'inherit' }}
                     aria-disabled={startAuthentication.isLoading || form.isSubmitting}
                   >
@@ -404,7 +413,7 @@ export let AuthHomeScene = ({
                   setLoadingSource(providerType);
                   startAuthentication.mutate({
                     type: 'oauth',
-                    clientId,
+                    clientId: resolvedClientId,
                     provider: providerType,
                     redirectUrl: nextUrl
                   });

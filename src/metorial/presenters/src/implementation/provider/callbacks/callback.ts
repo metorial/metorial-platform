@@ -1,136 +1,134 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackType } from '../../../types';
-import { v1CallbackDestinationPresenter } from './callbackDestination';
-import { v1ProviderDeploymentPreviewPresenter } from '../config/deploymentPreview';
+import { v1ProviderPreview } from '../provider';
 
-let callbackTriggerSchema = v.object({
-  object: v.literal('callback.provider_trigger', {
-    description: "String representing the object's type"
+export let callbackSyncPresenter = Object.assign(
+  (callback: {
+    syncStatus: string;
+    lastSyncErrorCode: string | null;
+    lastSyncErrorMessage: string | null;
+    lastSyncedAt: Date | null;
+  }) => ({
+    object: 'callback.sync' as const,
+    status: callback.syncStatus,
+    error: callback.lastSyncErrorCode
+      ? {
+          object: 'callback.sync.error' as const,
+          code: callback.lastSyncErrorCode,
+          message: callback.lastSyncErrorMessage
+        }
+      : null,
+    synced_at: callback.lastSyncedAt
   }),
-  id: v.string({
-    name: 'id',
-    description: 'Unique callback trigger association identifier',
-    examples: ['cbt_4dEfGhJkLmNpQrSt']
-  }),
-  provider_trigger: v.object(
-    {
-      object: v.literal('provider.trigger#preview', {
-        description: "String representing the provider trigger's type"
-      }),
+  {
+    schema: v.object(
+      {
+        object: v.literal('callback.sync', {
+          description: "String representing the object's type"
+        }),
 
-      id: v.string({
-        name: 'id',
-        description: 'Provider trigger identifier from the deployment specification',
-        examples: ['ptr_7dEfGhJkLmNpQrSt']
-      }),
-      key: v.string({
-        name: 'key',
-        description: 'Stable trigger key used by the provider',
-        examples: ['messages.created']
-      }),
-      name: v.string({
-        name: 'name',
-        description: 'Human-readable trigger name',
-        examples: ['Messages Created']
-      })
-    },
-    {
-      name: 'provider_trigger',
-      description: 'Preview of the provider trigger associated with this callback trigger'
-    }
-  ),
-  event_types: v.array(
-    v.string({
-      examples: ['message.created']
-    }),
-    {
-      name: 'event_types',
-      description: 'Provider-specific event types enabled for this trigger'
-    }
-  ),
-  created_at: v.date({
-    name: 'created_at',
-    description: 'Timestamp when this trigger was attached to the callback',
-    examples: [new Date('2025-09-15T10:30:00Z')]
-  })
-});
+        status: v.enumOf(['pending', 'synced', 'failed'], {
+          name: 'status',
+          description:
+            'Whether the callback has been registered with the provider yet. Nothing is delivered until this is synced.'
+        }),
+
+        error: v.nullable(
+          v.object(
+            {
+              object: v.literal('callback.sync.error', {
+                description: "String representing the object's type"
+              }),
+
+              code: v.string({
+                name: 'code',
+                description: 'Machine-readable reason the last registration attempt failed',
+                examples: ['callbacks_not_supported']
+              }),
+
+              message: v.nullable(
+                v.string({
+                  name: 'message',
+                  description: 'Human-readable reason the last registration attempt failed',
+                  examples: ['This provider does not support callbacks.']
+                })
+              )
+            },
+            {
+              name: 'error',
+              description: 'The last registration failure, cleared once the callback syncs'
+            }
+          )
+        ),
+
+        synced_at: v.nullable(
+          v.date({
+            name: 'synced_at',
+            description: 'Timestamp when the callback was last successfully registered',
+            examples: [new Date('2026-01-10T14:45:00Z')]
+          })
+        )
+      },
+      {
+        name: 'sync',
+        description: 'Registration state of this callback with the provider'
+      }
+    )
+  }
+);
 
 export let v1CallbackPresenter = Presenter.create(callbackType)
-  .presenter(async ({ callback }, opts) => {
-    return {
-      object: 'callback' as const,
+  .presenter(async ({ callback }) => ({
+    object: 'callback' as const,
 
-      id: callback.id,
-      status: callback.status,
-      name: callback.name,
-      description: callback.description,
-      metadata: callback.metadata,
-      poll_interval_seconds_override: callback.pollIntervalSecondsOverride,
+    id: callback.id,
+    status: callback.status,
 
-      provider_deployment: await v1ProviderDeploymentPreviewPresenter
-        .present(
-          {
-            deployment: callback.providerDeployment
-          },
-          opts
-        )
-        .run(),
+    name: callback.name,
+    description: callback.description,
+    metadata: callback.metadata,
 
-      destinations: await Promise.all(
-        callback.callbackDestinationLinks.map(async link =>
-          v1CallbackDestinationPresenter
-            .present({ callbackDestination: link.callbackDestination }, opts)
-            .run()
-        )
-      ),
+    integration_id: callback.integration.id,
+    integration_provider_id: callback.integrationProvider.id,
 
-      provider_triggers: callback.callbackProviderTriggers.map(trigger => ({
-        object: 'callback.provider_trigger' as const,
-        id: trigger.id,
+    provider: v1ProviderPreview(callback.provider),
 
-        event_types: trigger.eventTypes,
-        created_at: trigger.createdAt,
-
-        provider_trigger: {
-          object: 'provider.trigger#preview' as const,
-
-          id: trigger.providerTrigger.id,
-          key: trigger.providerTrigger.key,
-          name: trigger.providerTrigger.name
-        }
-      })),
-
-      created_at: callback.createdAt,
-      updated_at: callback.updatedAt
-    };
-  })
+    created_at: callback.createdAt,
+    updated_at: callback.updatedAt
+  }))
   .schema(
     v.object({
       object: v.literal('callback', {
         description: "String representing the object's type"
       }),
+
       id: v.string({
         name: 'id',
         description: 'Unique callback identifier',
-        examples: ['clb_4dEfGhJkLmNpQrSt']
+        examples: ['cbk_4dEfGhJkLmNpQrSt']
       }),
+
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Callback lifecycle status'
+        description:
+          'Callback lifecycle status. Archived once callbacks are disabled on the integration provider.'
       }),
+
       name: v.string({
         name: 'name',
         description: 'Display name for the callback',
-        examples: ['Production Webhook Callback']
+        examples: ['Production GitHub Events']
       }),
+
       description: v.nullable(
         v.string({
           name: 'description',
           description: 'Optional callback description',
-          examples: ['Sends provider trigger deliveries to our production webhook endpoint']
+          examples: ['Repository events for the production workspace']
         })
       ),
+
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
@@ -138,33 +136,49 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
           examples: [{ environment: 'production', owner: 'platform-team' }]
         })
       ),
-      poll_interval_seconds_override: v.nullable(
-        v.number({
-          name: 'poll_interval_seconds_override',
-          description:
-            'Optional polling interval override, in seconds, for polling-capable triggers',
-          examples: [60]
-        })
-      ),
-      provider_deployment: v1ProviderDeploymentPreviewPresenter.schema,
-      destinations: v.array(v1CallbackDestinationPresenter.schema, {
-        name: 'destinations',
-        description: 'Destinations currently attached to this callback'
+
+      integration_id: v.string({
+        name: 'integration_id',
+        description: 'Integration this callback belongs to',
+        examples: ['int_2bCdEfGhJkLmNpQr']
       }),
-      provider_triggers: v.array(callbackTriggerSchema, {
-        name: 'provider_triggers',
-        description: 'Triggers configured on this callback'
+
+      integration_provider_id: v.string({
+        name: 'integration_provider_id',
+        description: 'Integration provider this callback was created for',
+        examples: ['inp_3cDeFgHjKlMnPqRs']
       }),
+
+      provider: v1ProviderPreview.schema,
+
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when the callback was created',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
+
       updated_at: v.date({
         name: 'updated_at',
         description: 'Timestamp when the callback was last updated',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
+  )
+  .build();
+
+export let dashboardCallbackPresenter = Presenter.create(callbackType)
+  .presenter(async ({ callback }, opts) => {
+    let inner = await v1CallbackPresenter.present({ callback }, opts).run();
+
+    return {
+      ...inner,
+      sync: callbackSyncPresenter(callback)
+    };
+  })
+  .schema(
+    v.object({
+      ...v1CallbackPresenter.schema.properties,
+      sync: callbackSyncPresenter.schema
+    }) as any
   )
   .build();

@@ -1,15 +1,20 @@
-import { delay } from '@lowerdeck/delay';
-import type { Instance } from '@metorial/db';
-import { Fabric } from '@metorial/fabric';
 import {
   handleMcpRequest as handleSubspaceMcpRequest,
   McpConnection
 } from '@metorial-subspace/module-connection';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
+import type { Instance } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import z from 'zod';
+import {
+  assertOutpostConnectionAccess,
+  getOutpostAuth,
+  resolveOutpostOrigin
+} from './outpost';
+import { createStreamableHttpResponse, missingMcpResponse } from './streamableHttpResponse';
 
 let agentClientSchema = z.discriminatedUnion('type', [
   z.object({
@@ -46,8 +51,13 @@ let parseOptionalJsonHeader = <T>(
   return { success: false as const, message: `Invalid ${name} header value` };
 };
 
-let publicProxyUrl = (c: Context) => {
+let publicProxyUrl = (c: Context, originOverride?: string) => {
   let inputUrl = new URL(c.req.url);
+
+  if (originOverride) {
+    return `${originOverride}${inputUrl.pathname}${inputUrl.search}`;
+  }
+
   let hostname = inputUrl.hostname;
 
   if (
@@ -65,22 +75,29 @@ let publicProxyUrl = (c: Context) => {
     : `http://${inputUrl.host}${inputUrl.pathname}${inputUrl.search}`;
 };
 
-let applyConnectionHeaders = (
-  c: Context,
+let setConnectionHeaders = (
+  headers: Headers,
   connection: {
     session: { id: string };
     connection?: { id: string; token: string } | null;
   }
 ) => {
+  headers.set('Metorial-Session-Id', connection.session.id);
+  if (connection.connection) {
+    headers.set('Mcp-Session-Id', connection.connection.token);
+    headers.set('Metorial-Connection-Id', connection.connection.id);
+    headers.set('Metorial-Connection-Token', connection.connection.token);
+  }
+};
+
+let applyConnectionHeaders = (
+  c: Context,
+  connection: Parameters<typeof setConnectionHeaders>[1]
+) => {
   // Mutate the live response headers in place. `c.header()` after streamSSE
   // returns recreates the Response from `.body`, which steals the stream and
   // closes the SSE connection with Content-Length: 0.
-  c.res.headers.set('Metorial-Session-Id', connection.session.id);
-  if (connection.connection) {
-    c.res.headers.set('Mcp-Session-Id', connection.connection.token);
-    c.res.headers.set('Metorial-Connection-Id', connection.connection.id);
-    c.res.headers.set('Metorial-Connection-Token', connection.connection.token);
-  }
+  setConnectionHeaders(c.res.headers, connection);
 };
 
 export let handleMcpRequest = async (
@@ -97,6 +114,11 @@ export let handleMcpRequest = async (
     }) => Promise<void> | void;
   }
 ) => {
+  await assertOutpostConnectionAccess(c, {
+    projectOid: d.instance.projectOid,
+    instanceOid: d.instance.oid
+  });
+
   let { tenant, solution } = await subspaceScopeService.ensureForInstance(d.instance);
   let connectionToken =
     c.req.header('mcp-session-id') || c.req.query('connection_token') || undefined;
@@ -104,7 +126,7 @@ export let handleMcpRequest = async (
     connectionToken || (c.req.method === 'POST' && !c.req.query('connection_token'))
       ? 'streamable_http'
       : 'sse';
-  let proxyUrl = publicProxyUrl(c);
+  let proxyUrl = publicProxyUrl(c, resolveOutpostOrigin(getOutpostAuth(c)));
 
   let privateMetadata = parseOptionalJsonHeader(
     c.req.header('metorial-connection-private-metadata'),
@@ -151,18 +173,13 @@ export let handleMcpRequest = async (
   await Fabric.fire('provider.session_message.created:before', { instance: d.instance });
 
   let finish = async (response: Response, connection: McpConnection) => {
-    applyConnectionHeaders(c, connection);
-    let headers = new Headers(response.headers);
-    for (let [key, value] of c.res.headers) headers.set(key, value);
-    let finalResponse = new Response(response.body, {
-      status: response.status,
-      headers
-    });
+    for (let [key, value] of c.res.headers) response.headers.set(key, value);
+    setConnectionHeaders(response.headers, connection);
     await d.onSubspaceSessionResolved?.({
       subspaceSessionId: connection.session.id,
-      response: finalResponse
+      response
     });
-    return finalResponse;
+    return response;
   };
 
   if (transport === 'sse') {
@@ -231,34 +248,60 @@ export let handleMcpRequest = async (
   if (c.req.method === 'POST') {
     let message = await readMessage(c);
     if (message instanceof Response) return message;
-    let progress: JSONRPCMessage[] = [];
-    let { connection, response } = await handleSubspaceMcpRequest({
+
+    let stream = createStreamableHttpResponse();
+    let resolveConnection!: (connection: McpConnection) => void;
+    let connectionPromise = new Promise<McpConnection>(resolve => {
+      resolveConnection = resolve;
+    });
+
+    let requestPromise = handleSubspaceMcpRequest({
       ...connectionInput,
       message,
       waitForResponse: true,
+      onConnection: connection => {
+        resolveConnection(connection);
+      },
       onProgress: async event => {
-        progress.push(event);
+        stream.write(event);
       }
     });
 
-    if (!response && progress.length === 0) {
-      return finish(new Response(null, { status: 202 }), connection);
+    let outcomePromise = requestPromise.then(
+      result => {
+        resolveConnection(result.connection);
+
+        if (result.response?.mcp) {
+          stream.write(result.response.mcp);
+        } else if (stream.hasStarted()) {
+          stream.write(missingMcpResponse(message));
+        }
+
+        stream.close();
+        return { type: 'complete' as const, result };
+      },
+      error => {
+        if (stream.hasStarted()) stream.error(error);
+        else stream.close();
+        return { type: 'error' as const, error };
+      }
+    );
+
+    let first = await Promise.race([
+      stream.started.then(() => ({ type: 'stream' as const })),
+      outcomePromise
+    ]);
+
+    if (first.type === 'error') {
+      if (stream.hasStarted()) return finish(stream.response, await connectionPromise);
+      throw first.error;
     }
 
-    return finish(
-      await sseResponse([
-        ...progress,
-        response?.mcp ?? {
-          jsonrpc: '2.0',
-          id: 'id' in message ? message.id : undefined,
-          error: {
-            code: -32603,
-            message: 'No response produced for MCP request'
-          }
-        }
-      ]),
-      connection
-    );
+    if (first.type === 'complete' && !stream.hasStarted()) {
+      return finish(new Response(null, { status: 202 }), first.result.connection);
+    }
+
+    return finish(stream.response, await connectionPromise);
   }
 
   if (c.req.method === 'DELETE') {
@@ -276,12 +319,4 @@ let readMessage = async (c: Context): Promise<JSONRPCMessage | Response> => {
   } catch {
     return c.text('Invalid JSON body', 400);
   }
-};
-
-let sseResponse = async (messages: JSONRPCMessage[]) => {
-  let body = messages.map(message => `data: ${JSON.stringify(message)}\n\n`).join('');
-  await delay(100);
-  return new Response(body, {
-    headers: { 'Content-Type': 'text/event-stream' }
-  });
 };

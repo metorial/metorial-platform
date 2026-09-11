@@ -13,7 +13,7 @@ let presentToolFilter = (toolFilter: unknown) =>
   toolFilter ? toolFilterPresenter(toolFilter as PrismaJson.ToolFilter) : null;
 
 export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
-  .presenter(async ({ consumerProvider }, opts) => {
+  .presenter(async ({ consumerProvider, tenant }, opts) => {
     let base = {
       object: 'consumer.provider' as const,
       id: consumerProvider.listing.id,
@@ -51,7 +51,8 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
       provider: await v1ProviderPresenter
         .present(
           {
-            provider: consumerProvider.provider
+            provider: consumerProvider.provider,
+            tenant
           },
           opts
         )

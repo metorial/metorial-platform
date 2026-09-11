@@ -47,6 +47,7 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
     authConfig.authMethod.spec.capabilities.handleChangedInput?.enabled
   ) {
     let stack = await slateInvocationService.createInvocation({
+      tenant: authConfig.tenant,
       slateVersion: version,
       participants: []
     });
@@ -90,6 +91,7 @@ export let processAuthQueueProcessor = processAuthQueue.process(async data => {
 
   if (!decrypted.output) {
     let stack = await slateInvocationService.createInvocation({
+      tenant: authConfig.tenant,
       slateVersion: version,
       participants: []
     });

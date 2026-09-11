@@ -1,4 +1,5 @@
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { fileService } from './file';
@@ -72,6 +73,7 @@ class ReconcileServiceImpl {
 
   async reconcileFiles(
     d: CargoOwnerScope & {
+      auditScope: AuditScope;
       inputs: Array<{
         id: string;
         storeId: string;

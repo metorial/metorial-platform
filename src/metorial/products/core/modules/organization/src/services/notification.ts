@@ -40,6 +40,7 @@ class OrganizationNotificationService {
     onlyForMemberIds?: string[];
     notForMemberIds?: string[];
     onlyForMemberRoles?: OrganizationMemberRole[];
+    suppressEmail?: boolean;
   }) {
     let type = await OrganizationNotificationTypes[i.type];
 
@@ -58,7 +59,8 @@ class OrganizationNotificationService {
           validUntil: i.input.validUntil,
           onlyForMemberIds: i.onlyForMemberIds ?? [],
           notForMemberIds: i.notForMemberIds ?? [],
-          onlyForMemberRoles: i.onlyForMemberRoles ?? []
+          onlyForMemberRoles: i.onlyForMemberRoles ?? [],
+          suppressEmail: i.suppressEmail ?? false
         },
         include: { type: true }
       });

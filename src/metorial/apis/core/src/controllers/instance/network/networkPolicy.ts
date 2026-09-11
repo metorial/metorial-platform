@@ -115,6 +115,7 @@ export let networkPolicyController = Controller.create(
       .do(async ctx => {
         let networkPolicy = await networkPolicyService.createNetworkPolicy({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -143,6 +144,7 @@ export let networkPolicyController = Controller.create(
       .do(async ctx => {
         let networkPolicy = await networkPolicyService.updateNetworkPolicy({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           networkPolicy: ctx.networkPolicy,
           input: {
             name: ctx.body.name,
@@ -164,6 +166,7 @@ export let networkPolicyController = Controller.create(
       .do(async ctx => {
         await networkPolicyService.archiveNetworkPolicy({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           networkPolicy: ctx.networkPolicy
         });
 
@@ -193,6 +196,7 @@ export let networkPolicyController = Controller.create(
       .do(async ctx => {
         let result = await networkPolicyService.addNetworkPolicyRule({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           networkPolicy: ctx.networkPolicy,
           input: {
             rule: {
@@ -222,6 +226,7 @@ export let networkPolicyController = Controller.create(
       .do(async ctx => {
         let result = await networkPolicyService.updateNetworkPolicyRule({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           networkPolicy: ctx.networkPolicy,
           ruleId: ctx.params.ruleId,
           input: {
@@ -251,6 +256,7 @@ export let networkPolicyController = Controller.create(
       .do(async ctx => {
         let networkPolicy = await networkPolicyService.removeNetworkPolicyRule({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           networkPolicy: ctx.networkPolicy,
           ruleId: ctx.params.ruleId
         });

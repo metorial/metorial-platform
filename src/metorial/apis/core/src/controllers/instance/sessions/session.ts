@@ -275,6 +275,7 @@ export let sessionController = Controller.create(
       .do(async ctx => {
         let subspaceSession = await sessionService.createSession({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
             description: ctx.body.description,
@@ -283,6 +284,7 @@ export let sessionController = Controller.create(
               ctx.body.providers.map(p =>
                 resolveSessionProviderInput({
                   instance: ctx.instance,
+                  auditScope: ctx.auditScope,
                   providerDeployment: mapSessionDeploymentSource(p),
                   providerConfig: mapSessionConfigSource(p),
                   providerAuthConfig: mapSessionAuthConfigSource(p),
@@ -328,6 +330,7 @@ export let sessionController = Controller.create(
       .do(async ctx => {
         let session = await sessionService.updateSession({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           session: ctx.session,
           input: {
             name: ctx.body.name,
@@ -356,6 +359,7 @@ export let sessionController = Controller.create(
       .do(async ctx => {
         let session = await sessionService.deleteSession({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           session: ctx.session
         });
 

@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   ConsumerAccessListing,
   ConsumerSurface,
@@ -9,10 +10,12 @@ import {
   ID,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 
 class ConsumerSurfaceProviderGroupServiceImpl {
   async create(d: {
     consumerSurface: ConsumerSurface;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string;
@@ -31,6 +34,12 @@ class ConsumerSurfaceProviderGroupServiceImpl {
         index: (maxIndex._max.index ?? -1) + 1,
         consumerSurfaceOid: d.consumerSurface.oid
       }
+    });
+
+    await Fabric.fire('consumer.surface_provider_group.created:after', {
+      auditScope: d.auditScope,
+      consumerSurface: d.consumerSurface,
+      consumerSurfaceProviderGroup
     });
 
     return consumerSurfaceProviderGroup;
@@ -67,6 +76,8 @@ class ConsumerSurfaceProviderGroupServiceImpl {
 
   async update(d: {
     consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
+    consumerSurface: ConsumerSurface;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -91,10 +102,21 @@ class ConsumerSurfaceProviderGroupServiceImpl {
       }
     });
 
+    await Fabric.fire('consumer.surface_provider_group.updated:after', {
+      auditScope: d.auditScope,
+      consumerSurface: d.consumerSurface,
+      consumerSurfaceProviderGroup,
+      previousConsumerSurfaceProviderGroup: d.consumerSurfaceProviderGroup
+    });
+
     return consumerSurfaceProviderGroup;
   }
 
-  async delete(d: { consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup }) {
+  async delete(d: {
+    consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
+    consumerSurface: ConsumerSurface;
+    auditScope: AuditScope;
+  }) {
     let oldIndex = d.consumerSurfaceProviderGroup.index;
     let surfaceOid = d.consumerSurfaceProviderGroup.consumerSurfaceOid;
 
@@ -113,11 +135,18 @@ class ConsumerSurfaceProviderGroupServiceImpl {
         }
       });
     });
+
+    await Fabric.fire('consumer.surface_provider_group.deleted:after', {
+      auditScope: d.auditScope,
+      consumerSurface: d.consumerSurface,
+      consumerSurfaceProviderGroup: d.consumerSurfaceProviderGroup
+    });
   }
 
   async addListing(d: {
     consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
     consumerAccessListing: ConsumerAccessListing;
+    auditScope: AuditScope;
   }) {
     if (
       d.consumerAccessListing.surfaceOid != d.consumerSurfaceProviderGroup.consumerSurfaceOid
@@ -138,11 +167,18 @@ class ConsumerSurfaceProviderGroupServiceImpl {
       },
       update: {}
     });
+
+    await Fabric.fire('consumer.surface_provider_group.listing.added:after', {
+      auditScope: d.auditScope,
+      consumerSurfaceProviderGroup: d.consumerSurfaceProviderGroup,
+      consumerAccessListing: { id: d.consumerAccessListing.id }
+    });
   }
 
   async removeListing(d: {
     consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
     consumerAccessListing: ConsumerAccessListing;
+    auditScope: AuditScope;
   }) {
     if (
       d.consumerAccessListing.surfaceOid != d.consumerSurfaceProviderGroup.consumerSurfaceOid
@@ -155,6 +191,12 @@ class ConsumerSurfaceProviderGroupServiceImpl {
         consumerSurfaceProviderGroupOid: d.consumerSurfaceProviderGroup.oid,
         consumerAccessListingOid: d.consumerAccessListing.oid
       }
+    });
+
+    await Fabric.fire('consumer.surface_provider_group.listing.removed:after', {
+      auditScope: d.auditScope,
+      consumerSurfaceProviderGroup: d.consumerSurfaceProviderGroup,
+      consumerAccessListing: { id: d.consumerAccessListing.id }
     });
   }
 

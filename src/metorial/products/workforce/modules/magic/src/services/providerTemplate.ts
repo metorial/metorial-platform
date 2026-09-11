@@ -1,6 +1,8 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
+import { Fabric } from '@metorial/fabric';
 import {
   db,
   ID,
@@ -17,7 +19,12 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import { providerTemplateBackingService } from '@metorial-subspace/module-integration';
+import {
+  integrationService,
+  providerTemplateBackingService
+} from '@metorial-subspace/module-integration';
+import { assertAuthMethodAllowedForTenant } from '@metorial-subspace/module-provider-internal';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import {
   providerTemplateArchivedQueue,
   providerTemplateCreatedQueue,
@@ -122,6 +129,7 @@ class ProviderTemplateServiceImpl {
   async createProviderTemplate(d: {
     organization: Organization;
     instance: Instance;
+    auditScope: AuditScope;
     input: ProviderTemplateCreateInput;
   }): Promise<EnrichedProviderTemplate> {
     let integrationId = d.input.integrationId;
@@ -130,6 +138,21 @@ class ProviderTemplateServiceImpl {
       integrationId
     });
     if (existing) return existing;
+
+    let [{ tenant }, integration] = await Promise.all([
+      subspaceScopeService.ensureForInstance(d.instance),
+      integrationService.getIntegrationById({
+        instance: d.instance,
+        integrationId
+      })
+    ]);
+
+    for (let provider of integration.providers) {
+      assertAuthMethodAllowedForTenant({
+        tenant,
+        authMethod: provider.currentVersion?.authMethod
+      });
+    }
 
     let backing =
       await providerTemplateBackingService.upsertProviderTemplateBackingFromIntegration({
@@ -178,6 +201,14 @@ class ProviderTemplateServiceImpl {
       });
 
       await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
+
+      await Fabric.fire('magic_mcp.provider_template.created:after', {
+        organization: d.organization,
+        instance: d.instance,
+        providerTemplate,
+        auditScope: d.auditScope
+      });
+
       return providerTemplate;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -203,6 +234,7 @@ class ProviderTemplateServiceImpl {
   async updateProviderTemplate(d: {
     providerTemplate: ProviderTemplate;
     instance: Instance;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -243,12 +275,20 @@ class ProviderTemplateServiceImpl {
       });
     }
 
+    await Fabric.fire('magic_mcp.provider_template.updated:after', {
+      instance: d.instance,
+      providerTemplate,
+      previousProviderTemplate: d.providerTemplate,
+      auditScope: d.auditScope
+    });
+
     return providerTemplate;
   }
 
   async archiveProviderTemplate(d: {
     instance: Instance;
     providerTemplate: ProviderTemplate;
+    auditScope: AuditScope;
   }): Promise<EnrichedProviderTemplate> {
     if (d.providerTemplate.status != 'active') {
       throw new ServiceError(
@@ -275,6 +315,12 @@ class ProviderTemplateServiceImpl {
       instanceId: d.instance.id,
       integrationId: providerTemplate.subspaceIntegrationId,
       providerTemplateId: providerTemplate.id
+    });
+
+    await Fabric.fire('magic_mcp.provider_template.archived:after', {
+      instance: d.instance,
+      providerTemplate,
+      auditScope: d.auditScope
     });
 
     return providerTemplate;

@@ -111,6 +111,7 @@ export let magicMcpGroupController = Controller.create(
       .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.createMagicMcpGroup({
+          auditScope: ctx.auditScope,
           organization: ctx.organization,
           performedBy: ctx.actor!,
           instance: ctx.instance,
@@ -140,6 +141,7 @@ export let magicMcpGroupController = Controller.create(
       .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.deleteMagicMcpGroup({
+          auditScope: ctx.auditScope,
           group: ctx.magicMcpGroup
         });
 
@@ -169,6 +171,7 @@ export let magicMcpGroupController = Controller.create(
       .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.updateMagicMcpGroup({
+          auditScope: ctx.auditScope,
           group: ctx.magicMcpGroup,
           input: {
             name: ctx.body.name,
@@ -207,6 +210,7 @@ export let magicMcpGroupController = Controller.create(
       .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.addServersToGroup({
+          auditScope: ctx.auditScope,
           group: ctx.magicMcpGroup,
           serverIds: ctx.body.magic_mcp_server_ids
         });
@@ -241,6 +245,7 @@ export let magicMcpGroupController = Controller.create(
       .use(hasFlags(['magic-mcp-enabled', 'paid-magic-mcp-groups']))
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.removeServersFromGroup({
+          auditScope: ctx.auditScope,
           group: ctx.magicMcpGroup,
           serverIds: ctx.body.magic_mcp_server_ids
         });

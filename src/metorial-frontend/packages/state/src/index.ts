@@ -5,7 +5,6 @@ export { setConsumerSetup, withDashboardSDK, requireConsumerSetup } from './sdk'
 
 export * from './agent';
 export * from './assistant';
-export * from './callback';
 export * from './consumer';
 export * from './custom-provider';
 export * from './deployment';

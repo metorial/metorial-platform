@@ -10,8 +10,8 @@ vi.mock('@lowerdeck/sentry', () => ({
   }))
 }));
 
-let { mockUpdateOne, mockFind, mockDbConnect, auditDbState } = vi.hoisted(() => ({
-  mockUpdateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+let { mockBulkWrite, mockFind, mockDbConnect, auditDbState } = vi.hoisted(() => ({
+  mockBulkWrite: vi.fn().mockResolvedValue({ ok: 1 }),
   mockFind: vi.fn(),
   mockDbConnect: vi.fn().mockResolvedValue({}),
   auditDbState: { enabled: true }
@@ -33,20 +33,32 @@ vi.mock('mongoose', () => {
     default: {
       Schema: mockSchema,
       model: vi.fn(() => ({
-        updateOne: mockUpdateOne,
+        bulkWrite: mockBulkWrite,
         find: mockFind
       }))
     }
   };
 });
 
-import { AuditEventSchema, getAuditEventsByIds, ingestAuditEvent } from './auditEvent';
+import {
+  AuditEventSchema,
+  getAuditEventsByIds,
+  ingestAuditEvent,
+  ingestAuditEvents
+} from './auditEvent';
+
+let expectBulkWrittenOps = () => {
+  expect(mockBulkWrite).toHaveBeenCalledTimes(1);
+  let [ops, options] = mockBulkWrite.mock.calls[0]!;
+  expect(options).toEqual({ ordered: false });
+  return ops as any[];
+};
 
 describe('audit models', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auditDbState.enabled = true;
-    mockUpdateOne.mockResolvedValue({ acknowledged: true });
+    mockBulkWrite.mockResolvedValue({ ok: 1 });
     mockFind.mockReturnValue({
       lean: vi.fn().mockReturnValue({
         exec: vi.fn().mockResolvedValue([])
@@ -76,29 +88,33 @@ describe('audit models', () => {
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     });
 
-    expect(mockUpdateOne).toHaveBeenCalledWith(
-      { _id: 'event-1' },
+    expect(expectBulkWrittenOps()).toEqual([
       {
-        $setOnInsert: {
-          _id: 'event-1',
-          organizationOid: '1',
-          instanceOid: '3',
-          organizationActorOid: '4',
-          actor: {
-            type: 'org_actor',
-            id: 'oac_1',
-            metadata: undefined
+        updateOne: {
+          filter: { _id: 'event-1' },
+          update: {
+            $setOnInsert: {
+              _id: 'event-1',
+              organizationOid: '1',
+              instanceOid: '3',
+              organizationActorOid: '4',
+              actor: {
+                type: 'org_actor',
+                id: 'oac_1',
+                metadata: undefined
+              },
+              context: { ip: '127.0.0.1', ua: 'test' },
+              resource: 'organization',
+              action: 'create',
+              payload: { oid: '5', name: 'Acme' },
+              previousAttributes: { name: 'Old' },
+              recordedAt: new Date('2026-08-12T10:00:00.000Z')
+            }
           },
-          context: { ip: '127.0.0.1', ua: 'test' },
-          resource: 'organization',
-          action: 'create',
-          payload: { oid: '5', name: 'Acme' },
-          previousAttributes: { name: 'Old' },
-          recordedAt: new Date('2026-08-12T10:00:00.000Z')
+          upsert: true
         }
-      },
-      { upsert: true }
-    );
+      }
+    ]);
   });
 
   it('stores a fine-grained actor without an organization actor oid', async () => {
@@ -120,22 +136,26 @@ describe('audit models', () => {
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     });
 
-    expect(mockUpdateOne).toHaveBeenCalledWith(
-      { _id: 'event-2' },
+    expect(expectBulkWrittenOps()).toEqual([
       {
-        $setOnInsert: expect.objectContaining({
-          organizationActorOid: undefined,
-          actor: {
-            type: 'fine_grained_token',
-            id: 'fgk_1',
-            metadata: {
-              sessionIds: ['ses_1', 'ses_2']
-            }
-          }
-        })
-      },
-      { upsert: true }
-    );
+        updateOne: {
+          filter: { _id: 'event-2' },
+          update: {
+            $setOnInsert: expect.objectContaining({
+              organizationActorOid: undefined,
+              actor: {
+                type: 'fine_grained_token',
+                id: 'fgk_1',
+                metadata: {
+                  sessionIds: ['ses_1', 'ses_2']
+                }
+              }
+            })
+          },
+          upsert: true
+        }
+      }
+    ]);
   });
 
   it('batch-loads audit events by id', async () => {
@@ -164,5 +184,57 @@ describe('audit models', () => {
     await expect(getAuditEventsByIds(['event-1'])).resolves.toEqual([]);
     expect(mockDbConnect).not.toHaveBeenCalled();
     expect(mockFind).not.toHaveBeenCalled();
+  });
+
+  it('writes a batch of events in a single bulk operation', async () => {
+    await ingestAuditEvents([
+      {
+        id: 'event-1',
+        organizationOid: 1n,
+        context: { ip: '127.0.0.1' },
+        resource: 'organization',
+        action: 'create',
+        payload: {},
+        recordedAt: new Date('2026-08-12T10:00:00.000Z')
+      },
+      {
+        id: 'event-2',
+        organizationOid: 1n,
+        context: { ip: '127.0.0.1' },
+        resource: 'organization',
+        action: 'update',
+        payload: {},
+        recordedAt: new Date('2026-08-12T10:00:01.000Z')
+      }
+    ]);
+
+    let ops = expectBulkWrittenOps();
+    expect(ops).toHaveLength(2);
+    expect(ops[0].updateOne.filter).toEqual({ _id: 'event-1' });
+    expect(ops[1].updateOne.filter).toEqual({ _id: 'event-2' });
+  });
+
+  it('does not connect or write for an empty batch', async () => {
+    await ingestAuditEvents([]);
+
+    expect(mockDbConnect).not.toHaveBeenCalled();
+    expect(mockBulkWrite).not.toHaveBeenCalled();
+  });
+
+  it('does not write when the audit database is disabled', async () => {
+    auditDbState.enabled = false;
+
+    await ingestAuditEvent({
+      id: 'event-1',
+      organizationOid: 1n,
+      context: { ip: '127.0.0.1' },
+      resource: 'organization',
+      action: 'create',
+      payload: {},
+      recordedAt: new Date('2026-08-12T10:00:00.000Z')
+    });
+
+    expect(mockDbConnect).not.toHaveBeenCalled();
+    expect(mockBulkWrite).not.toHaveBeenCalled();
   });
 });

@@ -5,12 +5,12 @@ import {
   sessionTemplateProviderService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
+import { sessionTemplateProviderPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { sessionTemplateProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from './_shared';
 
 let sessionTemplateProviderGroup = instanceGroup.use(async ctx => {
@@ -145,10 +145,10 @@ export let sessionTemplateProviderController = Controller.create(
         });
         let stp = await sessionTemplateProviderService.createSessionTemplateProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           template,
           input: {
             deploymentId: ctx.body.provider_deployment_id,
-            // The former RPC accepted provider_config_vault_id but never forwarded it.
             configId: ctx.body.provider_config_id,
             authConfigId: ctx.body.provider_auth_config_id,
             toolFilters: normalizeToolFilters(ctx.body.tool_filters)
@@ -180,6 +180,7 @@ export let sessionTemplateProviderController = Controller.create(
       .do(async ctx => {
         let stp = await sessionTemplateProviderService.updateSessionTemplateProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           sessionTemplateProvider: ctx.sessionTemplateProvider,
           input: {
             ...(ctx.body.tool_filters !== undefined
@@ -208,6 +209,7 @@ export let sessionTemplateProviderController = Controller.create(
         let sessionTemplateProvider =
           await sessionTemplateProviderService.archiveSessionTemplateProvider({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             sessionTemplateProvider: ctx.sessionTemplateProvider
           });
 

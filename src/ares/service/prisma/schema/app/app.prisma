@@ -1,9 +1,16 @@
+enum AppMode {
+  standard
+  horizon
+}
+
 model App {
   oid BigInt @id
   id  String @unique
 
   clientId String  @unique
   slug     String? @unique
+
+  mode AppMode @default(standard)
 
   hasTerms Boolean @default(true)
 
@@ -41,7 +48,7 @@ model SyncListener {
   oid BigInt @id
   id  String @unique
 
-  identifier String @unique
+  identifier  String   @unique
   callbackUrl String
   secret      String
   eventTypes  String[] @default(["user.changed"])

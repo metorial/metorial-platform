@@ -226,7 +226,7 @@ describe('auditLogStreamService', () => {
 
   it('persists sanitized provider data when replacing configuration', async () => {
     let providerData = {
-      endpoint: 'https://splunk.example.com/services/collector',
+      endpoint: 'https://http-inputs.customer.splunkcloud.com/services/collector',
       token: 'splunk-secret',
       index: 'audit'
     };

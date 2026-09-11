@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { db } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import { providerPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
@@ -116,6 +117,7 @@ export let providerController = Controller.create(
                 supportsAuth: v.optional(v.boolean()),
                 supportsOAuth: v.optional(v.boolean()),
                 supportsCallbacks: v.optional(v.boolean()),
+                supportsWebhookRegistration: v.optional(v.boolean()),
                 supportsOAuthAutoRegistration: v.optional(v.boolean()),
                 supportsAuthExport: v.optional(v.boolean()),
                 supportsAuthImport: v.optional(v.boolean())
@@ -136,8 +138,13 @@ export let providerController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
 
-        return Paginator.present(list, provider => providerPresenter.present({ provider }));
+        return Paginator.present(list, provider =>
+          providerPresenter.present({ provider, tenant })
+        );
       }),
 
     get: providerGroup
@@ -148,7 +155,11 @@ export let providerController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .output(providerPresenter)
       .do(async ctx => {
-        return providerPresenter.present({ provider: ctx.provider });
+        let tenant = await db.tenant.findFirstOrThrow({
+          where: { projectOid: ctx.project.oid }
+        });
+
+        return providerPresenter.present({ provider: ctx.provider, tenant });
       })
   }
 );

@@ -192,6 +192,7 @@ export let integrationInstanceGroupController = Controller.create(
         let session =
           await integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             integrationInstanceGroup: ctx.integrationInstanceGroup,
             input: {
               name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
@@ -226,6 +227,7 @@ export let integrationInstanceGroupController = Controller.create(
         let integrationInstanceGroup =
           await integrationInstanceGroupService.createIntegrationInstanceGroup({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
@@ -269,6 +271,7 @@ export let integrationInstanceGroupController = Controller.create(
         let integrationInstanceGroup =
           await integrationInstanceGroupService.updateIntegrationInstanceGroup({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             integrationInstanceGroup: ctx.integrationInstanceGroup,
             input: {
               name: ctx.body.name,
@@ -304,6 +307,7 @@ export let integrationInstanceGroupController = Controller.create(
         let integrationInstanceGroup =
           await integrationInstanceGroupService.archiveIntegrationInstanceGroup({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             integrationInstanceGroup: ctx.integrationInstanceGroup
           });
 

@@ -1,6 +1,11 @@
 import { v } from '@lowerdeck/validation';
 import { getOffloadedSessionMessage } from '@metorial-subspace/connection-utils';
-import { messageInputToToolCall, messageOutputToToolCall } from '@metorial-subspace/db';
+import {
+  messageInputToToolCall,
+  messageOutputToToolCall,
+  presentToolCallAttachment,
+  replaceToolCallAttachmentsInOutput
+} from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { toolCallType } from '../../../types';
 import { v1ProviderToolPresenter } from '../provider';
@@ -15,6 +20,14 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
         toolCall.message.input = offloaded.input;
         toolCall.message.output = offloaded.output;
       }
+    }
+
+    let output = toolCall.message.output;
+    if (output?.type === 'tool.result') {
+      output = replaceToolCallAttachmentsInOutput(
+        output,
+        await Promise.all(toolCall.attachments.map(presentToolCallAttachment))
+      );
     }
 
     return {
@@ -52,9 +65,7 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
       input: toolCall.message.input
         ? await messageInputToToolCall(toolCall.message.input, toolCall.message)
         : null,
-      output: toolCall.message.output
-        ? await messageOutputToToolCall(toolCall.message.output, toolCall.message)
-        : null,
+      output: output ? await messageOutputToToolCall(output, toolCall.message) : null,
 
       error: toolCall.message.error
         ? await v1SessionErrorPresenter

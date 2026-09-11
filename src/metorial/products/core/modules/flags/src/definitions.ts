@@ -7,12 +7,14 @@ export type Flags = {
   'custom-providers-enabled': boolean;
   'magic-mcp-enabled': boolean;
   'callbacks-enabled': boolean;
+  'webhooks-enabled': boolean;
   'identity-management': boolean;
   'portals-access': boolean;
   'skills-enabled': boolean;
   'assistant-enabled': boolean;
   'advanced-security-management-enabled': boolean;
   'networking-enabled': boolean;
+  outposts: boolean;
 
   'paid-oauth-import': boolean;
   'paid-oauth-export': boolean;
@@ -24,6 +26,7 @@ export type Flags = {
   'paid-advanced-roles': boolean;
   'paid-audit-logs': boolean;
   'paid-audit-log-streams': boolean;
+  'paid-project-reduced-data-retention': boolean;
   'paid-magic-mcp-groups': boolean;
   'paid-sso-tenants': boolean;
   'paid-portals': boolean;
@@ -40,12 +43,14 @@ export let defaultFlags: Flags = {
   'custom-providers-enabled': false,
   'magic-mcp-enabled': false,
   'callbacks-enabled': false,
+  'webhooks-enabled': false,
   'portals-access': false,
   'identity-management': false,
   'skills-enabled': false,
   'assistant-enabled': false,
   'advanced-security-management-enabled': false,
   'networking-enabled': false,
+  outposts: false,
 
   'paid-oauth-import': true,
   'paid-oauth-export': true,
@@ -57,6 +62,7 @@ export let defaultFlags: Flags = {
   'paid-advanced-roles': true,
   'paid-audit-logs': true,
   'paid-audit-log-streams': true,
+  'paid-project-reduced-data-retention': true,
   'paid-magic-mcp-groups': true,
   'paid-sso-tenants': true,
   'paid-portals': true,

@@ -2,21 +2,19 @@ package workspace
 
 import (
 	"fmt"
+	"html"
 	"io/fs"
 	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
-	"html"
 )
 
-// Server handles serving the embedded VSCode workspace
 type Server struct {
-	fileSystem    fs.FS
-	editorApiUrl  string
+	fileSystem   fs.FS
+	editorApiUrl string
 }
 
-// NewServer creates a new workspace server
 func NewServer(editorApiUrl string) (*Server, error) {
 	distFS, err := GetDistFS()
 	if err != nil {
@@ -29,24 +27,20 @@ func NewServer(editorApiUrl string) (*Server, error) {
 	}, nil
 }
 
-// ServeHTTP implements http.Handler
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	if path == "" {
 		path = "index.html"
 	}
 
-	// Security: prevent directory traversal
 	cleanPath := filepath.Clean(path)
 	if strings.Contains(cleanPath, "..") {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
 
-	// Try to read the file
 	data, err := fs.ReadFile(s.fileSystem, cleanPath)
 	if err != nil {
-		// If file not found and it doesn't have an extension, try adding .html
 		if !strings.Contains(cleanPath, ".") {
 			htmlPath := cleanPath + ".html"
 			data, err = fs.ReadFile(s.fileSystem, htmlPath)
@@ -55,7 +49,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// If still not found, serve index.html for SPA routing
 		if err != nil {
 			data, err = fs.ReadFile(s.fileSystem, "index.html")
 			if err != nil {
@@ -66,17 +59,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Replace placeholders in index.html
 	if cleanPath == "index.html" {
 		content := strings.ReplaceAll(string(data), "{{CODE_BUCKET_EDITOR_API_URL}}", html.EscapeString(s.editorApiUrl))
 		data = []byte(content)
 	}
 
-	// Set content type based on file extension
 	contentType := getContentType(cleanPath)
 	w.Header().Set("Content-Type", contentType)
 
-	// Add caching headers for static assets
 	if strings.Contains(cleanPath, "assets/") || strings.Contains(cleanPath, "vscode/") {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	}
@@ -85,7 +75,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// Start starts the workspace server on the specified address
 func (s *Server) Start(address string) error {
 	log.Printf("Workspace server starting on %s\n", address)
 	return http.ListenAndServe(address, s)

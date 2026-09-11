@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   ConsumerGroup,
   ConsumerSurface,
@@ -25,6 +26,7 @@ import {
 class ConsumerGroupServiceImpl {
   async createConsumerGroup(d: {
     consumerSurface: ConsumerSurface;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string;
@@ -66,6 +68,7 @@ class ConsumerGroupServiceImpl {
       await Fabric.fire('consumer.group.created:after', {
         consumerSurface: d.consumerSurface,
         consumerGroup,
+        auditScope: d.auditScope,
         input: d.input
       });
 
@@ -140,7 +143,9 @@ class ConsumerGroupServiceImpl {
   }
 
   async updateConsumerGroup(d: {
+    consumerSurface: ConsumerSurface;
     consumerGroup: ConsumerGroup;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -179,7 +184,10 @@ class ConsumerGroupServiceImpl {
       });
 
       await Fabric.fire('consumer.group.updated:after', {
+        consumerSurface: d.consumerSurface,
         consumerGroup,
+        previousConsumerGroup: d.consumerGroup,
+        auditScope: d.auditScope,
         input: d.input
       });
 
@@ -191,7 +199,12 @@ class ConsumerGroupServiceImpl {
     return consumerGroup;
   }
 
-  async deleteConsumerGroup(d: { organization: Organization; consumerGroup: ConsumerGroup }) {
+  async deleteConsumerGroup(d: {
+    organization: Organization;
+    consumerSurface: ConsumerSurface;
+    consumerGroup: ConsumerGroup;
+    auditScope: AuditScope;
+  }) {
     if (d.consumerGroup.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -231,7 +244,9 @@ class ConsumerGroupServiceImpl {
 
       await Fabric.fire('consumer.group.archived:after', {
         organization: d.organization,
-        consumerGroup
+        consumerSurface: d.consumerSurface,
+        consumerGroup,
+        auditScope: d.auditScope
       });
 
       return consumerGroup;

@@ -264,6 +264,7 @@ export let sessionProviderController = Controller.create(
         });
         let input = await resolveSessionProviderInput({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerDeployment: mapSessionProviderDeploymentSource(ctx.body),
           providerConfig: mapSessionProviderConfigSource(ctx.body),
           providerAuthConfig: mapSessionProviderAuthConfigSource(ctx.body),
@@ -271,6 +272,7 @@ export let sessionProviderController = Controller.create(
         });
         let sessionProvider = await sessionProviderService.createSessionProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           session,
           input
         });
@@ -304,6 +306,7 @@ export let sessionProviderController = Controller.create(
       .do(async ctx => {
         let sessionProvider = await sessionProviderService.updateSessionProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           sessionProvider: ctx.sessionProvider,
           input: {
             ...(ctx.body.tool_filters !== undefined
@@ -335,6 +338,7 @@ export let sessionProviderController = Controller.create(
       .do(async ctx => {
         let sessionProvider = await sessionProviderService.archiveSessionProvider({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           sessionProvider: ctx.sessionProvider
         });
 

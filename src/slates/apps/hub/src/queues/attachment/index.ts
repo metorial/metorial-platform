@@ -2,13 +2,19 @@ import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
   slateAttachmentCleanupCron,
   slateAttachmentCleanupManyQueueProcessor,
-  slateAttachmentCleanupSingleQueueProcessor
+  slateAttachmentCleanupSingleQueueProcessor,
+  slateAttachmentStoredContentCleanupQueueProcessor,
+  slateAttachmentUploadCleanupManyQueueProcessor,
+  slateAttachmentUploadCleanupSingleQueueProcessor
 } from './cleanup';
-import { slateAttachmentReplicateQueueProcessor } from './replicate';
+import { slateAttachmentUploadDeleteQueueProcessor } from './uploadDelete';
 
 export let attachmentQueues = combineQueueProcessors([
   slateAttachmentCleanupCron,
   slateAttachmentCleanupManyQueueProcessor,
   slateAttachmentCleanupSingleQueueProcessor,
-  slateAttachmentReplicateQueueProcessor
+  slateAttachmentUploadCleanupManyQueueProcessor,
+  slateAttachmentUploadCleanupSingleQueueProcessor,
+  slateAttachmentStoredContentCleanupQueueProcessor,
+  slateAttachmentUploadDeleteQueueProcessor
 ]);

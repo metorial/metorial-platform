@@ -198,7 +198,8 @@ describe('ProjectService', () => {
       expect(create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            magicMcpSessionDurationMinutes: 30
+            magicMcpSessionDurationMinutes: 30,
+            autoAddOrganizationMembersToPortals: true
           })
         })
       );

@@ -20,11 +20,14 @@ service CodeBucket {
   rpc GetBucketFilesWithContentStream(GetBucketFilesRequest) returns (stream GetBucketFilesWithContentChunk);
   rpc GetBucketFilesAsZip(GetBucketFilesAsZipRequest) returns (GetBucketFilesAsZipResponse);
   rpc GetBucketFilesAsZipStream(GetBucketFilesAsZipRequest) returns (stream GetBucketFilesAsZipChunk);
+  rpc ExportBucketFilesAsZipToUpload(ExportBucketFilesAsZipToUploadRequest) returns (ExportBucketFilesAsZipToUploadResponse);
 
   rpc SetBucketFiles(SetBucketFilesRequest) returns (SetBucketFilesResponse);
   rpc SetBucketFile(SetBucketFileRequest) returns (SetBucketFileResponse);
+  rpc CopyBucketFiles(CopyBucketFilesRequest) returns (CopyBucketFilesResponse);
   rpc DeleteBucketFile(DeleteBucketFileRequest) returns (DeleteBucketFileResponse);
   rpc DeleteBucketPath(DeleteBucketPathRequest) returns (DeleteBucketPathResponse);
+  rpc PruneBucketPath(PruneBucketPathRequest) returns (PruneBucketPathResponse);
 
   rpc ExportBucketToGithub(ExportBucketToGithubRequest) returns (ExportBucketToGithubResponse);
   rpc ExportBucketToGitlab(ExportBucketToGitlabRequest) returns (ExportBucketToGitlabResponse);
@@ -127,6 +130,22 @@ message GetBucketFilesAsZipChunk {
   bytes content = 1;
 }
 
+message ExportBucketFilesAsZipToUploadRequest {
+  string bucket_id = 1;
+  string prefix = 2; // Optional filter
+
+  string upload_url = 3;
+  string upload_bucket = 4;
+  string upload_key = 5;
+  string content_type = 6; // Optional, defaults to application/zip
+}
+
+message ExportBucketFilesAsZipToUploadResponse {
+  int64 byte_size = 1;
+  string sha256 = 2;
+  int64 file_count = 3;
+}
+
 message SetBucketFilesRequest {
   string bucket_id = 1;
   repeated FileContentsBase files = 2;
@@ -142,6 +161,21 @@ message SetBucketFileRequest {
 
 message SetBucketFileResponse {}
 
+message CopyBucketFileSource {
+  string path = 1;
+  string source_bucket = 2;
+  string source_key = 3;
+}
+
+message CopyBucketFilesRequest {
+  string bucket_id = 1;
+  repeated CopyBucketFileSource files = 2;
+}
+
+message CopyBucketFilesResponse {
+  repeated string copied_paths = 1;
+}
+
 message DeleteBucketFileRequest {
   string bucket_id = 1;
   string path = 2;
@@ -154,7 +188,20 @@ message DeleteBucketPathRequest {
   string path = 2;
 }
 
-message DeleteBucketPathResponse {}
+message DeleteBucketPathResponse {
+  repeated string deleted_paths = 1;
+}
+
+message PruneBucketPathRequest {
+  string bucket_id = 1;
+  string prefix = 2;
+  repeated string keep_paths = 3;
+  repeated string exclude_prefixes = 4;
+}
+
+message PruneBucketPathResponse {
+  repeated string deleted_paths = 1;
+}
 
 message ExportBucketToGithubRequest {
   string bucket_id = 1;
@@ -164,6 +211,12 @@ message ExportBucketToGithubRequest {
   string token = 5;
   string branch = 6;
   string commit_message = 7;
+  repeated string delete_paths = 8;
+  bool explicit_deletes_only = 9;
+
+  // Files at or above this size are routed through Git LFS.
+  // Zero or negative means use the service default.
+  int64 lfs_threshold_bytes = 10;
 }
 
 message ExportBucketToGithubResponse {}
@@ -185,6 +238,8 @@ message ExportBucketToGitlabRequest {
   string gitlab_api_url = 5;
   string branch = 6;
   string commit_message = 7;
+  repeated string delete_paths = 8;
+  bool explicit_deletes_only = 9;
 }
 
 message ExportBucketToGitlabResponse {}
@@ -218,6 +273,8 @@ message ExportBucketToBitbucketCloudRequest {
   string token = 7;
   string bitbucket_api_url = 8;
   string bitbucket_web_url = 9;
+  repeated string delete_paths = 10;
+  bool explicit_deletes_only = 11;
 }
 
 message ExportBucketToBitbucketDataCenterRequest {
@@ -228,6 +285,8 @@ message ExportBucketToBitbucketDataCenterRequest {
   string commit_message = 5;
   string username = 6;
   string token = 7;
+  repeated string delete_paths = 8;
+  bool explicit_deletes_only = 9;
 }
 
 message ExportBucketToBitbucketResponse {}

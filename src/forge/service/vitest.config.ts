@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   return createVitestConfig({
     test: {
       pool: 'forks',
+      exclude: ['**/node_modules/**', '**/dist/**', '**/*.e2e.test.ts'],
       setupFiles: ['./src/test/setup.ts'],
       env: {
         ...env,

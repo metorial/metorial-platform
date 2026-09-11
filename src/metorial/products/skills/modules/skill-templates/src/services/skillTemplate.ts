@@ -11,6 +11,7 @@ import type {
 } from '@metorial/module-store';
 import { storeService, storeTemplateService } from '@metorial/module-store';
 import type { Prisma } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
@@ -188,6 +189,18 @@ class SkillTemplateServiceImpl {
     }
   }
 
+  private assertAuditScope(d: {
+    auditScope?: AuditScope;
+  }): asserts d is { auditScope: AuditScope } {
+    if (!d.auditScope) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'An audit scope is required to create a skill template from a store'
+        })
+      );
+    }
+  }
+
   private assertRequiredScope(d: StoreTemplateScope): asserts d is RequiredStoreTemplateScope {
     if (!d.project || !d.instance) {
       throw new ServiceError(
@@ -300,6 +313,7 @@ class SkillTemplateServiceImpl {
 
   private async resolveCreateStoreId(
     d: SkillTemplateScope & {
+      auditScope?: AuditScope;
       input: SkillTemplateCreateInput;
     }
   ) {
@@ -310,12 +324,14 @@ class SkillTemplateServiceImpl {
     }
 
     this.assertRequiredScope(d);
+    this.assertAuditScope(d);
 
     if (!d.input.skillId) {
       let plainTemplate = await this.ensurePlainSkillTemplate();
       let store = await storeService.createStoreFromTemplate({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         authorization: { type: 'privileged' },
         input: {
           templateId: plainTemplate.storeTemplate!.id,
@@ -335,6 +351,7 @@ class SkillTemplateServiceImpl {
     let clonedStore = await storeService.cloneStore({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       authorization: { type: 'privileged' },
       store: skill.store!,
       input: {
@@ -349,6 +366,7 @@ class SkillTemplateServiceImpl {
 
   private async createSkillTemplateRecord(
     d: SkillTemplateScope & {
+      auditScope?: AuditScope;
       input: SkillTemplateCreateInput & {
         systemIdentifier?: string | null;
       };
@@ -600,6 +618,7 @@ class SkillTemplateServiceImpl {
 
   async createSkillTemplate(
     d: SkillTemplateScope & {
+      auditScope: AuditScope;
       input: SkillTemplateCreateInput;
     }
   ) {

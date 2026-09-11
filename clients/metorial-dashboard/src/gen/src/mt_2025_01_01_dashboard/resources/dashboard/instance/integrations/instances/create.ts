@@ -113,6 +113,7 @@ export type DashboardInstanceIntegrationsInstancesCreateOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
+    callbackInstanceId: string | null;
     createdAt: Date;
     updatedAt: Date;
     archivedAt: Date | null;
@@ -120,6 +121,7 @@ export type DashboardInstanceIntegrationsInstancesCreateOutput = {
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
+  isOauthCompatible: boolean;
 };
 
 export let mapDashboardInstanceIntegrationsInstancesCreateOutput =
@@ -364,6 +366,10 @@ export let mapDashboardInstanceIntegrationsInstancesCreateOutput =
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
           ),
+          callbackInstanceId: mtMap.objectField(
+            'callback_instance_id',
+            mtMap.passthrough()
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
           archivedAt: mtMap.objectField('archived_at', mtMap.date())
@@ -372,7 +378,11 @@ export let mapDashboardInstanceIntegrationsInstancesCreateOutput =
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    archivedAt: mtMap.objectField('archived_at', mtMap.date())
+    archivedAt: mtMap.objectField('archived_at', mtMap.date()),
+    isOauthCompatible: mtMap.objectField(
+      'is_oauth_compatible',
+      mtMap.passthrough()
+    )
   });
 
 export type DashboardInstanceIntegrationsInstancesCreateBody = {

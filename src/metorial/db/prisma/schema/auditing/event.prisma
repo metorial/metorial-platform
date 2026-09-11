@@ -1,4 +1,4 @@
-model Event {
+model AuditLogEvent {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
@@ -30,4 +30,5 @@ model Event {
   @@index([organizationOid, recordedAt])
   @@index([instanceOid, recordedAt])
   @@index([organizationActorOid, recordedAt])
+  @@map("Event")
 }

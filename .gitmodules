@@ -10,3 +10,6 @@
 [submodule "clients/metorial-go"]
 	path = clients/metorial-go
 	url = https://github.com/metorial/metorial-go
+[submodule "src/outpost"]
+	path = src/outpost
+	url = https://github.com/metorial/outpost.git

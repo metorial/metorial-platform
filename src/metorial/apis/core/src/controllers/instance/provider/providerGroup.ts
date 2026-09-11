@@ -108,6 +108,7 @@ export let providerGroupController = Controller.create(
       .do(async ctx => {
         let group = await providerListingGroupService.createProviderListingGroup({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description
@@ -138,6 +139,7 @@ export let providerGroupController = Controller.create(
       .do(async ctx => {
         let group = await providerListingGroupService.updateProviderListingGroup({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerListingGroup: ctx.group,
           input: {
             name: ctx.body.name,
@@ -173,6 +175,8 @@ export let providerGroupController = Controller.create(
         });
 
         await providerListingGroupService.addProviderToGroup({
+          instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerListingGroup: ctx.group,
           providerListing
         });
@@ -209,6 +213,8 @@ export let providerGroupController = Controller.create(
         });
 
         await providerListingGroupService.removeProviderFromGroup({
+          instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerListingGroup: ctx.group,
           providerListing
         });

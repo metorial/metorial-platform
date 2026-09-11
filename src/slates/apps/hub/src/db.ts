@@ -4,7 +4,10 @@ import type {
   SlatesAction as ProtoSlatesAction,
   SlateAdapter as ProtoSlateAdapter,
   SlateAuthenticationMethod,
-  SlatesMessageProviderIdentifyResponse
+  SlatesMessageProviderIdentifyResponse,
+  SlatesTriggerGroup,
+  SlatesTriggerRoutingMatcher,
+  SlatesWebhookHttpResponse as SlatesWebhookHttpResponseImport
 } from '@slates/proto';
 import { PrismaClient } from '../prisma/generated/client';
 
@@ -85,14 +88,30 @@ declare global {
     type SlateAdapter = ProtoSlateAdapter;
     type SlateAdapterCapabilities = ProtoSlateAdapter['capabilities'];
     type SlateAdapterCapabilityValue = ProtoSlateAdapter['capabilities'][number]['value'];
+    type SlateTriggerGroup = SlatesTriggerGroup;
 
     type SlateAuthMethods = SlateAuthenticationMethod[];
     type SlateActions = ProtoSlatesAction[];
     type SlateAdapters = ProtoSlateAdapter[];
+    type SlateTriggerGroups = SlatesTriggerGroup[];
 
     type AnyRecord = Record<string, any>;
 
     type SlateProviderInfo = SlatesMessageProviderIdentifyResponse['result']['provider'];
+
+    type SlateCapabilities = {
+      hub?: {
+        // Understands slates/hub.capabilities.set
+        capabilitiesNotification?: boolean;
+        // Understands slates/hub.live_invocation.set
+        liveInvocation?: boolean;
+      };
+      provider?: {
+        // Implements slates/trigger_groups.list and the rest of the
+        // trigger_group.* protocol
+        triggerGroups?: boolean;
+      };
+    };
 
     type AuthProfile = {
       id?: string;
@@ -101,5 +120,21 @@ declare global {
       imageUrl?: string;
       [key: string]: any;
     };
+
+    type SlateWebhookEventRequest = {
+      method: string;
+      url: string;
+      headers: Record<string, string>;
+      body: { encoding: 'base64'; content: string } | null;
+    };
+
+    type SlatesWebhookHttpResponse = SlatesWebhookHttpResponseImport;
+
+    type SlateWebhookEventResponseOverride =
+      | { webhookEventId: string }
+      | { webhookEventId: string; warning: { code: string; message: string } }
+      | { webhookEventId: string; error: { code: string; message: string; status: number } };
+
+    type TriggerRawEventMatchers = SlatesTriggerRoutingMatcher[];
   }
 }

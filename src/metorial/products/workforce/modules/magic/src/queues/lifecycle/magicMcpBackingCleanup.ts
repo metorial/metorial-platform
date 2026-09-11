@@ -1,3 +1,4 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db, type Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer-access';
@@ -240,7 +241,12 @@ let archiveLinkedMagicMcpServer = async (d: ServerCleanupSingleInput) => {
   await Fabric.fire('magic_mcp.server.archived:after', {
     organization: magicMcpServer.instance.organization,
     instance: magicMcpServer.instance,
-    magicMcpServer: archived
+    magicMcpServer: archived,
+    auditScope: createSystemAuditScope({
+      organization: magicMcpServer.instance.organization,
+      instance: magicMcpServer.instance,
+      job: 'magicMcp/backingCleanup'
+    })
   });
 };
 

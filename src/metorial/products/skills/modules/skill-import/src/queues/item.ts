@@ -1,4 +1,5 @@
 import { skillService, type SkillRecord } from '@metorial/module-skill';
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer-entities';
 import { createQueue } from '@metorial/queue';
@@ -98,6 +99,12 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     createdSkill = await materializeImportedSkill({
       project: item.skillImport.project,
       instance: item.skillImport.instance,
+      auditScope: createSystemAuditScope({
+        organization: { oid: item.skillImport.instance.organizationOid },
+        instance: item.skillImport.instance,
+        job: 'skill-import',
+        metadata: { skillImportId: item.skillImport.id }
+      }),
       codeBucketId: item.skillImport.codeBucketId,
       skillId: item.targetSkillId,
       rootPath: item.path,

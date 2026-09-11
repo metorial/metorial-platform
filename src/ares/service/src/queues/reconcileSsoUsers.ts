@@ -2,11 +2,8 @@ import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
-import {
-  enqueueSsoUserChange,
-  type SsoUserChangeSource
-} from './recordSsoUserChanges';
 import { ssoGroupRoleService } from '../services/sso/groupRole';
+import { enqueueSsoUserChange, type SsoUserChangeSource } from './recordSsoUserChanges';
 
 let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -83,34 +80,61 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
 
     let ownerProfile = user.ownerProfile;
 
+    if (ownerProfile.status === 'deprovisioned') {
+      await withTransaction(async tdb => {
+        await tdb.ssoUser.update({
+          where: { oid: user.oid },
+          data: {
+            status: 'deprovisioned',
+            email: ownerProfile.email,
+            firstName: ownerProfile.firstName,
+            lastName: ownerProfile.lastName
+          }
+        });
+        await tdb.ssoUserGroup.deleteMany({ where: { userOid: user.oid } });
+        await tdb.ssoUserRole.deleteMany({ where: { userOid: user.oid } });
+      });
+      return;
+    }
+
+    let groupRoots: Map<bigint, { oid: bigint }> = new Map();
+    for (let profileGroup of ownerProfile.groupLinks) {
+      if (profileGroup.group.rootGroup) {
+        groupRoots.set(profileGroup.group.oid, profileGroup.group.rootGroup);
+      } else {
+        let { rootGroup } = await ssoGroupRoleService.syncConnectionGroupRoot({
+          group: profileGroup.group
+        });
+        groupRoots.set(profileGroup.group.oid, rootGroup);
+      }
+    }
+
+    let roleRoots: Map<bigint, { oid: bigint }> = new Map();
+    for (let profileRole of ownerProfile.roleLinks) {
+      if (profileRole.role.rootRole) {
+        roleRoots.set(profileRole.role.oid, profileRole.role.rootRole);
+      } else {
+        let { rootRole } = await ssoGroupRoleService.syncConnectionRoleRoot({
+          role: profileRole.role
+        });
+        roleRoots.set(profileRole.role.oid, rootRole);
+      }
+    }
+
     await withTransaction(async tdb => {
       await tdb.ssoUser.update({
         where: { oid: user.oid },
         data: {
-          status: ownerProfile.status === 'deprovisioned' ? 'deprovisioned' : 'active',
+          status: 'active',
           email: ownerProfile.email,
           firstName: ownerProfile.firstName,
           lastName: ownerProfile.lastName
         }
       });
 
-      if (ownerProfile.status === 'deprovisioned') {
-        await tdb.ssoUserGroup.deleteMany({ where: { userOid: user.oid } });
-        await tdb.ssoUserRole.deleteMany({ where: { userOid: user.oid } });
-        return;
-      }
-
-      // Upserting on the membership pair keeps link ids stable across reconciles, which
-      // downstream mirrors rely on to avoid unique constraint collisions.
       let groupOids: bigint[] = [];
       for (let profileGroup of ownerProfile.groupLinks) {
-        let { rootGroup } =
-          profileGroup.group.rootGroup
-            ? { rootGroup: profileGroup.group.rootGroup }
-            : await ssoGroupRoleService.syncConnectionGroupRoot({
-                group: profileGroup.group
-              });
-
+        let rootGroup = groupRoots.get(profileGroup.group.oid)!;
         groupOids.push(rootGroup.oid);
 
         await tdb.ssoUserGroup.upsert({
@@ -130,13 +154,7 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
 
       let roleOids: bigint[] = [];
       for (let profileRole of ownerProfile.roleLinks) {
-        let { rootRole } =
-          profileRole.role.rootRole
-            ? { rootRole: profileRole.role.rootRole }
-            : await ssoGroupRoleService.syncConnectionRoleRoot({
-                role: profileRole.role
-              });
-
+        let rootRole = roleRoots.get(profileRole.role.oid)!;
         roleOids.push(rootRole.oid);
 
         await tdb.ssoUserRole.upsert({

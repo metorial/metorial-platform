@@ -1,6 +1,7 @@
 import { RedisClient } from 'bun';
 import { nebulaApi } from './controllers';
 import { db } from './db';
+import { env } from './env';
 import { consumerService, keyProviderService, secretPurposeService } from './services';
 
 await consumerService.ensureEnvConsumers();
@@ -9,7 +10,7 @@ await secretPurposeService.warmKnownPurposes();
 
 let server = Bun.serve({
   fetch: nebulaApi,
-  port: 52170
+  port: env.service.NEBULA_API_PORT ?? 52170
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

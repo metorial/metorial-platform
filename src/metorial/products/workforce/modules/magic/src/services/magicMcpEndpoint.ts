@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import { slugify } from '@lowerdeck/slugify';
 import {
   ConsumerProfile,
@@ -234,6 +235,7 @@ class MagicMcpEndpointImpl {
 
   async createMagicMcpEndpoint(d: {
     instance: Instance;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -305,7 +307,8 @@ class MagicMcpEndpointImpl {
 
       await Fabric.fire('magic_mcp.endpoint.created:after', {
         instance: d.instance,
-        magicMcpEndpoint
+        magicMcpEndpoint,
+        auditScope: d.auditScope
       });
 
       return magicMcpEndpoint;
@@ -322,7 +325,7 @@ class MagicMcpEndpointImpl {
     }
   }
 
-  async archiveMagicMcpEndpoint(d: { endpoint: MagicMcpEndpoint }) {
+  async archiveMagicMcpEndpoint(d: { endpoint: MagicMcpEndpoint; auditScope: AuditScope }) {
     if (d.endpoint.status === 'archived') {
       throw new ServiceError(
         preconditionFailedError({
@@ -354,7 +357,8 @@ class MagicMcpEndpointImpl {
 
     await Fabric.fire('magic_mcp.endpoint.archived:after', {
       instance,
-      magicMcpEndpoint
+      magicMcpEndpoint,
+      auditScope: d.auditScope
     });
 
     return magicMcpEndpoint;
@@ -362,6 +366,7 @@ class MagicMcpEndpointImpl {
 
   async updateMagicMcpEndpoint(d: {
     endpoint: MagicMcpEndpointWithRelations;
+    auditScope: AuditScope;
     input: {
       name?: string | null;
       description?: string | null;
@@ -394,12 +399,24 @@ class MagicMcpEndpointImpl {
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
+    let instance = await db.instance.findUniqueOrThrow({
+      where: { oid: d.endpoint.instanceOid }
+    });
+
+    await Fabric.fire('magic_mcp.endpoint.updated:after', {
+      instance,
+      magicMcpEndpoint,
+      previousMagicMcpEndpoint: d.endpoint,
+      auditScope: d.auditScope
+    });
+
     return magicMcpEndpoint;
   }
 
   async addServersToEndpoint(d: {
     endpoint: MagicMcpEndpoint;
     servers: MagicMcpEndpointServerInput[];
+    auditScope: AuditScope;
   }) {
     let serverInputs = dedupeServerInputs(d.servers);
     let serverInputsById = new Map(
@@ -413,6 +430,7 @@ class MagicMcpEndpointImpl {
       select: {
         id: true,
         oid: true,
+        name: true,
         status: true
       }
     });
@@ -493,12 +511,22 @@ class MagicMcpEndpointImpl {
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
 
+    await Fabric.fire('magic_mcp.endpoint.servers.modified:after', {
+      magicMcpEndpoint,
+      operation: 'add',
+      servers: servers
+        .filter(server => !existingServerOids.has(server.oid))
+        .map(server => ({ id: server.id, name: server.name })),
+      auditScope: d.auditScope
+    });
+
     return magicMcpEndpoint;
   }
 
   async removeServersFromEndpoint(d: {
     endpoint: MagicMcpEndpoint;
     magicMcpServerIds: string[];
+    auditScope: AuditScope;
   }) {
     let servers = await db.magicMcpServer.findMany({
       where: {
@@ -506,6 +534,20 @@ class MagicMcpEndpointImpl {
         instanceOid: d.endpoint.instanceOid
       }
     });
+
+    let removedServerOids = servers.length
+      ? new Set(
+          (
+            await db.magicMcpEndpointServer.findMany({
+              where: {
+                magicMcpEndpointOid: d.endpoint.oid,
+                magicMcpServerOid: { in: servers.map(server => server.oid) }
+              },
+              select: { magicMcpServerOid: true }
+            })
+          ).map(link => link.magicMcpServerOid)
+        )
+      : new Set<bigint>();
 
     let magicMcpEndpoint = await withTransaction(async db => {
       if (servers.length) {
@@ -540,6 +582,15 @@ class MagicMcpEndpointImpl {
     });
 
     await magicMcpEndpointUpdatedQueue.add({ magicMcpEndpointId: magicMcpEndpoint.id });
+
+    await Fabric.fire('magic_mcp.endpoint.servers.modified:after', {
+      magicMcpEndpoint,
+      operation: 'remove',
+      servers: servers
+        .filter(server => removedServerOids.has(server.oid))
+        .map(server => ({ id: server.id, name: server.name })),
+      auditScope: d.auditScope
+    });
 
     return magicMcpEndpoint;
   }

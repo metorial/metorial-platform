@@ -212,6 +212,7 @@ export let customProviderVersionController = Controller.create(
         let customProviderVersion =
           await customProviderVersionService.createCustomProviderVersion({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             organizationActor: ctx.actor!,
             customProvider,
             input: {

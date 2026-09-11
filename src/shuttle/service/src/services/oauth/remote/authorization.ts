@@ -210,7 +210,7 @@ class remoteOauthAuthorizationServiceImpl {
 
           let serverOAuthSetup = await db.serverOAuthSetup.findFirst({
             where: { remoteOAuthConnectionSetupOid: res.oid },
-            select: { oid: true }
+            select: { oid: true, tenantOid: true }
           });
           if (serverOAuthSetup) {
             await serverEventService.recordServerOAuthSetupEvent({

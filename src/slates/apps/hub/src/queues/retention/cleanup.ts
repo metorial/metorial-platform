@@ -1,9 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
-import {
-  SlateDeploymentStatus,
-  SlateTriggerEventInputStatus
-} from '../../../prisma/generated/client';
+import { SlateDeploymentStatus } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { env } from '../../env';
 import { invocationsBucketRecord, storage } from '../../storage';
@@ -17,12 +14,6 @@ import {
 type StorageCleanupRecord = {
   key: string;
 };
-
-let terminalTriggerEventInputStatuses = [
-  SlateTriggerEventInputStatus.succeeded,
-  SlateTriggerEventInputStatus.failed,
-  SlateTriggerEventInputStatus.skipped
-];
 
 let processBatch = async <T>(d: {
   findMany: () => Promise<T[]>;
@@ -45,73 +36,6 @@ let enqueueStorageDeletes = async (keys: string[]) => {
   if (keys.length === 0) return;
 
   await slatesRetentionStorageCleanupQueue.addMany(keys.map(key => ({ key })));
-};
-
-let cleanupTenantWebhookRequests = async (d: {
-  receiverTriggerIds: string[];
-  cutoffDate: Date;
-}) => {
-  if (d.receiverTriggerIds.length === 0) return;
-
-  await processBatch<{
-    id: string;
-    bodyStorageKey: string | null;
-  }>({
-    findMany: () =>
-      db.slateTriggerWebhookRequest.findMany({
-        where: {
-          receiverTriggerId: { in: d.receiverTriggerIds },
-          processedAt: { not: null },
-          createdAt: { lt: d.cutoffDate }
-        },
-        orderBy: { createdAt: 'asc' },
-        take: RETENTION_BATCH_SIZE,
-        select: {
-          id: true,
-          bodyStorageKey: true
-        }
-      }),
-    beforeDelete: async records => {
-      await enqueueStorageDeletes(
-        records.flatMap(record => (record.bodyStorageKey ? [record.bodyStorageKey] : []))
-      );
-    },
-    deleteMany: records =>
-      db.slateTriggerWebhookRequest.deleteMany({
-        where: { id: { in: records.map(record => record.id) } }
-      })
-  });
-};
-
-let cleanupTenantTriggerEventInputs = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
-  await processBatch<{
-    id: string;
-    payloadStorageKey: string | null;
-  }>({
-    findMany: () =>
-      db.slateTriggerEventInput.findMany({
-        where: {
-          receiver: { tenantOid: d.tenantOid },
-          status: { in: terminalTriggerEventInputStatuses },
-          createdAt: { lt: d.cutoffDate }
-        },
-        orderBy: { createdAt: 'asc' },
-        take: RETENTION_BATCH_SIZE,
-        select: {
-          id: true,
-          payloadStorageKey: true
-        }
-      }),
-    beforeDelete: async records => {
-      await enqueueStorageDeletes(
-        records.flatMap(record => (record.payloadStorageKey ? [record.payloadStorageKey] : []))
-      );
-    },
-    deleteMany: records =>
-      db.slateTriggerEventInput.deleteMany({
-        where: { id: { in: records.map(record => record.id) } }
-      })
-  });
 };
 
 let cleanupTenantInstanceEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
@@ -324,6 +248,84 @@ let cleanupTenantDeployments = async (d: { tenantOid: bigint; cutoffDate: Date }
   });
 };
 
+let cleanupTenantTriggerEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch({
+    findMany: () =>
+      db.triggerEvent.findMany({
+        where: {
+          triggerRegistrationInstance: { triggerRegistration: { tenantOid: d.tenantOid } },
+          status: { in: ['mapped', 'mapping_failed_final'] },
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { id: true, payloadStorageKey: true }
+      }),
+    beforeDelete: async records => {
+      await enqueueStorageDeletes(
+        records.flatMap(record => (record.payloadStorageKey ? [record.payloadStorageKey] : []))
+      );
+    },
+    deleteMany: records =>
+      // TriggerEventInvocation rows cascade-delete along with their TriggerEvent.
+      db.triggerEvent.deleteMany({
+        where: { id: { in: records.map(record => record.id) } }
+      })
+  });
+};
+
+let cleanupTenantTriggerRawEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch({
+    findMany: () =>
+      db.triggerRawEvent.findMany({
+        where: {
+          triggerRegistrationInstance: { triggerRegistration: { tenantOid: d.tenantOid } },
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { id: true, payloadStorageKey: true }
+      }),
+    beforeDelete: async records => {
+      await enqueueStorageDeletes(
+        records.flatMap(record => (record.payloadStorageKey ? [record.payloadStorageKey] : []))
+      );
+    },
+    deleteMany: records =>
+      db.triggerRawEvent.deleteMany({
+        where: { id: { in: records.map(record => record.id) } }
+      })
+  });
+};
+
+let cleanupTenantSlateWebhookEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch({
+    findMany: () =>
+      db.slateWebhookEvent.findMany({
+        where: {
+          webhookRegistration: { owner: 'tenant', tenantOid: d.tenantOid },
+          status: { in: ['succeeded', 'failed_final'] },
+          createdAt: { lt: d.cutoffDate },
+          triggerRawEvents: { none: {} },
+          triggerEvents: { none: {} }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { id: true, requestStorageKey: true }
+      }),
+    beforeDelete: async records => {
+      await enqueueStorageDeletes(
+        records.flatMap(record => (record.requestStorageKey ? [record.requestStorageKey] : []))
+      );
+    },
+    deleteMany: records =>
+      // SlateWebhookEventInvocation rows cascade-delete along with their SlateWebhookEvent.
+      db.slateWebhookEvent.deleteMany({
+        where: { id: { in: records.map(record => record.id) } }
+      })
+  });
+};
+
 export let slatesRetentionCron = createCron(
   {
     name: 'shub/ret/cron',
@@ -381,25 +383,7 @@ export let slatesTenantRetentionCleanupQueueProcessor =
     if (!tenant) return;
 
     let cutoffDate = getRetentionCutoffDate(tenant.logRetentionInDays);
-    let receiverTriggerIds = (
-      await db.slateTriggerReceiverTrigger.findMany({
-        where: {
-          receiver: {
-            tenantOid: tenant.oid
-          }
-        },
-        select: { id: true }
-      })
-    ).map(record => record.id);
 
-    await cleanupTenantWebhookRequests({
-      receiverTriggerIds,
-      cutoffDate
-    });
-    await cleanupTenantTriggerEventInputs({
-      tenantOid: tenant.oid,
-      cutoffDate
-    });
     await cleanupTenantInstanceEvents({
       tenantOid: tenant.oid,
       cutoffDate
@@ -433,6 +417,18 @@ export let slatesTenantRetentionCleanupQueueProcessor =
       cutoffDate
     });
     await cleanupTenantDeployments({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupTenantTriggerEvents({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupTenantTriggerRawEvents({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupTenantSlateWebhookEvents({
       tenantOid: tenant.oid,
       cutoffDate
     });

@@ -147,5 +147,10 @@ model DocumentVersionEditors {
   resourceActorOid BigInt
   resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
 
+  ip String?
+  ua String?
+
+  createdAt DateTime @default(now())
+
   @@unique([documentVersionOid, resourceActorOid])
 }

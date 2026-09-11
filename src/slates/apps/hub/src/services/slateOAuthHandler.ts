@@ -62,6 +62,7 @@ class slateOAuthHandlerServiceImpl {
 
     let urlRes = await slateInvocationService.getOAuthUrl({
       stack: await slateInvocationService.createInvocation({
+        tenant: setup.tenant,
         participants: [],
         slateVersion: setup.slateVersion,
         enclaveId: setup.instanceConfiguration?.enclaveId,
@@ -181,7 +182,12 @@ class slateOAuthHandlerServiceImpl {
   }
 
   async completeOAuthFlow(d: {
-    input: { code: string; state?: string; lastOAuthSetupCookieId: string };
+    input: {
+      code: string;
+      state?: string;
+      lastOAuthSetupCookieId: string;
+      callbackParams: Record<string, string>;
+    };
   }) {
     let setups = await db.slateInstanceOAuthSetup.findMany({
       where: {
@@ -230,6 +236,7 @@ class slateOAuthHandlerServiceImpl {
 
     let authRes = await slateInvocationService.getOAuthCallback({
       stack: await slateInvocationService.createInvocation({
+        tenant: setup.tenant,
         participants: [],
         slateVersion: setup.slateVersion,
         enclaveId: setup.instanceConfiguration?.enclaveId,
@@ -243,6 +250,7 @@ class slateOAuthHandlerServiceImpl {
       authenticationMethodId: setup.authMethod.key,
       redirectUri: setup.callbackUrlOverride ?? callbackUrl,
       input: oauthSecret.input,
+      callbackParams: d.input.callbackParams,
       callbackState: oauthSecret.callbackState,
       clientId: credentialsSecrets.clientId,
       clientSecret: credentialsSecrets.clientSecret,
@@ -333,6 +341,7 @@ class slateOAuthHandlerServiceImpl {
         type: 'oauth_automated',
         tokenExpiresAt,
         grantedScopes: authRes.data.scopes ?? setup.oauthCredentials.scopes,
+        routingMatchers: authRes.data.routingMatchers,
 
         tenantOid: setup.tenantOid,
         secretOid: authConfigSecret.oid,

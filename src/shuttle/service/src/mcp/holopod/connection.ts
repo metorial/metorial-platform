@@ -85,7 +85,7 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
     this.#grpcClient = createSessionClient();
     this.#stream = this.#grpcClient.run();
 
-    this.logger = new ConnectionLogger(this.connection);
+    this.logger = new ConnectionLogger(this.connection, tenant);
     this.messenger = new ConnectionMessenger();
     this.manager = new ConnectionManager(this.connection);
 

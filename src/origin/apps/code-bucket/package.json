@@ -7,7 +7,8 @@
   "scripts": {
     "enterprise:dev": "make dev",
     "dev": "make dev",
-    "proto": "mkdir -p ./proto/compiled_proto && cd ./proto && grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=../node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./compiled_proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false --proto_path=. rpc.proto"
+    "proto": "mkdir -p ./proto/compiled_proto && cd ./proto && grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=../node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./compiled_proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false --proto_path=. rpc.proto",
+    "dev:start": "make dev"
   },
   "devDependencies": {
     "@types/bun": "latest",

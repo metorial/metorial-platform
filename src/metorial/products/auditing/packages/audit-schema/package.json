@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@lowerdeck/validation": "workspace:*",
+    "@metorial/audit-resources-subspace": "workspace:*",
+    "@metorial/audit-stash": "workspace:*",
     "@metorial/db": "^1.0.0",
     "@metorial/module-organization": "workspace:*",
     "@metorial/presenter": "^1.0.0",

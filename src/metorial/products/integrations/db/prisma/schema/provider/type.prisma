@@ -1,0 +1,28 @@
+model ProviderType {
+  oid Int    @id
+  id  String @unique
+
+  shortKey String @unique
+
+  identifier String @unique
+  name       String
+
+  /// [ProviderTypeAttributes]
+  attributes Json
+
+  supportsConfig                Boolean @default(false)
+  supportsAuth                  Boolean @default(false)
+  supportsOAuth                 Boolean @default(false)
+  supportsCallbacks             Boolean @default(false)
+  supportsWebhookRegistration   Boolean @default(false)
+  supportsOAuthAutoRegistration Boolean @default(false)
+  supportsAuthExport            Boolean @default(false)
+  supportsAuthImport            Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  providers               Provider[]
+  providerVersions        ProviderVersion[]
+  providerListings        ProviderListing[]
+  tenantOAuthCallbackUrls TenantOAuthCallbackUrl[]
+}

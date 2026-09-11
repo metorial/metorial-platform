@@ -185,6 +185,7 @@ export let identityController = Controller.create(
         });
         let identity = await identityService.createIdentity({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           actor,
           input: {
             name: ctx.body.name,
@@ -236,6 +237,7 @@ export let identityController = Controller.create(
       .do(async ctx => {
         let identity = await identityService.updateIdentity({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           identity: ctx.identity,
           input: {
             name: ctx.body.name,
@@ -258,6 +260,7 @@ export let identityController = Controller.create(
       .do(async ctx => {
         let identity = await identityService.archiveIdentity({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           identity: ctx.identity
         });
 

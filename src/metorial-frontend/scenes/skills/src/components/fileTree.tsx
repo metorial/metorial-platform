@@ -28,6 +28,8 @@ export type SkillFileTreeNode = {
   fileId?: string;
   fileType?: string;
   isPending?: boolean;
+  fileSize?: number;
+  uploadProgress?: number;
   children: SkillFileTreeNode[];
 };
 
@@ -50,7 +52,7 @@ let TreeItemStack = styled.div`
 let TreeRowButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
   min-width: 0;
   flex: 1;
@@ -93,7 +95,7 @@ let TreeRowButton = styled.button`
 let TreeRowLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   align-self: stretch;
   min-width: 0;
   flex: 1;
@@ -122,7 +124,7 @@ let TreeRowLink = styled(Link)`
 let TreeRowShell = styled.div<{ $active?: boolean; $dropTarget?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
   height: 32px;
   min-height: 32px;
@@ -203,7 +205,7 @@ let ChevronSpacer = styled.div`
 let TreeLabel = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
   flex: 1;
 `;
@@ -242,6 +244,16 @@ let TreeSpinnerWrap = styled.div`
   width: 24px;
   height: 24px;
   flex: 0 0 auto;
+`;
+
+let TreeProgress = styled.div`
+  flex: 0 0 auto;
+  min-width: 32px;
+  color: ${theme.colors.gray700};
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
 `;
 
 let TreeName = styled.div`
@@ -301,6 +313,21 @@ let CreateInputWrap = styled.div`
 `;
 
 export type SkillFileTreeCreateKind = 'file' | 'document' | 'directory';
+
+let LARGE_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+let TreePendingIndicator = (p: { node: SkillFileTreeNode }) => {
+  let showPercent = p.node.fileSize != null && p.node.fileSize > LARGE_UPLOAD_BYTES;
+  if (!showPercent) {
+    return (
+      <TreeSpinnerWrap>
+        <Spinner size={14} />
+      </TreeSpinnerWrap>
+    );
+  }
+
+  return <TreeProgress>{Math.round((p.node.uploadProgress ?? 0) * 100)}%</TreeProgress>;
+};
 
 let TreeIcon = (p: { kind: SkillFileTreeNode['kind']; open?: boolean }) => {
   if (p.kind == 'directory') {
@@ -766,9 +793,7 @@ let SkillFileTreeRow = (p: {
           </TreeLabel>
         )}
         {p.node.isPending ? (
-          <TreeSpinnerWrap>
-            <Spinner size={14} />
-          </TreeSpinnerWrap>
+          <TreePendingIndicator node={p.node} />
         ) : canDelete ? (
           <Menu
             label={`Actions for ${p.node.name}`}

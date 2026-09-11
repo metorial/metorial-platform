@@ -18,7 +18,8 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
   AlwaysOffSampler,
   BatchSpanProcessor,
-  ParentBasedSampler
+  ParentBasedSampler,
+  TraceIdRatioBasedSampler
 } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
@@ -56,6 +57,16 @@ let parseHeaders = (headers: string | undefined): Record<string, string> | undef
 
 let parseResourceAttributes = (attrs: string | undefined): Record<string, string> =>
   parseKeyValuePairs(attrs);
+
+let getTraceSampleRate = () => {
+  let configuredRate = Number(process.env.OTEL_TRACES_SAMPLER_ARG);
+
+  if (Number.isFinite(configuredRate) && configuredRate >= 0 && configuredRate <= 1) {
+    return configuredRate;
+  }
+
+  return 0.1;
+};
 
 export {
   context as otelContext,
@@ -115,6 +126,7 @@ export let initTelemetry = (opts: { serviceName: string; allowRootSpans?: boolea
   let extraResourceAttributes = parseResourceAttributes(process.env.OTEL_RESOURCE_ATTRIBUTES);
   let allowRootSpans =
     opts.allowRootSpans === true || process.env.OTEL_ALLOW_ROOT_SPANS === 'true';
+  let traceSampleRate = getTraceSampleRate();
 
   let provider = new NodeTracerProvider({
     resource: resourceFromAttributes({
@@ -123,11 +135,11 @@ export let initTelemetry = (opts: { serviceName: string; allowRootSpans?: boolea
         process.env.METORIAL_ENV ?? process.env.NODE_ENV ?? 'development',
       ...extraResourceAttributes
     }),
-    sampler: allowRootSpans
-      ? undefined
-      : new ParentBasedSampler({
-          root: new AlwaysOffSampler()
-        }),
+    sampler: new ParentBasedSampler({
+      root: allowRootSpans
+        ? new TraceIdRatioBasedSampler(traceSampleRate)
+        : new AlwaysOffSampler()
+    }),
     spanProcessors: [
       new BatchSpanProcessor(
         new OTLPTraceExporter({
@@ -157,6 +169,6 @@ export let initTelemetry = (opts: { serviceName: string; allowRootSpans?: boolea
   initialized = true;
 
   console.log(
-    `[otel] initialized for ${serviceName} -> ${endpoint} (allowRootSpans=${allowRootSpans})`
+    `[otel] initialized for ${serviceName} -> ${endpoint} (allowRootSpans=${allowRootSpans}, traceSampleRate=${traceSampleRate})`
   );
 };

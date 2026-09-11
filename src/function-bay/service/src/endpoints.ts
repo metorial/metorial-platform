@@ -1,10 +1,11 @@
 import { RedisClient } from 'bun';
 import { functionBayApi } from './controllers';
 import { db } from './db';
+import { env } from './env';
 
 let server = Bun.serve({
   fetch: functionBayApi,
-  port: 52030
+  port: env.service.FUNCTION_BAY_API_PORT ?? 52030
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

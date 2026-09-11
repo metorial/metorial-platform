@@ -7,6 +7,8 @@ import {
 import { Logo } from '@metorial-io/ui';
 import {
   RiFileList3Line,
+  RiFlashlightLine,
+  RiGlobalLine,
   RiRefreshLine,
   RiRocketLine,
   RiSearchEyeLine,
@@ -14,6 +16,7 @@ import {
 } from '@remixicon/react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useAuth } from '../context/AuthContext';
 import { useSlate } from '../state';
 
 let ContentWrapper = styled.div`
@@ -28,6 +31,7 @@ export let Layout = () => {
   let { pathname } = useLocation();
   let { slateId } = useParams<{ slateId?: string }>();
   let { data: slate } = useSlate(slateId);
+  let { devToolsEnabled } = useAuth();
 
   let mainItems = [
     {
@@ -59,7 +63,23 @@ export let Layout = () => {
       label: 'Events',
       to: '/events',
       isActive: pathname === '/events'
-    }
+    },
+    {
+      icon: <RiGlobalLine />,
+      label: 'Webhooks',
+      to: '/webhooks',
+      isActive: isPrefixMatch(pathname, '/webhooks')
+    },
+    ...(devToolsEnabled
+      ? [
+          {
+            icon: <RiFlashlightLine />,
+            label: 'Webhook Triggers',
+            to: '/dev/webhook-triggers',
+            isActive: isPrefixMatch(pathname, '/dev/webhook-triggers')
+          }
+        ]
+      : [])
   ];
 
   let currentItem = mainItems.find(item => item.isActive);

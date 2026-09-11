@@ -3,20 +3,21 @@ import { adminApi } from './apis/admin';
 import { slatesRegistryApi } from './apis/internal';
 import { registryApp } from './apis/public';
 import { db } from './db';
+import { env } from './env';
 
 Bun.serve({
   fetch: registryApp.fetch,
-  port: 52040
+  port: env.ports.SLATES_REGISTRY_PUBLIC_PORT ?? 52040
 });
 
 Bun.serve({
   fetch: slatesRegistryApi,
-  port: 52041
+  port: env.ports.SLATES_REGISTRY_INTERNAL_PORT ?? 52041
 });
 
 Bun.serve({
   fetch: adminApi,
-  port: 52042
+  port: env.ports.SLATES_REGISTRY_ADMIN_PORT ?? 52042
 });
 
 console.log('Slates registry server is running');

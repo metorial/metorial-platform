@@ -1,3 +1,4 @@
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { consumerAccessService } from '../../services/consumerAccess';
@@ -72,6 +73,11 @@ export let consumerAccessRequestUpdatedQueueProcessor =
       : consumerAccessRequest.consumerProfile.personalConsumerGroup;
     if (!consumerGroup || consumerGroup.status !== 'active') return;
 
+    let auditScope = createSystemAuditScope({
+      organization: consumerAccessRequest.surface.organization,
+      job: 'consumerAccessRequest/approved'
+    });
+
     if (
       consumerAccessRequest.type === 'provider_template' &&
       consumerAccessRequest.providerTemplate?.status === 'active'
@@ -80,6 +86,7 @@ export let consumerAccessRequestUpdatedQueueProcessor =
         organization: consumerAccessRequest.surface.organization,
         consumerSurface: consumerAccessRequest.surface,
         consumerGroup,
+        auditScope,
         access: {
           type: 'provider_template',
           providerTemplate: consumerAccessRequest.providerTemplate
@@ -100,6 +107,7 @@ export let consumerAccessRequestUpdatedQueueProcessor =
         organization: consumerAccessRequest.surface.organization,
         consumerSurface: consumerAccessRequest.surface,
         consumerGroup,
+        auditScope,
         access: {
           type: 'magic_mcp_server',
           magicMcpServer: consumerAccessRequest.magicMcpServer

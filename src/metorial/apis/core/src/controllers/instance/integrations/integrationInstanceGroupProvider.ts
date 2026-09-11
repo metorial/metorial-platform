@@ -195,6 +195,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
         let integrationInstanceGroupProvider =
           await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvider({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             integrationInstanceGroup: ctx.integrationInstanceGroup,
             input: {
               integrationInstanceProviderId: ctx.params.integrationInstanceProviderId,

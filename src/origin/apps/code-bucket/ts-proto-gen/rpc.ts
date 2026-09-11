@@ -127,6 +127,23 @@ export interface GetBucketFilesAsZipChunk {
   content: Uint8Array;
 }
 
+export interface ExportBucketFilesAsZipToUploadRequest {
+  bucketId: string;
+  /** Optional filter */
+  prefix: string;
+  uploadUrl: string;
+  uploadBucket: string;
+  uploadKey: string;
+  /** Optional, defaults to application/zip */
+  contentType: string;
+}
+
+export interface ExportBucketFilesAsZipToUploadResponse {
+  byteSize: Long;
+  sha256: string;
+  fileCount: Long;
+}
+
 export interface SetBucketFilesRequest {
   bucketId: string;
   files: FileContentsBase[];
@@ -144,6 +161,21 @@ export interface SetBucketFileRequest {
 export interface SetBucketFileResponse {
 }
 
+export interface CopyBucketFileSource {
+  path: string;
+  sourceBucket: string;
+  sourceKey: string;
+}
+
+export interface CopyBucketFilesRequest {
+  bucketId: string;
+  files: CopyBucketFileSource[];
+}
+
+export interface CopyBucketFilesResponse {
+  copiedPaths: string[];
+}
+
 export interface DeleteBucketFileRequest {
   bucketId: string;
   path: string;
@@ -158,6 +190,18 @@ export interface DeleteBucketPathRequest {
 }
 
 export interface DeleteBucketPathResponse {
+  deletedPaths: string[];
+}
+
+export interface PruneBucketPathRequest {
+  bucketId: string;
+  prefix: string;
+  keepPaths: string[];
+  excludePrefixes: string[];
+}
+
+export interface PruneBucketPathResponse {
+  deletedPaths: string[];
 }
 
 export interface ExportBucketToGithubRequest {
@@ -168,6 +212,13 @@ export interface ExportBucketToGithubRequest {
   token: string;
   branch: string;
   commitMessage: string;
+  deletePaths: string[];
+  explicitDeletesOnly: boolean;
+  /**
+   * Files at or above this size are routed through Git LFS.
+   * Zero or negative means use the service default.
+   */
+  lfsThresholdBytes: Long;
 }
 
 export interface ExportBucketToGithubResponse {
@@ -190,6 +241,8 @@ export interface ExportBucketToGitlabRequest {
   gitlabApiUrl: string;
   branch: string;
   commitMessage: string;
+  deletePaths: string[];
+  explicitDeletesOnly: boolean;
 }
 
 export interface ExportBucketToGitlabResponse {
@@ -224,6 +277,8 @@ export interface ExportBucketToBitbucketCloudRequest {
   token: string;
   bitbucketApiUrl: string;
   bitbucketWebUrl: string;
+  deletePaths: string[];
+  explicitDeletesOnly: boolean;
 }
 
 export interface ExportBucketToBitbucketDataCenterRequest {
@@ -234,6 +289,8 @@ export interface ExportBucketToBitbucketDataCenterRequest {
   commitMessage: string;
   username: string;
   token: string;
+  deletePaths: string[];
+  explicitDeletesOnly: boolean;
 }
 
 export interface ExportBucketToBitbucketResponse {
@@ -1871,6 +1928,270 @@ export const GetBucketFilesAsZipChunk: MessageFns<GetBucketFilesAsZipChunk> = {
   },
 };
 
+function createBaseExportBucketFilesAsZipToUploadRequest(): ExportBucketFilesAsZipToUploadRequest {
+  return { bucketId: "", prefix: "", uploadUrl: "", uploadBucket: "", uploadKey: "", contentType: "" };
+}
+
+export const ExportBucketFilesAsZipToUploadRequest: MessageFns<ExportBucketFilesAsZipToUploadRequest> = {
+  encode(message: ExportBucketFilesAsZipToUploadRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bucketId !== "") {
+      writer.uint32(10).string(message.bucketId);
+    }
+    if (message.prefix !== "") {
+      writer.uint32(18).string(message.prefix);
+    }
+    if (message.uploadUrl !== "") {
+      writer.uint32(26).string(message.uploadUrl);
+    }
+    if (message.uploadBucket !== "") {
+      writer.uint32(34).string(message.uploadBucket);
+    }
+    if (message.uploadKey !== "") {
+      writer.uint32(42).string(message.uploadKey);
+    }
+    if (message.contentType !== "") {
+      writer.uint32(50).string(message.contentType);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportBucketFilesAsZipToUploadRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportBucketFilesAsZipToUploadRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.prefix = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.uploadUrl = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.uploadBucket = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.uploadKey = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.contentType = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExportBucketFilesAsZipToUploadRequest {
+    return {
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : isSet(object.bucket_id)
+        ? globalThis.String(object.bucket_id)
+        : "",
+      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : "",
+      uploadUrl: isSet(object.uploadUrl)
+        ? globalThis.String(object.uploadUrl)
+        : isSet(object.upload_url)
+        ? globalThis.String(object.upload_url)
+        : "",
+      uploadBucket: isSet(object.uploadBucket)
+        ? globalThis.String(object.uploadBucket)
+        : isSet(object.upload_bucket)
+        ? globalThis.String(object.upload_bucket)
+        : "",
+      uploadKey: isSet(object.uploadKey)
+        ? globalThis.String(object.uploadKey)
+        : isSet(object.upload_key)
+        ? globalThis.String(object.upload_key)
+        : "",
+      contentType: isSet(object.contentType)
+        ? globalThis.String(object.contentType)
+        : isSet(object.content_type)
+        ? globalThis.String(object.content_type)
+        : "",
+    };
+  },
+
+  toJSON(message: ExportBucketFilesAsZipToUploadRequest): unknown {
+    const obj: any = {};
+    if (message.bucketId !== "") {
+      obj.bucketId = message.bucketId;
+    }
+    if (message.prefix !== "") {
+      obj.prefix = message.prefix;
+    }
+    if (message.uploadUrl !== "") {
+      obj.uploadUrl = message.uploadUrl;
+    }
+    if (message.uploadBucket !== "") {
+      obj.uploadBucket = message.uploadBucket;
+    }
+    if (message.uploadKey !== "") {
+      obj.uploadKey = message.uploadKey;
+    }
+    if (message.contentType !== "") {
+      obj.contentType = message.contentType;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ExportBucketFilesAsZipToUploadRequest>): ExportBucketFilesAsZipToUploadRequest {
+    return ExportBucketFilesAsZipToUploadRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExportBucketFilesAsZipToUploadRequest>): ExportBucketFilesAsZipToUploadRequest {
+    const message = createBaseExportBucketFilesAsZipToUploadRequest();
+    message.bucketId = object.bucketId ?? "";
+    message.prefix = object.prefix ?? "";
+    message.uploadUrl = object.uploadUrl ?? "";
+    message.uploadBucket = object.uploadBucket ?? "";
+    message.uploadKey = object.uploadKey ?? "";
+    message.contentType = object.contentType ?? "";
+    return message;
+  },
+};
+
+function createBaseExportBucketFilesAsZipToUploadResponse(): ExportBucketFilesAsZipToUploadResponse {
+  return { byteSize: Long.ZERO, sha256: "", fileCount: Long.ZERO };
+}
+
+export const ExportBucketFilesAsZipToUploadResponse: MessageFns<ExportBucketFilesAsZipToUploadResponse> = {
+  encode(message: ExportBucketFilesAsZipToUploadResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (!message.byteSize.equals(Long.ZERO)) {
+      writer.uint32(8).int64(message.byteSize.toString());
+    }
+    if (message.sha256 !== "") {
+      writer.uint32(18).string(message.sha256);
+    }
+    if (!message.fileCount.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.fileCount.toString());
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportBucketFilesAsZipToUploadResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportBucketFilesAsZipToUploadResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.byteSize = Long.fromString(reader.int64().toString());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.sha256 = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.fileCount = Long.fromString(reader.int64().toString());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExportBucketFilesAsZipToUploadResponse {
+    return {
+      byteSize: isSet(object.byteSize)
+        ? Long.fromValue(object.byteSize)
+        : isSet(object.byte_size)
+        ? Long.fromValue(object.byte_size)
+        : Long.ZERO,
+      sha256: isSet(object.sha256) ? globalThis.String(object.sha256) : "",
+      fileCount: isSet(object.fileCount)
+        ? Long.fromValue(object.fileCount)
+        : isSet(object.file_count)
+        ? Long.fromValue(object.file_count)
+        : Long.ZERO,
+    };
+  },
+
+  toJSON(message: ExportBucketFilesAsZipToUploadResponse): unknown {
+    const obj: any = {};
+    if (!message.byteSize.equals(Long.ZERO)) {
+      obj.byteSize = (message.byteSize || Long.ZERO).toString();
+    }
+    if (message.sha256 !== "") {
+      obj.sha256 = message.sha256;
+    }
+    if (!message.fileCount.equals(Long.ZERO)) {
+      obj.fileCount = (message.fileCount || Long.ZERO).toString();
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ExportBucketFilesAsZipToUploadResponse>): ExportBucketFilesAsZipToUploadResponse {
+    return ExportBucketFilesAsZipToUploadResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExportBucketFilesAsZipToUploadResponse>): ExportBucketFilesAsZipToUploadResponse {
+    const message = createBaseExportBucketFilesAsZipToUploadResponse();
+    message.byteSize = (object.byteSize !== undefined && object.byteSize !== null)
+      ? Long.fromValue(object.byteSize)
+      : Long.ZERO;
+    message.sha256 = object.sha256 ?? "";
+    message.fileCount = (object.fileCount !== undefined && object.fileCount !== null)
+      ? Long.fromValue(object.fileCount)
+      : Long.ZERO;
+    return message;
+  },
+};
+
 function createBaseSetBucketFilesRequest(): SetBucketFilesRequest {
   return { bucketId: "", files: [] };
 }
@@ -2133,6 +2454,252 @@ export const SetBucketFileResponse: MessageFns<SetBucketFileResponse> = {
   },
 };
 
+function createBaseCopyBucketFileSource(): CopyBucketFileSource {
+  return { path: "", sourceBucket: "", sourceKey: "" };
+}
+
+export const CopyBucketFileSource: MessageFns<CopyBucketFileSource> = {
+  encode(message: CopyBucketFileSource, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.path !== "") {
+      writer.uint32(10).string(message.path);
+    }
+    if (message.sourceBucket !== "") {
+      writer.uint32(18).string(message.sourceBucket);
+    }
+    if (message.sourceKey !== "") {
+      writer.uint32(26).string(message.sourceKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CopyBucketFileSource {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCopyBucketFileSource();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.sourceBucket = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.sourceKey = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CopyBucketFileSource {
+    return {
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      sourceBucket: isSet(object.sourceBucket)
+        ? globalThis.String(object.sourceBucket)
+        : isSet(object.source_bucket)
+        ? globalThis.String(object.source_bucket)
+        : "",
+      sourceKey: isSet(object.sourceKey)
+        ? globalThis.String(object.sourceKey)
+        : isSet(object.source_key)
+        ? globalThis.String(object.source_key)
+        : "",
+    };
+  },
+
+  toJSON(message: CopyBucketFileSource): unknown {
+    const obj: any = {};
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (message.sourceBucket !== "") {
+      obj.sourceBucket = message.sourceBucket;
+    }
+    if (message.sourceKey !== "") {
+      obj.sourceKey = message.sourceKey;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CopyBucketFileSource>): CopyBucketFileSource {
+    return CopyBucketFileSource.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CopyBucketFileSource>): CopyBucketFileSource {
+    const message = createBaseCopyBucketFileSource();
+    message.path = object.path ?? "";
+    message.sourceBucket = object.sourceBucket ?? "";
+    message.sourceKey = object.sourceKey ?? "";
+    return message;
+  },
+};
+
+function createBaseCopyBucketFilesRequest(): CopyBucketFilesRequest {
+  return { bucketId: "", files: [] };
+}
+
+export const CopyBucketFilesRequest: MessageFns<CopyBucketFilesRequest> = {
+  encode(message: CopyBucketFilesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bucketId !== "") {
+      writer.uint32(10).string(message.bucketId);
+    }
+    for (const v of message.files) {
+      CopyBucketFileSource.encode(v!, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CopyBucketFilesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCopyBucketFilesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.files.push(CopyBucketFileSource.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CopyBucketFilesRequest {
+    return {
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : isSet(object.bucket_id)
+        ? globalThis.String(object.bucket_id)
+        : "",
+      files: globalThis.Array.isArray(object?.files)
+        ? object.files.map((e: any) => CopyBucketFileSource.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: CopyBucketFilesRequest): unknown {
+    const obj: any = {};
+    if (message.bucketId !== "") {
+      obj.bucketId = message.bucketId;
+    }
+    if (message.files?.length) {
+      obj.files = message.files.map((e) => CopyBucketFileSource.toJSON(e));
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CopyBucketFilesRequest>): CopyBucketFilesRequest {
+    return CopyBucketFilesRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CopyBucketFilesRequest>): CopyBucketFilesRequest {
+    const message = createBaseCopyBucketFilesRequest();
+    message.bucketId = object.bucketId ?? "";
+    message.files = object.files?.map((e) => CopyBucketFileSource.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseCopyBucketFilesResponse(): CopyBucketFilesResponse {
+  return { copiedPaths: [] };
+}
+
+export const CopyBucketFilesResponse: MessageFns<CopyBucketFilesResponse> = {
+  encode(message: CopyBucketFilesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.copiedPaths) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CopyBucketFilesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCopyBucketFilesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.copiedPaths.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CopyBucketFilesResponse {
+    return {
+      copiedPaths: globalThis.Array.isArray(object?.copiedPaths)
+        ? object.copiedPaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.copied_paths)
+        ? object.copied_paths.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: CopyBucketFilesResponse): unknown {
+    const obj: any = {};
+    if (message.copiedPaths?.length) {
+      obj.copiedPaths = message.copiedPaths;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CopyBucketFilesResponse>): CopyBucketFilesResponse {
+    return CopyBucketFilesResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CopyBucketFilesResponse>): CopyBucketFilesResponse {
+    const message = createBaseCopyBucketFilesResponse();
+    message.copiedPaths = object.copiedPaths?.map((e) => e) || [];
+    return message;
+  },
+};
+
 function createBaseDeleteBucketFileRequest(): DeleteBucketFileRequest {
   return { bucketId: "", path: "" };
 }
@@ -2337,11 +2904,14 @@ export const DeleteBucketPathRequest: MessageFns<DeleteBucketPathRequest> = {
 };
 
 function createBaseDeleteBucketPathResponse(): DeleteBucketPathResponse {
-  return {};
+  return { deletedPaths: [] };
 }
 
 export const DeleteBucketPathResponse: MessageFns<DeleteBucketPathResponse> = {
-  encode(_: DeleteBucketPathResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(message: DeleteBucketPathResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.deletedPaths) {
+      writer.uint32(10).string(v!);
+    }
     return writer;
   },
 
@@ -2352,6 +2922,14 @@ export const DeleteBucketPathResponse: MessageFns<DeleteBucketPathResponse> = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.deletedPaths.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2361,26 +2939,231 @@ export const DeleteBucketPathResponse: MessageFns<DeleteBucketPathResponse> = {
     return message;
   },
 
-  fromJSON(_: any): DeleteBucketPathResponse {
-    return {};
+  fromJSON(object: any): DeleteBucketPathResponse {
+    return {
+      deletedPaths: globalThis.Array.isArray(object?.deletedPaths)
+        ? object.deletedPaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_paths)
+        ? object.deleted_paths.map((e: any) => globalThis.String(e))
+        : [],
+    };
   },
 
-  toJSON(_: DeleteBucketPathResponse): unknown {
+  toJSON(message: DeleteBucketPathResponse): unknown {
     const obj: any = {};
+    if (message.deletedPaths?.length) {
+      obj.deletedPaths = message.deletedPaths;
+    }
     return obj;
   },
 
   create(base?: DeepPartial<DeleteBucketPathResponse>): DeleteBucketPathResponse {
     return DeleteBucketPathResponse.fromPartial(base ?? {});
   },
-  fromPartial(_: DeepPartial<DeleteBucketPathResponse>): DeleteBucketPathResponse {
+  fromPartial(object: DeepPartial<DeleteBucketPathResponse>): DeleteBucketPathResponse {
     const message = createBaseDeleteBucketPathResponse();
+    message.deletedPaths = object.deletedPaths?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBasePruneBucketPathRequest(): PruneBucketPathRequest {
+  return { bucketId: "", prefix: "", keepPaths: [], excludePrefixes: [] };
+}
+
+export const PruneBucketPathRequest: MessageFns<PruneBucketPathRequest> = {
+  encode(message: PruneBucketPathRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bucketId !== "") {
+      writer.uint32(10).string(message.bucketId);
+    }
+    if (message.prefix !== "") {
+      writer.uint32(18).string(message.prefix);
+    }
+    for (const v of message.keepPaths) {
+      writer.uint32(26).string(v!);
+    }
+    for (const v of message.excludePrefixes) {
+      writer.uint32(34).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PruneBucketPathRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePruneBucketPathRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.prefix = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.keepPaths.push(reader.string());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.excludePrefixes.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PruneBucketPathRequest {
+    return {
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : isSet(object.bucket_id)
+        ? globalThis.String(object.bucket_id)
+        : "",
+      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : "",
+      keepPaths: globalThis.Array.isArray(object?.keepPaths)
+        ? object.keepPaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.keep_paths)
+        ? object.keep_paths.map((e: any) => globalThis.String(e))
+        : [],
+      excludePrefixes: globalThis.Array.isArray(object?.excludePrefixes)
+        ? object.excludePrefixes.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.exclude_prefixes)
+        ? object.exclude_prefixes.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: PruneBucketPathRequest): unknown {
+    const obj: any = {};
+    if (message.bucketId !== "") {
+      obj.bucketId = message.bucketId;
+    }
+    if (message.prefix !== "") {
+      obj.prefix = message.prefix;
+    }
+    if (message.keepPaths?.length) {
+      obj.keepPaths = message.keepPaths;
+    }
+    if (message.excludePrefixes?.length) {
+      obj.excludePrefixes = message.excludePrefixes;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<PruneBucketPathRequest>): PruneBucketPathRequest {
+    return PruneBucketPathRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<PruneBucketPathRequest>): PruneBucketPathRequest {
+    const message = createBasePruneBucketPathRequest();
+    message.bucketId = object.bucketId ?? "";
+    message.prefix = object.prefix ?? "";
+    message.keepPaths = object.keepPaths?.map((e) => e) || [];
+    message.excludePrefixes = object.excludePrefixes?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBasePruneBucketPathResponse(): PruneBucketPathResponse {
+  return { deletedPaths: [] };
+}
+
+export const PruneBucketPathResponse: MessageFns<PruneBucketPathResponse> = {
+  encode(message: PruneBucketPathResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.deletedPaths) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PruneBucketPathResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePruneBucketPathResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.deletedPaths.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PruneBucketPathResponse {
+    return {
+      deletedPaths: globalThis.Array.isArray(object?.deletedPaths)
+        ? object.deletedPaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_paths)
+        ? object.deleted_paths.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: PruneBucketPathResponse): unknown {
+    const obj: any = {};
+    if (message.deletedPaths?.length) {
+      obj.deletedPaths = message.deletedPaths;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<PruneBucketPathResponse>): PruneBucketPathResponse {
+    return PruneBucketPathResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<PruneBucketPathResponse>): PruneBucketPathResponse {
+    const message = createBasePruneBucketPathResponse();
+    message.deletedPaths = object.deletedPaths?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseExportBucketToGithubRequest(): ExportBucketToGithubRequest {
-  return { bucketId: "", owner: "", repo: "", path: "", token: "", branch: "", commitMessage: "" };
+  return {
+    bucketId: "",
+    owner: "",
+    repo: "",
+    path: "",
+    token: "",
+    branch: "",
+    commitMessage: "",
+    deletePaths: [],
+    explicitDeletesOnly: false,
+    lfsThresholdBytes: Long.ZERO,
+  };
 }
 
 export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest> = {
@@ -2405,6 +3188,15 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     }
     if (message.commitMessage !== "") {
       writer.uint32(58).string(message.commitMessage);
+    }
+    for (const v of message.deletePaths) {
+      writer.uint32(66).string(v!);
+    }
+    if (message.explicitDeletesOnly !== false) {
+      writer.uint32(72).bool(message.explicitDeletesOnly);
+    }
+    if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+      writer.uint32(80).int64(message.lfsThresholdBytes.toString());
     }
     return writer;
   },
@@ -2472,6 +3264,30 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
           message.commitMessage = reader.string();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.deletePaths.push(reader.string());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.explicitDeletesOnly = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.lfsThresholdBytes = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2498,6 +3314,21 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
         : isSet(object.commit_message)
         ? globalThis.String(object.commit_message)
         : "",
+      deletePaths: globalThis.Array.isArray(object?.deletePaths)
+        ? object.deletePaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.delete_paths)
+        ? object.delete_paths.map((e: any) => globalThis.String(e))
+        : [],
+      explicitDeletesOnly: isSet(object.explicitDeletesOnly)
+        ? globalThis.Boolean(object.explicitDeletesOnly)
+        : isSet(object.explicit_deletes_only)
+        ? globalThis.Boolean(object.explicit_deletes_only)
+        : false,
+      lfsThresholdBytes: isSet(object.lfsThresholdBytes)
+        ? Long.fromValue(object.lfsThresholdBytes)
+        : isSet(object.lfs_threshold_bytes)
+        ? Long.fromValue(object.lfs_threshold_bytes)
+        : Long.ZERO,
     };
   },
 
@@ -2524,6 +3355,15 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     if (message.commitMessage !== "") {
       obj.commitMessage = message.commitMessage;
     }
+    if (message.deletePaths?.length) {
+      obj.deletePaths = message.deletePaths;
+    }
+    if (message.explicitDeletesOnly !== false) {
+      obj.explicitDeletesOnly = message.explicitDeletesOnly;
+    }
+    if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+      obj.lfsThresholdBytes = (message.lfsThresholdBytes || Long.ZERO).toString();
+    }
     return obj;
   },
 
@@ -2539,6 +3379,11 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     message.token = object.token ?? "";
     message.branch = object.branch ?? "";
     message.commitMessage = object.commitMessage ?? "";
+    message.deletePaths = object.deletePaths?.map((e) => e) || [];
+    message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
+    message.lfsThresholdBytes = (object.lfsThresholdBytes !== undefined && object.lfsThresholdBytes !== null)
+      ? Long.fromValue(object.lfsThresholdBytes)
+      : Long.ZERO;
     return message;
   },
 };
@@ -2741,7 +3586,17 @@ export const CreateBucketFromGitlabRequest: MessageFns<CreateBucketFromGitlabReq
 };
 
 function createBaseExportBucketToGitlabRequest(): ExportBucketToGitlabRequest {
-  return { bucketId: "", projectId: Long.ZERO, path: "", token: "", gitlabApiUrl: "", branch: "", commitMessage: "" };
+  return {
+    bucketId: "",
+    projectId: Long.ZERO,
+    path: "",
+    token: "",
+    gitlabApiUrl: "",
+    branch: "",
+    commitMessage: "",
+    deletePaths: [],
+    explicitDeletesOnly: false,
+  };
 }
 
 export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest> = {
@@ -2766,6 +3621,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     }
     if (message.commitMessage !== "") {
       writer.uint32(58).string(message.commitMessage);
+    }
+    for (const v of message.deletePaths) {
+      writer.uint32(66).string(v!);
+    }
+    if (message.explicitDeletesOnly !== false) {
+      writer.uint32(72).bool(message.explicitDeletesOnly);
     }
     return writer;
   },
@@ -2833,6 +3694,22 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
           message.commitMessage = reader.string();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.deletePaths.push(reader.string());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.explicitDeletesOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2867,6 +3744,16 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
         : isSet(object.commit_message)
         ? globalThis.String(object.commit_message)
         : "",
+      deletePaths: globalThis.Array.isArray(object?.deletePaths)
+        ? object.deletePaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.delete_paths)
+        ? object.delete_paths.map((e: any) => globalThis.String(e))
+        : [],
+      explicitDeletesOnly: isSet(object.explicitDeletesOnly)
+        ? globalThis.Boolean(object.explicitDeletesOnly)
+        : isSet(object.explicit_deletes_only)
+        ? globalThis.Boolean(object.explicit_deletes_only)
+        : false,
     };
   },
 
@@ -2893,6 +3780,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     if (message.commitMessage !== "") {
       obj.commitMessage = message.commitMessage;
     }
+    if (message.deletePaths?.length) {
+      obj.deletePaths = message.deletePaths;
+    }
+    if (message.explicitDeletesOnly !== false) {
+      obj.explicitDeletesOnly = message.explicitDeletesOnly;
+    }
     return obj;
   },
 
@@ -2910,6 +3803,8 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     message.gitlabApiUrl = object.gitlabApiUrl ?? "";
     message.branch = object.branch ?? "";
     message.commitMessage = object.commitMessage ?? "";
+    message.deletePaths = object.deletePaths?.map((e) => e) || [];
+    message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
     return message;
   },
 };
@@ -3282,6 +4177,8 @@ function createBaseExportBucketToBitbucketCloudRequest(): ExportBucketToBitbucke
     token: "",
     bitbucketApiUrl: "",
     bitbucketWebUrl: "",
+    deletePaths: [],
+    explicitDeletesOnly: false,
   };
 }
 
@@ -3313,6 +4210,12 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
     }
     if (message.bitbucketWebUrl !== "") {
       writer.uint32(74).string(message.bitbucketWebUrl);
+    }
+    for (const v of message.deletePaths) {
+      writer.uint32(82).string(v!);
+    }
+    if (message.explicitDeletesOnly !== false) {
+      writer.uint32(88).bool(message.explicitDeletesOnly);
     }
     return writer;
   },
@@ -3396,6 +4299,22 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
           message.bitbucketWebUrl = reader.string();
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.deletePaths.push(reader.string());
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.explicitDeletesOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3432,6 +4351,16 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
         : isSet(object.bitbucket_web_url)
         ? globalThis.String(object.bitbucket_web_url)
         : "",
+      deletePaths: globalThis.Array.isArray(object?.deletePaths)
+        ? object.deletePaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.delete_paths)
+        ? object.delete_paths.map((e: any) => globalThis.String(e))
+        : [],
+      explicitDeletesOnly: isSet(object.explicitDeletesOnly)
+        ? globalThis.Boolean(object.explicitDeletesOnly)
+        : isSet(object.explicit_deletes_only)
+        ? globalThis.Boolean(object.explicit_deletes_only)
+        : false,
     };
   },
 
@@ -3464,6 +4393,12 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
     if (message.bitbucketWebUrl !== "") {
       obj.bitbucketWebUrl = message.bitbucketWebUrl;
     }
+    if (message.deletePaths?.length) {
+      obj.deletePaths = message.deletePaths;
+    }
+    if (message.explicitDeletesOnly !== false) {
+      obj.explicitDeletesOnly = message.explicitDeletesOnly;
+    }
     return obj;
   },
 
@@ -3481,12 +4416,24 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
     message.token = object.token ?? "";
     message.bitbucketApiUrl = object.bitbucketApiUrl ?? "";
     message.bitbucketWebUrl = object.bitbucketWebUrl ?? "";
+    message.deletePaths = object.deletePaths?.map((e) => e) || [];
+    message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
     return message;
   },
 };
 
 function createBaseExportBucketToBitbucketDataCenterRequest(): ExportBucketToBitbucketDataCenterRequest {
-  return { bucketId: "", cloneUrl: "", path: "", branch: "", commitMessage: "", username: "", token: "" };
+  return {
+    bucketId: "",
+    cloneUrl: "",
+    path: "",
+    branch: "",
+    commitMessage: "",
+    username: "",
+    token: "",
+    deletePaths: [],
+    explicitDeletesOnly: false,
+  };
 }
 
 export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketToBitbucketDataCenterRequest> = {
@@ -3511,6 +4458,12 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
     }
     if (message.token !== "") {
       writer.uint32(58).string(message.token);
+    }
+    for (const v of message.deletePaths) {
+      writer.uint32(66).string(v!);
+    }
+    if (message.explicitDeletesOnly !== false) {
+      writer.uint32(72).bool(message.explicitDeletesOnly);
     }
     return writer;
   },
@@ -3578,6 +4531,22 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
           message.token = reader.string();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.deletePaths.push(reader.string());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.explicitDeletesOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3608,6 +4577,16 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
         : "",
       username: isSet(object.username) ? globalThis.String(object.username) : "",
       token: isSet(object.token) ? globalThis.String(object.token) : "",
+      deletePaths: globalThis.Array.isArray(object?.deletePaths)
+        ? object.deletePaths.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.delete_paths)
+        ? object.delete_paths.map((e: any) => globalThis.String(e))
+        : [],
+      explicitDeletesOnly: isSet(object.explicitDeletesOnly)
+        ? globalThis.Boolean(object.explicitDeletesOnly)
+        : isSet(object.explicit_deletes_only)
+        ? globalThis.Boolean(object.explicit_deletes_only)
+        : false,
     };
   },
 
@@ -3634,6 +4613,12 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
     if (message.token !== "") {
       obj.token = message.token;
     }
+    if (message.deletePaths?.length) {
+      obj.deletePaths = message.deletePaths;
+    }
+    if (message.explicitDeletesOnly !== false) {
+      obj.explicitDeletesOnly = message.explicitDeletesOnly;
+    }
     return obj;
   },
 
@@ -3649,6 +4634,8 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
     message.commitMessage = object.commitMessage ?? "";
     message.username = object.username ?? "";
     message.token = object.token ?? "";
+    message.deletePaths = object.deletePaths?.map((e) => e) || [];
+    message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
     return message;
   },
 };
@@ -3855,6 +4842,19 @@ export const CodeBucketService = {
       Buffer.from(GetBucketFilesAsZipChunk.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetBucketFilesAsZipChunk => GetBucketFilesAsZipChunk.decode(value),
   },
+  exportBucketFilesAsZipToUpload: {
+    path: "/rpc.rpc.CodeBucket/ExportBucketFilesAsZipToUpload" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ExportBucketFilesAsZipToUploadRequest): Buffer =>
+      Buffer.from(ExportBucketFilesAsZipToUploadRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ExportBucketFilesAsZipToUploadRequest =>
+      ExportBucketFilesAsZipToUploadRequest.decode(value),
+    responseSerialize: (value: ExportBucketFilesAsZipToUploadResponse): Buffer =>
+      Buffer.from(ExportBucketFilesAsZipToUploadResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ExportBucketFilesAsZipToUploadResponse =>
+      ExportBucketFilesAsZipToUploadResponse.decode(value),
+  },
   setBucketFiles: {
     path: "/rpc.rpc.CodeBucket/SetBucketFiles" as const,
     requestStream: false as const,
@@ -3875,6 +4875,17 @@ export const CodeBucketService = {
     responseSerialize: (value: SetBucketFileResponse): Buffer =>
       Buffer.from(SetBucketFileResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SetBucketFileResponse => SetBucketFileResponse.decode(value),
+  },
+  copyBucketFiles: {
+    path: "/rpc.rpc.CodeBucket/CopyBucketFiles" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CopyBucketFilesRequest): Buffer =>
+      Buffer.from(CopyBucketFilesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CopyBucketFilesRequest => CopyBucketFilesRequest.decode(value),
+    responseSerialize: (value: CopyBucketFilesResponse): Buffer =>
+      Buffer.from(CopyBucketFilesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CopyBucketFilesResponse => CopyBucketFilesResponse.decode(value),
   },
   deleteBucketFile: {
     path: "/rpc.rpc.CodeBucket/DeleteBucketFile" as const,
@@ -3897,6 +4908,17 @@ export const CodeBucketService = {
     responseSerialize: (value: DeleteBucketPathResponse): Buffer =>
       Buffer.from(DeleteBucketPathResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteBucketPathResponse => DeleteBucketPathResponse.decode(value),
+  },
+  pruneBucketPath: {
+    path: "/rpc.rpc.CodeBucket/PruneBucketPath" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: PruneBucketPathRequest): Buffer =>
+      Buffer.from(PruneBucketPathRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): PruneBucketPathRequest => PruneBucketPathRequest.decode(value),
+    responseSerialize: (value: PruneBucketPathResponse): Buffer =>
+      Buffer.from(PruneBucketPathResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): PruneBucketPathResponse => PruneBucketPathResponse.decode(value),
   },
   exportBucketToGithub: {
     path: "/rpc.rpc.CodeBucket/ExportBucketToGithub" as const,
@@ -3966,10 +4988,16 @@ export interface CodeBucketServer extends UntypedServiceImplementation {
   getBucketFilesWithContentStream: handleServerStreamingCall<GetBucketFilesRequest, GetBucketFilesWithContentChunk>;
   getBucketFilesAsZip: handleUnaryCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipResponse>;
   getBucketFilesAsZipStream: handleServerStreamingCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipChunk>;
+  exportBucketFilesAsZipToUpload: handleUnaryCall<
+    ExportBucketFilesAsZipToUploadRequest,
+    ExportBucketFilesAsZipToUploadResponse
+  >;
   setBucketFiles: handleUnaryCall<SetBucketFilesRequest, SetBucketFilesResponse>;
   setBucketFile: handleUnaryCall<SetBucketFileRequest, SetBucketFileResponse>;
+  copyBucketFiles: handleUnaryCall<CopyBucketFilesRequest, CopyBucketFilesResponse>;
   deleteBucketFile: handleUnaryCall<DeleteBucketFileRequest, DeleteBucketFileResponse>;
   deleteBucketPath: handleUnaryCall<DeleteBucketPathRequest, DeleteBucketPathResponse>;
+  pruneBucketPath: handleUnaryCall<PruneBucketPathRequest, PruneBucketPathResponse>;
   exportBucketToGithub: handleUnaryCall<ExportBucketToGithubRequest, ExportBucketToGithubResponse>;
   exportBucketToGitlab: handleUnaryCall<ExportBucketToGitlabRequest, ExportBucketToGitlabResponse>;
   exportBucketToBitbucketCloud: handleUnaryCall<ExportBucketToBitbucketCloudRequest, ExportBucketToBitbucketResponse>;
@@ -4178,6 +5206,21 @@ export interface CodeBucketClient extends Client {
     metadata?: Metadata,
     options?: Partial<CallOptions>,
   ): ClientReadableStream<GetBucketFilesAsZipChunk>;
+  exportBucketFilesAsZipToUpload(
+    request: ExportBucketFilesAsZipToUploadRequest,
+    callback: (error: ServiceError | null, response: ExportBucketFilesAsZipToUploadResponse) => void,
+  ): ClientUnaryCall;
+  exportBucketFilesAsZipToUpload(
+    request: ExportBucketFilesAsZipToUploadRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ExportBucketFilesAsZipToUploadResponse) => void,
+  ): ClientUnaryCall;
+  exportBucketFilesAsZipToUpload(
+    request: ExportBucketFilesAsZipToUploadRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ExportBucketFilesAsZipToUploadResponse) => void,
+  ): ClientUnaryCall;
   setBucketFiles(
     request: SetBucketFilesRequest,
     callback: (error: ServiceError | null, response: SetBucketFilesResponse) => void,
@@ -4208,6 +5251,21 @@ export interface CodeBucketClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: SetBucketFileResponse) => void,
   ): ClientUnaryCall;
+  copyBucketFiles(
+    request: CopyBucketFilesRequest,
+    callback: (error: ServiceError | null, response: CopyBucketFilesResponse) => void,
+  ): ClientUnaryCall;
+  copyBucketFiles(
+    request: CopyBucketFilesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CopyBucketFilesResponse) => void,
+  ): ClientUnaryCall;
+  copyBucketFiles(
+    request: CopyBucketFilesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CopyBucketFilesResponse) => void,
+  ): ClientUnaryCall;
   deleteBucketFile(
     request: DeleteBucketFileRequest,
     callback: (error: ServiceError | null, response: DeleteBucketFileResponse) => void,
@@ -4237,6 +5295,21 @@ export interface CodeBucketClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteBucketPathResponse) => void,
+  ): ClientUnaryCall;
+  pruneBucketPath(
+    request: PruneBucketPathRequest,
+    callback: (error: ServiceError | null, response: PruneBucketPathResponse) => void,
+  ): ClientUnaryCall;
+  pruneBucketPath(
+    request: PruneBucketPathRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: PruneBucketPathResponse) => void,
+  ): ClientUnaryCall;
+  pruneBucketPath(
+    request: PruneBucketPathRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: PruneBucketPathResponse) => void,
   ): ClientUnaryCall;
   exportBucketToGithub(
     request: ExportBucketToGithubRequest,

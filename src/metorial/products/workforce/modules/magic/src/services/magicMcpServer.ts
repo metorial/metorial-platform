@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import { slugify } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import {
@@ -31,10 +32,15 @@ import {
 } from '@metorial/module-access';
 import { searchMagicMcpServerIds } from '@metorial/module-search';
 import {
+  integrationInstanceService,
   magicMcpServerBackingService,
-  magicMcpServerProviderService
+  magicMcpServerProviderService,
+  providerTemplateBackingService,
+  resolveProviderAttachmentAuthMethodInternal
 } from '@metorial-subspace/module-integration';
+import { assertAuthMethodAllowedForTenant } from '@metorial-subspace/module-provider-internal';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import { ensureMagicMcpServerBacking, type ConsumerOwner } from '../lib/backing';
 import {
   magicMcpServerCreatedQueue,
@@ -228,6 +234,7 @@ class MagicMcpServerImpl {
     performedBy: OrganizationActor;
     instance: Instance;
     context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -244,6 +251,52 @@ class MagicMcpServerImpl {
       consumerOwner?: ConsumerOwner;
     };
   }) {
+    if (
+      d.input.subspaceIntegrationInstanceId ||
+      d.input.providerTemplateId ||
+      d.input.providers?.length
+    ) {
+      let { tenant, environment } = await subspaceScopeService.ensureForInstance(d.instance);
+
+      let integrationInstance = d.input.subspaceIntegrationInstanceId
+        ? await integrationInstanceService.getIntegrationInstanceById({
+            instance: d.instance,
+            integrationInstanceId: d.input.subspaceIntegrationInstanceId
+          })
+        : null;
+
+      for (let provider of integrationInstance?.integrationInstanceProviders ?? []) {
+        let authMethod =
+          provider.currentVersion?.authConfig?.authMethod ??
+          provider.currentVersion?.integrationProviderVersion.authMethod;
+        assertAuthMethodAllowedForTenant({ tenant, authMethod });
+      }
+
+      let providerTemplateBacking = d.input.providerTemplateId
+        ? await providerTemplateBackingService.getProviderTemplateBackingById({
+            instance: d.instance,
+            providerTemplateBackingId: d.input.providerTemplateId
+          })
+        : null;
+
+      for (let provider of providerTemplateBacking?.integration.providers ?? []) {
+        assertAuthMethodAllowedForTenant({
+          tenant,
+          authMethod: provider.currentVersion?.authMethod
+        });
+      }
+
+      for (let provider of d.input.providers ?? []) {
+        let material = await resolveProviderAttachmentAuthMethodInternal({
+          tenant,
+          environment,
+          providerDeploymentId: provider.providerDeploymentId,
+          providerAuthConfigId: provider.providerAuthConfigId
+        });
+        assertAuthMethodAllowedForTenant({ tenant, ...material });
+      }
+    }
+
     await Fabric.fire('magic_mcp.server.created:before', {
       organization: d.organization,
       instance: d.instance
@@ -293,7 +346,8 @@ class MagicMcpServerImpl {
     await Fabric.fire('magic_mcp.server.created:after', {
       organization: d.organization,
       instance: d.instance,
-      magicMcpServer: server
+      magicMcpServer: server,
+      auditScope: d.auditScope
     });
 
     return server;
@@ -344,7 +398,7 @@ class MagicMcpServerImpl {
     }
   }
 
-  async archiveMagicMcpServer(d: { server: MagicMcpServer }) {
+  async archiveMagicMcpServer(d: { server: MagicMcpServer; auditScope: AuditScope }) {
     if (d.server.status !== 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -403,7 +457,8 @@ class MagicMcpServerImpl {
     await Fabric.fire('magic_mcp.server.archived:after', {
       organization: instance.organization,
       instance,
-      magicMcpServer
+      magicMcpServer,
+      auditScope: d.auditScope
     });
 
     return magicMcpServer;
@@ -413,6 +468,7 @@ class MagicMcpServerImpl {
     server: MagicMcpServerWithRelations;
     instance?: Instance;
     accessTags?: AnyAccessTagSelector;
+    auditScope: AuditScope;
     input: {
       name?: string | null;
       description?: string | null;
@@ -492,6 +548,17 @@ class MagicMcpServerImpl {
     await magicMcpServerUpdatedQueue.add({
       magicMcpServerId: server.id,
       isReconciliation: false
+    });
+
+    let instance =
+      d.instance ??
+      (await db.instance.findUniqueOrThrow({ where: { oid: d.server.instanceOid } }));
+
+    await Fabric.fire('magic_mcp.server.updated:after', {
+      instance,
+      magicMcpServer: server,
+      previousMagicMcpServer: d.server,
+      auditScope: d.auditScope
     });
 
     return server;

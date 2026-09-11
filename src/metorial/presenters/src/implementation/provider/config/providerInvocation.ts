@@ -48,6 +48,7 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
 
       provider_run_ids: providerInvocation.providerRunIds,
       session_message_ids: providerInvocation.sessionMessageIds,
+      callback_event_ids: providerInvocation.callbackEventIds,
       auth_config_event_ids: providerInvocation.authConfigEventIds,
       provider_oauth_setup_ids: providerInvocation.providerOAuthSetupIds,
 
@@ -82,10 +83,13 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
         name: 'source',
         description: 'Backing provider integration source'
       }),
-      type: v.enumOf(['tool_call', 'auth_config_event', 'oauth_setup', 'unknown'], {
-        name: 'type',
-        description: 'Invocation category'
-      }),
+      type: v.enumOf(
+        ['tool_call', 'auth_config_event', 'oauth_setup', 'callback_event', 'unknown'],
+        {
+          name: 'type',
+          description: 'Invocation category'
+        }
+      ),
       status: v.enumOf(['success', 'error'], {
         name: 'status',
         description: 'Normalized invocation outcome status'
@@ -100,6 +104,12 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
         v.string({
           name: 'session_message_id',
           description: 'Related session message ID'
+        })
+      ),
+      callback_event_ids: v.array(
+        v.string({
+          name: 'callback_event_id',
+          description: 'Related callback event ID'
         })
       ),
       auth_config_event_ids: v.array(

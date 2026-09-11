@@ -7,6 +7,7 @@ import {
   isRepositorySyncRetrying
 } from '../../lib/repositorySyncStatus';
 import { createSkillSyncBranchName, normalizeSkillSyncBranchName } from './_lib/branchName';
+import { getPendingDestinationFileDeletions } from './_lib/deletions';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncFinishQueue } from './finish';
 
@@ -23,9 +24,7 @@ let getPublicErrorMessage = (error: unknown) => {
     try {
       let parsed = JSON.parse(serialized);
       if (typeof parsed?.message === 'string') message = parsed.message;
-    } catch {
-      // Leave non-lowerdeck metadata intact.
-    }
+    } catch {}
   }
 
   return message.replace(/^\[@lowerdeck\/error\]:\s*/, '').trim();
@@ -168,6 +167,9 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
           repositoryAccessMode,
           forceMergeOrPush,
           mergeBeforeChecksPass,
+
+          deletionsUpTo: new Date(),
+
           skillDestinationSyncOid: sync.oid,
           skillRepositoryOid: link.skillRepository.oid,
           branchName: createSkillSyncBranchName({
@@ -272,10 +274,32 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           `Starting update for ${repositoryName}.`
         );
 
+        let deletePaths = await getPendingDestinationFileDeletions({
+          destinationOid: sync.destinationOid,
+          appliedAt: propagation.skillRepository.deletionsAppliedAt,
+          upTo: propagation.deletionsUpTo ?? new Date()
+        });
+
+        if (deletePaths.length > 0) {
+          await appendSkillDestinationSyncLog(
+            data.skillDestinationSyncId,
+            `Removing ${deletePaths.length} file${
+              deletePaths.length === 1 ? '' : 's'
+            } from ${repositoryName}.`
+          );
+        }
+
         let originSyncInput = {
           tenantId: originTenant.id,
           scmRepositoryId: propagation.skillRepository.repoId,
           codeBucketId: sync.destination.codeBucketId,
+          deletePaths,
+
+          explicitDeletesOnly: true,
+
+          gitLfsThresholdBytes:
+            propagation.skillRepository.project.skillSyncGitLfsThresholdBytes ?? undefined,
+
           repositoryAccessMode: propagation.repositoryAccessMode,
           forceMergeOrPush: propagation.forceMergeOrPush,
           mergeBeforeChecksPass: propagation.mergeBeforeChecksPass,
@@ -434,6 +458,19 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
         }
       });
       if (updated.count > 0) {
+        if (propagation.deletionsUpTo) {
+          await db.skillRepository.updateMany({
+            where: {
+              oid: propagation.skillRepositoryOid,
+              OR: [
+                { deletionsAppliedAt: null },
+                { deletionsAppliedAt: { lt: propagation.deletionsUpTo } }
+              ]
+            },
+            data: { deletionsAppliedAt: propagation.deletionsUpTo }
+          });
+        }
+
         await appendSkillDestinationSyncLog(
           data.skillDestinationSyncId,
           `Repository update completed for ${repositoryName}.`

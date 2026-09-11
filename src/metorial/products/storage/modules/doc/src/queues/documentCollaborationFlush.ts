@@ -119,12 +119,12 @@ export let flushDocumentCollaborationState = async (d: {
     body: snapshot.body
   });
 
-  let actorId = await internalDocumentCollaborationService.getActorId(d.documentId);
-  let actor = actorId
+  let collaborationActor = await internalDocumentCollaborationService.getActor(d.documentId);
+  let actor = collaborationActor
     ? await resourceActorService
         .getActorById({
           project: currentDocument.project,
-          actorId
+          actorId: collaborationActor.id
         })
         .catch(() => undefined)
     : undefined;
@@ -138,6 +138,7 @@ export let flushDocumentCollaborationState = async (d: {
         type: 'privileged',
         resourceActor: actor
       },
+      context: collaborationActor?.context,
       title,
       content
     }

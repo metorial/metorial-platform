@@ -42,6 +42,7 @@ model SsoExportedDelegation {
   identifier   String
   clientId     String @unique
   clientSecret String
+  redirectUri  String?
 
   tenantOid BigInt
   tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -128,7 +129,7 @@ model SsoDelegationAuthorizationCode {
 
   codeHash      String    @unique
   redirectUri   String
-  codeChallenge String
+  codeChallenge String?
   expiresAt     DateTime
   consumedAt    DateTime?
 

@@ -126,7 +126,7 @@ export let flushExpiredDraftVersion = async (d: {
         instance: document.instance,
         document,
         contentOid: document.contentOid,
-        previousVersionOid: document.currentVersion.oid,
+        previousVersion: document.currentVersion,
         listEditedAt: now
       });
 

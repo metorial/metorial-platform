@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Callbacks controller
- * @description Manage webhook-style callbacks backed by subspace trigger receivers.
+ * @description A callback is what receives provider events for an integration provider. Creating one enables callbacks on the integration provider, and Metorial then registers the callback against every matching integration instance. Setting `callbacks.status` on the integration provider itself does the same thing.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -80,33 +80,8 @@ export class MetorialCallbacksEndpoint {
   }
 
   /**
-   * @name Get callback
-   * @description Retrieves a specific callback by ID.
-   *
-   * @param `callbackId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceCallbacksGetOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  get(
-    callbackId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceCallbacksGetOutput> {
-    let path = `callbacks/${callbackId}`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._get(request).transform(mapDashboardInstanceCallbacksGetOutput);
-  }
-
-  /**
    * @name Create callback
-   * @description Creates a new callback definition.
+   * @description Enables callbacks for an integration provider and returns the callback it created. Only providers whose type reports `triggers.status` as `enabled` support this. Callback instances are then registered for every matching integration instance in the background.
    *
    * @param `body` - DashboardInstanceCallbacksCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -133,8 +108,33 @@ export class MetorialCallbacksEndpoint {
   }
 
   /**
+   * @name Get callback
+   * @description Retrieves a specific callback by ID.
+   *
+   * @param `callbackId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksGetOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  get(
+    callbackId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksGetOutput> {
+    let path = `callbacks/${callbackId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceCallbacksGetOutput);
+  }
+
+  /**
    * @name Update callback
-   * @description Updates a callback definition.
+   * @description Updates the name, description or metadata of a callback. Everything else about a callback is derived from its integration provider - set `callbacks.status` to `disabled` there to tear it down.
    *
    * @param `callbackId` - string
    * @param `body` - DashboardInstanceCallbacksUpdateBody
@@ -164,7 +164,7 @@ export class MetorialCallbacksEndpoint {
 
   /**
    * @name Delete callback
-   * @description Archives a callback definition.
+   * @description Disables callbacks on the underlying integration provider, tearing down this callback and every callback instance registered for it.
    *
    * @param `callbackId` - string
    * @param `opts` - { headers?: Record<string, string> }

@@ -1,3 +1,4 @@
+import { status as grpcStatus } from '@grpc/grpc-js';
 import {
   badRequestError,
   conflictError,
@@ -11,7 +12,6 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
-import { status as grpcStatus } from '@grpc/grpc-js';
 
 let Sentry = getSentry();
 
@@ -46,6 +46,22 @@ let getHeader = (headers: any, name: string) => {
   return typeof entry?.[1] === 'string' ? entry[1] : undefined;
 };
 
+/**
+ * gRPC-js formats client errors as `/package.Service/Method CODE: details`.
+ * That method path is useful in logs, but not in stored or user-facing copy.
+ */
+let grpcRpcPrefix = /^\/rpc\.[^\s:]+\s+[A-Z][A-Z0-9_]*:\s*/;
+
+export let stripGrpcRpcPrefix = (message: string) =>
+  message.replace(grpcRpcPrefix, '').trim();
+
+export let toPublicProviderErrorMessage = (message: string) => {
+  let stripped = stripGrpcRpcPrefix(message);
+  if (!stripped) return message.trim();
+
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+};
+
 let sanitizeText = (value: unknown, maxLength = 1000): string | undefined => {
   if (value == null) return undefined;
 
@@ -72,6 +88,7 @@ let sanitizeText = (value: unknown, maxLength = 1000): string | undefined => {
     .replace(/bearer\s+[a-z0-9._~+/-]+=*/gi, 'Bearer [redacted]')
     .trim();
 
+  text = stripGrpcRpcPrefix(text);
   if (!text) return undefined;
   return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 };
@@ -129,8 +146,22 @@ export type ScmProviderErrorDetails = {
     | 'rate_limited'
     | 'timeout'
     | 'invalid_request'
+    | 'file_too_large'
     | 'upstream_failure'
     | 'network_failure';
+};
+
+let fileTooLargeMarker = 'file exceeds the per-file size limit';
+
+export let getFileTooLargeDetail = (error: unknown) => {
+  let description = getScmProviderErrorDetails(error).description;
+  if (!description) return undefined;
+
+  let markerAt = description.toLowerCase().indexOf(fileTooLargeMarker);
+  if (markerAt < 0) return undefined;
+
+  let detail = description.slice(markerAt + fileTooLargeMarker.length).replace(/^[:\s]+/, '');
+  return detail.length > 0 ? detail : undefined;
 };
 
 let classifyScmProviderError = (
@@ -139,6 +170,9 @@ let classifyScmProviderError = (
   grpcCode?: number
 ) => {
   let normalized = description?.toLowerCase() ?? '';
+  if (normalized.includes(fileTooLargeMarker)) {
+    return 'file_too_large' as const;
+  }
   if (
     normalized.includes('protected branch') ||
     normalized.includes('protected ref') ||
@@ -265,6 +299,7 @@ let publicErrorReason = (classification: ScmProviderErrorDetails['classification
   if (classification === 'rate_limited') return 'the provider rate limit was reached';
   if (classification === 'timeout') return 'the provider request timed out';
   if (classification === 'invalid_request') return 'the request was rejected';
+  if (classification === 'file_too_large') return 'a file is too large';
   if (classification === 'upstream_failure') return 'the provider is temporarily unavailable';
   return 'the provider request failed';
 };
@@ -275,7 +310,12 @@ export let formatScmProviderPublicError = (d: {
   error: unknown;
 }) => {
   let details = getScmProviderErrorDetails(d.error);
-  return `${providerName(d.provider)} could not ${d.operation}: ${publicErrorReason(details.classification)}.`;
+  let reason = publicErrorReason(details.classification);
+
+  let tooLarge = getFileTooLargeDetail(d.error);
+  if (tooLarge) reason = `${reason} (${tooLarge})`;
+
+  return `${providerName(d.provider)} could not ${d.operation}: ${reason}.`;
 };
 
 export let getScmProviderLogDetails = (error: unknown) => {

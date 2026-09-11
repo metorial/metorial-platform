@@ -42,19 +42,6 @@ let getDocs = (providerListing: unknown): ProviderListingDocs | null => {
   return docs as ProviderListingDocs;
 };
 
-let matchesAuthMethod = (
-  docMethod: AuthMethodDocTarget,
-  authMethod?: AuthMethodDocTarget | null
-) => {
-  if (!authMethod) return false;
-
-  if (docMethod.key && authMethod.key && docMethod.key === authMethod.key) return true;
-  if (docMethod.name && authMethod.name && docMethod.name === authMethod.name) return true;
-  if (docMethod.type && authMethod.type && docMethod.type === authMethod.type) return true;
-
-  return false;
-};
-
 let findAuthMethodDocs = (
   providerListing: unknown,
   authMethod?: AuthMethodDocTarget | null
@@ -62,11 +49,21 @@ let findAuthMethodDocs = (
   let docs = getDocs(providerListing);
   if (!docs || !authMethod) return [];
 
-  let authMethodEntry = (docs.authMethods ?? []).find(entry =>
-    matchesAuthMethod(entry, authMethod)
-  );
+  let authMethods = docs.authMethods ?? [];
+  let keyMatch = authMethod.key
+    ? authMethods.find(entry => entry.key === authMethod.key)
+    : undefined;
+  if (keyMatch) return keyMatch.docs ?? [];
 
-  return authMethodEntry?.docs ?? [];
+  let nameMatch = authMethod.name
+    ? authMethods.find(entry => entry.name === authMethod.name)
+    : undefined;
+  if (nameMatch) return nameMatch.docs ?? [];
+
+  let typeMatches = authMethod.type
+    ? authMethods.filter(entry => entry.type === authMethod.type)
+    : [];
+  return typeMatches.length === 1 ? (typeMatches[0].docs ?? []) : [];
 };
 
 let findAuthMethodDocByType = (

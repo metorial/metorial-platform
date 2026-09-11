@@ -163,7 +163,8 @@ export let portalConsumerProfileController = Controller.create(
         let consumerProfile = await consumerProfileService.createConsumerProfile({
           surface: ctx.portal.surface,
           email: ctx.body.email,
-          name: ctx.body.name
+          name: ctx.body.name,
+          auditScope: ctx.auditScope
         });
 
         return consumerProfilePresenter.present({
@@ -189,7 +190,8 @@ export let portalConsumerProfileController = Controller.create(
       .output(consumerProfilePresenter)
       .do(async ctx => {
         let consumerProfile = await consumerProfileService.deleteConsumerProfile({
-          consumerProfile: ctx.consumerProfile
+          consumerProfile: ctx.consumerProfile,
+          auditScope: ctx.auditScope
         });
 
         return consumerProfilePresenter.present({
@@ -222,7 +224,8 @@ export let portalConsumerProfileController = Controller.create(
       .do(async ctx => {
         let consumerProfile = await consumerProfileService.assignToGroups({
           consumerProfile: ctx.consumerProfile,
-          groupIds: ctx.body.group_ids
+          groupIds: ctx.body.group_ids,
+          auditScope: ctx.auditScope
         });
         let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
           consumerProfile: ctx.consumerProfile
@@ -258,7 +261,8 @@ export let portalConsumerProfileController = Controller.create(
       .do(async ctx => {
         let consumerProfile = await consumerProfileService.removeFromGroups({
           consumerProfile: ctx.consumerProfile,
-          groupIds: ctx.body.group_ids
+          groupIds: ctx.body.group_ids,
+          auditScope: ctx.auditScope
         });
         let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
           consumerProfile: ctx.consumerProfile

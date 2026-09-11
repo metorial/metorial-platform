@@ -13,6 +13,7 @@ import {
   dashboardCustomProviderPresenter,
   dashboardFilePresenter,
   dashboardIdentityActorPresenter,
+  dashboardIncomingWebhookPresenter,
   dashboardIntegrationInstanceGroupPresenter,
   dashboardIntegrationInstanceGroupProviderPresenter,
   dashboardIntegrationInstancePresenter,
@@ -43,11 +44,6 @@ import {
   v1AuditLogStreamPresenter,
   v1BootPresenter,
   v1BucketEditorTokenPresenter,
-  v1CallbackDestinationPresenter,
-  v1CallbackEventPresenter,
-  v1CallbackInstancePresenter,
-  v1CallbackNotificationPresenter,
-  v1CallbackPresenter,
   v1CliDevicePresenter,
   v1ConfigPresenter,
   v1ConsumerAccessListingPresenter,
@@ -79,6 +75,9 @@ import {
   v1DocumentPresenter,
   v1DocumentVersionPresenter,
   v1EnclavePresenter,
+  v1EventDestinationListenerPresenter,
+  v1EventDestinationPresenter,
+  v1SystemEventPresenter,
   v1FileLinkPresenter,
   v1FilePresenter,
   v1FirewallBindingPresenter,
@@ -90,6 +89,7 @@ import {
   v1IdentityDelegationPresenter,
   v1IdentityDelegationRequestPresenter,
   v1IdentityPresenter,
+  v1IncomingWebhookPresenter,
   v1InstanceListPresenter,
   v1InstancePresenter,
   v1IntegrationInstanceGroupPresenter,
@@ -126,21 +126,29 @@ import {
   v1OAuthInstallationPresenter,
   v1OAuthScopePermissionsPresenter,
   v1OrganizationActorPresenter,
+  v1OrganizationAuditLogRetentionPresenter,
   v1OrganizationConfigPresenter,
   v1OrganizationInvitePresenter,
   v1OrganizationLayoutPresenter,
   v1OrganizationMemberPresenter,
   v1OrganizationPresenter,
+  v1OrganizationScopesPresenter,
+  v1OutpostAccessPresenter,
+  v1OutpostCredentialPresenter,
+  v1OutpostPresenter,
   v1PortalOAuthAuthorizationPresenter,
   v1PortalOAuthClientPresenter,
   v1PortalPresenter,
   v1ProfilePresenter,
   v1ProjectAuthConfigConfigurationPresenter,
   v1ProjectBrandPresenter,
+  v1ProjectDataRetentionConfigurationPresenter,
   v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectPresenter,
   v1ProjectRetentionPresenter,
+  v1ProjectSkillSyncConfigurationPresenter,
   v1ProjectToolCallingConfigurationPresenter,
+  v1ProjectWorkforceConfigurationPresenter,
   v1ProtoGuardAlertPresenter,
   v1ProtoGuardConfigPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
@@ -233,9 +241,16 @@ import {
   v1SubspaceSessionEventPresenter,
   v1SubspaceSessionMessagePresenter,
   v1TeamPresenter,
+  dashboardCallbackInstancePresenter,
+  dashboardCallbackPresenter,
+  v1CallbackEventPresenter,
+  v1CallbackInstancePresenter,
+  v1CallbackPresenter,
+  v1WebhookRegistrationPresenter,
   v1TokenPresenter,
   v1UsagePresenter,
-  v1UserPresenter
+  v1UserPresenter,
+  v1WebhookEventPresenter
 } from './implementation';
 import {
   accessPolicyType,
@@ -255,11 +270,6 @@ import {
   authImportSchemaType,
   bootType,
   bucketEditorTokenType,
-  callbackDestinationType,
-  callbackEventType,
-  callbackInstanceType,
-  callbackNotificationType,
-  callbackType,
   cliDeviceType,
   configPreviewType,
   configSchemaType,
@@ -293,6 +303,8 @@ import {
   documentType,
   documentVersionType,
   enclaveType,
+  eventDestinationListenerType,
+  eventDestinationType,
   fileLinkType,
   fileType,
   firewallBindingType,
@@ -340,20 +352,28 @@ import {
   oauthInstallationType,
   oauthScopePermissionsType,
   organizationActorType,
+  organizationAuditLogRetentionType,
   organizationConfigType,
   organizationInviteType,
   organizationLayoutType,
   organizationMemberType,
+  organizationScopesType,
   organizationType,
+  outpostAccessType,
+  outpostCredentialType,
+  outpostType,
   portalOAuthAuthorizationType,
   portalOAuthClientType,
   portalType,
   profileType,
   projectAuthConfigConfigurationType,
   projectBrandType,
+  projectDataRetentionConfigurationType,
   projectIntegrationNamingConfigurationType,
   projectRetentionType,
+  projectSkillSyncConfigurationType,
   projectToolCallingConfigurationType,
+  projectWorkforceConfigurationType,
   projectType,
   protoGuardAlertType,
   protoGuardConfigType,
@@ -409,6 +429,7 @@ import {
   sessionProviderType,
   sessionTemplateProviderType,
   sessionTemplateType,
+  systemEventType,
   skillAgentType,
   skillConfigurationType,
   skillExportType,
@@ -442,10 +463,16 @@ import {
   storePermissionsType,
   storeType,
   teamType,
+  callbackEventType,
+  callbackInstanceType,
+  callbackType,
+  incomingWebhookType,
+  webhookRegistrationType,
   tokenType,
   toolCallType,
   usageType,
-  userType
+  userType,
+  webhookEventType
 } from './types';
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
@@ -579,9 +606,29 @@ export let organizationMemberPresenter = declarePresenter(organizationMemberType
   mt_2026_01_01_magnetar: v1OrganizationMemberPresenter
 });
 
+export let organizationScopesPresenter = declarePresenter(organizationScopesType, {
+  mt_2025_01_01_dashboard: v1OrganizationScopesPresenter,
+  mt_2026_01_01_magnetar: v1OrganizationScopesPresenter
+});
+
 export let organizationPresenter = declarePresenter(organizationType, {
   mt_2025_01_01_dashboard: v1OrganizationPresenter,
   mt_2026_01_01_magnetar: v1OrganizationPresenter
+});
+
+export let outpostPresenter = declarePresenter(outpostType, {
+  mt_2025_01_01_dashboard: v1OutpostPresenter,
+  mt_2026_01_01_magnetar: v1OutpostPresenter
+});
+
+export let outpostCredentialPresenter = declarePresenter(outpostCredentialType, {
+  mt_2025_01_01_dashboard: v1OutpostCredentialPresenter,
+  mt_2026_01_01_magnetar: v1OutpostCredentialPresenter
+});
+
+export let outpostAccessPresenter = declarePresenter(outpostAccessType, {
+  mt_2025_01_01_dashboard: v1OutpostAccessPresenter,
+  mt_2026_01_01_magnetar: v1OutpostAccessPresenter
 });
 
 export let organizationConfigPresenter = declarePresenter(organizationConfigType, {
@@ -614,6 +661,26 @@ export let auditLogStreamEventPresenter = declarePresenter(auditLogStreamEventTy
   mt_2026_01_01_magnetar: v1AuditLogStreamEventPresenter
 });
 
+export let eventDestinationPresenter = declarePresenter(eventDestinationType, {
+  mt_2025_01_01_dashboard: v1EventDestinationPresenter,
+  mt_2026_01_01_magnetar: v1EventDestinationPresenter
+});
+
+export let eventDestinationListenerPresenter = declarePresenter(eventDestinationListenerType, {
+  mt_2025_01_01_dashboard: v1EventDestinationListenerPresenter,
+  mt_2026_01_01_magnetar: v1EventDestinationListenerPresenter
+});
+
+export let eventPresenter = declarePresenter(systemEventType, {
+  mt_2025_01_01_dashboard: v1SystemEventPresenter,
+  mt_2026_01_01_magnetar: v1SystemEventPresenter
+});
+
+export let webhookEventPresenter = declarePresenter(webhookEventType, {
+  mt_2025_01_01_dashboard: v1WebhookEventPresenter,
+  mt_2026_01_01_magnetar: v1WebhookEventPresenter
+});
+
 export let projectBrandPresenter = declarePresenter(projectBrandType, {
   mt_2025_01_01_dashboard: v1ProjectBrandPresenter,
   mt_2026_01_01_magnetar: v1ProjectBrandPresenter
@@ -624,11 +691,27 @@ export let projectRetentionPresenter = declarePresenter(projectRetentionType, {
   mt_2026_01_01_magnetar: v1ProjectRetentionPresenter
 });
 
+export let organizationAuditLogRetentionPresenter = declarePresenter(
+  organizationAuditLogRetentionType,
+  {
+    mt_2025_01_01_dashboard: v1OrganizationAuditLogRetentionPresenter,
+    mt_2026_01_01_magnetar: v1OrganizationAuditLogRetentionPresenter
+  }
+);
+
 export let projectAuthConfigConfigurationPresenter = declarePresenter(
   projectAuthConfigConfigurationType,
   {
     mt_2025_01_01_dashboard: v1ProjectAuthConfigConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectAuthConfigConfigurationPresenter
+  }
+);
+
+export let projectWorkforceConfigurationPresenter = declarePresenter(
+  projectWorkforceConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectWorkforceConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectWorkforceConfigurationPresenter
   }
 );
 
@@ -640,11 +723,27 @@ export let projectToolCallingConfigurationPresenter = declarePresenter(
   }
 );
 
+export let projectDataRetentionConfigurationPresenter = declarePresenter(
+  projectDataRetentionConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectDataRetentionConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectDataRetentionConfigurationPresenter
+  }
+);
+
 export let projectIntegrationNamingConfigurationPresenter = declarePresenter(
   projectIntegrationNamingConfigurationType,
   {
     mt_2025_01_01_dashboard: v1ProjectIntegrationNamingConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectIntegrationNamingConfigurationPresenter
+  }
+);
+
+export let projectSkillSyncConfigurationPresenter = declarePresenter(
+  projectSkillSyncConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectSkillSyncConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectSkillSyncConfigurationPresenter
   }
 );
 
@@ -889,8 +988,13 @@ export let flagsPresenter = declarePresenter(flagsType, {
 });
 
 export let callbackPresenter = declarePresenter(callbackType, {
-  mt_2025_01_01_dashboard: v1CallbackPresenter,
+  mt_2025_01_01_dashboard: dashboardCallbackPresenter,
   mt_2026_01_01_magnetar: v1CallbackPresenter
+});
+
+export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
+  mt_2025_01_01_dashboard: dashboardCallbackInstancePresenter,
+  mt_2026_01_01_magnetar: v1CallbackInstancePresenter
 });
 
 export let callbackEventPresenter = declarePresenter(callbackEventType, {
@@ -898,19 +1002,14 @@ export let callbackEventPresenter = declarePresenter(callbackEventType, {
   mt_2026_01_01_magnetar: v1CallbackEventPresenter
 });
 
-export let callbackNotificationPresenter = declarePresenter(callbackNotificationType, {
-  mt_2025_01_01_dashboard: v1CallbackNotificationPresenter,
-  mt_2026_01_01_magnetar: v1CallbackNotificationPresenter
+export let webhookRegistrationPresenter = declarePresenter(webhookRegistrationType, {
+  mt_2025_01_01_dashboard: v1WebhookRegistrationPresenter,
+  mt_2026_01_01_magnetar: v1WebhookRegistrationPresenter
 });
 
-export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
-  mt_2025_01_01_dashboard: v1CallbackDestinationPresenter,
-  mt_2026_01_01_magnetar: v1CallbackDestinationPresenter
-});
-
-export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
-  mt_2025_01_01_dashboard: v1CallbackInstancePresenter,
-  mt_2026_01_01_magnetar: v1CallbackInstancePresenter
+export let incomingWebhookPresenter = declarePresenter(incomingWebhookType, {
+  mt_2025_01_01_dashboard: dashboardIncomingWebhookPresenter,
+  mt_2026_01_01_magnetar: v1IncomingWebhookPresenter
 });
 
 export let teamPresenter = declarePresenter(teamType, {

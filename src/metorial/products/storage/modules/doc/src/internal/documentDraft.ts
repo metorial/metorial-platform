@@ -2,16 +2,21 @@ import { createLock } from '@lowerdeck/lock';
 import { createRedisClient } from '@lowerdeck/redis';
 import { Service } from '@lowerdeck/service';
 import { getConfig } from '@metorial/config';
+import type { DocumentDraftActor } from './documentDraftActors';
+
+export * from './documentDraftActors';
 
 export type DocumentDraft = {
   documentId: string;
   title: string;
   content: string;
-  actorIds: string[];
+  actors: DocumentDraftActor[];
+  actorIds?: string[];
   revision: number;
   updatedAt: string;
   flushAfter: string;
 };
+
 let draftTtlSeconds = 7 * 24 * 60 * 60;
 let dirtyDocumentsHash = 'cargo:document:dirty';
 let queuedDocumentsHash = 'cargo:document:queued';

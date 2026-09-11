@@ -19,6 +19,7 @@ import type {
   SkillExportStatus,
   SkillExportTarget
 } from '@metorial/db';
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
 import { createHash } from 'node:crypto';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
@@ -373,20 +374,29 @@ class SkillExportServiceImpl {
   }) {
     let purpose = await this.ensureExportFilePurpose();
     let expiresAt = getExportExpiresAt();
-    let zipStream = codeBucketClient.getBucketFilesAsZipStream({
+
+    let { storeId, destination } = await fileService.createPendingUploadForStream();
+
+    await codeBucketClient.exportBucketFilesAsZipToUpload({
       bucketId: d.target.destination.codeBucketId,
-      prefix: ''
+      prefix: '',
+      uploadUrl: destination.type === 'signed_url' ? destination.url : '',
+      uploadBucket: destination.type === 'internal' ? destination.bucket : '',
+      uploadKey: destination.type === 'internal' ? destination.key : '',
+      contentType: 'application/zip'
     });
 
-    let file = await fileService.createUploadedFileFromByteStream({
+    let file = await fileService.completePendingUploadForStream({
       project: d.project,
       instance: d.instance,
+      auditScope: createSystemAuditScope({
+        organization: { oid: d.instance.organizationOid },
+        instance: d.instance,
+        job: 'skill-export',
+        metadata: { skillExportId: d.skillExport.id }
+      }),
       purpose: purpose.slug,
-      content: (async function* () {
-        for await (let chunk of zipStream) {
-          if (chunk.content.byteLength > 0) yield chunk.content;
-        }
-      })(),
+      storeId,
       input: {
         name: d.target.fileName,
         title: d.target.fileName,

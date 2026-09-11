@@ -57,7 +57,8 @@ describe('documents live token authorization', () => {
     let target = await resolveDocumentsLiveToken({
       editToken: 'document_edit_token',
       documentId: 'doc_123',
-      instanceId: 'inst_123'
+      instanceId: 'inst_123',
+      context: { ip: '127.0.0.1', ua: 'test' }
     });
 
     expect(target.permissions).toEqual(['content_read']);
@@ -75,7 +76,8 @@ describe('documents live token authorization', () => {
       resolveDocumentsLiveToken({
         editToken: 'document_edit_token',
         documentId: 'doc_123',
-        instanceId: 'inst_123'
+        instanceId: 'inst_123',
+        context: { ip: '127.0.0.1', ua: 'test' }
       })
     ).rejects.toThrow('does not grant read access');
   });

@@ -16,7 +16,9 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
         attributes.triggers.status == 'enabled'
           ? {
               status: 'enabled' as const,
-              receiver_url: attributes.triggers.receiverUrl
+              webhook_registration: {
+                status: attributes.triggers?.webhookRegistration?.status ?? 'unsupported'
+              }
             }
           : {
               status: 'disabled' as const
@@ -95,10 +97,12 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
         [
           v.object({
             status: v.literal('enabled'),
-            receiver_url: v.string({
-              name: 'receiver_url',
-              description: 'The callback receiver URL for trigger-enabled providers',
-              examples: ['https://triggers.metorial.com/receiver/provider-type']
+            webhook_registration: v.object({
+              status: v.enumOf(['supported', 'unsupported'], {
+                name: 'status',
+                description:
+                  'Whether webhook receivers can be registered for this provider type'
+              })
             })
           }),
           v.object({

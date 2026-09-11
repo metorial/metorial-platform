@@ -111,6 +111,7 @@ export let portalConsumerGroupController = Controller.create(
       .do(async ctx => {
         let consumerGroup = await consumerGroupService.createConsumerGroup({
           consumerSurface: ctx.portal.surface,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -145,7 +146,9 @@ export let portalConsumerGroupController = Controller.create(
       .output(consumerGroupPresenter)
       .do(async ctx => {
         let consumerGroup = await consumerGroupService.updateConsumerGroup({
+          consumerSurface: ctx.portal.surface,
           consumerGroup: ctx.consumerGroup,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -173,7 +176,9 @@ export let portalConsumerGroupController = Controller.create(
       .do(async ctx => {
         let consumerGroup = await consumerGroupService.deleteConsumerGroup({
           organization: ctx.organization,
-          consumerGroup: ctx.consumerGroup
+          consumerSurface: ctx.portal.surface,
+          consumerGroup: ctx.consumerGroup,
+          auditScope: ctx.auditScope
         });
 
         return consumerGroupPresenter.present({ consumerGroup });

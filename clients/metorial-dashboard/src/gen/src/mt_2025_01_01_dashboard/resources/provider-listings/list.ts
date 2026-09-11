@@ -154,7 +154,10 @@ export type ProviderListingsListOutput = {
           | 'mcp.function'
           | 'mcp.remote';
         triggers:
-          | { status: 'enabled'; receiverUrl: string }
+          | {
+              status: 'enabled';
+              webhookRegistration: { status: 'supported' | 'unsupported' };
+            }
           | { status: 'disabled' };
         config:
           | { status: 'enabled'; read: { status: 'enabled' | 'disabled' } }
@@ -369,9 +372,14 @@ export let mapProviderListingsListOutput =
                                     'status',
                                     mtMap.passthrough()
                                   ),
-                                  receiverUrl: mtMap.objectField(
-                                    'receiver_url',
-                                    mtMap.passthrough()
+                                  webhookRegistration: mtMap.objectField(
+                                    'webhook_registration',
+                                    mtMap.object({
+                                      status: mtMap.objectField(
+                                        'status',
+                                        mtMap.passthrough()
+                                      )
+                                    })
                                   )
                                 })
                               )
@@ -637,6 +645,7 @@ export type ProviderListingsListQuery = {
         supportsAuth?: boolean | undefined;
         supportsOauth?: boolean | undefined;
         supportsCallbacks?: boolean | undefined;
+        supportsWebhookRegistration?: boolean | undefined;
         supportsOauthAutoRegistration?: boolean | undefined;
         supportsAuthExport?: boolean | undefined;
         supportsAuthImport?: boolean | undefined;
@@ -747,6 +756,10 @@ export let mapProviderListingsListQuery = mtMap.union([
           ),
           supportsCallbacks: mtMap.objectField(
             'supportsCallbacks',
+            mtMap.passthrough()
+          ),
+          supportsWebhookRegistration: mtMap.objectField(
+            'supportsWebhookRegistration',
             mtMap.passthrough()
           ),
           supportsOauthAutoRegistration: mtMap.objectField(

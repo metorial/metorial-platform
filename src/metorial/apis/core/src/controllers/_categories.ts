@@ -38,19 +38,13 @@ export let configurationDocsCategory = createCategory({
 
 export let skillDocsCategory = createCategory({
   id: 'skill',
-  name: 'Magic Skills',
+  name: 'Skills',
   indexHint: getIndexHint()
 });
 
 export let magicMcpDocsCategory = createCategory({
   id: 'magic-mcp',
   name: 'Magic MCP',
-  indexHint: getIndexHint()
-});
-
-export let callbackDocsCategory = createCategory({
-  id: 'callback',
-  name: 'Callbacks',
   indexHint: getIndexHint()
 });
 
@@ -75,6 +69,12 @@ export let identityDocsCategory = createCategory({
 export let customProviderDocsCategory = createCategory({
   id: 'custom-provider',
   name: 'Custom Providers',
+  indexHint: getIndexHint()
+});
+
+export let callbackDocsCategory = createCategory({
+  id: 'callback',
+  name: 'Callbacks',
   indexHint: getIndexHint()
 });
 

@@ -118,6 +118,7 @@ export let firewallBindingController = Controller.create(
       .do(async ctx => {
         let firewallBinding = await firewallBindingService.createFirewallBinding({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           firewallId: ctx.body.firewall_id,
           input: {
             targetType: ctx.body.target_type,
@@ -145,6 +146,7 @@ export let firewallBindingController = Controller.create(
 
         await firewallBindingService.deleteFirewallBinding({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           firewallBinding
         });
 

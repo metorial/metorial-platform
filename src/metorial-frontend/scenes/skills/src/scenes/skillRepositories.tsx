@@ -207,6 +207,7 @@ export let SkillPluginRepositoriesSettingsBox = (p: {
 export let SkillMarketplaceRepositoriesSettingsBox = (p: {
   instanceId: string | null | undefined;
   skillMarketplaceId: string | null | undefined;
+  onChange?: () => void | Promise<void>;
 }) => {
   let manager = useSkillMarketplaceRepositoriesManager(p);
 
@@ -261,7 +262,14 @@ export let useSkillMarketplaceRepositoriesManager = (p: {
         'Select or create a Git repository, then link it to this skill marketplace.',
       onManageSourceControl: manageSourceControl,
       onClose: () => {
-        skillMarketplaceLoader.refetchAll();
+        repositories.refetch();
+        void p.onChange?.();
+        if (p.instanceId && p.skillMarketplaceId) {
+          skillMarketplaceLoader.fetch(
+            { instanceId: p.instanceId, skillMarketplaceId: p.skillMarketplaceId },
+            { force: true }
+          );
+        }
         allSkillMarketplacePluginsLoader.refetchAll();
       },
       onSelect: async repo => {

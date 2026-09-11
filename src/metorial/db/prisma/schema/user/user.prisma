@@ -50,7 +50,7 @@ model User {
   access                                 MachineAccess[]
   files                                  File[]
   profile                                Profile?
-  uploads                                Upload[]
+  fileUploads                            FileUpload[]
   oauthAuthorizations                    OAuthAuthorization[]
   cliDevices                             CliDevice[]
   oauthAuthorizationFlows                OAuthAuthorizationFlow[]

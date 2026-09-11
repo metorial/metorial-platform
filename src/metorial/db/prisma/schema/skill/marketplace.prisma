@@ -24,8 +24,9 @@ model SkillMarketplace {
   /// [SkillMarketplaceClientOverrides]
   providerOverrides Json?
 
-  version     String?
-  versionHash String?
+  version          String?
+  versionHash      String?
+  forceSyncCounter Int     @default(0)
 
   name        String?
   description String?

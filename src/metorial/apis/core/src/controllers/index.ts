@@ -21,8 +21,10 @@ import {
 } from './consumer';
 import {
   dashboardAssistantController,
+  dashboardAuditLogRetentionController,
   dashboardAuthConfigConfigurationController,
   dashboardBootController,
+  dashboardDataRetentionConfigurationController,
   dashboardIntegrationNamingConfigurationController,
   dashboardKeyProviderController,
   dashboardOAuthAuthorizationRequestController,
@@ -31,20 +33,21 @@ import {
   dashboardOrganizationInviteController,
   dashboardOrganizationLayoutController,
   dashboardProjectConfigurationController,
+  dashboardProjectSkillSyncConfigurationController,
   dashboardResourceCountsController,
   dashboardToolCallingConfigurationController,
   dashboardUsageController,
   dashboardUserController,
+  dashboardWorkforceConfigurationController,
   flagsController,
-  profileController
+  profileController,
+  scopesController
 } from './dashboard';
 import {
   agentController,
   callbackController,
-  callbackDestinationController,
   callbackEventController,
   callbackInstanceController,
-  callbackNotificationController,
   consumerController,
   consumerSurfaceController,
   customProviderCodeController,
@@ -68,6 +71,7 @@ import {
   identityDelegationConfigController,
   identityDelegationController,
   identityDelegationRequestController,
+  incomingWebhookController,
   instanceController,
   instancesController,
   integrationController,
@@ -164,7 +168,8 @@ import {
   storeItemController,
   storeParticipantController,
   tokenController,
-  toolCallController
+  toolCallController,
+  webhookRegistrationController
 } from './instance';
 import {
   accessPolicyManagementController,
@@ -173,6 +178,9 @@ import {
   auditLogStreamEventManagementController,
   auditLogStreamManagementController,
   cliDeviceManagementController,
+  eventDestinationListenerController,
+  eventDestinationManagementController,
+  eventManagementController,
   instanceManagementController,
   managementApiKeyController,
   oauthApplicationManagementController,
@@ -183,6 +191,7 @@ import {
   organizationInviteManagementController,
   organizationManagementController,
   organizationMemberManagementController,
+  outpostManagementController,
   projectManagementController,
   sandboxManagementController,
   serviceAccountManagementController,
@@ -294,18 +303,6 @@ let setControllerDocsMetadata = <
 );
 
 [
-  callbackController,
-  callbackDestinationController,
-  callbackEventController,
-  callbackInstanceController,
-  callbackNotificationController
-].forEach(controller =>
-  setControllerDocsMetadata(controller, {
-    category: callbackDocsCategory
-  })
-);
-
-[
   networkController,
   enclaveController,
   firewallController,
@@ -328,6 +325,18 @@ let setControllerDocsMetadata = <
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: integrationDocsCategory
+  })
+);
+
+[
+  callbackController,
+  callbackEventController,
+  callbackInstanceController,
+  webhookRegistrationController,
+  incomingWebhookController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: callbackDocsCategory
   })
 );
 
@@ -454,10 +463,12 @@ export let magnetarController = Controller.create<any>(
     integrationInstanceGroupProviderController,
 
     callbackController,
-    callbackDestinationController,
     callbackEventController,
     callbackInstanceController,
-    callbackNotificationController,
+
+    eventDestinationManagementController,
+    eventDestinationListenerController,
+    eventManagementController,
 
     networkController,
     enclaveController,
@@ -530,6 +541,7 @@ export let magnetarController = Controller.create<any>(
     consumerActivityController,
 
     managementApiKeyController,
+    outpostManagementController,
     dashboardAssistantController,
 
     consumerController,
@@ -583,21 +595,26 @@ export let dashboardController = Controller.create<any>(
   },
   {
     dashboardOrganizationController,
+    dashboardAuditLogRetentionController,
     dashboardOrganizationConfigController,
     dashboardOrganizationInviteController,
     dashboardOrganizationLayoutController,
     dashboardProjectConfigurationController,
+    dashboardProjectSkillSyncConfigurationController,
     dashboardKeyProviderController,
     dashboardResourceCountsController,
     dashboardAuthConfigConfigurationController,
     dashboardIntegrationNamingConfigurationController,
     dashboardToolCallingConfigurationController,
+    dashboardDataRetentionConfigurationController,
     dashboardOAuthAuthorizationRequestController,
     dashboardBootController,
     testHelperConsumerOAuthController,
     dashboardUsageController,
     dashboardAssistantController,
+    dashboardWorkforceConfigurationController,
     flagsController,
+    scopesController,
 
     managementApiKeyController,
 
@@ -606,6 +623,8 @@ export let dashboardController = Controller.create<any>(
     auditLogManagementController,
     auditLogStreamManagementController,
     auditLogStreamEventManagementController,
+    eventDestinationManagementController,
+    eventManagementController,
     accessRoleManagementController,
     accessPolicyManagementController,
     oauthScopeManagementController,
@@ -617,6 +636,7 @@ export let dashboardController = Controller.create<any>(
     serviceAccountManagementController,
     organizationInviteManagementController,
     organizationMemberManagementController,
+    outpostManagementController,
     projectManagementController,
     sandboxManagementController,
     dashboardUserController,
@@ -628,6 +648,13 @@ export let dashboardController = Controller.create<any>(
     integrationInstanceProviderController,
     integrationInstanceGroupController,
     integrationInstanceGroupProviderController,
+
+    callbackController,
+    callbackEventController,
+    callbackInstanceController,
+    webhookRegistrationController,
+    incomingWebhookController,
+    eventDestinationListenerController,
 
     documentController,
     documentVersionController,
@@ -705,12 +732,6 @@ export let dashboardController = Controller.create<any>(
     providerAuthImportController,
     providerAuthExportController,
 
-    callbackController,
-    callbackDestinationController,
-    callbackEventController,
-    callbackInstanceController,
-    callbackNotificationController,
-
     networkController,
     dashboardEnclaveController,
     enclaveController,
@@ -785,10 +806,12 @@ export let fullDashboardController = Controller.create<any>(dashboardController.
   dashboardOrganizationInviteController,
   dashboardOrganizationLayoutController,
   dashboardProjectConfigurationController,
+  dashboardProjectSkillSyncConfigurationController,
   dashboardKeyProviderController,
   dashboardAuthConfigConfigurationController,
   dashboardIntegrationNamingConfigurationController,
   dashboardToolCallingConfigurationController,
+  dashboardDataRetentionConfigurationController,
   dashboardOAuthAuthorizationRequestController,
   dashboardBootController,
   testHelperConsumerOAuthController,

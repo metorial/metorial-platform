@@ -34,7 +34,8 @@ export let oauthController = internalApp.controller({
 
       return {
         user: await userPresenter(res.user),
-        session: await sessionPresenter(res.session)
+        session: await sessionPresenter(res.session),
+        redirectUrl: res.authAttempt.redirectUrl
       };
     })
 });

@@ -1,44 +1,30 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { callbackEventService } from '@metorial-subspace/module-callback';
+import { callbackEventPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instancePath } from '../../../middleware/instanceGroup';
-import { callbackEventPresenter } from '@metorial/presenters';
-import { callbackGroup } from './callback';
-
-let callbackEventGroup = callbackGroup.use(async ctx => {
-  if (!ctx.params.callbackEventId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'callbackEventId is required',
-        description: 'The callbackEventId path parameter is required.'
-      })
-    );
-  }
-
-  let callbackEvent = await callbackEventService.getCallbackEvent({
-    instance: ctx.instance,
-    callbackId: ctx.callback.id,
-    slateTriggerEventId: ctx.params.callbackEventId
-  });
-
-  return { callbackEvent };
-});
+import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import {
+  callbackEventSourceValidator,
+  callbackEventStatusValidator,
+  getRequiredParam,
+  stringOrArray
+} from './_shared';
 
 export let callbackEventController = Controller.create(
   {
     name: 'Callback Events',
-    description: 'Read callback trigger events.'
+    description:
+      'A callback event is recorded every time a provider trigger behind one of your callbacks fires. Listing returns the events themselves; fetch a single event to enrich it with the payload the provider produced, and the inbound webhook behind it, if any.'
   },
   {
-    list: callbackGroup
-      .get(instancePath('callbacks/:callbackId/events', 'callbacks.events.list'), {
+    list: instanceGroup
+      .get(instancePath('callback-events', 'callbackEvents.list'), {
         name: 'List callback events',
-        description: 'Returns a paginated list of callback events.',
-        confidential: true
+        description: 'Returns a paginated list of callback events.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .outputList(callbackEventPresenter)
@@ -46,55 +32,75 @@ export let callbackEventController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by callback event ID(s)'
+            callback_id: v.optional(stringOrArray(), {
+              description: 'Filter by callback ID(s)'
             }),
-            type: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by event type(s)'
+            callback_instance_id: v.optional(stringOrArray(), {
+              description: 'Filter by callback instance ID(s)'
             }),
-            source_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider source ID(s)'
-            })
+            integration_id: v.optional(stringOrArray(), {
+              description: 'Filter by the integration the callback belongs to'
+            }),
+            integration_provider_id: v.optional(stringOrArray(), {
+              description: 'Filter by the integration provider the callback belongs to'
+            }),
+            provider_id: v.optional(stringOrArray(), {
+              description: 'Filter by the provider the callback belongs to'
+            }),
+            provider_trigger_key: v.optional(stringOrArray(), {
+              description: 'Filter by the provider trigger key that produced the event'
+            }),
+            status: v.optional(
+              v.union([callbackEventStatusValidator, v.array(callbackEventStatusValidator)]),
+              { description: 'Filter by callback event processing status' }
+            ),
+            source: v.optional(
+              v.union([callbackEventSourceValidator, v.array(callbackEventSourceValidator)]),
+              { description: 'Filter by callback event source' }
+            ),
+            occurred_at: dateFilterValidator('when the underlying provider event occurred'),
+            created_at: dateFilterValidator('callback event creation time')
           })
         )
       )
       .do(async ctx => {
-        let list = await callbackEventService.listCallbackEvents({
+        let paginator = await callbackEventService.listCallbackEvents({
           instance: ctx.instance,
-          callbackId: ctx.callback.id,
-          input: {
-            eventTypes: normalizeArrayParam(ctx.query.type),
-            limit: ctx.query.limit,
-            after: ctx.query.after,
-            before: ctx.query.before,
-            cursor: ctx.query.cursor,
-            order: ctx.query.order
-          }
+          callbackIds: normalizeArrayParam(ctx.query.callback_id),
+          callbackInstanceIds: normalizeArrayParam(ctx.query.callback_instance_id),
+          integrationIds: normalizeArrayParam(ctx.query.integration_id),
+          integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerTriggerKeys: normalizeArrayParam(ctx.query.provider_trigger_key),
+          status: normalizeArrayParam(ctx.query.status),
+          source: normalizeArrayParam(ctx.query.source),
+          occurredAt: ctx.query.occurred_at,
+          createdAt: ctx.query.created_at
         });
 
-        return Paginator.present(
-          {
-            items: list.items,
-            pagination: {
-              hasNextPage: list.pagination.has_more_after,
-              hasPreviousPage: list.pagination.has_more_before
-            }
-          },
-          callbackEvent => callbackEventPresenter.present({ callbackEvent })
+        return Paginator.present(await paginator.run(ctx.query), callbackEvent =>
+          callbackEventPresenter.present({ callbackEvent })
         );
       }),
 
-    get: callbackEventGroup
-      .get(
-        instancePath('callbacks/:callbackId/events/:callbackEventId', 'callbacks.events.get'),
-        {
-          name: 'Get callback event',
-          description: 'Retrieves a specific callback event.',
-          confidential: true
-        }
-      )
+    get: instanceGroup
+      .get(instancePath('callback-events/:callbackEventId', 'callbackEvents.get'), {
+        name: 'Get callback event',
+        description:
+          'Retrieves a specific callback event by ID, enriched with the payload the provider produced for it and, if it came from a webhook, the inbound request behind it.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .output(callbackEventPresenter)
-      .do(async ctx => callbackEventPresenter.present({ callbackEvent: ctx.callbackEvent }))
+      .do(async ctx => {
+        let callbackEvent = await callbackEventService.getCallbackEventById({
+          instance: ctx.instance,
+          callbackEventId: getRequiredParam(ctx.params, 'callbackEventId')
+        });
+
+        return callbackEventPresenter.present({
+          callbackEvent,
+          details: callbackEvent.details
+        });
+      })
   }
 );

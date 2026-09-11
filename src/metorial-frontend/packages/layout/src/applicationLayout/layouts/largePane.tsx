@@ -16,7 +16,7 @@ let fadeIn = keyframes`
 `;
 
 let Outer = styled('div')`
-  padding: 0px 10px 10px 10px;
+  padding: 0px 0px 10px 10px;
   animation: ${fadeIn} 0.2s cubic-bezier(0.26, 1.11, 0.87, 1.25);
 `;
 

@@ -190,6 +190,7 @@ export let identityCredentialController = Controller.create(
         });
         let identityCredential = await identityCredentialService.createIdentityCredential({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           identity,
           input: {
             deploymentId: ctx.body.deployment_id,
@@ -233,6 +234,7 @@ export let identityCredentialController = Controller.create(
           });
         let identityCredential = await identityCredentialService.updateIdentityCredential({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           identityCredential: ctx.identityCredential,
           input: { delegationConfig }
         });
@@ -257,6 +259,7 @@ export let identityCredentialController = Controller.create(
       .do(async ctx => {
         let identityCredential = await identityCredentialService.archiveIdentityCredential({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           identityCredential: ctx.identityCredential
         });
 

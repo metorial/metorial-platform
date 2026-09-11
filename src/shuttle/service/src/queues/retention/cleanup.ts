@@ -151,6 +151,44 @@ let cleanupDeploymentSteps = async (d: { tenantOid: bigint; cutoffDate: Date }) 
   });
 };
 
+let cleanupServerAuthConfigEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch<{ oid: bigint }>({
+    findMany: () =>
+      db.serverAuthConfigEvent.findMany({
+        where: {
+          serverAuthConfig: { tenantOid: d.tenantOid },
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { oid: true }
+      }),
+    deleteMany: records =>
+      db.serverAuthConfigEvent.deleteMany({
+        where: { oid: { in: records.map(record => record.oid) } }
+      })
+  });
+};
+
+let cleanupServerOAuthSetupEvents = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
+  await processBatch<{ oid: bigint }>({
+    findMany: () =>
+      db.serverOAuthSetupEvent.findMany({
+        where: {
+          serverOAuthSetup: { tenantOid: d.tenantOid },
+          createdAt: { lt: d.cutoffDate }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: RETENTION_BATCH_SIZE,
+        select: { oid: true }
+      }),
+    deleteMany: records =>
+      db.serverOAuthSetupEvent.deleteMany({
+        where: { oid: { in: records.map(record => record.oid) } }
+      })
+  });
+};
+
 let cleanupDeployments = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
   await processBatch<{
     oid: bigint;
@@ -247,6 +285,14 @@ export let shuttleTenantRetentionCleanupQueueProcessor =
       cutoffDate
     });
     await cleanupServerDiscoveries({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupServerAuthConfigEvents({
+      tenantOid: tenant.oid,
+      cutoffDate
+    });
+    await cleanupServerOAuthSetupEvents({
       tenantOid: tenant.oid,
       cutoffDate
     });

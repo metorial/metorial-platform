@@ -39,7 +39,7 @@ export let syncAuditLogStreamQueueProcessor = syncAuditLogStreamQueue.process(as
   syncAuditLogStreamLock.usingLock(data.auditLogStreamId, async () => {
     try {
       let result = await auditLogStreamSyncService.syncBatch(data);
-      if (result.status != 'success' || !result.shouldContinue) return;
+      if (result.status !== 'success' || !result.shouldContinue) return;
 
       let nextBatchNumber = data.batchNumber + 1;
       await syncAuditLogStreamQueue.add(
@@ -133,7 +133,7 @@ export let scavengeDirtyAuditLogOrganizationsQueueProcessor =
 export let scavengeDirtyAuditLogOrganizationsCron = createCron(
   {
     name: 'audit/stream/scavenge/cron',
-    cron: '*/15 * * * *'
+    cron: '*/5 * * * *'
   },
   async () => {
     await scavengeDirtyAuditLogOrganizationsQueue.add(

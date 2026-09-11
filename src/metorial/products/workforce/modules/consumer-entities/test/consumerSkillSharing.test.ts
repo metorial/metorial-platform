@@ -398,6 +398,13 @@ describe('consumer skill sharing', () => {
       consumerSkillService.createConsumerSkill({
         organization: organization as any,
         instance: instance as any,
+        project: { oid: 2n } as any,
+        auditScope: {
+          organizationOid: 1n,
+          instanceOid: 2n,
+          actor: { type: 'consumer_profile', id: 'cpf_1' },
+          context: { ip: '127.0.0.1' }
+        } as any,
         consumerSurface: {
           ...consumerSurface,
           allowConsumerSkillAuthoring: true

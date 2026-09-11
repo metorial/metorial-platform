@@ -8,7 +8,9 @@ model Tenant {
   functionBayTenantId String?
   nebulaTenantId      String?
 
-  logRetentionInDays Int @default(30)
+  logRetentionInDays Int     @default(30)
+  storeContent       Boolean @default(true)
+  collectErrors      Boolean @default(true)
 
   createdAt DateTime @default(now())
 

@@ -211,6 +211,7 @@ export let providerAuthConfigController = Controller.create(
 
         let authConfig = await providerAuthConfigService.createProviderAuthConfig({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           provider,
           providerDeployment,
           source: 'manual',
@@ -265,6 +266,7 @@ export let providerAuthConfigController = Controller.create(
       .do(async ctx => {
         let authConfig = await providerAuthConfigService.updateProviderAuthConfig({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerAuthConfig: ctx.authConfig,
           import: {
             ip: ctx.context.ip,
@@ -301,6 +303,7 @@ export let providerAuthConfigController = Controller.create(
       .do(async ctx => {
         let authConfig = await providerAuthConfigService.archiveProviderAuthConfig({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           providerAuthConfig: ctx.authConfig
         });
 

@@ -54,7 +54,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
       throw new Error('Server version missing remote connection info');
     }
 
-    this.logger = new ConnectionLogger(this.connection);
+    this.logger = new ConnectionLogger(this.connection, tenant);
     this.messenger = new ConnectionMessenger();
     this.manager = new ConnectionManager(this.connection);
 

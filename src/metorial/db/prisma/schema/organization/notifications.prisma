@@ -44,6 +44,10 @@ model OrganizationNotification {
   notForMemberIds    String[]                 @default([])
   onlyForMemberRoles OrganizationMemberRole[] @default([])
 
+  // When true, no email is ever sent for this notification, regardless of the
+  // notification type's default or the member's per-type email setting.
+  suppressEmail Boolean @default(false)
+
   message String
   title   String
 

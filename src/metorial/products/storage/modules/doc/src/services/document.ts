@@ -21,7 +21,10 @@ import type {
   StoreCloneType,
   StoreParticipantPermissions
 } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
+import type { Context } from '@metorial/context';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -35,7 +38,11 @@ import { resourceActorPresentationInclude } from '@metorial/module-resource-acto
 import { internalDocumentContentService } from '../internal/documentContent';
 import { internalDocumentContentStoreService } from '../internal/documentContentStore';
 import type { DocumentDraft } from '../internal/documentDraft';
-import { internalDocumentDraftService } from '../internal/documentDraft';
+import {
+  getDocumentDraftActors,
+  internalDocumentDraftService,
+  withDocumentDraftActor
+} from '../internal/documentDraft';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
 import { internalDocumentVersioningService } from '../internal/documentVersioning';
 import { rewriteDocumentMarkdownTitle } from '../lib/documentMarkdown';
@@ -191,6 +198,7 @@ class DocumentServiceImpl {
   async createDocument(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     internal?: {
       isReadOnly?: boolean;
       isTemplateBacking?: boolean;
@@ -214,12 +222,15 @@ class DocumentServiceImpl {
 
     let actor = d.input.authorization.resourceActor;
 
+    await Fabric.fire('document.created:before', { instance: d.instance });
+
     return await withTransaction(async db => {
       let documentId = d.input.id ?? (await ID.generateId('document'));
 
       let file = await fileService.createFile({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         purpose: purpose.id,
         storeId: d.input.fileStoreId ?? getDocumentStoreId(documentId),
         _isDocument: true,
@@ -274,7 +285,8 @@ class DocumentServiceImpl {
         await internalDocumentParticipantService.ensureVersionEditor({
           version,
           document,
-          actor
+          actor,
+          context: d.auditScope.context
         });
       }
 
@@ -321,6 +333,12 @@ class DocumentServiceImpl {
           allowReadOnly: d.internal?.allowReadOnlyStore
         });
       }
+
+      await Fabric.fire('document.created:after', {
+        instance: d.instance,
+        auditScope: d.auditScope,
+        document: createdDocument
+      });
 
       return createdDocument;
     });
@@ -522,6 +540,11 @@ class DocumentServiceImpl {
       title?: string;
       content?: string;
       authorization: ResourceAuthorization;
+      /**
+       * Where the edit came from. Kept on the draft so it can be attributed when the
+       * version that seals these edits is later audited.
+       */
+      context?: Context;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     };
@@ -569,7 +592,7 @@ class DocumentServiceImpl {
             currentDraft?.content ??
             d.document.resolvedContent ??
             d.document.content.content,
-          actorIds: currentDraft?.actorIds ?? [],
+          actors: currentDraft ? getDocumentDraftActors(currentDraft) : [],
           revision: (currentDraft?.revision ?? 0) + 1,
           updatedAt: new Date().toISOString(),
           flushAfter: new Date(Date.now() + draftFlushDelayMs).toISOString()
@@ -603,7 +626,10 @@ class DocumentServiceImpl {
         }
 
         if (actor) {
-          nextDraft.actorIds = [...new Set([...nextDraft.actorIds, actor.id])];
+          nextDraft.actors = withDocumentDraftActor(nextDraft, {
+            id: actor.id,
+            context: d.input.context
+          });
         }
 
         await internalDocumentDraftService.setDraft(nextDraft);
@@ -642,6 +668,7 @@ class DocumentServiceImpl {
   async cloneDocument(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     document: ResolvedDocumentRecord;
     input: {
       id?: string;
@@ -678,6 +705,8 @@ class DocumentServiceImpl {
       );
     }
 
+    await Fabric.fire('document.created:before', { instance: d.instance });
+
     let clonedDocument = await withTransaction(async db => {
       let documentId = d.input.id ?? (await ID.generateId('document'));
       let sourceTitle = d.document.resolvedTitle ?? d.document.title;
@@ -690,6 +719,7 @@ class DocumentServiceImpl {
       let file = await fileService.createFile({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         purpose: purpose.id,
         storeId: getDocumentStoreId(documentId),
         _isDocument: true,
@@ -758,9 +788,16 @@ class DocumentServiceImpl {
         await internalDocumentParticipantService.ensureVersionEditor({
           version,
           document: nextDocument,
-          actor: creatorActor
+          actor: creatorActor,
+          context: d.auditScope.context
         });
       }
+
+      await Fabric.fire('document.created:after', {
+        instance: d.instance,
+        auditScope: d.auditScope,
+        document: nextDocument
+      });
 
       return nextDocument;
     });
@@ -771,6 +808,7 @@ class DocumentServiceImpl {
   async deleteDocument(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     document: ResolvedDocumentRecord;
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
@@ -806,7 +844,8 @@ class DocumentServiceImpl {
 
     let deletedDocument = await withTransaction(async db => {
       await fileService.deleteFile({
-        file: d.document.file
+        file: d.document.file,
+        auditScope: d.auditScope
       });
 
       return await this.getDocumentRecord({
@@ -815,6 +854,12 @@ class DocumentServiceImpl {
         documentId: d.document.id,
         includeDeleted: true
       });
+    });
+
+    await Fabric.fire('document.deleted:after', {
+      instance: d.instance,
+      auditScope: d.auditScope,
+      document: deletedDocument
     });
 
     return deletedDocument;

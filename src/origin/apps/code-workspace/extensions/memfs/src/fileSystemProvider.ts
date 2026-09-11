@@ -15,6 +15,8 @@ interface FileInfo {
   modified_at: string;
 }
 
+let fileTooLargeHeader = 'x-metorial-file-too-large';
+
 interface QueuedOperation {
   type: 'put' | 'delete';
   uri: vscode.Uri;
@@ -79,6 +81,8 @@ export class MemFS implements vscode.FileSystemProvider {
   private isLoaded = false;
   private loadingPromise?: Promise<void>;
 
+  private placeholderPaths = new Set<string>();
+
   constructor(apiUrl: string = 'http://localhost:8080') {
     this.remoteConfig = { apiUrl, readonly: false };
   }
@@ -87,7 +91,7 @@ export class MemFS implements vscode.FileSystemProvider {
     await this.ensureLoaded();
 
     const entry = await this._lookup(uri, false);
-    if (!this.remoteConfig.readonly) {
+    if (!this.remoteConfig.readonly && !this.placeholderPaths.has(uri.path)) {
       return entry;
     }
 
@@ -382,6 +386,12 @@ export class MemFS implements vscode.FileSystemProvider {
     if (this.remoteConfig.readonly) {
       throw vscode.FileSystemError.NoPermissions(uri);
     }
+
+    if (this.placeholderPaths.has(uri.path)) {
+      throw vscode.FileSystemError.NoPermissions(
+        `${uri.path} is too large to display, so it cannot be edited here.`
+      );
+    }
   }
 
   private decodeTokenReadonly(token: string): boolean {
@@ -521,6 +531,12 @@ export class MemFS implements vscode.FileSystemProvider {
       // Create file structure in memory
       const fullPath = this.getFullPath(fileInfo.path);
       const uri = vscode.Uri.parse(`memfs:${fullPath}`);
+
+      if (response.headers.get(fileTooLargeHeader) === 'true') {
+        this.placeholderPaths.add(uri.path);
+      } else {
+        this.placeholderPaths.delete(uri.path);
+      }
 
       this.createFileInMemory(uri, content, new Date(fileInfo.modified_at).getTime());
     } catch (error) {

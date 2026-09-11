@@ -53,6 +53,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Organization API Keys',
     description: 'These endpoints manage organization and instance API keys.'
   },
+  'organization.outpost': {
+    name: 'Outposts',
+    description: 'These endpoints manage outposts, their access grants, and credentials.'
+  },
   'organization.oauth_app': {
     name: 'OAuth Apps',
     description: 'These endpoints manage OAuth applications owned by an organization.'

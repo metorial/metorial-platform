@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let {
   db,
+  integrationServiceMock,
   providerTemplateBackingServiceMock,
   providerTemplateArchivedQueueAddMock,
   providerTemplateCreatedQueueAddMock,
   providerTemplateUpdatedQueueAddMock,
-  enqueueProviderTemplateBackingCleanupMock
+  enqueueProviderTemplateBackingCleanupMock,
+  subspaceScopeServiceMock,
+  assertAuthMethodAllowedForTenantMock
 } = vi.hoisted(() => {
   let db = {
     providerTemplate: {
@@ -18,6 +21,9 @@ let {
 
   return {
     db,
+    integrationServiceMock: {
+      getIntegrationById: vi.fn()
+    },
     providerTemplateBackingServiceMock: {
       upsertProviderTemplateBackingFromIntegration: vi.fn(),
       updateProviderTemplateBacking: vi.fn(),
@@ -26,7 +32,11 @@ let {
     providerTemplateArchivedQueueAddMock: vi.fn(),
     providerTemplateCreatedQueueAddMock: vi.fn(),
     providerTemplateUpdatedQueueAddMock: vi.fn(),
-    enqueueProviderTemplateBackingCleanupMock: vi.fn()
+    enqueueProviderTemplateBackingCleanupMock: vi.fn(),
+    subspaceScopeServiceMock: {
+      ensureForInstance: vi.fn()
+    },
+    assertAuthMethodAllowedForTenantMock: vi.fn()
   };
 });
 
@@ -56,7 +66,16 @@ vi.mock('@lowerdeck/service', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-integration', () => ({
+  integrationService: integrationServiceMock,
   providerTemplateBackingService: providerTemplateBackingServiceMock
+}));
+
+vi.mock('@metorial-subspace/module-provider-internal', () => ({
+  assertAuthMethodAllowedForTenant: assertAuthMethodAllowedForTenantMock
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  subspaceScopeService: subspaceScopeServiceMock
 }));
 
 vi.mock('@metorial/module-access', () => ({
@@ -92,6 +111,8 @@ import { providerTemplateService } from '../src/services/providerTemplate';
 describe('providerTemplateService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    integrationServiceMock.getIntegrationById.mockResolvedValue({ providers: [] });
+    subspaceScopeServiceMock.ensureForInstance.mockResolvedValue({ tenant: {} });
   });
 
   it('archives provider templates without archiving the linked integration', async () => {

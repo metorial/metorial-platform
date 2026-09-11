@@ -19,6 +19,8 @@ model Project {
   logRetentionInDays   Int     @default(30)
   enforceSessionExpiry Boolean @default(false)
 
+  skillSyncGitLfsThresholdBytes Int?
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -37,6 +39,8 @@ model Project {
 
   consumerAuthClientRegistrationsPerMinuteLimit Int @default(10)
   consumerAuthClientRegistrationsPerHourLimit   Int @default(25)
+
+  autoAddOrganizationMembersToPortals Boolean @default(false)
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
@@ -73,6 +77,7 @@ model Project {
   productAssistantConversations          ProductAssistantConversation[]
   productAssistantModelRuns              ProductAssistantModelRun[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
+  outpostAccesses                        OutpostAccess[]
 
   @@index([previousSlugs])
 }

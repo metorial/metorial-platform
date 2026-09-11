@@ -2,10 +2,11 @@ import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { RedisClient } from 'bun';
 import { SignalApi } from './controllers';
 import { db } from './db';
+import { env } from './env';
 
 let server = Bun.serve({
   fetch: SignalApi,
-  port: 52050
+  port: env.service.SIGNAL_API_PORT ?? 52050
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

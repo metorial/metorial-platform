@@ -2,12 +2,12 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
+import { providerToolsPresenter, sessionTemplatePresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerToolsPresenter, sessionTemplatePresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from './_shared';
 
 let sessionTemplateGroup = instanceGroup.use(async ctx => {
@@ -147,6 +147,7 @@ export let sessionTemplateController = Controller.create(
       .do(async ctx => {
         let sessionTemplate = await sessionTemplateService.createSessionTemplate({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -156,8 +157,6 @@ export let sessionTemplateController = Controller.create(
                 deploymentId: p.provider_deployment_id,
                 configId: p.provider_config_id,
                 authConfigId: p.provider_auth_config_id,
-                // The former RPC stored this validation union without normalization.
-                // Keep the boundary cast: legacy rules are intentionally outside ToolFilter.
                 toolFilters: p.tool_filters as any
               })) ?? []
           }
@@ -186,6 +185,7 @@ export let sessionTemplateController = Controller.create(
       .do(async ctx => {
         let sessionTemplate = await sessionTemplateService.updateSessionTemplate({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           template: ctx.sessionTemplate,
           input: {
             name: ctx.body.name,
@@ -210,6 +210,7 @@ export let sessionTemplateController = Controller.create(
       .do(async ctx => {
         let sessionTemplate = await sessionTemplateService.deleteSessionTemplate({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           sessionTemplate: ctx.sessionTemplate
         });
 

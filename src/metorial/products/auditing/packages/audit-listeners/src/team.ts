@@ -22,7 +22,9 @@ let teamMemberPayload = (
   }
 });
 
-export let recordTeamCreated = async (event: FabricEvents['organization.team.created:after']) => {
+export let recordTeamCreated = async (
+  event: FabricEvents['organization.team.created:after']
+) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'team', 'create', {
       payload: {
@@ -33,7 +35,9 @@ export let recordTeamCreated = async (event: FabricEvents['organization.team.cre
   });
 };
 
-export let recordTeamUpdated = async (event: FabricEvents['organization.team.updated:after']) => {
+export let recordTeamUpdated = async (
+  event: FabricEvents['organization.team.updated:after']
+) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'team', 'update', {
       payload: {
@@ -51,7 +55,9 @@ export let recordTeamUpdated = async (event: FabricEvents['organization.team.upd
   });
 };
 
-export let recordTeamDeleted = async (event: FabricEvents['organization.team.deleted:after']) => {
+export let recordTeamDeleted = async (
+  event: FabricEvents['organization.team.deleted:after']
+) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'team', 'delete', {
       payload: {

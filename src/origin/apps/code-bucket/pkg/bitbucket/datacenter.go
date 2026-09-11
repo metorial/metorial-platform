@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
+
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -96,6 +98,12 @@ func PrepareDataCenterRepo(
 			if err != nil {
 				return err
 			}
+			if info.Size() > filelimit.MaxBufferedFileBytes {
+				return filelimit.FileTooLargeError(
+					"Bitbucket import", filepath.ToSlash(relativePath),
+					info.Size(), filelimit.MaxBufferedFileBytes,
+				)
+			}
 			content, err := os.ReadFile(filePath)
 			if err != nil {
 				return err
@@ -106,22 +114,40 @@ func PrepareDataCenterRepo(
 	return iter, cleanup, nil
 }
 
+type DataCenterUploadOptions struct {
+	CloneURL            string
+	TargetPath          string
+	Branch              string
+	CommitMessage       string
+	Username            string
+	Token               string
+	DeletePaths         []string
+	ExplicitDeletesOnly bool
+}
+
+func (o DataCenterUploadOptions) withDefaults() DataCenterUploadOptions {
+	if o.Branch == "" {
+		o.Branch = "main"
+	}
+	if o.CommitMessage == "" {
+		o.CommitMessage = "Upload files"
+	}
+	return o
+}
+
 func UploadToDataCenterRepo(
 	ctx context.Context,
-	cloneURL, targetPath, branch, commitMessage, username, token string,
+	opts DataCenterUploadOptions,
 	iter FileIterator,
 ) error {
-	if branch == "" {
-		branch = "main"
-	}
-	if err := validateBranch(branch); err != nil {
+	opts = opts.withDefaults()
+	if err := validateBranch(opts.Branch); err != nil {
 		return err
 	}
-	if commitMessage == "" {
-		commitMessage = "Upload files"
-	}
 
-	repository, worktreeDir, cleanup, err := cloneDataCenterRepo(ctx, cloneURL, branch, username, token, true)
+	repository, worktreeDir, cleanup, err := cloneDataCenterRepo(
+		ctx, opts.CloneURL, opts.Branch, opts.Username, opts.Token, true,
+	)
 	if err != nil {
 		return err
 	}
@@ -131,17 +157,22 @@ func UploadToDataCenterRepo(
 	if err != nil {
 		return err
 	}
-	branchRef := plumbing.NewBranchReferenceName(branch)
+	branchRef := plumbing.NewBranchReferenceName(opts.Branch)
 	if err := worktree.Checkout(&git.CheckoutOptions{Branch: branchRef, Force: true}); err != nil {
 		return fmt.Errorf("failed to checkout Bitbucket branch: %w", err)
 	}
 
-	normalizedTarget, err := normalizeRepoPath(targetPath, true)
+	normalizedTarget, err := normalizeRepoPath(opts.TargetPath, true)
 	if err != nil {
 		return err
 	}
 	targetDir := filepath.Join(worktreeDir, filepath.FromSlash(normalizedTarget))
-	if normalizedTarget == "" {
+
+	if opts.ExplicitDeletesOnly {
+		if err := removeDataCenterPaths(targetDir, opts.DeletePaths); err != nil {
+			return err
+		}
+	} else if normalizedTarget == "" {
 		entries, err := os.ReadDir(worktreeDir)
 		if err != nil {
 			return err
@@ -183,7 +214,7 @@ func UploadToDataCenterRepo(
 		return nil
 	}
 
-	_, err = worktree.Commit(commitMessage, &git.CommitOptions{
+	_, err = worktree.Commit(opts.CommitMessage, &git.CommitOptions{
 		All: true,
 		Author: &object.Signature{
 			Name:  "Metorial",
@@ -200,10 +231,41 @@ func UploadToDataCenterRepo(
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(branchRef.String() + ":" + branchRef.String()),
 		},
-		Auth: dataCenterAuth(username, token),
+		Auth: dataCenterAuth(opts.Username, opts.Token),
 	}); err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
 		return fmt.Errorf("failed to push Bitbucket commit: %w", err)
 	}
+	return nil
+}
+
+func removeDataCenterPaths(targetDir string, deletePaths []string) error {
+	for _, deletePath := range deletePaths {
+		filePath, err := normalizeRepoPath(deletePath, false)
+		if err != nil {
+			return err
+		}
+
+		destination := filepath.Join(targetDir, filepath.FromSlash(filePath))
+		if err := ensureWithin(targetDir, destination); err != nil {
+			return err
+		}
+		if err := os.Remove(destination); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return err
+		}
+
+		for parent := filepath.Dir(destination); parent != targetDir; parent = filepath.Dir(parent) {
+			if err := ensureWithin(targetDir, parent); err != nil {
+				break
+			}
+			if err := os.Remove(parent); err != nil {
+				break
+			}
+		}
+	}
+
 	return nil
 }
 

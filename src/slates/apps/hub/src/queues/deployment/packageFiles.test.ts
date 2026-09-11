@@ -32,6 +32,16 @@ describe('buildSlateDeploymentFiles', () => {
     expect(entryPoint).toContain("from './src/index.ts'");
   });
 
+  it('does not abort the message batch on notification errors', () => {
+    let result = buildSlateDeploymentFiles([
+      toArchiveFile('package.json', JSON.stringify({ name: 'slate', main: 'src/index.ts' })),
+      toArchiveFile('src/index.ts', 'export let provider = {};')
+    ]);
+
+    let entryPoint = result.files.find(file => file.filename === 'slates_entry_point.js')!.content as string;
+    expect(entryPoint).toContain('if (!m.id) continue;');
+  });
+
   it('keeps prebuilt dist when no source entrypoint exists', () => {
     let result = buildSlateDeploymentFiles([
       toArchiveFile('package.json', JSON.stringify({ name: 'slate', main: 'dist/index.js' })),

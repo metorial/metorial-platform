@@ -136,7 +136,10 @@ describe('consumer access cleanup queue', () => {
 
     expect(listingDeleteMock).toHaveBeenCalledWith({
       organization,
-      consumerAccessListing: listing
+      consumerAccessListing: listing,
+      auditScope: expect.objectContaining({
+        actor: { type: 'system', id: 'consumerAccess/listingCleanup' }
+      })
     });
   });
 
@@ -153,7 +156,10 @@ describe('consumer access cleanup queue', () => {
 
     expect(accessDeleteMock).toHaveBeenCalledWith({
       organization,
-      consumerAccess: access
+      consumerAccess: access,
+      auditScope: expect.objectContaining({
+        actor: { type: 'system', id: 'consumerAccess/cleanup' }
+      })
     });
   });
 });

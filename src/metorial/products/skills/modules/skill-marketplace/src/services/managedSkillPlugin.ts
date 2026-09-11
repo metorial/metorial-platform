@@ -12,11 +12,12 @@ import type {
   SkillPluginStatus
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { createSkillDestination } from '@metorial/skills-scm-utils';
 import type { LifecycleEvent } from '@metorial/skills-common';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
 import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle/skillPluginSkill';
-import { skillPluginInclude } from './skillPlugin';
+import { getSkillPluginFabricContext, skillPluginInclude } from './skillPlugin';
 
 let managedSkillPluginInclude = {
   skill: true,
@@ -89,6 +90,41 @@ class ManagedSkillPluginServiceImpl {
         skillOid
       },
       include: managedSkillPluginInclude
+    });
+  }
+
+  private async fireSkillPluginAfterEvent(
+    event: 'created' | 'updated' | 'archived',
+    skillPlugin: ManagedSkillPluginRecord['skillPlugin'],
+    skill: Pick<SkillForManagedPlugin, 'organizationOid' | 'instanceOid'>
+  ) {
+    let { organization, instance } = await getSkillPluginFabricContext({
+      organizationOid: skill.organizationOid,
+      instanceOid: skill.instanceOid
+    });
+
+    if (event === 'created') {
+      await Fabric.fire('skill.plugin.created:after', {
+        organization,
+        instance,
+        skillPlugin
+      });
+      return;
+    }
+
+    if (event === 'updated') {
+      await Fabric.fire('skill.plugin.updated:after', {
+        organization,
+        instance,
+        skillPlugin
+      });
+      return;
+    }
+
+    await Fabric.fire('skill.plugin.archived:after', {
+      organization,
+      instance,
+      skillPlugin
     });
   }
 
@@ -179,6 +215,8 @@ class ManagedSkillPluginServiceImpl {
 
       return managedSkillPlugin;
     });
+
+    await this.fireSkillPluginAfterEvent('created', managedSkillPlugin.skillPlugin, skill);
 
     await this.enqueuePluginLifecycle({
       skillPluginId: managedSkillPlugin.skillPlugin.id,
@@ -301,6 +339,14 @@ class ManagedSkillPluginServiceImpl {
       };
     });
 
+    if (result.skillPluginChanged) {
+      await this.fireSkillPluginAfterEvent(
+        'updated',
+        result.managedSkillPlugin.skillPlugin,
+        managedSkillPlugin.skill
+      );
+    }
+
     await this.enqueuePluginLifecycle({
       skillPluginId: result.managedSkillPlugin.skillPlugin.id,
       skillPluginSkillIds:
@@ -398,6 +444,14 @@ class ManagedSkillPluginServiceImpl {
         });
       }
     });
+
+    if (shouldArchivePlugin) {
+      await this.fireSkillPluginAfterEvent(
+        'archived',
+        managedSkillPlugin.skillPlugin,
+        managedSkillPlugin.skill
+      );
+    }
 
     await this.enqueuePluginLifecycle({
       skillPluginId: managedSkillPlugin.skillPlugin.id,

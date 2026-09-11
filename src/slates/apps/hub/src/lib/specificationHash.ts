@@ -1,6 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
-import type { SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
+import type { SlateAuthenticationMethod, SlatesAction, SlatesTriggerGroup } from '@slates/proto';
 
 type SlateDocReference = PrismaJson.SlateDocReference;
 
@@ -56,6 +56,9 @@ export let hashDiscoveredAuthMethod = async (method: SlateAuthenticationMethod) 
 export let hashDiscoveredAction = async (action: SlatesAction) =>
   await Hash.sha256(canonicalize(action));
 
+export let hashDiscoveredTriggerGroup = async (triggerGroup: SlatesTriggerGroup) =>
+  await Hash.sha256(canonicalize(triggerGroup));
+
 export let buildDiscoveredSpecificationHashes = async (d: {
   providerInfo: {
     protocol: string;
@@ -68,18 +71,21 @@ export let buildDiscoveredSpecificationHashes = async (d: {
   };
   authMethods: SlateAuthenticationMethod[];
   actions: SlatesAction[];
+  triggerGroups: SlatesTriggerGroup[];
 }) => {
   let providerInfoHash = await hashDiscoveredProviderInfo(d.providerInfo);
   let configSchemaHash = await hashDiscoveredConfigSchema(d.configSchema);
   let authMethodHashes = await Promise.all(d.authMethods.map(hashDiscoveredAuthMethod));
   let actionHashes = await Promise.all(d.actions.map(hashDiscoveredAction));
+  let triggerGroupHashes = await Promise.all(d.triggerGroups.map(hashDiscoveredTriggerGroup));
 
   let specificationHash = await Hash.sha256(
     canonicalize({
       providerInfoHash,
       configSchemaHash,
       authMethodHashes: [...authMethodHashes].sort(),
-      actionHashes: [...actionHashes].sort()
+      actionHashes: [...actionHashes].sort(),
+      triggerGroupHashes: [...triggerGroupHashes].sort()
     })
   );
 
@@ -88,6 +94,7 @@ export let buildDiscoveredSpecificationHashes = async (d: {
     configSchemaHash,
     authMethodHashes,
     actionHashes,
+    triggerGroupHashes,
     specificationHash
   };
 };

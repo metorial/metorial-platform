@@ -1,10 +1,12 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { createAuditScope, type AuditScope } from '@metorial/audit-scope';
+import type { Context } from '@metorial/context';
+import { accessService, type AuthInfo, type Scope } from '@metorial/module-access';
 import {
   getInstanceCargoAccess,
   type InstanceCargoAccessContext,
   type ScopeOwner
 } from '@metorial/module-file';
-import { accessService, type AuthInfo, type Scope } from '@metorial/module-access';
 import { organizationService } from '@metorial/module-organization';
 
 let uploadScopes = ['instance.file:write', 'consumer#instance.file:write'] as const;
@@ -12,6 +14,7 @@ let uploadScopes = ['instance.file:write', 'consumer#instance.file:write'] as co
 type ResolvedUploadTarget = {
   owner: ScopeOwner;
   cargoAccess?: ReturnType<typeof getInstanceCargoAccess>;
+  auditScope?: AuditScope;
   isInstanceOwner: boolean;
   canWrite: boolean;
 };
@@ -26,6 +29,7 @@ let getRestrictedInstanceId = (auth: AuthInfo) => {
 
 export let resolveUploadTarget = async (d: {
   auth: AuthInfo;
+  context: Context;
   instanceId?: string | null;
   organizationId?: string | null;
   possibleScopes?: Scope[];
@@ -91,6 +95,20 @@ export let resolveUploadTarget = async (d: {
         instance: instanceAccess.instance
       },
       cargoAccess: getInstanceCargoAccess(cargoAccessContext),
+      auditScope:
+        d.auth.auditScope ??
+        (instanceAccess.actor
+          ? createAuditScope({
+              organization: instanceAccess.organization,
+              instance: instanceAccess.instance,
+              organizationActor: instanceAccess.actor,
+              actor: {
+                type: 'org_actor',
+                id: instanceAccess.actor.id
+              },
+              context: d.context
+            })
+          : undefined),
       isInstanceOwner: true,
       canWrite
     };
@@ -115,6 +133,15 @@ export let resolveUploadTarget = async (d: {
         type: 'organization',
         organization: organization.organization
       },
+      auditScope: createAuditScope({
+        organization: organization.organization,
+        organizationActor: organization.actor,
+        actor: {
+          type: 'org_actor',
+          id: organization.actor.id
+        },
+        context: d.context
+      }),
       isInstanceOwner: false,
       canWrite: false
     };

@@ -288,7 +288,7 @@ export let ExplorerPage = () => {
   let provider = useProvider(instance.data?.id, providerIdParam ?? undefined);
   let sessionFromQuery = useSession(instance.data?.id, sessionIdParam ?? undefined);
   let resolvedSessionTemplateId =
-    sessionTemplateIdFromState ?? sessionFromQuery.data?.fromTemplatesIds?.[0] ?? null;
+    sessionTemplateIdFromState ?? sessionFromQuery.data?.fromTemplateIds?.[0] ?? null;
   let sessionProviderIds = useMemo(
     () =>
       [

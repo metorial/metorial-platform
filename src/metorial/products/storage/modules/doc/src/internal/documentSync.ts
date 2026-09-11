@@ -172,7 +172,7 @@ class InternalDocumentSyncServiceImpl {
             instance: { oid: instanceOid },
             document: childDocument,
             contentOid: parentVersion.contentOid,
-            previousVersionOid: currentVersion?.oid,
+            previousVersion: currentVersion,
             listEditedAt: parentVersion.listEditedAt ?? new Date()
           });
 

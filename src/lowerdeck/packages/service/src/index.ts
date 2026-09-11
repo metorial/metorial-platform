@@ -56,18 +56,32 @@ export class Service<Methods extends object> {
             return method.apply(self.#methods, args);
           }
 
-          return tracer.startActiveSpan(`${self.id}.${methodName}`, async span => {
-            try {
-              return await method.apply(self.#methods, args);
-            } catch (error) {
+          return tracer.startActiveSpan(`${self.id}.${methodName}`, span => {
+            let fail = (error: unknown) => {
               span.setStatus({
                 code: SpanStatusCode.ERROR,
                 message: error instanceof Error ? error.message : String(error)
               });
-
-              throw error;
-            } finally {
               span.end();
+              throw error;
+            };
+
+            try {
+              let result = method.apply(self.#methods, args);
+              if (result != null && typeof result.then === 'function') {
+                return Promise.resolve(result).then(
+                  value => {
+                    span.end();
+                    return value;
+                  },
+                  fail
+                );
+              }
+
+              span.end();
+              return result;
+            } catch (error) {
+              fail(error);
             }
           });
         };

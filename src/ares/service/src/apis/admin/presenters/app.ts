@@ -12,6 +12,7 @@ export let appPresenter = (
   clientId: app.clientId,
   slug: app.slug,
 
+  mode: app.mode,
   hasTerms: app.hasTerms,
   isSessionless: app.isSessionless,
   disableEmailAuth: app.disableEmailAuth,

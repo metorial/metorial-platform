@@ -624,6 +624,95 @@ describe('OrganizationService', () => {
       expect(metorialResourceService.syncOrganization).toHaveBeenCalledWith(updatedOrg);
     });
 
+    it('should normalize and persist a custom magic MCP origin', async () => {
+      let mockOrg = { id: 'org-1', oid: 1, status: 'active' };
+      let updatedOrg = { ...mockOrg, magicMcpOrigin: 'https://mcp.acme.com' };
+
+      let updateMock = vi.fn().mockResolvedValue(updatedOrg);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = { organization: { update: updateMock } };
+        return callback(mockDb as any);
+      });
+
+      let result = await organizationService.updateOrganization({
+        input: {
+          // extra path/query should be stripped down to just the origin
+          magicMcpOrigin: 'https://mcp.acme.com/some/path?x=1'
+        },
+        organization: mockOrg as any,
+        auditScope: {} as any
+      });
+
+      expect(updateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ magicMcpOrigin: 'https://mcp.acme.com' })
+        })
+      );
+      expect(result.magicMcpOrigin).toBe('https://mcp.acme.com');
+    });
+
+    it('should clear the magic MCP origin when given an empty string', async () => {
+      let mockOrg = { id: 'org-1', oid: 1, status: 'active', magicMcpOrigin: 'https://old.com' };
+      let updateMock = vi.fn().mockResolvedValue({ ...mockOrg, magicMcpOrigin: null });
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = { organization: { update: updateMock } };
+        return callback(mockDb as any);
+      });
+
+      await organizationService.updateOrganization({
+        input: { magicMcpOrigin: '' },
+        organization: mockOrg as any,
+        auditScope: {} as any
+      });
+
+      expect(updateMock).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ magicMcpOrigin: null }) })
+      );
+    });
+
+    it('should reject an invalid magic MCP origin', async () => {
+      let mockOrg = { id: 'org-1', oid: 1, status: 'active' };
+
+      await expect(
+        organizationService.updateOrganization({
+          input: { magicMcpOrigin: 'not-a-url' },
+          organization: mockOrg as any,
+          auditScope: {} as any
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should reject a non-http(s) magic MCP origin', async () => {
+      let mockOrg = { id: 'org-1', oid: 1, status: 'active' };
+
+      await expect(
+        organizationService.updateOrganization({
+          input: { magicMcpOrigin: 'ftp://mcp.acme.com' },
+          organization: mockOrg as any,
+          auditScope: {} as any
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should leave magic MCP origin untouched when not provided', async () => {
+      let mockOrg = { id: 'org-1', oid: 1, status: 'active', magicMcpOrigin: 'https://mcp.acme.com' };
+      let updateMock = vi.fn().mockResolvedValue(mockOrg);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = { organization: { update: updateMock } };
+        return callback(mockDb as any);
+      });
+
+      await organizationService.updateOrganization({
+        input: { name: 'New Name' },
+        organization: mockOrg as any,
+        auditScope: {} as any
+      });
+
+      expect(updateMock).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ magicMcpOrigin: undefined }) })
+      );
+    });
+
     it('should update organization image', async () => {
       let mockOrg = { id: 'org-1', oid: 1, status: 'active' };
       let newImage = { type: 'url', url: 'https://example.com/new-logo.png' };

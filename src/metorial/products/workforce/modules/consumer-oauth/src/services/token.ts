@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { generateCustomId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
   Organization,
@@ -36,6 +37,24 @@ import {
   ConsumerOAuthClient,
   ConsumerSurfaceWithContext
 } from './_types';
+
+/**
+ * Token issuance and rotation happen inside the OAuth exchange, which carries no request
+ * context of its own -- the client presents a code or refresh token, not a session. The
+ * consumer holding the authorization is the actor; where the authorization has no profile
+ * yet the exchange is attributed to the flow itself.
+ */
+let consumerOAuthAuditScope = (d: {
+  consumerSurface: Pick<ConsumerSurface, 'organizationOid' | 'instanceOid'>;
+  consumerProfile?: { id: string } | null;
+}): AuditScope => ({
+  organizationOid: d.consumerSurface.organizationOid,
+  instanceOid: d.consumerSurface.instanceOid,
+  actor: d.consumerProfile
+    ? { type: 'consumer_profile', id: d.consumerProfile.id }
+    : { type: 'system', id: 'consumerOAuth/tokenExchange' },
+  context: { ip: '' }
+});
 
 class ConsumerOAuthTokenService {
   async exchangeConsumerAuthToken(d: {
@@ -554,7 +573,11 @@ class ConsumerOAuthTokenService {
     let expiresAt = getConsumerAuthRefreshTokenExpiry();
     let rotatedAccessToken = await magicMcpTokenService.rotateMagicMcpTokenSecret({
       token: accessToken,
-      expiresAt: getConsumerAuthAccessTokenExpiry()
+      expiresAt: getConsumerAuthAccessTokenExpiry(),
+      auditScope: consumerOAuthAuditScope({
+        consumerSurface: d.consumerSurface,
+        consumerProfile: attempt.consumerProfile
+      })
     });
     let nextRefreshToken = generateCustomId('prtl_oatre_', 35);
     let updatedAttempt = await db.consumerAuthAttempt.update({
@@ -679,6 +702,10 @@ class ConsumerOAuthTokenService {
 
     let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
       instance: d.portal?.instance ?? nonPortalConsumerSurface.instance,
+      auditScope: consumerOAuthAuditScope({
+        consumerSurface: d.consumerSurface,
+        consumerProfile: d.attempt.consumerProfile
+      }),
       input: {
         name: d.attempt.consumerAuthClient.name,
         description: `Access token for ${d.attempt.consumerAuthClient.name} (via ${d.portal ? d.portal.name : d.consumerSurface.name})`,

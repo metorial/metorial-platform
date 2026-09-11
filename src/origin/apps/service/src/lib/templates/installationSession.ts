@@ -207,7 +207,9 @@ export let installationSessionHtml = (d: {
         'github': 'https://provider-logos.metorial-cdn.com/github.png',
         'github_enterprise': 'https://provider-logos.metorial-cdn.com/github.png',
         'gitlab': 'https://provider-logos.metorial-cdn.com/gitlab.svg',
-        'gitlab_selfhosted': 'https://provider-logos.metorial-cdn.com/gitlab.svg'
+        'gitlab_selfhosted': 'https://provider-logos.metorial-cdn.com/gitlab.svg',
+        'bitbucket': 'https://provider-logos.metorial-cdn.com/bitbucket.svg',
+        'bitbucket_data_center': 'https://provider-logos.metorial-cdn.com/bitbucket.svg'
       };
       return icons[type] || 'https://provider-logos.metorial-cdn.com/github.png';
     }
@@ -220,7 +222,9 @@ function getBackendIconUrl(type: string): string {
     github: 'https://provider-logos.metorial-cdn.com/github.png',
     github_enterprise: 'https://provider-logos.metorial-cdn.com/github.png',
     gitlab: 'https://provider-logos.metorial-cdn.com/gitlab.svg',
-    gitlab_selfhosted: 'https://provider-logos.metorial-cdn.com/gitlab.svg'
+    gitlab_selfhosted: 'https://provider-logos.metorial-cdn.com/gitlab.svg',
+    bitbucket: 'https://provider-logos.metorial-cdn.com/bitbucket.svg',
+    bitbucket_data_center: 'https://provider-logos.metorial-cdn.com/bitbucket.svg'
   };
   return icons[type] || 'https://provider-logos.metorial-cdn.com/github.png';
 }

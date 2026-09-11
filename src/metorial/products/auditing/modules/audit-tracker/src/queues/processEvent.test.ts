@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let {
-  processAuditEventQueueAddManyWithOps,
+  processAuditEventQueueAdd,
   listClaimedAuditEvents,
   claimAuditEvents,
   acknowledgeClaimedAuditEvent,
   decodeStashedAuditEvent,
   presentStashedAuditEvent,
-  ingestAuditEvent,
-  ingestAuditEventToPostgres
+  ingestAuditEvents,
+  ingestAuditEventsToPostgres
 } = vi.hoisted(() => ({
-  processAuditEventQueueAddManyWithOps: vi.fn(),
+  processAuditEventQueueAdd: vi.fn(),
   listClaimedAuditEvents: vi.fn(),
   claimAuditEvents: vi.fn(),
   acknowledgeClaimedAuditEvent: vi.fn(),
@@ -24,8 +24,8 @@ let {
     ...(event as object),
     presented: true
   })),
-  ingestAuditEvent: vi.fn(),
-  ingestAuditEventToPostgres: vi.fn()
+  ingestAuditEvents: vi.fn(),
+  ingestAuditEventsToPostgres: vi.fn()
 }));
 
 vi.mock('@metorial/cron', () => ({
@@ -36,7 +36,7 @@ vi.mock('@metorial/cron', () => ({
 
 vi.mock('@metorial/queue', () => ({
   createQueue: vi.fn(() => ({
-    addManyWithOps: processAuditEventQueueAddManyWithOps,
+    add: processAuditEventQueueAdd,
     process: vi.fn(handler => ({
       handler
     }))
@@ -55,14 +55,26 @@ vi.mock('../lib/present', () => ({
 }));
 
 vi.mock('@metorial/audit-models', () => ({
-  ingestAuditEvent
+  ingestAuditEvents
 }));
 
 vi.mock('../lib/ingestPostgres', () => ({
-  ingestAuditEventToPostgres
+  ingestAuditEventsToPostgres
 }));
 
 import { collectAuditEventsCron, processAuditEventQueueProcessor } from './processEvent';
+
+let decoded = (encodedEvent: string) => ({
+  id: encodedEvent,
+  payload: {
+    encodedEvent
+  }
+});
+
+let item = (encodedEvent: string) => ({
+  event: decoded(encodedEvent),
+  encodedEvent
+});
 
 describe('audit event collection', () => {
   beforeEach(() => {
@@ -70,13 +82,13 @@ describe('audit event collection', () => {
     listClaimedAuditEvents.mockResolvedValue([]);
     claimAuditEvents.mockResolvedValue([]);
     acknowledgeClaimedAuditEvent.mockResolvedValue(undefined);
-    processAuditEventQueueAddManyWithOps.mockResolvedValue(undefined);
+    processAuditEventQueueAdd.mockResolvedValue(undefined);
     presentStashedAuditEvent.mockImplementation(async (event: unknown) => ({
       ...(event as object),
       presented: true
     }));
-    ingestAuditEvent.mockResolvedValue(undefined);
-    ingestAuditEventToPostgres.mockResolvedValue(undefined);
+    ingestAuditEvents.mockResolvedValue(undefined);
+    ingestAuditEventsToPostgres.mockResolvedValue(undefined);
   });
 
   it('requeues claimed events before draining pending events in order', async () => {
@@ -87,59 +99,46 @@ describe('audit event collection', () => {
 
     await (collectAuditEventsCron as any).handler();
 
-    expect(processAuditEventQueueAddManyWithOps).toHaveBeenNthCalledWith(1, [
-      {
-        data: {
-          event: {
-            id: 'claimed-event',
-            payload: {
-              encodedEvent: 'claimed-event'
-            }
-          },
-          encodedEvent: 'claimed-event'
-        },
-        opts: {
-          id: 'claimed-event'
-        }
-      }
-    ]);
-    expect(processAuditEventQueueAddManyWithOps).toHaveBeenNthCalledWith(2, [
-      {
-        data: {
-          event: {
-            id: 'pending-event-1',
-            payload: {
-              encodedEvent: 'pending-event-1'
-            }
-          },
-          encodedEvent: 'pending-event-1'
-        },
-        opts: {
-          id: 'pending-event-1'
-        }
-      },
-      {
-        data: {
-          event: {
-            id: 'pending-event-2',
-            payload: {
-              encodedEvent: 'pending-event-2'
-            }
-          },
-          encodedEvent: 'pending-event-2'
-        },
-        opts: {
-          id: 'pending-event-2'
-        }
-      }
-    ]);
-    expect(claimAuditEvents).toHaveBeenCalledWith(10);
+    expect(processAuditEventQueueAdd).toHaveBeenNthCalledWith(
+      1,
+      { events: [item('claimed-event')] },
+      { id: expect.stringMatching(/^audit-batch-[0-9a-f]{40}$/) }
+    );
+    expect(processAuditEventQueueAdd).toHaveBeenNthCalledWith(
+      2,
+      { events: [item('pending-event-1'), item('pending-event-2')] },
+      { id: expect.stringMatching(/^audit-batch-[0-9a-f]{40}$/) }
+    );
+    expect(claimAuditEvents).toHaveBeenCalledWith(100);
     expect(acknowledgeClaimedAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it('gives the same batch a stable job id so a requeue does not duplicate it', async () => {
+    listClaimedAuditEvents.mockResolvedValue(['event-a', 'event-b']);
+
+    await (collectAuditEventsCron as any).handler();
+    await (collectAuditEventsCron as any).handler();
+
+    let [, firstOpts] = processAuditEventQueueAdd.mock.calls[0]!;
+    let [, secondOpts] = processAuditEventQueueAdd.mock.calls[1]!;
+    expect(firstOpts.id).toBe(secondOpts.id);
+  });
+
+  it('gives different batches different job ids', async () => {
+    listClaimedAuditEvents.mockResolvedValueOnce(['event-a']);
+    await (collectAuditEventsCron as any).handler();
+
+    listClaimedAuditEvents.mockResolvedValueOnce(['event-b']);
+    await (collectAuditEventsCron as any).handler();
+
+    let [, firstOpts] = processAuditEventQueueAdd.mock.calls[0]!;
+    let [, secondOpts] = processAuditEventQueueAdd.mock.calls[1]!;
+    expect(firstOpts.id).not.toBe(secondOpts.id);
   });
 
   it('leaves a claimed event recoverable when queueing fails', async () => {
     claimAuditEvents.mockResolvedValueOnce(['pending-event']);
-    processAuditEventQueueAddManyWithOps.mockRejectedValueOnce(new Error('Queue unavailable'));
+    processAuditEventQueueAdd.mockRejectedValueOnce(new Error('Queue unavailable'));
 
     await expect((collectAuditEventsCron as any).handler()).rejects.toThrow(
       'Queue unavailable'
@@ -147,73 +146,73 @@ describe('audit event collection', () => {
     expect(acknowledgeClaimedAuditEvent).not.toHaveBeenCalled();
   });
 
-  it('presents for mongodb, keeps raw for postgres, then acknowledges', async () => {
-    let data = {
-      event: {
-        id: 'event-1',
-        payload: { raw: true }
-      },
-      encodedEvent: 'encoded-event'
-    };
+  it('presents for mongodb, keeps raw for postgres, then acknowledges each event', async () => {
+    let events = [item('encoded-1'), item('encoded-2')];
 
-    await (processAuditEventQueueProcessor as any).handler(data);
+    await (processAuditEventQueueProcessor as any).handler({ events });
 
-    expect(presentStashedAuditEvent).toHaveBeenCalledWith(data.event);
-    expect(ingestAuditEvent).toHaveBeenCalledWith({
-      id: 'event-1',
-      payload: { raw: true },
-      presented: true
-    });
-    expect(ingestAuditEventToPostgres).toHaveBeenCalledWith(data.event);
-    expect(acknowledgeClaimedAuditEvent).toHaveBeenCalledWith('encoded-event');
-    expect(presentStashedAuditEvent.mock.invocationCallOrder[0]).toBeLessThan(
-      ingestAuditEvent.mock.invocationCallOrder[0]!
-    );
-    expect(ingestAuditEvent.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(presentStashedAuditEvent).toHaveBeenCalledWith(events[0]!.event);
+    expect(presentStashedAuditEvent).toHaveBeenCalledWith(events[1]!.event);
+    expect(ingestAuditEvents).toHaveBeenCalledTimes(1);
+    expect(ingestAuditEvents).toHaveBeenCalledWith([
+      { ...events[0]!.event, presented: true },
+      { ...events[1]!.event, presented: true }
+    ]);
+    expect(ingestAuditEventsToPostgres).toHaveBeenCalledTimes(1);
+    expect(ingestAuditEventsToPostgres).toHaveBeenCalledWith([
+      events[0]!.event,
+      events[1]!.event
+    ]);
+    expect(acknowledgeClaimedAuditEvent).toHaveBeenCalledWith('encoded-1');
+    expect(acknowledgeClaimedAuditEvent).toHaveBeenCalledWith('encoded-2');
+    expect(ingestAuditEvents.mock.invocationCallOrder[0]).toBeLessThan(
       acknowledgeClaimedAuditEvent.mock.invocationCallOrder[0]!
     );
-    expect(ingestAuditEventToPostgres.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(ingestAuditEventsToPostgres.mock.invocationCallOrder[0]).toBeLessThan(
       acknowledgeClaimedAuditEvent.mock.invocationCallOrder[0]!
     );
   });
 
-  it('leaves a claimed event recoverable when presentation fails', async () => {
+  it('still processes a job queued in the pre-batch shape', async () => {
+    let legacyJob = item('encoded-legacy');
+
+    await (processAuditEventQueueProcessor as any).handler(legacyJob);
+
+    expect(ingestAuditEvents).toHaveBeenCalledWith([
+      { ...legacyJob.event, presented: true }
+    ]);
+    expect(ingestAuditEventsToPostgres).toHaveBeenCalledWith([legacyJob.event]);
+    expect(acknowledgeClaimedAuditEvent).toHaveBeenCalledWith('encoded-legacy');
+  });
+
+  it('leaves the batch recoverable when presentation fails', async () => {
     presentStashedAuditEvent.mockRejectedValueOnce(new Error('Presenter failed'));
 
     await expect(
-      (processAuditEventQueueProcessor as any).handler({
-        event: { id: 'event-1' },
-        encodedEvent: 'encoded-event'
-      })
+      (processAuditEventQueueProcessor as any).handler({ events: [item('encoded-1')] })
     ).rejects.toThrow('Presenter failed');
 
-    expect(ingestAuditEvent).not.toHaveBeenCalled();
-    expect(ingestAuditEventToPostgres).not.toHaveBeenCalled();
+    expect(ingestAuditEvents).not.toHaveBeenCalled();
+    expect(ingestAuditEventsToPostgres).not.toHaveBeenCalled();
     expect(acknowledgeClaimedAuditEvent).not.toHaveBeenCalled();
   });
 
-  it('leaves a claimed event recoverable when ingest fails', async () => {
-    ingestAuditEvent.mockRejectedValueOnce(new Error('Mongo unavailable'));
+  it('leaves the batch recoverable when ingest fails', async () => {
+    ingestAuditEvents.mockRejectedValueOnce(new Error('Mongo unavailable'));
 
     await expect(
-      (processAuditEventQueueProcessor as any).handler({
-        event: { id: 'event-1' },
-        encodedEvent: 'encoded-event'
-      })
+      (processAuditEventQueueProcessor as any).handler({ events: [item('encoded-1')] })
     ).rejects.toThrow('Mongo unavailable');
 
-    expect(ingestAuditEventToPostgres).not.toHaveBeenCalled();
+    expect(ingestAuditEventsToPostgres).not.toHaveBeenCalled();
     expect(acknowledgeClaimedAuditEvent).not.toHaveBeenCalled();
   });
 
-  it('leaves a claimed event recoverable when postgres ingest fails', async () => {
-    ingestAuditEventToPostgres.mockRejectedValueOnce(new Error('Postgres unavailable'));
+  it('leaves the batch recoverable when postgres ingest fails', async () => {
+    ingestAuditEventsToPostgres.mockRejectedValueOnce(new Error('Postgres unavailable'));
 
     await expect(
-      (processAuditEventQueueProcessor as any).handler({
-        event: { id: 'event-1' },
-        encodedEvent: 'encoded-event'
-      })
+      (processAuditEventQueueProcessor as any).handler({ events: [item('encoded-1')] })
     ).rejects.toThrow('Postgres unavailable');
 
     expect(acknowledgeClaimedAuditEvent).not.toHaveBeenCalled();

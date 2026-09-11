@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuditLogDestinationEvent } from '../destination';
 import { splunkDestination } from '.';
 
+vi.mock('@lowerdeck/ssrf', () => ({
+  safeFetch: (input: string, init?: RequestInit) => fetch(input, init)
+}));
+
 let auditLog = {
   id: 'aud_1',
   eventId: 'evt_1',

@@ -1,7 +1,8 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
-import { callbackRegistrationController } from './callbackRegistration';
+import { callbackController } from './callback';
+import { callbackInstanceController } from './callbackInstance';
 import { changeNotificationController } from './changeNotification';
 import { registryController } from './registry';
 import { secretController } from './secret';
@@ -23,18 +24,18 @@ import { slateSessionController } from './slateSession';
 import { slateSessionToolCallController } from './slateSessionToolCall';
 import { slateSpecificationController } from './slateSpecification';
 import { slateSpecificationChangeController } from './slateSpecificationChange';
-import { slateTriggerEventController } from './slateTriggerEvent';
-import { slateTriggerEventInputController } from './slateTriggerEventInput';
-import { slateTriggerInvocationController } from './slateTriggerInvocation';
-import { slateTriggerReceiverController } from './slateTriggerReceiver';
 import { slateVersionController } from './slateVersion';
 import { slateVersionDiscoveryController } from './slateVersionDiscovery';
+import { slateWebhookEventController } from './slateWebhookEvent';
+import { slateWebhookRegistrationController } from './slateWebhookRegistration';
 import { tenantController } from './tenant';
+import { triggerEventController } from './triggerEvent';
+import { triggerEventInvocationController } from './triggerEventInvocation';
+import { triggerRegistrationController } from './triggerRegistration';
 
 export let rootController = app.controller({
   tenant: tenantController,
   secret: secretController,
-  callbackRegistration: callbackRegistrationController,
 
   registry: registryController,
 
@@ -59,12 +60,16 @@ export let rootController = app.controller({
   slateSessionToolCall: slateSessionToolCallController,
   slatePublicToolCall: slatePublicToolCallController,
 
-  slateTriggerReceiver: slateTriggerReceiverController,
-  slateTriggerEvent: slateTriggerEventController,
-  slateTriggerEventInput: slateTriggerEventInputController,
-  slateTriggerInvocation: slateTriggerInvocationController,
   slateVersionDiscovery: slateVersionDiscoveryController,
-  slateSpecificationChange: slateSpecificationChangeController
+  slateSpecificationChange: slateSpecificationChangeController,
+  slateWebhookRegistration: slateWebhookRegistrationController,
+  slateWebhookEvent: slateWebhookEventController,
+  triggerRegistration: triggerRegistrationController,
+  triggerEvent: triggerEventController,
+  triggerEventInvocation: triggerEventInvocationController,
+
+  callback: callbackController,
+  callbackInstance: callbackInstanceController
 });
 
 export let slatesHubRPC = createServer({})(rootController);

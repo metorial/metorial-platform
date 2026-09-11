@@ -6,9 +6,9 @@ import (
 	"net"
 	"net/http"
 
-	grpcUtil "github.com/metorial/metorial/services/code-bucket/pkg/grpcUtil"
 	"github.com/metorial/metorial/services/code-bucket/gen/rpc"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
+	grpcUtil "github.com/metorial/metorial/services/code-bucket/pkg/grpcUtil"
 	"github.com/metorial/metorial/services/code-bucket/pkg/workspace"
 	"google.golang.org/grpc/reflection"
 )

@@ -243,12 +243,15 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
               let result = await SlatesProviderProtoHandlerManager.handleInput(manager, m);
               if (result) {
                 if (m.id) result.id = m.id;
-                messages.push(result);
 
                 if (typeof result.error == 'object' && result.error) {
                   console.error('[Metorial Runtime]: Error in processing:', result.error);
+                  if (!m.id) continue;
+                  messages.push(result);
                   break;
                 }
+
+                messages.push(result);
               }
             }
 

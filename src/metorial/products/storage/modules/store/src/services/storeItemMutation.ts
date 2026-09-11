@@ -1,6 +1,5 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import type {
   Instance,
   Project,
@@ -10,7 +9,12 @@ import type {
   StoreDirectory,
   StoreItemKind
 } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
+import { fileLinkService, fileReferenceService } from '@metorial/module-file';
+import { applyStoreByteSizeDelta, refreshStoreByteSize } from '../lib/storeByteSize';
+import { createStoreItemAuditRecorder } from '../lib/storeItemAudit';
 import {
   listAncestorDirectoryPaths,
   normalizeStorePath,
@@ -42,6 +46,7 @@ type ResolvedStoreItemFile = {
   oid: bigint;
   id: string;
   status: 'active' | 'deleted';
+  fileSize: number;
   purpose: {
     canHaveLinks: boolean;
   };
@@ -76,6 +81,7 @@ type NormalizedStoreItemOperation =
 let modifyOperationLimit = 500;
 let maxStoreItems = 1000;
 let maxSkillStoreFiles = 1000;
+let maxSkillStoreBytes = 1024n * 1024n * 1024n * 10n;
 let reservedSkillDocumentName = 'SKILL.md';
 let agentsDirectoryPath = '/agents/';
 
@@ -152,19 +158,44 @@ class StoreItemMutationServiceImpl {
     );
   }
 
-  private async assertSkillStoreFileLimit(store: Pick<Store, 'oid'>, client: any = db) {
-    let fileCount = await client.storeItem.count({
-      where: {
-        storeOid: store.oid,
-        kind: { in: ['document', 'file'] }
-      }
-    });
+  private async assertSkillStoreFileLimit(store: Pick<Store, 'oid'>) {
+    let fileCount = await withTransaction(
+      async db =>
+        await db.storeItem.count({
+          where: {
+            storeOid: store.oid,
+            kind: { in: ['document', 'file'] }
+          }
+        }),
+      { ifExists: true }
+    );
 
     if (fileCount <= maxSkillStoreFiles) return;
 
     throw new ServiceError(
       badRequestError({
         message: `Skill store files cannot exceed ${maxSkillStoreFiles}; this change would result in ${fileCount}.`
+      })
+    );
+  }
+
+  private async assertSkillStoreByteLimit(store: Pick<Store, 'oid' | 'instanceOid'>) {
+    let byteSize = await refreshStoreByteSize({ storeOid: store.oid });
+
+    await Fabric.fire('skill.store.size:before', {
+      instance: { oid: store.instanceOid },
+      storeSize: Number(byteSize)
+    });
+
+    if (byteSize <= maxSkillStoreBytes) return;
+
+    let toGb = (bytes: bigint) => (Number(bytes) / (1024 * 1024 * 1024)).toFixed(2);
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          `Skill store size cannot exceed ${toGb(maxSkillStoreBytes)}GB; ` +
+          `this change would result in ${toGb(byteSize)}GB.`
       })
     );
   }
@@ -978,6 +1009,10 @@ class StoreItemMutationServiceImpl {
 
       if (targetChanged) {
         await this.cleanupFileReference(d.item.reference);
+        await applyStoreByteSizeDelta({
+          storeOid: d.store.oid,
+          delta: BigInt(d.target!.file.fileSize) - BigInt(d.item.file?.fileSize ?? 0)
+        });
       }
 
       return updatedItem;
@@ -1061,6 +1096,11 @@ class StoreItemMutationServiceImpl {
       });
 
       if (createResult.count === 1) {
+        await applyStoreByteSizeDelta({
+          storeOid: d.store.oid,
+          delta: BigInt(d.target.file.fileSize)
+        });
+
         return {
           created: true,
           previousItem: null,
@@ -1189,6 +1229,10 @@ class StoreItemMutationServiceImpl {
         }
       });
       await this.cleanupFileReference(d.item.reference);
+      await applyStoreByteSizeDelta({
+        storeOid: d.store.oid,
+        delta: -BigInt(d.item.file?.fileSize ?? 0)
+      });
 
       return {
         item: d.item,
@@ -1382,8 +1426,11 @@ class StoreItemMutationServiceImpl {
         itemCountDelta += 1;
       }
 
-      if (skill && result.created) {
-        await this.assertSkillStoreFileLimit(d.store, client);
+      if (skill) {
+        if (result.created) {
+          await this.assertSkillStoreFileLimit(d.store);
+        }
+        await this.assertSkillStoreByteLimit(d.store);
       }
 
       if (currentStore.itemCount + itemCountDelta > maxStoreItems) {
@@ -1456,6 +1503,7 @@ class StoreItemMutationServiceImpl {
   async modifyStoreItems(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     store: Store;
     operations: StoreItemOperationInput[];
     actor?: Pick<ResourceActor, 'oid'>;
@@ -1485,6 +1533,7 @@ class StoreItemMutationServiceImpl {
 
     return await withTransaction(async client => {
       let results: StoreItemMutationResult[] = [];
+      let auditRecorder = createStoreItemAuditRecorder();
       let currentStore = (await client.store.findUnique({
         where: {
           id: d.store.id
@@ -1535,10 +1584,12 @@ class StoreItemMutationServiceImpl {
               );
             }
 
+            let addedDirectory = hierarchy.item ?? root.item;
             results.push({
               type: 'add',
-              item: hierarchy.item ?? root.item
+              item: addedDirectory
             });
+            auditRecorder.record('add', addedDirectory);
 
             continue;
           }
@@ -1564,8 +1615,11 @@ class StoreItemMutationServiceImpl {
             itemCount += 1;
           }
 
-          if (skill && result.created) {
-            await this.assertSkillStoreFileLimit(d.store, client);
+          if (skill) {
+            if (result.created) {
+              await this.assertSkillStoreFileLimit(d.store);
+            }
+            await this.assertSkillStoreByteLimit(d.store);
           }
 
           if (itemCount > maxStoreItems) {
@@ -1580,6 +1634,7 @@ class StoreItemMutationServiceImpl {
             type: 'add',
             item: result.item
           });
+          auditRecorder.record('add', result.item);
           await this.syncSkillAgentForStoreItemTransition({
             skill,
             previousItem: null,
@@ -1618,6 +1673,7 @@ class StoreItemMutationServiceImpl {
             type: 'remove',
             item: removedItem.item
           });
+          auditRecorder.record('remove', removedItem.item);
 
           continue;
         }
@@ -1695,6 +1751,7 @@ class StoreItemMutationServiceImpl {
             type: 'modify',
             item: movedItem.item
           });
+          auditRecorder.record('modify', movedItem.item, normalizedCurrentPath.path);
 
           continue;
         }
@@ -1745,10 +1802,15 @@ class StoreItemMutationServiceImpl {
           actor: d.actor
         });
 
+        if (skill && operation.target) {
+          await this.assertSkillStoreByteLimit(d.store);
+        }
+
         results.push({
           type: 'modify',
           item: updatedItem
         });
+        auditRecorder.record('modify', updatedItem, item.path);
         await this.syncSkillAgentForStoreItemTransition({
           skill,
           previousItem: item,
@@ -1790,6 +1852,15 @@ class StoreItemMutationServiceImpl {
         });
 
         await enqueueStoreLifecycle({ storeId: d.store.id, event: 'contents-changed' });
+      }
+
+      if (auditRecorder.total > 0) {
+        await Fabric.fire('store.items.modified:after', {
+          auditScope: d.auditScope,
+          store: d.store,
+          skill: skill ? { id: skill.id } : null,
+          ...auditRecorder.summary
+        });
       }
 
       return results;

@@ -23,7 +23,10 @@
     "db:push": "bun run db:push:dev && bun run db:push:test",
     "test": "bunx vitest run --passWithNoTests",
     "test:watch": "bunx vitest watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@types/bun": "latest",

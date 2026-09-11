@@ -1,12 +1,40 @@
-import { v } from '@lowerdeck/validation';
+import { type ValidationModifier, v } from '@lowerdeck/validation';
+import { safeFetch } from '@lowerdeck/ssrf';
 import {
   AuditLogDestinationError,
   destination,
   readAuditLogDestinationResponseBody
 } from '../destination';
 
+let splunkEndpoint: ValidationModifier<string> = value => {
+  try {
+    let url = new URL(value);
+    let hostname = url.hostname.toLowerCase();
+    let isSplunkCloud = hostname == 'splunkcloud.com' || hostname.endsWith('.splunkcloud.com');
+
+    if (
+      url.protocol != 'https:' ||
+      url.username != '' ||
+      url.password != '' ||
+      !isSplunkCloud
+    ) {
+      throw new Error('Invalid Splunk endpoint');
+    }
+
+    return [];
+  } catch {
+    return [
+      {
+        code: 'invalid_splunk_endpoint',
+        message: 'Must be an HTTPS Splunk Cloud URL.',
+        received: value
+      }
+    ];
+  }
+};
+
 export let splunkProviderDataSchema = v.object({
-  endpoint: v.string({ modifiers: [v.url()] }),
+  endpoint: v.string({ modifiers: [splunkEndpoint] }),
   token: v.string({ modifiers: [v.minLength(1)] }),
   index: v.optional(v.string()),
   source: v.optional(v.string()),
@@ -28,7 +56,7 @@ export let splunkDestination = destination({
   async deliver({ providerData, events }) {
     if (events.length == 0) return;
 
-    let response = await fetch(providerData.endpoint, {
+    let response = await safeFetch(providerData.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

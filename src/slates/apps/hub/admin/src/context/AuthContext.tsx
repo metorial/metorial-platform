@@ -11,6 +11,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: AdminUser | null;
+  devToolsEnabled: boolean;
   logout: () => Promise<void>;
 }
 
@@ -19,11 +20,13 @@ let AuthContext = createContext<AuthContextValue | null>(null);
 export let AuthProvider = ({ children }: { children: ReactNode }) => {
   let [isLoading, setIsLoading] = useState(true);
   let [user, setUser] = useState<AdminUser | null>(null);
+  let [devToolsEnabled, setDevToolsEnabled] = useState(false);
 
   useEffect(() => {
     adminClient.auth
       .authEnabled({})
-      .then(async ({ enabled }) => {
+      .then(async ({ enabled, devTools }) => {
+        setDevToolsEnabled(!!devTools);
         if (!enabled) {
           setIsLoading(false);
           return;
@@ -50,7 +53,9 @@ export let AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, isLoading, user, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated: !!user, isLoading, user, devToolsEnabled, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

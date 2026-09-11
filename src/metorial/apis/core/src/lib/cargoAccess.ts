@@ -1,3 +1,4 @@
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   Instance,
   Project,
@@ -16,6 +17,7 @@ let fullCargoAccessPermissions = ['content_read', 'content_write'] as const;
 export type InstanceCargoAccessContext = {
   instance: Instance;
   project: Project;
+  auditScope: AuditScope;
   resourceActor?: ResourceActor;
   member?: OrganizationMember & {
     actor: OrganizationActor;
@@ -75,6 +77,7 @@ export let getInstanceCargoAccess = async (ctx: InstanceCargoAccessContext) => {
   return {
     project: ctx.project,
     instance: ctx.instance,
+    auditScope: ctx.auditScope,
     authorization,
     actor: ctx.resourceActor,
     actorId: ctx.resourceActor?.id,

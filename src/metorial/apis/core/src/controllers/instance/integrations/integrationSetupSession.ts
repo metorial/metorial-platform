@@ -186,6 +186,7 @@ export let integrationSetupSessionController = Controller.create(
         let integrationSetupSession =
           await integrationSetupSessionService.createIntegrationSetupSession({
             instance: ctx.instance,
+            auditScope: ctx.auditScope,
             integration,
             input: {
               name: ctx.body.name,

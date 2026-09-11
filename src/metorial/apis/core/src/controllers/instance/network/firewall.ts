@@ -121,6 +121,7 @@ export let firewallController = Controller.create(
       .do(async ctx => {
         let firewall = await firewallService.createFirewall({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -158,6 +159,7 @@ export let firewallController = Controller.create(
       .do(async ctx => {
         let firewall = await firewallService.updateFirewall({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           firewall: ctx.firewall,
           input: {
             name: ctx.body.name,
@@ -180,6 +182,7 @@ export let firewallController = Controller.create(
       .do(async ctx => {
         await firewallService.archiveFirewall({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           firewall: ctx.firewall
         });
 
@@ -215,6 +218,7 @@ export let firewallController = Controller.create(
       .do(async ctx => {
         let firewall = await firewallService.addFirewallNetworkPolicy({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           firewall: ctx.firewall,
           networkPolicyId: ctx.body.network_policy_id,
           position: ctx.body.position
@@ -239,6 +243,7 @@ export let firewallController = Controller.create(
       .do(async ctx => {
         let firewall = await firewallService.removeFirewallNetworkPolicy({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           firewall: ctx.firewall,
           networkPolicyId: ctx.params.networkPolicyId
         });

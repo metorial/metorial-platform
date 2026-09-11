@@ -24,9 +24,6 @@ import { SlateAuthMethodFixtures } from './slateAuthMethodFixtures';
 import { SlateOAuthCredentialsFixtures } from './slateOAuthCredentialsFixtures';
 import { SlateAuthConfigFixtures } from './slateAuthConfigFixtures';
 import { SlateOAuthSetupFixtures } from './slateOAuthSetupFixtures';
-import { SlateTriggerReceiverFixtures } from './slateTriggerReceiverFixtures';
-import { SlateTriggerEventFixtures } from './slateTriggerEventFixtures';
-import { SlateTriggerInvocationFixtures } from './slateTriggerInvocationFixtures';
 import { SlateSessionToolCallFixtures } from './slateSessionToolCallFixtures';
 
 export function fixtures(db: PrismaClient) {
@@ -53,9 +50,6 @@ export function fixtures(db: PrismaClient) {
     slateOAuthCredentials: SlateOAuthCredentialsFixtures(db),
     slateAuthConfig: SlateAuthConfigFixtures(db),
     slateOAuthSetup: SlateOAuthSetupFixtures(db),
-    slateTriggerReceiver: SlateTriggerReceiverFixtures(db),
-    slateTriggerEvent: SlateTriggerEventFixtures(db),
-    slateTriggerInvocation: SlateTriggerInvocationFixtures(db),
     slateSessionToolCall: SlateSessionToolCallFixtures(db)
   };
 }
@@ -83,8 +77,5 @@ export {
   SlateOAuthCredentialsFixtures,
   SlateAuthConfigFixtures,
   SlateOAuthSetupFixtures,
-  SlateTriggerReceiverFixtures,
-  SlateTriggerEventFixtures,
-  SlateTriggerInvocationFixtures,
   SlateSessionToolCallFixtures
 };

@@ -22,6 +22,7 @@ import type {
   StoreItemKind,
   StoreTemplateItem
 } from '@metorial/db';
+import { createSystemAuditScope, type AuditScope } from '@metorial/audit-scope';
 import { db, ID, isUniqueConstraintError, withTransaction } from '@metorial/db';
 import { storeItemInclude } from '../services/storeItem';
 import { storeItemMutationService } from '../services/storeItemMutation';
@@ -435,6 +436,7 @@ class InternalStoreTemplateSyncServiceImpl {
   private async removeItems(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     store: Store;
     items: Array<{ id: string; path: string; kind: StoreItemKind }>;
   }) {
@@ -453,6 +455,7 @@ class InternalStoreTemplateSyncServiceImpl {
       await storeItemMutationService.modifyStoreItems({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         store: d.store,
         operations: [
           {
@@ -468,6 +471,7 @@ class InternalStoreTemplateSyncServiceImpl {
   private async upsertFileItem(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     store: Store;
     item: StoreTemplateSyncItem;
     existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
@@ -505,6 +509,7 @@ class InternalStoreTemplateSyncServiceImpl {
         : await fileService.createFile({
             project: d.project,
             instance: d.instance,
+            auditScope: d.auditScope,
             purpose: filePurpose.id,
             storeId: d.item.fileStoreId!,
             input: {
@@ -536,6 +541,7 @@ class InternalStoreTemplateSyncServiceImpl {
   private async upsertDocumentItem(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     store: Store;
     item: StoreTemplateSyncItem;
     existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
@@ -576,7 +582,7 @@ class InternalStoreTemplateSyncServiceImpl {
                   instance: d.instance,
                   document: currentDocument,
                   contentOid: contentRecord.oid,
-                  previousVersionOid: currentDocument.currentVersionOid,
+                  previousVersion: currentDocument.currentVersion,
                   listEditedAt: new Date()
                 })
               : null;
@@ -634,6 +640,7 @@ class InternalStoreTemplateSyncServiceImpl {
     let document = await documentService.createDocument({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       input: {
         title,
         content,
@@ -686,6 +693,15 @@ class InternalStoreTemplateSyncServiceImpl {
       return null;
     if (storeTemplate.instanceOid && storeTemplate.instanceOid !== instance.oid) return null;
 
+    // Template sync runs from a queue with no originating request, so the change is
+    // attributed to the job rather than to whoever last edited the template.
+    let auditScope = createSystemAuditScope({
+      organization: { oid: instance.organizationOid },
+      instance,
+      job: 'store-template-sync',
+      metadata: { storeTemplateId: storeTemplate.id }
+    });
+
     let { backing, store } = await this.ensureBackingStore({
       storeTemplate,
       project: instance.project,
@@ -712,6 +728,7 @@ class InternalStoreTemplateSyncServiceImpl {
     await this.removeItems({
       project: instance.project,
       instance,
+      auditScope,
       store,
       items: currentItems
         .filter(item => {
@@ -735,6 +752,7 @@ class InternalStoreTemplateSyncServiceImpl {
         await storeItemMutationService.modifyStoreItems({
           project: instance.project,
           instance,
+          auditScope,
           store,
           operations: [
             {
@@ -752,6 +770,7 @@ class InternalStoreTemplateSyncServiceImpl {
         await this.upsertFileItem({
           project: instance.project,
           instance,
+          auditScope,
           store,
           item,
           existingItem
@@ -762,6 +781,7 @@ class InternalStoreTemplateSyncServiceImpl {
       await this.upsertDocumentItem({
         project: instance.project,
         instance,
+        auditScope,
         store,
         item,
         existingItem
@@ -784,6 +804,7 @@ class InternalStoreTemplateSyncServiceImpl {
     await this.removeItems({
       project: instance.project,
       instance,
+      auditScope,
       store,
       items: latestItems.filter(item => {
         if (item.path === '/' || desiredPaths.has(item.path)) return false;

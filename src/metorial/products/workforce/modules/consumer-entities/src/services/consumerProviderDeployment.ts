@@ -1,3 +1,5 @@
+import type { AuditScope } from '@metorial/audit-scope';
+import { Fabric } from '@metorial/fabric';
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
@@ -177,6 +179,7 @@ class ConsumerProviderDeploymentServiceImpl {
     context: Context;
     consumerProfile: ConsumerProfile;
     accessTags: AnyAccessTagSelector;
+    auditScope: AuditScope;
     providerTemplateId: string;
     input: ConsumerProviderDeployInput;
   }) {
@@ -187,6 +190,11 @@ class ConsumerProviderDeploymentServiceImpl {
     });
 
     assertProviderCanBeDeployed(providerContext);
+
+    await Fabric.fire('consumer.provider.deployed:before', {
+      instance: d.instance,
+      auditScope: d.auditScope
+    });
 
     let rollbackState: ConsumerProviderDeployRollbackState = {};
 
@@ -210,6 +218,7 @@ class ConsumerProviderDeploymentServiceImpl {
         performedBy: d.performedBy,
         instance: d.instance,
         context: d.context,
+        auditScope: d.auditScope,
         input: {
           ...buildConsumerMagicMcpServerCreateInput({
             name: d.input.name,
@@ -249,12 +258,30 @@ class ConsumerProviderDeploymentServiceImpl {
         })
       );
 
+      await Fabric.fire('consumer.provider.deployed:after', {
+        instance: d.instance,
+        auditScope: d.auditScope,
+        deployment: {
+          providerTemplate: {
+            id: providerContext.providerTemplate.id,
+            name: providerContext.providerTemplate.name
+          },
+          provider: {
+            id: providerContext.provider.id,
+            name: providerContext.provider.name
+          },
+          magicMcpServer: { id: magicMcpServer.id, name: magicMcpServer.name },
+          integrationInstanceId: setupSession.integrationInstance.id
+        }
+      });
+
       return magicMcpServer;
     } catch (error) {
       try {
         await this.rollbackFailedDeployment({
           instance: d.instance,
-          rollbackState
+          rollbackState,
+          auditScope: d.auditScope
         });
       } catch (rollbackError) {
         throw new AggregateError(
@@ -270,11 +297,13 @@ class ConsumerProviderDeploymentServiceImpl {
   private async rollbackFailedDeployment(d: {
     instance: Instance;
     rollbackState: ConsumerProviderDeployRollbackState;
+    auditScope: AuditScope;
   }) {
     await Promise.all([
       d.rollbackState.magicMcpServer
         ? magicMcpServerService.archiveMagicMcpServer({
-            server: d.rollbackState.magicMcpServer
+            server: d.rollbackState.magicMcpServer,
+            auditScope: d.auditScope
           })
         : Promise.resolve()
     ]);

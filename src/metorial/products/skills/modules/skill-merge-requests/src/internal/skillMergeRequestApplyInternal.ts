@@ -6,6 +6,7 @@ import {
 } from '@metorial/module-documents';
 import { storeItemMutationService } from '@metorial/module-store';
 import type { Instance, Project, ResourceActor, Store } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, withTransaction } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
@@ -73,6 +74,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   private async applyDocumentResolution(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     item: SkillMergeRequestItemRecord;
     actor?: ResourceActor;
@@ -109,6 +111,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       await documentService.createDocument({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         input: {
           title: d.title,
           content: d.content,
@@ -125,6 +128,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     let document = await documentService.createDocument({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       input: {
         title: d.title,
         content: d.content,
@@ -135,6 +139,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     await storeItemMutationService.modifyStoreItems({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       store: d.mergeRequest.targetSkill.store!,
       actor: d.actor,
       operations: [
@@ -150,6 +155,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   async applyItemResolution(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     item: SkillMergeRequestItemRecord;
     actor?: ResourceActor;
@@ -171,6 +177,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       await storeItemMutationService.modifyStoreItems({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         store: d.mergeRequest.targetSkill.store!,
         actor,
         operations: [
@@ -210,6 +217,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       await storeItemMutationService.modifyStoreItems({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         store: d.mergeRequest.targetSkill.store!,
         actor,
         operations: [
@@ -236,6 +244,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       await storeItemMutationService.modifyStoreItems({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         store: d.mergeRequest.targetSkill.store!,
         actor,
         operations: [
@@ -253,6 +262,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     await this.applyDocumentResolution({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       mergeRequest: d.mergeRequest,
       item: d.item,
       actor: d.actor,
@@ -264,6 +274,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   async applyResolvedItems(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     items: SkillMergeRequestItemRecord[];
     actor?: ResourceActor;
@@ -293,6 +304,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       await this.applyItemResolution({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         mergeRequest: d.mergeRequest,
         item,
         actor: d.actor
@@ -369,6 +381,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   private async restoreSnapshotItem(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     item: SnapshotItem;
     actor?: ResourceActor;
@@ -407,6 +420,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     await this.applyItemResolution({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       mergeRequest: d.mergeRequest,
       item: syntheticItem,
       actor: d.actor
@@ -416,6 +430,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   private async rollbackSkillMergeRequestUnlocked(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     authorization: ResourceAuthorization;
   }) {
@@ -460,6 +475,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       await storeItemMutationService.modifyStoreItems({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         store: d.mergeRequest.targetSkill.store!,
         actor,
         operations: [
@@ -479,6 +495,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       await this.restoreSnapshotItem({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         mergeRequest: d.mergeRequest,
         item,
         actor
@@ -514,6 +531,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   async rollbackSkillMergeRequest(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     authorization: ResourceAuthorization;
   }) {

@@ -8,7 +8,8 @@
     "enterprise:dev": "./setup.sh && vite --port 3302 || true",
     "dev": "./setup.sh && vite --port 3302",
     "frontend:build": "./setup.sh && tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:start": "vite --host 0.0.0.0"
   },
   "devDependencies": {
     "@types/node": "*",

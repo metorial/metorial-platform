@@ -38,6 +38,7 @@ model Store {
   access            StoreAccess     @default(private)
   cloneType         StoreCloneType?
   itemCount         Int             @default(0)
+  byteSize          BigInt?
   dirtyAt           DateTime?
   isReadOnly        Boolean         @default(false)
   isTemplateBacking Boolean         @default(false)

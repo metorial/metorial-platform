@@ -21,8 +21,6 @@ export type RecordSlateErrorInput = {
   authConfigOid?: bigint | null;
   instanceConfigOid?: bigint | null;
   oauthSetupOid?: bigint | null;
-  triggerReceiverOid?: bigint | null;
-  triggerEventInputOid?: bigint | null;
 };
 
 let listInclude = {
@@ -80,15 +78,6 @@ let getInclude = {
       slateVersion: true,
       events: true
     }
-  },
-  triggerReceiver: true,
-  triggerEventInput: {
-    include: {
-      receiver: true,
-      receiverTrigger: true,
-      action: true,
-      event: true
-    }
   }
 };
 
@@ -96,7 +85,18 @@ let toBigIntOrNull = (v: string | null | undefined): bigint | null =>
   v != null ? BigInt(v) : null;
 
 class slateErrorServiceImpl {
+  private async shouldCollectErrors(tenantOid: bigint | string) {
+    let tenant = await db.tenant.findUnique({
+      where: { oid: BigInt(tenantOid) },
+      select: { collectErrors: true }
+    });
+
+    return tenant ? tenant.collectErrors : true;
+  }
+
   async recordSlateError(d: RecordSlateErrorInput) {
+    if (!(await this.shouldCollectErrors(d.tenantOid))) return;
+
     await recordSlateErrorQueue.add({
       type: d.type,
       errorCode: d.errorCode,
@@ -110,10 +110,7 @@ class slateErrorServiceImpl {
       sessionOid: d.sessionOid != null ? String(d.sessionOid) : null,
       authConfigOid: d.authConfigOid != null ? String(d.authConfigOid) : null,
       instanceConfigOid: d.instanceConfigOid != null ? String(d.instanceConfigOid) : null,
-      oauthSetupOid: d.oauthSetupOid != null ? String(d.oauthSetupOid) : null,
-      triggerReceiverOid: d.triggerReceiverOid != null ? String(d.triggerReceiverOid) : null,
-      triggerEventInputOid:
-        d.triggerEventInputOid != null ? String(d.triggerEventInputOid) : null
+      oauthSetupOid: d.oauthSetupOid != null ? String(d.oauthSetupOid) : null
     });
   }
 
@@ -131,9 +128,9 @@ class slateErrorServiceImpl {
     authConfigOid: string | null;
     instanceConfigOid: string | null;
     oauthSetupOid: string | null;
-    triggerReceiverOid: string | null;
-    triggerEventInputOid: string | null;
   }) {
+    if (!(await this.shouldCollectErrors(d.tenantOid))) return null;
+
     return db.slateError.create({
       data: {
         ...getId('slateError'),
@@ -151,17 +148,12 @@ class slateErrorServiceImpl {
         sessionOid: toBigIntOrNull(d.sessionOid),
         authConfigOid: toBigIntOrNull(d.authConfigOid),
         instanceConfigOid: toBigIntOrNull(d.instanceConfigOid),
-        oauthSetupOid: toBigIntOrNull(d.oauthSetupOid),
-        triggerReceiverOid: toBigIntOrNull(d.triggerReceiverOid),
-        triggerEventInputOid: toBigIntOrNull(d.triggerEventInputOid)
+        oauthSetupOid: toBigIntOrNull(d.oauthSetupOid)
       }
     });
   }
 
-  async listSlateErrors(d: {
-    tenant?: Tenant;
-    types?: SlateErrorType[];
-  }) {
+  async listSlateErrors(d: { tenant?: Tenant; types?: SlateErrorType[] }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>

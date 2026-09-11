@@ -20,7 +20,6 @@ export let slateErrorController = app.controller({
                 'auth_processing_failed',
                 'oauth_token_refresh_failed',
                 'oauth_setup_failed',
-                'trigger_event_input_failed',
                 'profile_fetch_failed'
               ])
             )

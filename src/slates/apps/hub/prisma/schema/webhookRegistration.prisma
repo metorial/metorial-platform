@@ -1,0 +1,95 @@
+enum SlateWebhookRegistrationType {
+  automated
+  manual
+}
+
+enum SlateWebhookRegistrationOwner {
+  tenant
+  global
+}
+
+enum SlateWebhookRegistrationStatus {
+  awaiting_setup
+  active
+  deleted
+}
+
+enum SlateWebhookRegistrationAuthRouting {
+  any
+  restricted_method
+  restricted_credential
+}
+
+model SlateWebhookRegistration {
+  oid    BigInt                         @id
+  id     String                         @unique
+  type   SlateWebhookRegistrationType
+  owner  SlateWebhookRegistrationOwner
+  status SlateWebhookRegistrationStatus @default(active)
+
+  urlKey String @unique
+
+  name        String
+  description String?
+
+  /// [AnyRecord]
+  metadata Json?
+
+  // Not set for global registrations
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  triggerGroupOid BigInt
+  triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid], onDelete: Cascade)
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  registrationIdentifier String?
+
+  authRouting SlateWebhookRegistrationAuthRouting @default(any)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  webhookEvents               SlateWebhookEvent[]
+  authMethods                 SlateWebhookRegistrationAuthMethod[]
+  oauthCredentials            SlateWebhookRegistrationOAuthCredentials[]
+  triggerWebhookTarget        TriggerWebhookTarget?
+  triggerRegistrationWebhooks TriggerRegistrationWebhook[]
+  triggerRoutingDrops         TriggerRoutingDrop[]
+  triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
+
+  @@index([tenantOid, createdAt])
+}
+
+model SlateWebhookRegistrationAuthMethod {
+  oid BigInt @id
+
+  registrationOid BigInt
+  registration    SlateWebhookRegistration @relation(fields: [registrationOid], references: [oid], onDelete: Cascade)
+
+  authMethodOid BigInt
+  authMethod    SlateAuthMethod @relation(fields: [authMethodOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([registrationOid, authMethodOid])
+}
+
+model SlateWebhookRegistrationOAuthCredentials {
+  oid BigInt @id
+
+  registrationOid BigInt
+  registration    SlateWebhookRegistration @relation(fields: [registrationOid], references: [oid], onDelete: Cascade)
+
+  oauthCredentialsOid BigInt
+  oauthCredentials    SlateOAuthCredentials @relation(fields: [oauthCredentialsOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([registrationOid, oauthCredentialsOid])
+}

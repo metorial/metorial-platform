@@ -189,13 +189,6 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'developer', ...subPages),
 
-    callbacks: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'callbacks', ...subPages),
-
     security: (
       organization: EntityParam,
       project: EntityParam,
@@ -244,17 +237,6 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'network', 'settings', ...subPages),
-    callback: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      id?: string,
-      ...subPages: SubPages
-    ) => {
-      if (!id) return '#';
-      return InstancePaths(organization, project, instance, 'callback', id, ...subPages);
-    },
-
     providers: (
       organization: EntityParam,
       project: EntityParam,
@@ -294,6 +276,128 @@ let InstancePaths = Object.assign(
     ) => {
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'integration', id, ...subPages);
+    },
+
+    callbacks: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'callbacks', ...subPages),
+    callback: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'callback', id, ...subPages);
+    },
+    callbackEvents: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'callback-events', ...subPages),
+    callbackEventErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'callback-event-errors', ...subPages),
+    callbackEvent: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'callback-event',
+        id,
+        ...subPages
+      );
+    },
+    incomingWebhooks: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'incoming-webhooks', ...subPages),
+    incomingWebhookErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(organization, project, instance, 'incoming-webhook-errors', ...subPages),
+    incomingWebhook: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'incoming-webhook',
+        id,
+        ...subPages
+      );
+    },
+    webhookRegistrations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(organization, project, instance, 'webhook-registrations', ...subPages),
+    eventDestinations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'event-destinations', ...subPages),
+    eventDestination: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'event-destination',
+        id,
+        ...subPages
+      );
+    },
+    events: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'events', ...subPages),
+    event: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'event', id, ...subPages);
     },
     skills: (
       organization: EntityParam,
@@ -1021,6 +1125,19 @@ let SupportPaths = Object.assign(
   }
 );
 
+let DocumentsPaths = Object.assign(
+  (...subPages: SubPages) => getNexusUrl('documents', () => joinPaths(...subPages)),
+  {
+    organization: (
+      organizationId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!organizationId) return '#';
+      return DocumentsPaths(organizationId, 'documents', ...subPages);
+    }
+  }
+);
+
 let EnterprisePaths = Object.assign(
   (accountId: string | null | undefined, ...subPages: SubPages) =>
     getNexusUrl('enterprise', () => {
@@ -1242,6 +1359,8 @@ let OrganizationPaths = Object.assign(
       OrganizationPaths.settings(organization, 'roles', ...subPages),
     policies: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'policies', ...subPages),
+    outposts: (organization: EntityParam, ...subPages: SubPages) =>
+      OrganizationPaths.settings(organization, 'outposts', ...subPages),
     projects: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'projects', ...subPages),
     project: (organization: EntityParam, project: EntityParam, ...subPages: SubPages) => {
@@ -1883,6 +2002,7 @@ export let Paths = {
 
   instance: InstancePaths,
   account: AccountPaths,
+  documents: DocumentsPaths,
   support: SupportPaths,
   enterprise: EnterprisePaths,
   organization: OrganizationPaths,

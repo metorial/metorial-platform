@@ -35,7 +35,7 @@ export let v1SkillImportPresenter = Presenter.create(skillImportType)
           }
         : skillImport.sourceType === 'origin_repository'
           ? {
-              type: 'origin' as const,
+              type: 'scm' as const,
               repository_id: skillImport.repositoryId!,
               repository_name: skillImport.repositoryName,
               ref: skillImport.ref,
@@ -47,7 +47,6 @@ export let v1SkillImportPresenter = Presenter.create(skillImportType)
               file_name: skillImport.sourceFileName!,
               format: skillImport.sourceFileFormat!
             },
-    code_bucket_id: skillImport.codeBucketId,
     error: skillImport.error,
     items: skillImport.items.map(item => ({
       object: 'skill.import.item' as const,
@@ -83,7 +82,7 @@ export let v1SkillImportPresenter = Presenter.create(skillImportType)
           ref: v.nullable(v.string())
         }),
         v.object({
-          type: v.literal('origin'),
+          type: v.literal('scm'),
           repository_id: v.string(),
           repository_name: v.nullable(v.string()),
           ref: v.nullable(v.string()),
@@ -96,7 +95,6 @@ export let v1SkillImportPresenter = Presenter.create(skillImportType)
           format: v.enumOf(['zip', 'markdown'])
         })
       ]),
-      code_bucket_id: v.nullable(v.string()),
       error: v.nullable(v.string()),
       items: v.array(skillImportItemSchema),
       started_at: v.nullable(v.date()),

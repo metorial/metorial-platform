@@ -21,7 +21,9 @@ import type {
   StoreAccess,
   StoreCloneType
 } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   normalizeDateFilter,
   resolveResourceActors,
@@ -154,6 +156,7 @@ class StoreServiceImpl {
   private async instantiateStandaloneTemplateItems(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     store: Store;
     storeTemplate: StoreTemplateRecord;
     actor?: ResourceActor;
@@ -176,6 +179,7 @@ class StoreServiceImpl {
         await storeItemMutationService.modifyStoreItems({
           project: d.project,
           instance: d.instance,
+          auditScope: d.auditScope,
           store: d.store,
           operations: [
             {
@@ -204,6 +208,7 @@ class StoreServiceImpl {
         await documentService.createDocument({
           project: d.project,
           instance: d.instance,
+          auditScope: d.auditScope,
           input: {
             title,
             content: titleOverride
@@ -236,6 +241,7 @@ class StoreServiceImpl {
       await fileService.createFile({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         purpose: filePurpose.id,
         storeId: fileStoreId,
         input: {
@@ -259,6 +265,7 @@ class StoreServiceImpl {
   async createStore(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     input: {
       id?: string;
       name: string;
@@ -319,16 +326,23 @@ class StoreServiceImpl {
 
       await enqueueStoreLifecycle({ storeId: createdStore.id, event: 'created' });
 
-      return await db.store.findUniqueOrThrow({
+      let store = await db.store.findUniqueOrThrow({
         where: {
           id: createdStore.id
         }
       });
+
+      await Fabric.fire('store.created:after', {
+        auditScope: d.auditScope,
+        store
+      });
+
+      return store;
     });
   }
 
   async createStoreFromTemplate(
-    d: { project: Project; instance: Instance } & StoreAccessInput & {
+    d: { project: Project; instance: Instance; auditScope: AuditScope } & StoreAccessInput & {
         input: {
           templateId: string;
           id?: string;
@@ -363,6 +377,7 @@ class StoreServiceImpl {
       return await this.cloneStore({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         store: sourceStore,
         actor: d.input.actor,
         authorization: d.authorization,
@@ -382,6 +397,7 @@ class StoreServiceImpl {
     let createdStore = await this.createStore({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       input: {
         id: d.input.id,
         name: d.input.name,
@@ -394,6 +410,7 @@ class StoreServiceImpl {
     await this.instantiateStandaloneTemplateItems({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       store: createdStore,
       storeTemplate,
       actor: d.input.actor,
@@ -498,7 +515,11 @@ class StoreServiceImpl {
   }
 
   async updateStore(
-    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
+    d: {
+      project: Project;
+      instance: Instance;
+      auditScope: AuditScope;
+    } & StoreServiceAccessInput & {
         store: Store;
         input: {
           name?: string;
@@ -555,12 +576,22 @@ class StoreServiceImpl {
 
       await enqueueStoreLifecycle({ storeId: d.store.id, event: 'updated' });
 
+      await Fabric.fire('store.updated:after', {
+        auditScope: d.auditScope,
+        store: updatedStore,
+        previousStore: d.store
+      });
+
       return updatedStore;
     });
   }
 
   async cloneStore(
-    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
+    d: {
+      project: Project;
+      instance: Instance;
+      auditScope: AuditScope;
+    } & StoreServiceAccessInput & {
         store: Store;
         input: {
           id?: string;
@@ -587,6 +618,7 @@ class StoreServiceImpl {
       let clonedStore = await this.createStore({
         project: d.project,
         instance: d.instance,
+        auditScope: d.auditScope,
         input: {
           id: d.input.id,
           name: d.input.name ?? d.store.name,
@@ -612,6 +644,7 @@ class StoreServiceImpl {
         await this.cloneStoreItemIntoStore({
           project: d.project,
           instance: d.instance,
+          auditScope: d.auditScope,
           targetStore: clonedStore,
           item,
           actor: d.actor,
@@ -636,7 +669,11 @@ class StoreServiceImpl {
   }
 
   async deleteStore(
-    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
+    d: {
+      project: Project;
+      instance: Instance;
+      auditScope: AuditScope;
+    } & StoreServiceAccessInput & {
         store: Store;
         allowLinkedSkillDelete?: boolean;
         allowLinkedStoreTemplateDelete?: boolean;
@@ -732,11 +769,20 @@ class StoreServiceImpl {
       });
     }
 
+    await Fabric.fire('store.deleted:after', {
+      auditScope: d.auditScope,
+      store: deletedStore
+    });
+
     return deletedStore;
   }
 
   async modifyStoreItems(
-    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
+    d: {
+      project: Project;
+      instance: Instance;
+      auditScope: AuditScope;
+    } & StoreServiceAccessInput & {
         store: Store;
         operations: StoreItemOperationInput[];
       }
@@ -758,6 +804,7 @@ class StoreServiceImpl {
     return await storeItemMutationService.modifyStoreItems({
       project: d.project,
       instance: d.instance,
+      auditScope: d.auditScope,
       store: d.store,
       operations: d.operations,
       actor: d.actor
@@ -765,7 +812,11 @@ class StoreServiceImpl {
   }
 
   private async cloneStoreItemIntoStore(
-    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
+    d: {
+      project: Project;
+      instance: Instance;
+      auditScope: AuditScope;
+    } & StoreServiceAccessInput & {
         targetStore: Store;
         item: StoreItemRecord;
         cloneType: StoreCloneType;
@@ -794,6 +845,7 @@ class StoreServiceImpl {
           await storeItemMutationService.modifyStoreItems({
             project: d.project,
             instance: d.instance,
+            auditScope: d.auditScope,
             store: d.targetStore,
             operations: [
               {
@@ -826,6 +878,7 @@ class StoreServiceImpl {
         let clonedDocument = await documentService.cloneDocument({
           project: d.project,
           instance: d.instance,
+          auditScope: d.auditScope,
           document: sourceDocument,
           input: {
             title: titleOverride,

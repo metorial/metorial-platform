@@ -127,6 +127,7 @@ model ResourceActor {
   createdSkills             Skill[]                    @relation("SkillCreator")
   createdFiles              File[]                     @relation("FileCreator")
   createdFileLinks          FileLink[]                 @relation("FileLinkCreator")
+  createdFileUploads        FileUpload[]               @relation("FileUploadCreator")
   createdSkillExports       SkillExport[]              @relation("SkillExportCreator")
   createdSkillImports       SkillImport[]              @relation("SkillImportCreator")
   createdMergeRequests      SkillMergeRequest[]        @relation("SkillMergeRequestCreator")

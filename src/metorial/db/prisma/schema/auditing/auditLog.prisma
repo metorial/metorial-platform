@@ -22,7 +22,7 @@ model AuditLog {
   actorMetadata Json?
 
   eventOid BigInt?
-  event    Event?  @relation(fields: [eventOid], references: [oid], onDelete: SetNull)
+  event    AuditLogEvent? @relation(fields: [eventOid], references: [oid], onDelete: SetNull)
 
   recordedAt DateTime @default(now())
 

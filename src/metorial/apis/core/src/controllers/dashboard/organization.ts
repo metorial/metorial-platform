@@ -88,7 +88,8 @@ export let dashboardOrganizationController = Controller.create(
         'default',
         v.object({
           name: v.optional(v.string()),
-          image_file_id: v.optional(v.nullable(v.string()))
+          image_file_id: v.optional(v.nullable(v.string())),
+          magic_mcp_origin: v.optional(v.nullable(v.string()))
         })
       )
       .use(checkAccess({ possibleScopes: ['organization:write'] }))
@@ -97,7 +98,8 @@ export let dashboardOrganizationController = Controller.create(
         let organization = await organizationService.updateOrganization({
           input: {
             name: ctx.body.name,
-            imageFileId: ctx.body.image_file_id
+            imageFileId: ctx.body.image_file_id,
+            magicMcpOrigin: ctx.body.magic_mcp_origin
           },
           organization: ctx.organization,
           auditScope: ctx.auditScope

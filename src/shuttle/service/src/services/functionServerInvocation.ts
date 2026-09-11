@@ -135,7 +135,7 @@ class functionServerInvocationServiceImpl {
         connectionOid: d.connection?.oid ?? null,
         functionServerOid: d.functionServer.oid,
         tenantOid: d.tenant.oid,
-        logs: d.logs?.length ? d.logs : undefined
+        logs: d.tenant.storeContent && d.logs?.length ? d.logs : undefined
       },
       include
     });

@@ -25,7 +25,7 @@ let deriveKey = (
     keyUsage
   );
 
-let encryptData = async (secretData: string, password: string) => {
+let encryptDataToBytes = async (secretData: string, password: string) => {
   let salt = crypto.getRandomValues(new Uint8Array(16));
   let iv = crypto.getRandomValues(new Uint8Array(12));
   let passwordKey = await getPasswordKey(password);
@@ -45,11 +45,10 @@ let encryptData = async (secretData: string, password: string) => {
   buff.set(iv, salt.byteLength);
   buff.set(encryptedContentArr, salt.byteLength + iv.byteLength);
 
-  return base86.encode(buff);
+  return buff;
 };
 
-let decryptData = async (encryptedData: string, password: string) => {
-  let encryptedDataBuff = base86.decode(encryptedData);
+let decryptDataFromBytes = async (encryptedDataBuff: Uint8Array, password: string) => {
   let salt = new Uint8Array(encryptedDataBuff.slice(0, 16));
   let iv = encryptedDataBuff.slice(16, 28);
   let data = encryptedDataBuff.slice(28);
@@ -67,6 +66,12 @@ let decryptData = async (encryptedData: string, password: string) => {
   return dec.decode(decryptedContent);
 };
 
+let encryptData = async (secretData: string, password: string) =>
+  base86.encode(await encryptDataToBytes(secretData, password));
+
+let decryptData = async (encryptedData: string, password: string) =>
+  decryptDataFromBytes(base86.decode(encryptedData), password);
+
 let sha512 = async (data: string) => {
   let hashBuffer = await crypto.subtle.digest('SHA-512', enc.encode(data));
   return base62.encode(new Uint8Array(hashBuffer));
@@ -75,5 +80,7 @@ let sha512 = async (data: string) => {
 export let secretsCrypto = {
   encrypt: encryptData,
   decrypt: decryptData,
+  encryptToBytes: encryptDataToBytes,
+  decryptFromBytes: decryptDataFromBytes,
   sha512
 };
