@@ -7,8 +7,10 @@ import {
   Group,
   InlineCopy,
   Input,
+  Panel,
   RenderDate,
   Select,
+  showModal,
   Spacer,
   Text,
   Title
@@ -31,6 +33,144 @@ let statusColors: Record<string, 'gray' | 'green' | 'red' | 'blue'> = {
 };
 
 let HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const;
+
+type EncodedBody = { encoding?: string; content?: string } | null | undefined;
+
+let decodeEncodedBody = (body: EncodedBody) => {
+  if (!body?.content) return null;
+
+  try {
+    let raw =
+      body.encoding === 'base64'
+        ? new TextDecoder().decode(
+            Uint8Array.from(atob(body.content), char => char.charCodeAt(0))
+          )
+        : body.content;
+
+    try {
+      return JSON.stringify(JSON.parse(raw), null, 2);
+    } catch {
+      return raw;
+    }
+  } catch {
+    return body.content;
+  }
+};
+
+let getResultBody = (result: unknown, field: 'request' | 'slateResponse'): EncodedBody => {
+  if (!result || typeof result !== 'object') return null;
+  let event = (result as { event?: unknown }).event;
+  if (!event || typeof event !== 'object') return null;
+  let container = (event as Record<string, unknown>)[field];
+  if (!container || typeof container !== 'object') return null;
+  return (container as { body?: EncodedBody }).body;
+};
+
+let formatDecodedBody = (body: EncodedBody) => decodeEncodedBody(body) ?? 'No body';
+
+let formatJsonValue = (value: unknown) => {
+  if (value === null || value === undefined) return 'None';
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
+
+type WebhookTriggerEvent = NonNullable<
+  ReturnType<typeof useWebhookTriggerEvents>['data']
+>['items'][number];
+
+let DecodedBodyBlock = ({ label, body }: { label: string; body: EncodedBody }) => (
+  <Flex direction="column" gap={8}>
+    <Text size="2" weight="strong">
+      {label}
+    </Text>
+    <LogViewer>{formatDecodedBody(body)}</LogViewer>
+  </Flex>
+);
+
+let WebhookEventDetail = ({ event }: { event: WebhookTriggerEvent }) => (
+  <Flex direction="column" gap={20}>
+    <Datalist
+      items={[
+        {
+          label: 'ID',
+          value: (
+            <Flex align="center" gap={6}>
+              <MonoCode>{event.id}</MonoCode>
+              <InlineCopy value={event.id} />
+            </Flex>
+          )
+        },
+        {
+          label: 'Status',
+          value: <Badge color={statusColors[event.status] || 'gray'}>{event.status}</Badge>
+        },
+        { label: 'Attempts', value: String(event.attemptCount) },
+        { label: 'Method', value: event.request?.method ?? '-' },
+        {
+          label: 'URL',
+          value: event.request?.url ? (
+            <Flex align="center" gap={6}>
+              <MonoCode>{event.request.url}</MonoCode>
+              <InlineCopy value={event.request.url} />
+            </Flex>
+          ) : (
+            '-'
+          )
+        },
+        {
+          label: 'Response status',
+          value: event.slateResponse?.status != null ? String(event.slateResponse.status) : '-'
+        },
+        { label: 'Created', value: <RenderDate date={event.createdAt} /> },
+        { label: 'Updated', value: <RenderDate date={event.updatedAt} /> }
+      ]}
+    />
+
+    <Flex direction="column" gap={8}>
+      <Text size="2" weight="strong">
+        Request headers
+      </Text>
+      <LogViewer>{formatJsonValue(event.request?.headers ?? null)}</LogViewer>
+    </Flex>
+
+    <DecodedBodyBlock label="Request body" body={event.request?.body} />
+
+    <Flex direction="column" gap={8}>
+      <Text size="2" weight="strong">
+        Response headers
+      </Text>
+      <LogViewer>{formatJsonValue(event.slateResponse?.headers ?? null)}</LogViewer>
+    </Flex>
+
+    <DecodedBodyBlock label="Response body" body={event.slateResponse?.body} />
+
+    {event.responseOverride ? (
+      <Flex direction="column" gap={8}>
+        <Text size="2" weight="strong">
+          Response override
+        </Text>
+        <LogViewer>{formatJsonValue(event.responseOverride)}</LogViewer>
+      </Flex>
+    ) : null}
+  </Flex>
+);
+
+let showWebhookEventPanel = (event: WebhookTriggerEvent) => {
+  showModal(({ dialogProps }) => (
+    <Panel.Wrapper {...dialogProps} width={900}>
+      <Panel.Header>
+        <Panel.Title>Webhook Event</Panel.Title>
+        <Panel.Description>{event.id}</Panel.Description>
+      </Panel.Header>
+      <Panel.Content>
+        <WebhookEventDetail event={event} />
+      </Panel.Content>
+    </Panel.Wrapper>
+  ));
+};
 
 export let WebhookTriggerDetail = () => {
   let { webhookRegistrationId } = useParams<{ webhookRegistrationId: string }>();
@@ -243,7 +383,25 @@ let WebhookTriggerDetailContent = ({
             </Flex>
 
             {lastResult ? (
-              <LogViewer>{JSON.stringify(lastResult, null, 2)}</LogViewer>
+              <Flex direction="column" gap={16}>
+                <LogViewer>{JSON.stringify(lastResult, null, 2)}</LogViewer>
+                <Flex direction="column" gap={8}>
+                  <Text size="2" weight="strong">
+                    Request body
+                  </Text>
+                  <LogViewer>
+                    {formatDecodedBody(getResultBody(lastResult, 'request'))}
+                  </LogViewer>
+                </Flex>
+                <Flex direction="column" gap={8}>
+                  <Text size="2" weight="strong">
+                    Response body
+                  </Text>
+                  <LogViewer>
+                    {formatDecodedBody(getResultBody(lastResult, 'slateResponse'))}
+                  </LogViewer>
+                </Flex>
+              </Flex>
             ) : null}
           </Flex>
         </Group.Content>
@@ -287,6 +445,7 @@ let WebhookTriggerEventsSection = ({
               padding={{ sides: '20px' }}
               headers={['Status', 'Method', 'Attempts', 'Time']}
               data={items.map(event => ({
+                onClick: () => showWebhookEventPanel(event),
                 data: [
                   <Badge color={statusColors[event.status] || 'gray'}>{event.status}</Badge>,
                   <MonoCode>{event.request?.method ?? '-'}</MonoCode>,
