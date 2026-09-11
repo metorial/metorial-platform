@@ -1,9 +1,9 @@
-import { Input, Panel, showModal } from '@metorial/ui';
-import { type ReactNode, useMemo, useState } from 'react';
 import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
-import { ProvidersWithDeploymentsSearch } from '../providers/search';
 import { PillStepper } from '@metorial/explainer';
+import { Input, Panel, showModal } from '@metorial/ui';
 import { useSearchFilter } from '@metorial/use-search-filter';
+import { type ReactNode, useMemo, useState } from 'react';
+import { ProvidersWithDeploymentsSearch } from '../providers/search';
 
 type ProviderCreationPanelStep = {
   title: string;

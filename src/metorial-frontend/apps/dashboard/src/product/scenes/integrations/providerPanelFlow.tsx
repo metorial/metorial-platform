@@ -14,6 +14,7 @@ import {
   useProviderAuthCredentials,
   useProviderAuthMethod,
   useProviderAuthMethods,
+  useDashboardFlags,
   useProviderConfigSchemaTarget,
   useProviderListing,
   useSetIntegrationInstanceProvider,
@@ -50,6 +51,7 @@ import {
 } from '../providerCreationPanel';
 import { FlatCreateSection } from '../providerCreationPanel/flatCreateLayout';
 import { ProviderSetupSections } from '../sessionTemplates/addProviderPanelFlow';
+import { IntegrationProviderCallbacksSection } from '../callbacks/providerCallbacksSection';
 
 type ToolFilterFormValues = {
   toolFilterMode: 'all' | 'select';
@@ -62,6 +64,7 @@ type IntegrationProviderFormValues = ToolFilterFormValues & {
   selectedAuthMethodId: string;
   selectedAuthCredentialsId: string;
   selectedAuthConfigId: string;
+  callbacksStatus: 'enabled' | 'disabled';
 };
 
 export type IntegrationProviderAuthConfigMode = 'not_provided' | 'provided';
@@ -77,6 +80,7 @@ export type IntegrationProviderPanelSubmitInput = {
   providerAuthConfigId?: string | null;
   authConfigMode?: IntegrationProviderAuthConfigMode;
   toolFilters?: ReturnType<typeof getToolFilters>;
+  callbacks?: { status: 'enabled' | 'disabled' };
 };
 
 type IntegrationInstanceProviderFormValues = ToolFilterFormValues & {
@@ -421,9 +425,8 @@ let IntegrationProviderAuthSection = (p: {
                 {hasUnlistedSelectedAuthMethod ? (
                   <Callout color="gray">
                     This integration is using a previously selected auth method
-                    {p.selectedAuthMethod?.name
-                      ? ` (${p.selectedAuthMethod.name})`
-                      : ''}. Choose a new method only if you want to change it.
+                    {p.selectedAuthMethod?.name ? ` (${p.selectedAuthMethod.name})` : ''}.
+                    Choose a new method only if you want to change it.
                   </Callout>
                 ) : null}
                 {p.authMethodError}
@@ -574,6 +577,11 @@ let IntegrationProviderSetupStep = (p: {
     respectIntegrationToolFilterPolicy: false,
     isUpdate
   });
+  let flags = useDashboardFlags();
+  let providerTriggers = visibility.provider.data?.type.triggers;
+  let showCallbacks =
+    !!flags.data?.flags['callbacks-enabled'] && providerTriggers?.status === 'enabled';
+  let existingCallback = p.integrationProvider?.callbacks.callback ?? null;
   let authMethods = useProviderAuthMethods(
     instance.data?.id,
     visibility.showAuth && visibility.provider.data?.currentVersion?.id
@@ -626,7 +634,8 @@ let IntegrationProviderSetupStep = (p: {
         providerConfigId: providerConfigId ?? null,
         providerAuthMethodId: providerAuthMethodId ?? null,
         providerAuthCredentialsId: providerAuthCredentialsId ?? null,
-        toolFilters
+        toolFilters,
+        callbacks: showCallbacks ? { status: values.callbacksStatus } : undefined
       });
       if (!updated) return false;
       p.onComplete();
@@ -654,7 +663,8 @@ let IntegrationProviderSetupStep = (p: {
           ? values.selectedAuthConfigId || null
           : null,
         authConfigMode: showConnectionMode ? authConfigMode : undefined,
-        toolFilters
+        toolFilters,
+        callbacks: showCallbacks ? { status: values.callbacksStatus } : undefined
       });
 
       if (result.error || !result.success) return false;
@@ -674,7 +684,8 @@ let IntegrationProviderSetupStep = (p: {
       providerConfigId: providerConfigId ?? null,
       providerAuthMethodId,
       providerAuthCredentialsId,
-      toolFilters
+      toolFilters,
+      callbacks: showCallbacks ? { status: values.callbacksStatus } : undefined
     });
     if (!created) return false;
     p.onComplete();
@@ -691,6 +702,7 @@ let IntegrationProviderSetupStep = (p: {
       selectedAuthMethodId: p.integrationProvider?.authMethod?.id ?? '',
       selectedAuthCredentialsId: p.integrationProvider?.authCredentials?.id ?? '',
       selectedAuthConfigId: '',
+      callbacksStatus: p.integrationProvider?.callbacks.status ?? 'disabled',
       toolFilterMode: p.integrationProvider?.toolFilter?.type === 'filter' ? 'select' : 'all',
       selectedToolKeys:
         p.integrationProvider?.toolFilter?.type === 'filter'
@@ -745,7 +757,11 @@ let IntegrationProviderSetupStep = (p: {
         selectedAuthCredentialsId: yup.string().optional().default(''),
         selectedAuthConfigId: yup.string().optional().default(''),
         toolFilterMode: yup.mixed<'all' | 'select'>().oneOf(['all', 'select']).required(),
-        selectedToolKeys: yup.array().of(yup.string().required()).defined()
+        selectedToolKeys: yup.array().of(yup.string().required()).defined(),
+        callbacksStatus: yup
+          .mixed<'enabled' | 'disabled'>()
+          .oneOf(['enabled', 'disabled'])
+          .required()
       })
   });
   let previousAuthMethodIdRef = useRef(form.values.selectedAuthMethodId);
@@ -769,8 +785,8 @@ let IntegrationProviderSetupStep = (p: {
   );
   let isSelectedAuthMethodLoading = Boolean(
     form.values.selectedAuthMethodId &&
-      !listedSelectedAuthMethod &&
-      currentAuthMethod.isLoading
+    !listedSelectedAuthMethod &&
+    currentAuthMethod.isLoading
   );
   // In update mode, keep the auth section available when an existing provider
   // references an older auth method that is no longer returned in the picker list.
@@ -935,7 +951,8 @@ let IntegrationProviderSetupStep = (p: {
     effectiveShowAuth ||
     effectiveShowAuthConfig ||
     visibility.showToolFilters ||
-    showConnectionMode;
+    showConnectionMode ||
+    showCallbacks;
   let canSubmit =
     (visibility.configRequirement !== 'required' ||
       isConfigSelectionComplete(form.values.selectedConfiguration)) &&
@@ -1113,6 +1130,21 @@ let IntegrationProviderSetupStep = (p: {
           oauthAutoRegistrationEnabled={oauthAutoRegistrationEnabled}
           authMethodError={<form.RenderError field="selectedAuthMethodId" />}
           authCredentialsError={<form.RenderError field="selectedAuthCredentialsId" />}
+        />
+      ) : null}
+
+      {showCallbacks ? (
+        <IntegrationProviderCallbacksSection
+          instanceId={instance.data!.id}
+          providerVersionId={visibility.provider.data?.currentVersion?.id}
+          providerName={visibility.providerName}
+          webhookRegistrationSupported={
+            providerTriggers?.status === 'enabled' &&
+            providerTriggers.webhookRegistration.status === 'supported'
+          }
+          callback={existingCallback}
+          value={form.values.callbacksStatus}
+          onChange={value => form.setFieldValue('callbacksStatus', value)}
         />
       ) : null}
 
@@ -1385,7 +1417,8 @@ let CreateIntegrationProviderFirstPanel = (p: {
           providerConfigId: input.providerConfigId ?? null,
           providerAuthMethodId: input.providerAuthMethodId ?? null,
           providerAuthCredentialsId: input.providerAuthCredentialsId ?? null,
-          toolFilters: input.toolFilters
+          toolFilters: input.toolFilters,
+          callbacks: input.callbacks
         });
         if (!provider) return { success: false, error: createIntegrationProvider.error };
 
@@ -1449,13 +1482,15 @@ let IntegrationInstanceProviderPanel = (p: {
   );
   let fixedAuthMethodId =
     inheritedAuthMethodId &&
-    (inheritedAuthMethods.data?.items ?? []).some(method => method.id === inheritedAuthMethodId)
+    (inheritedAuthMethods.data?.items ?? []).some(
+      method => method.id === inheritedAuthMethodId
+    )
       ? inheritedAuthMethodId
       : undefined;
   let isInheritedAuthMethodLoading = Boolean(
     inheritedAuthMethodId &&
-      visibility.provider.data?.currentVersion?.id &&
-      inheritedAuthMethods.isLoading
+    visibility.provider.data?.currentVersion?.id &&
+    inheritedAuthMethods.isLoading
   );
 
   let submitProviderSetup = async (values: IntegrationInstanceProviderFormValues) => {

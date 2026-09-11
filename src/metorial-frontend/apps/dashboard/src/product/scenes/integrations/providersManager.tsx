@@ -1,20 +1,27 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
+  CallbackInstancePreview,
   IntegrationInstance,
   IntegrationInstanceProvider,
   IntegrationPreview,
   IntegrationProvider,
+  useAllCallbackInstances,
   useDeleteIntegrationProvider,
   useIntegrationInstanceProviders,
   useIntegrationProviders,
   useProviderListings
 } from '@metorial/state';
+import {
+  Table as DashboardTable,
+  FilterPayload,
+  getEnumListFilterValue,
+  getStringFilterValue
+} from '@metorial/table';
 import { Avatar, Badge, Flex, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine, RiSettings3Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
-import { Table as DashboardTable } from '@metorial/table';
-import { FilterPayload, getEnumListFilterValue, getStringFilterValue } from '@metorial/table';
+import { CallbackSyncBadge } from '../callbacks/shared';
 import {
   showIntegrationInstanceProviderPanelFlow,
   showIntegrationProviderPanelFlow
@@ -164,6 +171,26 @@ let integrationProvidersTable = new DashboardTable<
       )
     },
     {
+      id: 'callbacks',
+      isDefault: true,
+      header: 'Callbacks',
+      render: (provider: IntegrationProvider) => {
+        if (provider.callbacks.status !== 'enabled') {
+          return (
+            <Text size="2" color="gray600">
+              Off
+            </Text>
+          );
+        }
+
+        if (!provider.callbacks.callback) {
+          return <Badge color="orange">Registering</Badge>;
+        }
+
+        return <CallbackSyncBadge sync={provider.callbacks.callback.sync} />;
+      }
+    },
+    {
       id: 'status',
       isDefault: false,
       header: 'Status',
@@ -173,7 +200,7 @@ let integrationProvidersTable = new DashboardTable<
     },
     {
       id: 'createdAt',
-      isDefault: true,
+      isDefault: false,
       header: 'Created',
       render: (provider: IntegrationProvider) => <RenderDate date={provider.createdAt} />
     },
@@ -185,7 +212,7 @@ let integrationProvidersTable = new DashboardTable<
     },
     {
       id: 'id',
-      isDefault: true,
+      isDefault: false,
       header: 'ID',
       render: (provider: IntegrationProvider) => <ID id={provider.id} />
     }
@@ -315,6 +342,7 @@ type InstanceProviderRow = {
   integrationProvider: IntegrationProvider;
   instanceProvider: IntegrationInstanceProvider | undefined;
   integrationInstanceStatus: IntegrationInstance['status'];
+  callbackInstance: CallbackInstancePreview | undefined;
 };
 
 type IntegrationInstanceProvidersManagerProps = {
@@ -369,6 +397,13 @@ let useIntegrationInstanceProvidersTableState = (
 
   let integrationProviders = props.integration.providers ?? [];
   let providerItems = providers.data?.items;
+  let hasCallbacks = integrationProviders.some(
+    provider => provider.callbacks.status === 'enabled'
+  );
+  let callbackInstances = useAllCallbackInstances(hasCallbacks ? props.instanceId : null, {
+    integrationInstanceId: props.integrationInstance.id
+  });
+  let callbackInstanceItems = callbackInstances.data;
 
   let items = useMemo<InstanceProviderRow[]>(() => {
     let instanceProviderByIntegrationProviderId = new Map(
@@ -377,17 +412,31 @@ let useIntegrationInstanceProvidersTableState = (
           [provider.integrationProvider.id, provider] as const
       )
     );
+    let callbackInstanceByCallbackId = new Map(
+      (callbackInstanceItems ?? []).map(
+        (callbackInstance: CallbackInstancePreview) =>
+          [callbackInstance.callbackId, callbackInstance] as const
+      )
+    );
 
     return integrationProviders.map(integrationProvider => ({
       id: integrationProvider.id,
       integrationProvider: integrationProvider as IntegrationProvider,
       instanceProvider: instanceProviderByIntegrationProviderId.get(integrationProvider.id),
-      integrationInstanceStatus: props.integrationInstance.status
+      integrationInstanceStatus: props.integrationInstance.status,
+      callbackInstance: integrationProvider.callbacks.callbackId
+        ? callbackInstanceByCallbackId.get(integrationProvider.callbacks.callbackId)
+        : undefined
     }));
-  }, [integrationProviders, providerItems, props.integrationInstance.status]);
+  }, [
+    integrationProviders,
+    providerItems,
+    callbackInstanceItems,
+    props.integrationInstance.status
+  ]);
 
   return {
-    isLoading: providers.isLoading,
+    isLoading: providers.isLoading || callbackInstances.isLoading,
     error: providers.error,
     hasMoreAfter: false,
     hasMoreBefore: false,
@@ -461,6 +510,26 @@ let integrationInstanceProvidersTable = new DashboardTable<
       render: (row: InstanceProviderRow) => (
         <Text size="2">{getAuthLabel(row.integrationProvider, row.instanceProvider)}</Text>
       )
+    },
+    {
+      id: 'callbacks',
+      isDefault: true,
+      header: 'Callbacks',
+      render: (row: InstanceProviderRow) => {
+        if (row.integrationProvider.callbacks.status !== 'enabled') {
+          return (
+            <Text size="2" color="gray600">
+              Off
+            </Text>
+          );
+        }
+
+        if (!row.callbackInstance) {
+          return <Badge color="orange">Registering</Badge>;
+        }
+
+        return <CallbackSyncBadge sync={row.callbackInstance.sync} />;
+      }
     },
     {
       id: 'status',
