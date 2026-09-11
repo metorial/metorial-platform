@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { type AttachmentRef, type ChatAdapterInstance } from '@metorial-subspace/adapter-chat';
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import {
   type ChatMessage,
   type ChatMessageAttachment,
@@ -47,11 +48,12 @@ export type ChatMessageAttachmentWithToolCallAttachment = ChatMessageAttachment 
   toolCallAttachment: ToolCallAttachment | null;
 };
 
-export type HydratedChatMessageAttachment<T extends ChatMessageAttachment = ChatMessageAttachment> =
-  T & {
-    file: File | null;
-    uploadedFile: File | null;
-  };
+export type HydratedChatMessageAttachment<
+  T extends ChatMessageAttachment = ChatMessageAttachment
+> = T & {
+  file: File | null;
+  uploadedFile: File | null;
+};
 
 type DownloadFileResult = {
   attachment: AttachmentRef;
@@ -303,11 +305,25 @@ class chatMessageAttachmentInternalServiceImpl {
 
     if (d.uploadedFileId) {
       let uploadedFile = await coreDb.file.findFirst({
-        where: { id: d.uploadedFileId, status: 'active' }
+        where: { id: d.uploadedFileId, status: 'active' },
+        include: { instance: true }
       });
       if (uploadedFile && !uploadedFile.isReadOnly) {
         let hasRefs = await fileReferenceService.hasReferencesForFile({ file: uploadedFile });
-        if (!hasRefs) await fileService.deleteFile({ file: uploadedFile });
+        if (!hasRefs) {
+          if (!uploadedFile.instance) {
+            throw new Error(`Chat attachment file ${uploadedFile.id} is not instance-owned`);
+          }
+
+          await fileService.deleteFile({
+            file: uploadedFile,
+            auditScope: createSystemAuditScope({
+              organization: { oid: uploadedFile.instance.organizationOid },
+              instance: uploadedFile.instance,
+              job: 'chat/attachment/cleanup'
+            })
+          });
+        }
       }
     }
 

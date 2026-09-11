@@ -109,7 +109,7 @@ let makeProvider = (overrides: Record<string, unknown> = {}) => ({
   currentSessionOid: null,
   currentSession: null,
   providerHash: null,
-  willRotateAt: null,
+  willRotateSessionAt: null,
   adapterIntegrationInstanceOid: 30n,
   adapterIntegrationOid: 100n,
   tenantOid: 1n,
@@ -197,7 +197,7 @@ describe('adapter instance provider sessions', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           currentSessionOid: 2000n,
-          willRotateAt: expect.any(Date)
+          willRotateSessionAt: expect.any(Date)
         })
       })
     );
@@ -212,7 +212,7 @@ describe('adapter instance provider sessions', () => {
         currentSession: current,
         providerHash:
           'hash:{"deploymentOid":"40","configOid":"50","authConfigOid":"60","toolFilter":{"type":"v1.allow_all"}}',
-        willRotateAt: new Date(Date.now() + 86_400_000)
+        willRotateSessionAt: new Date(Date.now() + 86_400_000)
       })
     );
 
@@ -226,7 +226,7 @@ describe('adapter instance provider sessions', () => {
     expect(session.oid).toBe(1000n);
   });
 
-  it('rotates when willRotateAt is in the past and keeps history', async () => {
+  it('rotates when willRotateSessionAt is in the past and keeps history', async () => {
     let current = makeSession();
     tx.adapterIntegrationInstanceProvider.findUnique.mockResolvedValue(
       makeProvider({
@@ -234,7 +234,7 @@ describe('adapter instance provider sessions', () => {
         currentSession: current,
         providerHash:
           'hash:{"deploymentOid":"40","configOid":"50","authConfigOid":"60","toolFilter":{"type":"v1.allow_all"}}',
-        willRotateAt: new Date(Date.now() - 1000)
+        willRotateSessionAt: new Date(Date.now() - 1000)
       })
     );
 
@@ -265,7 +265,7 @@ describe('adapter instance provider sessions', () => {
         currentSessionOid: current.oid,
         currentSession: current,
         providerHash: 'old-hash',
-        willRotateAt: new Date(Date.now() + 86_400_000)
+        willRotateSessionAt: new Date(Date.now() + 86_400_000)
       })
     );
 
@@ -304,7 +304,7 @@ describe('adapter instance provider sessions', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           currentSessionOid: null,
-          willRotateAt: null
+          willRotateSessionAt: null
         })
       })
     );

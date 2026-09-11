@@ -44,7 +44,7 @@ void registerFileContentDelegate({
         attachment
       });
 
-    if (!refreshed.toolCallAttachment) {
+    if (!refreshed.toolCallAttachment?.url) {
       throw new Error(`Chat message attachment ${chatMessageAttachmentId} has no content`);
     }
 

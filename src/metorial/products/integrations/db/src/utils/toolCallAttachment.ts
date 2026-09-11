@@ -37,6 +37,7 @@ export let getToolCallAttachmentUrlKey = () => {
 };
 
 export let presentToolCallAttachment = async (attachment: {
+  id: string;
   urlKey: string;
   mimeType?: string | null;
   expiresAt?: Date | null;
@@ -49,6 +50,7 @@ export let presentToolCallAttachment = async (attachment: {
 
   return {
     type: 'url' as const,
+    id: attachment.id,
     url: await getToolCallAttachmentPublicUrl(attachment.urlKey, urlExpiresAt),
     mimeType: attachment.mimeType ?? undefined,
     urlExpiresAt

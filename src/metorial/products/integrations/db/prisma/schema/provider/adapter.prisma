@@ -13,7 +13,6 @@ model ProviderAdapterGlobal {
   sessions                 Session[]
   sessionConnections       SessionConnection[]
   ephemeralManagedSessions EphemeralManagedSession[]
-  callbacks                Callback[]
 }
 
 model ProviderAdapter {
