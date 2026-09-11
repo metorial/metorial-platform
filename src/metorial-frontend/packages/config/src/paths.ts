@@ -1125,6 +1125,19 @@ let SupportPaths = Object.assign(
   }
 );
 
+let DocumentsPaths = Object.assign(
+  (...subPages: SubPages) => getNexusUrl('documents', () => joinPaths(...subPages)),
+  {
+    organization: (
+      organizationId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!organizationId) return '#';
+      return DocumentsPaths(organizationId, 'documents', ...subPages);
+    }
+  }
+);
+
 let EnterprisePaths = Object.assign(
   (accountId: string | null | undefined, ...subPages: SubPages) =>
     getNexusUrl('enterprise', () => {
@@ -1989,6 +2002,7 @@ export let Paths = {
 
   instance: InstancePaths,
   account: AccountPaths,
+  documents: DocumentsPaths,
   support: SupportPaths,
   enterprise: EnterprisePaths,
   organization: OrganizationPaths,
