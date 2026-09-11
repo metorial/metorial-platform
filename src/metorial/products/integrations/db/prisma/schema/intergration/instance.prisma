@@ -132,11 +132,8 @@ model IntegrationInstanceProvider {
   integrationInstanceGroupProviders   IntegrationInstanceGroupProvider[]
   integrationSetupSessionProviders    IntegrationSetupSessionProvider[]
   magicMcpServerProviders             MagicMcpServerProvider[]
-  <<<<<<< HEAD:src/metorial/subspace/db/prisma/schema/intergration/instance.prisma
   adapterIntegrationInstanceProviders AdapterIntegrationInstanceProvider[]
-  =======
   callbackInstances                   CallbackInstance[]
-  >>>>>>> dev:src/metorial/products/integrations/db/prisma/schema/intergration/instance.prisma
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])

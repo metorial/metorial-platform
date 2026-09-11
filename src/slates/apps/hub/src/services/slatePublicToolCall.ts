@@ -141,19 +141,20 @@ class slatePublicToolCallServiceImpl {
       };
     }
 
-    let attachments = await Promise.all(
-      (callRes.data.attachments ?? []).map(attachment =>
-        ensureSlateInvocationAttachment({
-          content: attachment.content,
-          mimeType: attachment.mimeType,
-          attachmentHash: (attachment as { attachmentHash?: string }).attachmentHash,
-          invocation: callRes.invocation,
-          tenantOid: tenant.oid,
-          slateOid: slate.oid,
-          downloadUrlAttachments: d.input.downloadUrlAttachments
-        })
-      )
-    );
+    let attachments = tenant.storeToolCallAttachments
+      ? (
+          await Promise.all(
+            (callRes.data.attachments ?? []).map(attachment =>
+              ensureSlateInvocationAttachment({
+                content: attachment.content,
+                mimeType: attachment.mimeType,
+                invocation: callRes.invocation,
+                tenantOid: tenant.oid
+              })
+            )
+          )
+        ).filter(attachment => attachment !== null)
+      : [];
 
     return {
       call,
