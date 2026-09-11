@@ -124,10 +124,11 @@ export class SlateInvocationStack {
                         DEFAULT_MAX_ATTACHMENT_SIZE_BYTES
                     }
                   },
+                  adapters: true,
                   triggers: true
                 }
               }
-            }
+            } as SlatesRequest
           ]
         : []),
       ...(liveInvocationToken
