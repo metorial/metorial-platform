@@ -5,7 +5,8 @@ import {
   lastInstanceIdStore,
   useCurrentInstance,
   useCurrentOrganization,
-  useDashboardFlags
+  useDashboardFlags,
+  useHasCallbacks
 } from '@metorial/state';
 import {
   RiBriefcase4Line,
@@ -16,6 +17,7 @@ import {
   RiHome6Line,
   RiListCheck2,
   RiPlugLine,
+  RiRssLine,
   RiSparkling2Line,
   RiStore2Line,
   RiCompassDiscoverLine,
@@ -55,6 +57,9 @@ export let ProjectPageLayout = () => {
   let dashboardFlags = useDashboardFlags();
   let assistantEnabled = !!dashboardFlags.data?.flags['assistant-enabled'];
   let skillsEnabled = !!dashboardFlags.data?.flags['skills-enabled'];
+  let callbacksEnabled = !!dashboardFlags.data?.flags['callbacks-enabled'];
+  let webhooksEnabled = !!dashboardFlags.data?.flags['webhooks-enabled'];
+  let hasCallbacks = useHasCallbacks(callbacksEnabled ? instance.data?.id : null).hasCallbacks;
 
   return (
     <AppLayout
@@ -133,9 +138,107 @@ export let ProjectPageLayout = () => {
               label: 'Magic MCP',
               to: Paths.instance.magicMcp.servers(...params),
               getProps: i => ({ isActive: i.pathname.includes('/magic-mcp/') })
-            },
+            }
           ]
         },
+
+        ...(callbacksEnabled
+          ? [
+              {
+                label: 'Callbacks',
+                collapsible: true,
+                items: [
+                  {
+                    icon: <RiRssLine />,
+                    label: 'Callbacks',
+                    to: Paths.instance.callbacks(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    }),
+
+                    children: [
+                      {
+                        label: 'Callbacks',
+                        to: Paths.instance.callbacks(...params),
+                        getProps: (i: { pathname: string; to: string }) => ({
+                          isActive: checkPath(i, { exact: true })
+                        })
+                      },
+                      {
+                        label: 'Webhook Receivers',
+                        to: Paths.instance.webhookRegistrations(...params),
+                        getProps: (i: { pathname: string; to: string }) => ({
+                          isActive: checkPath(i, { exact: true })
+                        })
+                      },
+                      ...(webhooksEnabled
+                        ? [
+                            {
+                              label: 'Destinations',
+                              to: Paths.instance.eventDestinations(...params),
+                              getProps: (i: { pathname: string; to: string }) => ({
+                                isActive: checkPath(i, { exact: true })
+                              })
+                            },
+                            {
+                              label: 'Events',
+                              to: Paths.instance.events(...params),
+                              getProps: (i: { pathname: string; to: string }) => ({
+                                isActive: checkPath(i, { exact: true })
+                              })
+                            }
+                          ]
+                        : [])
+                    ]
+                  },
+
+                  ...(hasCallbacks
+                    ? [
+                        {
+                          icon: <RiListCheck2 />,
+                          label: 'Callback Logs',
+                          to: Paths.instance.callbackEvents(...params),
+                          getProps: (i: { pathname: string; to: string }) => ({
+                            isActive: checkPath(i, { exact: true })
+                          }),
+
+                          children: [
+                            {
+                              label: 'Events',
+                              to: Paths.instance.callbackEvents(...params),
+                              getProps: (i: { pathname: string; to: string }) => ({
+                                isActive: checkPath(i, { exact: true })
+                              })
+                            },
+                            {
+                              label: 'Event Errors',
+                              to: Paths.instance.callbackEventErrors(...params),
+                              getProps: (i: { pathname: string; to: string }) => ({
+                                isActive: checkPath(i, { exact: true })
+                              })
+                            },
+                            {
+                              label: 'Incoming Webhooks',
+                              to: Paths.instance.incomingWebhooks(...params),
+                              getProps: (i: { pathname: string; to: string }) => ({
+                                isActive: checkPath(i, { exact: true })
+                              })
+                            },
+                            {
+                              label: 'Webhook Errors',
+                              to: Paths.instance.incomingWebhookErrors(...params),
+                              getProps: (i: { pathname: string; to: string }) => ({
+                                isActive: checkPath(i, { exact: true })
+                              })
+                            }
+                          ]
+                        }
+                      ]
+                    : [])
+                ]
+              }
+            ]
+          : []),
 
         ...(skillsEnabled
           ? [

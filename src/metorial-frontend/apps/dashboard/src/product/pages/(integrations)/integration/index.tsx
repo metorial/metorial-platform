@@ -1,10 +1,11 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { PageHeaderSection } from '@metorial/layout';
 import { useCurrentInstance, useIntegration } from '@metorial/state';
 import { Attributes, Button, Spacer } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
+import { ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
-import { IntegrationProvidersManager } from '../../../scenes/integrations/providersManager';
 import { showIntegrationProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
+import { IntegrationProvidersManager } from '../../../scenes/integrations/providersManager';
 
 export let IntegrationOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -27,10 +28,10 @@ export let IntegrationOverviewPage = () => {
 
         <Spacer height={20} />
 
-        <Box
+        <PageHeaderSection
           title="Providers"
           description="Choose which providers are connected to this integration and manage their configuration and authentication settings."
-          rightActions={
+          actions={
             <Button
               size="2"
               onClick={() =>
@@ -49,7 +50,7 @@ export let IntegrationOverviewPage = () => {
             integration={integration.data}
             onComplete={onComplete}
           />
-        </Box>
+        </PageHeaderSection>
       </>
     );
   });
