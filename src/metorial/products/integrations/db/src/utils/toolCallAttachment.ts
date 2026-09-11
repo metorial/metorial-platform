@@ -36,13 +36,15 @@ export let getToolCallAttachmentUrlKey = () => {
   return region ? `${random}_${region}` : random;
 };
 
-export let presentToolCallAttachment = async (attachment: {
-  id: string;
-  urlKey: string;
-  mimeType?: string | null;
-  expiresAt?: Date | null;
-}) => {
-  let tokenExpiresAt = getToolCallAttachmentTokenExpiresAt();
+export let presentToolCallAttachmentWithTokenExpiry = async (
+  attachment: {
+    id: string;
+    urlKey: string;
+    mimeType?: string | null;
+    expiresAt?: Date | null;
+  },
+  tokenExpiresAt: Date
+) => {
   let urlExpiresAt =
     attachment.expiresAt && attachment.expiresAt < tokenExpiresAt
       ? attachment.expiresAt
@@ -56,6 +58,17 @@ export let presentToolCallAttachment = async (attachment: {
     urlExpiresAt
   };
 };
+
+export let presentToolCallAttachment = async (attachment: {
+  id: string;
+  urlKey: string;
+  mimeType?: string | null;
+  expiresAt?: Date | null;
+}) =>
+  await presentToolCallAttachmentWithTokenExpiry(
+    attachment,
+    getToolCallAttachmentTokenExpiresAt()
+  );
 
 export let getRawToolCallAttachmentsFromOutput = (output: PrismaJson.SessionMessageOutput) => {
   if (output.type !== 'tool.result' || !isObject(output.data)) return [];

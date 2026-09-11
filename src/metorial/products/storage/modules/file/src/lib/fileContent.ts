@@ -55,6 +55,10 @@ let resolveDownloadTarget = async (d: { fileId: string; key: string }) => {
   if (file.delegatorOid) {
     let delegated = await resolveDelegatedFileContent(file);
     if (delegated) {
+      if (delegated.type === 'redirect') {
+        return { file, link, redirectUrl: delegated.url };
+      }
+
       if (delegated.type === 'url') {
         let downloaded = await downloadDelegatedFileContent({
           url: delegated.url,
@@ -92,10 +96,21 @@ let resolveDownloadTarget = async (d: { fileId: string; key: string }) => {
 };
 
 export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
-  let { link, file, document } = await resolveDownloadTarget(d);
+  let resolved = await resolveDownloadTarget(d);
+  if (resolved.redirectUrl) {
+    return {
+      type: 'redirect' as const,
+      file: resolved.file,
+      link: resolved.link,
+      redirectUrl: resolved.redirectUrl
+    };
+  }
+
+  let { link, file, document } = resolved;
 
   if (document) {
     return {
+      type: 'content' as const,
       file,
       link,
       content: document.resolvedContent ?? document.content.content,
@@ -110,6 +125,7 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
   let stored = await getStoredFileContentStream({ file });
 
   return {
+    type: 'content' as const,
     file,
     link,
     content: stored.body,
@@ -122,7 +138,17 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
 };
 
 export let getCargoFileSignedDownload = async (d: { fileId: string; key: string }) => {
-  let { link, file, document } = await resolveDownloadTarget(d);
+  let resolved = await resolveDownloadTarget(d);
+  if (resolved.redirectUrl) {
+    return {
+      file: resolved.file,
+      link: resolved.link,
+      url: resolved.redirectUrl,
+      isDelegated: true
+    };
+  }
+
+  let { link, file, document } = resolved;
 
   if (document) return null;
   if (await hasPendingFileContent(file.oid)) return null;
@@ -133,5 +159,5 @@ export let getCargoFileSignedDownload = async (d: { fileId: string; key: string 
   });
   if (!url) return null;
 
-  return { file, link, url };
+  return { file, link, url, isDelegated: false };
 };

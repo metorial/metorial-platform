@@ -8,7 +8,8 @@ export type FileContentDelegateResult =
       contentLength?: number;
       mimeType?: string;
     }
-  | { type: 'url'; url: string; expiresAt?: Date };
+  | { type: 'url'; url: string; expiresAt?: Date }
+  | { type: 'redirect'; url: string; expiresAt?: Date };
 
 export interface FileContentDelegate {
   key: string;

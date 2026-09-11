@@ -407,13 +407,14 @@ let getFileContentHandler = async (c: Context) => {
           fileName: resolved.file.fileName,
           contentType: resolved.file.fileType,
           size: resolved.file.fileSize,
-          source: 'object',
+          source: resolved.isDelegated ? 'delegate' : 'object',
           isExpiring: resolved.link.expiresAt != null,
           shouldDownload
         }),
-        cacheKey: resolved.link.expiresAt
-          ? null
-          : `${resolved.file.id}/${resolved.file.storeId}`
+        cacheKey:
+          resolved.isDelegated || resolved.link.expiresAt
+            ? null
+            : `${resolved.file.id}/${resolved.file.storeId}`
       };
 
       return Response.json(resolution, {
@@ -425,10 +426,14 @@ let getFileContentHandler = async (c: Context) => {
     }
   }
 
-  let { file, link, content, metadata } = await getCargoFileContent({
+  let resolved = await getCargoFileContent({
     fileId,
     key
   });
+
+  if (resolved.type === 'redirect') return c.redirect(resolved.redirectUrl);
+
+  let { file, link, content, metadata } = resolved;
 
   return new Response(content as any, {
     headers: getFileContentHeaders({

@@ -7,6 +7,7 @@ process.env.SLATE_ATTACHMENT_SIGNING_SECRET ??= 'test-tool-call-attachment-secre
 let {
   getRawToolCallAttachmentsFromOutput,
   presentToolCallAttachment,
+  presentToolCallAttachmentWithTokenExpiry,
   replaceToolCallAttachmentsInOutput
 } = await import('./toolCallAttachment');
 let { verifyToolCallAttachmentToken } = await import('./toolCallAttachmentToken');
@@ -56,6 +57,25 @@ describe('tool call attachment URLs', () => {
         token: tamperedToken
       })
     ).toBe(false);
+  });
+
+  it('supports a shorter caller-provided token expiry', async () => {
+    let tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60_000);
+    let presented = await presentToolCallAttachmentWithTokenExpiry(
+      {
+        id: 'tca_example',
+        urlKey: 'tca_link_example'
+      },
+      tokenExpiresAt
+    );
+
+    expect(presented.urlExpiresAt).toEqual(tokenExpiresAt);
+    expect(
+      await verifyToolCallAttachmentToken({
+        urlKey: 'tca_link_example',
+        token: new URL(presented.url).searchParams.get('token')!
+      })
+    ).toBe(true);
   });
 });
 
