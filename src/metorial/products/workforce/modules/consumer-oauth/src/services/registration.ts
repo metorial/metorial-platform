@@ -10,7 +10,7 @@ import {
   type Instance
 } from '@metorial/db';
 import { type MagicMcpResolvedTarget } from '@metorial/module-magic';
-import { addDays, addMinutes } from 'date-fns';
+import { addDays, addMinutes, addMonths } from 'date-fns';
 import {
   getPortalAllowedRedirectUrlFilters,
   validatePortalRedirectUrisAgainstAllowedFilters,
@@ -94,7 +94,7 @@ class ConsumerOAuthRegistrationService {
           clientId: await ID.generateId('consumerAuthClientId'),
           clientSecret,
           tokenEndpointAuthMethod,
-          expiresAt: addDays(new Date(), 30)
+          expiresAt: addMonths(new Date(), 3)
         }
       });
 
@@ -151,7 +151,7 @@ class ConsumerOAuthRegistrationService {
           clientId: await ID.generateId('consumerAuthClientId'),
           clientSecret,
           tokenEndpointAuthMethod,
-          expiresAt: addDays(new Date(), 30)
+          expiresAt: addMonths(new Date(), 3)
         },
         include: consumerAuthClientInclude
       });

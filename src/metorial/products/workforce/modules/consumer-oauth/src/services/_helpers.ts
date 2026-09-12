@@ -7,8 +7,14 @@ import {
 } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { getConfig } from '@metorial/config';
-import { db, SkillPlugin, type ConsumerAuthAttempt, type ConsumerSurface } from '@metorial/db';
-import { addSeconds } from 'date-fns';
+import {
+  db,
+  SkillPlugin,
+  type ConsumerAuthAttempt,
+  type ConsumerAuthClient,
+  type ConsumerSurface
+} from '@metorial/db';
+import { addDays, addMonths, addSeconds } from 'date-fns';
 import {
   consumerAuthAccessTokenTtlSeconds,
   consumerAuthClientInclude,
@@ -23,6 +29,24 @@ export let getConsumerAuthRefreshTokenExpiry = () =>
 
 export let getConsumerAuthAccessTokenExpiry = () =>
   addSeconds(new Date(), consumerAuthAccessTokenTtlSeconds);
+
+export let slideConsumerAuthClientExpiration = async (d: {
+  consumerAuthClient: Pick<ConsumerAuthClient, 'oid' | 'expiresAt'>;
+}) => {
+  let now = new Date();
+  let renewalThreshold = addDays(now, 7);
+  if (d.consumerAuthClient.expiresAt >= renewalThreshold) return;
+
+  await db.consumerAuthClient.updateMany({
+    where: {
+      oid: d.consumerAuthClient.oid,
+      expiresAt: { lt: renewalThreshold }
+    },
+    data: {
+      expiresAt: addMonths(now, 3)
+    }
+  });
+};
 
 export let consumerAuthClientRegistrationRateLimitError = createError({
   status: 429,
