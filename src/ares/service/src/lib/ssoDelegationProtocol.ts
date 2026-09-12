@@ -1,7 +1,13 @@
 import { createHash } from 'crypto';
 
+export let DELEGATION_TOKEN_TTL_SECONDS = 10 * 60;
+export let DELEGATION_TOKEN_EXPIRY_GRACE_MS = 30_000;
+
 export let hashDelegationSecret = (value: string) =>
   createHash('sha256').update(value).digest('hex');
+
+export let isDelegationTokenExpired = (d: { expiresAt: Date; now: Date }) =>
+  d.expiresAt.getTime() + DELEGATION_TOKEN_EXPIRY_GRACE_MS <= d.now.getTime();
 
 export let createDelegationCodeChallenge = (verifier: string) =>
   createHash('sha256').update(verifier).digest('base64url');

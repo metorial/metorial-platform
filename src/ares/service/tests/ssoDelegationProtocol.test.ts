@@ -4,6 +4,8 @@ import {
   buildIdpInitiatedDelegationRedirect,
   createDelegationCodeChallenge,
   createDelegationMetadataTokenBody,
+  DELEGATION_TOKEN_EXPIRY_GRACE_MS,
+  DELEGATION_TOKEN_TTL_SECONDS,
   FALLBACK_DELEGATION_REDIRECT_URI,
   getDelegationCallbackUri,
   getDelegationResponseMode,
@@ -11,6 +13,7 @@ import {
   getExportedDelegationRedirectUri,
   getIdpInitiatedConsumerLoginRedirect,
   hashDelegationSecret,
+  isDelegationTokenExpired,
   normalizeDelegationAuthorizationEndpoint,
   normalizeDelegationRedirectUri,
   pickLatestExportedDelegation,
@@ -18,6 +21,24 @@ import {
 } from '../src/lib/ssoDelegationProtocol';
 
 describe('SSO delegation protocol', () => {
+  it('allows ten minutes plus a short expiry grace for delegation tokens', () => {
+    expect(DELEGATION_TOKEN_TTL_SECONDS).toBe(600);
+
+    let expiresAt = new Date('2026-09-12T12:00:00.000Z');
+    expect(
+      isDelegationTokenExpired({
+        expiresAt,
+        now: new Date(expiresAt.getTime() + DELEGATION_TOKEN_EXPIRY_GRACE_MS - 1)
+      })
+    ).toBe(false);
+    expect(
+      isDelegationTokenExpired({
+        expiresAt,
+        now: new Date(expiresAt.getTime() + DELEGATION_TOKEN_EXPIRY_GRACE_MS)
+      })
+    ).toBe(true);
+  });
+
   it('creates stable hashes and S256 PKCE challenges', () => {
     expect(hashDelegationSecret('secret')).toHaveLength(64);
     expect(createDelegationCodeChallenge('verifier')).toBe(

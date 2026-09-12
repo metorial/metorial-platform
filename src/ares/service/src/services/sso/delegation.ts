@@ -1,7 +1,6 @@
 import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { randomBytes, timingSafeEqual } from 'crypto';
-import { addMinutes } from 'date-fns';
 import { Prisma } from '../../../prisma/generated/client';
 import type {
   App,
@@ -17,8 +16,10 @@ import { env } from '../../env';
 import { getId, ID } from '../../id';
 import {
   assertDelegationAuthorizationGrant,
+  DELEGATION_TOKEN_TTL_SECONDS,
   getExportedDelegationRedirectUri,
   hashDelegationSecret,
+  isDelegationTokenExpired,
   normalizeDelegationAuthorizationEndpoint,
   pickLatestExportedDelegation
 } from '../../lib/ssoDelegationProtocol';
@@ -222,7 +223,7 @@ class SsoDelegationServiceImpl {
         exportedDelegationOid: d.delegation.oid,
         connectionOid: d.connectionOid,
         userProfileOid: d.userProfileOid,
-        expiresAt: addMinutes(new Date(), 5)
+        expiresAt: new Date(Date.now() + DELEGATION_TOKEN_TTL_SECONDS * 1000)
       }
     });
     return token;
@@ -311,7 +312,7 @@ class SsoDelegationServiceImpl {
     if (
       !token ||
       token.exportedDelegationOid !== d.delegation.oid ||
-      token.expiresAt <= new Date() ||
+      isDelegationTokenExpired({ expiresAt: token.expiresAt, now: new Date() }) ||
       token.revokedAt ||
       token.exportedDelegation.tenant.status !== 'completed'
     ) {
