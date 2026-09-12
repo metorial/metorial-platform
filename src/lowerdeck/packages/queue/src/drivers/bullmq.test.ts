@@ -157,4 +157,35 @@ describe('createBullMqQueue', () => {
     expect(mocks.captureException).toHaveBeenCalledOnce();
     expect(mocks.scopeDuringCapture).toEqual(['queue process: failing-queue']);
   });
+
+  it('reports a PostgreSQL deadlock only after queue retries are exhausted', async () => {
+    let deadlock = Object.assign(new Error('deadlock detected'), {
+      name: 'DriverAdapterError',
+      cause: { kind: 'postgres', code: '40P01' }
+    });
+    let handler = await startWorker('deadlocked-queue', async () => {
+      throw deadlock;
+    });
+
+    await expect(
+      handler({
+        id: 'job_1',
+        data: { payload: {} },
+        attemptsMade: 0,
+        opts: { attempts: 25 }
+      })
+    ).rejects.toBe(deadlock);
+    expect(mocks.captureException).not.toHaveBeenCalled();
+
+    await expect(
+      handler({
+        id: 'job_1',
+        data: { payload: {} },
+        attemptsMade: 24,
+        opts: { attempts: 25 }
+      })
+    ).rejects.toBe(deadlock);
+    expect(mocks.captureException).toHaveBeenCalledOnce();
+    expect(mocks.captureException).toHaveBeenCalledWith(deadlock);
+  });
 });
