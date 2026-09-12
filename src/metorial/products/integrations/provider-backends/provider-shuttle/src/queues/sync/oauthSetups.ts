@@ -5,7 +5,6 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId, type SessionDataRetentionLevel } from '@metorial-subspace/db';
 import { providerOAuthSetupInternalService } from '@metorial-subspace/module-auth';
 import {
-  createProviderInvocationId,
   getRetentionPolicy,
   redactJsonShape,
   redactSensitiveKeys
@@ -13,6 +12,7 @@ import {
 import { backend as shuttleBackend } from '../../backend';
 import { shuttle } from '../../client';
 import { env } from '../../env';
+import { getEventProviderInvocationId } from '../../lib/eventProviderInvocation';
 
 type ShuttleOAuthSetupEvent = Awaited<
   ReturnType<typeof shuttle.serverOAuthSetupEvent.listSync>
@@ -73,11 +73,6 @@ let getErrorInfo = (event: ShuttleOAuthSetupEvent) => {
 let isErrorEvent = (event: ShuttleOAuthSetupEvent) =>
   event.type.endsWith('_failed') || event.type.includes('error');
 
-let getProviderInvocationId = (functionInvocationId: string | null | undefined) =>
-  functionInvocationId
-    ? createProviderInvocationId('shuttle.function_invocation', functionInvocationId)
-    : null;
-
 let ensureProviderAuthConfigEvent = async (d: {
   event: ShuttleOAuthSetupEvent;
   providerOAuthSetup: SyncedProviderOAuthSetup;
@@ -101,7 +96,7 @@ let ensureProviderAuthConfigEvent = async (d: {
         type: d.event.type,
         sourceType: 'shuttle.server_oauth_setup',
         sourceId: d.event.id,
-        providerInvocationId: getProviderInvocationId(d.event.functionInvocationId),
+        providerInvocationId: getEventProviderInvocationId(d.event),
         payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
         authConfigOid: d.providerOAuthSetup.authConfigOid,
         authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,
@@ -150,7 +145,7 @@ let createErrorForEvent = async (d: {
       code,
       message,
       payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
-      providerInvocationId: getProviderInvocationId(d.event.functionInvocationId),
+      providerInvocationId: getEventProviderInvocationId(d.event),
       authConfigEventOid: d.providerAuthConfigEventOid,
       authConfigOid: d.providerOAuthSetup.authConfigOid,
       authCredentialsOid: d.providerOAuthSetup.authCredentialsOid,

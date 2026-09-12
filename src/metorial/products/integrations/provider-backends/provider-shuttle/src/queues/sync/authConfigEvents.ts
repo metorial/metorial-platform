@@ -4,7 +4,6 @@ import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
 import {
-  createProviderInvocationId,
   getRetentionPolicy,
   redactJsonShape,
   redactSensitiveKeys
@@ -12,6 +11,7 @@ import {
 import { backend as shuttleBackend } from '../../backend';
 import { shuttle } from '../../client';
 import { env } from '../../env';
+import { getEventProviderInvocationId } from '../../lib/eventProviderInvocation';
 
 type ShuttleAuthConfigEvent = Awaited<
   ReturnType<typeof shuttle.serverAuthConfigEvent.listSync>
@@ -38,11 +38,6 @@ let getErrorInfo = (event: ShuttleAuthConfigEvent) => {
 
 let isErrorEvent = (event: ShuttleAuthConfigEvent) =>
   event.type.endsWith('_failed') || event.type.includes('error');
-
-let getProviderInvocationId = (functionInvocationId: string | null | undefined) =>
-  functionInvocationId
-    ? createProviderInvocationId('shuttle.function_invocation', functionInvocationId)
-    : null;
 
 export let syncAuthConfigEventsQueue = createQueue<{}>({
   name: 'sub/shut/authEvt/many',
@@ -128,7 +123,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
         type: data.event.type,
         sourceType: 'shuttle.server_auth_config_event',
         sourceId: data.event.id,
-        providerInvocationId: getProviderInvocationId(data.event.functionInvocationId),
+        providerInvocationId: getEventProviderInvocationId(data.event),
         payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
         authConfigOid: authConfigVersion.authConfigOid,
         authCredentialsOid:
@@ -169,7 +164,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       code,
       message,
       payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
-      providerInvocationId: getProviderInvocationId(data.event.functionInvocationId),
+      providerInvocationId: getEventProviderInvocationId(data.event),
       authConfigEventOid: authConfigEvent.oid,
       authConfigOid: authConfigVersion.authConfigOid,
       authCredentialsOid:
