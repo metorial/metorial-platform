@@ -53,8 +53,7 @@ class remoteOAuthRegistrationServiceImpl {
       owner: {
         config: connection.config,
         connection
-      },
-      captureErrors: connection.registrationAttemptCount == 0
+      }
     });
 
     if (reg?.ok) {
@@ -85,21 +84,20 @@ class remoteOAuthRegistrationServiceImpl {
       return { ok: true as const, connection, registration: reg.registration };
     }
 
-    let inner = (reg?.error.payload as any)?.error || 'unknown_error';
-
-    let jsonInner = inner;
-    try {
-      jsonInner = JSON.stringify(inner);
-    } catch (e) {}
-
     let isTransient = reg?.isTransient ?? false;
+    let baseErrorMessage =
+      reg?.message ??
+      'OAuth client registration failed because the provider could not be reached';
+    let errorMessage = isTransient
+      ? `${baseErrorMessage}. Try again later.`
+      : `${baseErrorMessage}. Configure OAuth client credentials manually to continue.`;
 
     await db.remoteOAuthConnection.update({
       where: { oid: connection.oid },
       data: {
         discoveryStatus: 'failed',
         errorCode: 'auto_registration_failed',
-        errorMessage: `Failed to auto-register OAuth client for connection: ${jsonInner}`,
+        errorMessage,
         registrationAttemptCount: isTransient ? connection.registrationAttemptCount : attempt
       }
     });
@@ -110,9 +108,11 @@ class remoteOAuthRegistrationServiceImpl {
         connectionOid: connection.oid,
         type: 'auto_registration_failed',
         metadata: {
-          error: inner,
+          errorCode: 'auto_registration_failed',
           attempt,
-          status: reg?.status ?? null
+          status: reg?.status ?? null,
+          oauthCode: reg?.oauthCode ?? null,
+          retryable: isTransient
         }
       }
     });

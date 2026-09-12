@@ -1,24 +1,41 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { defaultRedirectUri, dbMock, oauthUtilsMock, remoteOAuthConnectionServiceMock } =
-  vi.hoisted(() => ({
-    defaultRedirectUri: 'https://shuttle.example.com/shuttle-oauth/callback',
-    dbMock: {
-      remoteOAuthConnection: {
-        findFirstOrThrow: vi.fn()
-      },
-      remoteOAuthConnectionSetup: {
-        create: vi.fn()
-      }
+let {
+  defaultRedirectUri,
+  dbMock,
+  oauthUtilsMock,
+  remoteOAuthConnectionServiceMock,
+  secretServiceMock,
+  serverEventServiceMock
+} = vi.hoisted(() => ({
+  defaultRedirectUri: 'https://shuttle.example.com/shuttle-oauth/callback',
+  dbMock: {
+    remoteOAuthConnection: {
+      findFirstOrThrow: vi.fn()
     },
-    oauthUtilsMock: {
-      generateCodeVerifier: vi.fn(),
-      generateCodeChallenge: vi.fn(),
-      buildAuthorizationUrl: vi.fn()
+    remoteOAuthConnectionSetup: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      updateMany: vi.fn()
     },
-    remoteOAuthConnectionServiceMock: {
-      DANGEROUSLY_getCredentials: vi.fn()
-    }
+    remoteOAuthConnectionProfile: { upsert: vi.fn() },
+    remoteOAuthConnectionAuthToken: { create: vi.fn() },
+    serverAuthConfig: { create: vi.fn() },
+    serverOAuthSetup: { update: vi.fn(), updateMany: vi.fn() }
+  },
+  oauthUtilsMock: {
+    generateCodeVerifier: vi.fn(),
+    generateCodeChallenge: vi.fn(),
+    buildAuthorizationUrl: vi.fn(),
+    exchangeCodeForTokens: vi.fn(),
+    getUserProfile: vi.fn()
+  },
+  remoteOAuthConnectionServiceMock: {
+    DANGEROUSLY_getCredentials: vi.fn()
+  },
+  secretServiceMock: { createSecret: vi.fn() },
+  serverEventServiceMock: { recordServerOAuthSetupEvent: vi.fn() }
 }));
 
 vi.mock('../../../config', () => ({
@@ -38,11 +55,11 @@ vi.mock('../../../lib/oauth/oauthUtils', () => ({
 }));
 
 vi.mock('../../secret', () => ({
-  secretService: {}
+  secretService: secretServiceMock
 }));
 
 vi.mock('../serverEvent', () => ({
-  serverEventService: {}
+  serverEventService: serverEventServiceMock
 }));
 
 vi.mock('./connection', () => ({
@@ -62,6 +79,7 @@ beforeEach(() => {
     clientId: 'test-client-id',
     clientSecret: 'test-client-secret'
   });
+  serverEventServiceMock.recordServerOAuthSetupEvent.mockResolvedValue(undefined);
 });
 
 describe('getRemoteOAuthRedirectUri', () => {
@@ -203,5 +221,85 @@ describe('remoteOauthAuthorizationService.resumeAuthorization', () => {
         serverOAuthSetup: { callbackUrlOverride: null }
       })
     ).rejects.toThrow('OAuth authorization attempt is no longer active');
+  });
+});
+
+describe('remoteOauthAuthorizationService.completeAuthorization', () => {
+  it('completes OAuth and records a sanitized event when user-info is rejected', async () => {
+    let tenant = { oid: 11n };
+    let connection = {
+      oid: 12n,
+      id: 'remote_connection_test',
+      configOid: 14n,
+      serverOid: 15n,
+      tenantOid: tenant.oid,
+      registrationOid: null,
+      config: {
+        config: {
+          authorization_endpoint: 'https://provider.example.com/authorize',
+          token_endpoint: 'https://provider.example.com/token',
+          userinfo_endpoint: 'https://provider.example.com/userinfo'
+        }
+      },
+      serverOAuthCredentials: { oid: 16n }
+    };
+    let serverOAuthSetup = {
+      oid: 17n,
+      id: 'oauth_setup_test',
+      tenantOid: tenant.oid,
+      callbackUrlOverride: null,
+      redirectUri: 'https://app.example.com/oauth/complete',
+      serverInstanceConfiguration: null
+    };
+    let attempt = {
+      oid: 18n,
+      stateIdentifier: 'test-state',
+      codeVerifier: null,
+      connection,
+      tenant,
+      serverOAuthSetup
+    };
+
+    dbMock.remoteOAuthConnectionSetup.findFirst.mockResolvedValue(attempt);
+    dbMock.remoteOAuthConnectionSetup.updateMany.mockResolvedValue({ count: 1 });
+    dbMock.remoteOAuthConnectionAuthToken.create.mockResolvedValue({
+      oid: 19n,
+      id: 'remote_token_test'
+    });
+    dbMock.serverAuthConfig.create.mockResolvedValue({
+      oid: 20n,
+      id: 'auth_config_test'
+    });
+    dbMock.serverOAuthSetup.update.mockResolvedValue(serverOAuthSetup);
+    oauthUtilsMock.exchangeCodeForTokens.mockResolvedValue({
+      access_token: 'access-token',
+      refresh_token: 'refresh-token',
+      token_type: 'Bearer',
+      expires_in: 3600
+    });
+    oauthUtilsMock.getUserProfile.mockRejectedValue(
+      new ServiceError(
+        badRequestError({
+          code: 'oauth_userinfo_failed',
+          message: 'OAuth user profile lookup failed (HTTP 401)'
+        })
+      )
+    );
+    secretServiceMock.createSecret.mockResolvedValue({ oid: 21n });
+
+    let result = await remoteOauthAuthorizationService.completeAuthorization({
+      fullUrl: 'https://shuttle.example.com/shuttle-oauth/callback?code=test&state=test-state',
+      response: { code: 'test-code', state: 'test-state' }
+    });
+
+    expect(result.redirectUrl).toContain('metorial_oauth_setup_id=oauth_setup_test');
+    expect(dbMock.remoteOAuthConnectionProfile.upsert).not.toHaveBeenCalled();
+    expect(dbMock.remoteOAuthConnectionAuthToken.create).toHaveBeenCalledTimes(1);
+    expect(serverEventServiceMock.recordServerOAuthSetupEvent).toHaveBeenCalledWith({
+      serverOAuthSetup,
+      type: 'oauth_setup_user_profile_failed',
+      message: 'OAuth user profile lookup failed (HTTP 401)',
+      payload: { errorCode: 'oauth_userinfo_failed' }
+    });
   });
 });

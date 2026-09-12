@@ -37,7 +37,10 @@ let connection = (partial: Record<string, any> = {}) => ({
   secretOid: null,
   registrationAttemptCount: 0,
   tenant: { oid: 2n, id: 'ten_test', name: 'Test' },
-  config: { oid: 3n, config: { registration_endpoint: 'https://provider.example.com/register' } },
+  config: {
+    oid: 3n,
+    config: { registration_endpoint: 'https://provider.example.com/register' }
+  },
   _count: { remoteOAuthConnectionAuthTokens: 0, serverAuthConfigs: 0 },
   ...partial
 });
@@ -93,8 +96,10 @@ describe('runAutoRegistration', () => {
     dbMock.remoteOAuthConnection.findFirst.mockResolvedValue(connection());
     oauthUtilsMock.registerClient.mockResolvedValue({
       ok: false,
-      error: { payload: { error: { message: 'Validation failed' } } },
       status: 400,
+      oauthCode: 'invalid_client_metadata',
+      message:
+        'OAuth client registration failed (HTTP 400, OAuth error invalid_client_metadata)',
       isTransient: false
     });
 
@@ -108,6 +113,8 @@ describe('runAutoRegistration', () => {
       data: expect.objectContaining({
         discoveryStatus: 'failed',
         errorCode: 'auto_registration_failed',
+        errorMessage:
+          'OAuth client registration failed (HTTP 400, OAuth error invalid_client_metadata). Configure OAuth client credentials manually to continue.',
         registrationAttemptCount: 1
       })
     });
@@ -119,8 +126,9 @@ describe('runAutoRegistration', () => {
     );
     oauthUtilsMock.registerClient.mockResolvedValue({
       ok: false,
-      error: { payload: { error: 'gateway timeout' } },
       status: 504,
+      oauthCode: null,
+      message: 'OAuth client registration failed (HTTP 504)',
       isTransient: true
     });
 
@@ -135,21 +143,22 @@ describe('runAutoRegistration', () => {
     });
   });
 
-  it('only reports the first failure of a connection to Sentry', async () => {
+  it('does not ask the OAuth helper to report provider failures to Sentry', async () => {
     dbMock.remoteOAuthConnection.findFirst.mockResolvedValue(
       connection({ registrationAttemptCount: 2 })
     );
     oauthUtilsMock.registerClient.mockResolvedValue({
       ok: false,
-      error: { payload: { error: 'nope' } },
       status: 400,
+      oauthCode: null,
+      message: 'OAuth client registration failed (HTTP 400)',
       isTransient: false
     });
 
     await remoteOAuthRegistrationService.runAutoRegistration({ connectionId: 'cso_test' });
 
     expect(oauthUtilsMock.registerClient).toHaveBeenCalledWith(
-      expect.objectContaining({ captureErrors: false })
+      expect.not.objectContaining({ captureErrors: expect.anything() })
     );
   });
 

@@ -1,7 +1,7 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
+import { delay } from '@lowerdeck/delay';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
-import { getSentry } from '@lowerdeck/sentry';
 import axios from 'axios';
 import { customAlphabet } from 'nanoid';
 import type {
@@ -18,6 +18,11 @@ import { buildClientRegistrationMetadata } from './clientRegistrationMetadata';
 import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
 import { isTransientRegistrationError } from './registrationRetry';
 import {
+  formatOAuthRequestError,
+  getOAuthRequestErrorDetails,
+  type OAuthRequestErrorDetails
+} from './oauthRequestError';
+import {
   type OAuthConfiguration,
   type RegistrationResponse,
   registrationResponseValidator,
@@ -28,8 +33,6 @@ import {
 axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
 
 let id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 21);
-
-let Sentry = getSentry();
 
 export class OAuthUtils {
   static generateState(): string {
@@ -164,19 +167,12 @@ export class OAuthUtils {
 
       return response.data;
     } catch (error: any) {
-      Sentry.captureException(error, {
-        extra: {
-          tokenEndpoint,
-          clientId,
-          redirectUri
-        }
-      });
-
-      let errorMessage = error.response?.data?.error_description || error.message;
+      let details = getOAuthRequestErrorDetails(error);
 
       throw new ServiceError(
         badRequestError({
-          message: `Token exchange failed: ${error.response?.status ?? 'unknown'} ${errorMessage}`
+          code: 'oauth_token_exchange_failed',
+          message: formatOAuthRequestError('OAuth token exchange failed', details)
         })
       );
     }
@@ -194,7 +190,10 @@ export class OAuthUtils {
     clientSecret?: string; // now optional
     refreshToken: string;
     config: OAuthConfiguration;
-  }): Promise<{ ok: true; response: TokenResponse } | { ok: false; message: string }> {
+  }): Promise<
+    | { ok: true; response: TokenResponse }
+    | { ok: false; error: OAuthRequestErrorDetails; message: string }
+  > {
     let body = new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken
@@ -225,28 +224,34 @@ export class OAuthUtils {
       }
     }
 
-    try {
-      let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
-        headers,
-        maxRedirects: 5,
-        timeout: 5000,
-        ...getAxiosSsrfFilter(tokenEndpoint)
-      });
-      return {
-        ok: true,
-        response: response.data
-      };
-    } catch (error: any) {
-      Sentry.captureException(error, {
-        extra: { tokenEndpoint, clientId }
-      });
-      return {
-        ok: false,
-        message:
-          error.response?.data?.error_description ||
-          (error.response?.data ? JSON.stringify(error.response?.data) : error.message)
-      };
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
+          headers,
+          maxRedirects: 5,
+          timeout: 5000,
+          ...getAxiosSsrfFilter(tokenEndpoint)
+        });
+        return {
+          ok: true,
+          response: response.data
+        };
+      } catch (error) {
+        let details = getOAuthRequestErrorDetails(error);
+        if (details.isTransient && attempt == 0) {
+          await delay(details.retryAfterMs ?? 500);
+          continue;
+        }
+
+        return {
+          ok: false,
+          error: details,
+          message: formatOAuthRequestError('OAuth token refresh failed', details)
+        };
+      }
     }
+
+    throw new Error('OAuth token refresh retry loop completed unexpectedly');
   }
 
   static async getUserProfile({
@@ -284,14 +289,11 @@ export class OAuthUtils {
         email: typeof data.email === 'string' ? data.email : undefined
       };
     } catch (error: any) {
-      Sentry.captureException(error, {
-        extra: { userInfoEndpoint }
-      });
-
-      let errorMessage = error.response?.data?.error_description || error.message;
+      let details = getOAuthRequestErrorDetails(error);
       throw new ServiceError(
         badRequestError({
-          message: `Failed to fetch user profile: ${error.response?.status ?? 'unknown'} ${errorMessage}`
+          code: 'oauth_userinfo_failed',
+          message: formatOAuthRequestError('OAuth user profile lookup failed', details)
         })
       );
     }
@@ -354,8 +356,7 @@ export class OAuthUtils {
   static async registerClient({
     tenant,
     config,
-    owner,
-    captureErrors = true
+    owner
   }: {
     tenant: Tenant;
     config: OAuthConfiguration;
@@ -363,7 +364,6 @@ export class OAuthUtils {
       connection?: RemoteOAuthConnection;
       config?: RemoteOAuthConfig;
     };
-    captureErrors?: boolean;
   }) {
     if (!config.registration_endpoint) return null;
 
@@ -435,7 +435,7 @@ export class OAuthUtils {
         registration: reg
       };
     } catch (error: any) {
-      let status = typeof error?.response?.status == 'number' ? error.response.status : null;
+      let details = getOAuthRequestErrorDetails(error);
 
       let err = await db.remoteOAuthRegistrationError.create({
         data: {
@@ -444,27 +444,17 @@ export class OAuthUtils {
           configOid: owner?.config?.oid || null,
           connectionOid: owner?.connection?.oid || null,
 
-          payload: {
-            error: error?.response?.data || error.message
-          }
+          payload: { error: details }
         }
       });
-
-      if (captureErrors) {
-        Sentry.captureException(error, {
-          extra: {
-            registrationEndpoint: config.registration_endpoint,
-            tenantId: tenant.id,
-            status
-          }
-        });
-      }
 
       return {
         ok: false as const,
         error: err,
-        status,
-        isTransient: isTransientRegistrationError({ status })
+        status: details.status,
+        oauthCode: details.oauthCode,
+        message: formatOAuthRequestError('OAuth client registration failed', details),
+        isTransient: isTransientRegistrationError({ status: details.status })
       };
     }
   }

@@ -1,5 +1,5 @@
 import { delay } from '@lowerdeck/delay';
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { subMinutes } from 'date-fns';
@@ -356,7 +356,17 @@ class remoteOauthAuthorizationServiceImpl {
           egressPolicy
         });
       } catch (error) {
-        // Ignore
+        let errorCode = isServiceError(error) ? error.data.code : 'oauth_userinfo_failed';
+        let errorMessage = isServiceError(error)
+          ? error.data.message
+          : 'OAuth user profile lookup failed';
+
+        await serverEventService.recordServerOAuthSetupEvent({
+          serverOAuthSetup: attempt.serverOAuthSetup,
+          type: 'oauth_setup_user_profile_failed',
+          message: errorMessage,
+          payload: { errorCode }
+        });
       }
     }
 
