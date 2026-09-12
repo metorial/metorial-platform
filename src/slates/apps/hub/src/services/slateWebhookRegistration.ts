@@ -74,7 +74,7 @@ class slateWebhookRegistrationServiceImpl {
       },
       include
     });
-    if (!registration) throw new ServiceError(notFoundError('slate.webhook_registration'));
+    if (!registration) throw new ServiceError(notFoundError('webhook_registration'));
     return registration;
   }
 
@@ -83,7 +83,7 @@ class slateWebhookRegistrationServiceImpl {
       where: { urlKey: d.urlKey },
       include
     });
-    if (!registration) throw new ServiceError(notFoundError('slate.webhook_registration'));
+    if (!registration) throw new ServiceError(notFoundError('webhook_registration'));
     return registration;
   }
 
@@ -320,7 +320,7 @@ class slateWebhookRegistrationServiceImpl {
       where: { id: d.id, owner: 'global', status: { not: 'deleted' } },
       include
     });
-    if (!registration) throw new ServiceError(notFoundError('slate.webhook_registration'));
+    if (!registration) throw new ServiceError(notFoundError('webhook_registration'));
     return registration;
   }
 
@@ -381,7 +381,7 @@ class slateWebhookRegistrationServiceImpl {
     };
   }) {
     if (d.registration.tenantOid !== d.tenant.oid) {
-      throw new ServiceError(notFoundError('slate.webhook_registration'));
+      throw new ServiceError(notFoundError('webhook_registration'));
     }
 
     return db.slateWebhookRegistration.update({
@@ -400,7 +400,7 @@ class slateWebhookRegistrationServiceImpl {
     registration: { oid: bigint; tenantOid: bigint | null };
   }) {
     if (d.registration.tenantOid !== d.tenant.oid) {
-      throw new ServiceError(notFoundError('slate.webhook_registration'));
+      throw new ServiceError(notFoundError('webhook_registration'));
     }
 
     await db.slateWebhookRegistration.update({
@@ -414,7 +414,7 @@ class slateWebhookRegistrationServiceImpl {
       where: { id: d.id, status: { not: 'deleted' } },
       include: adminInclude
     });
-    if (!registration) throw new ServiceError(notFoundError('slate.webhook_registration'));
+    if (!registration) throw new ServiceError(notFoundError('webhook_registration'));
     return registration;
   }
 
@@ -637,7 +637,7 @@ class slateWebhookRegistrationServiceImpl {
     let userConfig = validateJsonSchema({
       schema: registrationSpec.userConfigSchema,
       data: d.userConfig,
-      entity: 'slate.webhook_registration.user_config',
+      entity: 'webhook_registration.user_config',
       message: 'Invalid webhook setup configuration.'
     });
 

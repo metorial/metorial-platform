@@ -43,7 +43,7 @@ class slateWebhookEventServiceImpl {
       where: { id: d.id, ...visibleTo(d.tenant) },
       include
     });
-    if (!event) throw new ServiceError(notFoundError('slate.webhook_event'));
+    if (!event) throw new ServiceError(notFoundError('webhook_event'));
     return event;
   }
 

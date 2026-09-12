@@ -19,7 +19,7 @@ export let slateWebhookRegistrationPresenter = (
     })[];
   }
 ) => ({
-  object: 'slate.webhook_registration',
+  object: 'webhook_registration',
 
   id: registration.id,
   type: registration.type,

@@ -38,7 +38,7 @@ class slateWebhookEventServiceInternalImpl {
 
   async getById(d: { id: string }) {
     let event = await db.slateWebhookEvent.findUnique({ where: { id: d.id }, include });
-    if (!event) throw new ServiceError(notFoundError('slate.webhook_event'));
+    if (!event) throw new ServiceError(notFoundError('webhook_event'));
     return event;
   }
 
