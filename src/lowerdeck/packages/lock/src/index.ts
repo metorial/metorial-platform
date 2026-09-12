@@ -18,6 +18,15 @@ interface LockPoolState {
   entries: Map<string, LockPoolEntry>;
 }
 
+export class LockAcquisitionError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : 'Failed to acquire distributed lock', {
+      cause
+    });
+    this.name = 'LockAcquisitionError';
+  }
+}
+
 let LOCK_POOL_SYMBOL = Symbol.for('@lowerdeck/lock/pool/v1');
 let globalWithLockPool = globalThis as typeof globalThis & {
   [LOCK_POOL_SYMBOL]?: LockPoolState;
@@ -110,7 +119,7 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             console.warn(
               `LOCK.acquire.failed name=${name} keyCount=${keyArray.length} attempts=${attempt + 1} elapsedMs=${elapsedMs}`
             );
-            throw error;
+            throw new LockAcquisitionError(error);
           }
 
           let jitter = Math.floor((Math.random() * 2 - 1) * retryJitter);
@@ -119,7 +128,7 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             console.warn(
               `LOCK.acquire.failed name=${name} keyCount=${keyArray.length} attempts=${attempt + 1} elapsedMs=${elapsedMs}`
             );
-            throw error;
+            throw new LockAcquisitionError(error);
           }
 
           attempt++;
