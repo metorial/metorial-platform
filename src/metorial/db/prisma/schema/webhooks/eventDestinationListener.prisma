@@ -1,6 +1,7 @@
 enum EventDestinationListenerType {
   event
   callback
+  chat
 }
 
 model EventDestinationListener {
@@ -12,12 +13,15 @@ model EventDestinationListener {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  // populated when type = event
+  // populated when type = event and type = chat
   eventTypes String[]
 
   // populated when type = callback
   callbackId String?
   triggers   String[]
+
+  // populated when type = chat
+  chatIntegrationId String?
 
   eventDestinationOid BigInt
   eventDestination    EventDestination @relation(fields: [eventDestinationOid], references: [oid], onDelete: Cascade)
@@ -28,4 +32,5 @@ model EventDestinationListener {
   @@index([eventDestinationOid])
   @@index([instanceOid])
   @@index([type, callbackId])
+  @@index([type, chatIntegrationId])
 }

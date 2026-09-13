@@ -24,6 +24,28 @@ class EventTrackerServiceImpl {
       update: {}
     });
   }
+
+  async recordChatEvent(d: {
+    organizationOid: bigint;
+    instanceOid: bigint;
+    chatEventId: string;
+    chatIntegrationId: string;
+    eventType: string;
+  }) {
+    await db.systemEvent.upsert({
+      where: { chatEventId: d.chatEventId },
+      create: {
+        id: await ID.generateId('systemEvent'),
+        source: 'chat',
+        eventType: d.eventType,
+        organizationOid: d.organizationOid,
+        instanceOid: d.instanceOid,
+        chatEventId: d.chatEventId,
+        chatIntegrationId: d.chatIntegrationId
+      },
+      update: {}
+    });
+  }
 }
 
 export let eventTrackerService = Service.create(

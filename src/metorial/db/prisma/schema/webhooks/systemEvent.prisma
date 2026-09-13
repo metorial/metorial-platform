@@ -1,6 +1,7 @@
 enum SystemEventSource {
   resource
   callback
+  chat
 }
 
 model SystemEvent {
@@ -8,7 +9,7 @@ model SystemEvent {
   id  String @unique
 
   source    SystemEventSource
-  eventType String // "<resource>.<action>" for source = resource, "callback.<triggerKey>"
+  eventType String // "<resource>.<action>" for source = resource, "callback.<triggerKey>", "chat.<event>"
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
@@ -24,11 +25,16 @@ model SystemEvent {
   callbackId         String?
   callbackTriggerKey String?
 
+  chatEventId       String? @unique
+  chatIntegrationId String?
+
   createdAt DateTime @default(now())
 
   @@index([organizationOid, createdAt])
   @@index([instanceOid, createdAt])
+  @@index([createdAt, id])
   @@index([eventType])
   @@index([callbackId, callbackTriggerKey])
+  @@index([chatIntegrationId, eventType])
   @@index([payloadStorageKey])
 }

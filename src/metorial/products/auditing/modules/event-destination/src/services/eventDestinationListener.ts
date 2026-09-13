@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { callbackService } from '@metorial-subspace/module-callback';
 import { providerTriggerService } from '@metorial-subspace/module-catalog';
+import { chatIntegrationService } from '@metorial-subspace/module-chat';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
@@ -15,7 +16,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { webhookEvents } from '@metorial/webhook-event-schema';
+import { chatEventNames, webhookEvents } from '@metorial/webhook-event-schema';
 
 export let eventDestinationListenerInclude = {
   eventDestination: true,
@@ -93,11 +94,34 @@ class EventDestinationListenerServiceImpl {
     }
   }
 
+  private async assertValidChatIntegrationAndEvents(d: {
+    instance: Instance;
+    chatIntegrationId: string;
+    eventTypes: string[];
+  }) {
+    await chatIntegrationService.getChatIntegrationById({
+      instance: d.instance,
+      chatIntegrationId: d.chatIntegrationId
+    });
+
+    let invalid = d.eventTypes.filter(eventType => !chatEventNames.includes(eventType));
+    if (invalid.length > 0) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Unknown chat event type(s): ${invalid.join(', ')}`,
+          description:
+            'Every entry in `event_types` must be a Metorial-declared chat event type.'
+        })
+      );
+    }
+  }
+
   async listEventDestinationListeners(d: {
     organization: Organization;
     instanceIds?: string[];
     eventDestinationIds?: string[];
     callbackIds?: string[];
+    chatIntegrationIds?: string[];
     types?: EventDestinationListenerType[];
   }) {
     return Paginator.create(({ prisma }) =>
@@ -113,6 +137,7 @@ class EventDestinationListenerServiceImpl {
               ? { id: { in: d.eventDestinationIds } }
               : undefined,
             callbackId: d.callbackIds ? { in: d.callbackIds } : undefined,
+            chatIntegrationId: d.chatIntegrationIds ? { in: d.chatIntegrationIds } : undefined,
             type: d.types ? { in: d.types } : undefined
           },
           include: eventDestinationListenerInclude
@@ -152,6 +177,12 @@ class EventDestinationListenerServiceImpl {
           type: 'callback';
           callbackId: string;
           triggers: string[];
+        }
+      | {
+          eventDestinationId: string;
+          type: 'chat';
+          chatIntegrationId: string;
+          eventTypes: string[];
         };
   }) {
     let eventDestination = await this.getOrganizationEventDestination({
@@ -161,6 +192,12 @@ class EventDestinationListenerServiceImpl {
 
     if (d.input.type == 'event') {
       this.assertValidEventTypes(d.input.eventTypes);
+    } else if (d.input.type == 'chat') {
+      await this.assertValidChatIntegrationAndEvents({
+        instance: d.instance,
+        chatIntegrationId: d.input.chatIntegrationId,
+        eventTypes: d.input.eventTypes
+      });
     } else {
       await this.assertValidCallbackAndTriggers({
         instance: d.instance,
@@ -182,9 +219,10 @@ class EventDestinationListenerServiceImpl {
           type: d.input.type,
           instanceOid: d.instance.oid,
           eventDestinationOid: eventDestination.oid,
-          eventTypes: d.input.type == 'event' ? d.input.eventTypes : [],
+          eventTypes: d.input.type == 'callback' ? [] : d.input.eventTypes,
           callbackId: d.input.type == 'callback' ? d.input.callbackId : null,
-          triggers: d.input.type == 'callback' ? d.input.triggers : []
+          triggers: d.input.type == 'callback' ? d.input.triggers : [],
+          chatIntegrationId: d.input.type == 'chat' ? d.input.chatIntegrationId : null
         },
         include: eventDestinationListenerInclude
       });
@@ -209,6 +247,15 @@ class EventDestinationListenerServiceImpl {
     if (d.listener.type == 'event' && d.input.eventTypes) {
       this.assertValidEventTypes(d.input.eventTypes);
     }
+
+    if (d.listener.type == 'chat' && d.input.eventTypes && d.listener.chatIntegrationId) {
+      await this.assertValidChatIntegrationAndEvents({
+        instance: d.instance,
+        chatIntegrationId: d.listener.chatIntegrationId,
+        eventTypes: d.input.eventTypes
+      });
+    }
+
     if (d.listener.type == 'callback' && d.input.triggers && d.listener.callbackId) {
       await this.assertValidCallbackAndTriggers({
         instance: d.instance,
