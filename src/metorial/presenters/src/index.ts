@@ -44,12 +44,20 @@ import {
   v1AuditLogStreamPresenter,
   v1BootPresenter,
   v1BucketEditorTokenPresenter,
+  v1ChatAuthenticatedUserPresenter,
   v1ChatAuthorPresenter,
   v1ChatChannelPresenter,
+  v1ChatConnectionPresenter,
+  v1ChatConnectionProviderPresenter,
   v1ChatEventPresenter,
+  v1ChatInstancePresenter,
+  v1ChatInstanceProviderPresenter,
   v1ChatMessageAttachmentPresenter,
   v1ChatMessagePresenter,
+  v1ChatPresenter,
+  v1ChatReactionListPresenter,
   v1ChatThreadPresenter,
+  v1ChatTypingIndicatorPresenter,
   v1ChatWorkspacePresenter,
   v1CliDevicePresenter,
   v1ConfigPresenter,
@@ -473,12 +481,20 @@ import {
   callbackEventType,
   callbackInstanceType,
   callbackType,
+  chatAuthenticatedUserType,
   chatAuthorType,
   chatChannelType,
+  chatConnectionProviderType,
+  chatConnectionType,
   chatEventType,
+  chatInstanceProviderType,
+  chatInstanceType,
   chatMessageAttachmentType,
   chatMessageType,
+  chatReactionListType,
   chatThreadType,
+  chatType,
+  chatTypingIndicatorType,
   chatWorkspaceType,
   incomingWebhookType,
   webhookRegistrationType,
@@ -1049,6 +1065,46 @@ export let chatMessagePresenter = declarePresenter(chatMessageType, {
 export let chatEventPresenter = declarePresenter(chatEventType, {
   mt_2025_01_01_dashboard: v1ChatEventPresenter,
   mt_2026_01_01_magnetar: v1ChatEventPresenter
+});
+
+export let chatPresenter = declarePresenter(chatType, {
+  mt_2025_01_01_dashboard: v1ChatPresenter,
+  mt_2026_01_01_magnetar: v1ChatPresenter
+});
+
+export let chatConnectionPresenter = declarePresenter(chatConnectionType, {
+  mt_2025_01_01_dashboard: v1ChatConnectionPresenter,
+  mt_2026_01_01_magnetar: v1ChatConnectionPresenter
+});
+
+export let chatConnectionProviderPresenter = declarePresenter(chatConnectionProviderType, {
+  mt_2025_01_01_dashboard: v1ChatConnectionProviderPresenter,
+  mt_2026_01_01_magnetar: v1ChatConnectionProviderPresenter
+});
+
+export let chatInstancePresenter = declarePresenter(chatInstanceType, {
+  mt_2025_01_01_dashboard: v1ChatInstancePresenter,
+  mt_2026_01_01_magnetar: v1ChatInstancePresenter
+});
+
+export let chatInstanceProviderPresenter = declarePresenter(chatInstanceProviderType, {
+  mt_2025_01_01_dashboard: v1ChatInstanceProviderPresenter,
+  mt_2026_01_01_magnetar: v1ChatInstanceProviderPresenter
+});
+
+export let chatTypingIndicatorPresenter = declarePresenter(chatTypingIndicatorType, {
+  mt_2025_01_01_dashboard: v1ChatTypingIndicatorPresenter,
+  mt_2026_01_01_magnetar: v1ChatTypingIndicatorPresenter
+});
+
+export let chatReactionListPresenter = declarePresenter(chatReactionListType, {
+  mt_2025_01_01_dashboard: v1ChatReactionListPresenter,
+  mt_2026_01_01_magnetar: v1ChatReactionListPresenter
+});
+
+export let chatAuthenticatedUserPresenter = declarePresenter(chatAuthenticatedUserType, {
+  mt_2025_01_01_dashboard: v1ChatAuthenticatedUserPresenter,
+  mt_2026_01_01_magnetar: v1ChatAuthenticatedUserPresenter
 });
 
 export let webhookRegistrationPresenter = declarePresenter(webhookRegistrationType, {
