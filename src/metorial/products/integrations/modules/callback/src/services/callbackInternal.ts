@@ -22,6 +22,12 @@ import {
   reconcileIntegrationProviderInclude
 } from '../lib/callbackIncludes';
 import { selectCallbackInstanceGenerations } from '../lib/callbackInstanceGeneration';
+import {
+  type CallbackOwner,
+  isOwnedBy,
+  listManagedCallbackOwners,
+  userCallbackOwner
+} from '../lib/callbackOwnership';
 import { toSyncError } from '../lib/syncError';
 import { enqueueCallbackPush } from '../queues/push/callback';
 import { enqueueCallbackInstancePush } from '../queues/push/callbackInstance';
@@ -107,19 +113,27 @@ class callbackInternalServiceImpl {
     });
     if (!integrationProvider) return null;
 
-    let callback = await db.callback.findFirst({
+    let owners = await this.getDesiredCallbackOwners(integrationProvider);
+
+    let callbacks = await db.callback.findMany({
       where: { integrationProviderOid: integrationProvider.oid, status: 'active' },
       include: callbackInclude,
       orderBy: { oid: 'desc' }
     });
 
-    if (this.isCallbackDesired(integrationProvider)) {
+    for (let owner of owners) {
+      let callback = callbacks.find(callback => isOwnedBy(callback, owner));
+
       if (!callback) {
-        callback = await this.createCallback({ integrationProvider, input: d.input });
+        await this.createCallback({ integrationProvider, owner, input: d.input });
       } else if (callback.syncStatus !== 'synced') {
         await enqueueCallbackPush({ callbackId: callback.id });
       }
-    } else if (callback) {
+    }
+
+    for (let callback of callbacks) {
+      if (owners.some(owner => isOwnedBy(callback, owner))) continue;
+
       let callbackInstances = await db.callbackInstance.findMany({
         where: { callbackOid: callback.oid, status: 'active' },
         select: { integrationInstanceProvider: { select: { id: true } } }
@@ -145,13 +159,26 @@ class callbackInternalServiceImpl {
     });
 
     return await db.callback.findFirst({
-      where: { integrationProviderOid: integrationProvider.oid, status: 'active' },
+      where: {
+        integrationProviderOid: integrationProvider.oid,
+        status: 'active',
+        ownership: 'user'
+      },
       include: callbackInclude,
       orderBy: { oid: 'desc' }
     });
   }
 
-  private isCallbackDesired(integrationProvider: ReconcileIntegrationProvider) {
+  private async getDesiredCallbackOwners(integrationProvider: ReconcileIntegrationProvider) {
+    if (!this.areCallbacksAllowed(integrationProvider)) return [];
+
+    return [
+      userCallbackOwner,
+      ...(await listManagedCallbackOwners({ integrationProviderOid: integrationProvider.oid }))
+    ];
+  }
+
+  private areCallbacksAllowed(integrationProvider: ReconcileIntegrationProvider) {
     return (
       integrationProvider.areCallbacksEnabled &&
       integrationProvider.status === 'active' &&
@@ -164,6 +191,7 @@ class callbackInternalServiceImpl {
 
   private async createCallback(d: {
     integrationProvider: ReconcileIntegrationProvider;
+    owner: CallbackOwner;
     input?: { name?: string; description?: string | null };
   }) {
     let { provider } = d.integrationProvider;
@@ -171,15 +199,23 @@ class callbackInternalServiceImpl {
     let providerVariant = provider.defaultVariant;
     if (!providerVariant) return null;
 
+    let isManaged = d.owner.ownership === 'managed';
+
     let callback = await db.callback.create({
       data: {
         ...getId('callback'),
         status: 'active',
         syncStatus: 'pending',
 
-        name: d.input?.name?.trim() || d.integrationProvider.name,
-        description:
-          d.input?.description === undefined
+        ownership: d.owner.ownership,
+        managedAdapterGlobalOid: d.owner.managedAdapterGlobalOid,
+
+        name: isManaged
+          ? `${d.integrationProvider.name} (${d.owner.name})`
+          : d.input?.name?.trim() || d.integrationProvider.name,
+        description: isManaged
+          ? null
+          : d.input?.description === undefined
             ? d.integrationProvider.description
             : d.input.description?.trim() || null,
 
@@ -222,11 +258,17 @@ class callbackInternalServiceImpl {
       if (
         !currentCallback ||
         !currentIntegrationProvider ||
-        currentCallback.status !== 'active' ||
-        !this.isCallbackDesired(currentIntegrationProvider)
+        currentCallback.status !== 'active'
       ) {
         return;
       }
+
+      let owned = {
+        ownership: currentCallback.ownership,
+        managedAdapterGlobalOid: currentCallback.managedAdapterGlobalOid
+      };
+      let owners = await this.getDesiredCallbackOwners(currentIntegrationProvider);
+      if (!owners.some(owner => isOwnedBy(owned, owner))) return;
 
       return await this.pushCallback({
         callback: currentCallback,
@@ -404,7 +446,7 @@ class callbackInternalServiceImpl {
     });
     if (!integrationInstanceProvider) return;
 
-    let callback = await db.callback.findFirst({
+    let callbacks = await db.callback.findMany({
       where: {
         integrationProviderOid: integrationInstanceProvider.integrationProviderOid,
         status: 'active'
@@ -413,8 +455,6 @@ class callbackInternalServiceImpl {
     });
 
     let isDesired =
-      !!callback &&
-      callback.syncStatus === 'synced' &&
       integrationInstanceProvider.status === 'active' &&
       !integrationInstanceProvider.isParentDeleted &&
       integrationInstanceProvider.integrationProvider.status === 'active' &&
@@ -439,53 +479,63 @@ class callbackInternalServiceImpl {
       include: { callback: true }
     });
 
-    if (!isDesired) {
-      for (let callbackInstance of active) {
-        await this.archiveCallbackInstance({
-          callbackInstance,
-          tenant: integrationInstanceProvider.tenant
-        });
+    let desiredCallbacks = isDesired
+      ? callbacks.filter(callback => callback.syncStatus === 'synced')
+      : [];
+
+    for (let callbackInstance of active) {
+      if (desiredCallbacks.some(callback => callback.oid === callbackInstance.callbackOid)) {
+        continue;
       }
 
-      return;
+      await this.archiveCallbackInstance({
+        callbackInstance,
+        tenant: integrationInstanceProvider.tenant
+      });
     }
 
-    let generations = selectCallbackInstanceGenerations({
-      active,
-      callbackOid: callback!.oid,
-      providerConfigVersionOid: configVersion!.oid,
-      providerAuthConfigVersionOid: authConfigVersion?.oid ?? null
-    });
+    for (let callback of desiredCallbacks) {
+      let activeForCallback = active.filter(
+        callbackInstance => callbackInstance.callbackOid === callback.oid
+      );
 
-    let primary = generations.primary;
-    if (primary) {
-      if (primary.syncStatus !== 'synced') {
-        await enqueueCallbackInstancePush({ callbackInstanceId: primary.id });
+      let generations = selectCallbackInstanceGenerations({
+        active: activeForCallback,
+        callbackOid: callback.oid,
+        providerConfigVersionOid: configVersion!.oid,
+        providerAuthConfigVersionOid: authConfigVersion?.oid ?? null
+      });
+
+      let primary = generations.primary;
+      if (primary) {
+        if (primary.syncStatus !== 'synced') {
+          await enqueueCallbackInstancePush({ callbackInstanceId: primary.id });
+        }
+
+        for (let callbackInstance of activeForCallback) {
+          if (callbackInstance.oid === primary.oid) continue;
+          await this.archiveCallbackInstance({
+            callbackInstance,
+            tenant: integrationInstanceProvider.tenant
+          });
+        }
+        continue;
       }
 
-      for (let callbackInstance of active) {
-        if (callbackInstance.oid === primary.oid) continue;
-        await this.archiveCallbackInstance({
-          callbackInstance,
-          tenant: integrationInstanceProvider.tenant
-        });
+      let provisioning = generations.provisioning;
+      if (provisioning) {
+        await enqueueCallbackInstancePush({ callbackInstanceId: provisioning.id });
+        continue;
       }
-      return;
-    }
 
-    let provisioning = generations.provisioning;
-    if (provisioning) {
-      await enqueueCallbackInstancePush({ callbackInstanceId: provisioning.id });
-      return;
+      await this.createCallbackInstanceRecord({
+        callback,
+        integrationInstanceProvider,
+        providerConfigVersionOid: configVersion!.oid,
+        providerAuthConfigVersionOid: authConfigVersion?.oid ?? null,
+        push: true
+      });
     }
-
-    await this.createCallbackInstanceRecord({
-      callback: callback!,
-      integrationInstanceProvider,
-      providerConfigVersionOid: configVersion!.oid,
-      providerAuthConfigVersionOid: authConfigVersion?.oid ?? null,
-      push: true
-    });
   }
 
   private async createCallbackInstanceRecord(d: {
@@ -684,6 +734,7 @@ class callbackInternalServiceImpl {
         await db.callbackInstance.updateMany({
           where: {
             integrationInstanceProviderOid: synced.integrationInstanceProviderOid,
+            callbackOid: synced.callbackOid,
             status: 'active',
             generationStatus: 'primary',
             oid: { not: synced.oid }

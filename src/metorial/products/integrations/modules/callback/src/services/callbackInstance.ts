@@ -79,6 +79,7 @@ class callbackInstanceServiceImpl {
             tenantOid: d.tenant.oid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            callback: { ownership: 'user' },
             ...normalizeStatusForList(d).hasParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
@@ -123,6 +124,7 @@ class callbackInstanceServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        callback: { ownership: 'user' },
         ...normalizeStatusForGet(d).hasParent
       },
       include: callbackInstanceInclude

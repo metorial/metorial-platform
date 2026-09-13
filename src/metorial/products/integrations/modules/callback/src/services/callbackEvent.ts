@@ -105,6 +105,7 @@ class callbackEventServiceImpl {
             tenantOid: d.tenant.oid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            callback: { ownership: 'user' },
             AND: [
               callbacks ? { callbackOid: callbacks.in } : undefined!,
               callbackInstances ? { callbackInstanceOid: callbackInstances.in } : undefined!,
@@ -147,7 +148,8 @@ class callbackEventServiceImpl {
         id: d.callbackEventId,
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
-        environmentOid: d.environment.oid
+        environmentOid: d.environment.oid,
+        callback: { ownership: 'user' }
       },
       include: callbackEventInclude
     });
