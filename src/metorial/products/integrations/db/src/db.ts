@@ -104,6 +104,9 @@ declare global {
 
     type ChatMessageUnfurls = LinkUnfurl[];
 
+    // The presented event body. Shaped by the chat presenters, which cannot be imported here.
+    type ChatEventPayload = { [key: string]: any };
+
     type ProviderTriggerGroupValue = SpecificationTriggerGroup;
 
     type ActionScopes = {

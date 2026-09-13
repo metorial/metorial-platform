@@ -88,7 +88,7 @@ model SlateTriggerEvent {
   slateCallbackInstance    SlateCallbackInstance @relation(fields: [slateCallbackInstanceOid], references: [oid], onDelete: Cascade)
 
   callbackEventOid BigInt?        @unique
-  callbackEvent    CallbackEvent? @relation(fields: [callbackEventOid], references: [oid])
+  callbackEvent    CallbackEvent? @relation(fields: [callbackEventOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 

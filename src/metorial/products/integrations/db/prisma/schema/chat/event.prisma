@@ -1,0 +1,76 @@
+model ChatEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type String
+
+  source          CallbackEventSource
+  providerEventId String?
+
+  chatOid BigInt
+  chat    Chat   @relation(fields: [chatOid], references: [oid], onDelete: Cascade)
+
+  chatIntegrationOid BigInt
+  chatIntegration    ChatIntegration @relation(fields: [chatIntegrationOid], references: [oid], onDelete: Cascade)
+
+  chatIntegrationInstanceOid BigInt
+  chatIntegrationInstance    ChatIntegrationInstance @relation(fields: [chatIntegrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  chatIntegrationInstanceProviderOid BigInt
+  chatIntegrationInstanceProvider    ChatIntegrationInstanceProvider @relation(fields: [chatIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade, map: "chevt_ciip_fkey")
+
+  channelOid BigInt?
+  channel    ChatChannel? @relation(fields: [channelOid], references: [oid], onDelete: SetNull)
+
+  threadOid BigInt?
+  thread    ChatThread? @relation(fields: [threadOid], references: [oid], onDelete: SetNull)
+
+  messageOid BigInt?
+  message    ChatMessage? @relation(fields: [messageOid], references: [oid], onDelete: SetNull)
+
+  authorOid BigInt?
+  author    ChatAuthor? @relation(fields: [authorOid], references: [oid], onDelete: SetNull)
+
+  providerChannelId String?
+  providerThreadId  String?
+  providerMessageId String?
+  providerAuthorId  String?
+
+  /// [ChatEventPayload]
+  payload           Json?
+  payloadStorageKey String?
+
+  // One callback event can reach several chats: multiple adapter integration instances may be
+  // attached to the same integration instance provider the callback instance belongs to.
+  callbackEventOid BigInt
+  callbackEvent    CallbackEvent @relation(fields: [callbackEventOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([callbackEventOid, chatOid], map: "chevt_callback_event_chat_key")
+  @@unique([chatOid, type, providerEventId], map: "chevt_chat_type_provider_event_key")
+  @@index([chatOid, occurredAt])
+  @@index([chatIntegrationInstanceProviderOid, occurredAt], map: "chevt_ciip_occurred_idx")
+  @@index([chatIntegrationOid, occurredAt])
+  @@index([type, occurredAt])
+  @@index([tenantOid, solutionOid, environmentOid, occurredAt], map: "chevt_scope_occurred_idx")
+  @@index([createdAt, id])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

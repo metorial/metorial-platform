@@ -38,6 +38,7 @@ model ChatAuthor {
   lastInteractionAt DateTime?
 
   chatMessages ChatMessage[]
+  chatEvents   ChatEvent[]
 
   @@unique([chatOid, userId])
 }

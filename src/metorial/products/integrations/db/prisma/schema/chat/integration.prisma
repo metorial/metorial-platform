@@ -42,6 +42,7 @@ model ChatIntegration {
   instances         ChatIntegrationInstance[]
   instanceProviders ChatIntegrationInstanceProvider[]
   chats             Chat[]
+  chatEvents        ChatEvent[]
 
   @@index([createdAt])
   @@index([updatedAt])

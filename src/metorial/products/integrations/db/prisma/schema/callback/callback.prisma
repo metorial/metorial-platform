@@ -10,6 +10,11 @@ enum CallbackSyncStatus {
   failed
 }
 
+enum CallbackOwnership {
+  user
+  managed
+}
+
 model Callback {
   oid BigInt @id
   id  String @unique
@@ -17,6 +22,11 @@ model Callback {
   status     CallbackStatus
   syncStatus CallbackSyncStatus @default(pending)
   archivedAt DateTime?
+
+  ownership CallbackOwnership @default(user)
+
+  managedAdapterGlobalOid BigInt?
+  managedAdapterGlobal    ProviderAdapterGlobal? @relation(fields: [managedAdapterGlobalOid], references: [oid])
 
   lastSyncErrorCode    String?
   lastSyncErrorMessage String?
@@ -62,6 +72,7 @@ model Callback {
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([integrationProviderOid, status])
+  @@index([integrationProviderOid, ownership, managedAdapterGlobalOid, status])
   @@index([syncStatus])
   @@index([status, archivedAt])
   @@index([integrationOid, status])

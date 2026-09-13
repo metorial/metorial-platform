@@ -70,6 +70,7 @@ model ChatChannel {
   threads      ChatThread[]
   messages     ChatMessage[]
   messageGroups ChatMessageGroup[]
+  chatEvents   ChatEvent[]
 
   @@unique([chatOid, channelId])
 }
@@ -111,7 +112,8 @@ model ChatThread {
   updatedAt         DateTime  @default(now()) @updatedAt
   lastInteractionAt DateTime?
 
-  messages ChatMessage[]
+  messages   ChatMessage[]
+  chatEvents ChatEvent[]
 
   @@unique([channelOid, threadId])
 }

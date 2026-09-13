@@ -112,5 +112,6 @@ model Instance {
   chatIntegrationInstanceProviders           ChatIntegrationInstanceProvider[]
   callbackInstances                          CallbackInstance[]
   callbackEvents                             CallbackEvent[]
+  chatEvents                                 ChatEvent[]
   webhookRegistrations                       WebhookRegistration[]
 }

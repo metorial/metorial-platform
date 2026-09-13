@@ -8,7 +8,7 @@ model ChatMessage {
   replyToMessageId String?
 
   /// [ChatMessageBody]
-  body Json
+  body Json?
 
   /// [ChatMessageReactions]
   reactions Json?
@@ -24,8 +24,8 @@ model ChatMessage {
   threadOid BigInt?
   thread    ChatThread? @relation(fields: [threadOid], references: [oid], onDelete: Cascade)
 
-  authorOid BigInt
-  author    ChatAuthor @relation(fields: [authorOid], references: [oid], onDelete: Cascade)
+  authorOid BigInt?
+  author    ChatAuthor? @relation(fields: [authorOid], references: [oid], onDelete: Cascade)
 
   sentAt   DateTime
   edited   Boolean   @default(false)
@@ -34,6 +34,7 @@ model ChatMessage {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @default(now()) @updatedAt
   lastInteractionAt DateTime?
+  deletedAt         DateTime?
 
   attachments ChatMessageAttachment[]
 
@@ -44,8 +45,12 @@ model ChatMessage {
 
   isChildMessage Boolean @default(false)
 
+  chatEvents ChatEvent[]
+
   @@unique([channelOid, messageId])
   @@index([channelOid, isChildMessage])
+  @@index([channelOid, deletedAt])
+  @@index([deletedAt])
 }
 
 model ChatMessageGroup {

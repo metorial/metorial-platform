@@ -114,6 +114,7 @@ model Tenant {
   callbacks                                  Callback[]
   callbackInstances                          CallbackInstance[]
   callbackEvents                             CallbackEvent[]
+  chatEvents                                 ChatEvent[]
   webhookRegistrations                       WebhookRegistration[]
   providerUses                               ProviderUse[]
   identityActors                             IdentityActor[]
@@ -271,6 +272,7 @@ model Environment {
   chatIntegrationInstanceProviders           ChatIntegrationInstanceProvider[]
   callbackInstances                          CallbackInstance[]
   callbackEvents                             CallbackEvent[]
+  chatEvents                                 ChatEvent[]
   webhookRegistrations                       WebhookRegistration[]
 
   @@index([projectOid])
