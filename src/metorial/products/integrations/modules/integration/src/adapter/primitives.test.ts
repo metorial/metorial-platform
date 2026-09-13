@@ -55,6 +55,10 @@ vi.mock('@metorial-subspace/db', () => ({
   withTransaction: async (cb: (db: any) => Promise<any>) => await cb(tx)
 }));
 
+vi.mock('@metorial-subspace/module-callback/src/queues/reconcile/callback', () => ({
+  enqueueCallbackReconcile: vi.fn()
+}));
+
 vi.mock('../services/integration', () => ({
   integrationService: {
     createIntegrationInternal,
@@ -183,7 +187,9 @@ describe('adapter primitives', () => {
     tx.adapterIntegrationInstanceProvider.findMany.mockResolvedValue([]);
     tx.adapterIntegrationInstanceProvider.updateMany.mockResolvedValue({ count: 0 });
     tx.integrationProvider.findMany.mockResolvedValue([]);
+    tx.integrationProvider.updateMany.mockResolvedValue({ count: 0 });
     tx.integrationInstanceProvider.findMany.mockResolvedValue([]);
+    tx.tenant.findUniqueOrThrow.mockResolvedValue({ oid: 1n, disableCallbacks: false });
     tx.provider.findFirst.mockResolvedValue({ oid: 8n, id: 'pro_slack' });
     tx.providerAdapter.findFirst.mockResolvedValue({ oid: 1n });
     createIntegrationInternal.mockResolvedValue(hiddenIntegration);

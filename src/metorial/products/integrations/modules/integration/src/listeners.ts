@@ -19,7 +19,10 @@ export type IntegrationTransactionEvent =
       integrationProvider: IntegrationProvider;
     }
   | {
-      kind: 'integrationInstance.created' | 'integrationInstance.updated' | 'integrationInstance.archived';
+      kind:
+        | 'integrationInstance.created'
+        | 'integrationInstance.updated'
+        | 'integrationInstance.archived';
       integration: Integration;
       integrationInstance: IntegrationInstance;
     }

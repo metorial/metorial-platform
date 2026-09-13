@@ -57,7 +57,7 @@ export let integrationInclude = {
         include: integrationProviderVersionInclude
       },
       callbacks: {
-        where: { status: 'active' as const },
+        where: { status: 'active' as const, ownership: 'user' as const },
         include: callbackInclude,
         orderBy: { oid: 'desc' as const },
         take: 1

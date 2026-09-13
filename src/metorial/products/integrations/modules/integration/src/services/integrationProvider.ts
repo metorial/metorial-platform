@@ -53,13 +53,13 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceIntegrationProvider, Fabric } from '@metorial/fabric';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
-import { notifyIntegrationTransaction } from '../listeners';
 import {
   createIntegrationProviderVersion,
   createIntegrationVersion,
   hasMaterialIntegrationProviderChange,
   normalizeIntegrationProviderToolFilter
 } from '../lib/versions';
+import { notifyIntegrationTransaction } from '../listeners';
 import {
   integrationProviderArchivedQueue,
   integrationProviderCreatedQueue,
@@ -72,9 +72,8 @@ export let integrationProviderInclude = {
   currentVersion: {
     include: integrationProviderVersionInclude
   },
-  // At most one callback is ever active; older generations are kept as archived history.
   callbacks: {
-    where: { status: 'active' as const },
+    where: { status: 'active' as const, ownership: 'user' as const },
     include: callbackInclude,
     orderBy: { oid: 'desc' as const },
     take: 1
@@ -1114,7 +1113,7 @@ class integrationProviderServiceImpl {
     assertCallbacksAllowed({ tenant: d.tenant, provider: current.provider });
 
     let existing = await db.callback.findFirst({
-      where: { integrationProviderOid: current.oid, status: 'active' },
+      where: { integrationProviderOid: current.oid, status: 'active', ownership: 'user' },
       select: { id: true }
     });
     if (existing) {

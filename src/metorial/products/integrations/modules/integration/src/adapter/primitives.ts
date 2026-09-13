@@ -13,6 +13,7 @@ import {
   type ProviderAdapterGlobal,
   type Tenant
 } from '@metorial-subspace/db';
+import { enqueueCallbackReconcile } from '@metorial-subspace/module-callback/src/queues/reconcile/callback';
 import { integrationService } from '../services/integration';
 import { integrationInstanceService } from '../services/integrationInstance';
 import {
@@ -101,6 +102,56 @@ let liveInstanceStatus = (integrationInstance: IntegrationInstance) =>
     ? toAdapterInstanceStatus(integrationInstance.status)
     : ('active' as const);
 
+let reconcileAdapterProviderCallbacks = async (d: {
+  adapterIntegration: AdapterIntegration;
+  linkedOids: bigint[];
+  unlinkedOids: bigint[];
+}) =>
+  withTransaction(async db => {
+    let affectedOids = [...new Set([...d.linkedOids, ...d.unlinkedOids])];
+    if (affectedOids.length === 0) return;
+
+    let tenant = await db.tenant.findUniqueOrThrow({
+      where: { oid: d.adapterIntegration.tenantOid }
+    });
+
+    let integrationProviders = await db.integrationProvider.findMany({
+      where: { oid: { in: affectedOids } },
+      select: {
+        oid: true,
+        id: true,
+        status: true,
+        areCallbacksEnabled: true,
+        provider: { select: { type: true, defaultVariant: { select: { oid: true } } } }
+      }
+    });
+
+    if (!tenant.disableCallbacks) {
+      let linked = new Set(d.linkedOids);
+      let enableOids = integrationProviders
+        .filter(
+          integrationProvider =>
+            linked.has(integrationProvider.oid) &&
+            !integrationProvider.areCallbacksEnabled &&
+            integrationProvider.status === 'active' &&
+            integrationProvider.provider.type.attributes.triggers.status === 'enabled' &&
+            !!integrationProvider.provider.defaultVariant
+        )
+        .map(integrationProvider => integrationProvider.oid);
+
+      if (enableOids.length) {
+        await db.integrationProvider.updateMany({
+          where: { oid: { in: enableOids } },
+          data: { areCallbacksEnabled: true }
+        });
+      }
+    }
+
+    for (let integrationProvider of integrationProviders) {
+      await enqueueCallbackReconcile({ integrationProviderId: integrationProvider.id });
+    }
+  });
+
 export let syncAdapterProviders = async (d: {
   adapterIntegration: AdapterIntegration;
   cause?: AdapterCause;
@@ -145,6 +196,15 @@ export let syncAdapterProviders = async (d: {
       links.push(link);
     }
 
+    let unlinked = await db.adapterIntegrationProvider.findMany({
+      where: {
+        adapterIntegrationOid: adapterIntegration.oid,
+        status: { in: [...adapterLiveStatuses] },
+        integrationProviderOid: { notIn: [...capableOids] }
+      },
+      select: { integrationProviderOid: true }
+    });
+
     await db.adapterIntegrationProvider.updateMany({
       where: {
         adapterIntegrationOid: adapterIntegration.oid,
@@ -152,6 +212,12 @@ export let syncAdapterProviders = async (d: {
         integrationProviderOid: { notIn: [...capableOids] }
       },
       data: { status: 'archived' }
+    });
+
+    await reconcileAdapterProviderCallbacks({
+      adapterIntegration,
+      linkedOids: links.map(link => link.integrationProviderOid),
+      unlinkedOids: unlinked.map(link => link.integrationProviderOid)
     });
 
     if (d.cause === 'integration') {
@@ -626,12 +692,26 @@ export let removeAdapterIntegration = async (d: {
       });
     }
 
+    let unlinked = await db.adapterIntegrationProvider.findMany({
+      where: {
+        adapterIntegrationOid: adapterIntegration.oid,
+        status: { not: 'deleted' }
+      },
+      select: { integrationProviderOid: true }
+    });
+
     await db.adapterIntegrationProvider.updateMany({
       where: {
         adapterIntegrationOid: adapterIntegration.oid,
         status: { not: 'deleted' }
       },
       data: { status: 'archived' }
+    });
+
+    await reconcileAdapterProviderCallbacks({
+      adapterIntegration,
+      linkedOids: [],
+      unlinkedOids: unlinked.map(link => link.integrationProviderOid)
     });
 
     let archived = await db.adapterIntegration.update({
