@@ -6,17 +6,21 @@ import {
   type Chat,
   type ChatChannel,
   type ChatChannelType,
-  type ChatIntegrationInstanceProvider,
+  type ChatInstanceProvider,
+  type ChatWorkspace,
   getId,
   withTransaction
 } from '@metorial-subspace/db';
 import { isUniqueConstraintError } from '../lib/unique';
 
 export type ChatWithProvider = Chat & {
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+  chatInstanceProvider: ChatInstanceProvider;
 };
 
-export type ChatChannelWithChat = ChatChannel & { chat: Chat };
+export type ChatChannelWithChat = ChatChannel & {
+  chat: Chat;
+  workspace: ChatWorkspace | null;
+};
 
 class chatChannelServiceInternalImpl {
   private channelPayload(channel: Channel, workspaceOid: bigint | null) {
@@ -65,14 +69,16 @@ class chatChannelServiceInternalImpl {
           let workspaces = workspaceIds.length
             ? await db.chatWorkspace.findMany({
                 where: {
-                  chatIntegrationInstanceProviderOid:
-                    d.chat.chatIntegrationInstanceProviderOid,
+                  chatInstanceProviderOid: d.chat.chatInstanceProviderOid,
                   workspaceId: { in: workspaceIds }
                 }
               })
             : [];
           let workspaceOidByRemoteId = new Map(
             workspaces.map(workspace => [workspace.workspaceId, workspace.oid])
+          );
+          let workspaceByOid = new Map(
+            workspaces.map(workspace => [workspace.oid, workspace])
           );
 
           let results = new Map<string, ChatChannelWithChat>();
@@ -82,6 +88,7 @@ class chatChannelServiceInternalImpl {
             let workspaceOid = channel.workspaceId
               ? (workspaceOidByRemoteId.get(channel.workspaceId) ?? null)
               : null;
+            let workspace = workspaceOid ? (workspaceByOid.get(workspaceOid) ?? null) : null;
             let payload = this.channelPayload(channel, workspaceOid);
             let syncHash = await this.hashChannelSync(payload);
 
@@ -95,7 +102,7 @@ class chatChannelServiceInternalImpl {
                   chatOid: d.chat.oid
                 }
               });
-              results.set(channel.id, { ...created, chat: d.chat });
+              results.set(channel.id, { ...created, chat: d.chat, workspace });
               continue;
             }
 
@@ -106,7 +113,7 @@ class chatChannelServiceInternalImpl {
                 data: { ...payload, syncHash }
               });
             }
-            results.set(channel.id, { ...localChannel, chat: d.chat });
+            results.set(channel.id, { ...localChannel, chat: d.chat, workspace });
           }
 
           return d.channels.map(channel => results.get(channel.id)!);

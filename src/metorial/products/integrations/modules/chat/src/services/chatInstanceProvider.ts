@@ -2,8 +2,8 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type ChatIntegrationInstance,
-  type ChatIntegrationInstanceProviderStatus,
+  type ChatInstance,
+  type ChatInstanceProviderStatus,
   db,
   type Environment,
   type Tenant,
@@ -26,59 +26,61 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { upsertChatInstanceProviderProjection } from '../lib/project';
-import { enqueueChatIntegrationInstanceUpdated } from '../queues/lifecycle';
+import { enqueueChatInstanceUpdated } from '../queues/lifecycle';
 
-export let chatIntegrationInstanceProviderInclude = {
-  chatIntegrationInstance: true,
-  chatIntegrationProvider: true,
-  adapterIntegrationInstanceProvider: true
+export let chatInstanceProviderInclude = {
+  chatInstance: true,
+  chatConnectionProvider: true,
+  adapterIntegrationInstanceProvider: {
+    include: { integrationProvider: { include: { provider: true } } }
+  }
 } as const;
 
-export type ListChatIntegrationInstanceProvidersParams = {
+export type ListChatInstanceProvidersParams = {
   search?: string;
-  status?: ChatIntegrationInstanceProviderStatus[];
+  status?: ChatInstanceProviderStatus[];
   allowDeleted?: boolean;
   ids?: string[];
-  chatIntegrationInstanceIds?: string[];
+  chatInstanceIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
 };
 
-export type GetChatIntegrationInstanceProviderByIdParams = {
-  chatIntegrationInstanceProviderId: string;
+export type GetChatInstanceProviderByIdParams = {
+  chatInstanceProviderId: string;
   allowDeleted?: boolean;
 };
 
-export type SetChatIntegrationInstanceProviderParams = {
-  chatIntegrationInstance: ChatIntegrationInstance;
+export type SetChatInstanceProviderParams = {
+  chatInstance: ChatInstance;
   input: SetIntegrationInstanceProviderInput;
 };
 
-class chatIntegrationInstanceProviderServiceImpl {
-  async listChatIntegrationInstanceProviders(
-    d: MetorialFacing<ListChatIntegrationInstanceProvidersParams>
+class chatInstanceProviderServiceImpl {
+  async listChatInstanceProviders(
+    d: MetorialFacing<ListChatInstanceProvidersParams>
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-    return this.listChatIntegrationInstanceProvidersInternal({
+    return this.listChatInstanceProvidersInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async listChatIntegrationInstanceProvidersInternal(
+  async listChatInstanceProvidersInternal(
     d: {
       tenant: Tenant;
       environment: Environment;
-    } & ListChatIntegrationInstanceProvidersParams
+    } & ListChatInstanceProvidersParams
   ) {
     let solution = await getMetorialSolution();
 
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.chatIntegrationInstanceProvider.findMany({
+          await db.chatInstanceProvider.findMany({
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
@@ -87,8 +89,8 @@ class chatIntegrationInstanceProviderServiceImpl {
               ...normalizeStatusForList(d).hasParent,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                d.chatIntegrationInstanceIds
-                  ? { chatIntegrationInstance: { id: { in: d.chatIntegrationInstanceIds } } }
+                d.chatInstanceIds
+                  ? { chatInstance: { id: { in: d.chatInstanceIds } } }
                   : undefined!,
                 d.search
                   ? { name: { contains: d.search, mode: 'insensitive' as const } }
@@ -97,73 +99,73 @@ class chatIntegrationInstanceProviderServiceImpl {
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
-            include: chatIntegrationInstanceProviderInclude
+            include: chatInstanceProviderInclude
           })
       )
     );
   }
 
-  async getChatIntegrationInstanceProviderById(
-    d: MetorialFacing<GetChatIntegrationInstanceProviderByIdParams>
+  async getChatInstanceProviderById(
+    d: MetorialFacing<GetChatInstanceProviderByIdParams>
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-    return this.getChatIntegrationInstanceProviderByIdInternal({
+    return this.getChatInstanceProviderByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async getChatIntegrationInstanceProviderByIdInternal(
+  async getChatInstanceProviderByIdInternal(
     d: {
       tenant: Tenant;
       environment: Environment;
-    } & GetChatIntegrationInstanceProviderByIdParams
+    } & GetChatInstanceProviderByIdParams
   ) {
     let solution = await getMetorialSolution();
-    let chatIntegrationInstanceProvider = await db.chatIntegrationInstanceProvider.findFirst({
+    let chatInstanceProvider = await db.chatInstanceProvider.findFirst({
       where: {
-        id: d.chatIntegrationInstanceProviderId,
+        id: d.chatInstanceProviderId,
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
-      include: chatIntegrationInstanceProviderInclude
+      include: chatInstanceProviderInclude
     });
-    if (!chatIntegrationInstanceProvider) {
+    if (!chatInstanceProvider) {
       throw new ServiceError(
         notFoundError(
           'chat.integration.instance.provider',
-          d.chatIntegrationInstanceProviderId
+          d.chatInstanceProviderId
         )
       );
     }
 
-    return chatIntegrationInstanceProvider;
+    return chatInstanceProvider;
   }
 
-  async setChatIntegrationInstanceProvider(
-    d: MetorialFacing<SetChatIntegrationInstanceProviderParams>
+  async setChatInstanceProvider(
+    d: MetorialFacing<SetChatInstanceProviderParams>
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-    return this.setChatIntegrationInstanceProviderInternal({
+    return this.setChatInstanceProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async setChatIntegrationInstanceProviderInternal(
-    d: { tenant: Tenant; environment: Environment } & SetChatIntegrationInstanceProviderParams
+  async setChatInstanceProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & SetChatInstanceProviderParams
   ) {
-    checkTenant(d, d.chatIntegrationInstance);
+    checkTenant(d, d.chatInstance);
 
     return withTransaction(async db => {
       let adapterInstance = await db.adapterIntegrationInstance.findUniqueOrThrow({
-        where: { oid: d.chatIntegrationInstance.adapterIntegrationInstanceOid }
+        where: { oid: d.chatInstance.adapterIntegrationInstanceOid }
       });
 
       let links = await setAdapterInstanceProvider({
@@ -177,20 +179,20 @@ class chatIntegrationInstanceProviderServiceImpl {
         await upsertChatInstanceProviderProjection(link);
       }
 
-      await enqueueChatIntegrationInstanceUpdated(d.chatIntegrationInstance.id);
+      await enqueueChatInstanceUpdated(d.chatInstance.id);
 
-      return db.chatIntegrationInstanceProvider.findMany({
+      return db.chatInstanceProvider.findMany({
         where: {
-          chatIntegrationInstanceOid: d.chatIntegrationInstance.oid,
+          chatInstanceOid: d.chatInstance.oid,
           status: 'active'
         },
-        include: chatIntegrationInstanceProviderInclude
+        include: chatInstanceProviderInclude
       });
     });
   }
 }
 
-export let chatIntegrationInstanceProviderService = Service.create(
-  'chatIntegrationInstanceProvider',
-  () => new chatIntegrationInstanceProviderServiceImpl()
+export let chatInstanceProviderService = Service.create(
+  'chatInstanceProvider',
+  () => new chatInstanceProviderServiceImpl()
 ).build();

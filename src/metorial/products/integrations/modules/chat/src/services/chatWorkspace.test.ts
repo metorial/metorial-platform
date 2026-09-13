@@ -76,7 +76,7 @@ describe('chatWorkspaceService', () => {
     let paginator = await chatWorkspaceService.listChatWorkspacesInternal({
       tenant,
       environment,
-      chatIntegrationInstanceProvider: provider
+      chatInstanceProvider: provider
     });
     let list = await paginator.run({});
 
@@ -85,7 +85,7 @@ describe('chatWorkspaceService', () => {
     expect(db.chatWorkspace.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          chatIntegrationInstanceProviderOid: provider.oid
+          chatInstanceProviderOid: provider.oid
         })
       })
     );
@@ -114,13 +114,13 @@ describe('chatWorkspaceService', () => {
     let paginator = await chatWorkspaceService.listChatWorkspacesInternal({
       tenant,
       environment,
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       search: 'acme'
     });
     let list = await paginator.run({ limit: 10 });
 
     expect(upsertChatWorkspaces).toHaveBeenCalledWith({
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaces: [{ id: 'T123', name: 'Acme' }]
     });
     expect(list.items[0]).toEqual({ ...workspace, chat });
@@ -139,7 +139,7 @@ describe('chatWorkspaceService', () => {
     let paginator = await chatWorkspaceService.listChatWorkspacesInternal({
       tenant,
       environment,
-      chatIntegrationInstanceProvider: provider
+      chatInstanceProvider: provider
     });
 
     let error = await paginator.run({}).catch((err: unknown) => err);
@@ -159,7 +159,7 @@ describe('chatWorkspaceService', () => {
     let paginator = await chatWorkspaceService.listChatWorkspacesInternal({
       tenant,
       environment,
-      chatIntegrationInstanceProvider: provider
+      chatInstanceProvider: provider
     });
 
     let error: any = await paginator.run({}).catch((err: unknown) => err);
@@ -186,7 +186,7 @@ describe('chatWorkspaceService', () => {
       .getChatWorkspaceInternal({
         tenant,
         environment,
-        chatIntegrationInstanceProvider: provider,
+        chatInstanceProvider: provider,
         workspaceId: 'T123'
       })
       .catch((err: unknown) => err);
@@ -210,7 +210,7 @@ describe('chatWorkspaceService', () => {
       .getChatWorkspaceInternal({
         tenant,
         environment,
-        chatIntegrationInstanceProvider: provider,
+        chatInstanceProvider: provider,
         workspaceId: 'T123'
       })
       .catch((err: unknown) => err);
@@ -231,7 +231,7 @@ describe('chatWorkspaceService', () => {
       .getChatWorkspaceInternal({
         tenant,
         environment,
-        chatIntegrationInstanceProvider: provider,
+        chatInstanceProvider: provider,
         workspaceId: 'T123'
       })
       .catch((err: unknown) => err);
@@ -253,7 +253,7 @@ describe('chatWorkspaceService', () => {
     let result = await chatWorkspaceService.getChatWorkspaceInternal({
       tenant,
       environment,
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaceId: 'T123'
     });
 
@@ -282,13 +282,13 @@ describe('chatWorkspaceService', () => {
     let result = await chatWorkspaceService.getChatWorkspaceInternal({
       tenant,
       environment,
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaceId: 'T123'
     });
 
     expect(call).toHaveBeenCalledWith('metorial_chat$workspace.get', { workspaceId: 'T123' });
     expect(upsertChatWorkspace).toHaveBeenCalledWith({
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspace: { id: 'T123', name: 'Acme' }
     });
     expect(result).toEqual({ ...workspace, chat });
@@ -318,7 +318,7 @@ describe('chatWorkspaceService', () => {
     await chatWorkspaceService.getChatWorkspaceInternal({
       tenant,
       environment,
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaceId: 'cws_1'
     });
 
@@ -338,7 +338,7 @@ describe('chatWorkspaceService', () => {
       .getChatWorkspaceInternal({
         tenant,
         environment,
-        chatIntegrationInstanceProvider: provider,
+        chatInstanceProvider: provider,
         workspaceId: 'T999'
       })
       .catch((err: unknown) => err);

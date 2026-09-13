@@ -35,7 +35,7 @@ export let chatMessageAttachmentSyncQueueProcessor = chatMessageAttachmentSyncQu
 
     let chat = await db.chat.findUnique({
       where: { id: data.chatId },
-      include: { chatIntegrationInstanceProvider: true }
+      include: { chatInstanceProvider: true }
     });
     if (!chat) return;
 

@@ -1,9 +1,9 @@
 import { registerAdapterListener } from '@metorial-subspace/module-integration';
 import {
-  archiveChatIntegrationProjection,
+  archiveChatConnectionProjection,
   upsertChatInstanceProjection,
   upsertChatInstanceProviderProjection,
-  upsertChatIntegrationProjection,
+  upsertChatConnectionProjection,
   upsertChatProviderProjection
 } from './lib/project';
 
@@ -15,11 +15,11 @@ export let registerChatAdapterListener = () => {
 
   registerAdapterListener('chat', {
     async onIntegrationArchived({ adapterIntegration }) {
-      await archiveChatIntegrationProjection(adapterIntegration.oid);
+      await archiveChatConnectionProjection(adapterIntegration.oid);
     },
 
     async onProvidersSynced({ adapterIntegration, providers }) {
-      await upsertChatIntegrationProjection(adapterIntegration);
+      await upsertChatConnectionProjection(adapterIntegration);
       for (let provider of providers) {
         await upsertChatProviderProjection(provider);
       }

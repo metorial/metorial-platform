@@ -42,7 +42,7 @@ describe('chatAdapterService', () => {
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant,
       environment,
-      chatIntegrationInstanceProvider: {
+      chatInstanceProvider: {
         oid: 80n,
         status: 'active',
         adapterIntegrationInstanceProviderOid: 10n,
@@ -71,7 +71,7 @@ describe('chatAdapterService', () => {
       .getChatAdapterClientInternal({
         tenant,
         environment,
-        chatIntegrationInstanceProvider: {
+        chatInstanceProvider: {
           oid: 80n,
           status: 'archived',
           adapterIntegrationInstanceProviderOid: 10n,

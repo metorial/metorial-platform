@@ -1,7 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { type AttachmentRef, type ChatAdapterInstance } from '@metorial-subspace/adapter-chat';
-import { createSystemAuditScope } from '@metorial/audit-scope';
 import {
   type ChatMessage,
   type ChatMessageAttachment,
@@ -11,6 +10,7 @@ import {
   type Tenant,
   type ToolCallAttachment
 } from '@metorial-subspace/db';
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db as coreDb, type File } from '@metorial/db';
 import {
   chatMessageAttachmentFilePurposeSlug,
@@ -180,7 +180,7 @@ class chatMessageAttachmentInternalServiceImpl {
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
     assertFileDownloadCapability(client);
 
@@ -261,7 +261,7 @@ class chatMessageAttachmentInternalServiceImpl {
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
     assertFileDownloadCapability(client);
 

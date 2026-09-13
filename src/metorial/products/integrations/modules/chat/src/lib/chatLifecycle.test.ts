@@ -38,11 +38,11 @@ describe('chatLifecycle', () => {
   });
 
   it('archives chats that are not already deleted', async () => {
-    await archiveChatsWhere({ chatIntegrationInstanceOid: 20n }, new Date('2026-01-01'));
+    await archiveChatsWhere({ chatInstanceOid: 20n }, new Date('2026-01-01'));
 
     expect(tx.chat.updateMany).toHaveBeenCalledWith({
       where: {
-        AND: [{ chatIntegrationInstanceOid: 20n }, { status: { not: 'deleted' } }]
+        AND: [{ chatInstanceOid: 20n }, { status: { not: 'deleted' } }]
       },
       data: {
         status: 'archived',
@@ -53,11 +53,11 @@ describe('chatLifecycle', () => {
   });
 
   it('restores archived chats', async () => {
-    await restoreChatsWhere({ chatIntegrationInstanceProviderOid: 80n });
+    await restoreChatsWhere({ chatInstanceProviderOid: 80n });
 
     expect(tx.chat.updateMany).toHaveBeenCalledWith({
       where: {
-        AND: [{ chatIntegrationInstanceProviderOid: 80n }, { status: 'archived' }]
+        AND: [{ chatInstanceProviderOid: 80n }, { status: 'archived' }]
       },
       data: {
         status: 'active',
@@ -72,7 +72,7 @@ describe('chatLifecycle', () => {
       .mockResolvedValueOnce([{ oid: 500n }, { oid: 501n }])
       .mockResolvedValueOnce([]);
 
-    await deleteChatsWhere({ chatIntegrationOid: 10n });
+    await deleteChatsWhere({ chatConnectionOid: 10n });
 
     expect(tx.chatMessage.deleteMany).toHaveBeenCalledWith({
       where: { author: { chatOid: { in: [500n, 501n] } } }

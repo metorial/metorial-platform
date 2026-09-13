@@ -11,7 +11,7 @@ import {
   type Chat,
   type ChatChannel,
   type ChatEvent,
-  type ChatIntegrationInstanceProvider,
+  type ChatInstanceProvider,
   type ChatMessage,
   type ChatThread,
   db,
@@ -19,9 +19,9 @@ import {
   getId,
   type Tenant
 } from '@metorial-subspace/db';
+import { callbackEventInternalService } from '@metorial-subspace/module-callback';
 import { db as metorialDb } from '@metorial/db';
 import { eventTrackerService } from '@metorial/module-event-tracker';
-import { callbackEventInternalService } from '@metorial-subspace/module-callback';
 import { usingChatMessageLock } from '../lib/chatLock';
 import { isUniqueConstraintError } from '../lib/unique';
 import { chatChannelServiceInternal } from './chatChannel';
@@ -98,11 +98,11 @@ class chatEventInternalServiceImpl {
       return;
     }
 
-    let providers = await db.chatIntegrationInstanceProvider.findMany({
+    let providers = await db.chatInstanceProvider.findMany({
       where: {
         status: 'active',
         isParentDeleted: false,
-        chatIntegrationInstance: { status: 'active' },
+        chatInstance: { status: 'active' },
         adapterIntegrationInstanceProvider: {
           integrationInstanceProviderOid:
             callbackEvent.callbackInstance.integrationInstanceProviderOid,
@@ -132,11 +132,11 @@ class chatEventInternalServiceImpl {
 
     let payload = parsed.data as ChatTriggerPayload;
 
-    for (let chatIntegrationInstanceProvider of providers) {
+    for (let chatInstanceProvider of providers) {
       await this.ingestForProvider({
         tenant: callbackEvent.tenant,
         environment: callbackEvent.environment,
-        chatIntegrationInstanceProvider,
+        chatInstanceProvider,
         callbackEvent,
         payload
       });
@@ -144,15 +144,15 @@ class chatEventInternalServiceImpl {
   }
 
   private async resolveChat(d: {
-    chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+    chatInstanceProvider: ChatInstanceProvider;
     payload: ChatTriggerPayload;
   }) {
     let workspaceId = d.payload.channel?.workspaceId;
     if (workspaceId) {
       let workspace = await db.chatWorkspace.findUnique({
         where: {
-          chatIntegrationInstanceProviderOid_workspaceId: {
-            chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+          chatInstanceProviderOid_workspaceId: {
+            chatInstanceProviderOid: d.chatInstanceProvider.oid,
             workspaceId
           }
         },
@@ -163,7 +163,7 @@ class chatEventInternalServiceImpl {
 
     let chats = await db.chat.findMany({
       where: {
-        chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+        chatInstanceProviderOid: d.chatInstanceProvider.oid,
         status: 'active'
       },
       take: 2
@@ -177,7 +177,7 @@ class chatEventInternalServiceImpl {
   private async ingestForProvider(d: {
     tenant: Tenant;
     environment: Environment;
-    chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+    chatInstanceProvider: ChatInstanceProvider;
     callbackEvent: {
       oid: bigint;
       id: string;
@@ -189,7 +189,7 @@ class chatEventInternalServiceImpl {
     let chat = await this.resolveChat(d);
     if (!chat) {
       console.warn(
-        `CHAT.event.ingest.noChat callbackEventId=${d.callbackEvent.id} chatIntegrationInstanceProviderId=${d.chatIntegrationInstanceProvider.id}`
+        `CHAT.event.ingest.noChat callbackEventId=${d.callbackEvent.id} chatInstanceProviderId=${d.chatInstanceProvider.id}`
       );
       return;
     }
@@ -300,7 +300,7 @@ class chatEventInternalServiceImpl {
 
   private async recordChatEvent(d: {
     chat: Chat;
-    chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+    chatInstanceProvider: ChatInstanceProvider;
     callbackEvent: { oid: bigint; source: 'webhook' | 'polling'; occurredAt: Date };
     payload: ChatTriggerPayload;
     persisted: {
@@ -318,7 +318,7 @@ class chatEventInternalServiceImpl {
           })
         : null;
 
-    let provider = d.chatIntegrationInstanceProvider;
+    let provider = d.chatInstanceProvider;
 
     let payload = await chatEventPayloadServiceInternal.buildChatEventPayload({
       chat: d.chat,
@@ -337,9 +337,9 @@ class chatEventInternalServiceImpl {
           providerEventId: d.payload.id,
 
           chatOid: d.chat.oid,
-          chatIntegrationOid: provider.chatIntegrationOid,
-          chatIntegrationInstanceOid: provider.chatIntegrationInstanceOid,
-          chatIntegrationInstanceProviderOid: provider.oid,
+          chatConnectionOid: provider.chatConnectionOid,
+          chatInstanceOid: provider.chatInstanceOid,
+          chatInstanceProviderOid: provider.oid,
 
           channelOid: d.persisted.channel?.oid,
           threadOid: d.persisted.thread?.oid,
@@ -368,7 +368,7 @@ class chatEventInternalServiceImpl {
       });
       await this.trackSystemEvent({
         chatEvent,
-        chatIntegrationOid: provider.chatIntegrationOid
+        chatConnectionOid: provider.chatConnectionOid
       });
     } catch (err) {
       // Replaying the same callback event for the same chat must stay a no-op.
@@ -376,14 +376,14 @@ class chatEventInternalServiceImpl {
     }
   }
 
-  private async trackSystemEvent(d: { chatEvent: ChatEvent; chatIntegrationOid: bigint }) {
+  private async trackSystemEvent(d: { chatEvent: ChatEvent; chatConnectionOid: bigint }) {
     let instance = await metorialDb.instance.findUnique({
       where: { oid: d.chatEvent.instanceOid }
     });
     if (!instance) return;
 
-    let chatIntegration = await db.chatIntegration.findUniqueOrThrow({
-      where: { oid: d.chatIntegrationOid },
+    let chatConnection = await db.chatConnection.findUniqueOrThrow({
+      where: { oid: d.chatConnectionOid },
       select: { id: true }
     });
 
@@ -391,7 +391,7 @@ class chatEventInternalServiceImpl {
       organizationOid: instance.organizationOid,
       instanceOid: instance.oid,
       chatEventId: d.chatEvent.id,
-      chatIntegrationId: chatIntegration.id,
+      chatIntegrationId: chatConnection.id,
       eventType: d.chatEvent.type
     });
   }

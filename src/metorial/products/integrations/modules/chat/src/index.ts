@@ -20,7 +20,7 @@ void registerFileContentDelegate({
           include: {
             channel: {
               include: {
-                chat: { include: { chatIntegrationInstanceProvider: true } }
+                chat: { include: { chatInstanceProvider: true } }
               }
             }
           }
@@ -29,7 +29,7 @@ void registerFileContentDelegate({
     });
 
     let chat = attachment.message.channel.chat;
-    let ciip = chat.chatIntegrationInstanceProvider;
+    let ciip = chat.chatInstanceProvider;
 
     let [tenant, environment] = await Promise.all([
       db.tenant.findUniqueOrThrow({ where: { oid: ciip.tenantOid } }),

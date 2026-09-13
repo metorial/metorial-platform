@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { callbackService } from '@metorial-subspace/module-callback';
 import { providerTriggerService } from '@metorial-subspace/module-catalog';
-import { chatIntegrationService } from '@metorial-subspace/module-chat';
+import { chatConnectionService } from '@metorial-subspace/module-chat';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
@@ -99,12 +99,14 @@ class EventDestinationListenerServiceImpl {
     chatIntegrationId: string;
     eventTypes: string[];
   }) {
-    await chatIntegrationService.getChatIntegrationById({
+    await chatConnectionService.getChatConnectionById({
       instance: d.instance,
-      chatIntegrationId: d.chatIntegrationId
+      chatConnectionId: d.chatIntegrationId
     });
 
-    let invalid = d.eventTypes.filter(eventType => !chatEventNames.includes(eventType));
+    let invalid = d.eventTypes.filter(
+      eventType => !(chatEventNames as readonly string[]).includes(eventType)
+    );
     if (invalid.length > 0) {
       throw new ServiceError(
         badRequestError({

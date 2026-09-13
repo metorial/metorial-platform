@@ -16,10 +16,10 @@ let { tx } = vi.hoisted(() => {
       adapterIntegrationProvider: createModel(),
       adapterIntegrationInstance: createModel(),
       adapterIntegrationInstanceProvider: createModel(),
-      chatIntegration: createModel(),
-      chatIntegrationProvider: createModel(),
-      chatIntegrationInstance: createModel(),
-      chatIntegrationInstanceProvider: createModel(),
+      chatConnection: createModel(),
+      chatConnectionProvider: createModel(),
+      chatInstance: createModel(),
+      chatInstanceProvider: createModel(),
       chat: createModel(),
       integration: createModel(),
       integrationProvider: createModel(),
@@ -41,12 +41,12 @@ vi.mock('@metorial-subspace/module-integration', () => ({
 }));
 
 vi.mock('./queues/lifecycle', () => ({
-  enqueueChatIntegrationArchived: vi.fn(),
-  enqueueChatIntegrationCreated: vi.fn(),
-  enqueueChatIntegrationUpdated: vi.fn(),
-  enqueueChatIntegrationInstanceArchived: vi.fn(),
-  enqueueChatIntegrationInstanceCreated: vi.fn(),
-  enqueueChatIntegrationInstanceUpdated: vi.fn()
+  enqueueChatConnectionArchived: vi.fn(),
+  enqueueChatConnectionCreated: vi.fn(),
+  enqueueChatConnectionUpdated: vi.fn(),
+  enqueueChatInstanceArchived: vi.fn(),
+  enqueueChatInstanceCreated: vi.fn(),
+  enqueueChatInstanceUpdated: vi.fn()
 }));
 
 vi.mock('./queues/sync', () => ({
@@ -62,12 +62,12 @@ import { enqueueSyncChatWorkspacesForProvider } from './queues/sync';
 describe('chat projection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    tx.chatIntegration.findUnique.mockResolvedValue(null);
-    tx.chatIntegration.create.mockResolvedValue({ oid: 500n });
-    tx.chatIntegration.updateMany.mockResolvedValue({ count: 1 });
-    tx.chatIntegrationProvider.updateMany.mockResolvedValue({ count: 0 });
-    tx.chatIntegrationInstance.updateMany.mockResolvedValue({ count: 0 });
-    tx.chatIntegrationInstanceProvider.updateMany.mockResolvedValue({ count: 0 });
+    tx.chatConnection.findUnique.mockResolvedValue(null);
+    tx.chatConnection.create.mockResolvedValue({ oid: 500n });
+    tx.chatConnection.updateMany.mockResolvedValue({ count: 1 });
+    tx.chatConnectionProvider.updateMany.mockResolvedValue({ count: 0 });
+    tx.chatInstance.updateMany.mockResolvedValue({ count: 0 });
+    tx.chatInstanceProvider.updateMany.mockResolvedValue({ count: 0 });
     tx.chat.updateMany.mockResolvedValue({ count: 0 });
     tx.adapterIntegrationProvider.findMany.mockResolvedValue([]);
     tx.adapterIntegrationInstance.findMany.mockResolvedValue([]);
@@ -86,7 +86,7 @@ describe('chat projection', () => {
       solutionOid: 2
     } as any);
 
-    expect(tx.chatIntegration.create).toHaveBeenCalledWith(
+    expect(tx.chatConnection.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           name: 'Support',
@@ -103,7 +103,7 @@ describe('chat projection', () => {
       integrationOid: 20n
     } as any);
 
-    expect(tx.chatIntegration.updateMany).toHaveBeenCalled();
+    expect(tx.chatConnection.updateMany).toHaveBeenCalled();
     expect(tx.chat.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -112,11 +112,11 @@ describe('chat projection', () => {
         })
       })
     );
-    expect(tx.chatIntegration.create).not.toHaveBeenCalled();
+    expect(tx.chatConnection.create).not.toHaveBeenCalled();
   });
 
   it('projects draft instance status from the adapter instance', async () => {
-    tx.chatIntegration.findUnique.mockResolvedValue({ oid: 500n, status: 'active' });
+    tx.chatConnection.findUnique.mockResolvedValue({ oid: 500n, status: 'active' });
     tx.adapterIntegrationInstance.findMany.mockResolvedValue([
       {
         oid: 300n,
@@ -131,12 +131,12 @@ describe('chat projection', () => {
       }
     ]);
     tx.adapterIntegrationInstanceProvider.findMany.mockResolvedValue([]);
-    tx.chatIntegrationInstance.findUnique.mockResolvedValue(null);
+    tx.chatInstance.findUnique.mockResolvedValue(null);
     tx.integrationInstance.findUnique.mockResolvedValue({
       name: 'Bot',
       description: null
     });
-    tx.chatIntegrationInstance.create.mockResolvedValue({ oid: 700n });
+    tx.chatInstance.create.mockResolvedValue({ oid: 700n });
 
     await projectChatFromAdapterIntegration({
       oid: 100n,
@@ -149,7 +149,7 @@ describe('chat projection', () => {
       solutionOid: 2
     } as any);
 
-    expect(tx.chatIntegrationInstance.create).toHaveBeenCalledWith(
+    expect(tx.chatInstance.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: 'draft' })
       })
@@ -173,14 +173,14 @@ describe('upsertChatInstanceProviderProjection workspace sync', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    tx.chatIntegrationInstance.findUnique.mockResolvedValue({ oid: 70n, id: 'cii_1' });
-    tx.chatIntegrationProvider.findUnique.mockResolvedValue({ oid: 40n, name: 'Slack' });
-    tx.chatIntegration.findUnique.mockResolvedValue({ oid: 10n });
+    tx.chatInstance.findUnique.mockResolvedValue({ oid: 70n, id: 'cii_1' });
+    tx.chatConnectionProvider.findUnique.mockResolvedValue({ oid: 40n, name: 'Slack' });
+    tx.chatConnection.findUnique.mockResolvedValue({ oid: 10n });
   });
 
   it('enqueues workspace sync when an instance provider is created', async () => {
-    tx.chatIntegrationInstanceProvider.findUnique.mockResolvedValue(null);
-    tx.chatIntegrationInstanceProvider.create.mockResolvedValue({ id: 'ciip_new' });
+    tx.chatInstanceProvider.findUnique.mockResolvedValue(null);
+    tx.chatInstanceProvider.create.mockResolvedValue({ id: 'ciip_new' });
 
     await upsertChatInstanceProviderProjection(adapterInstanceProvider as any);
 
@@ -188,12 +188,12 @@ describe('upsertChatInstanceProviderProjection workspace sync', () => {
   });
 
   it('enqueues workspace sync when an archived instance provider is restored', async () => {
-    tx.chatIntegrationInstanceProvider.findUnique.mockResolvedValue({
+    tx.chatInstanceProvider.findUnique.mockResolvedValue({
       oid: 80n,
       id: 'ciip_1',
       status: 'archived'
     });
-    tx.chatIntegrationInstanceProvider.update.mockResolvedValue({ id: 'ciip_1' });
+    tx.chatInstanceProvider.update.mockResolvedValue({ id: 'ciip_1' });
 
     await upsertChatInstanceProviderProjection(adapterInstanceProvider as any);
 
@@ -209,12 +209,12 @@ describe('upsertChatInstanceProviderProjection workspace sync', () => {
   });
 
   it('does not enqueue workspace sync when the instance provider is already active', async () => {
-    tx.chatIntegrationInstanceProvider.findUnique.mockResolvedValue({
+    tx.chatInstanceProvider.findUnique.mockResolvedValue({
       oid: 80n,
       id: 'ciip_1',
       status: 'active'
     });
-    tx.chatIntegrationInstanceProvider.update.mockResolvedValue({ id: 'ciip_1' });
+    tx.chatInstanceProvider.update.mockResolvedValue({ id: 'ciip_1' });
 
     await upsertChatInstanceProviderProjection(adapterInstanceProvider as any);
 

@@ -125,15 +125,15 @@ export let voyagerIndex = {
     name: 'Identity Delegation Configs'
   }),
 
-  chatIntegration: await voyager.index.upsert({
+  chatConnection: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
-    identifier: getIndexName('chat_integration'),
-    name: 'Chat Integrations'
+    identifier: getIndexName('chat_connection'),
+    name: 'Chat Connections'
   }),
 
-  chatIntegrationInstance: await voyager.index.upsert({
+  chatInstance: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
-    identifier: getIndexName('chat_integration_instance'),
-    name: 'Chat Integration Instances'
+    identifier: getIndexName('chat_instance'),
+    name: 'Chat Instances'
   })
 };

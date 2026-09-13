@@ -1,37 +1,37 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
-  chatIntegrationArchiveInstancesManyQueueProcessor,
-  chatIntegrationArchiveProvidersManyQueueProcessor,
-  chatIntegrationArchivedQueueProcessor,
-  chatIntegrationCreatedQueueProcessor,
-  chatIntegrationDeletedQueueProcessor,
-  chatIntegrationInstanceArchivedQueueProcessor,
-  chatIntegrationInstanceCreatedQueueProcessor,
-  chatIntegrationInstanceDeletedQueueProcessor,
-  chatIntegrationInstanceUpdatedQueueProcessor,
-  chatIntegrationUpdatedQueueProcessor
-} from './chatIntegration';
+  chatConnectionArchiveInstancesManyQueueProcessor,
+  chatConnectionArchiveProvidersManyQueueProcessor,
+  chatConnectionArchivedQueueProcessor,
+  chatConnectionCreatedQueueProcessor,
+  chatConnectionDeletedQueueProcessor,
+  chatInstanceArchivedQueueProcessor,
+  chatInstanceCreatedQueueProcessor,
+  chatInstanceDeletedQueueProcessor,
+  chatInstanceUpdatedQueueProcessor,
+  chatConnectionUpdatedQueueProcessor
+} from './chatConnection';
 
 export let lifecycleQueues = combineQueueProcessors([
-  chatIntegrationCreatedQueueProcessor,
-  chatIntegrationUpdatedQueueProcessor,
-  chatIntegrationArchivedQueueProcessor,
-  chatIntegrationArchiveInstancesManyQueueProcessor,
-  chatIntegrationArchiveProvidersManyQueueProcessor,
-  chatIntegrationDeletedQueueProcessor,
-  chatIntegrationInstanceCreatedQueueProcessor,
-  chatIntegrationInstanceUpdatedQueueProcessor,
-  chatIntegrationInstanceArchivedQueueProcessor,
-  chatIntegrationInstanceDeletedQueueProcessor
+  chatConnectionCreatedQueueProcessor,
+  chatConnectionUpdatedQueueProcessor,
+  chatConnectionArchivedQueueProcessor,
+  chatConnectionArchiveInstancesManyQueueProcessor,
+  chatConnectionArchiveProvidersManyQueueProcessor,
+  chatConnectionDeletedQueueProcessor,
+  chatInstanceCreatedQueueProcessor,
+  chatInstanceUpdatedQueueProcessor,
+  chatInstanceArchivedQueueProcessor,
+  chatInstanceDeletedQueueProcessor
 ]);
 
 export {
-  enqueueChatIntegrationArchived,
-  enqueueChatIntegrationCreated,
-  enqueueChatIntegrationDeleted,
-  enqueueChatIntegrationInstanceArchived,
-  enqueueChatIntegrationInstanceCreated,
-  enqueueChatIntegrationInstanceDeleted,
-  enqueueChatIntegrationInstanceUpdated,
-  enqueueChatIntegrationUpdated
-} from './chatIntegration';
+  enqueueChatConnectionArchived,
+  enqueueChatConnectionCreated,
+  enqueueChatConnectionDeleted,
+  enqueueChatInstanceArchived,
+  enqueueChatInstanceCreated,
+  enqueueChatInstanceDeleted,
+  enqueueChatInstanceUpdated,
+  enqueueChatConnectionUpdated
+} from './chatConnection';

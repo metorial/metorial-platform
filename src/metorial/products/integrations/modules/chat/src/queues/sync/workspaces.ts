@@ -24,11 +24,11 @@ export let syncChatWorkspacesManyQueue = createQueue<{ cursor?: string }>({
 
 export let syncChatWorkspacesManyQueueProcessor = syncChatWorkspacesManyQueue.process(
   async data => {
-    let providers = await db.chatIntegrationInstanceProvider.findMany({
+    let providers = await db.chatInstanceProvider.findMany({
       where: {
         status: 'active',
         isParentDeleted: false,
-        chatIntegrationInstance: { status: 'active' },
+        chatInstance: { status: 'active' },
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },
@@ -39,7 +39,7 @@ export let syncChatWorkspacesManyQueueProcessor = syncChatWorkspacesManyQueue.pr
 
     await syncChatWorkspacesForProviderQueue.addMany(
       providers.map(provider => ({
-        chatIntegrationInstanceProviderId: provider.id
+        chatInstanceProviderId: provider.id
       }))
     );
 
@@ -53,7 +53,7 @@ export let syncChatWorkspacesManyQueueProcessor = syncChatWorkspacesManyQueue.pr
 );
 
 export let syncChatWorkspacesForProviderQueue = createQueue<{
-  chatIntegrationInstanceProviderId: string;
+  chatInstanceProviderId: string;
   cursor?: string;
 }>({
   name: 'sub/cht/sync/workspaces/provider',
@@ -61,39 +61,37 @@ export let syncChatWorkspacesForProviderQueue = createQueue<{
   workerOpts: { concurrency: 5 }
 });
 
-export let enqueueSyncChatWorkspacesForProvider = (
-  chatIntegrationInstanceProviderId: string
-) =>
+export let enqueueSyncChatWorkspacesForProvider = (chatInstanceProviderId: string) =>
   addAfterTransactionHook(async () => {
     await syncChatWorkspacesForProviderQueue.add(
-      { chatIntegrationInstanceProviderId },
-      { id: `ws-sync-${chatIntegrationInstanceProviderId}` }
+      { chatInstanceProviderId },
+      { id: `ws-sync-${chatInstanceProviderId}` }
     );
   });
 
 export let syncChatWorkspacesForProviderQueueProcessor =
   syncChatWorkspacesForProviderQueue.process(async data => {
-    let chatIntegrationInstanceProvider = await db.chatIntegrationInstanceProvider.findUnique({
-      where: { id: data.chatIntegrationInstanceProviderId },
+    let chatInstanceProvider = await db.chatInstanceProvider.findUnique({
+      where: { id: data.chatInstanceProviderId },
       include: {
-        chatIntegrationInstance: true,
+        chatInstance: true,
         tenant: true,
         environment: true
       }
     });
     if (
-      !chatIntegrationInstanceProvider ||
-      chatIntegrationInstanceProvider.status !== 'active' ||
-      chatIntegrationInstanceProvider.isParentDeleted
+      !chatInstanceProvider ||
+      chatInstanceProvider.status !== 'active' ||
+      chatInstanceProvider.isParentDeleted
     ) {
       return;
     }
-    if (chatIntegrationInstanceProvider.chatIntegrationInstance.status !== 'active') return;
+    if (chatInstanceProvider.chatInstance.status !== 'active') return;
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
-      tenant: chatIntegrationInstanceProvider.tenant,
-      environment: chatIntegrationInstanceProvider.environment,
-      chatIntegrationInstanceProvider
+      tenant: chatInstanceProvider.tenant,
+      environment: chatInstanceProvider.environment,
+      chatInstanceProvider
     });
 
     if (!client.isCapabilityAvailable('workspace_read')) return;
@@ -108,7 +106,7 @@ export let syncChatWorkspacesForProviderQueueProcessor =
 
       if (!shouldRetryChatCall(listed.result.output)) {
         console.warn(
-          `CHAT.sync.workspaces.terminal providerId=${data.chatIntegrationInstanceProviderId} code=${failure.code} providerCode=${failure.providerCode ?? 'none'}`
+          `CHAT.sync.workspaces.terminal providerId=${data.chatInstanceProviderId} code=${failure.code} providerCode=${failure.providerCode ?? 'none'}`
         );
         return;
       }
@@ -120,13 +118,13 @@ export let syncChatWorkspacesForProviderQueueProcessor =
     if (workspaces.length === 0) return;
 
     await chatWorkspaceInternalService.upsertChatWorkspaces({
-      chatIntegrationInstanceProvider,
+      chatInstanceProvider,
       workspaces
     });
 
     if (listed.result.output.nextCursor) {
       await syncChatWorkspacesForProviderQueue.add({
-        chatIntegrationInstanceProviderId: data.chatIntegrationInstanceProviderId,
+        chatInstanceProviderId: data.chatInstanceProviderId,
         cursor: listed.result.output.nextCursor
       });
     }

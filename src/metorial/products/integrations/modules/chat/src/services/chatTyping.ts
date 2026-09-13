@@ -55,12 +55,12 @@ class chatTypingServiceImpl {
   async startTypingInternal(
     d: { tenant: Tenant; environment: Environment } & StartTypingParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     assertTypingCapability(client);

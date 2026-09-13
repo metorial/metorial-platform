@@ -44,10 +44,10 @@ model AdapterIntegration {
   instanceProviders        AdapterIntegrationInstanceProvider[]
   instanceProviderSessions AdapterIntegrationInstanceProviderSession[]
 
-  chatIntegration                  ChatIntegration?
-  chatIntegrationProviders         ChatIntegrationProvider[]
-  chatIntegrationInstances         ChatIntegrationInstance[]
-  chatIntegrationInstanceProviders ChatIntegrationInstanceProvider[]
+  chatConnection                  ChatConnection?
+  chatConnectionProviders         ChatConnectionProvider[]
+  chatInstances         ChatInstance[]
+  chatInstanceProviders ChatInstanceProvider[]
 
   @@index([createdAt])
   @@index([type])
@@ -99,8 +99,8 @@ model AdapterIntegrationProvider {
 
   instanceProviders AdapterIntegrationInstanceProvider[]
 
-  chatIntegrationProviders         ChatIntegrationProvider[]
-  chatIntegrationInstanceProviders ChatIntegrationInstanceProvider[]
+  chatConnectionProviders         ChatConnectionProvider[]
+  chatInstanceProviders ChatInstanceProvider[]
 
   @@unique([adapterIntegrationOid, integrationProviderOid])
   @@index([createdAt])

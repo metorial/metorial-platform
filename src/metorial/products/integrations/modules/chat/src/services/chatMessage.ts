@@ -153,12 +153,12 @@ class chatMessageServiceImpl {
   async listChatMessagesInternal(
     d: { tenant: Tenant; environment: Environment } & ListChatMessagesParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     let search = d.search?.trim() || undefined;
@@ -342,7 +342,8 @@ class chatMessageServiceImpl {
             channelOid: localChannel.oid,
             deletedAt: null,
             ...(threadOid !== undefined ? { threadOid } : {})
-          }
+          },
+          include: { author: true }
         });
 
         let threadOids = [
@@ -378,12 +379,12 @@ class chatMessageServiceImpl {
   async getChatMessageInternal(
     d: { tenant: Tenant; environment: Environment } & GetChatMessageParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     let message = await withChatCapabilityFallback(client, 'message_read', {
@@ -440,7 +441,8 @@ class chatMessageServiceImpl {
         channelOid: localChannel.oid,
         deletedAt: null,
         OR: [{ id: d.messageId }, { messageId: d.messageId }]
-      }
+      },
+      include: { author: true }
     });
 
     let thread = local?.threadOid
@@ -468,12 +470,12 @@ class chatMessageServiceImpl {
     d: { tenant: Tenant; environment: Environment } & SendChatMessageParams
   ) {
     return usingChatMessageLock(d.chat.oid, async () => {
-      checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+      checkTenant(d, d.chat.chatInstanceProvider);
 
       let client = await chatAdapterService.getChatAdapterClientInternal({
         tenant: d.tenant,
         environment: d.environment,
-        chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+        chatInstanceProvider: d.chat.chatInstanceProvider
       });
 
       if (d.ephemeral) assertMessageSendEphemeralCapability(client);
@@ -740,12 +742,12 @@ class chatMessageServiceImpl {
     d: { tenant: Tenant; environment: Environment } & EditChatMessageParams
   ) {
     return usingChatMessageLock(d.chat.oid, async () => {
-      checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+      checkTenant(d, d.chat.chatInstanceProvider);
 
       let client = await chatAdapterService.getChatAdapterClientInternal({
         tenant: d.tenant,
         environment: d.environment,
-        chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+        chatInstanceProvider: d.chat.chatInstanceProvider
       });
 
       assertMessageEditCapability(client);
@@ -804,12 +806,12 @@ class chatMessageServiceImpl {
     d: { tenant: Tenant; environment: Environment } & DeleteChatMessageParams
   ) {
     return usingChatMessageLock(d.chat.oid, async () => {
-      checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+      checkTenant(d, d.chat.chatInstanceProvider);
 
       let client = await chatAdapterService.getChatAdapterClientInternal({
         tenant: d.tenant,
         environment: d.environment,
-        chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+        chatInstanceProvider: d.chat.chatInstanceProvider
       });
 
       assertMessageDeleteCapability(client);
@@ -864,12 +866,12 @@ class chatMessageServiceImpl {
   async markChatMessageReadInternal(
     d: { tenant: Tenant; environment: Environment } & MarkChatMessageReadParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     assertMessageMarkReadCapability(client);

@@ -23,7 +23,7 @@ let {
   return {
     db: {
       callbackEvent: createModel(),
-      chatIntegrationInstanceProvider: createModel(),
+      chatInstanceProvider: createModel(),
       chatWorkspace: createModel(),
       chat: createModel(),
       chatChannel: createModel(),
@@ -31,7 +31,7 @@ let {
       chatMessage: createModel(),
       chatAuthor: createModel(),
       chatEvent: createModel(),
-      chatIntegration: createModel()
+      chatConnection: createModel()
     },
     metorialDb: { instance: createModel() },
     safeParse: vi.fn(),
@@ -100,8 +100,8 @@ let channel = { oid: BigInt(50), id: 'chc_1', channelId: 'C1' };
 let provider = {
   oid: BigInt(80),
   id: 'ciip_1',
-  chatIntegrationOid: BigInt(10),
-  chatIntegrationInstanceOid: BigInt(20),
+  chatConnectionOid: BigInt(10),
+  chatInstanceOid: BigInt(20),
   tenantOid: BigInt(1),
   projectOid: BigInt(11),
   environmentOid: BigInt(2),
@@ -138,7 +138,7 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     db.callbackEvent.findUnique.mockResolvedValue(callbackEvent());
-    db.chatIntegrationInstanceProvider.findMany.mockResolvedValue([provider]);
+    db.chatInstanceProvider.findMany.mockResolvedValue([provider]);
     db.chatWorkspace.findUnique.mockResolvedValue({ chat });
     db.chatAuthor.findUnique.mockResolvedValue(null);
     db.chatEvent.create.mockResolvedValue({
@@ -147,7 +147,7 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
       type: parsedPayload.type,
       instanceOid: BigInt(33)
     });
-    db.chatIntegration.findUniqueOrThrow.mockResolvedValue({ id: 'chi_1' });
+    db.chatConnection.findUniqueOrThrow.mockResolvedValue({ id: 'chi_1' });
     metorialDb.instance.findUnique.mockResolvedValue({
       oid: BigInt(33),
       organizationOid: BigInt(4)
@@ -168,7 +168,7 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
         source: 'webhook',
         providerEventId: 'evt_1',
         chatOid: BigInt(5),
-        chatIntegrationInstanceProviderOid: BigInt(80),
+        chatInstanceProviderOid: BigInt(80),
         channelOid: BigInt(50),
         callbackEventOid: BigInt(900)
       })
@@ -211,7 +211,7 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
       chatEventInternalService.ingestCallbackEvent({ callbackEventId: 'cbe_1' })
     ).resolves.toBeUndefined();
 
-    expect(db.chatIntegrationInstanceProvider.findMany).not.toHaveBeenCalled();
+    expect(db.chatInstanceProvider.findMany).not.toHaveBeenCalled();
     expect(db.chatEvent.create).not.toHaveBeenCalled();
   });
 
@@ -236,7 +236,7 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
   });
 
   it('ignores an event whose callback instance has no active chat provider', async () => {
-    db.chatIntegrationInstanceProvider.findMany.mockResolvedValue([]);
+    db.chatInstanceProvider.findMany.mockResolvedValue([]);
 
     await chatEventInternalService.ingestCallbackEvent({ callbackEventId: 'cbe_1' });
 
@@ -275,6 +275,6 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
 
     await chatEventInternalService.ingestCallbackEvent({ callbackEventId: 'cbe_gone' });
 
-    expect(db.chatIntegrationInstanceProvider.findMany).not.toHaveBeenCalled();
+    expect(db.chatInstanceProvider.findMany).not.toHaveBeenCalled();
   });
 });

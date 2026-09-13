@@ -102,12 +102,12 @@ class chatDmServiceImpl {
   async openSingleDmInternal(
     d: { tenant: Tenant; environment: Environment } & OpenSingleDmParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     assertDmCapability(client, 'dm_open_single');
@@ -140,12 +140,12 @@ class chatDmServiceImpl {
   async openGroupDmInternal(
     d: { tenant: Tenant; environment: Environment } & OpenGroupDmParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     assertDmCapability(client, 'dm_open_group');

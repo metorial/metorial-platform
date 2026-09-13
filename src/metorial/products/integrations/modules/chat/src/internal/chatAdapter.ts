@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { ChatAdapterClient, type ChatAdapterInstance } from '@metorial-subspace/adapter-chat';
 import {
-  type ChatIntegrationInstanceProvider,
+  type ChatInstanceProvider,
   type Environment,
   type Tenant
 } from '@metorial-subspace/db';
@@ -14,7 +14,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 
 export type GetChatAdapterClientParams = {
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+  chatInstanceProvider: ChatInstanceProvider;
 };
 
 class chatAdapterServiceImpl {
@@ -33,9 +33,9 @@ class chatAdapterServiceImpl {
   async getChatAdapterClientInternal(
     d: { tenant: Tenant; environment: Environment } & GetChatAdapterClientParams
   ): Promise<ChatAdapterInstance> {
-    checkTenant(d, d.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chatInstanceProvider);
 
-    if (d.chatIntegrationInstanceProvider.status !== 'active') {
+    if (d.chatInstanceProvider.status !== 'active') {
       throw new ServiceError(
         badRequestError({
           code: 'chat_integration_instance_provider_archived',
@@ -48,7 +48,7 @@ class chatAdapterServiceImpl {
       tenant: d.tenant,
       environment: d.environment,
       adapterInstanceProvider: {
-        oid: d.chatIntegrationInstanceProvider.adapterIntegrationInstanceProviderOid
+        oid: d.chatInstanceProvider.adapterIntegrationInstanceProviderOid
       }
     });
 

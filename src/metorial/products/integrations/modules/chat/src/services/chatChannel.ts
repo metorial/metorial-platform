@@ -5,7 +5,8 @@ import {
   type Chat,
   type ChatChannel,
   type ChatChannelType,
-  type ChatIntegrationInstanceProvider,
+  type ChatInstanceProvider,
+  type ChatWorkspace,
   db,
   type Environment,
   type Tenant
@@ -21,10 +22,13 @@ import { requireLocalChatEntity, withChatCapabilityFallback } from '../lib/chatC
 import { unwrapChatCall } from '../lib/chatError';
 
 export type ChatWithProvider = Chat & {
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+  chatInstanceProvider: ChatInstanceProvider;
 };
 
-export type ChatChannelWithChat = ChatChannel & { chat: Chat };
+export type ChatChannelWithChat = ChatChannel & {
+  chat: Chat;
+  workspace: ChatWorkspace | null;
+};
 
 export type ListChatChannelsParams = {
   chat: ChatWithProvider;
@@ -52,12 +56,12 @@ class chatChannelServiceImpl {
   async listChatChannelsInternal(
     d: { tenant: Tenant; environment: Environment } & ListChatChannelsParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     return withChatCapabilityFallback(client, 'channel_read', {
@@ -76,7 +80,7 @@ class chatChannelServiceImpl {
 
       let localWorkspace = await db.chatWorkspace.findFirst({
         where: {
-          chatIntegrationInstanceProviderOid: d.chat.chatIntegrationInstanceProviderOid,
+          chatInstanceProviderOid: d.chat.chatInstanceProviderOid,
           OR: [{ id: d.workspaceId }, { workspaceId: d.workspaceId }]
         }
       });
@@ -121,7 +125,7 @@ class chatChannelServiceImpl {
         if (d.workspaceId) {
           let workspace = await db.chatWorkspace.findFirst({
             where: {
-              chatIntegrationInstanceProviderOid: d.chat.chatIntegrationInstanceProviderOid,
+              chatInstanceProviderOid: d.chat.chatInstanceProviderOid,
               OR: [{ id: d.workspaceId }, { workspaceId: d.workspaceId }]
             }
           });
@@ -146,7 +150,7 @@ class chatChannelServiceImpl {
                 }
               : {})
           },
-          include: { chat: true }
+          include: { chat: true, workspace: true }
         });
       })
     );
@@ -165,12 +169,12 @@ class chatChannelServiceImpl {
   async getChatChannelInternal(
     d: { tenant: Tenant; environment: Environment } & GetChatChannelParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     return withChatCapabilityFallback(client, 'channel_read', {
@@ -210,7 +214,7 @@ class chatChannelServiceImpl {
         chatOid: d.chat.oid,
         OR: [{ id: d.channelId }, { channelId: d.channelId }]
       },
-      include: { chat: true }
+      include: { chat: true, workspace: true }
     });
 
     return requireLocalChatEntity('chatChannel', d.channelId, local);

@@ -13,7 +13,7 @@ let { tx } = vi.hoisted(() => {
     tx: {
       chat: createModel(),
       chatWorkspace: createModel(),
-      chatIntegrationInstanceProvider: createModel()
+      chatInstanceProvider: createModel()
     }
   };
 });
@@ -43,14 +43,15 @@ vi.mock('@metorial-subspace/db', () => ({
 
 import { chatWorkspaceInternalService } from './chatWorkspace';
 
-let workspaceSyncHash = (payload: Record<string, unknown>) => `hash:${JSON.stringify(payload)}`;
+let workspaceSyncHash = (payload: Record<string, unknown>) =>
+  `hash:${JSON.stringify(payload)}`;
 
 let provider = {
   oid: 80n,
   id: 'ciip_1',
   status: 'active',
-  chatIntegrationOid: 10n,
-  chatIntegrationInstanceOid: 20n
+  chatConnectionOid: 10n,
+  chatInstanceOid: 20n
 } as any;
 
 let binding = {
@@ -68,7 +69,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     tx.chatWorkspace.findMany.mockResolvedValue([]);
-    tx.chatIntegrationInstanceProvider.findUniqueOrThrow.mockResolvedValue(binding);
+    tx.chatInstanceProvider.findUniqueOrThrow.mockResolvedValue(binding);
     tx.chat.create.mockResolvedValue({ oid: 500n, name: 'Acme', status: 'active' });
     tx.chatWorkspace.create.mockResolvedValue({
       oid: 8n,
@@ -79,7 +80,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
 
   it('creates chats and workspaces for new adapter workspaces', async () => {
     let result = await chatWorkspaceInternalService.upsertChatWorkspaces({
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaces: [
         {
           id: 'T123',
@@ -91,13 +92,13 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
       ]
     });
 
-    expect(tx.chatIntegrationInstanceProvider.findUniqueOrThrow).toHaveBeenCalledTimes(1);
+    expect(tx.chatInstanceProvider.findUniqueOrThrow).toHaveBeenCalledTimes(1);
     expect(tx.chat.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           status: 'active',
           name: 'Acme',
-          chatIntegrationInstanceProviderOid: 80n,
+          chatInstanceProviderOid: 80n,
           adapterOid: 99n,
           providerOid: 7n
         })
@@ -117,7 +118,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
             raw: { team: 'T123' }
           }),
           chatOid: 500n,
-          chatIntegrationInstanceProviderOid: 80n
+          chatInstanceProviderOid: 80n
         })
       })
     );
@@ -134,14 +135,14 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
       .mockResolvedValueOnce({ oid: 9n, workspaceId: 'T456', name: 'Beta' });
 
     await chatWorkspaceInternalService.upsertChatWorkspaces({
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaces: [
         { id: 'T123', name: 'Acme' },
         { id: 'T456', name: 'Beta' }
       ]
     });
 
-    expect(tx.chatIntegrationInstanceProvider.findUniqueOrThrow).toHaveBeenCalledTimes(1);
+    expect(tx.chatInstanceProvider.findUniqueOrThrow).toHaveBeenCalledTimes(1);
     expect(tx.chat.create).toHaveBeenCalledTimes(2);
     expect(tx.chatWorkspace.create).toHaveBeenCalledTimes(2);
   });
@@ -173,7 +174,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
     ]);
 
     let result = await chatWorkspaceInternalService.upsertChatWorkspaces({
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaces: [{ id: 'T123', name: 'Acme' }]
     });
 
@@ -181,7 +182,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
     expect(tx.chat.update).not.toHaveBeenCalled();
     expect(tx.chatWorkspace.create).not.toHaveBeenCalled();
     expect(tx.chatWorkspace.update).not.toHaveBeenCalled();
-    expect(tx.chatIntegrationInstanceProvider.findUniqueOrThrow).not.toHaveBeenCalled();
+    expect(tx.chatInstanceProvider.findUniqueOrThrow).not.toHaveBeenCalled();
     expect(result[0]!.workspace.workspaceId).toBe('T123');
   });
 
@@ -219,7 +220,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
     });
 
     await chatWorkspaceInternalService.upsertChatWorkspaces({
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaces: [{ id: 'T123', name: 'Acme', raw: { team: 'new' } }]
     });
 
@@ -260,7 +261,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
     ]);
 
     let result = await chatWorkspaceInternalService.upsertChatWorkspaces({
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspaces: [{ id: 'T123', name: 'Acme' }]
     });
 
@@ -276,7 +277,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     tx.chatWorkspace.findMany.mockResolvedValue([]);
-    tx.chatIntegrationInstanceProvider.findUniqueOrThrow.mockResolvedValue(binding);
+    tx.chatInstanceProvider.findUniqueOrThrow.mockResolvedValue(binding);
     tx.chat.create.mockResolvedValue({ oid: 500n, name: 'Acme', status: 'active' });
     tx.chatWorkspace.create.mockResolvedValue({
       oid: 8n,
@@ -287,7 +288,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspace', () => {
 
   it('delegates to upsertChatWorkspaces for a single workspace', async () => {
     let result = await chatWorkspaceInternalService.upsertChatWorkspace({
-      chatIntegrationInstanceProvider: provider,
+      chatInstanceProvider: provider,
       workspace: {
         id: 'T123',
         name: 'Acme',

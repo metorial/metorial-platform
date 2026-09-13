@@ -13,12 +13,12 @@ import {
   isLiveAdapterStatus
 } from '@metorial-subspace/module-integration';
 import {
-  enqueueChatIntegrationArchived,
-  enqueueChatIntegrationCreated,
-  enqueueChatIntegrationInstanceArchived,
-  enqueueChatIntegrationInstanceCreated,
-  enqueueChatIntegrationInstanceUpdated,
-  enqueueChatIntegrationUpdated
+  enqueueChatConnectionArchived,
+  enqueueChatConnectionCreated,
+  enqueueChatConnectionUpdated,
+  enqueueChatInstanceArchived,
+  enqueueChatInstanceCreated,
+  enqueueChatInstanceUpdated
 } from '../queues/lifecycle';
 import { enqueueSyncChatWorkspacesForProvider } from '../queues/sync';
 import { archiveChatsWhere, restoreChatsWhere } from './chatLifecycle';
@@ -28,61 +28,61 @@ let now = () => new Date();
 let getSlug = (name: string) =>
   `${slugify(name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
 
-export let archiveChatIntegrationProjection = async (adapterIntegrationOid: bigint) => {
+export let archiveChatConnectionProjection = async (adapterIntegrationOid: bigint) => {
   return withTransaction(async db => {
     let archivedAt = now();
 
-    await db.chatIntegrationInstanceProvider.updateMany({
+    await db.chatInstanceProvider.updateMany({
       where: { adapterIntegrationOid, status: { not: 'deleted' } },
       data: { status: 'archived', archivedAt, isParentDeleted: true }
     });
-    await db.chatIntegrationInstance.updateMany({
+    await db.chatInstance.updateMany({
       where: { adapterIntegrationOid, status: { not: 'deleted' } },
       data: { status: 'archived', archivedAt, isParentDeleted: true }
     });
-    await db.chatIntegrationProvider.updateMany({
+    await db.chatConnectionProvider.updateMany({
       where: { adapterIntegrationOid, status: { not: 'deleted' } },
       data: { status: 'archived', archivedAt }
     });
-    await db.chatIntegration.updateMany({
+    await db.chatConnection.updateMany({
       where: { adapterIntegrationOid, status: { not: 'deleted' } },
       data: { status: 'archived', archivedAt }
     });
-    await archiveChatsWhere({ chatIntegration: { adapterIntegrationOid } }, archivedAt);
+    await archiveChatsWhere({ chatConnection: { adapterIntegrationOid } }, archivedAt);
   });
 };
 
-export let upsertChatIntegrationProjection = async (
+export let upsertChatConnectionProjection = async (
   adapterIntegration: AdapterIntegration,
   input?: { name?: string; description?: string | null; metadata?: Record<string, any> | null }
 ) => {
   return withTransaction(async db => {
     if (!isLiveAdapterStatus(adapterIntegration.status)) {
-      await archiveChatIntegrationProjection(adapterIntegration.oid);
-      let archived = await db.chatIntegration.findUnique({
+      await archiveChatConnectionProjection(adapterIntegration.oid);
+      let archived = await db.chatConnection.findUnique({
         where: { adapterIntegrationOid: adapterIntegration.oid }
       });
-      if (archived) await enqueueChatIntegrationArchived(archived.id);
+      if (archived) await enqueueChatConnectionArchived(archived.id);
       return archived;
     }
 
-    let existing = await db.chatIntegration.findUnique({
+    let existing = await db.chatConnection.findUnique({
       where: { adapterIntegrationOid: adapterIntegration.oid }
     });
     if (existing) {
       if (existing.status === 'archived') {
-        let restored = await db.chatIntegration.update({
+        let restored = await db.chatConnection.update({
           where: { oid: existing.oid },
           data: {
             status: 'active',
             archivedAt: null
           }
         });
-        await enqueueChatIntegrationUpdated(restored.id);
+        await enqueueChatConnectionUpdated(restored.id);
         return restored;
       }
       if (existing.status === 'deleted') return existing;
-      await enqueueChatIntegrationUpdated(existing.id);
+      await enqueueChatConnectionUpdated(existing.id);
       return existing;
     }
 
@@ -91,9 +91,9 @@ export let upsertChatIntegrationProjection = async (
     });
     let name = input?.name?.trim() || integration.name;
 
-    let created = await db.chatIntegration.create({
+    let created = await db.chatConnection.create({
       data: {
-        ...getId('chatIntegration'),
+        ...getId('chatConnection'),
         status: 'active',
         slug: getSlug(name),
         name,
@@ -107,7 +107,7 @@ export let upsertChatIntegrationProjection = async (
         solutionOid: adapterIntegration.solutionOid
       }
     });
-    await enqueueChatIntegrationCreated(created.id);
+    await enqueueChatConnectionCreated(created.id);
     return created;
   });
 };
@@ -116,22 +116,22 @@ export let upsertChatProviderProjection = async (
   adapterProvider: AdapterIntegrationProvider
 ) => {
   return withTransaction(async db => {
-    let chatIntegration = await db.chatIntegration.findUnique({
+    let chatConnection = await db.chatConnection.findUnique({
       where: { adapterIntegrationOid: adapterProvider.adapterIntegrationOid }
     });
-    if (!chatIntegration) return null;
+    if (!chatConnection) return null;
 
-    let existing = await db.chatIntegrationProvider.findUnique({
+    let existing = await db.chatConnectionProvider.findUnique({
       where: { adapterIntegrationProviderOid: adapterProvider.oid }
     });
 
     if (!isLiveAdapterStatus(adapterProvider.status)) {
       if (!existing || existing.status === 'deleted') return existing;
-      let archived = await db.chatIntegrationProvider.update({
+      let archived = await db.chatConnectionProvider.update({
         where: { oid: existing.oid },
         data: { status: 'archived', archivedAt: now() }
       });
-      await enqueueChatIntegrationUpdated(chatIntegration.id);
+      await enqueueChatConnectionUpdated(chatConnection.id);
       return archived;
     }
 
@@ -142,22 +142,22 @@ export let upsertChatProviderProjection = async (
 
     if (existing) {
       if (existing.status === 'deleted') return existing;
-      let updated = await db.chatIntegrationProvider.update({
+      let updated = await db.chatConnectionProvider.update({
         where: { oid: existing.oid },
         data: { status: 'active', archivedAt: null, name }
       });
-      await enqueueChatIntegrationUpdated(chatIntegration.id);
+      await enqueueChatConnectionUpdated(chatConnection.id);
       return updated;
     }
 
-    let created = await db.chatIntegrationProvider.create({
+    let created = await db.chatConnectionProvider.create({
       data: {
-        ...getId('chatIntegrationProvider'),
+        ...getId('chatConnectionProvider'),
         status: 'active',
         name,
         description: integrationProvider?.description ?? null,
         metadata: {},
-        chatIntegrationOid: chatIntegration.oid,
+        chatConnectionOid: chatConnection.oid,
         adapterIntegrationOid: adapterProvider.adapterIntegrationOid,
         adapterIntegrationProviderOid: adapterProvider.oid,
         tenantOid: adapterProvider.tenantOid,
@@ -167,7 +167,7 @@ export let upsertChatProviderProjection = async (
         solutionOid: adapterProvider.solutionOid
       }
     });
-    await enqueueChatIntegrationUpdated(chatIntegration.id);
+    await enqueueChatConnectionUpdated(chatConnection.id);
     return created;
   });
 };
@@ -177,30 +177,27 @@ export let upsertChatInstanceProjection = async (
   input?: { name?: string; description?: string | null; metadata?: Record<string, any> | null }
 ) => {
   return withTransaction(async db => {
-    let chatIntegration = await db.chatIntegration.findUnique({
+    let chatConnection = await db.chatConnection.findUnique({
       where: { adapterIntegrationOid: adapterInstance.adapterIntegrationOid }
     });
-    if (!chatIntegration) return null;
+    if (!chatConnection) return null;
 
-    let existing = await db.chatIntegrationInstance.findUnique({
+    let existing = await db.chatInstance.findUnique({
       where: { adapterIntegrationInstanceOid: adapterInstance.oid }
     });
 
     if (!isLiveAdapterInstanceStatus(adapterInstance.status)) {
       if (!existing || existing.status === 'deleted') return existing;
-      let archived = await db.chatIntegrationInstance.update({
+      let archived = await db.chatInstance.update({
         where: { oid: existing.oid },
         data: {
           status: 'archived',
           archivedAt: now(),
-          isParentDeleted: chatIntegration.status !== 'active'
+          isParentDeleted: chatConnection.status !== 'active'
         }
       });
-      await archiveChatsWhere(
-        { chatIntegrationInstanceOid: archived.oid },
-        archived.archivedAt ?? now()
-      );
-      await enqueueChatIntegrationInstanceArchived(archived.id);
+      await archiveChatsWhere({ chatInstanceOid: archived.oid }, archived.archivedAt ?? now());
+      await enqueueChatInstanceArchived(archived.id);
       return archived;
     }
 
@@ -213,7 +210,7 @@ export let upsertChatInstanceProjection = async (
 
     if (existing) {
       if (existing.status === 'deleted') return existing;
-      let updated = await db.chatIntegrationInstance.update({
+      let updated = await db.chatInstance.update({
         where: { oid: existing.oid },
         data: {
           status,
@@ -222,18 +219,18 @@ export let upsertChatInstanceProjection = async (
           name
         }
       });
-      await enqueueChatIntegrationInstanceUpdated(updated.id);
+      await enqueueChatInstanceUpdated(updated.id);
       return updated;
     }
 
-    let created = await db.chatIntegrationInstance.create({
+    let created = await db.chatInstance.create({
       data: {
-        ...getId('chatIntegrationInstance'),
+        ...getId('chatInstance'),
         status,
         name,
         description: input?.description?.trim() || integrationInstance?.description || null,
         metadata: input?.metadata ?? {},
-        chatIntegrationOid: chatIntegration.oid,
+        chatConnectionOid: chatConnection.oid,
         adapterIntegrationInstanceOid: adapterInstance.oid,
         adapterIntegrationOid: adapterInstance.adapterIntegrationOid,
         tenantOid: adapterInstance.tenantOid,
@@ -243,7 +240,7 @@ export let upsertChatInstanceProjection = async (
         solutionOid: adapterInstance.solutionOid
       }
     });
-    await enqueueChatIntegrationInstanceCreated(created.id);
+    await enqueueChatInstanceCreated(created.id);
     return created;
   });
 };
@@ -252,22 +249,22 @@ export let upsertChatInstanceProviderProjection = async (
   adapterInstanceProvider: AdapterIntegrationInstanceProvider
 ) => {
   return withTransaction(async db => {
-    let chatInstance = await db.chatIntegrationInstance.findUnique({
+    let chatInstance = await db.chatInstance.findUnique({
       where: {
         adapterIntegrationInstanceOid: adapterInstanceProvider.adapterIntegrationInstanceOid
       }
     });
-    let chatProvider = await db.chatIntegrationProvider.findUnique({
+    let chatProvider = await db.chatConnectionProvider.findUnique({
       where: {
         adapterIntegrationProviderOid: adapterInstanceProvider.adapterIntegrationProviderOid
       }
     });
-    let chatIntegration = await db.chatIntegration.findUnique({
+    let chatConnection = await db.chatConnection.findUnique({
       where: { adapterIntegrationOid: adapterInstanceProvider.adapterIntegrationOid }
     });
-    if (!chatInstance || !chatProvider || !chatIntegration) return null;
+    if (!chatInstance || !chatProvider || !chatConnection) return null;
 
-    let existing = await db.chatIntegrationInstanceProvider.findUnique({
+    let existing = await db.chatInstanceProvider.findUnique({
       where: {
         adapterIntegrationInstanceProviderOid: adapterInstanceProvider.oid
       }
@@ -275,15 +272,15 @@ export let upsertChatInstanceProviderProjection = async (
 
     if (!isLiveAdapterStatus(adapterInstanceProvider.status)) {
       if (!existing || existing.status === 'deleted') return existing;
-      let archived = await db.chatIntegrationInstanceProvider.update({
+      let archived = await db.chatInstanceProvider.update({
         where: { oid: existing.oid },
         data: { status: 'archived', archivedAt: now() }
       });
       await archiveChatsWhere(
-        { chatIntegrationInstanceProviderOid: archived.oid },
+        { chatInstanceProviderOid: archived.oid },
         archived.archivedAt ?? now()
       );
-      await enqueueChatIntegrationInstanceUpdated(chatInstance.id);
+      await enqueueChatInstanceUpdated(chatInstance.id);
       return archived;
     }
 
@@ -291,27 +288,27 @@ export let upsertChatInstanceProviderProjection = async (
       if (existing.status === 'deleted') return existing;
 
       let shouldSync = existing.status !== 'active';
-      let updated = await db.chatIntegrationInstanceProvider.update({
+      let updated = await db.chatInstanceProvider.update({
         where: { oid: existing.oid },
         data: { status: 'active', archivedAt: null, isParentDeleted: false }
       });
 
-      await restoreChatsWhere({ chatIntegrationInstanceProviderOid: updated.oid });
-      await enqueueChatIntegrationInstanceUpdated(chatInstance.id);
+      await restoreChatsWhere({ chatInstanceProviderOid: updated.oid });
+      await enqueueChatInstanceUpdated(chatInstance.id);
 
       if (shouldSync) await enqueueSyncChatWorkspacesForProvider(updated.id);
 
       return updated;
     }
 
-    let created = await db.chatIntegrationInstanceProvider.create({
+    let created = await db.chatInstanceProvider.create({
       data: {
-        ...getId('chatIntegrationInstanceProvider'),
+        ...getId('chatInstanceProvider'),
         status: 'active',
         name: chatProvider.name,
-        chatIntegrationInstanceOid: chatInstance.oid,
-        chatIntegrationProviderOid: chatProvider.oid,
-        chatIntegrationOid: chatIntegration.oid,
+        chatInstanceOid: chatInstance.oid,
+        chatConnectionProviderOid: chatProvider.oid,
+        chatConnectionOid: chatConnection.oid,
         adapterIntegrationInstanceProviderOid: adapterInstanceProvider.oid,
         adapterIntegrationInstanceOid: adapterInstanceProvider.adapterIntegrationInstanceOid,
         adapterIntegrationProviderOid: adapterInstanceProvider.adapterIntegrationProviderOid,
@@ -324,7 +321,7 @@ export let upsertChatInstanceProviderProjection = async (
       }
     });
 
-    await enqueueChatIntegrationInstanceUpdated(chatInstance.id);
+    await enqueueChatInstanceUpdated(chatInstance.id);
     await enqueueSyncChatWorkspacesForProvider(created.id);
 
     return created;
@@ -334,7 +331,7 @@ export let upsertChatInstanceProviderProjection = async (
 export let projectChatFromAdapterIntegration = async (
   adapterIntegration: AdapterIntegration
 ) => {
-  await upsertChatIntegrationProjection(adapterIntegration);
+  await upsertChatConnectionProjection(adapterIntegration);
 
   await withTransaction(async db => {
     let providers = await db.adapterIntegrationProvider.findMany({

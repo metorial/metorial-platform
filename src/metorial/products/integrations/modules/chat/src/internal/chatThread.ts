@@ -12,7 +12,7 @@ import {
 } from '@metorial-subspace/db';
 import { isUniqueConstraintError } from '../lib/unique';
 
-export type ChatThreadWithChat = ChatThread & { chat: Chat };
+export type ChatThreadWithChat = ChatThread & { chat: Chat; channel: ChatChannel };
 
 class chatThreadServiceInternalImpl {
   private threadPayload(thread: Thread) {
@@ -69,7 +69,7 @@ class chatThreadServiceInternalImpl {
                   chatOid: d.chat.oid
                 }
               });
-              results.set(thread.id, { ...created, chat: d.chat });
+              results.set(thread.id, { ...created, chat: d.chat, channel: d.channel });
               continue;
             }
 
@@ -80,7 +80,7 @@ class chatThreadServiceInternalImpl {
                 data: { ...payload, syncHash }
               });
             }
-            results.set(thread.id, { ...localThread, chat: d.chat });
+            results.set(thread.id, { ...localThread, chat: d.chat, channel: d.channel });
           }
 
           return d.threads.map(thread => results.get(thread.id)!);

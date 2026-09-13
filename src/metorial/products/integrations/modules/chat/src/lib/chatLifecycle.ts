@@ -3,10 +3,10 @@ import { enqueueChatMessageAttachmentCleanup } from '../queues/attachment/cleanu
 
 export type ChatLifecycleWhere = {
   oid?: bigint | { in: bigint[] };
-  chatIntegrationOid?: bigint;
-  chatIntegrationInstanceOid?: bigint | { in: bigint[] };
-  chatIntegrationInstanceProviderOid?: bigint;
-  chatIntegration?: { adapterIntegrationOid: bigint };
+  chatConnectionOid?: bigint;
+  chatInstanceOid?: bigint | { in: bigint[] };
+  chatInstanceProviderOid?: bigint;
+  chatConnection?: { adapterIntegrationOid: bigint };
 };
 
 export let archiveChatsWhere = async (where: ChatLifecycleWhere, archivedAt = new Date()) => {

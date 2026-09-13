@@ -1,15 +1,15 @@
-enum ChatIntegrationInstanceStatus {
+enum ChatInstanceStatus {
   draft
   active
   archived
   deleted
 }
 
-model ChatIntegrationInstance {
+model ChatInstance {
   oid BigInt @id
   id  String @unique
 
-  status          ChatIntegrationInstanceStatus
+  status          ChatInstanceStatus
   isParentDeleted Boolean                       @default(false)
   archivedAt      DateTime?
 
@@ -18,8 +18,8 @@ model ChatIntegrationInstance {
   metadata        Json?
   privateMetadata Json?
 
-  chatIntegrationOid BigInt
-  chatIntegration    ChatIntegration @relation(fields: [chatIntegrationOid], references: [oid], onDelete: Cascade)
+  chatConnectionOid BigInt
+  chatConnection    ChatConnection @relation(fields: [chatConnectionOid], references: [oid], onDelete: Cascade)
 
   adapterIntegrationInstanceOid BigInt                     @unique
   adapterIntegrationInstance    AdapterIntegrationInstance @relation(fields: [adapterIntegrationInstanceOid], references: [oid], onDelete: Cascade)
@@ -45,29 +45,29 @@ model ChatIntegrationInstance {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providers  ChatIntegrationInstanceProvider[]
+  providers  ChatInstanceProvider[]
   chats      Chat[]
   chatEvents ChatEvent[]
 
   @@index([tenantOid, solutionOid, environmentOid, status])
-  @@index([chatIntegrationOid, status])
+  @@index([chatConnectionOid, status])
   @@index([adapterIntegrationOid, status])
   @@index([status, archivedAt])
   @@index([projectOid])
   @@index([instanceOid])
 }
 
-enum ChatIntegrationInstanceProviderStatus {
+enum ChatInstanceProviderStatus {
   active
   archived
   deleted
 }
 
-model ChatIntegrationInstanceProvider {
+model ChatInstanceProvider {
   oid BigInt @id
   id  String @unique
 
-  status          ChatIntegrationInstanceProviderStatus
+  status          ChatInstanceProviderStatus
   isParentDeleted Boolean                               @default(false)
   archivedAt      DateTime?
 
@@ -76,14 +76,14 @@ model ChatIntegrationInstanceProvider {
   metadata        Json?
   privateMetadata Json?
 
-  chatIntegrationInstanceOid BigInt
-  chatIntegrationInstance    ChatIntegrationInstance @relation(fields: [chatIntegrationInstanceOid], references: [oid], onDelete: Cascade)
+  chatInstanceOid BigInt
+  chatInstance    ChatInstance @relation(fields: [chatInstanceOid], references: [oid], onDelete: Cascade)
 
-  chatIntegrationProviderOid BigInt
-  chatIntegrationProvider    ChatIntegrationProvider @relation(fields: [chatIntegrationProviderOid], references: [oid], onDelete: Cascade)
+  chatConnectionProviderOid BigInt
+  chatConnectionProvider    ChatConnectionProvider @relation(fields: [chatConnectionProviderOid], references: [oid], onDelete: Cascade)
 
-  chatIntegrationOid BigInt
-  chatIntegration    ChatIntegration @relation(fields: [chatIntegrationOid], references: [oid], onDelete: Cascade)
+  chatConnectionOid BigInt
+  chatConnection    ChatConnection @relation(fields: [chatConnectionOid], references: [oid], onDelete: Cascade)
 
   adapterIntegrationInstanceProviderOid BigInt                             @unique
   adapterIntegrationInstanceProvider    AdapterIntegrationInstanceProvider @relation(fields: [adapterIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade, map: "ciip_aiip_fkey")
@@ -119,10 +119,10 @@ model ChatIntegrationInstanceProvider {
   workspaces ChatWorkspace[]
   chatEvents ChatEvent[]
 
-  @@unique([chatIntegrationInstanceOid, chatIntegrationProviderOid], map: "ciip_instance_provider_key")
+  @@unique([chatInstanceOid, chatConnectionProviderOid], map: "ciip_instance_provider_key")
   @@index([tenantOid, solutionOid, environmentOid, status])
-  @@index([chatIntegrationInstanceOid, status], map: "ciip_cii_status_idx")
-  @@index([chatIntegrationProviderOid, status], map: "ciip_cip_status_idx")
+  @@index([chatInstanceOid, status], map: "ciip_cii_status_idx")
+  @@index([chatConnectionProviderOid, status], map: "ciip_cip_status_idx")
   @@index([adapterIntegrationInstanceProviderOid, status], map: "ciip_aiip_status_idx")
   @@index([adapterIntegrationProviderOid, status], map: "ciip_aip_status_idx")
   @@index([status, archivedAt])

@@ -14,14 +14,14 @@ model Chat {
 
   name String
 
-  chatIntegrationOid BigInt
-  chatIntegration    ChatIntegration @relation(fields: [chatIntegrationOid], references: [oid], onDelete: Cascade)
+  chatConnectionOid BigInt
+  chatConnection    ChatConnection @relation(fields: [chatConnectionOid], references: [oid], onDelete: Cascade)
 
-  chatIntegrationInstanceOid BigInt
-  chatIntegrationInstance    ChatIntegrationInstance @relation(fields: [chatIntegrationInstanceOid], references: [oid], onDelete: Cascade)
+  chatInstanceOid BigInt
+  chatInstance    ChatInstance @relation(fields: [chatInstanceOid], references: [oid], onDelete: Cascade)
 
-  chatIntegrationInstanceProviderOid BigInt
-  chatIntegrationInstanceProvider    ChatIntegrationInstanceProvider @relation(fields: [chatIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade)
+  chatInstanceProviderOid BigInt
+  chatInstanceProvider    ChatInstanceProvider @relation(fields: [chatInstanceProviderOid], references: [oid], onDelete: Cascade)
 
   adapterOid BigInt
   adapter    ProviderAdapter @relation(fields: [adapterOid], references: [oid], onDelete: Cascade)
@@ -38,9 +38,9 @@ model Chat {
   channels  ChatChannel[]
   threads   ChatThread[]
 
-  @@index([chatIntegrationOid, status])
-  @@index([chatIntegrationInstanceOid, status])
-  @@index([chatIntegrationInstanceProviderOid, status])
+  @@index([chatConnectionOid, status])
+  @@index([chatInstanceOid, status])
+  @@index([chatInstanceProviderOid, status])
   @@index([status, archivedAt])
   @@index([createdAt])
 }

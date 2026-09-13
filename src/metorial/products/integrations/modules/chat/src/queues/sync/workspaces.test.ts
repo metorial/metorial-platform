@@ -9,7 +9,7 @@ let { db, queues, getChatAdapterClientInternal, upsertChatWorkspaces } = vi.hois
 
   return {
     db: {
-      chatIntegrationInstanceProvider: {
+      chatInstanceProvider: {
         findMany: vi.fn(),
         findUnique: vi.fn()
       }
@@ -74,7 +74,7 @@ let processSyncChatWorkspacesMany =
   }>;
 let processSyncChatWorkspacesForProvider =
   syncChatWorkspacesForProviderQueueProcessor as unknown as JobHandler<{
-    chatIntegrationInstanceProviderId: string;
+    chatInstanceProviderId: string;
     cursor?: string;
   }>;
 
@@ -82,12 +82,12 @@ let manyQueue = 'sub/cht/sync/workspaces/many';
 let providerQueue = 'sub/cht/sync/workspaces/provider';
 
 let mockActiveProvider = () => {
-  db.chatIntegrationInstanceProvider.findUnique.mockResolvedValue({
+  db.chatInstanceProvider.findUnique.mockResolvedValue({
     id: 'ciip_1',
     oid: 80n,
     status: 'active',
     isParentDeleted: false,
-    chatIntegrationInstance: { oid: 20n, status: 'active' },
+    chatInstance: { oid: 20n, status: 'active' },
     tenant: { oid: 1n },
     environment: { oid: 3n }
   });
@@ -108,33 +108,28 @@ describe('sync chat workspace queues', () => {
   });
 
   it('fans out active instance providers and self-enqueues with a cursor', async () => {
-    db.chatIntegrationInstanceProvider.findMany.mockResolvedValue([
-      { id: 'ciip_1' },
-      { id: 'ciip_2' }
-    ]);
+    db.chatInstanceProvider.findMany.mockResolvedValue([{ id: 'ciip_1' }, { id: 'ciip_2' }]);
 
     await processSyncChatWorkspacesMany({});
 
     expect(queues[providerQueue]!.addMany).toHaveBeenCalledWith([
-      { chatIntegrationInstanceProviderId: 'ciip_1' },
-      { chatIntegrationInstanceProviderId: 'ciip_2' }
+      { chatInstanceProviderId: 'ciip_1' },
+      { chatInstanceProviderId: 'ciip_2' }
     ]);
     expect(queues[manyQueue]!.add).toHaveBeenCalledWith({ cursor: 'ciip_2' });
   });
 
   it('lists workspaces from the adapter and upserts the page', async () => {
-    let chatIntegrationInstanceProvider = {
+    let chatInstanceProvider = {
       id: 'ciip_1',
       oid: 80n,
       status: 'active',
       isParentDeleted: false,
-      chatIntegrationInstance: { oid: 20n, status: 'active' },
+      chatInstance: { oid: 20n, status: 'active' },
       tenant: { oid: 1n },
       environment: { oid: 3n }
     };
-    db.chatIntegrationInstanceProvider.findUnique.mockResolvedValue(
-      chatIntegrationInstanceProvider
-    );
+    db.chatInstanceProvider.findUnique.mockResolvedValue(chatInstanceProvider);
 
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => true,
@@ -150,15 +145,15 @@ describe('sync chat workspace queues', () => {
     });
 
     await processSyncChatWorkspacesForProvider({
-      chatIntegrationInstanceProviderId: 'ciip_1'
+      chatInstanceProviderId: 'ciip_1'
     });
 
     expect(upsertChatWorkspaces).toHaveBeenCalledWith({
-      chatIntegrationInstanceProvider,
+      chatInstanceProvider,
       workspaces: [{ id: 'T123', name: 'Acme' }]
     });
     expect(queues[providerQueue]!.add).toHaveBeenCalledWith({
-      chatIntegrationInstanceProviderId: 'ciip_1',
+      chatInstanceProviderId: 'ciip_1',
       cursor: 'cursor-2'
     });
   });
@@ -168,7 +163,7 @@ describe('sync chat workspace queues', () => {
     mockAdapterFailure(chatError('chat.rate_limit.exceeded'));
 
     await expect(
-      processSyncChatWorkspacesForProvider({ chatIntegrationInstanceProviderId: 'ciip_1' })
+      processSyncChatWorkspacesForProvider({ chatInstanceProviderId: 'ciip_1' })
     ).rejects.toBeInstanceOf(Error);
 
     expect(upsertChatWorkspaces).not.toHaveBeenCalled();
@@ -182,7 +177,7 @@ describe('sync chat workspace queues', () => {
     // everything else, burning every attempt before going to the dead letter
     // queue without ever saying why.
     await expect(
-      processSyncChatWorkspacesForProvider({ chatIntegrationInstanceProviderId: 'ciip_1' })
+      processSyncChatWorkspacesForProvider({ chatInstanceProviderId: 'ciip_1' })
     ).resolves.toBeUndefined();
 
     expect(upsertChatWorkspaces).not.toHaveBeenCalled();
@@ -197,17 +192,17 @@ describe('sync chat workspace queues', () => {
     // most transient kind there is — treating "unclassified" as terminal would
     // stop retrying exactly the failures that most deserve it.
     await expect(
-      processSyncChatWorkspacesForProvider({ chatIntegrationInstanceProviderId: 'ciip_1' })
+      processSyncChatWorkspacesForProvider({ chatInstanceProviderId: 'ciip_1' })
     ).rejects.toBeInstanceOf(Error);
   });
 
   it('skips providers that do not advertise workspace_read', async () => {
-    db.chatIntegrationInstanceProvider.findUnique.mockResolvedValue({
+    db.chatInstanceProvider.findUnique.mockResolvedValue({
       id: 'ciip_1',
       oid: 80n,
       status: 'active',
       isParentDeleted: false,
-      chatIntegrationInstance: { oid: 20n, status: 'active' },
+      chatInstance: { oid: 20n, status: 'active' },
       tenant: { oid: 1n },
       environment: { oid: 3n }
     });
@@ -217,7 +212,7 @@ describe('sync chat workspace queues', () => {
     });
 
     await processSyncChatWorkspacesForProvider({
-      chatIntegrationInstanceProviderId: 'ciip_1'
+      chatInstanceProviderId: 'ciip_1'
     });
 
     expect(upsertChatWorkspaces).not.toHaveBeenCalled();

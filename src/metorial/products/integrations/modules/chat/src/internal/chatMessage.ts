@@ -10,6 +10,7 @@ import {
 } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
+  type ChatAuthor,
   type ChatChannel,
   type ChatMessage,
   type ChatThread,
@@ -32,6 +33,7 @@ export type ChatMessageWithRelations = ChatMessage & {
   chat: Chat;
   channel: ChatChannel;
   thread: ChatThread | null;
+  author: ChatAuthor | null;
 };
 
 class chatMessageServiceInternalImpl {
@@ -141,6 +143,7 @@ class chatMessageServiceInternalImpl {
       authors: d.messages.map(message => message.author)
     });
     let authorOidByUserId = new Map(authors.map(author => [author.userId, author.oid]));
+    let authorByUserId = new Map(authors.map(author => [author.userId, author]));
 
     let threadIds = [
       ...new Set(
@@ -177,6 +180,7 @@ class chatMessageServiceInternalImpl {
             let thread = message.threadId
               ? (threadByRemoteId.get(message.threadId) ?? null)
               : null;
+            let author = authorByUserId.get(message.author.userId) ?? null;
             let payload = this.messagePayload(message, thread?.oid ?? null, authorOid);
             let syncHash = await this.hashMessageSync(payload);
 
@@ -194,7 +198,8 @@ class chatMessageServiceInternalImpl {
                 ...created,
                 chat: d.chat,
                 channel: d.channel,
-                thread
+                thread,
+                author
               });
               continue;
             }
@@ -205,7 +210,8 @@ class chatMessageServiceInternalImpl {
                 ...current,
                 chat: d.chat,
                 channel: d.channel,
-                thread
+                thread,
+                author
               });
               continue;
             }
@@ -221,7 +227,8 @@ class chatMessageServiceInternalImpl {
               ...localMessage,
               chat: d.chat,
               channel: d.channel,
-              thread
+              thread,
+              author
             });
           }
 

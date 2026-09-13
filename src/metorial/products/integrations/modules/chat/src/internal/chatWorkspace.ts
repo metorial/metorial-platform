@@ -5,7 +5,7 @@ import { Service } from '@lowerdeck/service';
 import { type Workspace } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
-  type ChatIntegrationInstanceProvider,
+  type ChatInstanceProvider,
   type ChatWorkspace,
   getId,
   withTransaction
@@ -13,12 +13,12 @@ import {
 import { isUniqueConstraintError } from '../lib/unique';
 
 export type UpsertChatWorkspaceParams = {
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+  chatInstanceProvider: ChatInstanceProvider;
   workspace: Workspace;
 };
 
 export type UpsertChatWorkspacesParams = {
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+  chatInstanceProvider: ChatInstanceProvider;
   workspaces: Workspace[];
 };
 
@@ -48,7 +48,7 @@ let adapterBindingInclude = {
 class chatWorkspaceInternalServiceImpl {
   async upsertChatWorkspace(d: UpsertChatWorkspaceParams) {
     let [result] = await this.upsertChatWorkspaces({
-      chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider,
+      chatInstanceProvider: d.chatInstanceProvider,
       workspaces: [d.workspace]
     });
 
@@ -63,7 +63,7 @@ class chatWorkspaceInternalServiceImpl {
         async db => {
           let existing = await db.chatWorkspace.findMany({
             where: {
-              chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+              chatInstanceProviderOid: d.chatInstanceProvider.oid,
               workspaceId: { in: d.workspaces.map(workspace => workspace.id) }
             },
             include: { chat: true }
@@ -76,7 +76,7 @@ class chatWorkspaceInternalServiceImpl {
             workspace => !existingByRemoteId.has(workspace.id)
           );
           let binding = needsCreate
-            ? await this.resolveChatAdapterBinding(d.chatIntegrationInstanceProvider)
+            ? await this.resolveChatAdapterBinding(d.chatInstanceProvider)
             : null;
 
           let results = new Map<string, UpsertedChatWorkspace>();
@@ -97,10 +97,9 @@ class chatWorkspaceInternalServiceImpl {
                   ...getId('chat'),
                   status: 'active',
                   name: workspace.name?.trim() || workspace.id,
-                  chatIntegrationOid: d.chatIntegrationInstanceProvider.chatIntegrationOid,
-                  chatIntegrationInstanceOid:
-                    d.chatIntegrationInstanceProvider.chatIntegrationInstanceOid,
-                  chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+                  chatConnectionOid: d.chatInstanceProvider.chatConnectionOid,
+                  chatInstanceOid: d.chatInstanceProvider.chatInstanceOid,
+                  chatInstanceProviderOid: d.chatInstanceProvider.oid,
                   adapterOid: binding!.adapterOid,
                   providerOid: binding!.providerOid
                 }
@@ -113,7 +112,7 @@ class chatWorkspaceInternalServiceImpl {
                   ...payload,
                   syncHash: workspaceSyncHash,
                   chatOid: chat.oid,
-                  chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid
+                  chatInstanceProviderOid: d.chatInstanceProvider.oid
                 }
               });
               results.set(workspace.id, { chat, workspace: created });
@@ -173,13 +172,11 @@ class chatWorkspaceInternalServiceImpl {
     return Hash.sha256(canonicalize(payload));
   }
 
-  private async resolveChatAdapterBinding(
-    chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider
-  ) {
+  private async resolveChatAdapterBinding(chatInstanceProvider: ChatInstanceProvider) {
     return await withTransaction(
       async db => {
-        let loaded = await db.chatIntegrationInstanceProvider.findUniqueOrThrow({
-          where: { oid: chatIntegrationInstanceProvider.oid },
+        let loaded = await db.chatInstanceProvider.findUniqueOrThrow({
+          where: { oid: chatInstanceProvider.oid },
           include: adapterBindingInclude
         });
 

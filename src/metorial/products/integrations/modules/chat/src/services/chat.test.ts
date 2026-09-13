@@ -9,7 +9,7 @@ let { tx, addManyWithOps } = vi.hoisted(() => {
   return {
     tx: {
       chat: createModel(),
-      chatIntegrationInstanceProvider: createModel()
+      chatInstanceProvider: createModel()
     },
     addManyWithOps: vi.fn()
   };
@@ -59,7 +59,7 @@ describe('chatService', () => {
   });
 
   it('enqueues workspace sync for each active instance provider', async () => {
-    tx.chatIntegrationInstanceProvider.findMany.mockResolvedValue([
+    tx.chatInstanceProvider.findMany.mockResolvedValue([
       { id: 'ciip_1', status: 'active' },
       { id: 'ciip_2', status: 'active' }
     ]);
@@ -67,32 +67,32 @@ describe('chatService', () => {
     let result = await chatService.syncChatsInternal({
       tenant,
       environment,
-      chatIntegrationInstance: { oid: 20n, tenantOid: 1n } as any
+      chatInstance: { oid: 20n, tenantOid: 1n } as any
     });
 
-    expect(tx.chatIntegrationInstanceProvider.findMany).toHaveBeenCalledWith(
+    expect(tx.chatInstanceProvider.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          chatIntegrationInstanceOid: 20n,
+          chatInstanceOid: 20n,
           status: 'active',
           isParentDeleted: false
         })
       })
     );
     expect(addManyWithOps).toHaveBeenCalledWith([
-      { data: { chatIntegrationInstanceProviderId: 'ciip_1' }, opts: { id: 'ws-sync-ciip_1' } },
-      { data: { chatIntegrationInstanceProviderId: 'ciip_2' }, opts: { id: 'ws-sync-ciip_2' } }
+      { data: { chatInstanceProviderId: 'ciip_1' }, opts: { id: 'ws-sync-ciip_1' } },
+      { data: { chatInstanceProviderId: 'ciip_2' }, opts: { id: 'ws-sync-ciip_2' } }
     ]);
     expect(result.providers).toHaveLength(2);
   });
 
   it('does not enqueue when the instance has no active providers', async () => {
-    tx.chatIntegrationInstanceProvider.findMany.mockResolvedValue([]);
+    tx.chatInstanceProvider.findMany.mockResolvedValue([]);
 
     let result = await chatService.syncChatsInternal({
       tenant,
       environment,
-      chatIntegrationInstance: { oid: 20n, tenantOid: 1n } as any
+      chatInstance: { oid: 20n, tenantOid: 1n } as any
     });
 
     expect(addManyWithOps).toHaveBeenCalledWith([]);

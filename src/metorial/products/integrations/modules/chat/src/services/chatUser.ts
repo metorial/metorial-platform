@@ -1,6 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import {
-  type ChatIntegrationInstanceProvider,
+  type ChatInstanceProvider,
   type Environment,
   type Tenant
 } from '@metorial-subspace/db';
@@ -16,7 +16,7 @@ import { assertChatCapability } from '../lib/chatCapability';
 import { unwrapChatCall } from '../lib/chatError';
 
 export type GetAuthenticatedChatUserParams = {
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+  chatInstanceProvider: ChatInstanceProvider;
 };
 
 class chatUserServiceImpl {
@@ -33,12 +33,12 @@ class chatUserServiceImpl {
   async getAuthenticatedChatUserInternal(
     d: { tenant: Tenant; environment: Environment } & GetAuthenticatedChatUserParams
   ) {
-    checkTenant(d, d.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chatInstanceProvider
     });
 
     assertChatCapability(client, 'user_self_read', {
@@ -53,7 +53,7 @@ class chatUserServiceImpl {
 
     let upsertedWorkspace = result.workspace
       ? await chatWorkspaceInternalService.upsertChatWorkspace({
-          chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider,
+          chatInstanceProvider: d.chatInstanceProvider,
           workspace: result.workspace
         })
       : null;

@@ -5,15 +5,15 @@ import {
   chatDeleteQueueProcessor
 } from './chat';
 import {
-  chatIntegrationArchivedCleanupCron,
-  chatIntegrationDeleteManyQueueProcessor,
-  chatIntegrationDeleteQueueProcessor
-} from './chatIntegration';
+  chatConnectionArchivedCleanupCron,
+  chatConnectionDeleteManyQueueProcessor,
+  chatConnectionDeleteQueueProcessor
+} from './chatConnection';
 import {
-  chatIntegrationInstanceArchivedCleanupCron,
-  chatIntegrationInstanceDeleteManyQueueProcessor,
-  chatIntegrationInstanceDeleteQueueProcessor
-} from './chatIntegrationInstance';
+  chatInstanceArchivedCleanupCron,
+  chatInstanceDeleteManyQueueProcessor,
+  chatInstanceDeleteQueueProcessor
+} from './chatInstance';
 import {
   chatMessageDeletedCleanupCron,
   chatMessageDeleteManyQueueProcessor,
@@ -24,12 +24,12 @@ export let deleteQueues = combineQueueProcessors([
   chatArchivedCleanupCron,
   chatDeleteManyQueueProcessor,
   chatDeleteQueueProcessor,
-  chatIntegrationArchivedCleanupCron,
-  chatIntegrationDeleteManyQueueProcessor,
-  chatIntegrationDeleteQueueProcessor,
-  chatIntegrationInstanceArchivedCleanupCron,
-  chatIntegrationInstanceDeleteManyQueueProcessor,
-  chatIntegrationInstanceDeleteQueueProcessor,
+  chatConnectionArchivedCleanupCron,
+  chatConnectionDeleteManyQueueProcessor,
+  chatConnectionDeleteQueueProcessor,
+  chatInstanceArchivedCleanupCron,
+  chatInstanceDeleteManyQueueProcessor,
+  chatInstanceDeleteQueueProcessor,
   chatMessageDeletedCleanupCron,
   chatMessageDeleteManyQueueProcessor,
   chatMessageDeleteQueueProcessor

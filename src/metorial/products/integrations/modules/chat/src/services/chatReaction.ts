@@ -49,12 +49,12 @@ class chatReactionServiceImpl {
   async addChatReactionInternal(
     d: { tenant: Tenant; environment: Environment } & AddChatReactionParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     assertReactionAddCapability(client);
@@ -86,12 +86,12 @@ class chatReactionServiceImpl {
   async removeChatReactionInternal(
     d: { tenant: Tenant; environment: Environment } & RemoveChatReactionParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     assertReactionRemoveCapability(client);
@@ -123,12 +123,12 @@ class chatReactionServiceImpl {
   async listChatReactionsInternal(
     d: { tenant: Tenant; environment: Environment } & ListChatReactionsParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     return withChatCapabilityFallback(client, 'message_reaction_list', {

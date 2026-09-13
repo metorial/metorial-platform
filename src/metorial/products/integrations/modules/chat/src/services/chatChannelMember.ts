@@ -37,12 +37,12 @@ class chatChannelMemberServiceImpl {
   async listChatChannelMembersInternal(
     d: { tenant: Tenant; environment: Environment } & ListChatChannelMembersParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     assertChatCapability(client, 'channel_members_read', {
@@ -97,12 +97,12 @@ class chatChannelMemberServiceImpl {
   async getChatChannelMemberInternal(
     d: { tenant: Tenant; environment: Environment } & GetChatChannelMemberParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     assertChatCapability(client, 'user_read', {

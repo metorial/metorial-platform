@@ -1,14 +1,14 @@
-enum ChatIntegrationStatus {
+enum ChatConnectionStatus {
   active
   archived
   deleted
 }
 
-model ChatIntegration {
+model ChatConnection {
   oid BigInt @id
   id  String @unique
 
-  status     ChatIntegrationStatus
+  status     ChatConnectionStatus
   archivedAt DateTime?
 
   slug            String  @unique
@@ -38,9 +38,9 @@ model ChatIntegration {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providers         ChatIntegrationProvider[]
-  instances         ChatIntegrationInstance[]
-  instanceProviders ChatIntegrationInstanceProvider[]
+  providers         ChatConnectionProvider[]
+  instances         ChatInstance[]
+  instanceProviders ChatInstanceProvider[]
   chats             Chat[]
   chatEvents        ChatEvent[]
 
@@ -51,25 +51,25 @@ model ChatIntegration {
   @@index([instanceOid])
 }
 
-enum ChatIntegrationProviderStatus {
+enum ChatConnectionProviderStatus {
   active
   archived
   deleted
 }
 
-model ChatIntegrationProvider {
+model ChatConnectionProvider {
   oid BigInt @id
   id  String @unique
 
-  status     ChatIntegrationProviderStatus
+  status     ChatConnectionProviderStatus
   archivedAt DateTime?
 
   name        String
   description String?
   metadata    Json?
 
-  chatIntegrationOid BigInt
-  chatIntegration    ChatIntegration @relation(fields: [chatIntegrationOid], references: [oid], onDelete: Cascade)
+  chatConnectionOid BigInt
+  chatConnection    ChatConnection @relation(fields: [chatConnectionOid], references: [oid], onDelete: Cascade)
 
   adapterIntegrationOid BigInt
   adapterIntegration    AdapterIntegration @relation(fields: [adapterIntegrationOid], references: [oid], onDelete: Cascade)
@@ -95,12 +95,12 @@ model ChatIntegrationProvider {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  instanceProviders ChatIntegrationInstanceProvider[]
+  instanceProviders ChatInstanceProvider[]
 
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
-  @@index([chatIntegrationOid, status])
+  @@index([chatConnectionOid, status])
   @@index([adapterIntegrationOid, status])
   @@index([projectOid])
   @@index([instanceOid])

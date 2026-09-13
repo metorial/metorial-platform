@@ -42,8 +42,8 @@ model AdapterIntegrationInstance {
 
   instanceProviderSessions AdapterIntegrationInstanceProviderSession[]
 
-  chatIntegrationInstance          ChatIntegrationInstance?
-  chatIntegrationInstanceProviders ChatIntegrationInstanceProvider[]
+  chatInstance          ChatInstance?
+  chatInstanceProviders ChatInstanceProvider[]
 
   @@unique([adapterIntegrationOid, integrationInstanceOid])
   @@index([tenantOid, solutionOid, environmentOid, status])
@@ -113,7 +113,7 @@ model AdapterIntegrationInstanceProvider {
 
   sessions AdapterIntegrationInstanceProviderSession[]
 
-  chatIntegrationInstanceProviders ChatIntegrationInstanceProvider[]
+  chatInstanceProviders ChatInstanceProvider[]
 
   @@unique([adapterIntegrationInstanceOid, adapterIntegrationProviderOid], map: "aiip_instance_provider_key")
   @@index([tenantOid, solutionOid, environmentOid, status])

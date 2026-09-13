@@ -2,9 +2,9 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type ChatIntegration,
-  type ChatIntegrationProvider,
-  type ChatIntegrationProviderStatus,
+  type ChatConnection,
+  type ChatConnectionProvider,
+  type ChatConnectionProviderStatus,
   db,
   type Environment,
   getId,
@@ -30,30 +30,32 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { upsertChatProviderProjection } from '../lib/project';
-import { enqueueChatIntegrationUpdated } from '../queues/lifecycle';
+import { enqueueChatConnectionUpdated } from '../queues/lifecycle';
 
-export let chatIntegrationProviderInclude = {
-  chatIntegration: true,
-  adapterIntegrationProvider: true
+export let chatConnectionProviderInclude = {
+  chatConnection: true,
+  adapterIntegrationProvider: {
+    include: { integrationProvider: { include: { provider: true } } }
+  }
 } as const;
 
-export type ListChatIntegrationProvidersParams = {
+export type ListChatConnectionProvidersParams = {
   search?: string;
-  status?: ChatIntegrationProviderStatus[];
+  status?: ChatConnectionProviderStatus[];
   allowDeleted?: boolean;
   ids?: string[];
-  chatIntegrationIds?: string[];
+  chatConnectionIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
 };
 
-export type GetChatIntegrationProviderByIdParams = {
-  chatIntegrationProviderId: string;
+export type GetChatConnectionProviderByIdParams = {
+  chatConnectionProviderId: string;
   allowDeleted?: boolean;
 };
 
-export type CreateChatIntegrationProviderParams = {
-  chatIntegration: ChatIntegration;
+export type CreateChatConnectionProviderParams = {
+  chatConnection: ChatConnection;
   input: {
     providerId: string;
     providerDeploymentId?: string | null;
@@ -67,8 +69,8 @@ export type CreateChatIntegrationProviderParams = {
   };
 };
 
-export type UpdateChatIntegrationProviderParams = {
-  chatIntegrationProvider: ChatIntegrationProvider;
+export type UpdateChatConnectionProviderParams = {
+  chatConnectionProvider: ChatConnectionProvider;
   input: {
     providerDeploymentId?: string;
     providerAuthMethodId?: string | null;
@@ -81,30 +83,30 @@ export type UpdateChatIntegrationProviderParams = {
   };
 };
 
-export type ArchiveChatIntegrationProviderParams = {
-  chatIntegrationProvider: ChatIntegrationProvider;
+export type ArchiveChatConnectionProviderParams = {
+  chatConnectionProvider: ChatConnectionProvider;
 };
 
-class chatIntegrationProviderServiceImpl {
-  async listChatIntegrationProviders(d: MetorialFacing<ListChatIntegrationProvidersParams>) {
+class chatConnectionProviderServiceImpl {
+  async listChatConnectionProviders(d: MetorialFacing<ListChatConnectionProvidersParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-    return this.listChatIntegrationProvidersInternal({
+    return this.listChatConnectionProvidersInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async listChatIntegrationProvidersInternal(
-    d: { tenant: Tenant; environment: Environment } & ListChatIntegrationProvidersParams
+  async listChatConnectionProvidersInternal(
+    d: { tenant: Tenant; environment: Environment } & ListChatConnectionProvidersParams
   ) {
     let solution = await getMetorialSolution();
 
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.chatIntegrationProvider.findMany({
+          await db.chatConnectionProvider.findMany({
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
@@ -113,8 +115,8 @@ class chatIntegrationProviderServiceImpl {
               ...normalizeStatusForList(d).noParent,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                d.chatIntegrationIds
-                  ? { chatIntegration: { id: { in: d.chatIntegrationIds } } }
+                d.chatConnectionIds
+                  ? { chatConnection: { id: { in: d.chatConnectionIds } } }
                   : undefined!,
                 d.search
                   ? { name: { contains: d.search, mode: 'insensitive' as const } }
@@ -123,66 +125,66 @@ class chatIntegrationProviderServiceImpl {
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
-            include: chatIntegrationProviderInclude
+            include: chatConnectionProviderInclude
           })
       )
     );
   }
 
-  async getChatIntegrationProviderById(
-    d: MetorialFacing<GetChatIntegrationProviderByIdParams>
+  async getChatConnectionProviderById(
+    d: MetorialFacing<GetChatConnectionProviderByIdParams>
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-    return this.getChatIntegrationProviderByIdInternal({
+    return this.getChatConnectionProviderByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async getChatIntegrationProviderByIdInternal(
-    d: { tenant: Tenant; environment: Environment } & GetChatIntegrationProviderByIdParams
+  async getChatConnectionProviderByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetChatConnectionProviderByIdParams
   ) {
     let solution = await getMetorialSolution();
-    let chatIntegrationProvider = await db.chatIntegrationProvider.findFirst({
+    let chatConnectionProvider = await db.chatConnectionProvider.findFirst({
       where: {
-        id: d.chatIntegrationProviderId,
+        id: d.chatConnectionProviderId,
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
-      include: chatIntegrationProviderInclude
+      include: chatConnectionProviderInclude
     });
-    if (!chatIntegrationProvider) {
+    if (!chatConnectionProvider) {
       throw new ServiceError(
-        notFoundError('chat.integration.provider', d.chatIntegrationProviderId)
+        notFoundError('chat.integration.provider', d.chatConnectionProviderId)
       );
     }
 
-    return chatIntegrationProvider;
+    return chatConnectionProvider;
   }
 
-  async createChatIntegrationProvider(d: MetorialFacing<CreateChatIntegrationProviderParams>) {
+  async createChatConnectionProvider(d: MetorialFacing<CreateChatConnectionProviderParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-    return this.createChatIntegrationProviderInternal({
+    return this.createChatConnectionProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async createChatIntegrationProviderInternal(
-    d: { tenant: Tenant; environment: Environment } & CreateChatIntegrationProviderParams
+  async createChatConnectionProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateChatConnectionProviderParams
   ) {
-    checkTenant(d, d.chatIntegration);
-    checkDeletedEdit(d.chatIntegration, 'update');
+    checkTenant(d, d.chatConnection);
+    checkDeletedEdit(d.chatConnection, 'update');
 
     return withTransaction(async db => {
       let adapterIntegration = await db.adapterIntegration.findUniqueOrThrow({
-        where: { oid: d.chatIntegration.adapterIntegrationOid }
+        where: { oid: d.chatConnection.adapterIntegrationOid }
       });
 
       let adapterProvider = await ensureAdapterProvider({
@@ -192,12 +194,12 @@ class chatIntegrationProviderServiceImpl {
         input: d.input
       });
 
-      let existing = await db.chatIntegrationProvider.findUnique({
+      let existing = await db.chatConnectionProvider.findUnique({
         where: { adapterIntegrationProviderOid: adapterProvider.oid }
       });
 
-      let chatIntegrationProvider = existing
-        ? await db.chatIntegrationProvider.update({
+      let chatConnectionProvider = existing
+        ? await db.chatConnectionProvider.update({
             where: { oid: existing.oid },
             data: {
               status: 'active',
@@ -206,16 +208,16 @@ class chatIntegrationProviderServiceImpl {
               description: d.input.description?.trim() || existing.description,
               metadata: d.input.metadata ?? existing.metadata
             },
-            include: chatIntegrationProviderInclude
+            include: chatConnectionProviderInclude
           })
-        : await db.chatIntegrationProvider.create({
+        : await db.chatConnectionProvider.create({
             data: {
-              ...getId('chatIntegrationProvider'),
+              ...getId('chatConnectionProvider'),
               status: 'active',
               name: d.input.name?.trim() || 'Provider',
               description: d.input.description?.trim() || null,
               metadata: d.input.metadata ?? {},
-              chatIntegrationOid: d.chatIntegration.oid,
+              chatConnectionOid: d.chatConnection.oid,
               adapterIntegrationOid: adapterIntegration.oid,
               adapterIntegrationProviderOid: adapterProvider.oid,
               tenantOid: adapterProvider.tenantOid,
@@ -224,36 +226,36 @@ class chatIntegrationProviderServiceImpl {
               instanceOid: adapterProvider.instanceOid,
               solutionOid: adapterProvider.solutionOid
             },
-            include: chatIntegrationProviderInclude
+            include: chatConnectionProviderInclude
           });
 
       await upsertChatProviderProjection(adapterProvider);
 
-      await enqueueChatIntegrationUpdated(d.chatIntegration.id);
+      await enqueueChatConnectionUpdated(d.chatConnection.id);
 
-      return chatIntegrationProvider;
+      return chatConnectionProvider;
     });
   }
 
-  async updateChatIntegrationProvider(d: MetorialFacing<UpdateChatIntegrationProviderParams>) {
+  async updateChatConnectionProvider(d: MetorialFacing<UpdateChatConnectionProviderParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-    return this.updateChatIntegrationProviderInternal({
+    return this.updateChatConnectionProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async updateChatIntegrationProviderInternal(
-    d: { tenant: Tenant; environment: Environment } & UpdateChatIntegrationProviderParams
+  async updateChatConnectionProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateChatConnectionProviderParams
   ) {
-    checkTenant(d, d.chatIntegrationProvider);
-    checkDeletedEdit(d.chatIntegrationProvider, 'update');
+    checkTenant(d, d.chatConnectionProvider);
+    checkDeletedEdit(d.chatConnectionProvider, 'update');
 
     return withTransaction(async db => {
       let adapterProvider = await db.adapterIntegrationProvider.findUniqueOrThrow({
-        where: { oid: d.chatIntegrationProvider.adapterIntegrationProviderOid }
+        where: { oid: d.chatConnectionProvider.adapterIntegrationProviderOid }
       });
 
       await updateAdapterProvider({
@@ -263,53 +265,53 @@ class chatIntegrationProviderServiceImpl {
         input: d.input
       });
 
-      let updated = await db.chatIntegrationProvider.update({
-        where: { oid: d.chatIntegrationProvider.oid },
+      let updated = await db.chatConnectionProvider.update({
+        where: { oid: d.chatConnectionProvider.oid },
         data: {
-          name: d.input.name?.trim() ?? d.chatIntegrationProvider.name,
+          name: d.input.name?.trim() ?? d.chatConnectionProvider.name,
           description:
             d.input.description === undefined
-              ? d.chatIntegrationProvider.description
+              ? d.chatConnectionProvider.description
               : d.input.description?.trim() || null,
           metadata:
             d.input.metadata === undefined
-              ? d.chatIntegrationProvider.metadata
+              ? d.chatConnectionProvider.metadata
               : d.input.metadata
         },
-        include: chatIntegrationProviderInclude
+        include: chatConnectionProviderInclude
       });
 
-      await enqueueChatIntegrationUpdated(updated.chatIntegration.id);
+      await enqueueChatConnectionUpdated(updated.chatConnection.id);
 
       return updated;
     });
   }
 
-  async archiveChatIntegrationProvider(
-    d: MetorialFacing<ArchiveChatIntegrationProviderParams>
+  async archiveChatConnectionProvider(
+    d: MetorialFacing<ArchiveChatConnectionProviderParams>
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
-    return this.archiveChatIntegrationProviderInternal({
+    return this.archiveChatConnectionProviderInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async archiveChatIntegrationProviderInternal(
-    d: { tenant: Tenant; environment: Environment } & ArchiveChatIntegrationProviderParams
+  async archiveChatConnectionProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveChatConnectionProviderParams
   ) {
-    checkTenant(d, d.chatIntegrationProvider);
-    checkDeletedEdit(d.chatIntegrationProvider, 'archive');
+    checkTenant(d, d.chatConnectionProvider);
+    checkDeletedEdit(d.chatConnectionProvider, 'archive');
 
     return withTransaction(async db => {
       let adapterProvider = await db.adapterIntegrationProvider.findUniqueOrThrow({
-        where: { oid: d.chatIntegrationProvider.adapterIntegrationProviderOid }
+        where: { oid: d.chatConnectionProvider.adapterIntegrationProviderOid }
       });
 
-      await db.chatIntegrationProvider.update({
-        where: { oid: d.chatIntegrationProvider.oid },
+      await db.chatConnectionProvider.update({
+        where: { oid: d.chatConnectionProvider.oid },
         data: { status: 'archived', archivedAt: new Date() }
       });
 
@@ -319,17 +321,17 @@ class chatIntegrationProviderServiceImpl {
         adapterIntegrationProvider: adapterProvider
       });
 
-      let archived = await db.chatIntegrationProvider.findUniqueOrThrow({
-        where: { oid: d.chatIntegrationProvider.oid },
-        include: chatIntegrationProviderInclude
+      let archived = await db.chatConnectionProvider.findUniqueOrThrow({
+        where: { oid: d.chatConnectionProvider.oid },
+        include: chatConnectionProviderInclude
       });
-      await enqueueChatIntegrationUpdated(archived.chatIntegration.id);
+      await enqueueChatConnectionUpdated(archived.chatConnection.id);
       return archived;
     });
   }
 }
 
-export let chatIntegrationProviderService = Service.create(
-  'chatIntegrationProvider',
-  () => new chatIntegrationProviderServiceImpl()
+export let chatConnectionProviderService = Service.create(
+  'chatConnectionProvider',
+  () => new chatConnectionProviderServiceImpl()
 ).build();

@@ -3,7 +3,7 @@ import { Service } from '@lowerdeck/service';
 import { type ChatAdapterInstance } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
-  type ChatIntegrationInstanceProvider,
+  type ChatInstanceProvider,
   type ChatWorkspace,
   db,
   type Environment,
@@ -26,12 +26,12 @@ export let chatWorkspaceInclude = {
 export type ChatWorkspaceWithChat = ChatWorkspace & { chat: Chat };
 
 export type ListChatWorkspacesParams = {
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+  chatInstanceProvider: ChatInstanceProvider;
   search?: string;
 };
 
 export type GetChatWorkspaceParams = {
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
+  chatInstanceProvider: ChatInstanceProvider;
   workspaceId: string;
 };
 
@@ -49,12 +49,12 @@ class chatWorkspaceServiceImpl {
   async listChatWorkspacesInternal(
     d: { tenant: Tenant; environment: Environment } & ListChatWorkspacesParams
   ) {
-    checkTenant(d, d.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chatInstanceProvider
     });
 
     return withChatCapabilityFallback(client, 'workspace_read', {
@@ -82,7 +82,7 @@ class chatWorkspaceServiceImpl {
         });
 
         let upserted = await chatWorkspaceInternalService.upsertChatWorkspaces({
-          chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider,
+          chatInstanceProvider: d.chatInstanceProvider,
           workspaces: listing.workspaces
         });
 
@@ -103,7 +103,7 @@ class chatWorkspaceServiceImpl {
         db.chatWorkspace.findMany({
           ...opts,
           where: {
-            chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+            chatInstanceProviderOid: d.chatInstanceProvider.oid,
             ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {})
           },
           include: chatWorkspaceInclude
@@ -125,12 +125,12 @@ class chatWorkspaceServiceImpl {
   async getChatWorkspaceInternal(
     d: { tenant: Tenant; environment: Environment } & GetChatWorkspaceParams
   ) {
-    checkTenant(d, d.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chatInstanceProvider
     });
 
     return withChatCapabilityFallback(client, 'workspace_read', {
@@ -144,7 +144,7 @@ class chatWorkspaceServiceImpl {
   ) {
     let local = await db.chatWorkspace.findFirst({
       where: {
-        chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+        chatInstanceProviderOid: d.chatInstanceProvider.oid,
         OR: [{ id: d.workspaceId }, { workspaceId: d.workspaceId }]
       }
     });
@@ -157,7 +157,7 @@ class chatWorkspaceServiceImpl {
     });
 
     let upserted = await chatWorkspaceInternalService.upsertChatWorkspace({
-      chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider,
+      chatInstanceProvider: d.chatInstanceProvider,
       workspace: workspace.workspace
     });
 
@@ -167,7 +167,7 @@ class chatWorkspaceServiceImpl {
   private async getChatWorkspaceFromDb(d: GetChatWorkspaceParams) {
     let local = await db.chatWorkspace.findFirst({
       where: {
-        chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+        chatInstanceProviderOid: d.chatInstanceProvider.oid,
         OR: [{ id: d.workspaceId }, { workspaceId: d.workspaceId }]
       },
       include: chatWorkspaceInclude

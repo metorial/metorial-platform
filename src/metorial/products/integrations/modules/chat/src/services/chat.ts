@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type ChatIntegrationInstance,
+  type ChatInstance,
   type ChatStatus,
   db,
   type Environment,
@@ -24,8 +24,10 @@ import { syncChatWorkspacesForProviderQueue } from '../queues/sync/workspaces';
 
 export let chatInclude = {
   workspace: true,
-  chatIntegrationInstance: true,
-  chatIntegrationInstanceProvider: true
+  chatConnection: true,
+  chatInstance: true,
+  chatInstanceProvider: true,
+  provider: true
 } as const;
 
 export type ListChatsParams = {
@@ -33,8 +35,8 @@ export type ListChatsParams = {
   status?: ChatStatus[];
   allowDeleted?: boolean;
   ids?: string[];
-  chatIntegrationInstanceIds?: string[];
-  chatIntegrationInstanceProviderIds?: string[];
+  chatInstanceIds?: string[];
+  chatInstanceProviderIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
 };
@@ -45,7 +47,7 @@ export type GetChatByIdParams = {
 };
 
 export type SyncChatsParams = {
-  chatIntegrationInstance: ChatIntegrationInstance;
+  chatInstance: ChatInstance;
 };
 
 class chatServiceImpl {
@@ -73,7 +75,7 @@ class chatServiceImpl {
           await db.chat.findMany({
             ...opts,
             where: {
-              chatIntegrationInstance: {
+              chatInstance: {
                 tenantOid: d.tenant.oid,
                 solutionOid: solution.oid,
                 environmentOid: d.environment.oid
@@ -81,13 +83,13 @@ class chatServiceImpl {
               ...normalizeStatusForList(d).hasParent,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                d.chatIntegrationInstanceIds
-                  ? { chatIntegrationInstance: { id: { in: d.chatIntegrationInstanceIds } } }
+                d.chatInstanceIds
+                  ? { chatInstance: { id: { in: d.chatInstanceIds } } }
                   : undefined!,
-                d.chatIntegrationInstanceProviderIds
+                d.chatInstanceProviderIds
                   ? {
-                      chatIntegrationInstanceProvider: {
-                        id: { in: d.chatIntegrationInstanceProviderIds }
+                      chatInstanceProvider: {
+                        id: { in: d.chatInstanceProviderIds }
                       }
                     }
                   : undefined!,
@@ -130,7 +132,7 @@ class chatServiceImpl {
     let chat = await db.chat.findFirst({
       where: {
         id: d.chatId,
-        chatIntegrationInstance: {
+        chatInstance: {
           tenantOid: d.tenant.oid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid
@@ -159,24 +161,24 @@ class chatServiceImpl {
   }
 
   async syncChatsInternal(d: { tenant: Tenant; environment: Environment } & SyncChatsParams) {
-    checkTenant(d, d.chatIntegrationInstance);
+    checkTenant(d, d.chatInstance);
 
-    let providers = await db.chatIntegrationInstanceProvider.findMany({
+    let providers = await db.chatInstanceProvider.findMany({
       where: {
-        chatIntegrationInstanceOid: d.chatIntegrationInstance.oid,
+        chatInstanceOid: d.chatInstance.oid,
         status: 'active',
         isParentDeleted: false
       },
       include: {
-        chatIntegrationInstance: true,
-        chatIntegrationProvider: true,
+        chatInstance: true,
+        chatConnectionProvider: true,
         adapterIntegrationInstanceProvider: true
       }
     });
 
     await syncChatWorkspacesForProviderQueue.addManyWithOps(
       providers.map(provider => ({
-        data: { chatIntegrationInstanceProviderId: provider.id },
+        data: { chatInstanceProviderId: provider.id },
         opts: { id: `ws-sync-${provider.id}` }
       }))
     );

@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import { type ChatAdapterInstance, type ThreadType } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
+  type ChatChannel,
   type ChatThread,
   type ChatThreadType,
   db,
@@ -22,7 +23,7 @@ import { requireLocalChatEntity, withChatCapabilityFallback } from '../lib/chatC
 import { unwrapChatCall } from '../lib/chatError';
 import { type ChatWithProvider } from './chatChannel';
 
-export type ChatThreadWithChat = ChatThread & { chat: Chat };
+export type ChatThreadWithChat = ChatThread & { chat: Chat; channel: ChatChannel };
 
 export type ListChatThreadsParams = {
   chat: ChatWithProvider;
@@ -50,12 +51,12 @@ class chatThreadServiceImpl {
   async listChatThreadsInternal(
     d: { tenant: Tenant; environment: Environment } & ListChatThreadsParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     return withChatCapabilityFallback(client, 'thread_read', {
@@ -132,7 +133,7 @@ class chatThreadServiceImpl {
             channelOid: localChannel.oid,
             ...(d.type ? { type: d.type as ChatThreadType } : {})
           },
-          include: { chat: true }
+          include: { chat: true, channel: true }
         });
       })
     );
@@ -151,12 +152,12 @@ class chatThreadServiceImpl {
   async getChatThreadInternal(
     d: { tenant: Tenant; environment: Environment } & GetChatThreadParams
   ) {
-    checkTenant(d, d.chat.chatIntegrationInstanceProvider);
+    checkTenant(d, d.chat.chatInstanceProvider);
 
     let client = await chatAdapterService.getChatAdapterClientInternal({
       tenant: d.tenant,
       environment: d.environment,
-      chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
+      chatInstanceProvider: d.chat.chatInstanceProvider
     });
 
     return withChatCapabilityFallback(client, 'thread_read', {
@@ -225,7 +226,7 @@ class chatThreadServiceImpl {
         channelOid: localChannel.oid,
         OR: [{ id: d.threadId }, { threadId: d.threadId }]
       },
-      include: { chat: true }
+      include: { chat: true, channel: true }
     });
 
     return requireLocalChatEntity('chatThread', d.threadId, local);

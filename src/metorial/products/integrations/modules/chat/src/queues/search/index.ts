@@ -1,8 +1,8 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
-import { indexChatIntegrationQueueProcessor } from './chatIntegration';
-import { indexChatIntegrationInstanceQueueProcessor } from './chatIntegrationInstance';
+import { indexChatConnectionQueueProcessor } from './chatConnection';
+import { indexChatInstanceQueueProcessor } from './chatInstance';
 
 export let searchQueues = combineQueueProcessors([
-  indexChatIntegrationQueueProcessor,
-  indexChatIntegrationInstanceQueueProcessor
+  indexChatConnectionQueueProcessor,
+  indexChatInstanceQueueProcessor
 ]);
