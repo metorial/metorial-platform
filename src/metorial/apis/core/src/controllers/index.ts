@@ -1,6 +1,7 @@
 import { Controller } from '@metorial/rest';
 import {
   callbackDocsCategory,
+  chatDocsCategory,
   configurationDocsCategory,
   customProviderDocsCategory,
   fileCollectionDocsCategory,
@@ -48,6 +49,15 @@ import {
   callbackController,
   callbackEventController,
   callbackInstanceController,
+  chatChannelController,
+  chatConnectionController,
+  chatController,
+  chatDmController,
+  chatEventController,
+  chatInstanceController,
+  chatMessageController,
+  chatThreadController,
+  chatWorkspaceController,
   consumerController,
   consumerSurfaceController,
   customProviderCodeController,
@@ -341,6 +351,22 @@ let setControllerDocsMetadata = <
 );
 
 [
+  chatConnectionController,
+  chatInstanceController,
+  chatWorkspaceController,
+  chatEventController,
+  chatController,
+  chatChannelController,
+  chatThreadController,
+  chatMessageController,
+  chatDmController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: chatDocsCategory
+  })
+);
+
+[
   documentController,
   documentVersionController,
   documentParticipantController,
@@ -465,6 +491,16 @@ export let magnetarController = Controller.create<any>(
     callbackController,
     callbackEventController,
     callbackInstanceController,
+
+    chatConnectionController,
+    chatInstanceController,
+    chatWorkspaceController,
+    chatEventController,
+    chatController,
+    chatChannelController,
+    chatThreadController,
+    chatMessageController,
+    chatDmController,
 
     eventDestinationManagementController,
     eventDestinationListenerController,
@@ -655,6 +691,16 @@ export let dashboardController = Controller.create<any>(
     webhookRegistrationController,
     incomingWebhookController,
     eventDestinationListenerController,
+
+    chatConnectionController,
+    chatInstanceController,
+    chatWorkspaceController,
+    chatEventController,
+    chatController,
+    chatChannelController,
+    chatThreadController,
+    chatMessageController,
+    chatDmController,
 
     documentController,
     documentVersionController,

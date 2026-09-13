@@ -83,3 +83,9 @@ export let fileCollectionDocsCategory = createCategory({
   name: 'File Collections',
   indexHint: getIndexHint()
 });
+
+export let chatDocsCategory = createCategory({
+  id: 'chat',
+  name: 'Chat',
+  indexHint: getIndexHint()
+});
