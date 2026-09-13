@@ -35,7 +35,7 @@ export let eventDestinationListenerController = Controller.create(
   {
     name: 'Event destination listeners',
     description:
-      "Event destination listeners subscribe an event destination to events for a specific instance — either generic resource events, or a callback's trigger events."
+      "Event destination listeners subscribe an event destination to events for a specific instance — generic resource events, a callback's trigger events, or a chat integration's events."
   },
   {
     list: organizationGroup
@@ -66,10 +66,14 @@ export let eventDestinationListenerController = Controller.create(
             callback_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by callback ID(s), for listeners whose `type` is `callback`'
             }),
+            chat_integration_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter by chat integration ID(s), for listeners whose `type` is `chat`'
+            }),
             type: v.optional(
               v.union([
-                v.enumOf(['event', 'callback']),
-                v.array(v.enumOf(['event', 'callback']))
+                v.enumOf(['event', 'callback', 'chat']),
+                v.array(v.enumOf(['event', 'callback', 'chat']))
               ]),
               { description: 'Filter by listener type' }
             )
@@ -82,6 +86,7 @@ export let eventDestinationListenerController = Controller.create(
           instanceIds: normalizeArrayParam(ctx.query.instance_id),
           eventDestinationIds: normalizeArrayParam(ctx.query.event_destination_id),
           callbackIds: normalizeArrayParam(ctx.query.callback_id),
+          chatIntegrationIds: normalizeArrayParam(ctx.query.chat_integration_id),
           types: normalizeArrayParam(ctx.query.type)
         });
         let list = await paginator.run(ctx.query);
@@ -121,7 +126,7 @@ export let eventDestinationListenerController = Controller.create(
         {
           name: 'Create event destination listener',
           description:
-            "Subscribes an event destination to events for this instance — either generic resource events or a callback's trigger events."
+            "Subscribes an event destination to events for this instance — generic resource events, a callback's trigger events, or a chat integration's events."
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.event_destination:write'] }))
@@ -166,6 +171,27 @@ export let eventDestinationListenerController = Controller.create(
               description: 'Callback trigger keys to deliver',
               examples: [['issue.created']]
             })
+          }),
+          v.object({
+            instance_id: v.string({
+              description: 'Instance that receives the matching events',
+              examples: ['ins_1aBcDeFgHjKlMnPq']
+            }),
+            event_destination_id: v.string({
+              description: 'Event destination to deliver matching events to',
+              examples: ['evtd_1aBcDeFgHjKlMnPq']
+            }),
+            type: v.literal('chat', {
+              description: "Listen for a specific chat integration's events"
+            }),
+            chat_integration_id: v.string({
+              description: 'Chat integration whose events should be delivered',
+              examples: ['chint_1aBcDeFgHjKlMnPq']
+            }),
+            event_types: v.array(v.string(), {
+              description: 'Chat event types to deliver, e.g. `chat.message.received`',
+              examples: [['chat.message.received', 'chat.mention.received']]
+            })
           })
         ])
       )
@@ -188,12 +214,19 @@ export let eventDestinationListenerController = Controller.create(
                   type: 'event',
                   eventTypes: ctx.body.event_types
                 }
-              : {
-                  eventDestinationId: ctx.body.event_destination_id,
-                  type: 'callback',
-                  callbackId: ctx.body.callback_id,
-                  triggers: ctx.body.triggers
-                }
+              : ctx.body.type == 'chat'
+                ? {
+                    eventDestinationId: ctx.body.event_destination_id,
+                    type: 'chat',
+                    chatIntegrationId: ctx.body.chat_integration_id,
+                    eventTypes: ctx.body.event_types
+                  }
+                : {
+                    eventDestinationId: ctx.body.event_destination_id,
+                    type: 'callback',
+                    callbackId: ctx.body.callback_id,
+                    triggers: ctx.body.triggers
+                  }
         });
 
         return eventDestinationListenerPresenter.present({ listener, instance });
@@ -219,7 +252,7 @@ export let eventDestinationListenerController = Controller.create(
           event_types: v.optional(
             v.array(v.string(), {
               description:
-                'Updated resource event types to deliver, present when `type` is `event`',
+                'Updated event types to deliver, present when `type` is `event` or `chat`',
               examples: [['session.created']]
             })
           ),
