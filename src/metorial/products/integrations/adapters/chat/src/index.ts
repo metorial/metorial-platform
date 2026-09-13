@@ -10,6 +10,7 @@ export type {
   ChannelType,
   ChatBody,
   ChatPart,
+  Emoji,
   EmojiInput,
   LinkUnfurl,
   Message,
@@ -21,6 +22,8 @@ export type {
   ThreadType,
   Workspace
 } from '@slates/adapter-chat';
+
+export { chatTriggers } from '@slates/adapter-chat';
 
 export interface ChatAdapterInstance extends AdapterClient<typeof ChatAdapter> {}
 

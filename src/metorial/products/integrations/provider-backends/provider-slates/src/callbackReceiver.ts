@@ -68,7 +68,7 @@ export let receiveSlatesCallbackEvent = async (
       slateWebhookEventId: input.webhookEventId,
 
       slateCallbackInstanceOid: slateCallbackInstance.oid,
-      callbackEventOid: callbackEvent.oid
+      callbackEventOid: callbackEvent?.oid
     }
   });
 
