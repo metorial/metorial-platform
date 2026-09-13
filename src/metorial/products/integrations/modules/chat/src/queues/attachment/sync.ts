@@ -31,7 +31,7 @@ export let chatMessageAttachmentSyncQueueProcessor = chatMessageAttachmentSyncQu
       db.environment.findUnique({ where: { id: data.environmentId } }),
       db.chatMessage.findUnique({ where: { id: data.messageId } })
     ]);
-    if (!tenant || !environment || !message) return;
+    if (!tenant || !environment || !message || message.deletedAt) return;
 
     let chat = await db.chat.findUnique({
       where: { id: data.chatId },

@@ -14,6 +14,11 @@ import {
   chatIntegrationInstanceDeleteManyQueueProcessor,
   chatIntegrationInstanceDeleteQueueProcessor
 } from './chatIntegrationInstance';
+import {
+  chatMessageDeletedCleanupCron,
+  chatMessageDeleteManyQueueProcessor,
+  chatMessageDeleteQueueProcessor
+} from './chatMessage';
 
 export let deleteQueues = combineQueueProcessors([
   chatArchivedCleanupCron,
@@ -24,5 +29,8 @@ export let deleteQueues = combineQueueProcessors([
   chatIntegrationDeleteQueueProcessor,
   chatIntegrationInstanceArchivedCleanupCron,
   chatIntegrationInstanceDeleteManyQueueProcessor,
-  chatIntegrationInstanceDeleteQueueProcessor
+  chatIntegrationInstanceDeleteQueueProcessor,
+  chatMessageDeletedCleanupCron,
+  chatMessageDeleteManyQueueProcessor,
+  chatMessageDeleteQueueProcessor
 ]);

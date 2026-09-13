@@ -1,22 +1,32 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
-import { type AttachmentRef, type Message } from '@metorial-subspace/adapter-chat';
+import {
+  type AttachmentRef,
+  type Channel,
+  type Message,
+  type Thread
+} from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
   type ChatChannel,
   type ChatMessage,
   type ChatThread,
-  type Environment,
   db,
+  type Environment,
   getId,
+  Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
-import { enqueueChatMessageAttachmentSync } from '../queues/attachment/sync';
 import { isUniqueConstraintError } from '../lib/unique';
+import { enqueueChatMessageAttachmentCleanup } from '../queues/attachment/cleanup';
+import { enqueueChatMessageAttachmentSync } from '../queues/attachment/sync';
 import { chatAuthorServiceInternal } from './chatAuthor';
+import { chatChannelServiceInternal } from './chatChannel';
 import { chatMessageGroupServiceInternal } from './chatMessageGroup';
+import { chatThreadServiceInternal } from './chatThread';
 
 export type ChatMessageWithRelations = ChatMessage & {
   chat: Chat;
@@ -51,8 +61,11 @@ class chatMessageServiceInternalImpl {
     messages: Message[];
     persistedByRemoteId: Map<string, ChatMessage>;
   }) {
-    let candidates: Array<{ messageOid: bigint; messageId: string; attachment: AttachmentRef }> =
-      [];
+    let candidates: Array<{
+      messageOid: bigint;
+      messageId: string;
+      attachment: AttachmentRef;
+    }> = [];
 
     for (let message of d.messages) {
       let persisted = d.persistedByRemoteId.get(message.id);
@@ -69,14 +82,19 @@ class chatMessageServiceInternalImpl {
     let existing = await db.chatMessageAttachment.findMany({
       where: {
         messageOid: { in: candidates.map(c => c.messageOid) },
-        attachmentId: { in: candidates.map(c => c.attachment.id).filter((id): id is string => !!id) }
+        attachmentId: {
+          in: candidates.map(c => c.attachment.id).filter((id): id is string => !!id)
+        }
       },
       select: { messageOid: true, attachmentId: true }
     });
     let existingKeys = new Set(existing.map(row => `${row.messageOid}:${row.attachmentId}`));
 
     for (let [index, candidate] of candidates.entries()) {
-      if (candidate.attachment.id && existingKeys.has(`${candidate.messageOid}:${candidate.attachment.id}`)) {
+      if (
+        candidate.attachment.id &&
+        existingKeys.has(`${candidate.messageOid}:${candidate.attachment.id}`)
+      ) {
         continue;
       }
 
@@ -181,6 +199,17 @@ class chatMessageServiceInternalImpl {
               continue;
             }
 
+            // A tombstone is never revived
+            if (current.deletedAt) {
+              results.set(message.id, {
+                ...current,
+                chat: d.chat,
+                channel: d.channel,
+                thread
+              });
+              continue;
+            }
+
             let localMessage = current;
             if (current.syncHash !== syncHash) {
               localMessage = await db.chatMessage.update({
@@ -211,7 +240,12 @@ class chatMessageServiceInternalImpl {
       upserted = await run();
     }
 
-    let persistedByRemoteId = new Map(upserted.map(message => [message.messageId, message]));
+    // Tombstones are returned so callers can see the message, but nothing may be re-materialized
+    let persistedByRemoteId = new Map(
+      upserted
+        .filter(message => !message.deletedAt)
+        .map(message => [message.messageId, message])
+    );
     await this.syncMessageGroups({
       channel: d.channel,
       messages: d.messages,
@@ -226,6 +260,112 @@ class chatMessageServiceInternalImpl {
     });
 
     return upserted;
+  }
+
+  async persistMessageResult(d: {
+    tenant: Tenant;
+    environment: Environment;
+    chat: Chat;
+    localChannel: ChatChannel | null;
+    result: { message: Message; channel?: Channel; thread?: Thread };
+  }): Promise<ChatMessageWithRelations> {
+    let channel = d.result.channel
+      ? (
+          await chatChannelServiceInternal.upsertChatChannels({
+            chat: d.chat,
+            channels: [d.result.channel]
+          })
+        )[0]
+      : d.localChannel;
+    if (!channel) {
+      throw new ServiceError(notFoundError('chatChannel', d.result.message.channelId));
+    }
+
+    if (d.result.thread) {
+      await chatThreadServiceInternal.upsertChatThreads({
+        chat: d.chat,
+        channel,
+        threads: [d.result.thread]
+      });
+    }
+
+    let [upserted] = await this.upsertChatMessages({
+      tenant: d.tenant,
+      environment: d.environment,
+      chat: d.chat,
+      channel,
+      messages: [d.result.message]
+    });
+
+    return upserted!;
+  }
+
+  async softDeleteChatMessages(d: { messageOids: bigint[]; deletedAt?: Date }) {
+    if (d.messageOids.length === 0) return;
+
+    let attachments = await db.chatMessageAttachment.findMany({
+      where: { messageOid: { in: d.messageOids } },
+      select: { fileId: true, uploadedFileId: true, uploadedFileReferenceId: true }
+    });
+
+    await db.chatMessageAttachment.deleteMany({
+      where: { messageOid: { in: d.messageOids } }
+    });
+
+    await db.chatMessage.updateMany({
+      where: { oid: { in: d.messageOids }, deletedAt: null },
+      data: {
+        deletedAt: d.deletedAt ?? new Date(),
+        body: Prisma.DbNull,
+        reactions: Prisma.DbNull,
+        unfurls: Prisma.DbNull,
+        syncHash: null
+      }
+    });
+
+    await enqueueChatMessageAttachmentCleanup(attachments);
+  }
+
+  async tombstoneChatMessage(d: {
+    channel: ChatChannel;
+    messageId: string;
+    threadOid: bigint | null;
+    deletedAt: Date;
+  }): Promise<ChatMessage> {
+    let existing = await db.chatMessage.findUnique({
+      where: { channelOid_messageId: { channelOid: d.channel.oid, messageId: d.messageId } }
+    });
+
+    if (!existing) {
+      try {
+        return await db.chatMessage.create({
+          data: {
+            ...getId('chatMessage'),
+            messageId: d.messageId,
+            providerType: d.channel.providerType,
+            channelOid: d.channel.oid,
+            threadOid: d.threadOid,
+            sentAt: d.deletedAt,
+            deletedAt: d.deletedAt
+          }
+        });
+      } catch (err) {
+        if (!isUniqueConstraintError(err)) throw err;
+
+        existing = await db.chatMessage.findUniqueOrThrow({
+          where: {
+            channelOid_messageId: { channelOid: d.channel.oid, messageId: d.messageId }
+          }
+        });
+      }
+    }
+
+    await this.softDeleteChatMessages({
+      messageOids: [existing.oid],
+      deletedAt: d.deletedAt
+    });
+
+    return await db.chatMessage.findUniqueOrThrow({ where: { oid: existing.oid } });
   }
 }
 

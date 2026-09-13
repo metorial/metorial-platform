@@ -2,6 +2,7 @@ export * from './chat';
 export * from './chatChannel';
 export * from './chatChannelMember';
 export * from './chatDm';
+export * from './chatEvent';
 export * from './chatIntegration';
 export * from './chatIntegrationInstance';
 export * from './chatIntegrationInstanceProvider';

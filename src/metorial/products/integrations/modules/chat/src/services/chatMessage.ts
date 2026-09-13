@@ -48,7 +48,6 @@ import {
 } from '../lib/chatCapability';
 import { unwrapChatCall } from '../lib/chatError';
 import { usingChatMessageLock } from '../lib/chatLock';
-import { enqueueChatMessageAttachmentCleanup } from '../queues/attachment/cleanup';
 import { type ChatWithProvider } from './chatChannel';
 
 export type ListChatMessagesParams = {
@@ -341,6 +340,7 @@ class chatMessageServiceImpl {
           ...opts,
           where: {
             channelOid: localChannel.oid,
+            deletedAt: null,
             ...(threadOid !== undefined ? { threadOid } : {})
           }
         });
@@ -438,6 +438,7 @@ class chatMessageServiceImpl {
     let local = await db.chatMessage.findFirst({
       where: {
         channelOid: localChannel.oid,
+        deletedAt: null,
         OR: [{ id: d.messageId }, { messageId: d.messageId }]
       }
     });
@@ -840,20 +841,11 @@ class chatMessageServiceImpl {
         message: 'Failed to delete the message with the chat provider.'
       });
 
-      let attachments = localMessage
-        ? await db.chatMessageAttachment.findMany({
-            where: { messageOid: localMessage.oid },
-            select: { fileId: true, uploadedFileId: true, uploadedFileReferenceId: true }
-          })
-        : [];
-
-      if (localChannel) {
-        await db.chatMessage.deleteMany({
-          where: { channelOid: localChannel.oid, messageId }
+      if (localMessage) {
+        await chatMessageServiceInternal.softDeleteChatMessages({
+          messageOids: [localMessage.oid]
         });
       }
-
-      await enqueueChatMessageAttachmentCleanup(attachments);
 
       return result;
     });
@@ -930,34 +922,13 @@ class chatMessageServiceImpl {
     localChannel: ChatChannel | null,
     result: { message: Message; channel?: Channel; thread?: Thread }
   ): Promise<ChatMessageWithRelations> {
-    let channel = result.channel
-      ? (
-          await chatChannelServiceInternal.upsertChatChannels({
-            chat,
-            channels: [result.channel]
-          })
-        )[0]
-      : localChannel;
-    if (!channel)
-      throw new ServiceError(notFoundError('chatChannel', result.message.channelId));
-
-    if (result.thread) {
-      await chatThreadServiceInternal.upsertChatThreads({
-        chat,
-        channel,
-        threads: [result.thread]
-      });
-    }
-
-    let [upserted] = await chatMessageServiceInternal.upsertChatMessages({
+    return chatMessageServiceInternal.persistMessageResult({
       tenant,
       environment,
       chat,
-      channel,
-      messages: [result.message]
+      localChannel,
+      result
     });
-
-    return upserted!;
   }
 
   // Batches attachment hydration across all given messages into a single call, so
