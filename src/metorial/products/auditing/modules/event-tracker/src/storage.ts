@@ -5,13 +5,17 @@ import { env } from './env';
 export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL, 1000 * 60 * 10);
 
 export let getEventPayloadsBucketName = () => env.storage.EVENT_PAYLOADS_BUCKET_NAME;
+export let getChatEventPayloadsBucketName = () => env.storage.CHAT_EVENT_PAYLOADS_BUCKET_NAME;
 export let getStorage = () => storage;
 
 export let getEventPayload = async (key: string) =>
   await getStorage().getObject(getEventPayloadsBucketName(), key);
 
 export let initBuckets = async () => {
-  await getStorage().upsertBucket(getEventPayloadsBucketName());
+  await Promise.all([
+    getStorage().upsertBucket(getEventPayloadsBucketName()),
+    getStorage().upsertBucket(getChatEventPayloadsBucketName())
+  ]);
 };
 
 (async () => {
