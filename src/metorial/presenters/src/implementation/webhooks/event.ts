@@ -9,11 +9,19 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
     id: event.id,
     organization_id: organization.id,
     instance_id: event.instance?.id ?? null,
+
     source: event.source,
     event_type: event.eventType,
-    payload: (await resolveSystemEventPayload(event)) as any,
+    payload: (event.source == 'chat'
+      ? (event.chatPayload ?? null)
+      : await resolveSystemEventPayload(event)) as any,
+
     callback_id: event.callbackId ?? null,
     callback_trigger_key: event.callbackTriggerKey ?? null,
+
+    chat_event_id: event.chatEventId ?? null,
+    chat_integration_id: event.chatIntegrationId ?? null,
+
     created_at: event.createdAt
   }))
   .schema(
@@ -33,9 +41,9 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
           examples: ['ins_1aBcDeFgHjKlMnPq']
         })
       ),
-      source: v.enumOf(['resource', 'callback'], {
+      source: v.enumOf(['resource', 'callback', 'chat'], {
         description:
-          'Whether this event was produced by a normal resource action or by a callback occurrence'
+          'Whether this event was produced by a normal resource action, a callback occurrence, or a chat integration'
       }),
       event_type: v.string({
         description:
@@ -45,7 +53,7 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
       payload: v.nullable(
         v.record(v.any(), {
           description:
-            'The presenter-shaped event payload for `resource` events. Always `null` for `callback` events — fetch the linked callback event for its payload.'
+            'The presenter-shaped event payload for `resource` and `chat` events. Always `null` for `callback` events — fetch the linked callback event for its payload.'
         })
       ),
       callback_id: v.nullable(
@@ -59,6 +67,20 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
         v.string({
           description:
             'The trigger key that produced this event, present only for `callback` events'
+        })
+      ),
+      chat_event_id: v.nullable(
+        v.string({
+          description:
+            'The chat event this event is linked to, present only for `chat` events',
+          examples: ['chevt_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      chat_integration_id: v.nullable(
+        v.string({
+          description:
+            'The chat integration that produced this event, present only for `chat` events',
+          examples: ['chint_1aBcDeFgHjKlMnPq']
         })
       ),
       created_at: v.date({ description: 'When the event was recorded' })

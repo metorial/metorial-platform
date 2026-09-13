@@ -2,6 +2,7 @@ export * from './_shared';
 export * from './accessControl';
 export * from './assistant';
 export * from './auth';
+export * from './chat';
 export * from './consumer';
 export * from './files';
 export * from './monitor';

@@ -9,9 +9,10 @@ export let v1EventDestinationListenerPresenter = Presenter.create(eventDestinati
     instance_id: instance.id,
     event_destination_id: listener.eventDestination.id,
     type: listener.type,
-    event_types: listener.type == 'event' ? listener.eventTypes : null,
+    event_types: listener.type == 'callback' ? null : listener.eventTypes,
     callback_id: listener.type == 'callback' ? listener.callbackId : null,
     triggers: listener.type == 'callback' ? listener.triggers : null,
+    chat_integration_id: listener.type == 'chat' ? listener.chatIntegrationId : null,
     created_at: listener.createdAt,
     updated_at: listener.updatedAt
   }))
@@ -30,14 +31,14 @@ export let v1EventDestinationListenerPresenter = Presenter.create(eventDestinati
         description: 'The event destination that receives matching events',
         examples: ['evtd_1aBcDeFgHjKlMnPq']
       }),
-      type: v.enumOf(['event', 'callback'], {
+      type: v.enumOf(['event', 'callback', 'chat'], {
         description:
-          "Whether this listener subscribes to generic resource lifecycle events, or to a specific callback's trigger events"
+          "Whether this listener subscribes to generic resource lifecycle events, to a specific callback's trigger events, or to a specific chat integration's events"
       }),
       event_types: v.nullable(
         v.array(v.string(), {
           description:
-            'Resource event types to deliver (e.g. `session.created`), present when `type` is `event`',
+            'Event types to deliver (e.g. `session.created`, `chat.message.received`), present when `type` is `event` or `chat`',
           examples: [['session.created', 'session.completed']]
         })
       ),
@@ -52,6 +53,13 @@ export let v1EventDestinationListenerPresenter = Presenter.create(eventDestinati
         v.array(v.string(), {
           description: 'Callback trigger keys to deliver, present when `type` is `callback`',
           examples: [['issue.created']]
+        })
+      ),
+      chat_integration_id: v.nullable(
+        v.string({
+          description:
+            'The chat integration whose events are delivered, present when `type` is `chat`',
+          examples: ['chint_1aBcDeFgHjKlMnPq']
         })
       ),
       created_at: v.date({ description: 'When the listener was created' }),

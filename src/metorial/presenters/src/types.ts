@@ -1,4 +1,23 @@
-import type { SessionWarning, Prisma as SubspacePrisma } from '@metorial-subspace/db';
+import type {
+  Chat,
+  ChatAuthor,
+  ChatChannel,
+  ChatEvent,
+  ChatMessage,
+  ChatMessageAttachment,
+  ChatThread,
+  ChatWorkspace,
+  SessionWarning,
+  Prisma as SubspacePrisma
+} from '@metorial-subspace/db';
+import type {
+  CallbackEventDetails,
+  CallbackEventWithRelations,
+  CallbackInstanceWithRelations,
+  CallbackWithRelations,
+  WebhookEvent,
+  WebhookRegistrationWithRelations
+} from '@metorial-subspace/module-callback';
 import type { publisherService } from '@metorial-subspace/module-catalog';
 import type {
   customProviderDeploymentService,
@@ -9,14 +28,6 @@ import type {
   scmRepositoryService
 } from '@metorial-subspace/module-custom-provider';
 import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
-import type {
-  CallbackEventDetails,
-  CallbackEventWithRelations,
-  CallbackInstanceWithRelations,
-  CallbackWithRelations,
-  WebhookEvent,
-  WebhookRegistrationWithRelations
-} from '@metorial-subspace/module-callback';
 import type {
   integrationInclude,
   integrationInstanceGroupInclude,
@@ -76,7 +87,6 @@ import {
   DocumentParticipant,
   EventDestination,
   EventDestinationListener,
-  SystemEvent,
   File,
   FileLink,
   Instance,
@@ -137,6 +147,7 @@ import {
   SkillTemplate,
   Store,
   StoreParticipant,
+  SystemEvent,
   Team,
   TeamMember,
   TeamProject,
@@ -1119,7 +1130,10 @@ export let eventDestinationListenerType = PresentableType.create<{
 }>()('eventDestinationListener');
 
 export let systemEventType = PresentableType.create<{
-  event: SystemEvent & { instance: Instance | null };
+  event: SystemEvent & {
+    instance: Instance | null;
+    chatPayload?: Record<string, any> | null;
+  };
   organization: Organization;
 }>()('event');
 
@@ -3313,3 +3327,73 @@ export let callbackEventType = PresentableType.create<{
   callbackEvent: CallbackEventWithRelations;
   details?: CallbackEventDetails | null;
 }>()('callback_event');
+
+type RawChatWorkspace = ChatWorkspace & {
+  chat: Chat;
+};
+
+// Structurally identical to the chat module's `HydratedChatMessageAttachment`, declared here rather
+// than imported so the chat module can depend on the presenters instead of the other way around.
+type RawChatMessageAttachment = ChatMessageAttachment & {
+  file: File | null;
+  uploadedFile: File | null;
+};
+
+type RawChatChannel = ChatChannel & {
+  chat: Chat;
+  workspace: ChatWorkspace | null;
+};
+
+type RawChatThread = ChatThread & {
+  chat: Chat;
+  channel: ChatChannel;
+};
+
+type RawChatAuthor = ChatAuthor & {
+  chat: Chat;
+};
+
+type RawChatMessage = ChatMessage & {
+  chat: Chat;
+  channel: ChatChannel;
+  thread: ChatThread | null;
+  author: ChatAuthor | null;
+  attachments: RawChatMessageAttachment[];
+};
+
+type RawChatEvent = ChatEvent & {
+  chat: Chat;
+  channel: ChatChannel | null;
+  thread: ChatThread | null;
+  message: ChatMessage | null;
+  author: ChatAuthor | null;
+};
+
+export let chatWorkspaceType = PresentableType.create<{
+  chatWorkspace: RawChatWorkspace;
+}>()('chat_workspace');
+
+export let chatChannelType = PresentableType.create<{
+  chatChannel: RawChatChannel;
+}>()('chat_channel');
+
+export let chatThreadType = PresentableType.create<{
+  chatThread: RawChatThread;
+}>()('chat_thread');
+
+export let chatAuthorType = PresentableType.create<{
+  chatAuthor: RawChatAuthor;
+}>()('chat_author');
+
+export let chatMessageAttachmentType = PresentableType.create<{
+  chatMessageAttachment: RawChatMessageAttachment;
+}>()('chat_message_attachment');
+
+export let chatMessageType = PresentableType.create<{
+  chatMessage: RawChatMessage;
+}>()('chat_message');
+
+export let chatEventType = PresentableType.create<{
+  chatEvent: RawChatEvent;
+  payload?: PrismaJson.ChatEventPayload | null;
+}>()('chat_event');
