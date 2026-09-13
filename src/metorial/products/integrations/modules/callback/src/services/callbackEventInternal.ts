@@ -1,10 +1,14 @@
 import { Service } from '@lowerdeck/service';
 import {
+  type Callback,
+  type CallbackEvent,
   type CallbackEventSource,
   type CallbackInstance,
   db,
-  getId
+  getId,
+  type Tenant
 } from '@metorial-subspace/db';
+import { getBackend } from '@metorial-subspace/provider';
 import { callbackEventProcessQueue } from '../queues/processEvent';
 
 class callbackEventInternalServiceImpl {
@@ -24,8 +28,21 @@ class callbackEventInternalServiceImpl {
       where: {
         providerOid_key: { providerOid: callback.providerOid, key: d.providerTriggerKey }
       },
-      select: { currentInstanceOid: true }
+      select: {
+        currentInstance: { select: { oid: true, adapter: { select: { globalOid: true } } } }
+      }
     });
+
+    let providerTrigger = providerTriggerGlobal?.currentInstance;
+    let triggerAdapterGlobalOid = providerTrigger?.adapter?.globalOid ?? null;
+
+    if (
+      callback.ownership === 'managed'
+        ? triggerAdapterGlobalOid !== callback.managedAdapterGlobalOid
+        : triggerAdapterGlobalOid !== null
+    ) {
+      return null;
+    }
 
     let event = await db.callbackEvent.create({
       data: {
@@ -34,7 +51,7 @@ class callbackEventInternalServiceImpl {
         source: d.source,
 
         providerTriggerKey: d.providerTriggerKey,
-        providerTriggerOid: providerTriggerGlobal?.currentInstanceOid,
+        providerTriggerOid: providerTrigger?.oid,
 
         mappedType: d.mappedType,
         mappedId: d.mappedId,
@@ -55,6 +72,26 @@ class callbackEventInternalServiceImpl {
     await callbackEventProcessQueue.add({ callbackEventId: event.id }, { id: event.id });
 
     return event;
+  }
+
+  async getEventPayload(d: {
+    tenant: Tenant;
+    callback: Callback;
+    callbackEvent: CallbackEvent;
+  }): Promise<Record<string, any> | null> {
+    let providerVariant = await db.providerVariant.findUniqueOrThrow({
+      where: { oid: d.callback.providerVariantOid }
+    });
+
+    let backend = await getBackend({ entity: providerVariant });
+    if (!backend.callbacks) return null;
+
+    let { events } = await backend.callbacks.getManyEvents({
+      tenant: d.tenant,
+      callbackEvents: [d.callbackEvent]
+    });
+
+    return events[0]?.payload ?? null;
   }
 }
 
