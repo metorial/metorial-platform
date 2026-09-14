@@ -1,25 +1,60 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { chatInstanceProviderType } from '../../types';
+import { v1ProviderAuthConfigPreviewPresenter } from '../provider/auth/authConfigPreview';
+import { v1ProviderConfigPreviewPresenter } from '../provider/config/configPreview';
+import { v1ProviderDeploymentPreviewPresenter } from '../provider/config/deploymentPreview';
+import { v1ProviderPreview } from '../provider/provider/providerPreview';
 
 export let v1ChatInstanceProviderPresenter = Presenter.create(chatInstanceProviderType)
-  .presenter(async ({ chatInstanceProvider }) => ({
-    object: 'chat.instance_provider' as const,
+  .presenter(async ({ chatInstanceProvider }, opts) => {
+    let adapter = chatInstanceProvider.adapterIntegrationInstanceProvider;
+    let provider = adapter.integrationProvider.provider;
+    let connectionVersion = adapter.integrationProvider.currentVersion;
+    let instanceVersion = adapter.integrationInstanceProvider.currentVersion;
 
-    id: chatInstanceProvider.id,
-    status: chatInstanceProvider.status,
+    let config = instanceVersion?.config ?? connectionVersion?.config ?? null;
+    let deployment = connectionVersion?.deployment ?? null;
 
-    chat_instance_id: chatInstanceProvider.chatInstance.id,
-    chat_connection_provider_id: chatInstanceProvider.chatConnectionProvider.id,
-    provider_id:
-      chatInstanceProvider.adapterIntegrationInstanceProvider.integrationProvider.provider.id,
+    return {
+      object: 'chat.instance_provider' as const,
 
-    name: chatInstanceProvider.name,
-    description: chatInstanceProvider.description,
+      id: chatInstanceProvider.id,
+      status: chatInstanceProvider.status,
 
-    created_at: chatInstanceProvider.createdAt,
-    updated_at: chatInstanceProvider.updatedAt
-  }))
+      chat_instance_id: chatInstanceProvider.chatInstance.id,
+      chat_connection_provider_id: chatInstanceProvider.chatConnectionProvider.id,
+
+      provider: v1ProviderPreview(provider),
+
+      deployment: deployment
+        ? await v1ProviderDeploymentPreviewPresenter
+            .present({ deployment: { ...deployment, provider } }, opts)
+            .run()
+        : null,
+
+      config: config
+        ? await v1ProviderConfigPreviewPresenter
+            .present({ config: { ...config, provider } }, opts)
+            .run()
+        : null,
+
+      auth_config: instanceVersion?.authConfig
+        ? await v1ProviderAuthConfigPreviewPresenter
+            .present(
+              { authConfig: { ...instanceVersion.authConfig, providerId: provider.id } },
+              opts
+            )
+            .run()
+        : null,
+
+      name: chatInstanceProvider.name,
+      description: chatInstanceProvider.description,
+
+      created_at: chatInstanceProvider.createdAt,
+      updated_at: chatInstanceProvider.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('chat.instance_provider', {
@@ -49,11 +84,13 @@ export let v1ChatInstanceProviderPresenter = Presenter.create(chatInstanceProvid
         examples: ['cip_8kLmNpQrStUvWxYz']
       }),
 
-      provider_id: v.string({
-        name: 'provider_id',
-        description: 'The chat provider used by this instance',
-        examples: ['pro_3cDeFgHjKlMnPqRs']
-      }),
+      provider: v1ProviderPreview.schema,
+
+      deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
+
+      config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
+
+      auth_config: v.nullable(v1ProviderAuthConfigPreviewPresenter.schema),
 
       name: v.string({
         name: 'name',

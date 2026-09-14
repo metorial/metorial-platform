@@ -30,6 +30,9 @@ export let chatEventController = Controller.create(
             chat_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by chat ID(s)'
             }),
+            chat_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by chat connection ID(s)'
+            }),
             chat_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by chat instance ID(s)'
             }),
@@ -45,6 +48,7 @@ export let chatEventController = Controller.create(
         let paginator = await chatEventService.listChatEvents({
           instance: ctx.instance,
           chatIds: normalizeArrayParam(ctx.query.chat_id),
+          chatConnectionIds: normalizeArrayParam(ctx.query.chat_connection_id),
           chatInstanceIds: normalizeArrayParam(ctx.query.chat_instance_id),
           types: normalizeArrayParam(ctx.query.type),
           createdAt: ctx.query.created_at,

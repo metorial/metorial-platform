@@ -22,7 +22,7 @@
     "@metorial-subspace/module-integration": "^1.0.0",
     "@metorial-subspace/module-session": "^1.0.0",
     "@metorial-subspace/provider-utils": "^1.0.0",
-    "@slates/adapter-chat": "1.0.0-rc.5",
+    "@slates/adapter-chat": "1.0.0-rc.7",
     "@metorial/module-file": "^1.0.0",
     "@metorial/module-skill": "^1.0.0",
     "@metorial/module-skill-marketplace": "^1.0.0",

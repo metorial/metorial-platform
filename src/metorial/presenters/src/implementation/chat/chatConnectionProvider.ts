@@ -1,23 +1,47 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { chatConnectionProviderType } from '../../types';
+import { v1ProviderConfigPreviewPresenter } from '../provider/config/configPreview';
+import { v1ProviderDeploymentPreviewPresenter } from '../provider/config/deploymentPreview';
+import { v1ProviderPreview } from '../provider/provider/providerPreview';
 
 export let v1ChatConnectionProviderPresenter = Presenter.create(chatConnectionProviderType)
-  .presenter(async ({ chatConnectionProvider }) => ({
-    object: 'chat.connection_provider' as const,
+  .presenter(async ({ chatConnectionProvider }, opts) => {
+    let integrationProvider =
+      chatConnectionProvider.adapterIntegrationProvider.integrationProvider;
+    let provider = integrationProvider.provider;
+    let version = integrationProvider.currentVersion;
 
-    id: chatConnectionProvider.id,
-    status: chatConnectionProvider.status,
+    return {
+      object: 'chat.connection_provider' as const,
 
-    provider_id:
-      chatConnectionProvider.adapterIntegrationProvider.integrationProvider.provider.id,
+      id: chatConnectionProvider.id,
+      status: chatConnectionProvider.status,
 
-    name: chatConnectionProvider.name,
-    description: chatConnectionProvider.description,
+      provider: v1ProviderPreview(provider),
 
-    created_at: chatConnectionProvider.createdAt,
-    updated_at: chatConnectionProvider.updatedAt
-  }))
+      deployment: version
+        ? await v1ProviderDeploymentPreviewPresenter
+            .present({ deployment: { ...version.deployment, provider } }, opts)
+            .run()
+        : null,
+
+      config: version?.config
+        ? await v1ProviderConfigPreviewPresenter
+            .present({ config: { ...version.config, provider } }, opts)
+            .run()
+        : null,
+
+      auth_method_id: version?.authMethod?.id ?? null,
+      auth_credentials_id: version?.authCredentials?.id ?? null,
+
+      name: chatConnectionProvider.name,
+      description: chatConnectionProvider.description,
+
+      created_at: chatConnectionProvider.createdAt,
+      updated_at: chatConnectionProvider.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('chat.connection_provider', {
@@ -35,11 +59,27 @@ export let v1ChatConnectionProviderPresenter = Presenter.create(chatConnectionPr
         description: 'The chat connection provider status'
       }),
 
-      provider_id: v.string({
-        name: 'provider_id',
-        description: 'The chat provider used for this connection',
-        examples: ['pro_3cDeFgHjKlMnPqRs']
-      }),
+      provider: v1ProviderPreview.schema,
+
+      deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
+
+      config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
+
+      auth_method_id: v.nullable(
+        v.string({
+          name: 'auth_method_id',
+          description: 'The auth method this connection authenticates with, if any',
+          examples: ['pam_1aBcDeFgHjKlMnPq']
+        })
+      ),
+
+      auth_credentials_id: v.nullable(
+        v.string({
+          name: 'auth_credentials_id',
+          description: 'The auth credentials this connection authenticates with, if any',
+          examples: ['pac_2bCdEfGhJkLmNpQr']
+        })
+      ),
 
       name: v.string({
         name: 'name',

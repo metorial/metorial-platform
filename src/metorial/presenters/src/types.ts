@@ -40,7 +40,9 @@ import type {
   integrationInstanceGroupProviderInclude,
   integrationInstanceInclude,
   integrationInstanceProviderInclude,
+  integrationInstanceProviderVersionInclude,
   integrationProviderInclude,
+  integrationProviderVersionInclude,
   integrationSetupSessionInclude,
   magicMcpServerProviderInclude
 } from '@metorial-subspace/module-integration';
@@ -3375,9 +3377,25 @@ type RawChatEvent = ChatEvent & {
   author: ChatAuthor | null;
 };
 
+// The chat module depends on the presenters, so these relation shapes are declared structurally
+// here rather than imported from `@metorial-subspace/module-chat`.
+type RawChatBackingIntegrationProvider = SubspacePrisma.IntegrationProviderGetPayload<{
+  include: {
+    provider: true;
+    currentVersion: { include: typeof integrationProviderVersionInclude };
+  };
+}>;
+
+type RawChatBackingIntegrationInstanceProvider =
+  SubspacePrisma.IntegrationInstanceProviderGetPayload<{
+    include: {
+      currentVersion: { include: typeof integrationInstanceProviderVersionInclude };
+    };
+  }>;
+
 type RawChatConnectionProvider = ChatConnectionProvider & {
   adapterIntegrationProvider: {
-    integrationProvider: { provider: ChatProvider };
+    integrationProvider: RawChatBackingIntegrationProvider;
   };
 };
 
@@ -3393,7 +3411,8 @@ type RawChatInstanceProvider = ChatInstanceProvider & {
   chatInstance: ChatInstance;
   chatConnectionProvider: ChatConnectionProvider;
   adapterIntegrationInstanceProvider: {
-    integrationProvider: { provider: ChatProvider };
+    integrationProvider: RawChatBackingIntegrationProvider;
+    integrationInstanceProvider: RawChatBackingIntegrationInstanceProvider;
   };
 };
 

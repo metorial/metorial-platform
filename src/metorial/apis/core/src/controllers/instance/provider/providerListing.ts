@@ -140,6 +140,11 @@ export let providerListingController = Controller.create(
               })
             ),
 
+            adapter: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return providers that implement the given adapter(s), such as `chat`'
+            }),
+
             is_public: v.optional(v.boolean()),
             only_from_tenant: v.optional(v.boolean()),
             is_verified: v.optional(v.boolean()),
@@ -175,6 +180,7 @@ export let providerListingController = Controller.create(
           updatedAt: ctx.query.updated_at,
 
           capabilities: ctx.query.capabilities,
+          adapterIdentifiers: normalizeArrayParam(ctx.query.adapter),
 
           orderByUse: ctx.query.order_by_use
             ? orderByUseMapper[ctx.query.order_by_use as keyof typeof orderByUseMapper]
