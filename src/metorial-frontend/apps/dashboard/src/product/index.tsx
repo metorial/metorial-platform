@@ -298,19 +298,6 @@ let DeployPage = dynamicPage(() =>
   import('./pages/setup-provider').then(c => c.SetupProviderPage)
 );
 let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
-let AssistantPage = dynamicPage(() => import('./pages/assistant').then(c => c.AssistantPage));
-let AssistantPageLayout = dynamicPage(() =>
-  import('./pages/assistant/_layout').then(c => c.AssistantPageLayout)
-);
-let AssistantConversationPage = dynamicPage(() =>
-  import('./pages/assistant/conversation').then(c => c.AssistantConversationPage)
-);
-let AssistantSkillsPage = dynamicPage(() =>
-  import('./pages/assistant/skills').then(c => c.AssistantSkillsPage)
-);
-let AssistantContextPage = dynamicPage(() =>
-  import('./pages/assistant/context').then(c => c.AssistantContextPage)
-);
 let DocumentPage = dynamicPage(() => import('./pages/doc').then(c => c.DocumentPage));
 let SkillItemDocumentPage = dynamicPage(() =>
   import('./pages/skill-item-document').then(c => c.SkillItemDocumentPage)
@@ -980,52 +967,6 @@ export let productIntegrationsSlice = createSlice([
   }
 ]);
 
-export let productAssistantSlice = createSlice([
-  {
-    element: <ProductWrapper />,
-
-    children: [
-      {
-        element: <InstanceLayout />,
-
-        children: [
-          {
-            path: 'assistant',
-            element: (
-              <FlaggedPage flag="assistant-enabled">
-                <Outlet />
-              </FlaggedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <AssistantPage />
-              },
-              {
-                path: 'conversation/:assistantConversationId',
-                element: <AssistantConversationPage />
-              },
-              {
-                element: <AssistantPageLayout />,
-                children: [
-                  {
-                    path: 'skills',
-                    element: <AssistantSkillsPage />
-                  },
-                  {
-                    path: 'context',
-                    element: <AssistantContextPage />
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-]);
-
 export let productCallbacksSlice = createSlice([
   {
     element: <ProductWrapper />,
@@ -1214,7 +1155,6 @@ export let productSlice = createSlice([
       ...productIntegrationsSlice.routes,
       ...productCallbacksSlice.routes,
       ...productSkillsSlice.routes,
-      ...productAssistantSlice.routes,
       ...productHomeSlice.routes
     ]
   },

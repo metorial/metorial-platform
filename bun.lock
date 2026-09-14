@@ -2089,6 +2089,7 @@
         "@metorial/presenter": "^1.0.0",
         "@metorial/presenters": "^1.0.0",
         "@metorial/rest": "^1.0.0",
+        "@slates/adapter-chat": "1.0.0-rc.5",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2185,10 +2186,8 @@
       "dependencies": {
         "@lowerdeck/execution-context": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
-        "@metorial/db": "^1.0.0",
         "@metorial/id": "^1.0.0",
         "@metorial/image-url": "^1.0.0",
-        "@metorial/module-event-tracker": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.11.4",
         "@prisma/adapter-pg": "6.19.0",
         "@prisma/client": "^7.4.1",
@@ -2583,6 +2582,7 @@
         "@metorial/module-skill": "^1.0.0",
         "@metorial/module-skill-marketplace": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
+        "@slates/adapter-chat": "1.0.0-rc.5",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",

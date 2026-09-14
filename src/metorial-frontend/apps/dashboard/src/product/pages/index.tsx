@@ -1,10 +1,8 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import { AssistantStartScene } from '@metorial/scene-assistant';
 import {
   MetorialEnterpriseWindow,
-  metorialAssistantSlug,
   useCurrentInstance,
   useDashboardFlags,
   usePortals,
@@ -13,7 +11,7 @@ import {
 } from '@metorial/state';
 import { Avatar, Button, Entity, Spacer } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ApiKeySecret } from '../scenes/apiKeys';
 import { useResolvedInstanceApiKeySecret } from '../scenes/apiKeys/useResolvedInstanceApiKeySecret';
@@ -42,11 +40,9 @@ declare global {
 }
 
 export let ProjectHomePage = () => {
-  let navigate = useNavigate();
   let instance = useCurrentInstance();
   let user = useUser();
   let flags = useDashboardFlags();
-  let assistantEnabled = flags.data?.flags['assistant-enabled'] === true;
   let portalsEnabled =
     flags.data?.flags['portals-access'] && flags.data?.flags['paid-portals'];
 
@@ -78,60 +74,40 @@ export let ProjectHomePage = () => {
 
       {renderWithLoader({ instance, deployments })(() => (
         <>
-          {assistantEnabled ? (
-            <AssistantStartScene
-              assistantSlug={metorialAssistantSlug}
-              showHeader={false}
-              fullWidth
-              layout="embedded"
-              onOpenConversation={(conversationId, state) =>
-                navigate(
-                  Paths.instance.assistantConversation(
-                    instance.data!.organization,
-                    instance.data!.project,
-                    instance.data!,
-                    conversationId
-                  ),
-                  { state }
-                )
-              }
-            />
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gap: 20,
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
-              }}
+          <div
+            style={{
+              display: 'grid',
+              gap: 20,
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+            }}
+          >
+            <SideBox
+              title="Integrate Metorial"
+              description="Learn how to integrate Metorial with your AI app. We have guides for various programming languages and frameworks."
             >
-              <SideBox
-                title="Integrate Metorial"
-                description="Learn how to integrate Metorial with your AI app. We have guides for various programming languages and frameworks."
+              <Button
+                size="2"
+                onClick={() => {
+                  if (window.metorial_enterprise?.chrome?.showDocs) {
+                    window.metorial_enterprise.chrome.showDocs();
+                  } else {
+                    window.open('https://metorial.com/docs', '_blank');
+                  }
+                }}
               >
-                <Button
-                  size="2"
-                  onClick={() => {
-                    if (window.metorial_enterprise?.chrome?.showDocs) {
-                      window.metorial_enterprise.chrome.showDocs();
-                    } else {
-                      window.open('https://metorial.com/docs', '_blank');
-                    }
-                  }}
-                >
-                  Read the Docs
-                </Button>
-              </SideBox>
+                Read the Docs
+              </Button>
+            </SideBox>
 
-              {secretApiKey && (
-                <SideBox
-                  title="Connect to Metorial"
-                  description="Use this API key to connect to Metorial from your code."
-                >
-                  <ApiKeySecret apiKey={secretApiKey} />
-                </SideBox>
-              )}
-            </div>
-          )}
+            {secretApiKey && (
+              <SideBox
+                title="Connect to Metorial"
+                description="Use this API key to connect to Metorial from your code."
+              >
+                <ApiKeySecret apiKey={secretApiKey} />
+              </SideBox>
+            )}
+          </div>
 
           <Spacer height={25} />
 

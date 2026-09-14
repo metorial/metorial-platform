@@ -55,7 +55,6 @@ export let ProjectPageLayout = () => {
     EntityParam
   ];
   let dashboardFlags = useDashboardFlags();
-  let assistantEnabled = !!dashboardFlags.data?.flags['assistant-enabled'];
   let skillsEnabled = !!dashboardFlags.data?.flags['skills-enabled'];
   let callbacksEnabled = !!dashboardFlags.data?.flags['callbacks-enabled'];
   let webhooksEnabled = !!dashboardFlags.data?.flags['webhooks-enabled'];
@@ -119,19 +118,6 @@ export let ProjectPageLayout = () => {
                 }
               ]
             },
-
-            ...(assistantEnabled
-              ? [
-                  {
-                    icon: <RiChatVoiceAiLine />,
-                    label: 'Assistant',
-                    to: Paths.instance.assistant(...params),
-                    getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i)
-                    })
-                  }
-                ]
-              : []),
 
             {
               icon: <RiWebhookLine />,

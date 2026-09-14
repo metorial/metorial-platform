@@ -15,10 +15,8 @@
   "dependencies": {
     "@lowerdeck/execution-context": "workspace:2.0.0",
     "@lowerdeck/snowflake": "workspace:2.0.0",
-    "@metorial/db": "^1.0.0",
     "@metorial/id": "^1.0.0",
     "@metorial/image-url": "^1.0.0",
-    "@metorial/module-event-tracker": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.11.4",
     "@prisma/adapter-pg": "6.19.0",
     "@prisma/client": "^7.4.1",
