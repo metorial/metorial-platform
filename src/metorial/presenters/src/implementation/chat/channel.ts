@@ -2,13 +2,76 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { chatChannelType } from '../../types';
 
-export let chatContextSchema = v.nullable(
-  v.record(v.any(), {
-    name: 'context',
-    description:
-      'The external resource this conversation is attached to on the provider, such as an issue, ticket or page.',
-    examples: [{ type: 'issue', id: '4213', url: 'https://example.com/issues/4213' }]
+let chatContextActorSchema = v.object({
+  id: v.string({
+    name: 'id',
+    description: "The actor's identifier on the chat provider",
+    examples: ['U024BE7LH']
+  }),
+  name: v.string({
+    name: 'name',
+    description: "The actor's display name",
+    examples: ['Ada Lovelace']
   })
+});
+
+export let chatContextSchema = v.nullable(
+  v.object(
+    {
+      type: v.enumOf(
+        ['issue', 'pull_request', 'review', 'page', 'ticket', 'post', 'unknown'],
+        {
+          name: 'type',
+          description: 'What kind of external resource this is'
+        }
+      ),
+
+      id: v.string({
+        name: 'id',
+        description: "The resource's identifier on the provider",
+        examples: ['4213']
+      }),
+
+      description: v.optional(
+        v.string({
+          name: 'description',
+          description: 'Description of the resource'
+        })
+      ),
+
+      status: v.optional(
+        v.string({
+          name: 'status',
+          description: 'Status of the resource, as reported by the provider',
+          examples: ['open']
+        })
+      ),
+
+      url: v.optional(
+        v.string({
+          name: 'url',
+          description: 'Link to the resource',
+          examples: ['https://example.com/issues/4213']
+        })
+      ),
+
+      author: v.optional(chatContextActorSchema),
+      assignee: v.optional(chatContextActorSchema),
+
+      labels: v.optional(
+        v.array(v.string(), {
+          name: 'labels',
+          description: 'Labels attached to the resource',
+          examples: [['bug', 'urgent']]
+        })
+      )
+    },
+    {
+      name: 'context',
+      description:
+        'The external resource this conversation is attached to on the provider, such as an issue, ticket or page.'
+    }
+  )
 );
 
 export let v1ChatChannelPresenter = Presenter.create(chatChannelType)
@@ -29,7 +92,7 @@ export let v1ChatChannelPresenter = Presenter.create(chatChannelType)
 
     member_count: chatChannel.memberCount,
     permalink: chatChannel.permalink,
-    context: (chatChannel.context as Record<string, any> | null) ?? null,
+    context: chatChannel.context ?? null,
 
     created_at: chatChannel.createdAt,
     updated_at: chatChannel.updatedAt,

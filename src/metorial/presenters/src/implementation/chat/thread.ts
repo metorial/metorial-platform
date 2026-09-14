@@ -18,7 +18,7 @@ export let v1ChatThreadPresenter = Presenter.create(chatThreadType)
 
     subject: chatThread.subject,
     permalink: chatThread.permalink,
-    context: (chatThread.context as Record<string, any> | null) ?? null,
+    context: chatThread.context ?? null,
 
     reply_count: chatThread.replyCount,
     last_reply_at: chatThread.lastReplyAt,

@@ -15,6 +15,7 @@ import type {
   SessionWarning,
   Prisma as SubspacePrisma
 } from '@metorial-subspace/db';
+import type { ReactionCount } from '@slates/adapter-chat';
 import type {
   CallbackEventDetails,
   CallbackEventWithRelations,
@@ -3458,7 +3459,7 @@ export let chatTypingIndicatorType = PresentableType.create<{
 }>()('chat_typing_indicator');
 
 export let chatReactionListType = PresentableType.create<{
-  reactions: Record<string, any>[];
+  reactions: ReactionCount[];
 }>()('chat_reaction_list');
 
 // The authenticated user's `author` is a persisted `RawChatAuthor` once a workspace could be

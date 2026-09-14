@@ -1,23 +1,149 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { v, type ValidationType } from '@lowerdeck/validation';
 import { chatMessageService, chatReactionService } from '@metorial-subspace/module-chat';
 import { chatMessagePresenter, chatReactionListPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import type { ChatPart, EmojiInput } from '@slates/adapter-chat';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { chatGroup } from './_shared';
 
-let chatPartsValidator = v.array(
-  v.record(v.any(), { description: 'A structured content part of the message' }),
-  {
-    name: 'parts',
-    description: 'Structured content parts making up the message body',
-    examples: [[{ type: 'text', text: 'Hello there' }]]
-  }
-);
+let textStyleSchema = v.enumOf(['plain', 'bold', 'muted'], {
+  description: 'Visual emphasis for a text part'
+});
 
-let emojiInputValidator = v.union([
+let tableAlignSchema = v.enumOf(['left', 'center', 'right'], {
+  description: 'Column alignment for a table part'
+});
+
+let markdownPartSchema = v.object({
+  type: v.literal('markdown'),
+  markdown: v.string({ description: 'Markdown source for this part' })
+});
+
+let textPartSchema = v.object({
+  type: v.literal('text'),
+  content: v.string({ description: 'Text content' }),
+  style: v.optional(textStyleSchema)
+});
+
+let imagePartSchema = v.object({
+  type: v.literal('image'),
+  url: v.string({ description: 'URL of the image' }),
+  alt: v.optional(v.string({ description: 'Alt text for the image' }))
+});
+
+let dividerPartSchema = v.object({
+  type: v.literal('divider')
+});
+
+let linkPartSchema = v.object({
+  type: v.literal('link'),
+  url: v.string({ description: 'URL to link to' }),
+  label: v.string({ description: 'Label to display for the link' })
+});
+
+let fieldPartSchema = v.object({
+  type: v.literal('field'),
+  label: v.string({ description: 'Field label' }),
+  value: v.string({ description: 'Field value' })
+});
+
+let fieldsPartSchema = v.object({
+  type: v.literal('fields'),
+  children: v.array(fieldPartSchema, { description: 'Fields in this group' })
+});
+
+let tablePartSchema = v.object({
+  type: v.literal('table'),
+  headers: v.array(v.string(), { description: 'Column headers' }),
+  rows: v.array(v.array(v.string()), {
+    description: 'Table rows, each a list of cell values'
+  }),
+  align: v.optional(v.array(tableAlignSchema, { description: 'Per-column alignment' })),
+  caption: v.optional(v.string({ description: 'Caption shown below the table' })),
+  pageSize: v.optional(v.number({ description: 'Number of rows to show per page' }))
+});
+
+let chartValueSchema = v.object({
+  label: v.string({ description: 'Label for this data point' }),
+  value: v.number({ description: 'Value for this data point' })
+});
+
+let pieChartSchema = v.object({
+  type: v.literal('pie'),
+  segments: v.array(chartValueSchema, { description: 'Segments of the pie chart' })
+});
+
+let seriesChartSchema = v.object({
+  type: v.enumOf(['bar', 'area', 'line'], { description: 'Kind of series chart' }),
+  categories: v.array(v.string(), { description: 'Category labels for the x-axis' }),
+  series: v.array(
+    v.object({
+      name: v.string({ description: 'Name of the series' }),
+      data: v.array(chartValueSchema, { description: 'Data points for this series' })
+    }),
+    { description: 'Series making up the chart' }
+  ),
+  xLabel: v.optional(v.string({ description: 'Label for the x-axis' })),
+  yLabel: v.optional(v.string({ description: 'Label for the y-axis' }))
+});
+
+let chartPartSchema = v.object({
+  type: v.literal('chart'),
+  title: v.string({ description: 'Title of the chart' }),
+  chart: v.union([pieChartSchema, seriesChartSchema])
+});
+
+let chatLeafParts = [
+  markdownPartSchema,
+  textPartSchema,
+  imagePartSchema,
+  dividerPartSchema,
+  linkPartSchema,
+  fieldsPartSchema,
+  tablePartSchema,
+  chartPartSchema
+];
+
+let chatLeafPartSchema = v.union(chatLeafParts as any);
+
+let sectionPartSchema = v.object({
+  type: v.literal('section'),
+  children: v.array(chatLeafPartSchema, { description: 'Parts in this section' })
+});
+
+let cardPartSchema = v.object({
+  type: v.literal('card'),
+  title: v.optional(v.string({ description: 'Title of the card' })),
+  subtitle: v.optional(v.string({ description: 'Subtitle of the card' })),
+  imageUrl: v.optional(v.string({ description: 'Image shown on the card' })),
+  children: v.array(v.union([...chatLeafParts, sectionPartSchema] as any), {
+    description: 'Parts in this card, which may include sections'
+  })
+});
+
+let chatPartSchema: ValidationType<ChatPart> = v.union([
+  markdownPartSchema,
+  textPartSchema,
+  imagePartSchema,
+  dividerPartSchema,
+  linkPartSchema,
+  fieldsPartSchema,
+  tablePartSchema,
+  chartPartSchema,
+  sectionPartSchema,
+  cardPartSchema
+]);
+
+let chatPartsValidator = v.array(chatPartSchema, {
+  name: 'parts',
+  description: 'Structured content parts making up the message body',
+  examples: [[{ type: 'text', content: 'Hello there' }]]
+});
+
+let emojiInputValidator: ValidationType<EmojiInput> = v.union([
   v.string({ description: 'A unicode emoji shortcode, e.g. "tada"' }),
   v.object({
     type: v.literal('unicode'),
@@ -159,7 +285,7 @@ export let chatMessageController = Controller.create(
           channelId: ctx.body.channel_id,
           threadId: ctx.body.thread_id,
           body: {
-            parts: ctx.body.parts as any,
+            parts: ctx.body.parts,
             altText: ctx.body.alt_text,
             attachments: ctx.body.attachments?.map(attachment => ({
               fileId: attachment.file_id
@@ -204,7 +330,7 @@ export let chatMessageController = Controller.create(
           channelId: ctx.body.channel_id,
           messageId: ctx.params.messageId!,
           body: {
-            parts: ctx.body.parts as any,
+            parts: ctx.body.parts,
             altText: ctx.body.alt_text
           }
         });
@@ -317,7 +443,7 @@ export let chatMessageController = Controller.create(
           messageId: ctx.params.messageId!
         });
 
-        return chatReactionListPresenter.present({ reactions: reactions as any });
+        return chatReactionListPresenter.present({ reactions });
       }),
 
     addReaction: chatMessageGroup
@@ -350,7 +476,7 @@ export let chatMessageController = Controller.create(
           chat: ctx.chat,
           channelId: ctx.body.channel_id,
           messageId: ctx.params.messageId!,
-          emoji: ctx.body.emoji as any
+          emoji: ctx.body.emoji
         });
 
         let { reactions } = await chatReactionService.listChatReactions({
@@ -360,7 +486,7 @@ export let chatMessageController = Controller.create(
           messageId: ctx.params.messageId!
         });
 
-        return chatReactionListPresenter.present({ reactions: reactions as any });
+        return chatReactionListPresenter.present({ reactions });
       }),
 
     removeReaction: chatMessageGroup
@@ -407,7 +533,7 @@ export let chatMessageController = Controller.create(
           messageId: ctx.params.messageId!
         });
 
-        return chatReactionListPresenter.present({ reactions: reactions as any });
+        return chatReactionListPresenter.present({ reactions });
       })
   }
 );

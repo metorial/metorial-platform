@@ -4,6 +4,63 @@ import { chatMessageType } from '../../types';
 import { v1ChatAuthorPresenter } from './author';
 import { v1ChatMessageAttachmentPresenter } from './messageAttachment';
 
+let reactionEmojiSchema = v.union([
+  v.object({
+    type: v.literal('unicode'),
+    value: v.string({ description: 'The unicode emoji shortcode' })
+  }),
+  v.object({
+    type: v.literal('custom'),
+    name: v.string({ description: 'The custom emoji name' }),
+    url: v.optional(v.string({ description: 'URL of the custom emoji image' })),
+    id: v.optional(v.string({ description: "The custom emoji's identifier on the provider" }))
+  })
+]);
+
+let reactionAuthorSchema = v.object({
+  userId: v.string({ description: "The author's identifier on the chat provider" }),
+  userName: v.string({ description: "The author's handle on the chat provider" }),
+  fullName: v.string({ description: "The author's display name" }),
+  type: v.enumOf(['user', 'app', 'system', 'webhook', 'unknown'], {
+    description: 'What kind of account this author is on the chat provider'
+  }),
+  role: v.optional(
+    v.enumOf(['member', 'guest', 'unknown'], {
+      description: 'The role this author holds in the chat workspace'
+    })
+  ),
+  providerType: v.optional(
+    v.string({ description: "The provider's own name for this kind of author" })
+  ),
+  isMe: v.boolean({
+    description: 'Whether this author is the account the integration itself is authenticated as'
+  }),
+  email: v.optional(v.string({ description: 'Email address of the author' })),
+  imageUrl: v.optional(v.string({ description: "URL of the author's avatar" })),
+  raw: v.optional(v.any())
+});
+
+export let reactionCountSchema = v.object({
+  emoji: reactionEmojiSchema,
+  count: v.number({ description: 'Number of times this emoji was used to react' }),
+  authors: v.optional(
+    v.array(reactionAuthorSchema, {
+      description: 'The authors who left this reaction, if the provider reports them'
+    })
+  )
+});
+
+let linkUnfurlSchema = v.object({
+  url: v.string({ description: 'URL the preview was generated for' }),
+  title: v.optional(v.string({ description: 'Title of the linked page' })),
+  description: v.optional(v.string({ description: 'Description of the linked page' })),
+  imageUrl: v.optional(v.string({ description: 'Preview image for the linked page' })),
+  siteName: v.optional(v.string({ description: 'Name of the site the link belongs to' })),
+  messageId: v.optional(
+    v.string({ description: 'Provider identifier of the message this unfurl is attached to' })
+  )
+});
+
 export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
   .presenter(async ({ chatMessage }, opts) => ({
     object: 'chat.message' as const,
@@ -24,8 +81,8 @@ export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
       : null,
 
     body: (chatMessage.body as Record<string, any> | null) ?? null,
-    reactions: (chatMessage.reactions as Record<string, any>[] | null) ?? null,
-    unfurls: (chatMessage.unfurls as Record<string, any>[] | null) ?? null,
+    reactions: chatMessage.reactions ?? null,
+    unfurls: chatMessage.unfurls ?? null,
 
     attachments: await Promise.all(
       chatMessage.attachments.map(chatMessageAttachment =>
@@ -108,31 +165,17 @@ export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
       ),
 
       reactions: v.nullable(
-        v.array(
-          v.record(v.any(), {
-            name: 'reactions',
-            description: 'Reactions left on the message'
-          }),
-          {
-            name: 'reactions',
-            description: 'Reactions left on the message, as reported by the provider',
-            examples: [[{ emoji: { name: 'tada' }, count: 3 }]]
-          }
-        )
+        v.array(reactionCountSchema, {
+          name: 'reactions',
+          description: 'Reactions left on the message, as reported by the provider'
+        })
       ),
 
       unfurls: v.nullable(
-        v.array(
-          v.record(v.any(), {
-            name: 'unfurls',
-            description: 'Link preview attached to the message'
-          }),
-          {
-            name: 'unfurls',
-            description: 'Link previews the provider generated for the message',
-            examples: [[{ url: 'https://example.com', title: 'Example' }]]
-          }
-        )
+        v.array(linkUnfurlSchema, {
+          name: 'unfurls',
+          description: 'Link previews the provider generated for the message'
+        })
       ),
 
       attachments: v.array(v1ChatMessageAttachmentPresenter.schema, {

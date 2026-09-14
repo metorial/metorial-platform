@@ -11,7 +11,7 @@ import type {
 import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
-import type { ChatBody, LinkUnfurl, ReactionCount } from '@slates/adapter-chat';
+import type { ChatBody, ChatContext, LinkUnfurl, ReactionCount } from '@slates/adapter-chat';
 import { PrismaClient } from '../prisma/generated/client';
 import type {
   CustomProviderConfig,
@@ -103,6 +103,10 @@ declare global {
     type ChatMessageReactions = ReactionCount[];
 
     type ChatMessageUnfurls = LinkUnfurl[];
+
+    type ChatChannelContext = ChatContext;
+
+    type ChatThreadContext = ChatContext;
 
     // The presented event body. Shaped by the chat presenters, which cannot be imported here.
     type ChatEventPayload = { [key: string]: any };

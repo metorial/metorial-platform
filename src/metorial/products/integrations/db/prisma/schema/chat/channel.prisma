@@ -50,6 +50,7 @@ model ChatChannel {
 
   memberCount Int?
 
+  /// [ChatChannelContext]
   context   Json?
   permalink String?
 
@@ -91,6 +92,7 @@ model ChatThread {
   threadId String
   subject  String?
 
+  /// [ChatThreadContext]
   context   Json?
   permalink String?
 
