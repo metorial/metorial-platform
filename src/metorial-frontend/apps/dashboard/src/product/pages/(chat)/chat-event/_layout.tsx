@@ -3,6 +3,7 @@ import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useChat,
+  useChatConnection,
   useChatEvent,
   useCurrentInstance,
   useCurrentOrganization,
@@ -19,6 +20,7 @@ export let ChatEventLayout = () => {
   let { chatEventId } = useParams();
   let chatEvent = useChatEvent(instance.data?.id, chatEventId);
   let chat = useChat(instance.data?.id, chatEvent.data?.chatId);
+  let connection = useChatConnection(instance.data?.id, chat.data?.chatConnectionId);
 
   return (
     <DetailsLayout
@@ -29,6 +31,15 @@ export let ChatEventLayout = () => {
         {
           label: 'Chat',
           to: Paths.instance.chatConnections(organization.data, project.data, instance.data)
+        },
+        {
+          label: connection.data?.name ?? 'Connection',
+          to: Paths.instance.chatConnection(
+            organization.data,
+            project.data,
+            instance.data,
+            connection.data?.id
+          )
         },
         {
           label: chat.data?.name ?? 'Chat',

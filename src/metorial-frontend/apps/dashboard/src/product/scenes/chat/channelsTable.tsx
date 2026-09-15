@@ -1,7 +1,7 @@
 import { Cases } from '@lowerdeck/case';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useChatChannels } from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
+import { Text } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
 
 export let ChatChannelsTable = (p: { instanceId: string; chatId: string }) => {
@@ -10,7 +10,7 @@ export let ChatChannelsTable = (p: { instanceId: string; chatId: string }) => {
   return renderWithPagination(channels, { hidePaginationWhenUnavailable: true })(channels => (
     <>
       <Table
-        headers={['Name', 'Type', 'Updated', 'ID']}
+        headers={['Name', 'Type', 'ID']}
         data={channels.data.items.map(channel => ({
           data: [
             <Text size="2" weight="strong">
@@ -22,7 +22,6 @@ export let ChatChannelsTable = (p: { instanceId: string; chatId: string }) => {
                 group_dm: 'Group DM'
               } as any
             )[channel.type] ?? Cases.toTitleCase(channel.type),
-            <RenderDate date={channel.updatedAt} />,
             <ID id={channel.id} />
           ]
         }))}

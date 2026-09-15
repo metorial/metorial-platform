@@ -16,7 +16,7 @@ export let ChatOverviewPage = () => {
     <DetailsOverviewLayout>
       <Box
         title="Channels"
-        description="The channels and conversations Metorial can see in this chat."
+        description="The channels and conversations this chat instance has access to."
       >
         <ChatChannelsTable instanceId={instance.data!.id} chatId={chat.data.id} />
       </Box>
