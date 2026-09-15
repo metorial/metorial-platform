@@ -77,6 +77,7 @@ export type DashboardInstanceMagicMcpServersDeleteOutput = {
             description: string | null;
           }[]
         | null;
+      adapters: string[] | null;
       providerId: string;
       providerSpecificationId: string;
       createdAt: Date;
@@ -306,6 +307,10 @@ export let mapDashboardInstanceMagicMcpServersDeleteOutput = mtMap.union([
                       )
                     })
                   )
+                ),
+                adapters: mtMap.objectField(
+                  'adapters',
+                  mtMap.array(mtMap.passthrough())
                 ),
                 providerId: mtMap.objectField(
                   'provider_id',
