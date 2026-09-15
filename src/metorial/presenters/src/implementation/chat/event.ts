@@ -10,7 +10,7 @@ export let v1ChatEventPresenter = Presenter.create(chatEventType)
     type: chatEvent.type,
     source: chatEvent.source,
 
-    chat_id: chatEvent.chat.id,
+    chat_id: chatEvent.chat?.id ?? null,
     channel_id: chatEvent.channel?.id ?? null,
     thread_id: chatEvent.thread?.id ?? null,
     message_id: chatEvent.message?.id ?? null,
@@ -45,16 +45,19 @@ export let v1ChatEventPresenter = Presenter.create(chatEventType)
         examples: ['message.received', 'reaction.added', 'member.joined']
       }),
 
-      source: v.enumOf(['webhook', 'polling'], {
+      source: v.enumOf(['webhook', 'polling', 'internal'], {
         name: 'source',
         description: 'How Metorial learned about this event'
       }),
 
-      chat_id: v.string({
-        name: 'chat_id',
-        description: 'The chat this event was recorded for',
-        examples: ['cht_4dEfGhJkLmNpQrSt']
-      }),
+      chat_id: v.nullable(
+        v.string({
+          name: 'chat_id',
+          description:
+            'The chat this event was recorded for. Null for events recorded before any chat exists, such as a connection or instance lifecycle event.',
+          examples: ['cht_4dEfGhJkLmNpQrSt']
+        })
+      ),
 
       channel_id: v.nullable(
         v.string({
@@ -158,5 +161,80 @@ export let v1ChatEventPresenter = Presenter.create(chatEventType)
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
+  )
+  .build();
+
+let CHAT_INVOCATION_FAILED_EVENT_TYPE = 'chat.invocation.failed';
+
+export let dashboardChatEventPresenter = Presenter.create(chatEventType)
+  .presenter(async ({ chatEvent, payload }, opts) => {
+    let inner = await v1ChatEventPresenter.present({ chatEvent, payload }, opts).run();
+
+    let debugPayload =
+      chatEvent.type === CHAT_INVOCATION_FAILED_EVENT_TYPE
+        ? ((chatEvent.payload as Record<string, any> | null) ?? null)
+        : null;
+    let error = debugPayload?.error as Record<string, any> | undefined;
+
+    return {
+      ...inner,
+      invocation_id: chatEvent.invocationId ?? null,
+      error: error
+        ? {
+            code: error.code ?? null,
+            message: error.message ?? null,
+            provider_code: error.providerCode ?? null,
+            operation: debugPayload?.operation ?? null,
+            retryable: error.retryable ?? null,
+            retry_after_ms: error.retryAfterMs ?? null,
+            target: error.target ?? null
+          }
+        : null
+    };
+  })
+  .schema(
+    v.object({
+      ...v1ChatEventPresenter.schema.properties,
+
+      invocation_id: v.nullable(
+        v.string({
+          name: 'invocation_id',
+          description:
+            'Correlates every event produced by the same outbound provider-call attempt. Set only for invocation-failure events.',
+          examples: ['chinv_3fGhJkLmNpQrStUv']
+        })
+      ),
+
+      error: v.nullable(
+        v.object(
+          {
+            code: v.nullable(v.string({ description: 'Parsed chat-provider error code' })),
+            message: v.nullable(v.string({ description: 'Human-readable error message' })),
+            provider_code: v.nullable(
+              v.string({ description: "The error code as reported by the provider's own API" })
+            ),
+            operation: v.nullable(
+              v.string({ description: 'The adapter operation that was invoked and failed' })
+            ),
+            retryable: v.nullable(
+              v.boolean({
+                description: 'Whether the adapter considers this failure retryable'
+              })
+            ),
+            retry_after_ms: v.nullable(
+              v.number({ description: 'Suggested backoff before retrying, in milliseconds' })
+            ),
+            target: v.nullable(
+              v.record(v.any(), { description: 'The provider entity the call failed against' })
+            )
+          },
+          {
+            name: 'error',
+            description:
+              'Debug details for a failed outbound provider call. Only set for chat.invocation.failed events.'
+          }
+        ) as any
+      )
+    }) as any
   )
   .build();

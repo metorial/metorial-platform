@@ -12,6 +12,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { isUniqueConstraintError } from '../lib/unique';
+import { chatEventInternalService } from './chatEvent';
 
 export type UpsertChatWorkspaceParams = {
   chatInstanceProvider: ChatInstanceProvider;
@@ -133,6 +134,14 @@ class chatWorkspaceInternalServiceImpl {
                   chatInstanceProviderOid: d.chatInstanceProvider.oid
                 }
               });
+
+              await this.recordChatLifecycleEvents({
+                chatInstanceProvider: d.chatInstanceProvider,
+                chat,
+                workspace: created,
+                isNew: true
+              });
+
               results.set(workspace.id, { chat, workspace: created });
               continue;
             }
@@ -158,6 +167,13 @@ class chatWorkspaceInternalServiceImpl {
                   }
                 })
               ]);
+
+              await this.recordChatLifecycleEvents({
+                chatInstanceProvider: d.chatInstanceProvider,
+                chat,
+                workspace: localWorkspace,
+                isNew: false
+              });
             }
 
             results.set(workspace.id, { chat, workspace: localWorkspace });
@@ -175,6 +191,43 @@ class chatWorkspaceInternalServiceImpl {
 
       return await run();
     }
+  }
+
+  private async recordChatLifecycleEvents(d: {
+    chatInstanceProvider: ChatInstanceProvider;
+    chat: Chat;
+    workspace: ChatWorkspace;
+    isNew: boolean;
+  }) {
+    let scope = {
+      tenantOid: d.chatInstanceProvider.tenantOid,
+      projectOid: d.chatInstanceProvider.projectOid,
+      environmentOid: d.chatInstanceProvider.environmentOid,
+      instanceOid: d.chatInstanceProvider.instanceOid,
+      solutionOid: d.chatInstanceProvider.solutionOid,
+      chatConnectionOid: d.chatInstanceProvider.chatConnectionOid,
+      chatInstanceOid: d.chatInstanceProvider.chatInstanceOid,
+      chatInstanceProviderOid: d.chatInstanceProvider.oid,
+      chatOid: d.chat.oid
+    };
+
+    await chatEventInternalService.recordLifecycleEvent({
+      ...scope,
+      type: d.isNew ? 'chat.created' : 'chat.updated',
+      payload: { chat: { id: d.chat.id, name: d.chat.name, status: d.chat.status } }
+    });
+
+    await chatEventInternalService.recordLifecycleEvent({
+      ...scope,
+      type: d.isNew ? 'chat.workspace.created' : 'chat.workspace.updated',
+      payload: {
+        chatWorkspace: {
+          id: d.workspace.id,
+          name: d.workspace.name,
+          workspaceId: d.workspace.workspaceId
+        }
+      }
+    });
   }
 
   private workspacePayload(workspace: Workspace) {

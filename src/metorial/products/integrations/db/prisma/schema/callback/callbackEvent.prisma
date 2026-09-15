@@ -7,6 +7,9 @@ enum CallbackEventStatus {
 enum CallbackEventSource {
   webhook
   polling
+  // Not produced by callback ingestion -- used by ChatEvent rows recorded directly by the chat
+  // module itself (resource lifecycle events, invocation failures), which have no CallbackEvent.
+  internal
 }
 
 model CallbackEvent {

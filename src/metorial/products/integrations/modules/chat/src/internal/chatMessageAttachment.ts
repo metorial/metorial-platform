@@ -26,8 +26,6 @@ import { chatAdapterService } from './chatAdapter';
 
 export let chatMessageAttachmentDelegatorKey = 'subspace-chat-message-attachment';
 
-// entityType used for the FileReference tying an uploaded file to the attachment
-// that references it -- see createUploadedFileReference / cleanupAttachmentFiles below.
 export let chatMessageAttachmentFileReferenceEntityType = 'chat_message_attachment';
 
 export type DownloadChatMessageAttachmentParams = {
@@ -145,9 +143,6 @@ class chatMessageAttachmentInternalServiceImpl {
     return file.id;
   }
 
-  // Uploaded files pre-exist and may be shared elsewhere, so (unlike the delegated file
-  // above, which is created exclusively for this attachment) we reference-count them via
-  // a FileLink/FileReference pair instead of assuming exclusive ownership.
   private async createUploadedFileReference(d: {
     tenant: Tenant;
     environment: Environment;
@@ -190,7 +185,12 @@ class chatMessageAttachmentInternalServiceImpl {
     );
     let result = unwrapChatCall(downloaded, {
       code: 'chat_attachment_download_failed',
-      message: 'Failed to download the attachment from the chat provider.'
+      message: 'Failed to download the attachment from the chat provider.',
+      invocation: {
+        operation: 'file.download',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     }) as DownloadFileResult;
 
     let toolCallAttachmentOid = await this.resolveToolCallAttachmentOid(result);
@@ -270,7 +270,12 @@ class chatMessageAttachmentInternalServiceImpl {
     });
     let result = unwrapChatCall(downloaded, {
       code: 'chat_attachment_download_failed',
-      message: 'Failed to re-download the attachment from the chat provider.'
+      message: 'Failed to re-download the attachment from the chat provider.',
+      invocation: {
+        operation: 'file.download',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     }) as DownloadFileResult;
 
     let toolCallAttachmentOid = await this.resolveToolCallAttachmentOid(result);
@@ -288,10 +293,6 @@ class chatMessageAttachmentInternalServiceImpl {
     return { ...updated, toolCallAttachment: freshToolCallAttachment };
   }
 
-  // Called after a chat message (and, via cascade, its ChatMessageAttachment rows) has
-  // been deleted. The delegated file is exclusively owned by this attachment, so it is
-  // always deleted outright. The uploaded file may be shared elsewhere, so only its
-  // reference is removed here -- the file itself is deleted only once unreferenced.
   async cleanupAttachmentFiles(d: {
     fileId: string;
     uploadedFileId?: string | null;
@@ -335,8 +336,6 @@ class chatMessageAttachmentInternalServiceImpl {
     }
   }
 
-  // Batches file lookups for all given attachments into a single query, so callers
-  // hydrating attachments for many messages at once only pay for one round trip.
   async hydrateChatMessageAttachments<T extends ChatMessageAttachment>(
     attachments: T[]
   ): Promise<HydratedChatMessageAttachment<T>[]> {

@@ -3371,7 +3371,7 @@ type RawChatMessage = ChatMessage & {
 };
 
 type RawChatEvent = ChatEvent & {
-  chat: Chat;
+  chat: Chat | null;
   channel: ChatChannel | null;
   thread: ChatThread | null;
   message: ChatMessage | null;

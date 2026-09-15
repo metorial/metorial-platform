@@ -17,7 +17,8 @@ import {
   db,
   type Environment,
   getId,
-  type Tenant
+  type Tenant,
+  withTransaction
 } from '@metorial-subspace/db';
 import { callbackEventInternalService } from '@metorial-subspace/module-callback';
 import { db as metorialDb } from '@metorial/db';
@@ -28,6 +29,20 @@ import { chatChannelServiceInternal } from './chatChannel';
 import { chatEventPayloadServiceInternal } from './chatEventPayload';
 import { chatMessageServiceInternal } from './chatMessage';
 import { chatThreadServiceInternal } from './chatThread';
+
+export type ChatLifecycleEventType =
+  | 'chat.connection.created'
+  | 'chat.connection.updated'
+  | 'chat.connection.archived'
+  | 'chat.instance.created'
+  | 'chat.instance.updated'
+  | 'chat.instance.archived'
+  | 'chat.workspace.created'
+  | 'chat.workspace.updated'
+  | 'chat.created'
+  | 'chat.updated';
+
+export let chatInvocationFailedEventType = 'chat.invocation.failed' as const;
 
 export let chatAdapterIdentifier = 'chat';
 
@@ -130,7 +145,7 @@ class chatEventInternalServiceImpl {
       return;
     }
 
-    let payload = parsed.data as ChatTriggerPayload;
+    let payload = parsed.data as any as ChatTriggerPayload;
 
     for (let chatInstanceProvider of providers) {
       await this.ingestForProvider({
@@ -141,6 +156,86 @@ class chatEventInternalServiceImpl {
         payload
       });
     }
+  }
+
+  async recordLifecycleEvent(d: {
+    type: ChatLifecycleEventType;
+    tenantOid: bigint;
+    projectOid: bigint;
+    environmentOid: bigint;
+    instanceOid: bigint;
+    solutionOid: number;
+    chatConnectionOid: bigint;
+    chatInstanceOid?: bigint | null;
+    chatInstanceProviderOid?: bigint | null;
+    chatOid?: bigint | null;
+    payload?: Record<string, any>;
+    occurredAt?: Date;
+  }) {
+    let chatEvent = await this.insertChatEvent({ ...d, payload: d.payload ?? {} });
+    await this.trackSystemEvent({ chatEvent, chatConnectionOid: d.chatConnectionOid });
+    return chatEvent;
+  }
+
+  async recordInvocationFailedEvent(d: {
+    invocationId: string;
+    operation: string;
+    error: { code: string; message: string; [key: string]: unknown };
+    tenantOid: bigint;
+    projectOid: bigint;
+    environmentOid: bigint;
+    instanceOid: bigint;
+    solutionOid: number;
+    chatConnectionOid: bigint;
+    chatInstanceOid?: bigint | null;
+    chatInstanceProviderOid?: bigint | null;
+    chatOid?: bigint | null;
+  }) {
+    return this.insertChatEvent({
+      ...d,
+      type: chatInvocationFailedEventType,
+      payload: { operation: d.operation, error: d.error }
+    });
+  }
+
+  private async insertChatEvent(d: {
+    type: string;
+    invocationId?: string | null;
+    payload: Record<string, any>;
+    tenantOid: bigint;
+    projectOid: bigint;
+    environmentOid: bigint;
+    instanceOid: bigint;
+    solutionOid: number;
+    chatConnectionOid: bigint;
+    chatInstanceOid?: bigint | null;
+    chatInstanceProviderOid?: bigint | null;
+    chatOid?: bigint | null;
+    occurredAt?: Date;
+  }) {
+    return withTransaction(
+      async db =>
+        db.chatEvent.create({
+          data: {
+            ...getId('chatEvent'),
+            type: d.type,
+            source: 'internal',
+            invocationId: d.invocationId ?? null,
+            chatConnectionOid: d.chatConnectionOid,
+            chatInstanceOid: d.chatInstanceOid ?? null,
+            chatInstanceProviderOid: d.chatInstanceProviderOid ?? null,
+            chatOid: d.chatOid ?? null,
+            payload: d.payload,
+            tenantOid: d.tenantOid,
+            projectOid: d.projectOid,
+            environmentOid: d.environmentOid,
+            instanceOid: d.instanceOid,
+            solutionOid: d.solutionOid,
+            occurredAt: d.occurredAt ?? new Date()
+          }
+        }),
+      { ifExists: true }
+    );
   }
 
   private async resolveChat(d: {
@@ -169,8 +264,6 @@ class chatEventInternalServiceImpl {
       take: 2
     });
 
-    // Without a workspace on the payload the chat is only unambiguous when the provider has a
-    // single one; anything else would be a guess.
     return chats.length === 1 ? chats[0]! : null;
   }
 
@@ -181,7 +274,7 @@ class chatEventInternalServiceImpl {
     callbackEvent: {
       oid: bigint;
       id: string;
-      source: 'webhook' | 'polling';
+      source: 'webhook' | 'polling' | 'internal';
       occurredAt: Date;
     };
     payload: ChatTriggerPayload;
@@ -301,7 +394,11 @@ class chatEventInternalServiceImpl {
   private async recordChatEvent(d: {
     chat: Chat;
     chatInstanceProvider: ChatInstanceProvider;
-    callbackEvent: { oid: bigint; source: 'webhook' | 'polling'; occurredAt: Date };
+    callbackEvent: {
+      oid: bigint;
+      source: 'webhook' | 'polling' | 'internal';
+      occurredAt: Date;
+    };
     payload: ChatTriggerPayload;
     persisted: {
       channel: ChatChannel | null;
