@@ -194,7 +194,7 @@ export let ID = createIdGenerator({
   adapterIntegrationInstanceProvider: idType.sorted('aiip'),
   adapterIntegrationInstanceProviderSession: idType.sorted('aiips'),
 
-  chatConnection: idType.sorted('cin'),
+  chatConnection: idType.sorted('ccn'),
   chatConnectionProvider: idType.sorted('cip'),
   chatInstance: idType.sorted('cii'),
   chatInstanceProvider: idType.sorted('ciip'),

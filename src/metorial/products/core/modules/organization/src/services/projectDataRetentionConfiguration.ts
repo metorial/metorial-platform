@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
-import { Organization, Project } from '@metorial/db';
+import { db, Organization, Project } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import type { SessionDataRetentionLevel } from '@metorial-subspace/db';
 import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
@@ -76,15 +76,25 @@ class ProjectDataRetentionConfigurationService {
       }
     });
 
-    await Fabric.fire('organization.project.data_retention_configuration.updated:after', {
-      organization: d.organization,
-      input: d.input,
-      project: d.project,
-      configuration: {
+    let project = await db.project.update({
+      where: { oid: d.project.oid },
+      data: {
         dataRetentionLevel: updatedTenant.dataRetentionLevel,
         storeToolCallAttachments: updatedTenant.storeToolCallAttachments,
         collectErrors: updatedTenant.collectErrors,
         disableCallbacks: updatedTenant.disableCallbacks
+      }
+    });
+
+    await Fabric.fire('organization.project.data_retention_configuration.updated:after', {
+      organization: d.organization,
+      input: d.input,
+      project,
+      configuration: {
+        dataRetentionLevel: project.dataRetentionLevel,
+        storeToolCallAttachments: project.storeToolCallAttachments,
+        collectErrors: project.collectErrors,
+        disableCallbacks: project.disableCallbacks
       },
       previousConfiguration: {
         dataRetentionLevel: tenant.dataRetentionLevel,
@@ -96,10 +106,10 @@ class ProjectDataRetentionConfigurationService {
     });
 
     return {
-      dataRetentionLevel: updatedTenant.dataRetentionLevel,
-      storeToolCallAttachments: updatedTenant.storeToolCallAttachments,
-      collectErrors: updatedTenant.collectErrors,
-      disableCallbacks: updatedTenant.disableCallbacks
+      dataRetentionLevel: project.dataRetentionLevel,
+      storeToolCallAttachments: project.storeToolCallAttachments,
+      collectErrors: project.collectErrors,
+      disableCallbacks: project.disableCallbacks
     };
   }
 }

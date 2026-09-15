@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { isFlagEnabled } from '@metorial/module-flags';
 import { Presenter } from '@metorial/presenter';
 import { flagsType } from '../../types';
 
@@ -8,7 +9,7 @@ export let v1FlagsPresenter = Presenter.create(flagsType)
 
     flags: Object.entries(flags).map(([slug, value]) => ({
       slug,
-      value
+      value: isFlagEnabled(value)
     }))
   }))
   .schema(

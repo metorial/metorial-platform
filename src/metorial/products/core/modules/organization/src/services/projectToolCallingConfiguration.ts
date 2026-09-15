@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
-import { Organization, Project } from '@metorial/db';
+import { db, Organization, Project } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
 
@@ -62,26 +62,35 @@ class ProjectToolCallingConfigurationService {
       }
     });
 
+    let project = await db.project.update({
+      where: { oid: d.project.oid },
+      data: {
+        collectOperationDescriptionForToolCalls:
+          updatedTenant.collectOperationDescriptionForToolCalls,
+        messageProcessingTimeoutMs: updatedTenant.messageProcessingTimeoutMs
+      }
+    });
+
     await Fabric.fire('organization.project.tool_calling_configuration.updated:after', {
       organization: d.organization,
       input: d.input,
-      project: d.project,
+      project,
       configuration: {
         collectOperationDescriptionForToolCalls:
-          updatedTenant.collectOperationDescriptionForToolCalls,
-        messageProcessingTimeoutMs: updatedTenant.messageProcessingTimeoutMs ?? 0
+          project.collectOperationDescriptionForToolCalls,
+        messageProcessingTimeoutMs: project.messageProcessingTimeoutMs
       },
       previousConfiguration: {
-        collectOperationDescriptionForToolCalls: tenant.collectOperationDescriptionForToolCalls,
+        collectOperationDescriptionForToolCalls:
+          tenant.collectOperationDescriptionForToolCalls,
         messageProcessingTimeoutMs: tenant.messageProcessingTimeoutMs ?? 0
       },
       auditScope: d.auditScope
     });
 
     return {
-      collectOperationDescriptionForToolCalls:
-        updatedTenant.collectOperationDescriptionForToolCalls,
-      messageProcessingTimeoutMs: updatedTenant.messageProcessingTimeoutMs
+      collectOperationDescriptionForToolCalls: project.collectOperationDescriptionForToolCalls,
+      messageProcessingTimeoutMs: project.messageProcessingTimeoutMs
     };
   }
 }

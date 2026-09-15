@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
-import { Organization, Project } from '@metorial/db';
+import { db, Organization, Project } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
 
@@ -69,12 +69,20 @@ class ProjectIntegrationNamingConfigurationService {
       }
     });
 
+    let project = await db.project.update({
+      where: { oid: d.project.oid },
+      data: {
+        useIntegrationNamesForSessionProviderNameTemplates:
+          updatedTenant.useIntegrationNamesForSessionProviderNameTemplates
+      }
+    });
+
     await Fabric.fire('organization.project.integration_naming_configuration.updated:after', {
       organization: d.organization,
       input: d.input,
-      project: d.project,
+      project,
       configuration: {
-        useIntegrationNames: updatedTenant.useIntegrationNamesForSessionProviderNameTemplates
+        useIntegrationNames: project.useIntegrationNamesForSessionProviderNameTemplates
       },
       previousConfiguration: {
         useIntegrationNames: tenant.useIntegrationNamesForSessionProviderNameTemplates
@@ -83,7 +91,7 @@ class ProjectIntegrationNamingConfigurationService {
     });
 
     return {
-      useIntegrationNames: updatedTenant.useIntegrationNamesForSessionProviderNameTemplates
+      useIntegrationNames: project.useIntegrationNamesForSessionProviderNameTemplates
     };
   }
 }

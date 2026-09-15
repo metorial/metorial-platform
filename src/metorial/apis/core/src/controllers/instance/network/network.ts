@@ -1,8 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import type { Organization } from '@metorial/db';
-import { flagService } from '@metorial/module-flags';
+import type { Organization, Project } from '@metorial/db';
+import { flagService, isFlagEnabled } from '@metorial/module-flags';
 import { enclaveNetworkLogService, networkService } from '@metorial-subspace/module-enclave';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -14,9 +14,9 @@ import { networkInstanceGroup } from './_middleware';
 
 let networkReadScopes = ['instance.network:read'] as const;
 
-let getMaskPublicIp = async (organization: Organization) => {
-  let flags = await flagService.getFlags({ organization });
-  return !flags['paid-network-ip-access'];
+let getMaskPublicIp = async (organization: Organization, project: Project) => {
+  let flags = await flagService.getFlags({ organization, project });
+  return !isFlagEnabled(flags['paid-network-ip-access']);
 };
 
 export let networkGroup = networkInstanceGroup.use(async ctx => {
@@ -73,7 +73,7 @@ export let networkController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
-        let maskPublicIp = await getMaskPublicIp(ctx.instance.organization);
+        let maskPublicIp = await getMaskPublicIp(ctx.instance.organization, ctx.project);
 
         return Paginator.present(list, network =>
           networkPresenter.present({
@@ -91,7 +91,7 @@ export let networkController = Controller.create(
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(networkPresenter)
       .do(async ctx => {
-        let maskPublicIp = await getMaskPublicIp(ctx.instance.organization);
+        let maskPublicIp = await getMaskPublicIp(ctx.instance.organization, ctx.project);
 
         return networkPresenter.present({ network: ctx.network, maskPublicIp });
       }),

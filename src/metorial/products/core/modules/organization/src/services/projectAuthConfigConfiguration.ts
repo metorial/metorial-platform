@@ -74,6 +74,9 @@ class ProjectAuthConfigConfigurationService {
     let project = await db.project.update({
       where: { oid: d.project.oid },
       data: {
+        allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
+        allowAuthConfigImport: updatedTenant.allowAuthConfigImport,
+        onlyAllowOAuthAuthMethods: updatedTenant.onlyAllowOAuthAuthMethods,
         consumerAuthClientRegistrationsPerHourLimit:
           d.input.consumerAuthClientRegistrationsPerHourLimit,
         consumerAuthClientRegistrationsPerMinuteLimit:
@@ -87,9 +90,9 @@ class ProjectAuthConfigConfigurationService {
       project,
       previousProject: d.project,
       configuration: {
-        allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
-        allowAuthConfigImport: updatedTenant.allowAuthConfigImport,
-        onlyAllowOAuthAuthMethods: updatedTenant.onlyAllowOAuthAuthMethods
+        allowAuthConfigExport: project.allowAuthConfigExport,
+        allowAuthConfigImport: project.allowAuthConfigImport,
+        onlyAllowOAuthAuthMethods: project.onlyAllowOAuthAuthMethods
       },
       previousConfiguration: {
         allowAuthConfigExport: tenant.allowAuthConfigExport,
@@ -100,9 +103,9 @@ class ProjectAuthConfigConfigurationService {
     });
 
     return {
-      allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
-      allowAuthConfigImport: updatedTenant.allowAuthConfigImport,
-      onlyAllowOAuthAuthMethods: updatedTenant.onlyAllowOAuthAuthMethods,
+      allowAuthConfigExport: project.allowAuthConfigExport,
+      allowAuthConfigImport: project.allowAuthConfigImport,
+      onlyAllowOAuthAuthMethods: project.onlyAllowOAuthAuthMethods,
 
       consumerAuthClientRegistrationsPerHourLimit:
         project.consumerAuthClientRegistrationsPerHourLimit,

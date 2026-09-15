@@ -3,6 +3,12 @@ enum ProjectStatus {
   deleted
 }
 
+enum ProjectDataRetentionLevel {
+  full
+  intent_only
+  none
+}
+
 model Project {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -18,6 +24,20 @@ model Project {
 
   logRetentionInDays   Int     @default(30)
   enforceSessionExpiry Boolean @default(false)
+
+  allowAuthConfigExport     Boolean @default(false)
+  allowAuthConfigImport     Boolean @default(false)
+  onlyAllowOAuthAuthMethods Boolean @default(false)
+
+  dataRetentionLevel       ProjectDataRetentionLevel @default(full)
+  storeToolCallAttachments Boolean                   @default(true)
+  collectErrors            Boolean                   @default(true)
+  disableCallbacks         Boolean                   @default(false)
+
+  collectOperationDescriptionForToolCalls Boolean @default(true)
+  messageProcessingTimeoutMs              Int     @default(30000)
+
+  useIntegrationNamesForSessionProviderNameTemplates Boolean @default(false)
 
   skillSyncGitLfsThresholdBytes Int?
 

@@ -1,41 +1,55 @@
-import { MachineAccess, Organization, User } from '@metorial/db';
+import { MachineAccess, Organization, Project, User } from '@metorial/db';
+
+export type DisabledFlag = {
+  enabled: false;
+  reason: string;
+};
+
+export type FlagValue = boolean | DisabledFlag;
 
 export type Flags = {
-  'test-flag': boolean;
+  'test-flag': FlagValue;
 
-  'metorial-gateway-enabled': boolean;
-  'custom-providers-enabled': boolean;
-  'magic-mcp-enabled': boolean;
-  'callbacks-enabled': boolean;
-  'chat-enabled': boolean;
-  'webhooks-enabled': boolean;
-  'identity-management': boolean;
-  'portals-access': boolean;
-  'skills-enabled': boolean;
-  'assistant-enabled': boolean;
-  'advanced-security-management-enabled': boolean;
-  'networking-enabled': boolean;
-  outposts: boolean;
+  'metorial-gateway-enabled': FlagValue;
+  'custom-providers-enabled': FlagValue;
+  'magic-mcp-enabled': FlagValue;
+  'callbacks-enabled': FlagValue;
+  'chat-enabled': FlagValue;
+  'webhooks-enabled': FlagValue;
+  'identity-management': FlagValue;
+  'portals-access': FlagValue;
+  'skills-enabled': FlagValue;
+  'assistant-enabled': FlagValue;
+  'advanced-security-management-enabled': FlagValue;
+  'networking-enabled': FlagValue;
+  outposts: FlagValue;
 
-  'paid-oauth-import': boolean;
-  'paid-oauth-export': boolean;
-  'paid-callbacks': boolean;
-  'paid-custom-providers': boolean;
-  'paid-custom-docker-providers': boolean;
-  'paid-identity': boolean;
-  'paid-advanced-security': boolean;
-  'paid-advanced-roles': boolean;
-  'paid-audit-logs': boolean;
-  'paid-audit-log-streams': boolean;
-  'paid-project-reduced-data-retention': boolean;
-  'paid-magic-mcp-groups': boolean;
-  'paid-sso-tenants': boolean;
-  'paid-portals': boolean;
-  'paid-key-providers': boolean;
-  'paid-networking': boolean;
-  'paid-network-ip-access': boolean;
-  'paid-advanced-org-management': boolean;
+  'paid-oauth-import': FlagValue;
+  'paid-oauth-export': FlagValue;
+  'paid-callbacks': FlagValue;
+  'paid-custom-providers': FlagValue;
+  'paid-custom-docker-providers': FlagValue;
+  'paid-identity': FlagValue;
+  'paid-advanced-security': FlagValue;
+  'paid-advanced-roles': FlagValue;
+  'paid-audit-logs': FlagValue;
+  'paid-audit-log-streams': FlagValue;
+  'paid-project-reduced-data-retention': FlagValue;
+  'paid-magic-mcp-groups': FlagValue;
+  'paid-sso-tenants': FlagValue;
+  'paid-portals': FlagValue;
+  'paid-key-providers': FlagValue;
+  'paid-networking': FlagValue;
+  'paid-network-ip-access': FlagValue;
+  'paid-advanced-org-management': FlagValue;
 };
+
+export let disabledFlag = (reason: string): DisabledFlag => ({ enabled: false, reason });
+
+export let isFlagEnabled = (flag: FlagValue) => flag === true;
+
+export let getFlagDisabledReason = (flag: FlagValue) =>
+  typeof flag == 'object' ? flag.reason : undefined;
 
 export let defaultFlags: Flags = {
   'test-flag': false,
@@ -76,6 +90,7 @@ export let defaultFlags: Flags = {
 
 export type FlagProviderParams = {
   organization: Organization;
+  project?: Project;
   user?: User;
   machineAccess?: MachineAccess;
 };
