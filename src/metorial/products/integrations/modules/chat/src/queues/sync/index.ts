@@ -1,4 +1,5 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
+import { syncChatInstanceProviderAuthorizationQueueProcessor } from './authorization';
 import {
   syncChatWorkspacesCron,
   syncChatWorkspacesForProviderQueueProcessor,
@@ -8,7 +9,9 @@ import {
 export let syncQueues = combineQueueProcessors([
   syncChatWorkspacesCron,
   syncChatWorkspacesManyQueueProcessor,
-  syncChatWorkspacesForProviderQueueProcessor
+  syncChatWorkspacesForProviderQueueProcessor,
+  syncChatInstanceProviderAuthorizationQueueProcessor
 ]);
 
+export { enqueueSyncChatInstanceProviderAuthorization } from './authorization';
 export { enqueueSyncChatWorkspacesForProvider } from './workspaces';

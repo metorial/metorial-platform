@@ -3406,11 +3406,13 @@ type RawChatConnection = ChatConnection & {
 
 type RawChatInstance = ChatInstance & {
   chatConnection: ChatConnection;
+  providers: (ChatInstanceProvider & { author: ChatAuthor | null })[];
 };
 
 type RawChatInstanceProvider = ChatInstanceProvider & {
   chatInstance: ChatInstance;
   chatConnectionProvider: ChatConnectionProvider;
+  author: ChatAuthor | null;
   adapterIntegrationInstanceProvider: {
     integrationProvider: RawChatBackingIntegrationProvider;
     integrationInstanceProvider: RawChatBackingIntegrationInstanceProvider;

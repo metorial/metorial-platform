@@ -10,7 +10,7 @@ model ChatInstance {
   id  String @unique
 
   status          ChatInstanceStatus
-  isParentDeleted Boolean                       @default(false)
+  isParentDeleted Boolean            @default(false)
   archivedAt      DateTime?
 
   name            String
@@ -68,7 +68,7 @@ model ChatInstanceProvider {
   id  String @unique
 
   status          ChatInstanceProviderStatus
-  isParentDeleted Boolean                               @default(false)
+  isParentDeleted Boolean                    @default(false)
   archivedAt      DateTime?
 
   name            String
@@ -84,6 +84,9 @@ model ChatInstanceProvider {
 
   chatConnectionOid BigInt
   chatConnection    ChatConnection @relation(fields: [chatConnectionOid], references: [oid], onDelete: Cascade)
+
+  authorOid BigInt?
+  author    ChatAuthor? @relation(fields: [authorOid], references: [oid], onDelete: SetNull)
 
   adapterIntegrationInstanceProviderOid BigInt                             @unique
   adapterIntegrationInstanceProvider    AdapterIntegrationInstanceProvider @relation(fields: [adapterIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade, map: "ciip_aiip_fkey")

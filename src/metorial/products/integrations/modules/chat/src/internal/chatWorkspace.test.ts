@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { tx } = vi.hoisted(() => {
+let { tx, db } = vi.hoisted(() => {
   let createModel = () => ({
     findUnique: vi.fn(),
     findUniqueOrThrow: vi.fn(),
     findMany: vi.fn(),
+    findFirst: vi.fn(),
     create: vi.fn(),
     update: vi.fn()
   });
@@ -15,6 +16,9 @@ let { tx } = vi.hoisted(() => {
       chatWorkspace: createModel(),
       chatInstanceProvider: createModel(),
       providerAdapter: createModel()
+    },
+    db: {
+      chat: createModel()
     }
   };
 });
@@ -38,6 +42,7 @@ vi.mock('@lowerdeck/hash', () => ({
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
+  db,
   getId: (kind: string) => ({ id: `${kind}_new`, oid: 500n }),
   withTransaction: async (cb: (db: any) => Promise<any>) => await cb(tx)
 }));
@@ -333,5 +338,63 @@ describe('chatWorkspaceInternalService.upsertChatWorkspace', () => {
     expect(tx.chatWorkspace.create).toHaveBeenCalled();
     expect(result.chat.oid).toBe(500n);
     expect(result.workspace.workspaceId).toBe('T123');
+  });
+});
+
+describe('chatWorkspaceInternalService.resolveChatForAuthorLink', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    tx.chatWorkspace.findMany.mockResolvedValue([]);
+    tx.chatInstanceProvider.findUniqueOrThrow.mockResolvedValue(binding);
+    tx.providerAdapter.findUnique.mockResolvedValue({ oid: 99n });
+    tx.chat.create.mockResolvedValue({ oid: 500n, name: 'Acme', status: 'active' });
+    tx.chatWorkspace.create.mockResolvedValue({
+      oid: 8n,
+      workspaceId: 'T123',
+      name: 'Acme'
+    });
+  });
+
+  it('upserts and returns the workspace chat when a workspace is given', async () => {
+    let result = await chatWorkspaceInternalService.resolveChatForAuthorLink({
+      chatInstanceProvider: provider,
+      workspace: { id: 'T123', name: 'Acme' }
+    });
+
+    expect(tx.chat.create).toHaveBeenCalled();
+    expect(db.chat.findFirst).not.toHaveBeenCalled();
+    expect(result!.chat.oid).toBe(500n);
+    expect(result!.workspace!.workspaceId).toBe('T123');
+  });
+
+  it('falls back to an existing chat for the provider when no workspace is given', async () => {
+    db.chat.findFirst.mockResolvedValue({
+      oid: 500n,
+      status: 'active',
+      workspace: { oid: 8n, workspaceId: 'T123' }
+    });
+
+    let result = await chatWorkspaceInternalService.resolveChatForAuthorLink({
+      chatInstanceProvider: provider
+    });
+
+    expect(db.chat.findFirst).toHaveBeenCalledWith({
+      where: { chatInstanceProviderOid: 80n, status: 'active' },
+      orderBy: { createdAt: 'asc' },
+      include: { workspace: true }
+    });
+    expect(tx.chat.create).not.toHaveBeenCalled();
+    expect(result!.chat.oid).toBe(500n);
+    expect(result!.workspace!.workspaceId).toBe('T123');
+  });
+
+  it('returns null when no workspace is given and no chat exists yet', async () => {
+    db.chat.findFirst.mockResolvedValue(null);
+
+    let result = await chatWorkspaceInternalService.resolveChatForAuthorLink({
+      chatInstanceProvider: provider
+    });
+
+    expect(result).toBeNull();
   });
 });

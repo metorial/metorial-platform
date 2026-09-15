@@ -20,7 +20,10 @@ import {
   enqueueChatInstanceCreated,
   enqueueChatInstanceUpdated
 } from '../queues/lifecycle';
-import { enqueueSyncChatWorkspacesForProvider } from '../queues/sync';
+import {
+  enqueueSyncChatInstanceProviderAuthorization,
+  enqueueSyncChatWorkspacesForProvider
+} from '../queues/sync';
 import { archiveChatsWhere, restoreChatsWhere } from './chatLifecycle';
 
 let now = () => new Date();
@@ -296,7 +299,10 @@ export let upsertChatInstanceProviderProjection = async (
       await restoreChatsWhere({ chatInstanceProviderOid: updated.oid });
       await enqueueChatInstanceUpdated(chatInstance.id);
 
-      if (shouldSync) await enqueueSyncChatWorkspacesForProvider(updated.id);
+      if (shouldSync) {
+        await enqueueSyncChatWorkspacesForProvider(updated.id);
+        await enqueueSyncChatInstanceProviderAuthorization(updated.id);
+      }
 
       return updated;
     }
@@ -323,6 +329,7 @@ export let upsertChatInstanceProviderProjection = async (
 
     await enqueueChatInstanceUpdated(chatInstance.id);
     await enqueueSyncChatWorkspacesForProvider(created.id);
+    await enqueueSyncChatInstanceProviderAuthorization(created.id);
 
     return created;
   });

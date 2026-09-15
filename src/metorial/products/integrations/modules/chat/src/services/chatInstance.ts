@@ -42,7 +42,8 @@ import {
 
 export let chatInstanceInclude = {
   chatConnection: true,
-  adapterIntegrationInstance: true
+  adapterIntegrationInstance: true,
+  providers: { where: { status: 'active' }, take: 1, include: { author: true } }
 } as const;
 
 export type ListChatInstancesParams = {

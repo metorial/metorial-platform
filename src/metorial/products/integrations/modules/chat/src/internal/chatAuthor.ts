@@ -52,6 +52,13 @@ class chatAuthorServiceInternalImpl {
               update: payload
             });
 
+            if (author.isMe) {
+              await db.chatInstanceProvider.updateMany({
+                where: { oid: d.chat.chatInstanceProviderOid },
+                data: { authorOid: upserted.oid }
+              });
+            }
+
             results.set(author.userId, { ...upserted, chat: d.chat });
           }
 

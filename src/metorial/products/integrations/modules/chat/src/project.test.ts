@@ -50,14 +50,18 @@ vi.mock('./queues/lifecycle', () => ({
 }));
 
 vi.mock('./queues/sync', () => ({
-  enqueueSyncChatWorkspacesForProvider: vi.fn()
+  enqueueSyncChatWorkspacesForProvider: vi.fn(),
+  enqueueSyncChatInstanceProviderAuthorization: vi.fn()
 }));
 
 import {
   projectChatFromAdapterIntegration,
   upsertChatInstanceProviderProjection
 } from './lib/project';
-import { enqueueSyncChatWorkspacesForProvider } from './queues/sync';
+import {
+  enqueueSyncChatInstanceProviderAuthorization,
+  enqueueSyncChatWorkspacesForProvider
+} from './queues/sync';
 
 describe('chat projection', () => {
   beforeEach(() => {
@@ -185,6 +189,7 @@ describe('upsertChatInstanceProviderProjection workspace sync', () => {
     await upsertChatInstanceProviderProjection(adapterInstanceProvider as any);
 
     expect(enqueueSyncChatWorkspacesForProvider).toHaveBeenCalledWith('ciip_new');
+    expect(enqueueSyncChatInstanceProviderAuthorization).toHaveBeenCalledWith('ciip_new');
   });
 
   it('enqueues workspace sync when an archived instance provider is restored', async () => {
@@ -198,6 +203,7 @@ describe('upsertChatInstanceProviderProjection workspace sync', () => {
     await upsertChatInstanceProviderProjection(adapterInstanceProvider as any);
 
     expect(enqueueSyncChatWorkspacesForProvider).toHaveBeenCalledWith('ciip_1');
+    expect(enqueueSyncChatInstanceProviderAuthorization).toHaveBeenCalledWith('ciip_1');
     expect(tx.chat.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -219,5 +225,6 @@ describe('upsertChatInstanceProviderProjection workspace sync', () => {
     await upsertChatInstanceProviderProjection(adapterInstanceProvider as any);
 
     expect(enqueueSyncChatWorkspacesForProvider).not.toHaveBeenCalled();
+    expect(enqueueSyncChatInstanceProviderAuthorization).not.toHaveBeenCalled();
   });
 });

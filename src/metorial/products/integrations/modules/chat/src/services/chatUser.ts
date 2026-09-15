@@ -51,23 +51,21 @@ class chatUserServiceImpl {
       message: 'Failed to load the authenticated user from the chat provider.'
     });
 
-    let upsertedWorkspace = result.workspace
-      ? await chatWorkspaceInternalService.upsertChatWorkspace({
-          chatInstanceProvider: d.chatInstanceProvider,
-          workspace: result.workspace
-        })
-      : null;
+    let resolved = await chatWorkspaceInternalService.resolveChatForAuthorLink({
+      chatInstanceProvider: d.chatInstanceProvider,
+      workspace: result.workspace
+    });
 
-    let author = upsertedWorkspace
+    let author = resolved
       ? (
           await chatAuthorServiceInternal.upsertChatAuthors({
-            chat: upsertedWorkspace.chat,
+            chat: resolved.chat,
             authors: [result.author]
           })
         )[0]!
       : result.author;
 
-    return { author, workspace: upsertedWorkspace?.workspace ?? null };
+    return { author, workspace: resolved?.workspace ?? null };
   }
 }
 

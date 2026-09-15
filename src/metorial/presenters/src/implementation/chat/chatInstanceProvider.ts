@@ -5,6 +5,7 @@ import { v1ProviderAuthConfigPreviewPresenter } from '../provider/auth/authConfi
 import { v1ProviderConfigPreviewPresenter } from '../provider/config/configPreview';
 import { v1ProviderDeploymentPreviewPresenter } from '../provider/config/deploymentPreview';
 import { v1ProviderPreview } from '../provider/provider/providerPreview';
+import { chatIdentitySchema, presentChatIdentity } from './identity';
 
 export let v1ChatInstanceProviderPresenter = Presenter.create(chatInstanceProviderType)
   .presenter(async ({ chatInstanceProvider }, opts) => {
@@ -50,6 +51,8 @@ export let v1ChatInstanceProviderPresenter = Presenter.create(chatInstanceProvid
 
       name: chatInstanceProvider.name,
       description: chatInstanceProvider.description,
+
+      identity: presentChatIdentity(chatInstanceProvider.author),
 
       created_at: chatInstanceProvider.createdAt,
       updated_at: chatInstanceProvider.updatedAt
@@ -105,6 +108,8 @@ export let v1ChatInstanceProviderPresenter = Presenter.create(chatInstanceProvid
           examples: ['Production Slack connection']
         })
       ),
+
+      identity: chatIdentitySchema,
 
       created_at: v.date({
         name: 'created_at',

@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { chatInstanceType } from '../../types';
+import { chatIdentitySchema, presentChatIdentity } from './identity';
 
 export let v1ChatInstancePresenter = Presenter.create(chatInstanceType)
   .presenter(async ({ chatInstance }) => ({
@@ -14,6 +15,8 @@ export let v1ChatInstancePresenter = Presenter.create(chatInstanceType)
     name: chatInstance.name,
     description: chatInstance.description,
     metadata: (chatInstance.metadata as Record<string, any> | null) ?? {},
+
+    identity: presentChatIdentity(chatInstance.providers[0]?.author),
 
     created_at: chatInstance.createdAt,
     updated_at: chatInstance.updatedAt
@@ -60,6 +63,8 @@ export let v1ChatInstancePresenter = Presenter.create(chatInstanceType)
         description: 'Metadata set on the chat instance',
         examples: [{}]
       }),
+
+      identity: chatIdentitySchema,
 
       created_at: v.date({
         name: 'created_at',

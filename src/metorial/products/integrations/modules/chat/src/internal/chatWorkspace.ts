@@ -7,6 +7,7 @@ import {
   type Chat,
   type ChatInstanceProvider,
   type ChatWorkspace,
+  db,
   getId,
   withTransaction
 } from '@metorial-subspace/db';
@@ -27,6 +28,11 @@ export type UpsertedChatWorkspace = {
   workspace: ChatWorkspace;
 };
 
+export type ResolvedChatForAuthorLink = {
+  chat: Chat;
+  workspace: ChatWorkspace | null;
+};
+
 let adapterBindingInclude = {
   adapterIntegrationProvider: {
     include: {
@@ -44,6 +50,27 @@ class chatWorkspaceInternalServiceImpl {
     });
 
     return result!;
+  }
+
+  async resolveChatForAuthorLink(d: {
+    chatInstanceProvider: ChatInstanceProvider;
+    workspace?: Workspace;
+  }): Promise<ResolvedChatForAuthorLink | null> {
+    if (d.workspace) {
+      return await this.upsertChatWorkspace({
+        chatInstanceProvider: d.chatInstanceProvider,
+        workspace: d.workspace
+      });
+    }
+
+    let chat = await db.chat.findFirst({
+      where: { chatInstanceProviderOid: d.chatInstanceProvider.oid, status: 'active' },
+      orderBy: { createdAt: 'asc' },
+      include: { workspace: true }
+    });
+    if (!chat) return null;
+
+    return { chat, workspace: chat.workspace };
   }
 
   async upsertChatWorkspaces(d: UpsertChatWorkspacesParams): Promise<UpsertedChatWorkspace[]> {

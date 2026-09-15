@@ -33,6 +33,7 @@ import { enqueueChatInstanceUpdated } from '../queues/lifecycle';
 export let chatInstanceProviderInclude = {
   chatInstance: true,
   chatConnectionProvider: true,
+  author: true,
   adapterIntegrationInstanceProvider: {
     include: {
       integrationProvider: {
