@@ -11,7 +11,8 @@ import {
 import { RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiChat3Line } from '@remixicon/react';
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import { useChatExplorerPath } from '../../../components/openChatExplorer';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
 export let ChatInstanceLayout = () => {
@@ -24,6 +25,8 @@ export let ChatInstanceLayout = () => {
     instance.data?.id,
     chatInstance.data?.chatConnectionId
   );
+  let navigate = useNavigate();
+  let chatExplorerPath = useChatExplorerPath();
 
   let instancePath = (...subPages: string[]) =>
     Paths.instance.chatInstance(
@@ -61,6 +64,16 @@ export let ChatInstanceLayout = () => {
         { label: 'Overview', to: instancePath() },
         { label: 'Events', to: instancePath('events') },
         { label: 'Settings', to: instancePath('settings') }
+      ]}
+      actions={[
+        {
+          label: 'Open Explorer',
+          disabled: !instance.data || !chatInstance.data,
+          onClick: () => {
+            if (!chatInstance.data) return;
+            navigate(chatExplorerPath({ chatInstanceId: chatInstance.data.id }));
+          }
+        }
       ]}
       attributes={
         chatInstance.data

@@ -13,6 +13,7 @@ export type ProviderAuthConfigCreateModalProps = {
   providerId?: string;
   initialAuthMethodId: string;
   fixedAuthCredentialsId?: string;
+  authMethodAdapter?: string;
   defaultAuthConfigName?: string;
   autoStartManagedCredentialSetup?: boolean;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
@@ -33,7 +34,8 @@ let ProviderAuthConfigCreateModalContent = (
   let authCreation = useProviderAuthCreationCapabilities(
     p.instanceId,
     p.providerDeploymentId,
-    p.providerId ?? deployment.data?.providerId
+    p.providerId ?? deployment.data?.providerId,
+    p.authMethodAdapter
   );
   let selectedMethod = authCreation.authMethodItems.find(
     method => method.id === p.initialAuthMethodId
@@ -73,7 +75,8 @@ export let ProviderAuthConfigCreateFlowContent = (
   let authCreation = useProviderAuthCreationCapabilities(
     p.instanceId,
     p.providerDeploymentId,
-    p.providerId ?? deployment.data?.providerId
+    p.providerId ?? deployment.data?.providerId,
+    p.authMethodAdapter
   );
   let isDeploymentScoped = !!p.providerDeploymentId;
   let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';

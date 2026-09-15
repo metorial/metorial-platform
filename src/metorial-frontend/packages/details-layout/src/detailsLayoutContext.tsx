@@ -40,4 +40,4 @@ export let useDetailsLayout = () => {
 };
 
 export let getDetailsLayoutEntityLabel = (entity: DetailsLayoutEntity) =>
-  entity?.name || entity?.slug || entity?.id || '...';
+  entity?.name || entity?.slug || entity?.id || '...............';

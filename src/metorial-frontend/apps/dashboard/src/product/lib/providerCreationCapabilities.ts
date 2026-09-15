@@ -127,7 +127,8 @@ export let useProviderConfigCreationCapabilities = (
 export let useProviderAuthCreationCapabilities = (
   instanceId: string | null | undefined,
   providerDeploymentId: string | null | undefined,
-  providerId?: string | null | undefined
+  providerId?: string | null | undefined,
+  authMethodAdapter?: string
 ) => {
   let scopedDeploymentInstanceId = instanceId && providerDeploymentId ? instanceId : null;
   let scopedProviderInstanceId =
@@ -139,7 +140,9 @@ export let useProviderAuthCreationCapabilities = (
     deployment.data?.lockedVersion?.id ?? provider.data?.currentVersion?.id ?? null;
   let authMethods = useProviderAuthMethods(
     scopedProviderInstanceId,
-    effectiveVersionId ? { providerVersionId: effectiveVersionId ?? undefined } : null
+    effectiveVersionId
+      ? { providerVersionId: effectiveVersionId ?? undefined, adapter: authMethodAdapter }
+      : null
   );
   let authMethodItems = orderProviderAuthMethods(authMethods.data?.items ?? []);
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(provider.data);

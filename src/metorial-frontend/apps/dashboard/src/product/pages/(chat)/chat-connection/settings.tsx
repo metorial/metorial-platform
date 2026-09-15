@@ -52,7 +52,12 @@ export let ChatConnectionSettingsPage = () => {
 
           <Spacer size={15} />
 
-          <Input label="Description" {...form.getFieldProps('description')} />
+          <Input
+            label="Description"
+            {...form.getFieldProps('description')}
+            as="textarea"
+            minRows={5}
+          />
           <form.RenderError field="description" />
 
           <Spacer size={15} />

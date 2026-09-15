@@ -135,7 +135,9 @@ let chatInstancesTable = new DashboardTable<ChatInstancesTableProps, ChatInstanc
               size={24}
               noTooltip
             />
-            <Text size="2">{chatInstance.identity.name || chatInstance.identity.username}</Text>
+            <Text size="2">
+              {chatInstance.identity.name || chatInstance.identity.username}
+            </Text>
           </Flex>
         ) : (
           <Text size="2" color="gray600">

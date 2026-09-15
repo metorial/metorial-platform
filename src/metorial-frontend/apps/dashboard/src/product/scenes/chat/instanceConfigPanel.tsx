@@ -304,6 +304,7 @@ let ChatInstanceProviderConfigurator = (p: {
       providerDeploymentId={p.chatConnectionProvider.deployment?.id}
       fixedAuthMethodId={fixedAuthMethodId}
       fixedAuthCredentialsId={p.chatConnectionProvider.authCredentialsId ?? undefined}
+      authMethodAdapter="chat"
       providerName={visibility.providerName}
       selectedConfiguration={form.values.selectedConfiguration}
       onSelectedConfigurationChange={value => {

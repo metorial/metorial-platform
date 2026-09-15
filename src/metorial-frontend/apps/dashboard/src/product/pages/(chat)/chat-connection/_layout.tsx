@@ -10,7 +10,8 @@ import {
 import { RiChat3Line } from '@remixicon/react';
 import { RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import { useChatExplorerPath } from '../../../components/openChatExplorer';
 import { showChatInstanceCreateProviderPanelFlow } from '../../../scenes/chat/instanceConfigPanel';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
@@ -20,6 +21,8 @@ export let ChatConnectionLayout = () => {
   let project = useCurrentProject();
   let { chatConnectionId } = useParams();
   let chatConnection = useChatConnection(instance.data?.id, chatConnectionId);
+  let navigate = useNavigate();
+  let chatExplorerPath = useChatExplorerPath();
 
   let connectionPath = (...subPages: string[]) =>
     Paths.instance.chatConnection(
@@ -53,6 +56,15 @@ export let ChatConnectionLayout = () => {
       ]}
       actions={[
         {
+          label: 'Open Explorer',
+          variant: 'outline',
+          disabled: !instance.data || !chatConnection.data,
+          onClick: () => {
+            if (!chatConnection.data) return;
+            navigate(chatExplorerPath({ chatConnectionId: chatConnection.data.id }));
+          }
+        },
+        {
           label: 'Create Instance',
           disabled: !instance.data || !chatConnection.data,
           onClick: () => {
@@ -60,7 +72,17 @@ export let ChatConnectionLayout = () => {
 
             showChatInstanceCreateProviderPanelFlow({
               instanceId: instance.data.id,
-              chatConnectionId: chatConnection.data.id
+              chatConnectionId: chatConnection.data.id,
+              onComplete: chatInstance => {
+                navigate(
+                  Paths.instance.chatInstance(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    chatInstance.id
+                  )
+                );
+              }
             });
           }
         }

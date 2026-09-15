@@ -430,6 +430,9 @@ let ChatEventLayout = dynamicPage(() =>
 let ChatEventPage = dynamicPage(() =>
   import('./pages/(chat)/chat-event/index').then(c => c.ChatEventPage)
 );
+let ChatExplorerPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-explorer/index').then(c => c.ChatExplorerPage)
+);
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -1187,6 +1190,22 @@ export let productChatSlice = createSlice([
     element: <ProductWrapper />,
 
     children: [
+      {
+        // The explorer fills the whole layout, so it skips the instance/details chrome.
+        element: <Outlet />,
+
+        children: [
+          {
+            path: 'chat-explorer',
+            element: (
+              <FlaggedPage flag="chat-enabled">
+                <ChatExplorerPage />
+              </FlaggedPage>
+            )
+          }
+        ]
+      },
+
       {
         element: <InstanceLayout />,
 

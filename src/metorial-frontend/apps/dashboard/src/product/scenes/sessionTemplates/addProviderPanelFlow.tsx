@@ -821,6 +821,7 @@ export type ProviderSetupSectionsProps = {
   fixedAuthMethodId?: string;
   providerAuthMethodId?: string | null;
   fixedAuthCredentialsId?: string;
+  authMethodAdapter?: string;
   selectedConfiguration: ConfigurationSelection;
   onSelectedConfigurationChange: (value: ConfigurationSelection) => void;
   selectedAuthConfigId: string;
@@ -932,7 +933,8 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
         : {
             providerDeploymentId: p.providerDeploymentId ?? undefined
           }),
-      providerAuthMethodId
+      providerAuthMethodId,
+      adapter: p.authMethodAdapter
     }
   );
 
@@ -1208,6 +1210,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             providerId={p.providerId}
             initialAuthMethodId={inlineAuthMethodId}
             fixedAuthCredentialsId={p.fixedAuthCredentialsId}
+            authMethodAdapter={p.authMethodAdapter}
             defaultAuthConfigName={generatedResourceName}
             autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
             close={() => setInlineAuthMethodId(null)}
@@ -1248,7 +1251,8 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                         : {
                             providerDeploymentId: p.providerDeploymentId ?? undefined
                           }),
-                      providerAuthMethodId
+                      providerAuthMethodId,
+                      adapter: p.authMethodAdapter
                     });
 
                     return {
@@ -1275,6 +1279,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
               providerId={p.providerId}
               fixedAuthMethodId={p.fixedAuthMethodId}
               fixedAuthCredentialsId={p.fixedAuthCredentialsId}
+              authMethodAdapter={p.authMethodAdapter}
               defaultAuthConfigName={p.defaultAuthConfigName}
               autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
               onInlineCreate={authMethodId => setInlineAuthMethodId(authMethodId)}
@@ -1577,6 +1582,7 @@ let ProviderAuthConfigCreateAction = (p: {
   providerId?: string;
   fixedAuthMethodId?: string;
   fixedAuthCredentialsId?: string;
+  authMethodAdapter?: string;
   defaultAuthConfigName?: string;
   autoStartManagedCredentialSetup?: boolean;
   onInlineCreate: (authMethodId: string) => void;
@@ -1591,7 +1597,8 @@ let ProviderAuthConfigCreateAction = (p: {
   let authCreation = useProviderAuthCreationCapabilities(
     p.instanceId,
     p.providerDeploymentId,
-    p.providerId
+    p.providerId,
+    p.authMethodAdapter
   );
 
   let openCreateFlow = (authMethodId: string) => {
@@ -1608,6 +1615,7 @@ let ProviderAuthConfigCreateAction = (p: {
       providerId: p.providerId,
       initialAuthMethodId: authMethodId,
       fixedAuthCredentialsId: p.fixedAuthCredentialsId,
+      authMethodAdapter: p.authMethodAdapter,
       defaultAuthConfigName: p.defaultAuthConfigName,
       autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
       onCreate: p.onCreate,

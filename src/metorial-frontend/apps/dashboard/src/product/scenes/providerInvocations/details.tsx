@@ -1,6 +1,10 @@
 import type { DashboardInstanceProviderInvocationsGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useProviderInvocation, useProviderInvocations } from '@metorial/state';
+import {
+  useCurrentInstance,
+  useProviderInvocation,
+  useProviderInvocations
+} from '@metorial/state';
 import { Badge, Callout, Datalist, RenderDate } from '@metorial/ui';
 import { RunLogs } from '../../components/runLogs';
 import {
@@ -144,6 +148,31 @@ export let ProviderInvocationByCallbackEventId = ({
       return (
         <Callout color="gray">
           <span>No provider invocation logs were captured for this callback event.</span>
+        </Callout>
+      );
+    }
+
+    return <ProviderInvocationDetails invocation={invocation} hideHeader={hideHeader} />;
+  });
+};
+
+export let ProviderInvocationByChatEventId = ({
+  chatEventId,
+  hideHeader
+}: {
+  chatEventId: string;
+  hideHeader?: boolean;
+}) => {
+  let instance = useCurrentInstance();
+  let invocations = useProviderInvocations(instance.data?.id, { chatEventId });
+
+  return renderWithLoader({ invocations })(({ invocations }) => {
+    let invocation = invocations.data.items[0];
+
+    if (!invocation) {
+      return (
+        <Callout color="gray">
+          <span>No provider invocation logs were captured for this chat event.</span>
         </Callout>
       );
     }

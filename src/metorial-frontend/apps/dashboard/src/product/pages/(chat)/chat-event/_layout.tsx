@@ -20,7 +20,7 @@ export let ChatEventLayout = () => {
   let { chatEventId } = useParams();
   let chatEvent = useChatEvent(instance.data?.id, chatEventId);
   let chat = useChat(instance.data?.id, chatEvent.data?.chatId);
-  let connection = useChatConnection(instance.data?.id, chat.data?.chatConnectionId);
+  let connection = useChatConnection(instance.data?.id, chatEvent.data?.chatConnectionId);
 
   return (
     <DetailsLayout
@@ -32,24 +32,35 @@ export let ChatEventLayout = () => {
           label: 'Chat',
           to: Paths.instance.chatConnections(organization.data, project.data, instance.data)
         },
-        {
-          label: connection.data?.name ?? 'Connection',
-          to: Paths.instance.chatConnection(
-            organization.data,
-            project.data,
-            instance.data,
-            connection.data?.id
-          )
-        },
-        {
-          label: chat.data?.name ?? 'Chat',
-          to: Paths.instance.chat(
-            organization.data,
-            project.data,
-            instance.data,
-            chatEvent.data?.chatId
-          )
-        },
+
+        ...(!chatEvent.data || chatEvent.data?.chatConnectionId
+          ? [
+              {
+                label: connection.data?.name ?? 'Connection',
+                to: Paths.instance.chatConnection(
+                  organization.data,
+                  project.data,
+                  instance.data,
+                  connection.data?.id
+                )
+              }
+            ]
+          : []),
+
+        ...(!chatEvent.data || chatEvent.data?.chatId
+          ? [
+              {
+                label: chat.data?.name ?? 'Chat',
+                to: Paths.instance.chat(
+                  organization.data,
+                  project.data,
+                  instance.data,
+                  chat.data?.id
+                )
+              }
+            ]
+          : []),
+
         {
           label: chatEvent.data?.type,
           to: Paths.instance.chatEvent(
@@ -73,21 +84,27 @@ export let ChatEventLayout = () => {
                   </Badge>
                 )
               },
-              {
-                label: 'Chat',
-                value: (
-                  <Link
-                    to={Paths.instance.chat(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      chatEvent.data.chatId
-                    )}
-                  >
-                    <ID id={chatEvent.data.chatId} copy={false} />
-                  </Link>
-                )
-              },
+
+              ...(chatEvent.data.chatId
+                ? [
+                    {
+                      label: 'Chat',
+                      value: (
+                        <Link
+                          to={Paths.instance.chat(
+                            organization.data,
+                            project.data,
+                            instance.data,
+                            chatEvent.data.chatId
+                          )}
+                        >
+                          <ID id={chatEvent.data.chatId} copy={false} />
+                        </Link>
+                      )
+                    }
+                  ]
+                : []),
+
               {
                 label: 'Channel',
                 value: chatEvent.data.channelId ? <ID id={chatEvent.data.channelId} /> : '-'

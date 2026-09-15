@@ -78,7 +78,8 @@ let chatEventsTable = new DashboardTable<ChatEventsTableProps, ChatEventPreview>
       id: 'chatId',
       isDefault: false,
       header: 'Chat',
-      render: (chatEvent: ChatEventPreview) => <ID id={chatEvent.chatId} />
+      render: (chatEvent: ChatEventPreview) =>
+        chatEvent.chatId ? <ID id={chatEvent.chatId} /> : null
     },
     {
       id: 'occurredAt',

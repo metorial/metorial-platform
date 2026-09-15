@@ -284,6 +284,12 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'chat-connections', ...subPages),
+    chatExplorer: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'chat-explorer', ...subPages),
     chatConnection: (
       organization: EntityParam,
       project: EntityParam,

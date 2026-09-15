@@ -2,9 +2,10 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { JsonViewer } from '@metorial/json-viewer';
 import { useChatEvent, useCurrentInstance } from '@metorial/state';
-import { Text } from '@metorial/ui';
+import { Spacer, Text } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
+import { ProviderInvocationByChatEventId } from '../../../scenes/providerInvocations/details';
 
 export let ChatEventPage = () => {
   let instance = useCurrentInstance();
@@ -22,6 +23,12 @@ export let ChatEventPage = () => {
           </Text>
         )}
       </Box>
+
+      <Spacer size={30} />
+
+      {chatEvent.data.type === 'chat.invocation.failed' ? (
+        <ProviderInvocationByChatEventId chatEventId={chatEvent.data.id} />
+      ) : null}
     </DetailsOverviewLayout>
   ));
 };
