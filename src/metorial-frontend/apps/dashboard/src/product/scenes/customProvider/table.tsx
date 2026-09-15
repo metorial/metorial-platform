@@ -80,26 +80,6 @@ let HeaderBadges = styled.div`
   justify-content: flex-end;
 `;
 
-let Details = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
-
-let Detail = styled.div`
-  background: ${theme.colors.gray300};
-  min-height: 26px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: ${theme.colors.gray700};
-  overflow-wrap: anywhere;
-  min-width: 0;
-  max-width: 100%;
-`;
 
 let getStatusFilterValue = (
   value: FilterPayload | undefined
@@ -315,6 +295,7 @@ export let CustomProvidersGrid = ({
                     entity={{ id: provider.id, hasUsage: true }}
                     title={title}
                     description={provider.description ?? provider.provider?.description}
+                    variant="v2"
                     height={230}
                     icon={
                       <Avatar
@@ -326,7 +307,7 @@ export let CustomProvidersGrid = ({
                       />
                     }
                     bottom={
-                      <Details>{detail.label && <Detail>{detail.label}</Detail>}</Details>
+                      detail.label ? <Text size="1">{detail.label}</Text> : undefined
                     }
                   />
                 );

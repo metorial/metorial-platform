@@ -135,11 +135,6 @@ let ProviderName = styled.span`
   white-space: nowrap;
 `;
 
-let CardCategories = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-`;
 
 let ProviderCardWrapper = styled.div`
   position: relative;
@@ -185,16 +180,6 @@ let CreatingCardSpinner = styled.div`
   pointer-events: none;
 `;
 
-let CardCategory = styled.div`
-  background: #f0f0f0;
-  height: 26px;
-  border-radius: 50px;
-  padding: 0 10px;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-`;
 
 let FieldWrapper = styled.div`
   display: flex;
@@ -285,6 +270,7 @@ let ProviderItemsGrid = ({
               <ItemGrid.Item
                 title={provider.name ?? provider.slug ?? 'Provider'}
                 description={description}
+                variant="v2"
                 height={cardSize === 'compact' ? 220 : 250}
                 onClick={clickDisabled ? undefined : () => onSelect?.(provider)}
                 icon={
@@ -316,13 +302,7 @@ let ProviderItemsGrid = ({
                   </div>
                 }
                 bottom={
-                  <CardCategories>
-                    {(provider.categories ?? [])
-                      .slice(0, cardSize === 'compact' ? 2 : 3)
-                      .map(category => (
-                        <CardCategory key={category.id}>{category.name}</CardCategory>
-                      ))}
-                  </CardCategories>
+                  provider.slug ? <Text size="1">{provider.slug}</Text> : undefined
                 }
               />
             </ProviderCardWrapper>

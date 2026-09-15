@@ -14,17 +14,6 @@ import { styled } from 'styled-components';
 import { EmptyState } from '@metorial/empty-state';
 import { showSkillPluginFormModal } from './pluginModal';
 
-let Count = styled.div`
-  background: ${theme.colors.gray300};
-  min-height: 26px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: ${theme.colors.gray700};
-`;
 
 let Description = styled.span`
   display: -webkit-box;
@@ -124,6 +113,7 @@ export let SkillPluginsGrid = (
                   {plugin.description || 'No description provided yet.'}
                 </Description>
               }
+              variant="v2"
               height={200}
               icon={
                 <Avatar
@@ -137,11 +127,7 @@ export let SkillPluginsGrid = (
                 />
               }
               bottom={
-                <div style={{ display: 'flex' }}>
-                  <Count>
-                    {plugin.skills.length} skill{plugin.skills.length === 1 ? '' : 's'}
-                  </Count>
-                </div>
+                <Text size="1">{plugin.id}</Text>
               }
             />
           ))}

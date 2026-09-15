@@ -834,6 +834,7 @@ export type ProviderSetupSectionsProps = {
   showToolFilters?: boolean;
   showConfigSection?: boolean;
   showAuthSection?: boolean;
+  animateAuthSection?: boolean;
   forceConfigSectionVisible?: boolean;
   configRequirement?: 'required' | 'optional';
   authRequirement?: 'required' | 'optional';
@@ -1176,130 +1177,149 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     );
   }
 
-  if (requiresAuthConfig) {
-    sectionItems.push(
-      <ConfigureSectionCard
-        key="auth"
-        title="Auth Config"
-        description="Select the authentication settings this setup should use when it connects to the provider."
-        requirement={authRequirement}
-        completed={isAuthCompleted}
-      >
-        <div>
-          {createdAuthConfigSelection ? (
-            <Flex justify="space-between" align="center" gap={12} wrap="wrap">
-              <Text size="2">
-                New auth config selected: <strong>{createdAuthConfigSelection.label}</strong>
-              </Text>
-              <Button
-                type="button"
-                size="2"
-                variant="outline"
-                disabled={p.disabled}
-                onClick={() => setCreatedAuthConfigSelection(null)}
-              >
-                Choose another
-              </Button>
-            </Flex>
-          ) : inlineAuthMethodId ? (
-            <ProviderAuthConfigCreateFlowContent
+  let authSection = (
+    <ConfigureSectionCard
+      key="auth-card"
+      title="Auth Config"
+      description="Select the authentication settings this setup should use when it connects to the provider."
+      requirement={authRequirement}
+      completed={isAuthCompleted}
+    >
+      <div>
+        {createdAuthConfigSelection ? (
+          <Flex justify="space-between" align="center" gap={12} wrap="wrap">
+            <Text size="2">
+              New auth config selected: <strong>{createdAuthConfigSelection.label}</strong>
+            </Text>
+            <Button
+              type="button"
+              size="2"
+              variant="outline"
+              disabled={p.disabled}
+              onClick={() => setCreatedAuthConfigSelection(null)}
+            >
+              Choose another
+            </Button>
+          </Flex>
+        ) : inlineAuthMethodId ? (
+          <ProviderAuthConfigCreateFlowContent
+            instanceId={p.instanceId}
+            providerDeploymentId={p.providerDeploymentId ?? undefined}
+            providerId={p.providerId}
+            initialAuthMethodId={inlineAuthMethodId}
+            fixedAuthCredentialsId={p.fixedAuthCredentialsId}
+            defaultAuthConfigName={generatedResourceName}
+            autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
+            close={() => setInlineAuthMethodId(null)}
+            onBack={() => setInlineAuthMethodId(null)}
+            embedded
+            hideDetailsInputs
+            onCreate={authConfig => {
+              pendingCreatedAuthConfigIdRef.current = authConfig.id;
+              setCreatedAuthConfigSelection({
+                id: authConfig.id,
+                label: authConfig.name ?? generatedResourceName
+              });
+              setInlineAuthMethodId(null);
+              p.onSelectedAuthConfigIdChange(authConfig.id);
+            }}
+          />
+        ) : (
+          <Flex gap={8} align="end">
+            {showExistingAuthOptions ? (
+              <div style={{ flex: 1 }}>
+                <Combobox
+                  label="Auth Config"
+                  placeholder="Search auth configs"
+                  value={p.selectedAuthConfigId || null}
+                  valueLabel={selectedAuthConfig.data?.name ?? selectedAuthConfig.data?.id}
+                  disabled={p.disabled}
+                  provider={({ searchQuery }) => {
+                    let comboboxAuthConfigs = useProviderAuthConfigs(p.instanceId, {
+                      providerId: p.providerId,
+                      limit: 25,
+                      search: searchQuery || undefined,
+                      ...(filterAvailableResources
+                        ? {
+                            availableForUse: true,
+                            availableForProviderDeploymentId:
+                              p.providerDeploymentId ?? undefined
+                          }
+                        : {
+                            providerDeploymentId: p.providerDeploymentId ?? undefined
+                          }),
+                      providerAuthMethodId
+                    });
+
+                    return {
+                      items: (comboboxAuthConfigs.data?.items ?? []).map(config => ({
+                        id: config.id,
+                        label: config.name ?? config.id
+                      })),
+                      isLoading: comboboxAuthConfigs.isLoading,
+                      empty: searchQuery
+                        ? 'No matching auth configs found.'
+                        : 'No auth configs available.'
+                    };
+                  }}
+                  onChange={value => {
+                    p.onSelectedAuthConfigIdChange(value ?? '');
+                  }}
+                />
+              </div>
+            ) : null}
+
+            <ProviderAuthConfigCreateAction
               instanceId={p.instanceId}
               providerDeploymentId={p.providerDeploymentId ?? undefined}
               providerId={p.providerId}
-              initialAuthMethodId={inlineAuthMethodId}
+              fixedAuthMethodId={p.fixedAuthMethodId}
               fixedAuthCredentialsId={p.fixedAuthCredentialsId}
-              defaultAuthConfigName={generatedResourceName}
+              defaultAuthConfigName={p.defaultAuthConfigName}
               autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
-              close={() => setInlineAuthMethodId(null)}
-              onBack={() => setInlineAuthMethodId(null)}
-              embedded
-              hideDetailsInputs
-              onCreate={authConfig => {
+              onInlineCreate={authMethodId => setInlineAuthMethodId(authMethodId)}
+              onCreate={async authConfig => {
                 pendingCreatedAuthConfigIdRef.current = authConfig.id;
                 setCreatedAuthConfigSelection({
                   id: authConfig.id,
-                  label: authConfig.name ?? generatedResourceName
+                  label: authConfig.name ?? authConfig.id
                 });
-                setInlineAuthMethodId(null);
                 p.onSelectedAuthConfigIdChange(authConfig.id);
               }}
-            />
-          ) : (
-            <Flex gap={8} align="end">
-              {showExistingAuthOptions ? (
-                <div style={{ flex: 1 }}>
-                  <Combobox
-                    label="Auth Config"
-                    placeholder="Search auth configs"
-                    value={p.selectedAuthConfigId || null}
-                    valueLabel={selectedAuthConfig.data?.name ?? selectedAuthConfig.data?.id}
-                    disabled={p.disabled}
-                    provider={({ searchQuery }) => {
-                      let comboboxAuthConfigs = useProviderAuthConfigs(p.instanceId, {
-                        providerId: p.providerId,
-                        limit: 25,
-                        search: searchQuery || undefined,
-                        ...(filterAvailableResources
-                          ? {
-                              availableForUse: true,
-                              availableForProviderDeploymentId:
-                                p.providerDeploymentId ?? undefined
-                            }
-                          : {
-                              providerDeploymentId: p.providerDeploymentId ?? undefined
-                            }),
-                        providerAuthMethodId
-                      });
+              size="3"
+              iconLeft={<RiAddLine />}
+              ariaLabel={createAuthConfigLabel}
+              disabled={p.disabled}
+            >
+              {createAuthConfigLabel}
+            </ProviderAuthConfigCreateAction>
+          </Flex>
+        )}
 
-                      return {
-                        items: (comboboxAuthConfigs.data?.items ?? []).map(config => ({
-                          id: config.id,
-                          label: config.name ?? config.id
-                        })),
-                        isLoading: comboboxAuthConfigs.isLoading,
-                        empty: searchQuery
-                          ? 'No matching auth configs found.'
-                          : 'No auth configs available.'
-                      };
-                    }}
-                    onChange={value => {
-                      p.onSelectedAuthConfigIdChange(value ?? '');
-                    }}
-                  />
-                </div>
-              ) : null}
+        {p.authError}
+      </div>
+    </ConfigureSectionCard>
+  );
 
-              <ProviderAuthConfigCreateAction
-                instanceId={p.instanceId}
-                providerDeploymentId={p.providerDeploymentId ?? undefined}
-                providerId={p.providerId}
-                fixedAuthMethodId={p.fixedAuthMethodId}
-                fixedAuthCredentialsId={p.fixedAuthCredentialsId}
-                defaultAuthConfigName={p.defaultAuthConfigName}
-                autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
-                onInlineCreate={authMethodId => setInlineAuthMethodId(authMethodId)}
-                onCreate={async authConfig => {
-                  pendingCreatedAuthConfigIdRef.current = authConfig.id;
-                  setCreatedAuthConfigSelection({
-                    id: authConfig.id,
-                    label: authConfig.name ?? authConfig.id
-                  });
-                  p.onSelectedAuthConfigIdChange(authConfig.id);
-                }}
-                size="3"
-                iconLeft={<RiAddLine />}
-                ariaLabel={createAuthConfigLabel}
-                disabled={p.disabled}
-              >
-                {createAuthConfigLabel}
-              </ProviderAuthConfigCreateAction>
-            </Flex>
-          )}
-
-          {p.authError}
-        </div>
-      </ConfigureSectionCard>
+  if (p.animateAuthSection) {
+    sectionItems.push(
+      <AnimatePresence key="auth" initial={false}>
+        {requiresAuthConfig ? (
+          <motion.div
+            key="auth-config"
+            initial={{ opacity: 0, y: -8, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -8, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            {authSection}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     );
+  } else if (requiresAuthConfig) {
+    sectionItems.push(authSection);
   }
 
   if (

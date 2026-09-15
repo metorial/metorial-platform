@@ -13,39 +13,6 @@ type ProvidersGridProps = DashboardInstanceProviderListingsListQuery & {
   mode?: ProvidersGridMode;
 };
 
-let Categories = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
-  $mode: ProvidersGridMode;
-}>`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => (p.$mode === 'home' ? '4px' : '10px')};
-  ${p =>
-    p.$mode === 'home'
-      ? `
-    max-height: 40px;
-    overflow: hidden;
-  `
-      : ''}
-`;
-
-let Category = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
-  $mode: ProvidersGridMode;
-}>`
-  background: #f0f0f0;
-  height: ${p => (p.$mode === 'home' ? '18px' : '26px')};
-  border-radius: 50px;
-  padding: 0 ${p => (p.$mode === 'home' ? '6px' : '10px')};
-  display: flex;
-  align-items: center;
-  font-size: ${p => (p.$mode === 'home' ? '10px' : '12px')};
-  font-weight: 500;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
 export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps) => {
   let instance = useCurrentInstance();
   let providers = useProviderListings(instance.data?.id, filter);
@@ -82,6 +49,7 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
                 entity={{ id: listing.id, hasUsage: true }}
                 title={listing.name}
                 description={isHome ? undefined : description}
+                variant="v2"
                 height={isHome ? 118 : 250}
                 mode={isHome ? 'compactHorizontal' : 'default'}
                 showCopyId={!isHome}
@@ -115,13 +83,7 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
                   </div>
                 }
                 bottom={
-                  <Categories $mode={mode}>
-                    {listing.categories.map(category => (
-                      <Category $mode={mode} key={category.id}>
-                        {category.name}
-                      </Category>
-                    ))}
-                  </Categories>
+                  listing.provider?.slug ? <Text size="1">{listing.provider.slug}</Text> : undefined
                 }
               />
             );
