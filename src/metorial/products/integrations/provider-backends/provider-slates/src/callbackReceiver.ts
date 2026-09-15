@@ -43,7 +43,7 @@ export let receiveSlatesCallbackEvent = async (
     return { received: false };
   }
 
-  if (slateCallbackInstance.tenant.identifier !== input.tenantIdentifier) {
+  if (slateCallbackInstance.tenant.slateTenantIdentifier !== input.tenantIdentifier) {
     console.warn(
       `[Callbacks] Dropping slates trigger event ${input.triggerEventId}: tenant mismatch for ${input.callbackInstanceId}`
     );
