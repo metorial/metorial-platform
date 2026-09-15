@@ -73,7 +73,7 @@ let EntityIdentity = styled.div<{ $expanded: boolean }>`
   align-items: center;
   flex: 1 1 auto;
   min-width: 0;
-  margin-left: ${p => (p.$expanded ? '-5px' : '0')};
+  margin-left: -5px;
   transition: margin-left 280ms cubic-bezier(0.22, 1, 0.36, 1);
 
   @media (prefers-reduced-motion: reduce) {

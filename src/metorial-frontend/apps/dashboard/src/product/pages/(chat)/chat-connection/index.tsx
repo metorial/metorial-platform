@@ -144,7 +144,7 @@ export let ChatConnectionOverviewPage = () => {
 
           <Box
             title="Recent Chats"
-            description="The latest chats synced through this connection."
+            description="The latest chats connected through this connection."
             rightActions={
               chats.data.items.length ? (
                 <Link to={chatsPath}>

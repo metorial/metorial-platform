@@ -14,7 +14,7 @@ import {
   getStringFilterValue,
   type FilterPayload
 } from '@metorial/table';
-import { Badge, confirm, RenderDate, Text } from '@metorial/ui';
+import { Avatar, Badge, confirm, Flex, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
 import { useState } from 'react';
@@ -119,6 +119,29 @@ let chatInstancesTable = new DashboardTable<ChatInstancesTableProps, ChatInstanc
           {capitalize(chatInstance.status)}
         </Badge>
       )
+    },
+    {
+      id: 'identity',
+      isDefault: true,
+      header: 'Identity',
+      render: (chatInstance: ChatInstance) =>
+        chatInstance.identity ? (
+          <Flex align="center" gap={8}>
+            <Avatar
+              entity={{
+                name: chatInstance.identity.name || chatInstance.identity.username,
+                photoUrl: chatInstance.identity.imageUrl ?? undefined
+              }}
+              size={24}
+              noTooltip
+            />
+            <Text size="2">{chatInstance.identity.name || chatInstance.identity.username}</Text>
+          </Flex>
+        ) : (
+          <Text size="2" color="gray600">
+            Not connected
+          </Text>
+        )
     },
     {
       id: 'createdAt',
