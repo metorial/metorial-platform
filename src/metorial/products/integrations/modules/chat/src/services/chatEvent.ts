@@ -20,6 +20,7 @@ export let chatEventInclude = {
 
 export type ListChatEventsParams = {
   chatIds?: string[];
+  chatConnectionIds?: string[];
   chatInstanceIds?: string[];
   types?: string[];
   createdAt?: DateFilter;
@@ -57,6 +58,9 @@ class chatEventServiceImpl {
               environmentOid: d.environment.oid,
               AND: [
                 d.chatIds ? { chat: { id: { in: d.chatIds } } } : undefined!,
+                d.chatConnectionIds
+                  ? { chatConnection: { id: { in: d.chatConnectionIds } } }
+                  : undefined!,
                 d.chatInstanceIds
                   ? { chatInstance: { id: { in: d.chatInstanceIds } } }
                   : undefined!,

@@ -33,7 +33,7 @@
     "@metorial/module-file": "^1.0.0",
     "@metorial/presenter": "^1.0.0",
     "@metorial/presenters": "^1.0.0",
-    "@slates/adapter-chat": "1.0.0-rc.5",
+    "@slates/adapter-chat": "1.0.0-rc.7",
     "date-fns": "^4.1.0",
     "object-storage-client": "^0.2.5"
   },

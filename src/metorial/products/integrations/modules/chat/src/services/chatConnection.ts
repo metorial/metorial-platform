@@ -21,6 +21,7 @@ import {
 import {
   applyAdapterIntegrationPresentation,
   ensureAdapterIntegration,
+  integrationProviderVersionInclude,
   removeAdapterIntegration,
   resolveAdapterGlobal
 } from '@metorial-subspace/module-integration';
@@ -51,7 +52,14 @@ export let chatConnectionInclude = {
   providers: {
     include: {
       adapterIntegrationProvider: {
-        include: { integrationProvider: { include: { provider: true } } }
+        include: {
+          integrationProvider: {
+            include: {
+              provider: true,
+              currentVersion: { include: integrationProviderVersionInclude }
+            }
+          }
+        }
       }
     }
   }

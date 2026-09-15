@@ -16,6 +16,8 @@ import {
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
 import {
+  integrationInstanceProviderVersionInclude,
+  integrationProviderVersionInclude,
   setAdapterInstanceProvider,
   type SetIntegrationInstanceProviderInput
 } from '@metorial-subspace/module-integration';
@@ -32,7 +34,19 @@ export let chatInstanceProviderInclude = {
   chatInstance: true,
   chatConnectionProvider: true,
   adapterIntegrationInstanceProvider: {
-    include: { integrationProvider: { include: { provider: true } } }
+    include: {
+      integrationProvider: {
+        include: {
+          provider: true,
+          currentVersion: { include: integrationProviderVersionInclude }
+        }
+      },
+      integrationInstanceProvider: {
+        include: {
+          currentVersion: { include: integrationInstanceProviderVersionInclude }
+        }
+      }
+    }
   }
 } as const;
 

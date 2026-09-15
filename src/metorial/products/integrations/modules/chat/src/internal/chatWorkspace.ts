@@ -30,17 +30,8 @@ export type UpsertedChatWorkspace = {
 let adapterBindingInclude = {
   adapterIntegrationProvider: {
     include: {
-      integrationProvider: {
-        include: {
-          provider: {
-            include: {
-              providerAdapters: {
-                where: { identifier: 'chat' }
-              }
-            }
-          }
-        }
-      }
+      adapterIntegration: true,
+      integrationProvider: true
     }
   }
 } as const;
@@ -181,7 +172,14 @@ class chatWorkspaceInternalServiceImpl {
         });
 
         let integrationProvider = loaded.adapterIntegrationProvider.integrationProvider;
-        let providerAdapter = integrationProvider.provider.providerAdapters[0];
+        let providerAdapter = await db.providerAdapter.findUnique({
+          where: {
+            providerOid_globalOid: {
+              providerOid: integrationProvider.providerOid,
+              globalOid: loaded.adapterIntegrationProvider.adapterIntegration.adapterGlobalOid
+            }
+          }
+        });
         if (!providerAdapter) {
           throw new ServiceError(
             badRequestError({

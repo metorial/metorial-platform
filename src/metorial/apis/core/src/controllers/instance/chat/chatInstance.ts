@@ -18,7 +18,6 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 import { resolveSoleChatInstanceProvider } from './_shared';
 
 let chatInstanceGroup = instanceGroup.use(async ctx => {
@@ -275,9 +274,7 @@ export let chatInstanceController = Controller.create(
           ),
           provider_auth_config_id: v.optional(
             v.nullable(v.string({ description: 'Provider auth config to use' }))
-          ),
-          tool_filters: toolFiltersValidator,
-          is_override_tool_filter: v.optional(v.boolean())
+          )
         })
       )
       .output(chatInstanceProviderPresenter)
@@ -289,12 +286,7 @@ export let chatInstanceController = Controller.create(
             providerId: ctx.body.provider_id,
             providerDeploymentId: ctx.body.provider_deployment_id,
             providerConfigId: ctx.body.provider_config_id,
-            providerAuthConfigId: ctx.body.provider_auth_config_id ?? undefined,
-            toolFilters:
-              ctx.body.tool_filters === undefined
-                ? undefined
-                : normalizeToolFilters(ctx.body.tool_filters),
-            isOverrideToolFilter: ctx.body.is_override_tool_filter
+            providerAuthConfigId: ctx.body.provider_auth_config_id ?? undefined
           }
         });
 

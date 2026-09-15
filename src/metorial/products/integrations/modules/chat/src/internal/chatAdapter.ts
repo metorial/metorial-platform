@@ -65,7 +65,7 @@ class chatAdapterServiceImpl {
 }
 
 // Ugly as fuck, but I had to since the ChatAdapterInstance type is too large
-// to be inferred from the class. I apologize, Typescript it to blame.
+// to be inferred from the class. I apologize, Typescript is to blame.
 export let chatAdapterService: {
   getChatAdapterClient(
     d: MetorialFacing<GetChatAdapterClientParams>

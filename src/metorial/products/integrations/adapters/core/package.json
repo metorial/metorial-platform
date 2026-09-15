@@ -21,7 +21,7 @@
     "@lowerdeck/error": "workspace:2.0.0",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/module-session": "^1.0.0",
-    "@slates/adapter": "1.0.0-rc.3",
+    "@slates/adapter": "1.0.0-rc.7",
     "lru-cache": "^11.2.4"
   }
 }

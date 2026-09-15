@@ -35,6 +35,7 @@ export type ListChatsParams = {
   status?: ChatStatus[];
   allowDeleted?: boolean;
   ids?: string[];
+  chatConnectionIds?: string[];
   chatInstanceIds?: string[];
   chatInstanceProviderIds?: string[];
   createdAt?: DateFilter;
@@ -83,6 +84,9 @@ class chatServiceImpl {
               ...normalizeStatusForList(d).hasParent,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                d.chatConnectionIds
+                  ? { chatConnection: { id: { in: d.chatConnectionIds } } }
+                  : undefined!,
                 d.chatInstanceIds
                   ? { chatInstance: { id: { in: d.chatInstanceIds } } }
                   : undefined!,

@@ -13,7 +13,8 @@ let { tx } = vi.hoisted(() => {
     tx: {
       chat: createModel(),
       chatWorkspace: createModel(),
-      chatInstanceProvider: createModel()
+      chatInstanceProvider: createModel(),
+      providerAdapter: createModel()
     }
   };
 });
@@ -56,11 +57,11 @@ let provider = {
 
 let binding = {
   adapterIntegrationProvider: {
+    adapterIntegration: {
+      adapterGlobalOid: 98n
+    },
     integrationProvider: {
-      providerOid: 7n,
-      provider: {
-        providerAdapters: [{ oid: 99n, identifier: 'chat' }]
-      }
+      providerOid: 7n
     }
   }
 };
@@ -70,6 +71,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
     vi.clearAllMocks();
     tx.chatWorkspace.findMany.mockResolvedValue([]);
     tx.chatInstanceProvider.findUniqueOrThrow.mockResolvedValue(binding);
+    tx.providerAdapter.findUnique.mockResolvedValue({ oid: 99n });
     tx.chat.create.mockResolvedValue({ oid: 500n, name: 'Acme', status: 'active' });
     tx.chatWorkspace.create.mockResolvedValue({
       oid: 8n,
@@ -93,6 +95,14 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
     });
 
     expect(tx.chatInstanceProvider.findUniqueOrThrow).toHaveBeenCalledTimes(1);
+    expect(tx.providerAdapter.findUnique).toHaveBeenCalledWith({
+      where: {
+        providerOid_globalOid: {
+          providerOid: 7n,
+          globalOid: 98n
+        }
+      }
+    });
     expect(tx.chat.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -145,6 +155,19 @@ describe('chatWorkspaceInternalService.upsertChatWorkspaces', () => {
     expect(tx.chatInstanceProvider.findUniqueOrThrow).toHaveBeenCalledTimes(1);
     expect(tx.chat.create).toHaveBeenCalledTimes(2);
     expect(tx.chatWorkspace.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects providers without the adapter bound to the chat integration', async () => {
+    tx.providerAdapter.findUnique.mockResolvedValue(null);
+
+    await expect(
+      chatWorkspaceInternalService.upsertChatWorkspaces({
+        chatInstanceProvider: provider,
+        workspaces: [{ id: 'T123', name: 'Acme' }]
+      })
+    ).rejects.toThrow('The provider does not implement the requested adapter.');
+
+    expect(tx.chat.create).not.toHaveBeenCalled();
   });
 
   it('skips writes when chat and workspace payloads are unchanged', async () => {
@@ -278,6 +301,7 @@ describe('chatWorkspaceInternalService.upsertChatWorkspace', () => {
     vi.clearAllMocks();
     tx.chatWorkspace.findMany.mockResolvedValue([]);
     tx.chatInstanceProvider.findUniqueOrThrow.mockResolvedValue(binding);
+    tx.providerAdapter.findUnique.mockResolvedValue({ oid: 99n });
     tx.chat.create.mockResolvedValue({ oid: 500n, name: 'Acme', status: 'active' });
     tx.chatWorkspace.create.mockResolvedValue({
       oid: 8n,

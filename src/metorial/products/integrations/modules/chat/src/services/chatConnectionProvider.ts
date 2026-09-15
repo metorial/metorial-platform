@@ -20,6 +20,7 @@ import {
 } from '@metorial-subspace/list-utils';
 import {
   ensureAdapterProvider,
+  integrationProviderVersionInclude,
   removeAdapterProvider,
   updateAdapterProvider
 } from '@metorial-subspace/module-integration';
@@ -35,7 +36,14 @@ import { enqueueChatConnectionUpdated } from '../queues/lifecycle';
 export let chatConnectionProviderInclude = {
   chatConnection: true,
   adapterIntegrationProvider: {
-    include: { integrationProvider: { include: { provider: true } } }
+    include: {
+      integrationProvider: {
+        include: {
+          provider: true,
+          currentVersion: { include: integrationProviderVersionInclude }
+        }
+      }
+    }
   }
 } as const;
 
@@ -65,7 +73,6 @@ export type CreateChatConnectionProviderParams = {
     name?: string;
     description?: string;
     metadata?: Record<string, any>;
-    toolFilters?: any;
   };
 };
 
@@ -79,7 +86,6 @@ export type UpdateChatConnectionProviderParams = {
     name?: string;
     description?: string | null;
     metadata?: Record<string, any> | null;
-    toolFilters?: any;
   };
 };
 
@@ -131,9 +137,7 @@ class chatConnectionProviderServiceImpl {
     );
   }
 
-  async getChatConnectionProviderById(
-    d: MetorialFacing<GetChatConnectionProviderByIdParams>
-  ) {
+  async getChatConnectionProviderById(d: MetorialFacing<GetChatConnectionProviderByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.getChatConnectionProviderByIdInternal({
@@ -287,9 +291,7 @@ class chatConnectionProviderServiceImpl {
     });
   }
 
-  async archiveChatConnectionProvider(
-    d: MetorialFacing<ArchiveChatConnectionProviderParams>
-  ) {
+  async archiveChatConnectionProvider(d: MetorialFacing<ArchiveChatConnectionProviderParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.archiveChatConnectionProviderInternal({

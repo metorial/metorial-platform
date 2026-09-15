@@ -5,10 +5,10 @@ import {
   providerAuthMethodService,
   providerVersionService
 } from '@metorial-subspace/module-catalog';
+import { providerAuthMethodPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerAuthMethodPresenter } from '@metorial/presenters';
 
 let providerAuthMethodGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthMethodId) {
@@ -46,7 +46,8 @@ export let providerAuthMethodController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_version_id: v.string()
+            provider_version_id: v.string(),
+            adapter: v.optional(v.string())
           })
         )
       )
@@ -57,7 +58,8 @@ export let providerAuthMethodController = Controller.create(
         });
         let paginator = await providerAuthMethodService.listProviderAuthMethods({
           instance: ctx.instance,
-          providerVersion
+          providerVersion,
+          adapter: ctx.query.adapter
         });
 
         let list = await paginator.run(ctx.query);

@@ -834,6 +834,7 @@ export type PresentedProviderAuthMethod = {
         description?: string | null;
       }[]
     | null;
+  adapters?: string[] | null;
   specificationId: string;
   providerId: string;
   createdAt: Date;

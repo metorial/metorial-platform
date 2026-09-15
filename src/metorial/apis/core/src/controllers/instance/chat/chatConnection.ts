@@ -8,7 +8,6 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 let chatConnectionProviderInputValidator = v.object({
   provider_id: v.string({
@@ -54,8 +53,7 @@ let chatConnectionProviderInputValidator = v.object({
   ),
   metadata: v.optional(
     v.record(v.any(), { name: 'metadata', description: 'Metadata set on the provider link' })
-  ),
-  tool_filters: toolFiltersValidator
+  )
 });
 
 let chatConnectionGroup = instanceGroup.use(async ctx => {
@@ -174,11 +172,7 @@ export let chatConnectionController = Controller.create(
           providerConfigId: ctx.body.provider.provider_config_id,
           name: ctx.body.provider.name,
           description: ctx.body.provider.description,
-          metadata: ctx.body.provider.metadata,
-          toolFilters:
-            ctx.body.provider.tool_filters === undefined
-              ? undefined
-              : normalizeToolFilters(ctx.body.provider.tool_filters)
+          metadata: ctx.body.provider.metadata
         };
 
         let chatConnection = await chatConnectionService.createChatConnectionWithProvider({
