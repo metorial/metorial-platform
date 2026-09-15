@@ -278,6 +278,60 @@ let InstancePaths = Object.assign(
       return InstancePaths(organization, project, instance, 'integration', id, ...subPages);
     },
 
+    chatConnections: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'chat-connections', ...subPages),
+    chatConnection: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'chat-connection',
+        id,
+        ...subPages
+      );
+    },
+    chat: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'chat', id, ...subPages);
+    },
+    chatInstance: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'chat-instance', id, ...subPages);
+    },
+    chatEvent: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'chat-event', id, ...subPages);
+    },
+
     callbacks: (
       organization: EntityParam,
       project: EntityParam,
@@ -314,14 +368,7 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!id) return '#';
-      return InstancePaths(
-        organization,
-        project,
-        instance,
-        'callback-event',
-        id,
-        ...subPages
-      );
+      return InstancePaths(organization, project, instance, 'callback-event', id, ...subPages);
     },
     incomingWebhooks: (
       organization: EntityParam,
@@ -358,8 +405,7 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) =>
-      InstancePaths(organization, project, instance, 'webhook-registrations', ...subPages),
+    ) => InstancePaths(organization, project, instance, 'webhook-registrations', ...subPages),
     eventDestinations: (
       organization: EntityParam,
       project: EntityParam,
@@ -1128,10 +1174,7 @@ let SupportPaths = Object.assign(
 let DocumentsPaths = Object.assign(
   (...subPages: SubPages) => getNexusUrl('documents', () => joinPaths(...subPages)),
   {
-    organization: (
-      organizationId: string | null | undefined,
-      ...subPages: SubPages
-    ) => {
+    organization: (organizationId: string | null | undefined, ...subPages: SubPages) => {
       if (!organizationId) return '#';
       return DocumentsPaths(organizationId, 'documents', ...subPages);
     }

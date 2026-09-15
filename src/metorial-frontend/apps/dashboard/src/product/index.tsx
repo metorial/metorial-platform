@@ -378,6 +378,58 @@ let EventLayout = dynamicPage(() =>
   import('./pages/(callbacks)/event/_layout').then(c => c.EventLayout)
 );
 let EventPage = dynamicPage(() => import('./pages/(callbacks)/event').then(c => c.EventPage));
+// Chat pages
+let ChatListLayout = dynamicPage(() =>
+  import('./pages/(chat)/(list)/_layout').then(c => c.ChatListLayout)
+);
+let ChatConnectionsPage = dynamicPage(() =>
+  import('./pages/(chat)/(list)/chat-connections').then(c => c.ChatConnectionsPage)
+);
+let ChatConnectionLayout = dynamicPage(() =>
+  import('./pages/(chat)/chat-connection/_layout').then(c => c.ChatConnectionLayout)
+);
+let ChatConnectionOverviewPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-connection/index').then(c => c.ChatConnectionOverviewPage)
+);
+let ChatConnectionInstancesPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-connection/instances').then(c => c.ChatConnectionInstancesPage)
+);
+let ChatConnectionChatsPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-connection/chats').then(c => c.ChatConnectionChatsPage)
+);
+let ChatConnectionEventsPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-connection/events').then(c => c.ChatConnectionEventsPage)
+);
+let ChatConnectionSettingsPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-connection/settings').then(c => c.ChatConnectionSettingsPage)
+);
+let ChatInstanceLayout = dynamicPage(() =>
+  import('./pages/(chat)/chat-instance/_layout').then(c => c.ChatInstanceLayout)
+);
+let ChatInstanceOverviewPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-instance/index').then(c => c.ChatInstanceOverviewPage)
+);
+let ChatInstanceSettingsPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-instance/settings').then(c => c.ChatInstanceSettingsPage)
+);
+let ChatInstanceEventsPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-instance/events').then(c => c.ChatInstanceEventsPage)
+);
+let ChatLayout = dynamicPage(() =>
+  import('./pages/(chat)/chat/_layout').then(c => c.ChatLayout)
+);
+let ChatOverviewPage = dynamicPage(() =>
+  import('./pages/(chat)/chat/index').then(c => c.ChatOverviewPage)
+);
+let ChatEventsPage = dynamicPage(() =>
+  import('./pages/(chat)/chat/events').then(c => c.ChatEventsPage)
+);
+let ChatEventLayout = dynamicPage(() =>
+  import('./pages/(chat)/chat-event/_layout').then(c => c.ChatEventLayout)
+);
+let ChatEventPage = dynamicPage(() =>
+  import('./pages/(chat)/chat-event/index').then(c => c.ChatEventPage)
+);
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -1130,6 +1182,123 @@ export let productCallbacksSlice = createSlice([
   }
 ]);
 
+export let productChatSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            element: (
+              <FlaggedPage flag="chat-enabled">
+                <ChatListLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: 'chat-connections',
+                element: <ChatConnectionsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'chat-connection/:chatConnectionId',
+            element: (
+              <FlaggedPage flag="chat-enabled">
+                <ChatConnectionLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <ChatConnectionOverviewPage />
+              },
+              {
+                path: 'instances',
+                element: <ChatConnectionInstancesPage />
+              },
+              {
+                path: 'chats',
+                element: <ChatConnectionChatsPage />
+              },
+              {
+                path: 'events',
+                element: <ChatConnectionEventsPage />
+              },
+              {
+                path: 'settings',
+                element: <ChatConnectionSettingsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'chat-instance/:chatInstanceId',
+            element: (
+              <FlaggedPage flag="chat-enabled">
+                <ChatInstanceLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <ChatInstanceOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ChatInstanceSettingsPage />
+              },
+              {
+                path: 'events',
+                element: <ChatInstanceEventsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'chat/:chatId',
+            element: (
+              <FlaggedPage flag="chat-enabled">
+                <ChatLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <ChatOverviewPage />
+              },
+              {
+                path: 'events',
+                element: <ChatEventsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'chat-event/:chatEventId',
+            element: (
+              <FlaggedPage flag="chat-enabled">
+                <ChatEventLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <ChatEventPage />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
 export let deploySlice = createSlice([
   {
     path: ':organizationId/:projectId/:instanceId/deploy',
@@ -1154,6 +1323,7 @@ export let productSlice = createSlice([
       ...productDocumentSlice.routes,
       ...productIntegrationsSlice.routes,
       ...productCallbacksSlice.routes,
+      ...productChatSlice.routes,
       ...productSkillsSlice.routes,
       ...productHomeSlice.routes
     ]

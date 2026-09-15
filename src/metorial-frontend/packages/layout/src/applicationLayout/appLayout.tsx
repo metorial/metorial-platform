@@ -288,10 +288,10 @@ let SidebarBottom = styled.div`
 let Content = styled.div`
   /* height: calc(100dvh - 70px); */
   background: ${theme.colors.background};
-  border-radius: 10px;
-  box-shadow: ${theme.shadows.large};
+  border-radius: 7px;
+  box-shadow: ${theme.shadows.medium};
   overflow: auto;
-  border: 1px solid ${theme.colors.gray300};
+  border: 1px solid ${theme.colors.gray400};
 `;
 
 let ContentInner = styled.div<{ $hidden: boolean }>`
