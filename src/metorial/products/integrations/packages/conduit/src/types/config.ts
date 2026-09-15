@@ -97,7 +97,7 @@ export const DEFAULT_CONFIG: ConduitConfig = {
   },
   sender: {
     defaultTimeout: 5000,
-    maxRetries: 2,
+    maxRetries: 10,
     retryBackoffMs: 50,
     retryBackoffMultiplier: 1.5,
     topicOwnershipTtl: 5000,
