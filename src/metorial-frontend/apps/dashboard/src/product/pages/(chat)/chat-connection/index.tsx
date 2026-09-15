@@ -4,6 +4,7 @@ import { Paths } from '@metorial/frontend-config';
 import {
   useChatConnection,
   useChatInstances,
+  useChats,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -27,6 +28,12 @@ export let ChatConnectionOverviewPage = () => {
     order: 'desc',
     status: ['draft', 'active']
   });
+  let chats = useChats(instance.data?.id, {
+    chatConnectionId,
+    limit: 10,
+    order: 'desc',
+    status: ['active']
+  });
   let providerListings = useChatProviderListings(
     instance.data?.id,
     (chatConnection.data?.providers ?? []).map(provider => provider.provider.id)
@@ -34,14 +41,21 @@ export let ChatConnectionOverviewPage = () => {
   let provider = chatConnection.data?.providers[0];
   let authMethod = useProviderAuthMethod(instance.data?.id, provider?.authMethodId);
 
-  return renderWithLoader({ chatConnection, chatInstances })(
-    ({ chatConnection, chatInstances }) => {
+  return renderWithLoader({ chatConnection, chatInstances, chats })(
+    ({ chatConnection, chatInstances, chats }) => {
       let instancesPath = Paths.instance.chatConnection(
         organization.data,
         project.data,
         instance.data,
         chatConnection.data.id,
         'instances'
+      );
+      let chatsPath = Paths.instance.chatConnection(
+        organization.data,
+        project.data,
+        instance.data,
+        chatConnection.data.id,
+        'chats'
       );
 
       return (
@@ -90,25 +104,21 @@ export let ChatConnectionOverviewPage = () => {
             {chatInstances.data.items.length ? (
               <Table
                 headers={['Name', 'Created', 'ID']}
-                data={new Array(100)
-                  .fill(1)
-                  .flatMap(() => chatInstances.data.items)
-                  // .slice(0, 10)
-                  .map(chatInstance => ({
-                    href: Paths.instance.chatInstance(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      chatInstance.id
-                    ),
-                    data: [
-                      <Text key="name" size="2" weight="strong">
-                        {chatInstance.name}
-                      </Text>,
-                      <RenderDate key="created" date={chatInstance.createdAt} />,
-                      <ID key="id" id={chatInstance.id} />
-                    ]
-                  }))}
+                data={chatInstances.data.items.slice(0, 10).map(chatInstance => ({
+                  href: Paths.instance.chatInstance(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    chatInstance.id
+                  ),
+                  data: [
+                    <Text key="name" size="2" weight="strong">
+                      {chatInstance.name}
+                    </Text>,
+                    <RenderDate key="created" date={chatInstance.createdAt} />,
+                    <ID key="id" id={chatInstance.id} />
+                  ]
+                }))}
               />
             ) : (
               <Flex align="center" justify="space-between" gap={12}>
@@ -127,6 +137,47 @@ export let ChatConnectionOverviewPage = () => {
                   Configure Auth
                 </Button>
               </Flex>
+            )}
+          </Box>
+
+          <Spacer height={20} />
+
+          <Box
+            title="Recent Chats"
+            description="The latest chats synced through this connection."
+            rightActions={
+              chats.data.items.length ? (
+                <Link to={chatsPath}>
+                  <Button size="2" as="span" variant="outline">
+                    View All Chats
+                  </Button>
+                </Link>
+              ) : undefined
+            }
+          >
+            {chats.data.items.length ? (
+              <Table
+                headers={['Name', 'Created', 'ID']}
+                data={chats.data.items.slice(0, 10).map(chat => ({
+                  href: Paths.instance.chat(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    chat.id
+                  ),
+                  data: [
+                    <Text key="name" size="2" weight="strong">
+                      {chat.name}
+                    </Text>,
+                    <RenderDate key="created" date={chat.createdAt} />,
+                    <ID key="id" id={chat.id} />
+                  ]
+                }))}
+              />
+            ) : (
+              <Text size="2" color="gray600">
+                No chats have been synced through this connection yet.
+              </Text>
             )}
           </Box>
         </DetailsOverviewLayout>
