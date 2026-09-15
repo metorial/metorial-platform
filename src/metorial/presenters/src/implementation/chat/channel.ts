@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { chatChannelType } from '../../types';
+import { v1ChatAuthorPresenter } from './author';
 
 let chatContextActorSchema = v.object({
   id: v.string({
@@ -75,7 +76,7 @@ export let chatContextSchema = v.nullable(
 );
 
 export let v1ChatChannelPresenter = Presenter.create(chatChannelType)
-  .presenter(async ({ chatChannel }) => ({
+  .presenter(async ({ chatChannel }, opts) => ({
     object: 'chat.channel' as const,
 
     id: chatChannel.id,
@@ -89,6 +90,12 @@ export let v1ChatChannelPresenter = Presenter.create(chatChannelType)
     name: chatChannel.name,
     topic: chatChannel.topic,
     subject: chatChannel.subject,
+    has_access: chatChannel.hasAccess,
+    recipient: chatChannel.recipient
+      ? await v1ChatAuthorPresenter
+          .present({ chatAuthor: { ...chatChannel.recipient, chat: chatChannel.chat } }, opts)
+          .run()
+      : null,
 
     member_count: chatChannel.memberCount,
     permalink: chatChannel.permalink,
@@ -168,6 +175,13 @@ export let v1ChatChannelPresenter = Presenter.create(chatChannelType)
           examples: ['Billing questions']
         })
       ),
+
+      has_access: v.boolean({
+        name: 'has_access',
+        description: 'Whether the chat integration can read content from this channel'
+      }),
+
+      recipient: v.nullable(v1ChatAuthorPresenter.schema),
 
       member_count: v.nullable(
         v.number({

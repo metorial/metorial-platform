@@ -10,6 +10,7 @@ export let v1ChatEventPresenter = Presenter.create(chatEventType)
     type: chatEvent.type,
     source: chatEvent.source,
 
+    chat_connection_id: chatEvent.chatConnection.id,
     chat_id: chatEvent.chat?.id ?? null,
     channel_id: chatEvent.channel?.id ?? null,
     thread_id: chatEvent.thread?.id ?? null,
@@ -48,6 +49,12 @@ export let v1ChatEventPresenter = Presenter.create(chatEventType)
       source: v.enumOf(['webhook', 'polling', 'internal'], {
         name: 'source',
         description: 'How Metorial learned about this event'
+      }),
+
+      chat_connection_id: v.string({
+        name: 'chat_connection_id',
+        description: 'The chat connection this event was recorded for',
+        examples: ['cin_9jKlMnPqRsTuVwXy']
       }),
 
       chat_id: v.nullable(
@@ -178,7 +185,6 @@ export let dashboardChatEventPresenter = Presenter.create(chatEventType)
 
     return {
       ...inner,
-      invocation_id: chatEvent.invocationId ?? null,
       error: error
         ? {
             code: error.code ?? null,
@@ -195,15 +201,6 @@ export let dashboardChatEventPresenter = Presenter.create(chatEventType)
   .schema(
     v.object({
       ...v1ChatEventPresenter.schema.properties,
-
-      invocation_id: v.nullable(
-        v.string({
-          name: 'invocation_id',
-          description:
-            'Correlates every event produced by the same outbound provider-call attempt. Set only for invocation-failure events.',
-          examples: ['chinv_3fGhJkLmNpQrStUv']
-        })
-      ),
 
       error: v.nullable(
         v.object(

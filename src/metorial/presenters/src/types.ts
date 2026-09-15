@@ -3351,6 +3351,7 @@ type RawChatMessageAttachment = ChatMessageAttachment & {
 type RawChatChannel = ChatChannel & {
   chat: Chat;
   workspace: ChatWorkspace | null;
+  recipient: ChatAuthor | null;
 };
 
 type RawChatThread = ChatThread & {
@@ -3371,6 +3372,7 @@ type RawChatMessage = ChatMessage & {
 };
 
 type RawChatEvent = ChatEvent & {
+  chatConnection: ChatConnection;
   chat: Chat | null;
   channel: ChatChannel | null;
   thread: ChatThread | null;

@@ -96,6 +96,9 @@ export let providerAuthConfigController = Controller.create(
             identity_credential_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by identity credential ID(s)'
             }),
+            adapter: v.optional(v.string(), {
+              description: 'Only return auth configs whose auth method supports this adapter'
+            }),
             search: v.optional(v.string({ description: 'Search by name or description' })),
             created_at: dateFilterValidator('provider auth config creation time'),
             updated_at: dateFilterValidator('provider auth config last update time')
@@ -122,6 +125,7 @@ export let providerAuthConfigController = Controller.create(
           consumerIds: normalizeArrayParam(ctx.query.consumer_id),
           identityIds: normalizeArrayParam(ctx.query.identity_id),
           identityCredentialIds: normalizeArrayParam(ctx.query.identity_credential_id),
+          adapter: ctx.query.adapter,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

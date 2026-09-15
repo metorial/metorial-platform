@@ -69,7 +69,13 @@ export let chatChannelController = Controller.create(
               v.string({ description: 'Filter to channels in this workspace' })
             ),
             type: v.optional(channelTypeValidator, { description: 'Filter by channel type' }),
-            search: v.optional(v.string({ description: 'Search by channel name or topic' }))
+            search: v.optional(v.string({ description: 'Search by channel name or topic' })),
+            has_access: v.optional(
+              v.boolean({
+                description:
+                  'Whether to return channels the chat integration can or cannot access; defaults to true'
+              })
+            )
           })
         )
       )
@@ -79,7 +85,8 @@ export let chatChannelController = Controller.create(
           chat: ctx.chat,
           workspaceId: ctx.query.workspace_id,
           type: ctx.query.type,
-          search: ctx.query.search
+          search: ctx.query.search,
+          hasAccess: ctx.query.has_access
         });
 
         let list = await paginator.run(ctx.query);

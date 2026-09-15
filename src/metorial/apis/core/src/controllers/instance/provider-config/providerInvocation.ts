@@ -65,6 +65,9 @@ export let providerInvocationController = Controller.create(
           session_message_id: v.optional(v.union([v.string(), v.array(v.string())]), {
             description: 'Filter by session message ID(s)'
           }),
+          chat_event_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+            description: 'Filter by chat event ID(s)'
+          }),
           callback_event_id: v.optional(v.union([v.string(), v.array(v.string())]), {
             description: 'Filter by callback event ID(s)'
           }),
@@ -79,6 +82,7 @@ export let providerInvocationController = Controller.create(
           inputs: {
             providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
             sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
+            chatEventIds: normalizeArrayParam(ctx.query.chat_event_id),
             callbackEventSourceIds: normalizeArrayParam(ctx.query.callback_event_id),
             authConfigEventIds: normalizeArrayParam(ctx.query.auth_config_event_id)
           }
