@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { PageHeaderSection } from '@metorial/layout';
 import { useCurrentInstance, useIntegration } from '@metorial/state';
-import { Attributes, Button, Spacer } from '@metorial/ui';
+import { Attributes, Button, RenderDate, Spacer } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import { showIntegrationProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
@@ -21,8 +21,8 @@ export let IntegrationOverviewPage = () => {
           itemWidth="360px"
           attributes={[
             { label: 'ID', content: <ID id={integration.data.id} /> },
-            { label: 'Status', content: integration.data.status },
-            { label: 'Slug', content: integration.data.slug ?? '-' }
+            { label: 'Slug', content: integration.data.slug ?? '-' },
+            { label: 'Created', content: <RenderDate date={integration.data.createdAt} /> }
           ]}
         />
 

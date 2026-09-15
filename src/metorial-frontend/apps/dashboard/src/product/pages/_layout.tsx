@@ -10,6 +10,7 @@ import {
 } from '@metorial/state';
 import {
   RiBriefcase4Line,
+  RiChat3Line,
   RiChatVoiceAiLine,
   RiFileCopyLine,
   RiFolderLine,
@@ -58,6 +59,7 @@ export let ProjectPageLayout = () => {
   let skillsEnabled = !!dashboardFlags.data?.flags['skills-enabled'];
   let callbacksEnabled = !!dashboardFlags.data?.flags['callbacks-enabled'];
   let webhooksEnabled = !!dashboardFlags.data?.flags['webhooks-enabled'];
+  let chatEnabled = !!dashboardFlags.data?.flags['chat-enabled'];
   let hasCallbacks = useHasCallbacks(callbacksEnabled ? instance.data?.id : null).hasCallbacks;
 
   return (
@@ -127,6 +129,25 @@ export let ProjectPageLayout = () => {
             }
           ]
         },
+
+        ...(chatEnabled
+          ? [
+              {
+                label: 'Chat',
+                collapsible: true,
+                items: [
+                  {
+                    icon: <RiChat3Line />,
+                    label: 'Connections',
+                    to: Paths.instance.chatConnections(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  }
+                ]
+              }
+            ]
+          : []),
 
         ...(callbacksEnabled
           ? [
