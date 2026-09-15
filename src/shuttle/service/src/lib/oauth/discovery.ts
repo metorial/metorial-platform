@@ -3,13 +3,6 @@ import { axiosWithoutSse } from '../http/sse';
 import type { OAuthConfiguration } from './types';
 
 export class OAuthDiscovery {
-  private static readonly WELL_KNOWN_PATHS = [
-    '/.well-known/openid-configuration',
-    '/.well-known/oauth-protected-resource',
-    '/.well-known/oauth-authorization-server',
-    '/oauth/metadata.json'
-  ];
-
   private static readonly WWW_AUTHENTICATE_TIMEOUT = 5000; // 5 seconds
 
   static async discover(providerUrl: string): Promise<OAuthConfiguration | null> {
@@ -25,17 +18,8 @@ export class OAuthDiscovery {
       if (config) return config;
     } catch (error) {}
 
-    for (let path of this.WELL_KNOWN_PATHS) {
+    for (let discoveryUrl of this.getResourceDiscoveryUrls(baseUrl, url.pathname)) {
       try {
-        let discoveryUrl = `${baseUrl}${url.pathname}${path}`;
-        let config = await this.fetchDiscoveryDocument(discoveryUrl);
-        if (config) return config;
-      } catch (error) {}
-    }
-
-    for (let path of this.WELL_KNOWN_PATHS) {
-      try {
-        let discoveryUrl = `${baseUrl}${path}`;
         let config = await this.fetchDiscoveryDocument(discoveryUrl);
         if (config) return config;
       } catch (error) {}
@@ -47,6 +31,28 @@ export class OAuthDiscovery {
     } catch (error) {}
 
     return null;
+  }
+
+  private static getResourceDiscoveryUrls(baseUrl: string, pathname: string): string[] {
+    let normalizedPath = pathname === '/' ? '' : pathname.replace(/\/$/, '');
+
+    return Array.from(
+      new Set([
+        // RFC 9728 (protected resource metadata), RFC 8414 (authorization server metadata)
+        `${baseUrl}/.well-known/oauth-protected-resource${normalizedPath}`,
+        `${baseUrl}/.well-known/oauth-authorization-server${normalizedPath}`,
+
+        // OIDC Discovery 1.0
+        `${baseUrl}${normalizedPath}/.well-known/openid-configuration`,
+
+        // Legacy/incorrect orderings
+        `${baseUrl}${normalizedPath}/.well-known/oauth-authorization-server`,
+        `${baseUrl}${normalizedPath}/.well-known/oauth-protected-resource`,
+        `${baseUrl}${normalizedPath}/oauth/metadata.json`,
+        `${baseUrl}/.well-known/openid-configuration`,
+        `${baseUrl}/oauth/metadata.json`
+      ])
+    );
   }
 
   static async checkIfManualAuthIsNeeded(url: string) {
