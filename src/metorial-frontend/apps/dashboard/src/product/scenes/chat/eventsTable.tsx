@@ -7,9 +7,9 @@ import {
   type ChatEventPreview
 } from '@metorial/state';
 import {
+  Table as DashboardTable,
   getDateRangeFilterValue,
   getStringFilterValue,
-  Table as DashboardTable,
   type FilterPayload
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
@@ -34,6 +34,7 @@ let useChatEventsTableState = (
     chatInstanceId: props.chatInstanceId,
     chatId: props.chatId,
     order: 'desc',
+    limit: 100,
     type: getStringFilterValue(opts.filter.type),
     occurredAt: getDateRangeFilterValue(opts.filter.occurredAt)
   });

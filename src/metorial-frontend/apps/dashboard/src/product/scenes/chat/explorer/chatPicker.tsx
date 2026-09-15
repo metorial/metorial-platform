@@ -48,17 +48,15 @@ let ChatCard = styled.button`
   width: 100%;
   text-align: left;
   padding: 12px 14px;
-  border: 1px solid ${theme.colors.gray400};
+  border: 1px solid ${theme.colors.gray300};
   border-radius: 10px;
   background: ${theme.colors.background};
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+  transition: all 0.25s;
 
   &:hover {
-    border-color: ${theme.colors.gray600};
-    background: ${theme.colors.gray150};
+    border-color: ${theme.colors.gray400};
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   }
 `;
 
@@ -197,8 +195,7 @@ export let ChatPicker = (p: {
             Choose a Chat
           </Text>
           <Text size="2" color="gray600">
-            Pick the connected chat you want to explore. You can browse its channels, read
-            messages, and send new ones.
+            Pick the connected chat you want to explore.
           </Text>
         </div>
 

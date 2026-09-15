@@ -64,12 +64,6 @@ let ChannelRowLine = styled.div`
 
 export let ChannelListSkeleton = ({ rows = 9 }: { rows?: number }) => (
   <>
-    <ChannelSection>
-      <ChannelSectionLine>
-        <SkeletonBar width={62} height={10} />
-      </ChannelSectionLine>
-    </ChannelSection>
-
     {Array.from({ length: rows }).map((_, index) => (
       <ChannelRow key={index}>
         <ChannelRowLine>

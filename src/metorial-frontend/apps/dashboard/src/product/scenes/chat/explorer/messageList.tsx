@@ -541,15 +541,6 @@ export let ChatMessageList = (p: {
     setPendingMessageIds([]);
   }, [p.channelId, p.thread?.id]);
 
-  let lastMessageId = ordered[ordered.length - 1]?.id;
-
-  useLayoutEffect(() => {
-    let scroller = scrollerRef.current;
-    if (!scroller) return;
-
-    scroller.scrollTop = scroller.scrollHeight;
-  }, [p.channelId, p.thread?.id, lastMessageId]);
-
   useLayoutEffect(() => {
     if (!visiblePendingIds.length) return;
 
