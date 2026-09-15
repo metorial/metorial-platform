@@ -229,7 +229,8 @@ export interface ProviderCallbackWebhookEvent {
 /**
  * Inbound port for a provider backend that receives callback events pushed from its own
  * infrastructure. Injected by the API layer rather than imported, so backends never depend on
- * the callback module that calls into them.
+ * the callback module that calls into them. Returns null when the event belongs to a different
+ * callback on the same trigger registration and was therefore not recorded.
  */
 export type CallbackEventRecorder = (d: {
   callbackInstance: CallbackInstance;
@@ -238,4 +239,4 @@ export type CallbackEventRecorder = (d: {
   mappedType?: string;
   mappedId?: string;
   occurredAt: Date;
-}) => Promise<{ oid: bigint }>;
+}) => Promise<{ oid: bigint } | null>;

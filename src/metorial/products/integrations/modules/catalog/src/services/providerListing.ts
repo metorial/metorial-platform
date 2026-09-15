@@ -88,6 +88,7 @@ type ListProviderListingsParams = {
   orderByUse?: ProviderListingOrderByUse;
 
   capabilities?: ProviderCapabilityFilter;
+  adapterIdentifiers?: string[];
   includeDeprecated?: boolean;
 };
 
@@ -271,6 +272,16 @@ class ProviderListingService {
               publishers ? { publisherOid: publishers.in } : undefined!,
 
               capFilters ? { type: capFilters } : undefined!,
+
+              d.adapterIdentifiers?.length
+                ? {
+                    provider: {
+                      providerAdapters: {
+                        some: { global: { identifier: { in: d.adapterIdentifiers } } }
+                      }
+                    }
+                  }
+                : undefined!,
 
               d.onlyFromTenant && d.tenant
                 ? {

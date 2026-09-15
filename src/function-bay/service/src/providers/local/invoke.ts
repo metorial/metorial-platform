@@ -13,6 +13,16 @@ import { parseInvocationPayload } from '../_lib';
 let Sentry = getSentry();
 
 let RUNNER_FILE_NAME = '__metorial_local_runner__.cjs';
+let BUNDLE_CACHE_TTL_MS = 60_000;
+
+type LocalBundle = {
+  directory: string;
+  activeInvocations: number;
+  cleanupTimer?: Timer;
+};
+
+let localBundles = new Map<string, LocalBundle>();
+let loadingLocalBundles = new Map<string, Promise<LocalBundle>>();
 
 let LOCAL_RUNNER_SCRIPT = `'use strict';
 const fs = require('fs/promises');
@@ -144,6 +154,75 @@ let extractZipToDirectory = async (data: Buffer, targetDirectory: string) => {
   }
 };
 
+let getLocalBundleCacheKey = (d: FunctionInvocationParams) =>
+  `${d.providerData.bucket}:${d.providerData.storageKey}`;
+
+let scheduleLocalBundleCleanup = (key: string, bundle: LocalBundle) => {
+  bundle.cleanupTimer = setTimeout(async () => {
+    if (bundle.activeInvocations > 0) {
+      scheduleLocalBundleCleanup(key, bundle);
+      return;
+    }
+
+    if (localBundles.get(key) !== bundle) return;
+
+    localBundles.delete(key);
+    await fs.rm(bundle.directory, { recursive: true, force: true });
+  }, BUNDLE_CACHE_TTL_MS);
+  bundle.cleanupTimer.unref();
+};
+
+let acquireLocalBundle = async (d: FunctionInvocationParams) => {
+  let key = getLocalBundleCacheKey(d);
+  let bundle = localBundles.get(key);
+
+  if (!bundle) {
+    let loadingBundle = loadingLocalBundles.get(key);
+    if (!loadingBundle) {
+      loadingBundle = (async () => {
+        let directory = await fs.mkdtemp(join(tmpdir(), 'metorial-function-bay-bundle-'));
+
+        try {
+          let storedBundle = await storage.getObject(d.providerData.bucket, d.providerData.storageKey);
+          await extractZipToDirectory(storedBundle.data, directory);
+
+          return {
+            directory,
+            activeInvocations: 0
+          };
+        } catch (err) {
+          await fs.rm(directory, { recursive: true, force: true });
+          throw err;
+        }
+      })();
+      loadingLocalBundles.set(key, loadingBundle);
+      void loadingBundle.then(
+        loadedBundle => {
+          loadingLocalBundles.delete(key);
+          localBundles.set(key, loadedBundle);
+        },
+        () => loadingLocalBundles.delete(key)
+      );
+    }
+
+    bundle = await loadingBundle;
+  }
+
+  if (bundle.cleanupTimer) {
+    clearTimeout(bundle.cleanupTimer);
+    bundle.cleanupTimer = undefined;
+  }
+  bundle.activeInvocations++;
+
+  return {
+    directory: bundle.directory,
+    release: () => {
+      bundle.activeInvocations--;
+      if (bundle.activeInvocations === 0) scheduleLocalBundleCleanup(key, bundle);
+    }
+  };
+};
+
 let captureProcessLogs = async (d: {
   command: string;
   args: string[];
@@ -208,15 +287,13 @@ export let invokeFunction = async (d: FunctionInvocationParams) => {
   };
   let startedAt = Date.now();
   let tempDirectory = await fs.mkdtemp(join(tmpdir(), 'metorial-function-bay-local-'));
-  let bundleDirectory = join(tempDirectory, 'bundle');
   let runnerPath = join(tempDirectory, RUNNER_FILE_NAME);
   let eventPath = join(tempDirectory, 'event.json');
   let resultPath = join(tempDirectory, 'result.json');
+  let localBundle: Awaited<ReturnType<typeof acquireLocalBundle>> | undefined;
 
   try {
-    let bundle = await storage.getObject(d.providerData.bucket, d.providerData.storageKey);
-    await fs.mkdir(bundleDirectory, { recursive: true });
-    await extractZipToDirectory(bundle.data, bundleDirectory);
+    localBundle = await acquireLocalBundle(d);
     await fs.writeFile(runnerPath, LOCAL_RUNNER_SCRIPT, 'utf-8');
     await fs.writeFile(eventPath, JSON.stringify({ payload: d.payload }), 'utf-8');
 
@@ -236,7 +313,7 @@ export let invokeFunction = async (d: FunctionInvocationParams) => {
         METORIAL_EXECUTION_ENV: 'function-bay',
         METORIAL_RUNTIME: d.providerData.runtimeIdentifier,
         METORIAL_LOCAL_RUNNER_CONFIG: JSON.stringify({
-          bundleDirectory,
+          bundleDirectory: localBundle.directory,
           handler: d.providerData.handler,
           eventPath,
           resultPath
@@ -287,6 +364,7 @@ export let invokeFunction = async (d: FunctionInvocationParams) => {
       ...outputs
     };
   } finally {
+    localBundle?.release();
     await fs.rm(tempDirectory, { recursive: true, force: true });
   }
 };

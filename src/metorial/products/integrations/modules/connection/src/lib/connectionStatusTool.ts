@@ -230,7 +230,7 @@ let getProviderStatus = async (d: {
   let tools = describeTools({
     provider,
     tools: specificationOid
-      ? await db.providerTool.findMany({ where: { specificationOid } })
+      ? await db.providerTool.findMany({ where: { specificationOid, adapterOid: null } })
       : []
   });
 

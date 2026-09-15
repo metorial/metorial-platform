@@ -11,6 +11,16 @@ import {
   MetorialDashboardInstanceCallbackEventsEndpoint,
   MetorialDashboardInstanceCallbackInstancesEndpoint,
   MetorialDashboardInstanceCallbacksEndpoint,
+  MetorialDashboardInstanceChatConnectionsEndpoint,
+  MetorialDashboardInstanceChatEventsEndpoint,
+  MetorialDashboardInstanceChatInstancesEndpoint,
+  MetorialDashboardInstanceChatInstancesProviderEndpoint,
+  MetorialDashboardInstanceChatsChannelsEndpoint,
+  MetorialDashboardInstanceChatsChannelsMembersEndpoint,
+  MetorialDashboardInstanceChatsEndpoint,
+  MetorialDashboardInstanceChatsMessagesEndpoint,
+  MetorialDashboardInstanceChatsThreadsEndpoint,
+  MetorialDashboardInstanceChatWorkspacesEndpoint,
   MetorialDashboardInstanceConsumersEndpoint,
   MetorialDashboardInstanceConsumersProfilesEndpoint,
   MetorialDashboardInstanceConsumerSurfacesEndpoint,
@@ -1067,6 +1077,20 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     instances: new MetorialDashboardInstanceCallbackInstancesEndpoint(manager),
     incomingWebhooks: new MetorialDashboardInstanceIncomingWebhooksEndpoint(manager),
     registrations: new MetorialDashboardInstanceWebhookRegistrationsEndpoint(manager)
+  }),
+
+  chat: Object.assign(new MetorialDashboardInstanceChatsEndpoint(manager), {
+    connections: new MetorialDashboardInstanceChatConnectionsEndpoint(manager),
+    instances: Object.assign(new MetorialDashboardInstanceChatInstancesEndpoint(manager), {
+      provider: new MetorialDashboardInstanceChatInstancesProviderEndpoint(manager)
+    }),
+    workspaces: new MetorialDashboardInstanceChatWorkspacesEndpoint(manager),
+    events: new MetorialDashboardInstanceChatEventsEndpoint(manager),
+    channels: Object.assign(new MetorialDashboardInstanceChatsChannelsEndpoint(manager), {
+      members: new MetorialDashboardInstanceChatsChannelsMembersEndpoint(manager)
+    }),
+    threads: new MetorialDashboardInstanceChatsThreadsEndpoint(manager),
+    messages: new MetorialDashboardInstanceChatsMessagesEndpoint(manager)
   }),
 
   eventDestinations: Object.assign(

@@ -26,6 +26,7 @@ model SlateInvocation {
   slateInstanceOAuthSetupEvents            SlateInstanceOAuthSetupEvent[]
   slateAuthConfigEvents                    SlateAuthConfigEvent[]
   slateSessionToolCalls                    SlateSessionToolCall[]
+  slatePublicToolCalls                     SlatePublicToolCall[]
   slateInvocationAttachment                SlateInvocationAttachment[]
   slateErrors                              SlateError[]
   slateWebhookEventInvocations             SlateWebhookEventInvocation[]

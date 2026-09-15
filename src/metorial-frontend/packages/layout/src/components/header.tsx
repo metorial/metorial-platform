@@ -7,7 +7,6 @@ import { styled } from 'styled-components';
 let Wrapper = styled.header`
   display: flex;
   flex-direction: column;
-  gap: 10px;
   margin-bottom: 20px;
 
   &[data-inline='true'] {
@@ -81,10 +80,12 @@ export let PageHeader = ({
   size = '7',
   inline
 }: PageHeaderProps) => {
+  let sizeNum = Number(size);
+
   return (
     <Wrapper
       data-size={size}
-      style={{ gap: Math.round(Number(size) * 1.2) }}
+      style={{ gap: Math.round(sizeNum <= 5 ? sizeNum * 0.4 : sizeNum * 1.2) }}
       data-inline={!!inline}
     >
       <HeaderSection>

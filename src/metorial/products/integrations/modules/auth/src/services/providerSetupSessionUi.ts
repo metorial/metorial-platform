@@ -715,7 +715,8 @@ class providerSetupSessionUiServiceImpl {
 
     let tools = await db.providerTool.findMany({
       where: {
-        specificationOid
+        specificationOid,
+        adapterOid: null
       },
       orderBy: {
         name: 'asc'

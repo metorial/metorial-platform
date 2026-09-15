@@ -1,8 +1,13 @@
 import type {
   Registry,
+  Adapter,
+  SlateAdapter,
   Slate,
   SlateSpecification,
-  SlateVersion
+  SlateVersion,
+  SlateVersionAdapter,
+  SlateVersionAdapterCapability,
+  AdapterCapability
 } from '../../prisma/generated/client';
 import { slateVersionPresenter } from './slateVersion';
 
@@ -12,10 +17,22 @@ export let slatePresenter = (
     currentVersion:
       | (SlateVersion & {
           specification: SlateSpecification | null;
+          slateVersionAdapters?: (SlateVersionAdapter & {
+            slateAdapter: SlateAdapter & { adapter: Adapter };
+            slateVersionAdapterCapabilities: (SlateVersionAdapterCapability & {
+              adapterCapability: AdapterCapability;
+            })[];
+          })[];
         })
       | null;
     slateVersions?: (SlateVersion & {
       specification: SlateSpecification | null;
+      slateVersionAdapters?: (SlateVersionAdapter & {
+        slateAdapter: SlateAdapter & { adapter: Adapter };
+        slateVersionAdapterCapabilities: (SlateVersionAdapterCapability & {
+          adapterCapability: AdapterCapability;
+        })[];
+      })[];
     })[];
   }
 ) => ({

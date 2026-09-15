@@ -38,6 +38,7 @@ import {
   type SessionProviderInputToolFilters
 } from './sessionProviderInput';
 import { sessionProviderNameTemplateService } from './sessionProviderNameTemplate';
+import { assertInternalSessionMutable } from './_shared/internalAdapter';
 
 let include = {
   provider: true,
@@ -53,6 +54,7 @@ export let sessionProviderInclude = include;
 export type ListSessionProvidersParams = {
   status?: SessionProviderStatus[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
 
   ids?: string[];
   sessionIds?: string[];
@@ -74,6 +76,7 @@ export type GetSessionProviderByIdParams = {
 export type CreateSessionProviderParams = {
   session: Session;
   input: SessionProviderInput;
+  _allowInternalUpdate?: boolean;
 };
 
 export type UpdateSessionProviderParams = {
@@ -81,6 +84,7 @@ export type UpdateSessionProviderParams = {
   input: {
     toolFilters?: SessionProviderInputToolFilters;
   };
+  _allowInternalUpdate?: boolean;
 };
 
 export type UpdateSessionProviderFacingParams = Omit<
@@ -93,6 +97,7 @@ export type UpdateSessionProviderFacingParams = Omit<
 
 export type ArchiveSessionProviderParams = {
   sessionProvider: SessionProvider;
+  _allowInternalDelete?: boolean;
 };
 
 class sessionProviderServiceImpl {
@@ -142,6 +147,9 @@ class sessionProviderServiceImpl {
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                !d.includeInternal && !d.sessionIds?.length
+                  ? { session: { isInternal: false } }
+                  : undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 sessions ? { sessionOid: sessions.in } : undefined!,
                 sessionTemplates ? { fromTemplateOid: sessionTemplates.in } : undefined!,
@@ -220,6 +228,7 @@ class sessionProviderServiceImpl {
     d: { tenant: Tenant; environment: Environment } & CreateSessionProviderParams
   ) {
     checkDeletedRelation(d.session);
+    assertInternalSessionMutable(d.session, 'add providers to', d._allowInternalUpdate);
 
     let [res] = await sessionProviderInputService.createSessionProvidersForInput({
       tenant: d.tenant,
@@ -261,6 +270,10 @@ class sessionProviderServiceImpl {
 
     checkTenant(d, d.sessionProvider);
     checkDeletedEdit(d.sessionProvider, 'update');
+    let session = await db.session.findUniqueOrThrow({
+      where: { oid: d.sessionProvider.sessionOid }
+    });
+    assertInternalSessionMutable(session, 'update providers on', d._allowInternalUpdate);
 
     return await db.sessionProvider.update({
       where: {
@@ -302,6 +315,10 @@ class sessionProviderServiceImpl {
   ) {
     checkTenant(d, d.sessionProvider);
     checkDeletedEdit(d.sessionProvider, 'archive');
+    let session = await db.session.findUniqueOrThrow({
+      where: { oid: d.sessionProvider.sessionOid }
+    });
+    assertInternalSessionMutable(session, 'archive providers on', d._allowInternalDelete);
 
     return await db.sessionProvider.update({
       where: {

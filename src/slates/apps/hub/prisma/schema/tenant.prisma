@@ -28,6 +28,7 @@ model Tenant {
   slateInstanceConfigs             SlateInstanceConfig[]
   slateInstanceEvents              SlateInstanceEvent[]
   slateSessions                    SlateSession[]
+  slatePublicToolCalls             SlatePublicToolCall[]
   slateErrors                      SlateError[]
   slateInstanceConfigurations      SlateInstanceConfiguration[]
   slateWebhookRegistrations        SlateWebhookRegistration[]

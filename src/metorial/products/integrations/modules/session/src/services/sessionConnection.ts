@@ -31,6 +31,7 @@ import { sessionParticipantInclude } from './sessionParticipant';
 
 let include = {
   session: true,
+  adapterGlobal: true,
   participant: { include: sessionParticipantInclude }
 };
 export let sessionConnectionInclude = include;
@@ -39,6 +40,7 @@ export type ListSessionConnectionsParams = {
   status?: SessionConnectionStatus[];
   connectionState?: SessionConnectionState[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
 
   ids?: string[];
   agentIds?: string[];
@@ -128,6 +130,9 @@ class sessionConnectionServiceImpl {
               state: d.connectionState ? { in: d.connectionState } : undefined,
 
               AND: [
+                !d.includeInternal && !d.sessionIds?.length
+                  ? { isInternal: false }
+                  : undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.agentInstanceIds
                   ? { participant: { agentInstance: { id: { in: d.agentInstanceIds } } } }

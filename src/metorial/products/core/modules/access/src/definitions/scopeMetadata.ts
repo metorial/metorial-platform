@@ -169,6 +169,11 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Callbacks',
     description: 'These endpoints manage callback registrations and callback processing.'
   },
+  'instance.chat': {
+    name: 'Chat',
+    description:
+      'These endpoints manage chat connections, instances, workspaces, and chat resources such as channels, threads, messages, and reactions.'
+  },
   'instance.network': {
     name: 'Network Access',
     description:

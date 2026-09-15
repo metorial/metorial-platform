@@ -50,9 +50,11 @@ model CallbackEvent {
   updatedAt  DateTime @default(now()) @updatedAt
 
   slateTriggerEvent SlateTriggerEvent?
+  chatEvents        ChatEvent[]
 
   @@index([callbackOid, createdAt])
   @@index([callbackInstanceOid, createdAt])
+  @@index([createdAt, id])
   @@index([tenantOid, solutionOid, environmentOid, createdAt])
   @@index([status])
   @@index([projectOid])

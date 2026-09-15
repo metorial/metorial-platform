@@ -33,6 +33,10 @@ export abstract class IProviderRun extends IProviderFunctionality {
   abstract getProviderRunLogs(data: ProviderRunLogsParam): Promise<ProviderRunLogsRes>;
 
   abstract getRuntimeBehavior(): ProviderRuntimeBehavior;
+
+  async callPublicTool(data: PublicToolInvocationParam): Promise<PublicToolInvocationRes> {
+    throw new Error(`Backend "${this.backend.type}" does not support calling public tools`);
+  }
 }
 
 export abstract class IProviderRunConnection {
@@ -99,6 +103,11 @@ export interface ProviderRunCreateParam {
   session: Session;
   connection: SessionConnection;
   participant: SessionParticipant;
+  adapter: {
+    id: string;
+    identifier: string;
+    name: string;
+  } | null;
 
   mcp: {
     clientInfo: InitializeRequest['params']['clientInfo'];
@@ -120,6 +129,12 @@ export interface ToolInvocationCreateParam {
   sessionProvider: SessionProvider;
 }
 
+export interface ProviderInvocationError {
+  code: string;
+  message: string;
+  [key: string]: unknown;
+}
+
 export interface ToolInvocationCreateRes {
   slateToolCall?: SlateToolCall;
   output?:
@@ -129,10 +144,7 @@ export interface ToolInvocationCreateRes {
       }
     | {
         type: 'error';
-        error: {
-          code: string;
-          message: string;
-        };
+        error: ProviderInvocationError;
       };
 }
 
@@ -146,10 +158,7 @@ export interface HandleMcpNotificationOrRequestRes {
   slateToolCall?: SlateToolCall;
   output?: {
     type: 'error';
-    error: {
-      code: string;
-      message: string;
-    };
+    error: ProviderInvocationError;
   };
 }
 
@@ -167,4 +176,30 @@ export interface ProviderRunLog {
 
 export interface ProviderRunLogsRes {
   logs: ProviderRunLog[];
+}
+
+export interface PublicToolInvocationParam {
+  tenant: Tenant;
+  provider: Provider;
+  providerVariant: ProviderVariant;
+  providerVersion: ProviderVersion;
+
+  toolKey: string;
+  input: Record<string, any>;
+
+  caller?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+}
+
+export interface PublicToolInvocationRes {
+  status: 'success' | 'error';
+
+  output?: Record<string, any>;
+  message?: string;
+  attachments?: any[];
+
+  error?: ProviderInvocationError;
 }

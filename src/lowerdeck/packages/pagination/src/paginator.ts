@@ -2,8 +2,27 @@ import type { ValidationType } from '@lowerdeck/validation';
 import { v } from '@lowerdeck/validation';
 import { Cursor } from './cursor';
 import type { PaginatedProvider, PaginatedProviderInput } from './paginatedProvider';
-import { paginatedProviderMongoose, paginatedProviderPrisma } from './paginatedProvider';
+import {
+  paginatedProviderExternalCursor,
+  paginatedProviderMongoose,
+  paginatedProviderPrisma
+} from './paginatedProvider';
 import type { PaginatedList } from './types';
+
+let presentPagination = (
+  list: PaginatedList<unknown>,
+  keys: { hasNextPage: string; hasPreviousPage: string }
+) => {
+  let pagination: Record<string, unknown> = {
+    [keys.hasNextPage]: list.pagination.hasNextPage,
+    [keys.hasPreviousPage]: list.pagination.hasPreviousPage
+  };
+
+  if (list.pagination.after) pagination.after = list.pagination.after;
+  if (list.pagination.before) pagination.before = list.pagination.before;
+
+  return pagination;
+};
 
 export interface PaginatorInput {
   limit?: number | string;
@@ -29,6 +48,7 @@ export interface PaginatorOpts {
 export type Provider<T> = (providers: {
   prisma: typeof paginatedProviderPrisma;
   mongoose: typeof paginatedProviderMongoose;
+  externalCursor: typeof paginatedProviderExternalCursor;
 }) => PaginatedProvider<T>;
 
 export class Paginator<T> {
@@ -76,10 +96,10 @@ export class Paginator<T> {
         items: (
           await Promise.all(list.items.map(item => presenter(item)?.(context)?.run({})))
         ).filter(Boolean),
-        pagination: {
-          has_more_after: list.pagination.hasNextPage,
-          has_more_before: list.pagination.hasPreviousPage
-        }
+        pagination: presentPagination(list, {
+          hasNextPage: 'has_more_after',
+          hasPreviousPage: 'has_more_before'
+        })
       })
     });
   }
@@ -91,10 +111,10 @@ export class Paginator<T> {
     return {
       object: `list`,
       items: (await Promise.all(list.items.map(item => presenter(item)))).filter(Boolean),
-      pagination: {
-        has_more_after: list.pagination.hasNextPage,
-        has_more_before: list.pagination.hasPreviousPage
-      }
+      pagination: presentPagination(list, {
+        hasNextPage: 'has_more_after',
+        hasPreviousPage: 'has_more_before'
+      })
     };
   }
 
@@ -105,10 +125,10 @@ export class Paginator<T> {
     return {
       object: `list`,
       items: (await Promise.all(list.items.map(item => presenter(item)))).filter(Boolean),
-      pagination: {
-        hasMoreAfter: list.pagination.hasNextPage,
-        hasMoreBefore: list.pagination.hasPreviousPage
-      }
+      pagination: presentPagination(list, {
+        hasNextPage: 'hasMoreAfter',
+        hasPreviousPage: 'hasMoreBefore'
+      })
     };
   }
 
@@ -158,7 +178,8 @@ export class Paginator<T> {
 
     let provider = this.provider({
       prisma: paginatedProviderPrisma,
-      mongoose: paginatedProviderMongoose
+      mongoose: paginatedProviderMongoose,
+      externalCursor: paginatedProviderExternalCursor
     });
 
     return await provider(providerInput);

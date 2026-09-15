@@ -1,3 +1,4 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Tokens } from '@lowerdeck/tokens';
 import { env } from '../env';
 import type { File } from '@metorial/db';
@@ -12,18 +13,20 @@ type SignedDownloadTokenData = {
   storeId: string;
 };
 
-let getExpirationDate = () => {
-  let date = new Date();
-  date.setDate(date.getDate() + 3);
-  return date;
-};
+let defaultExpirationMs = 3 * 24 * 60 * 60 * 1000;
+
+let getExpirationDate = (expiresInSeconds?: number) =>
+  new Date(Date.now() + (expiresInSeconds ? expiresInSeconds * 1000 : defaultExpirationMs));
 
 let regionSuffix = `_${env.service.METORIAL_REGION ?? 'ext'}`;
 
-export let createSignedFileDownloadKey = async (file: Pick<File, 'id' | 'storeId'>) => {
+export let createSignedFileDownloadKey = async (
+  file: Pick<File, 'id' | 'storeId'>,
+  opts?: { expiresInSeconds?: number }
+) => {
   let token = await signedDownloadTokens.sign({
     type: signedDownloadTokenType,
-    expiresAt: getExpirationDate(),
+    expiresAt: getExpirationDate(opts?.expiresInSeconds),
     data: {
       fileId: file.id,
       storeId: file.storeId
@@ -33,11 +36,30 @@ export let createSignedFileDownloadKey = async (file: Pick<File, 'id' | 'storeId
   return token + regionSuffix;
 };
 
-export let getSignedFileDownloadUrl = async (file: Pick<File, 'id' | 'storeId'>) => {
+export let getSignedFileDownloadUrl = async (
+  file: Pick<File, 'id' | 'storeId'>,
+  opts?: { expiresInSeconds?: number }
+) => {
   if (!env.service.DOWNLOAD_PUBLIC_URL) return undefined;
 
-  let key = await createSignedFileDownloadKey(file);
+  let key = await createSignedFileDownloadKey(file, opts);
   return `${env.service.DOWNLOAD_PUBLIC_URL.replace(/\/$/, '')}/files/${file.id}/${encodeURIComponent(key)}`;
+};
+
+export let getSignedFileDownloadUrlOrThrow = async (
+  file: Pick<File, 'id' | 'storeId'>,
+  opts?: { expiresInSeconds?: number }
+) => {
+  let url = await getSignedFileDownloadUrl(file, opts);
+  if (!url) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'DOWNLOAD_PUBLIC_URL is not configured; cannot generate a signed file URL'
+      })
+    );
+  }
+
+  return url;
 };
 
 export let verifySignedFileDownloadKey = async (d: { fileId: string; key: string }) => {

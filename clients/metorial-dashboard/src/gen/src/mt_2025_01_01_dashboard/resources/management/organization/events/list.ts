@@ -6,11 +6,13 @@ export type ManagementOrganizationEventsListOutput = {
     id: string;
     organizationId: string;
     instanceId: string | null;
-    source: 'resource' | 'callback';
+    source: 'resource' | 'callback' | 'chat';
     eventType: string;
     payload: Record<string, any> | null;
     callbackId: string | null;
     callbackTriggerKey: string | null;
+    chatEventId: string | null;
+    chatIntegrationId: string | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -35,6 +37,11 @@ export let mapManagementOrganizationEventsListOutput =
           callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
           callbackTriggerKey: mtMap.objectField(
             'callback_trigger_key',
+            mtMap.passthrough()
+          ),
+          chatEventId: mtMap.objectField('chat_event_id', mtMap.passthrough()),
+          chatIntegrationId: mtMap.objectField(
+            'chat_integration_id',
             mtMap.passthrough()
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date())
@@ -62,9 +69,15 @@ export type ManagementOrganizationEventsListQuery = {
 } & {
   instanceId?: string | undefined;
   eventType?: string | string[] | undefined;
-  source?: 'resource' | 'callback' | ('resource' | 'callback')[] | undefined;
+  source?:
+    | 'resource'
+    | 'callback'
+    | 'chat'
+    | ('resource' | 'callback' | 'chat')[]
+    | undefined;
   callbackId?: string | string[] | undefined;
   callbackTriggerKey?: string | string[] | undefined;
+  chatIntegrationId?: string | string[] | undefined;
 };
 
 export let mapManagementOrganizationEventsListQuery = mtMap.union([
@@ -103,6 +116,16 @@ export let mapManagementOrganizationEventsListQuery = mtMap.union([
       ),
       callbackTriggerKey: mtMap.objectField(
         'callback_trigger_key',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      chatIntegrationId: mtMap.objectField(
+        'chat_integration_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

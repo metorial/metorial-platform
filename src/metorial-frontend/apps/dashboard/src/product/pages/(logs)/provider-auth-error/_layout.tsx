@@ -63,6 +63,11 @@ let humanizeCode = (code: string) =>
 
 let getErrorLabel = (code: string) => ERROR_LABELS[code] ?? humanizeCode(code);
 
+let truncate = (str: string, maxLength: number) => {
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength) + '...';
+};
+
 export let ProviderAuthErrorLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
@@ -97,7 +102,10 @@ export let ProviderAuthErrorLayout = () => {
       }
     >
       <ContentPanelLayout
-        title={group.data?.message ?? `Auth error ${providerAuthErrorId?.slice(0, 8)}...`}
+        title={truncate(
+          group.data?.message ?? `Auth error ${providerAuthErrorId?.slice(0, 8)}...`,
+          80
+        )}
         breadcrumbs={[
           {
             label: 'Auth Errors',

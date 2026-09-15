@@ -59,6 +59,7 @@ import {
   hasMaterialIntegrationProviderChange,
   normalizeIntegrationProviderToolFilter
 } from '../lib/versions';
+import { notifyIntegrationTransaction } from '../listeners';
 import {
   integrationProviderArchivedQueue,
   integrationProviderCreatedQueue,
@@ -71,9 +72,8 @@ export let integrationProviderInclude = {
   currentVersion: {
     include: integrationProviderVersionInclude
   },
-  // At most one callback is ever active; older generations are kept as archived history.
   callbacks: {
-    where: { status: 'active' as const },
+    where: { status: 'active' as const, ownership: 'user' as const },
     include: callbackInclude,
     orderBy: { oid: 'desc' as const },
     take: 1
@@ -362,6 +362,7 @@ let inferReconciliationAuthMaterial = async (d: {
 export type ListIntegrationProvidersParams = {
   search?: string;
   includeMagicMcpBackings?: boolean;
+  includeAdapterBackings?: boolean;
 
   status?: IntegrationProviderStatus[];
   allowDeleted?: boolean;
@@ -551,6 +552,9 @@ class integrationProviderServiceImpl {
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.includeAdapterBackings
+                  ? undefined!
+                  : { integration: { isAdapterBacking: false } },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 integrations ? { integrationOid: integrations.in } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
@@ -745,6 +749,12 @@ class integrationProviderServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationProviderCreatedQueue.add({ integrationProviderId: res.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integrationProvider.created',
+        integration: res.integration,
+        integrationProvider: res
+      });
 
       return res;
     });
@@ -1035,6 +1045,12 @@ class integrationProviderServiceImpl {
         integrationProviderUpdatedQueue.add({ integrationProviderId: res.id })
       );
 
+      await notifyIntegrationTransaction({
+        kind: 'integrationProvider.updated',
+        integration: res.integration,
+        integrationProvider: res
+      });
+
       return res;
     });
 
@@ -1097,7 +1113,7 @@ class integrationProviderServiceImpl {
     assertCallbacksAllowed({ tenant: d.tenant, provider: current.provider });
 
     let existing = await db.callback.findFirst({
-      where: { integrationProviderOid: current.oid, status: 'active' },
+      where: { integrationProviderOid: current.oid, status: 'active', ownership: 'user' },
       select: { id: true }
     });
     if (existing) {
@@ -1256,6 +1272,12 @@ class integrationProviderServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationProviderArchivedQueue.add({ integrationProviderId: res.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integrationProvider.archived',
+        integration: res.integration,
+        integrationProvider: res
+      });
 
       return res;
     });

@@ -116,7 +116,10 @@ export let instanceScopes = [
   'instance.scm.installation:read' as const,
   'instance.scm.installation:write' as const,
   'instance.scm.repo:read' as const,
-  'instance.scm.repo:write' as const
+  'instance.scm.repo:write' as const,
+
+  'instance.chat:read' as const,
+  'instance.chat:write' as const
 ] satisfies readonly `instance.${string}`[];
 
 export let consumerScopes = [

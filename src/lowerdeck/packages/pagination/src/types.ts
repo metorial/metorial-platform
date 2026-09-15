@@ -3,5 +3,7 @@ export interface PaginatedList<T> {
   pagination: {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
+    after?: string;
+    before?: string;
   };
 }

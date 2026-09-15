@@ -87,4 +87,49 @@ exports.handler = async event => {
       ])
     );
   });
+
+  it('shares one prepared bundle across simultaneous invocations', async () => {
+    let zip = new JSZip();
+    zip.file(
+      'index.js',
+      `
+exports.handler = async event => ({
+  statusCode: 200,
+  body: { result: { echoed: event.payload.value } }
+});
+`
+    );
+
+    mocks.storage.getObject.mockResolvedValue({
+      data: Buffer.from(await zip.generateAsync({ type: 'uint8array' }))
+    });
+    mocks.encryption.decrypt.mockResolvedValue(JSON.stringify({}));
+
+    let invocation = (value: number) =>
+      invokeFunction({
+        tenantId: 'tenant_123',
+        functionVersion: { id: 'functionVersion_concurrent' } as any,
+        function: { id: 'function_123' } as any,
+        sourceFunction: { id: 'function_123' } as any,
+        payload: { value },
+        providerData: {
+          bucket: 'bundles',
+          storageKey: 'local/provider/functionVersion_concurrent.zip',
+          handler: 'index.handler',
+          runtimeIdentifier: 'local.nodejs22.x',
+          encryptedEnvironmentVariables: 'encrypted-env'
+        }
+      });
+
+    let results = await Promise.all([invocation(1), invocation(2), invocation(3)]);
+
+    expect(mocks.storage.getObject).toHaveBeenCalledOnce();
+    expect(results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'success', result: { echoed: 1 } }),
+        expect.objectContaining({ type: 'success', result: { echoed: 2 } }),
+        expect.objectContaining({ type: 'success', result: { echoed: 3 } })
+      ])
+    );
+  });
 });

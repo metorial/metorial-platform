@@ -46,6 +46,10 @@ export class Cursor {
     return new Cursor(id, type);
   }
 
+  static isEncoded(str: string) {
+    return str.startsWith(PREFIX);
+  }
+
   toString() {
     return PREFIX + base62.encode(JSON.stringify([this.type, this.id]));
   }

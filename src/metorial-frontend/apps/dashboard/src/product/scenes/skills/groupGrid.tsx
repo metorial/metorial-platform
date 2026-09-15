@@ -14,17 +14,6 @@ import { styled } from 'styled-components';
 import { EmptyState } from '@metorial/empty-state';
 import { showSkillGroupFormModal } from './groupModal';
 
-let Count = styled.div`
-  background: ${theme.colors.gray300};
-  min-height: 26px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: ${theme.colors.gray700};
-`;
 
 let Description = styled.span`
   display: -webkit-box;
@@ -49,6 +38,7 @@ export let SkillGroupGridCard = (p: {
     description={
       <Description>{p.skillGroup.description || 'No description provided yet.'}</Description>
     }
+    variant="v2"
     height={200}
     href={p.href}
     onClick={p.onClick}
@@ -62,12 +52,7 @@ export let SkillGroupGridCard = (p: {
       />
     }
     bottom={
-      <div style={{ display: 'flex' }}>
-        <Count>
-          {p.skillGroup.skills?.length ?? 0} skill
-          {(p.skillGroup.skills?.length ?? 0) === 1 ? '' : 's'}
-        </Count>
-      </div>
+      <Text size="1">{p.skillGroup.id}</Text>
     }
   />
 );

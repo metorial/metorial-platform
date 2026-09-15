@@ -1,5 +1,7 @@
 import type {
   Slate,
+  Adapter,
+  SlateAdapter,
   SlateAction,
   SlateAuthMethod,
   SlateSpecification,
@@ -15,7 +17,10 @@ import { slateSpecificationPresenter } from './slateSpecification';
 type SpecificationWithRelations = SlateSpecification & {
   slateAuthMethods: (SlateSpecificationAuthMethod & { authMethod: SlateAuthMethod })[];
   slateActions: (SlateSpecificationAction & {
-    action: SlateAction & { triggerGroup: SlateTriggerGroup | null };
+    action: SlateAction & {
+      slateAdapter: (SlateAdapter & { adapter: Adapter }) | null;
+      triggerGroup: SlateTriggerGroup | null;
+    };
   })[];
   slateTriggerGroups: (SlateSpecificationTriggerGroup & { triggerGroup: SlateTriggerGroup })[];
 };

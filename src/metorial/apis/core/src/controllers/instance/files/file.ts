@@ -16,7 +16,8 @@ let purposeSlugs = [
   'project_brand_image',
   'skill_image',
   'skill_export',
-  'generic'
+  'generic',
+  'chat_message_attachment'
 ] as const;
 
 export let fileGroup = instanceGroup.use(async ctx => {

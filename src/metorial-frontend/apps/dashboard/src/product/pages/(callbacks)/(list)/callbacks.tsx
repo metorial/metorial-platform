@@ -7,7 +7,7 @@ import {
   useCurrentProject
 } from '@metorial/state';
 import { useNavigate } from 'react-router-dom';
-import { CallbacksTable } from '../../../scenes/callbacks/callbacksTable';
+import { CallbacksGrid } from '../../../scenes/callbacks/callbacksGrid';
 
 export let CallbacksPage = () => {
   let instance = useCurrentInstance();
@@ -17,7 +17,7 @@ export let CallbacksPage = () => {
 
   return renderWithLoader({ instance, organization, project })(
     ({ instance, organization, project }) => (
-      <CallbacksTable
+      <CallbacksGrid
         instanceId={instance.data.id}
         emptyState={() => (
           <EmptyState

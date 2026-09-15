@@ -44,6 +44,7 @@ let include = {
 export type ListSessionEventsParams = {
   types?: SessionEventType[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
 
   ids?: string[];
   sessionIds?: string[];
@@ -158,6 +159,9 @@ class sessionEventServiceImpl {
             ...normalizeStatusForList(d).onlyParent,
 
             AND: [
+              !d.includeInternal && !d.sessionIds?.length
+                ? { session: { isInternal: false } }
+                : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
               d.types ? { type: { in: d.types } } : undefined!,
 

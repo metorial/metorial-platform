@@ -2,9 +2,13 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { documentService } from '@metorial/module-documents';
 import { env } from '../env';
 import { fileDownloadService } from '../services/fileDownload';
+import { resolveDelegatedFileContent } from './delegation';
+import { getStoredFileContent } from './pendingFileContent';
+import { downloadDelegatedFileContent } from './ssrfDownload';
 import { presignObjectDownload } from '../storage';
 import { getStoredFileContentStream, hasPendingFileContent } from './pendingFileContent';
 
+let delegatedContentMaxDownloadBytes = 100 * 1024 * 1024;
 let signedDownloadExpirationSecs = 60 * 60;
 
 export let fileRouterSecretHeader = 'metorial-file-router-secret';
@@ -48,6 +52,42 @@ let resolveDownloadTarget = async (d: { fileId: string; key: string }) => {
     );
   }
 
+  if (file.delegatorOid) {
+    let delegated = await resolveDelegatedFileContent(file);
+    if (delegated) {
+      if (delegated.type === 'redirect') {
+        return { file, link, redirectUrl: delegated.url };
+      }
+
+      if (delegated.type === 'url') {
+        let downloaded = await downloadDelegatedFileContent({
+          url: delegated.url,
+          maxBytes: delegatedContentMaxDownloadBytes
+        });
+
+        return {
+          file,
+          link,
+          content: downloaded.stream,
+          metadata: {
+            contentType: downloaded.mimeType ?? file.fileType,
+            source: 'delegate' as const
+          }
+        };
+      }
+
+      return {
+        file,
+        link,
+        content: delegated.stream,
+        metadata: {
+          contentType: delegated.mimeType ?? file.fileType,
+          source: 'delegate' as const
+        }
+      };
+    }
+  }
+
   let document = await documentService.getDocumentByFileId({
     fileId: file.id
   });
@@ -56,10 +96,21 @@ let resolveDownloadTarget = async (d: { fileId: string; key: string }) => {
 };
 
 export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
-  let { link, file, document } = await resolveDownloadTarget(d);
+  let resolved = await resolveDownloadTarget(d);
+  if (resolved.redirectUrl) {
+    return {
+      type: 'redirect' as const,
+      file: resolved.file,
+      link: resolved.link,
+      redirectUrl: resolved.redirectUrl
+    };
+  }
+
+  let { link, file, document } = resolved;
 
   if (document) {
     return {
+      type: 'content' as const,
       file,
       link,
       content: document.resolvedContent ?? document.content.content,
@@ -74,6 +125,7 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
   let stored = await getStoredFileContentStream({ file });
 
   return {
+    type: 'content' as const,
     file,
     link,
     content: stored.body,
@@ -86,7 +138,17 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
 };
 
 export let getCargoFileSignedDownload = async (d: { fileId: string; key: string }) => {
-  let { link, file, document } = await resolveDownloadTarget(d);
+  let resolved = await resolveDownloadTarget(d);
+  if (resolved.redirectUrl) {
+    return {
+      file: resolved.file,
+      link: resolved.link,
+      url: resolved.redirectUrl,
+      isDelegated: true
+    };
+  }
+
+  let { link, file, document } = resolved;
 
   if (document) return null;
   if (await hasPendingFileContent(file.oid)) return null;
@@ -97,5 +159,5 @@ export let getCargoFileSignedDownload = async (d: { fileId: string; key: string 
   });
   if (!url) return null;
 
-  return { file, link, url };
+  return { file, link, url, isDelegated: false };
 };

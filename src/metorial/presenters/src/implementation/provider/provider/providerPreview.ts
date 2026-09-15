@@ -6,6 +6,7 @@ type ProviderPreviewInput = {
   slug: string;
   createdAt: Date;
   updatedAt: Date;
+  prettySlug?: string | null;
 };
 
 export let v1ProviderPreview = Object.assign(
@@ -15,7 +16,7 @@ export let v1ProviderPreview = Object.assign(
 
     name: provider.name,
     description: provider.description,
-    slug: provider.slug,
+    slug: provider.prettySlug ?? provider.slug,
 
     created_at: provider.createdAt,
     updated_at: provider.updatedAt

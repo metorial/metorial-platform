@@ -8,8 +8,8 @@ export {
 
 export {
   deploySlice,
-  productAssistantSlice,
   productCallbacksSlice,
+  productChatSlice,
   productDocumentSlice,
   productExplorerSlice,
   productHomeSlice,
@@ -38,6 +38,7 @@ export {
   showCreateIntegrationProviderFirstFlow,
   type IntegrationProviderPanelSubmitInput
 } from './product/scenes/integrations/providerPanelFlow';
+export { showCreateChatConnectionFlow } from './product/scenes/chat/connectionPanelFlow';
 export { AuthMethodPicker } from './product/scenes/providerAuthConfigs/authMethodPicker';
 export { showProviderCreationPanel } from './product/scenes/providerCreationPanel';
 export { SkillGridCard } from './product/scenes/skills/grid';

@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Service } from '@lowerdeck/service';
 import {
@@ -14,16 +14,21 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { checkDeletedEdit } from '@metorial-subspace/list-utils';
-import { Fabric } from '@metorial/fabric';
 import {
   getMetorialSolution,
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { env } from '../env';
+import { recordEphemeralSessionAuditEvent } from '../lib/ephemeralSessionAudit';
 import { sessionArchivedQueue } from '../queues/lifecycle/session';
 import { createSessionRecord } from './_shared/createSession';
-import { recordEphemeralSessionAuditEvent } from '../lib/ephemeralSessionAudit';
+import {
+  assertInternalAdapterSupportedBySession,
+  type InternalAdapterInput,
+  resolveInternalAdapter
+} from './_shared/internalAdapter';
 import { type SessionProviderTemplateInput } from './sessionProviderInput';
 
 let ephemeralManagedSessionResolveLock = createLock({
@@ -91,6 +96,14 @@ let shouldRotateBackingSession = (ephemeralManagedSession: EphemeralManagedSessi
   if (currentSession.status !== 'active') return true;
   if (!currentSession.isEphemeral) return true;
   if (currentSession.ephemeralManagedSessionOid !== ephemeralManagedSession.oid) return true;
+  if (currentSession.isInternal !== ephemeralManagedSession.markSessionsAsInternal)
+    return true;
+  if (
+    (currentSession.adapterGlobalOid ?? null) !==
+    (ephemeralManagedSession.adapterGlobalOid ?? null)
+  ) {
+    return true;
+  }
   if (
     (ephemeralManagedSession.templateHash ?? null) !==
     (ephemeralManagedSession.sessionTemplate.hash ?? null)
@@ -143,6 +156,8 @@ export type CreateEphemeralManagedSessionParams = {
   sessionTemplate: SessionProviderTemplateInput;
   input: {
     maxSessionDurationInMinutes: number;
+    markSessionsAsInternal?: boolean;
+    adapter?: InternalAdapterInput;
   };
 };
 
@@ -153,6 +168,8 @@ export type UpsertPlaceholderEphemeralManagedSessionParams = {
     maxSessionDurationInMinutes: number;
     actorOid?: bigint | null;
     isReconciling?: boolean;
+    markSessionsAsInternal?: boolean;
+    adapter?: InternalAdapterInput;
   };
 };
 
@@ -216,6 +233,22 @@ class ephemeralManagedSessionServiceImpl {
     if (instanceOid == null) throw new Error('Ephemeral managed sessions require an instance');
 
     return withTransaction(async db => {
+      let markSessionsAsInternal = d.input.markSessionsAsInternal ?? false;
+      if (markSessionsAsInternal !== !!d.input.adapter) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'invalid_internal_ephemeral_session_adapter',
+            message: 'Internal ephemeral managed sessions require exactly one adapter.'
+          })
+        );
+      }
+      let adapter = d.input.adapter
+        ? await resolveInternalAdapter({
+            tenant: d.tenant,
+            environment: d.environment,
+            adapter: d.input.adapter
+          })
+        : null;
       let ephemeralManagedSession = await db.ephemeralManagedSession.create({
         data: {
           ...getId('ephemeralManagedSession'),
@@ -229,7 +262,9 @@ class ephemeralManagedSessionServiceImpl {
           actorOid: d.sessionTemplate.identityActorOid ?? null,
           identityOid: d.sessionTemplate.identityOid ?? null,
           maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
-          templateHash: d.sessionTemplate.hash ?? null
+          templateHash: d.sessionTemplate.hash ?? null,
+          markSessionsAsInternal,
+          adapterGlobalOid: adapter?.oid ?? null
         },
         include
       });
@@ -242,6 +277,8 @@ class ephemeralManagedSessionServiceImpl {
         tenant: d.tenant,
         environment: d.environment,
         isEphemeral: true,
+        isInternal: markSessionsAsInternal,
+        adapterGlobalOid: adapter?.oid ?? null,
         ephemeralManagedSessionOid: ephemeralManagedSession.oid,
         identityActorOid: d.sessionTemplate.identityActorOid ?? null,
         identityOid: d.sessionTemplate.identityOid ?? null,
@@ -259,6 +296,13 @@ class ephemeralManagedSessionServiceImpl {
           ]
         }
       });
+
+      if (adapter) {
+        await assertInternalAdapterSupportedBySession({
+          session,
+          adapterGlobalOid: adapter.oid
+        });
+      }
 
       let updated = await db.ephemeralManagedSession.update({
         where: { oid: ephemeralManagedSession.oid },
@@ -307,6 +351,22 @@ class ephemeralManagedSessionServiceImpl {
     let solution = await getMetorialSolution();
 
     return withTransaction(async db => {
+      let markSessionsAsInternal = d.input.markSessionsAsInternal ?? false;
+      if (markSessionsAsInternal !== !!d.input.adapter) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'invalid_internal_ephemeral_session_adapter',
+            message: 'Internal ephemeral managed sessions require exactly one adapter.'
+          })
+        );
+      }
+      let adapter = d.input.adapter
+        ? await resolveInternalAdapter({
+            tenant: d.tenant,
+            environment: d.environment,
+            adapter: d.input.adapter
+          })
+        : null;
       let data = {
         status: 'active' as const,
         archivedAt: null,
@@ -314,7 +374,9 @@ class ephemeralManagedSessionServiceImpl {
         sessionTemplateOid: d.sessionTemplate.oid,
         actorOid: d.input.actorOid ?? d.sessionTemplate.identityActorOid ?? null,
         identityOid: d.sessionTemplate.identityOid ?? null,
-        isReconciling: d.input.isReconciling ?? false
+        isReconciling: d.input.isReconciling ?? false,
+        markSessionsAsInternal,
+        adapterGlobalOid: adapter?.oid ?? null
       };
 
       if (d.ephemeralManagedSession) {
@@ -487,6 +549,8 @@ class ephemeralManagedSessionServiceImpl {
           tenant: ephemeralManagedSession.tenant,
           environment: ephemeralManagedSession.environment,
           isEphemeral: true,
+          isInternal: ephemeralManagedSession.markSessionsAsInternal,
+          adapterGlobalOid: ephemeralManagedSession.adapterGlobalOid,
           ephemeralManagedSessionOid: ephemeralManagedSession.oid,
           identityActorOid: ephemeralManagedSession.sessionTemplate.identityActorOid ?? null,
           identityOid: ephemeralManagedSession.sessionTemplate.identityOid ?? null,
@@ -506,6 +570,13 @@ class ephemeralManagedSessionServiceImpl {
             ]
           }
         });
+
+        if (ephemeralManagedSession.adapterGlobalOid) {
+          await assertInternalAdapterSupportedBySession({
+            session,
+            adapterGlobalOid: ephemeralManagedSession.adapterGlobalOid
+          });
+        }
 
         await db.ephemeralManagedSession.update({
           where: { oid: ephemeralManagedSession.oid },

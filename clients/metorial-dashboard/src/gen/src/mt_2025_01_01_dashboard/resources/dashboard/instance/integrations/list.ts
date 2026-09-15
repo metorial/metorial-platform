@@ -141,6 +141,7 @@ export type DashboardInstanceIntegrationsListOutput = {
               description: string | null;
             }[]
           | null;
+        adapters: string[] | null;
         providerId: string;
         providerSpecificationId: string;
         createdAt: Date;
@@ -532,6 +533,10 @@ export let mapDashboardInstanceIntegrationsListOutput =
                           )
                         })
                       )
+                    ),
+                    adapters: mtMap.objectField(
+                      'adapters',
+                      mtMap.array(mtMap.passthrough())
                     ),
                     providerId: mtMap.objectField(
                       'provider_id',

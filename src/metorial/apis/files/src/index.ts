@@ -357,7 +357,7 @@ let getFileContentHeaders = (d: {
   fileName?: string | null;
   contentType?: string | null;
   size?: number;
-  source: 'document' | 'database' | 'object';
+  source: 'document' | 'database' | 'delegate' | 'object';
   isExpiring: boolean;
   shouldDownload: boolean;
 }) => {
@@ -373,7 +373,10 @@ let getFileContentHeaders = (d: {
         : getServedContentType(d.contentType),
     ...(d.size !== undefined ? { 'Content-Length': String(d.size) } : {}),
     'Cache-Control':
-      d.source === 'document' || d.source === 'database' || d.isExpiring
+      d.source === 'document' ||
+      d.source === 'database' ||
+      d.source === 'delegate' ||
+      d.isExpiring
         ? 'private, no-store'
         : 'public, max-age=31536000, immutable',
     'X-Content-Type-Options': 'nosniff',
@@ -404,13 +407,14 @@ let getFileContentHandler = async (c: Context) => {
           fileName: resolved.file.fileName,
           contentType: resolved.file.fileType,
           size: resolved.file.fileSize,
-          source: 'object',
+          source: resolved.isDelegated ? 'delegate' : 'object',
           isExpiring: resolved.link.expiresAt != null,
           shouldDownload
         }),
-        cacheKey: resolved.link.expiresAt
-          ? null
-          : `${resolved.file.id}/${resolved.file.storeId}`
+        cacheKey:
+          resolved.isDelegated || resolved.link.expiresAt
+            ? null
+            : `${resolved.file.id}/${resolved.file.storeId}`
       };
 
       return Response.json(resolution, {
@@ -422,10 +426,14 @@ let getFileContentHandler = async (c: Context) => {
     }
   }
 
-  let { file, link, content, metadata } = await getCargoFileContent({
+  let resolved = await getCargoFileContent({
     fileId,
     key
   });
+
+  if (resolved.type === 'redirect') return c.redirect(resolved.redirectUrl);
+
+  let { file, link, content, metadata } = resolved;
 
   return new Response(content as any, {
     headers: getFileContentHeaders({

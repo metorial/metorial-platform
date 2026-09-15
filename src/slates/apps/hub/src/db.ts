@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type {
   SlatesAction as ProtoSlatesAction,
+  SlateAdapter as ProtoSlateAdapter,
   SlateAuthenticationMethod,
   SlatesMessageProviderIdentifyResponse,
   SlatesTriggerGroup,
@@ -84,10 +85,14 @@ declare global {
 
     type SlateAuthMethod = SlateAuthenticationMethod;
     type SlateAction = ProtoSlatesAction;
+    type SlateAdapter = ProtoSlateAdapter;
+    type SlateAdapterCapabilities = ProtoSlateAdapter['capabilities'];
+    type SlateAdapterCapabilityValue = ProtoSlateAdapter['capabilities'][number]['value'];
     type SlateTriggerGroup = SlatesTriggerGroup;
 
     type SlateAuthMethods = SlateAuthenticationMethod[];
     type SlateActions = ProtoSlatesAction[];
+    type SlateAdapters = ProtoSlateAdapter[];
     type SlateTriggerGroups = SlatesTriggerGroup[];
 
     type AnyRecord = Record<string, any>;

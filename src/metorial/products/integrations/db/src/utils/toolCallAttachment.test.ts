@@ -7,6 +7,7 @@ process.env.SLATE_ATTACHMENT_SIGNING_SECRET ??= 'test-tool-call-attachment-secre
 let {
   getRawToolCallAttachmentsFromOutput,
   presentToolCallAttachment,
+  presentToolCallAttachmentWithTokenExpiry,
   replaceToolCallAttachmentsInOutput
 } = await import('./toolCallAttachment');
 let { verifyToolCallAttachmentToken } = await import('./toolCallAttachmentToken');
@@ -14,6 +15,7 @@ let { verifyToolCallAttachmentToken } = await import('./toolCallAttachmentToken'
 describe('tool call attachment URLs', () => {
   it('includes a typed token bound to the attachment url key', async () => {
     let presented = await presentToolCallAttachment({
+      id: 'tca_example',
       urlKey: 'tca_link_example',
       mimeType: 'image/png'
     });
@@ -22,8 +24,11 @@ describe('tool call attachment URLs', () => {
 
     expect(url.pathname).toBe('/tool-call-attachments/tca_link_example');
     expect(token).toStartWith('tool_call_attachment_v1_');
+    expect(presented.id).toBe('tca_example');
     expect(presented.urlExpiresAt.getTime()).toBeGreaterThan(Date.now());
-    expect(presented.urlExpiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 5 * 60_000);
+    expect(presented.urlExpiresAt.getTime()).toBeLessThanOrEqual(
+      Date.now() + 5 * 24 * 60 * 60_000
+    );
     expect(
       await verifyToolCallAttachmentToken({
         urlKey: 'tca_link_example',
@@ -39,7 +44,10 @@ describe('tool call attachment URLs', () => {
   });
 
   it('rejects a tampered token', async () => {
-    let presented = await presentToolCallAttachment({ urlKey: 'tca_link_example' });
+    let presented = await presentToolCallAttachment({
+      id: 'tca_example',
+      urlKey: 'tca_link_example'
+    });
     let token = new URL(presented.url).searchParams.get('token')!;
     let tamperedToken = `${token.slice(0, -1)}${token.endsWith('0') ? '1' : '0'}`;
 
@@ -49,6 +57,25 @@ describe('tool call attachment URLs', () => {
         token: tamperedToken
       })
     ).toBe(false);
+  });
+
+  it('supports a shorter caller-provided token expiry', async () => {
+    let tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60_000);
+    let presented = await presentToolCallAttachmentWithTokenExpiry(
+      {
+        id: 'tca_example',
+        urlKey: 'tca_link_example'
+      },
+      tokenExpiresAt
+    );
+
+    expect(presented.urlExpiresAt).toEqual(tokenExpiresAt);
+    expect(
+      await verifyToolCallAttachmentToken({
+        urlKey: 'tca_link_example',
+        token: new URL(presented.url).searchParams.get('token')!
+      })
+    ).toBe(true);
   });
 });
 

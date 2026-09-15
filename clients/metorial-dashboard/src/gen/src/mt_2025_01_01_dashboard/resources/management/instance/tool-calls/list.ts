@@ -309,6 +309,7 @@ export type ManagementInstanceToolCallsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  sessionId?: string | string[] | undefined;
   sessionTemplateId?: string | string[] | undefined;
   sessionProviderId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
@@ -334,6 +335,16 @@ export let mapManagementInstanceToolCallsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
+      sessionId: mtMap.objectField(
+        'session_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
       sessionTemplateId: mtMap.objectField(
         'session_template_id',
         mtMap.union([

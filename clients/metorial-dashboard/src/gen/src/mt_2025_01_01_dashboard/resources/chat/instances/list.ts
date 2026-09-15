@@ -1,0 +1,119 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type ChatInstancesListOutput = {
+  items: {
+    object: 'chat.instance';
+    id: string;
+    status: 'draft' | 'active' | 'archived' | 'deleted';
+    chatConnectionId: string;
+    name: string;
+    description: string | null;
+    metadata: Record<string, any>;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+};
+
+export let mapChatInstancesListOutput = mtMap.object<ChatInstancesListOutput>({
+  items: mtMap.objectField(
+    'items',
+    mtMap.array(
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
+        chatConnectionId: mtMap.objectField(
+          'chat_connection_id',
+          mtMap.passthrough()
+        ),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    )
+  ),
+  pagination: mtMap.objectField(
+    'pagination',
+    mtMap.object({
+      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+    })
+  )
+});
+
+export type ChatInstancesListQuery = {
+  limit?: number | undefined;
+  after?: string | undefined;
+  before?: string | undefined;
+  cursor?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+} & {
+  search?: string | undefined;
+  status?:
+    | 'draft'
+    | 'active'
+    | 'archived'
+    | 'deleted'
+    | ('draft' | 'active' | 'archived' | 'deleted')[]
+    | undefined;
+  id?: string | string[] | undefined;
+  chatConnectionId?: string | string[] | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+};
+
+export let mapChatInstancesListQuery = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      limit: mtMap.objectField('limit', mtMap.passthrough()),
+      after: mtMap.objectField('after', mtMap.passthrough()),
+      before: mtMap.objectField('before', mtMap.passthrough()),
+      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      id: mtMap.objectField(
+        'id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      chatConnectionId: mtMap.objectField(
+        'chat_connection_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      ),
+      updatedAt: mtMap.objectField(
+        'updated_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
+      )
+    })
+  )
+]);
+

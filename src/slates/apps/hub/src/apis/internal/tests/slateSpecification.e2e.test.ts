@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateStatus } from '../../../../prisma/generated/client';
+import { getId } from '../../../id';
 import { slatesHubClient } from '../../../test/client';
 import { fixtures } from '../../../test/fixtures';
 import { cleanDatabase, testDb } from '../../../test/setup';
@@ -77,6 +78,51 @@ describe('slateSpecification:get E2E', () => {
       id: slate.currentVersion.specification.id,
       protocolVersion: '1.0'
     });
+  });
+
+  it('includes the adapter for adapter actions', async () => {
+    const slate = await f.slate.complete({ slateStatus: SlateStatus.active });
+    const adapter = await testDb.adapter.create({
+      data: {
+        ...getId('adapter'),
+        identifier: 'github',
+        name: 'GitHub'
+      }
+    });
+    const slateAdapter = await testDb.slateAdapter.create({
+      data: {
+        ...getId('slateAdapter'),
+        identifier: `slate::${slate.id}::adapter::github`,
+        slateOid: slate.oid,
+        adapterOid: adapter.oid
+      }
+    });
+    const action = await f.slateSpecification.createAction({
+      slateOid: slate.oid,
+      specificationOid: slate.currentVersion.specification.oid,
+      overrides: { slateAdapterOid: slateAdapter.oid }
+    });
+    await f.slateSpecification.linkAction({
+      specificationOid: slate.currentVersion.specification.oid,
+      actionOid: action.oid
+    });
+
+    const result = await slatesHubClient.slateSpecification.get({
+      slateSpecificationId: slate.currentVersion.specification.id
+    });
+
+    expect(result.tools).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          adapter: expect.objectContaining({
+            id: adapter.id,
+            identifier: adapter.identifier,
+            slateIdentifier: slateAdapter.identifier,
+            name: 'GitHub'
+          })
+        })
+      ])
+    );
   });
 });
 

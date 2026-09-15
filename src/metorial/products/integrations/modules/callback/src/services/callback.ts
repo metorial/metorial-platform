@@ -94,6 +94,7 @@ class callbackServiceImpl {
             tenantOid: d.tenant.oid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            ownership: 'user',
             ...normalizeStatusForList(d).noParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
@@ -134,6 +135,7 @@ class callbackServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        ownership: 'user',
         ...normalizeStatusForGet(d).noParent
       },
       include: callbackInclude

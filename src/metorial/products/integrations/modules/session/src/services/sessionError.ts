@@ -39,6 +39,7 @@ export let sessionErrorInclude = include;
 export type ListSessionErrorsParams = {
   types?: SessionErrorType[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
 
   ids?: string[];
   sessionIds?: string[];
@@ -106,6 +107,9 @@ class sessionErrorServiceImpl {
               ...normalizeStatusForList(d).onlyParent,
 
               AND: [
+                !d.includeInternal && !d.sessionIds?.length
+                  ? { session: { isInternal: false } }
+                  : undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.types ? { type: { in: d.types } } : undefined!,
 

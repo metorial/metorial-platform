@@ -384,8 +384,8 @@ export class ProviderCallbacks extends IProviderCallbacks {
 
     return {
       items: list.items.map(event => presentSlateWebhookEvent(event, refs)),
-      hasMoreAfter: list.pagination.has_more_after,
-      hasMoreBefore: list.pagination.has_more_before
+      hasMoreAfter: list.pagination.has_more_after === true,
+      hasMoreBefore: list.pagination.has_more_before === true
     };
   }
 

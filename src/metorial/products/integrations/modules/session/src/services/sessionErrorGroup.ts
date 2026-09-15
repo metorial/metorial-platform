@@ -1,7 +1,12 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type SessionErrorType, type Tenant } from '@metorial-subspace/db';
+import {
+  db,
+  type Environment,
+  type SessionErrorType,
+  type Tenant
+} from '@metorial-subspace/db';
 import {
   type DateFilter,
   mergeRetentionWithDateFilter,
@@ -22,6 +27,7 @@ let include = {
 
 export type ListSessionErrorGroupsParams = {
   types?: SessionErrorType[];
+  includeInternal?: boolean;
 
   ids?: string[];
   sessionIds?: string[];
@@ -66,6 +72,9 @@ class sessionErrorGroupServiceImpl {
               environmentOid: d.environment.oid,
 
               AND: [
+                !d.includeInternal && !d.sessionIds?.length
+                  ? { instances: { some: { session: { isInternal: false } } } }
+                  : undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.types ? { type: { in: d.types } } : undefined!,
 

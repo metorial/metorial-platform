@@ -84,6 +84,7 @@ model Provider {
   providerOAuthSetups            ProviderOAuthSetup[]
   providerAuthConfigs            ProviderAuthConfig[]
   providerTriggers               ProviderTrigger[]
+  providerAdapters               ProviderAdapter[]
   providerTriggerGroups          ProviderTriggerGroup[]
   providerToolGlobals            ProviderToolGlobal[]
   providerAuthMethodGlobals      ProviderAuthMethodGlobal[]
@@ -113,6 +114,7 @@ model Provider {
   tenantOAuthCallbackUrls        TenantOAuthCallbackUrl[]
   firewallBindings               FirewallBinding[]
   monitors                       Monitor[]
+  chats                          Chat[]
 
   @@index([status])
   @@index([access])

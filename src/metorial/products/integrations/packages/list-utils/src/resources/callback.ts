@@ -7,7 +7,8 @@ export let resolveCallbacks = createResolver(async ({ ts, ids }) =>
       id: { in: ids },
       tenantOid: ts.tenantOid,
       solutionOid: ts.solutionOid,
-      environmentOid: ts.environmentOid
+      environmentOid: ts.environmentOid,
+      ownership: 'user'
     },
     select: { oid: true }
   })
@@ -19,7 +20,8 @@ export let resolveCallbackInstances = createResolver(async ({ ts, ids }) =>
       id: { in: ids },
       tenantOid: ts.tenantOid,
       solutionOid: ts.solutionOid,
-      environmentOid: ts.environmentOid
+      environmentOid: ts.environmentOid,
+      callback: { ownership: 'user' }
     },
     select: { oid: true }
   })

@@ -1,5 +1,7 @@
 import type {
   Slate,
+  Adapter,
+  SlateAdapter,
   SlateAction,
   SlateAuthMethod,
   SlateSpecification,
@@ -18,7 +20,10 @@ export let slateSpecificationPresenter = (
 
     slateAuthMethods: (SlateSpecificationAuthMethod & { authMethod: SlateAuthMethod })[];
     slateActions: (SlateSpecificationAction & {
-      action: SlateAction & { triggerGroup: SlateTriggerGroup | null };
+      action: SlateAction & {
+        slateAdapter: (SlateAdapter & { adapter: Adapter }) | null;
+        triggerGroup: SlateTriggerGroup | null;
+      };
     })[];
     slateTriggerGroups: (SlateSpecificationTriggerGroup & {
       triggerGroup: SlateTriggerGroup;

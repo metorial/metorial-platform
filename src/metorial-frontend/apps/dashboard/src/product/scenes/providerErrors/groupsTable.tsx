@@ -4,16 +4,16 @@ import {
 } from '@metorial/dashboard-sdk';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSessionErrorGroups } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
 import {
+  Table as DashboardTable,
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
+import { Badge, RenderDate, Text } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { getErrorLabel } from '../errorGroupLabel';
 
 type ErrorGroup = DashboardInstanceSessionsErrorGroupsListOutput['items'][number];
@@ -57,6 +57,11 @@ let errorGroupsTableState: TableStateProvider<
   };
 };
 
+let truncate = (str: string, maxLength: number) => {
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength) + '...';
+};
+
 let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, ErrorGroup>(
   'provider-error-groups'
 )
@@ -77,7 +82,7 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
       id: 'message',
       isDefault: true,
       header: 'Details',
-      render: error => <Text size="2">{error.message}</Text>
+      render: error => <Text size="2">{truncate(error.message, 100)}</Text>
     },
     {
       id: 'occurrenceCount',

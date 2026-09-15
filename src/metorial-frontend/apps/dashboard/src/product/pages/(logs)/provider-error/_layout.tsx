@@ -45,6 +45,11 @@ let ExtraLabel = styled.span`
   color: ${theme.colors.gray600};
 `;
 
+let truncate = (str: string, maxLength: number) => {
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength) + '...';
+};
+
 export let ProviderErrorLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
@@ -75,7 +80,7 @@ export let ProviderErrorLayout = () => {
       }
     >
       <ContentPanelLayout
-        title={error.data?.message ?? `Error ${providerErrorId?.slice(0, 8)}...`}
+        title={truncate(error.data?.message ?? `Error ${providerErrorId?.slice(0, 8)}...`, 80)}
         breadcrumbs={[
           {
             label: 'Errors',

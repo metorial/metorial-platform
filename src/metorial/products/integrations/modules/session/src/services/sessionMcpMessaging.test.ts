@@ -45,6 +45,7 @@ describe('sessionMcpMessagingService', () => {
         tenantId: 'tenant_1',
         sessionId: 'session_1',
         connectionToken: 'existing_token',
+        adapter: { identifier: 'chat' },
         message: {
           jsonrpc: '2.0',
           id: 1,
@@ -66,6 +67,7 @@ describe('sessionMcpMessagingService', () => {
         tenantId: 'tenant_1',
         sessionId: 'session_1',
         connectionToken: 'existing_token',
+        adapter: { identifier: 'chat' },
         mcpTransport: 'streamable_http',
         waitForResponse: true
       })

@@ -1,4 +1,5 @@
 import { Service } from '@lowerdeck/service';
+import { handleMcpRequest } from '@metorial-subspace/module-connection';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 
 export type SessionMcpAgentClient =
@@ -24,11 +25,10 @@ class SessionMcpMessagingService {
     connectionToken?: string | null;
     agentClient?: SessionMcpAgentClient;
     connectionPrivateMetadata?: Record<string, any>;
+    adapter?: { identifier: string };
     message: JSONRPCMessage;
     onProgress?: (message: JSONRPCMessage) => Promise<void>;
   }) {
-    // This is intentionally lazy: connection already depends on session utilities.
-    let { handleMcpRequest } = await import('@metorial-subspace/module-connection');
     let { connection, response } = await handleMcpRequest({
       solutionId: d.solutionId,
       tenantId: d.tenantId,
@@ -36,6 +36,7 @@ class SessionMcpMessagingService {
       connectionToken: d.connectionToken ?? undefined,
       agentClient: d.agentClient,
       connectionPrivateMetadata: d.connectionPrivateMetadata,
+      adapter: d.adapter,
       mcpTransport: 'streamable_http',
       message: d.message,
       waitForResponse: true,

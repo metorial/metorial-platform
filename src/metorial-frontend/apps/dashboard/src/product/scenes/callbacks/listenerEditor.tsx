@@ -99,7 +99,9 @@ export let showEventDestinationListenerModal = (p: {
     let updateListener = useUpdateEventDestinationListener();
     let isUpdate = !!p.listener;
 
-    let [type, setType] = useState<'callback' | 'event'>(p.listener?.type ?? 'callback');
+    let [type, setType] = useState<'callback' | 'event'>(
+      p.listener?.type === 'event' ? 'event' : 'callback'
+    );
     let [callbackId, setCallbackId] = useState(
       p.listener?.callbackId ?? p.defaultCallbackId ?? ''
     );

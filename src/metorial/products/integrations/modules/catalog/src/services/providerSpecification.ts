@@ -111,11 +111,11 @@ class providerSpecificationServiceImpl {
 
             include: {
               provider: true,
-              providerTools: true,
+              providerTools: { where: { adapterOid: null } },
+              providerTriggers: { where: { adapterOid: null } },
               providerAuthMethods: d.tenant?.onlyAllowOAuthAuthMethods
                 ? { where: { type: 'oauth' } }
-                : true,
-              providerTriggers: true
+                : true
             }
           })
       )

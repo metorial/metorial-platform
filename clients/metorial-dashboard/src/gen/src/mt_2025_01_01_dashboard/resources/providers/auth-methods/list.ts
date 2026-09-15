@@ -20,6 +20,7 @@ export type ProvidersAuthMethodsListOutput = {
           description: string | null;
         }[]
       | null;
+    adapters: string[] | null;
     providerId: string;
     providerSpecificationId: string;
     createdAt: Date;
@@ -70,6 +71,10 @@ export let mapProvidersAuthMethodsListOutput =
               })
             )
           ),
+          adapters: mtMap.objectField(
+            'adapters',
+            mtMap.array(mtMap.passthrough())
+          ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           providerSpecificationId: mtMap.objectField(
             'provider_specification_id',
@@ -98,7 +103,7 @@ export type ProvidersAuthMethodsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { providerVersionId: string };
+} & { providerVersionId: string; adapter?: string | undefined };
 
 export let mapProvidersAuthMethodsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -112,7 +117,8 @@ export let mapProvidersAuthMethodsListQuery = mtMap.union([
       providerVersionId: mtMap.objectField(
         'provider_version_id',
         mtMap.passthrough()
-      )
+      ),
+      adapter: mtMap.objectField('adapter', mtMap.passthrough())
     })
   )
 ]);

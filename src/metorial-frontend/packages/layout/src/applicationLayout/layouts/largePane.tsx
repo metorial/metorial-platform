@@ -26,6 +26,7 @@ let Wrapper = styled('div')<{ $bottomOffset?: string }>`
   background: ${theme.colors.background};
   border-radius: 10px;
   box-shadow: ${theme.shadows.large};
+  border: 1px solid ${theme.colors.gray400};
   overflow: auto;
 `;
 

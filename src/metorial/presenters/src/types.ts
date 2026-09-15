@@ -1,4 +1,29 @@
-import type { SessionWarning, Prisma as SubspacePrisma } from '@metorial-subspace/db';
+import type {
+  Chat,
+  ChatAuthor,
+  ChatChannel,
+  ChatConnection,
+  ChatConnectionProvider,
+  ChatEvent,
+  ChatInstance,
+  ChatInstanceProvider,
+  ChatMessage,
+  ChatMessageAttachment,
+  ChatThread,
+  ChatWorkspace,
+  Provider as ChatProvider,
+  SessionWarning,
+  Prisma as SubspacePrisma
+} from '@metorial-subspace/db';
+import type { ReactionCount } from '@slates/adapter-chat';
+import type {
+  CallbackEventDetails,
+  CallbackEventWithRelations,
+  CallbackInstanceWithRelations,
+  CallbackWithRelations,
+  WebhookEvent,
+  WebhookRegistrationWithRelations
+} from '@metorial-subspace/module-callback';
 import type { publisherService } from '@metorial-subspace/module-catalog';
 import type {
   customProviderDeploymentService,
@@ -10,20 +35,14 @@ import type {
 } from '@metorial-subspace/module-custom-provider';
 import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
 import type {
-  CallbackEventDetails,
-  CallbackEventWithRelations,
-  CallbackInstanceWithRelations,
-  CallbackWithRelations,
-  WebhookEvent,
-  WebhookRegistrationWithRelations
-} from '@metorial-subspace/module-callback';
-import type {
   integrationInclude,
   integrationInstanceGroupInclude,
   integrationInstanceGroupProviderInclude,
   integrationInstanceInclude,
   integrationInstanceProviderInclude,
+  integrationInstanceProviderVersionInclude,
   integrationProviderInclude,
+  integrationProviderVersionInclude,
   integrationSetupSessionInclude,
   magicMcpServerProviderInclude
 } from '@metorial-subspace/module-integration';
@@ -76,7 +95,6 @@ import {
   DocumentParticipant,
   EventDestination,
   EventDestinationListener,
-  SystemEvent,
   File,
   FileLink,
   Instance,
@@ -137,6 +155,7 @@ import {
   SkillTemplate,
   Store,
   StoreParticipant,
+  SystemEvent,
   Team,
   TeamMember,
   TeamProject,
@@ -815,6 +834,7 @@ export type PresentedProviderAuthMethod = {
         description?: string | null;
       }[]
     | null;
+  adapters?: string[] | null;
   specificationId: string;
   providerId: string;
   createdAt: Date;
@@ -1119,7 +1139,10 @@ export let eventDestinationListenerType = PresentableType.create<{
 }>()('eventDestinationListener');
 
 export let systemEventType = PresentableType.create<{
-  event: SystemEvent & { instance: Instance | null };
+  event: SystemEvent & {
+    instance: Instance | null;
+    chatPayload?: Record<string, any> | null;
+  };
   organization: Organization;
 }>()('event');
 
@@ -3313,3 +3336,169 @@ export let callbackEventType = PresentableType.create<{
   callbackEvent: CallbackEventWithRelations;
   details?: CallbackEventDetails | null;
 }>()('callback_event');
+
+type RawChatWorkspace = ChatWorkspace & {
+  chat: Chat;
+};
+
+// Structurally identical to the chat module's `HydratedChatMessageAttachment`, declared here rather
+// than imported so the chat module can depend on the presenters instead of the other way around.
+type RawChatMessageAttachment = ChatMessageAttachment & {
+  file: File | null;
+  uploadedFile: File | null;
+};
+
+type RawChatChannel = ChatChannel & {
+  chat: Chat;
+  workspace: ChatWorkspace | null;
+};
+
+type RawChatThread = ChatThread & {
+  chat: Chat;
+  channel: ChatChannel;
+};
+
+type RawChatAuthor = ChatAuthor & {
+  chat: Chat;
+};
+
+type RawChatMessage = ChatMessage & {
+  chat: Chat;
+  channel: ChatChannel;
+  thread: ChatThread | null;
+  author: ChatAuthor | null;
+  attachments: RawChatMessageAttachment[];
+};
+
+type RawChatEvent = ChatEvent & {
+  chat: Chat;
+  channel: ChatChannel | null;
+  thread: ChatThread | null;
+  message: ChatMessage | null;
+  author: ChatAuthor | null;
+};
+
+// The chat module depends on the presenters, so these relation shapes are declared structurally
+// here rather than imported from `@metorial-subspace/module-chat`.
+type RawChatBackingIntegrationProvider = SubspacePrisma.IntegrationProviderGetPayload<{
+  include: {
+    provider: true;
+    currentVersion: { include: typeof integrationProviderVersionInclude };
+  };
+}>;
+
+type RawChatBackingIntegrationInstanceProvider =
+  SubspacePrisma.IntegrationInstanceProviderGetPayload<{
+    include: {
+      currentVersion: { include: typeof integrationInstanceProviderVersionInclude };
+    };
+  }>;
+
+type RawChatConnectionProvider = ChatConnectionProvider & {
+  adapterIntegrationProvider: {
+    integrationProvider: RawChatBackingIntegrationProvider;
+  };
+};
+
+type RawChatConnection = ChatConnection & {
+  providers: RawChatConnectionProvider[];
+};
+
+type RawChatInstance = ChatInstance & {
+  chatConnection: ChatConnection;
+};
+
+type RawChatInstanceProvider = ChatInstanceProvider & {
+  chatInstance: ChatInstance;
+  chatConnectionProvider: ChatConnectionProvider;
+  adapterIntegrationInstanceProvider: {
+    integrationProvider: RawChatBackingIntegrationProvider;
+    integrationInstanceProvider: RawChatBackingIntegrationInstanceProvider;
+  };
+};
+
+type RawChat = Chat & {
+  chatConnection: ChatConnection;
+  chatInstance: ChatInstance;
+  chatInstanceProvider: ChatInstanceProvider;
+  provider: ChatProvider;
+  workspace: ChatWorkspace | null;
+};
+
+export let chatWorkspaceType = PresentableType.create<{
+  chatWorkspace: RawChatWorkspace;
+}>()('chat_workspace');
+
+export let chatChannelType = PresentableType.create<{
+  chatChannel: RawChatChannel;
+}>()('chat_channel');
+
+export let chatThreadType = PresentableType.create<{
+  chatThread: RawChatThread;
+}>()('chat_thread');
+
+export let chatAuthorType = PresentableType.create<{
+  chatAuthor: RawChatAuthor;
+}>()('chat_author');
+
+export let chatMessageAttachmentType = PresentableType.create<{
+  chatMessageAttachment: RawChatMessageAttachment;
+}>()('chat_message_attachment');
+
+export let chatMessageType = PresentableType.create<{
+  chatMessage: RawChatMessage;
+}>()('chat_message');
+
+export let chatEventType = PresentableType.create<{
+  chatEvent: RawChatEvent;
+  payload?: PrismaJson.ChatEventPayload | null;
+}>()('chat_event');
+
+export let chatType = PresentableType.create<{
+  chat: RawChat;
+}>()('chat');
+
+export let chatConnectionType = PresentableType.create<{
+  chatConnection: RawChatConnection;
+}>()('chat_connection');
+
+export let chatConnectionProviderType = PresentableType.create<{
+  chatConnectionProvider: RawChatConnectionProvider;
+}>()('chat_connection_provider');
+
+export let chatInstanceType = PresentableType.create<{
+  chatInstance: RawChatInstance;
+}>()('chat_instance');
+
+export let chatInstanceProviderType = PresentableType.create<{
+  chatInstanceProvider: RawChatInstanceProvider;
+}>()('chat_instance_provider');
+
+export let chatTypingIndicatorType = PresentableType.create<{
+  started: boolean;
+}>()('chat_typing_indicator');
+
+export let chatReactionListType = PresentableType.create<{
+  reactions: ReactionCount[];
+}>()('chat_reaction_list');
+
+// The authenticated user's `author` is a persisted `RawChatAuthor` once a workspace could be
+// resolved for it, and an unpersisted provider-shaped author (no id, no chat) otherwise.
+type RawChatAuthenticatedUserAuthor =
+  | RawChatAuthor
+  | {
+      userId: string;
+      userName: string;
+      fullName: string;
+      type: string;
+      role?: string;
+      providerType?: string;
+      email?: string;
+      imageUrl?: string;
+      isMe: boolean;
+    };
+
+export let chatAuthenticatedUserType = PresentableType.create<{
+  author: RawChatAuthenticatedUserAuthor;
+  workspace: ChatWorkspace | null;
+}>()('chat_authenticated_user');

@@ -16,18 +16,6 @@ import { EmptyState } from '@metorial/empty-state';
 import { showSkillCloneFormModal } from './cloneModal';
 import { showSkillTemplateFormModal } from './templateModal';
 
-let Alias = styled.div`
-  background: ${theme.colors.gray300};
-  min-height: 26px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: ${theme.colors.gray700};
-  overflow-wrap: anywhere;
-`;
 
 let Description = styled.span`
   display: -webkit-box;
@@ -57,6 +45,7 @@ export let SkillTemplateGridCard = (p: {
         {p.skillTemplate.description || 'No description provided yet.'}
       </Description>
     }
+    variant="v2"
     height={200}
     onClick={p.onClick}
     menu={p.menu}
@@ -70,9 +59,7 @@ export let SkillTemplateGridCard = (p: {
       />
     }
     bottom={
-      <div style={{ display: 'flex' }}>
-        <Alias>{p.skillTemplate.slug}</Alias>
-      </div>
+      <Text size="1">{p.skillTemplate.slug}</Text>
     }
   />
 );

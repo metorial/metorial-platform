@@ -1,8 +1,8 @@
 import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 import { randomUUID } from 'crypto';
-import os from 'os';
 import Redis from 'ioredis';
+import os from 'os';
 
 export let ID = createIdGenerator({
   tenant: idType.sorted('ktn'),
@@ -71,6 +71,11 @@ export let ID = createIdGenerator({
   providerAuthMethodGlobal: idType.sorted('pamg'),
   providerTrigger: idType.sorted('ptr'),
   providerTriggerGlobal: idType.sorted('ptrg'),
+  providerAdapterGlobal: idType.sorted('padg'),
+  providerAdapter: idType.sorted('pad'),
+  providerAdapterCapability: idType.sorted('padc'),
+  providerVersionAdapter: idType.sorted('pva'),
+  providerVersionAdapterCapability: idType.sorted('pvac'),
   providerTriggerGroup: idType.sorted('ptgr'),
   providerTriggerGroupGlobal: idType.sorted('ptgrg'),
 
@@ -182,6 +187,26 @@ export let ID = createIdGenerator({
   integrationSetupSessionProvider: idType.sorted('isp'),
   integrationSetupSessionStep: idType.sorted('isst'),
   integrationSetupSessionEvent: idType.sorted('ise'),
+
+  adapterIntegration: idType.sorted('ain'),
+  adapterIntegrationProvider: idType.sorted('aip'),
+  adapterIntegrationInstance: idType.sorted('aii'),
+  adapterIntegrationInstanceProvider: idType.sorted('aiip'),
+  adapterIntegrationInstanceProviderSession: idType.sorted('aiips'),
+
+  chatConnection: idType.sorted('cin'),
+  chatConnectionProvider: idType.sorted('cip'),
+  chatInstance: idType.sorted('cii'),
+  chatInstanceProvider: idType.sorted('ciip'),
+  chat: idType.sorted('cht'),
+  chatWorkspace: idType.sorted('cws'),
+  chatChannel: idType.sorted('cch'),
+  chatThread: idType.sorted('cth'),
+  chatAuthor: idType.sorted('cau'),
+  chatMessage: idType.sorted('cms'),
+  chatMessageAttachment: idType.sorted('cma'),
+  chatMessageGroup: idType.sorted('cmg'),
+  chatEvent: idType.sorted('chevt'),
 
   skillEntity: idType.sorted('ske'),
   skill: idType.sorted('skl'),

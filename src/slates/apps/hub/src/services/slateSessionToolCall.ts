@@ -83,6 +83,7 @@ class slateSessionToolCallServiceImpl {
       egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
       participants: SlatesParticipant[];
+      downloadUrlAttachments?: boolean;
     };
   }) {
     let session = await db.slateSession.findFirst({

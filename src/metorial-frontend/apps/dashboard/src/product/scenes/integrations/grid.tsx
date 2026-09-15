@@ -16,18 +16,6 @@ import { styled } from 'styled-components';
 import { EmptyState } from '@metorial/empty-state';
 import { showCreateIntegrationProviderFirstFlow } from './providerPanelFlow';
 
-let Alias = styled.div`
-  background: ${theme.colors.gray300};
-  min-height: 26px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: ${theme.colors.gray700};
-  overflow-wrap: anywhere;
-`;
 
 let ProviderAvatarStack = styled.div`
   display: flex;
@@ -131,6 +119,7 @@ export let IntegrationsGrid = (
                     entity={{ id: integration.id, hasUsage: true }}
                     title={integration.name}
                     description={integration.description}
+                    variant="v2"
                     height={220}
                     icon={
                       visibleProviders.length > 0 ? (
@@ -165,9 +154,7 @@ export let IntegrationsGrid = (
                       )
                     }
                     bottom={
-                      <div style={{ display: 'flex' }}>
-                        <Alias>{integration.slug}</Alias>
-                      </div>
+                      integration.slug ? <Text size="1">{integration.slug}</Text> : undefined
                     }
                   />
                 );

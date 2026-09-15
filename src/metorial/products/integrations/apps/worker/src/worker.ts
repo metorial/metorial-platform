@@ -12,6 +12,7 @@ import { deploymentQueueProcessor } from '@metorial-subspace/module-deployment/s
 import { enclaveQueueProcessor } from '@metorial-subspace/module-enclave/src/queues';
 import { identityQueueProcessor } from '@metorial-subspace/module-identity/src/queues';
 import { integrationQueueProcessor } from '@metorial-subspace/module-integration/src/queues';
+import { chatQueueProcessor } from '@metorial-subspace/module-chat/src/queues';
 import { monitorQueueProcessor } from '@metorial-subspace/module-monitor/src/queues';
 import { syncProtoGuardFilters } from '@metorial-subspace/module-connection/src/protoguard/registry';
 import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
@@ -41,6 +42,7 @@ runQueueProcessors([
   callbackQueueProcessor,
   identityQueueProcessor,
   integrationQueueProcessor,
+  chatQueueProcessor,
   monitorQueueProcessor,
   agentQueueProcessor
 ]);

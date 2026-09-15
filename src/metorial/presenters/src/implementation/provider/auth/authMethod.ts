@@ -42,6 +42,9 @@ export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodTy
               description: scope.description ?? null
             }))
         : null;
+    let adapters = rawAuthMethod
+      ? (rawAuthMethod.value.adapters ?? null)
+      : (presentedAuthMethod.adapters ?? null);
 
     return {
       object: 'provider.capabilities.auth_method' as const,
@@ -68,6 +71,7 @@ export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodTy
         : null,
 
       scopes,
+      adapters,
 
       provider_id: rawAuthMethod ? rawAuthMethod.provider.id : presentedAuthMethod.providerId,
       provider_specification_id: rawAuthMethod
@@ -161,6 +165,12 @@ export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodTy
             description: 'Available OAuth scopes'
           }
         )
+      ),
+      adapters: v.nullable(
+        v.array(v.string(), {
+          name: 'adapters',
+          description: 'Adapter IDs this auth method can be used with'
+        })
       ),
       provider_id: v.string({
         name: 'provider_id',

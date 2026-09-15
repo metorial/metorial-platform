@@ -14,17 +14,6 @@ import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { showSkillMarketplaceFormModal } from './marketplaceModal';
 
-let Count = styled.div`
-  background: ${theme.colors.gray300};
-  min-height: 26px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: ${theme.colors.gray700};
-`;
 
 let Description = styled.span`
   display: -webkit-box;
@@ -132,6 +121,7 @@ export let SkillMarketplacesGrid = (
                 entity={{ id: marketplace.id, hasUsage: true }}
                 title={marketplace.name}
                 description={<Description>{marketplace.description}</Description>}
+                variant="v2"
                 height={200}
                 icon={
                   <Avatar
@@ -145,13 +135,7 @@ export let SkillMarketplacesGrid = (
                   />
                 }
                 bottom={
-                  <div style={{ display: 'flex' }}>
-                    <Count>
-                      {plugins.length} plugin
-                      {plugins.length === 1 ? '' : 's'} • {skills.length} skill
-                      {skills.length === 1 ? '' : 's'}
-                    </Count>
-                  </div>
+                  <Text size="1">{marketplace.id}</Text>
                 }
               />
             );

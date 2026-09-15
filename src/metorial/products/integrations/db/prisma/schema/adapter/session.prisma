@@ -1,0 +1,51 @@
+enum AdapterIntegrationInstanceProviderSessionStatus {
+  active
+  rotated
+  archived
+  deleted
+}
+
+model AdapterIntegrationInstanceProviderSession {
+  oid BigInt @id
+  id  String @unique
+
+  status     AdapterIntegrationInstanceProviderSessionStatus
+  rotatedAt  DateTime?
+  archivedAt DateTime?
+
+  adapterIntegrationInstanceProviderOid BigInt
+  adapterIntegrationInstanceProvider    AdapterIntegrationInstanceProvider @relation(fields: [adapterIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade, map: "aiips_aiip_fkey")
+
+  sessionOid BigInt  @unique
+  session    Session @relation(fields: [sessionOid], references: [oid], map: "aiips_session_fkey")
+
+  adapterIntegrationInstanceOid BigInt
+  adapterIntegrationInstance    AdapterIntegrationInstance @relation(fields: [adapterIntegrationInstanceOid], references: [oid], onDelete: Cascade, map: "aiips_aii_fkey")
+
+  adapterIntegrationOid BigInt
+  adapterIntegration    AdapterIntegration @relation(fields: [adapterIntegrationOid], references: [oid], onDelete: Cascade, map: "aiips_ain_fkey")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([adapterIntegrationInstanceProviderOid, status], map: "aiips_aiip_status_idx")
+  @@index([status])
+  @@index([createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

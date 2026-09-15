@@ -62,6 +62,23 @@ export let integrationDeleteQueueProcessor = integrationDeleteQueue.process(asyn
   });
   if (!integration || integration.status !== 'archived') return;
 
+  await db.adapterIntegrationInstanceProvider.updateMany({
+    where: { integrationOid: integration.oid, status: { not: 'deleted' } },
+    data: { status: 'deleted' }
+  });
+  await db.adapterIntegrationInstance.updateMany({
+    where: { integrationOid: integration.oid, status: { not: 'deleted' } },
+    data: { status: 'deleted' }
+  });
+  await db.adapterIntegrationProvider.updateMany({
+    where: { integrationOid: integration.oid, status: { not: 'deleted' } },
+    data: { status: 'deleted' }
+  });
+  await db.adapterIntegration.updateMany({
+    where: { integrationOid: integration.oid, status: { not: 'deleted' } },
+    data: { status: 'deleted' }
+  });
+
   let activeCallbacks = await db.callback.count({
     where: { integrationOid: integration.oid, status: 'active' }
   });

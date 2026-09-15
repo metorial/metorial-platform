@@ -41,9 +41,11 @@ model Slate {
   slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
   slateAuthConfigs          SlateAuthConfig[]
   slateSessions             SlateSession[]
-  slateTriggerGroups        SlateTriggerGroup[]
+  slatePublicToolCalls      SlatePublicToolCall[]
   changeNotifications       ChangeNotification[]
   slateErrors               SlateError[]
+  slateAdapters             SlateAdapter[]
+  slateTriggerGroups        SlateTriggerGroup[]
   slateWebhookRegistrations SlateWebhookRegistration[]
   triggerRegistrations      TriggerRegistration[]
   callbacks                 Callback[]
@@ -111,8 +113,10 @@ model SlateVersion {
   slateInstanceOAuthSetups   SlateInstanceOAuthSetup[]
   slateSessions              SlateSession[]
   slateSessionToolCalls      SlateSessionToolCall[]
+  slatePublicToolCalls       SlatePublicToolCall[]
   changeNotifications        ChangeNotification[]
   slateErrors                SlateError[]
+  slateVersionAdapters       SlateVersionAdapter[]
 
   @@unique([slateOid, version])
 }
@@ -222,11 +226,16 @@ model SlateAction {
   key  String
   name String
 
+  isPublic Boolean @default(false)
+
   /// [SlateAction]
   spec Json
 
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  slateAdapterOid BigInt?
+  slateAdapter    SlateAdapter? @relation(fields: [slateAdapterOid], references: [oid])
 
   mostRecentSpecificationOid BigInt
   mostRecentSpecification    SlateSpecification @relation(fields: [mostRecentSpecificationOid], references: [oid])
@@ -240,6 +249,7 @@ model SlateAction {
 
   slateSpecifications   SlateSpecificationAction[]
   slateSessionToolCalls SlateSessionToolCall[]
+  slatePublicToolCalls  SlatePublicToolCall[]
 
   @@index([key])
 }

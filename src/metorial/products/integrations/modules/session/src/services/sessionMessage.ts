@@ -46,6 +46,7 @@ export type ListSessionMessagesParams = {
   hierarchy?: ('parent' | 'child')[];
 
   allowDeleted?: boolean;
+  includeInternal?: boolean;
 
   ids?: string[];
   sessionIds?: string[];
@@ -182,6 +183,9 @@ class sessionMessageServiceImpl {
             environmentOid: d.environment.oid,
 
             AND: [
+              !d.includeInternal && !d.sessionIds?.length
+                ? { session: { isInternal: false } }
+                : undefined!,
               normalizeStatusForList(d).onlyParent,
               { status: { not: 'waiting_for_response' as const } },
 

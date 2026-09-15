@@ -6,10 +6,11 @@ export type DashboardOrganizationsEventDestinationListenersListOutput = {
     id: string;
     instanceId: string;
     eventDestinationId: string;
-    type: 'event' | 'callback';
+    type: 'event' | 'callback' | 'chat';
     eventTypes: string[] | null;
     callbackId: string | null;
     triggers: string[] | null;
+    chatIntegrationId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -39,6 +40,10 @@ export let mapDashboardOrganizationsEventDestinationListenersListOutput =
             'triggers',
             mtMap.array(mtMap.passthrough())
           ),
+          chatIntegrationId: mtMap.objectField(
+            'chat_integration_id',
+            mtMap.passthrough()
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
@@ -66,7 +71,13 @@ export type DashboardOrganizationsEventDestinationListenersListQuery = {
   eventDestinationId?: string | string[] | undefined;
   instanceId?: string | string[] | undefined;
   callbackId?: string | string[] | undefined;
-  type?: 'event' | 'callback' | ('event' | 'callback')[] | undefined;
+  chatIntegrationId?: string | string[] | undefined;
+  type?:
+    | 'event'
+    | 'callback'
+    | 'chat'
+    | ('event' | 'callback' | 'chat')[]
+    | undefined;
 };
 
 export let mapDashboardOrganizationsEventDestinationListenersListQuery =
@@ -101,6 +112,16 @@ export let mapDashboardOrganizationsEventDestinationListenersListQuery =
         ),
         callbackId: mtMap.objectField(
           'callback_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        chatIntegrationId: mtMap.objectField(
+          'chat_integration_id',
           mtMap.union([
             mtMap.unionOption('string', mtMap.passthrough()),
             mtMap.unionOption(

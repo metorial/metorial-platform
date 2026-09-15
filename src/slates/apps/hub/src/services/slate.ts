@@ -10,14 +10,26 @@ let include = {
   registry: true,
   currentVersion: {
     include: {
-      specification: true
+      specification: true,
+      slateVersionAdapters: {
+        include: {
+          slateAdapter: { include: { adapter: true } },
+          slateVersionAdapterCapabilities: { include: { adapterCapability: true } }
+        }
+      }
     }
   },
   slateVersions: {
     orderBy: [{ createdAt: 'desc' as const }, { oid: 'desc' as const }],
     take: 1,
     include: {
-      specification: true
+      specification: true,
+      slateVersionAdapters: {
+        include: {
+          slateAdapter: { include: { adapter: true } },
+          slateVersionAdapterCapabilities: { include: { adapterCapability: true } }
+        }
+      }
     }
   }
 };

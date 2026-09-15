@@ -78,6 +78,7 @@ export let buildSyntheticTool = <P extends SessionProvider>(
     providerOid: 0n,
     specificationOid: 0n,
     globalOid: 0n,
+    adapterOid: null,
     createdAt: now,
     updatedAt: now,
     sessionProvider: input.sessionProvider,

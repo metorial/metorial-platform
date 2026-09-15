@@ -84,6 +84,7 @@ export type MagicMcpServersListOutput = {
               description: string | null;
             }[]
           | null;
+        adapters: string[] | null;
         providerId: string;
         providerSpecificationId: string;
         createdAt: Date;
@@ -219,6 +220,7 @@ export type MagicMcpServersListOutput = {
               description: string | null;
             }[]
           | null;
+        adapters: string[] | null;
         providerId: string;
         providerSpecificationId: string;
         createdAt: Date;
@@ -524,6 +526,10 @@ export let mapMagicMcpServersListOutput =
                                   )
                                 })
                               )
+                            ),
+                            adapters: mtMap.objectField(
+                              'adapters',
+                              mtMap.array(mtMap.passthrough())
                             ),
                             providerId: mtMap.objectField(
                               'provider_id',

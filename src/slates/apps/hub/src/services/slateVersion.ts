@@ -12,7 +12,13 @@ let include = {
       registry: true
     }
   },
-  specification: true
+  specification: true,
+  slateVersionAdapters: {
+    include: {
+      slateAdapter: { include: { adapter: true } },
+      slateVersionAdapterCapabilities: { include: { adapterCapability: true } }
+    }
+  }
 };
 
 class slateVersionServiceImpl {

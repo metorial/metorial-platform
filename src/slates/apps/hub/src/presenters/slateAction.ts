@@ -1,9 +1,17 @@
-import type { Slate, SlateAction, SlateTriggerGroup } from '../../prisma/generated/client';
+import type {
+  Adapter,
+  Slate,
+  SlateAction,
+  SlateAdapter,
+  SlateTriggerGroup
+} from '../../prisma/generated/client';
+import { adapterPresenter } from './adapter';
 import { slateTriggerGroupPresenter } from './slateTriggerGroup';
 
 export let slateActionPresenter = (
   method: SlateAction & {
     slate: Slate;
+    slateAdapter: (SlateAdapter & { adapter: Adapter }) | null;
     triggerGroup: SlateTriggerGroup | null;
   }
 ) => {
@@ -20,6 +28,7 @@ export let slateActionPresenter = (
     name: method.name,
     key: method.key,
     type: method.type,
+    isPublic: method.isPublic,
 
     capabilities: method.spec.capabilities,
     inputSchema: method.spec.inputSchema,
@@ -32,6 +41,9 @@ export let slateActionPresenter = (
     tags: method.spec.tags,
     scopes: method.spec.scopes,
     authMethods: spec.authMethods,
+    adapter: method.slateAdapter
+      ? adapterPresenter(method.slateAdapter.adapter, method.slateAdapter.identifier)
+      : null,
 
     triggerGroup:
       method.spec.type === 'action.trigger' && method.triggerGroup
