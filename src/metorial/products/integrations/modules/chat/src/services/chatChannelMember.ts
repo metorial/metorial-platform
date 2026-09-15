@@ -67,7 +67,12 @@ class chatChannelMemberServiceImpl {
         });
         let listing = unwrapChatCall(listed, {
           code: 'chat_channel_members_list_failed',
-          message: 'Failed to list channel members from the chat provider.'
+          message: 'Failed to list channel members from the chat provider.',
+          invocation: {
+            operation: 'channel.members',
+            chatInstanceProvider: d.chat.chatInstanceProvider,
+            chat: d.chat
+          }
         });
 
         let upserted = await chatAuthorServiceInternal.upsertChatAuthors({
@@ -112,7 +117,12 @@ class chatChannelMemberServiceImpl {
     let got = await client.call('metorial_chat$user.get', { userId: d.userId });
     let result = unwrapChatCall(got, {
       code: 'chat_channel_member_get_failed',
-      message: 'Failed to load the channel member from the chat provider.'
+      message: 'Failed to load the channel member from the chat provider.',
+      invocation: {
+        operation: 'user.get',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
 
     let [upserted] = await chatAuthorServiceInternal.upsertChatAuthors({

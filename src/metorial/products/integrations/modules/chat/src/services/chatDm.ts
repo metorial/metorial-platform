@@ -116,7 +116,12 @@ class chatDmServiceImpl {
     let opened = await client.call('metorial_chat$dm.openSingle', { userId });
     let result = unwrapChatCall(opened, {
       code: 'chat_dm_open_single_failed',
-      message: 'Failed to open the direct message with the chat provider.'
+      message: 'Failed to open the direct message with the chat provider.',
+      invocation: {
+        operation: 'dm.openSingle',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
 
     let [channel] = await chatChannelServiceInternal.upsertChatChannels({
@@ -154,7 +159,12 @@ class chatDmServiceImpl {
     let opened = await client.call('metorial_chat$dm.openGroup', { userIds });
     let result = unwrapChatCall(opened, {
       code: 'chat_dm_open_group_failed',
-      message: 'Failed to open the group direct message with the chat provider.'
+      message: 'Failed to open the group direct message with the chat provider.',
+      invocation: {
+        operation: 'dm.openGroup',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
 
     let [channel] = await chatChannelServiceInternal.upsertChatChannels({

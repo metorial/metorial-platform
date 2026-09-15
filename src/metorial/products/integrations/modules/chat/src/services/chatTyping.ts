@@ -74,7 +74,12 @@ class chatTypingServiceImpl {
 
     return unwrapChatCall(started, {
       code: 'chat_typing_start_failed',
-      message: 'Failed to show the typing indicator with the chat provider.'
+      message: 'Failed to show the typing indicator with the chat provider.',
+      invocation: {
+        operation: 'typing.start',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
   }
 }

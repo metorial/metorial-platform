@@ -87,7 +87,12 @@ class chatThreadServiceImpl {
         });
         let listing = unwrapChatCall(listed, {
           code: 'chat_thread_list_failed',
-          message: 'Failed to list threads from the chat provider.'
+          message: 'Failed to list threads from the chat provider.',
+          invocation: {
+            operation: 'thread.list',
+            chatInstanceProvider: d.chat.chatInstanceProvider,
+            chat: d.chat
+          }
         });
 
         let channel = listing.channel
@@ -190,7 +195,12 @@ class chatThreadServiceImpl {
     let got = await d.client.call('metorial_chat$thread.get', { channelId, threadId });
     let result = unwrapChatCall(got, {
       code: 'chat_thread_get_failed',
-      message: 'Failed to load the thread from the chat provider.'
+      message: 'Failed to load the thread from the chat provider.',
+      invocation: {
+        operation: 'thread.get',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
 
     let channel = result.channel

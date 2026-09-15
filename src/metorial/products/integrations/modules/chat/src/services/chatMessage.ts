@@ -211,7 +211,12 @@ class chatMessageServiceImpl {
         });
         let listing = unwrapChatCall(listed, {
           code: 'chat_message_list_failed',
-          message: 'Failed to list messages from the chat provider.'
+          message: 'Failed to list messages from the chat provider.',
+          invocation: {
+            operation: 'message.list',
+            chatInstanceProvider: d.chat.chatInstanceProvider,
+            chat: d.chat
+          }
         });
 
         let channel = listing.channel
@@ -274,7 +279,12 @@ class chatMessageServiceImpl {
         });
         let listing = unwrapChatCall(searched, {
           code: 'chat_message_search_failed',
-          message: 'Failed to search messages with the chat provider.'
+          message: 'Failed to search messages with the chat provider.',
+          invocation: {
+            operation: 'message.search',
+            chatInstanceProvider: d.chat.chatInstanceProvider,
+            chat: d.chat
+          }
         });
 
         let channel = listing.channel
@@ -421,7 +431,12 @@ class chatMessageServiceImpl {
     let got = await d.client.call('metorial_chat$message.get', { channelId, messageId });
     let result = unwrapChatCall(got, {
       code: 'chat_message_get_failed',
-      message: 'Failed to load the message from the chat provider.'
+      message: 'Failed to load the message from the chat provider.',
+      invocation: {
+        operation: 'message.get',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
 
     return this.persistMessageResult(d.tenant, d.environment, d.chat, localChannel, result);
@@ -542,7 +557,12 @@ class chatMessageServiceImpl {
 
         let result = unwrapChatCall(sent, {
           code: 'chat_message_send_failed',
-          message: 'Failed to send the message with the chat provider.'
+          message: 'Failed to send the message with the chat provider.',
+          invocation: {
+            operation: d.ephemeral ? 'message.sendEphemeral' : 'message.send',
+            chatInstanceProvider: d.chat.chatInstanceProvider,
+            chat: d.chat
+          }
         });
 
         let withRelations = await this.persistMessageResult(
@@ -633,7 +653,12 @@ class chatMessageServiceImpl {
       });
       let uploadResult = unwrapChatCall(uploaded, {
         code: 'chat_attachment_upload_failed',
-        message: 'Failed to upload the attachment to the chat provider.'
+        message: 'Failed to upload the attachment to the chat provider.',
+        invocation: {
+          operation: 'file.upload',
+          chatInstanceProvider: d.chat.chatInstanceProvider,
+          chat: d.chat
+        }
       });
 
       uploadedFilesByReferenceId.set(file.id, file);
@@ -671,7 +696,12 @@ class chatMessageServiceImpl {
       });
       let result = unwrapChatCall(sent, {
         code: 'chat_message_send_failed',
-        message: 'Failed to send the message with the chat provider.'
+        message: 'Failed to send the message with the chat provider.',
+        invocation: {
+          operation: 'message.send',
+          chatInstanceProvider: d.chat.chatInstanceProvider,
+          chat: d.chat
+        }
       });
 
       let withRelations = await this.persistMessageResult(
@@ -778,7 +808,12 @@ class chatMessageServiceImpl {
       });
       let result = unwrapChatCall(edited, {
         code: 'chat_message_edit_failed',
-        message: 'Failed to edit the message with the chat provider.'
+        message: 'Failed to edit the message with the chat provider.',
+        invocation: {
+          operation: 'message.edit',
+          chatInstanceProvider: d.chat.chatInstanceProvider,
+          chat: d.chat
+        }
       });
 
       let withRelations = await this.persistMessageResult(
@@ -840,7 +875,12 @@ class chatMessageServiceImpl {
       });
       let result = unwrapChatCall(deleted, {
         code: 'chat_message_delete_failed',
-        message: 'Failed to delete the message with the chat provider.'
+        message: 'Failed to delete the message with the chat provider.',
+        invocation: {
+          operation: 'message.delete',
+          chatInstanceProvider: d.chat.chatInstanceProvider,
+          chat: d.chat
+        }
       });
 
       if (localMessage) {
@@ -913,7 +953,12 @@ class chatMessageServiceImpl {
 
     return unwrapChatCall(marked, {
       code: 'chat_message_mark_read_failed',
-      message: 'Failed to mark the message as read with the chat provider.'
+      message: 'Failed to mark the message as read with the chat provider.',
+      invocation: {
+        operation: 'message.markRead',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
   }
 

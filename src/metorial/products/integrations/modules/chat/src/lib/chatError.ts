@@ -7,6 +7,7 @@ import {
   tooManyRequestsError
 } from '@lowerdeck/error';
 import type { AdapterCallFailureOutput, AdapterCallResult } from '@metorial-subspace/adapter';
+import type { Chat, ChatInstanceProvider } from '@metorial-subspace/db';
 import {
   type ChatErrorCode,
   chatErrorCodeChain,
@@ -18,7 +19,6 @@ import {
   isChatErrorRetryable,
   parseChatError
 } from '@slates/adapter-chat';
-
 export type { ChatErrorCode, ChatErrorInfo, ParsedChatError } from '@slates/adapter-chat';
 
 let NOT_FOUND_ENTITIES: Partial<Record<ChatErrorCode, string>> = {
@@ -54,9 +54,28 @@ let CONFLICT_CODES: ChatErrorCode[] = [
   'chat.reaction.limit_reached'
 ];
 
+export type ChatInvocationContext = {
+  operation: string;
+  chatInstanceProvider: Pick<
+    ChatInstanceProvider,
+    | 'oid'
+    | 'chatConnectionOid'
+    | 'chatInstanceOid'
+    | 'tenantOid'
+    | 'projectOid'
+    | 'environmentOid'
+    | 'instanceOid'
+    | 'solutionOid'
+  >;
+  chat?: Pick<Chat, 'oid'> | null;
+};
+
 export interface ChatCallErrorOptions {
   code?: string;
   message?: string;
+  // When set, a call failure is recorded as a `chat.invocation.failed` ChatEvent (dashboard-visible,
+  // deliberately never mirrored into SystemEvent -- see chatEventInternalService.recordInvocationFailedEvent).
+  invocation?: ChatInvocationContext;
 }
 
 export let chatCallErrorToServiceError = (
@@ -101,7 +120,45 @@ export let unwrapChatCall = <Output>(
   options: ChatCallErrorOptions = {}
 ): Output => {
   if (result.result.type === 'success') return result.result.output;
+
+  if (options.invocation) {
+    // Fire-and-forget: recording the failure must never block on, or be able to mask, the real
+    // error being thrown below.
+    void recordChatInvocationFailure(options.invocation, result.result.output);
+  }
+
   throw chatCallErrorToServiceError(result.result.output, options);
+};
+
+let recordChatInvocationFailure = async (
+  invocation: ChatInvocationContext,
+  output: AdapterCallFailureOutput | unknown
+) => {
+  try {
+    // Imported lazily so that merely importing this lib file (e.g. from a focused unit test that
+    // never triggers a failure) doesn't drag in the chat module's full internal service graph.
+    let [{ chatEventInternalService }, { ID }] = await Promise.all([
+      import('../internal/chatEvent'),
+      import('@metorial-subspace/db')
+    ]);
+
+    await chatEventInternalService.recordInvocationFailedEvent({
+      invocationId: ID.generateIdSync('chatInvocation'),
+      operation: invocation.operation,
+      error: describeChatFailure(output),
+      tenantOid: invocation.chatInstanceProvider.tenantOid,
+      projectOid: invocation.chatInstanceProvider.projectOid,
+      environmentOid: invocation.chatInstanceProvider.environmentOid,
+      instanceOid: invocation.chatInstanceProvider.instanceOid,
+      solutionOid: invocation.chatInstanceProvider.solutionOid,
+      chatConnectionOid: invocation.chatInstanceProvider.chatConnectionOid,
+      chatInstanceOid: invocation.chatInstanceProvider.chatInstanceOid,
+      chatInstanceProviderOid: invocation.chatInstanceProvider.oid,
+      chatOid: invocation.chat?.oid
+    });
+  } catch (err) {
+    console.warn(`CHAT.invocation.recordFailed operation=${invocation.operation}`, err);
+  }
 };
 
 export let shouldRetryChatCall = (output: AdapterCallFailureOutput | unknown) => {

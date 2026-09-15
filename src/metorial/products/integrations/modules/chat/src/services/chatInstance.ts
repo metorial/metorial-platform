@@ -32,6 +32,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { chatEventInternalService } from '../internal/chatEvent';
 import { archiveChatsWhere } from '../lib/chatLifecycle';
 import { upsertChatInstanceProjection } from '../lib/project';
 import {
@@ -92,6 +93,29 @@ export type ArchiveChatInstanceParams = {
 };
 
 class chatInstanceServiceImpl {
+  private async recordInstanceEvent(
+    chatInstance: ChatInstance,
+    type: 'chat.instance.created' | 'chat.instance.updated' | 'chat.instance.archived'
+  ) {
+    await chatEventInternalService.recordLifecycleEvent({
+      type,
+      tenantOid: chatInstance.tenantOid,
+      projectOid: chatInstance.projectOid,
+      environmentOid: chatInstance.environmentOid,
+      instanceOid: chatInstance.instanceOid,
+      solutionOid: chatInstance.solutionOid,
+      chatConnectionOid: chatInstance.chatConnectionOid,
+      chatInstanceOid: chatInstance.oid,
+      payload: {
+        chatInstance: {
+          id: chatInstance.id,
+          name: chatInstance.name,
+          status: chatInstance.status
+        }
+      }
+    });
+  }
+
   async listChatInstances(d: MetorialFacing<ListChatInstancesParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
@@ -258,6 +282,11 @@ class chatInstanceServiceImpl {
       if (existing) await enqueueChatInstanceUpdated(chatInstance.id);
       else await enqueueChatInstanceCreated(chatInstance.id);
 
+      await this.recordInstanceEvent(
+        chatInstance,
+        existing ? 'chat.instance.updated' : 'chat.instance.created'
+      );
+
       return chatInstance;
     });
   }
@@ -312,6 +341,8 @@ class chatInstanceServiceImpl {
       }
 
       await enqueueChatInstanceUpdated(chatInstance.id);
+
+      await this.recordInstanceEvent(chatInstance, 'chat.instance.updated');
 
       return chatInstance;
     });
@@ -368,10 +399,14 @@ class chatInstanceServiceImpl {
 
       await enqueueChatInstanceArchived(d.chatInstance.id);
 
-      return db.chatInstance.findUniqueOrThrow({
+      let archived = await db.chatInstance.findUniqueOrThrow({
         where: { oid: d.chatInstance.oid },
         include: chatInstanceInclude
       });
+
+      await this.recordInstanceEvent(archived, 'chat.instance.archived');
+
+      return archived;
     });
   }
 

@@ -69,7 +69,12 @@ class chatReactionServiceImpl {
 
     return unwrapChatCall(added, {
       code: 'chat_reaction_add_failed',
-      message: 'Failed to add the reaction with the chat provider.'
+      message: 'Failed to add the reaction with the chat provider.',
+      invocation: {
+        operation: 'reaction.add',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
   }
 
@@ -106,7 +111,12 @@ class chatReactionServiceImpl {
 
     return unwrapChatCall(removed, {
       code: 'chat_reaction_remove_failed',
-      message: 'Failed to remove the reaction with the chat provider.'
+      message: 'Failed to remove the reaction with the chat provider.',
+      invocation: {
+        operation: 'reaction.remove',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
   }
 
@@ -167,7 +177,12 @@ class chatReactionServiceImpl {
     let listed = await d.client.call('metorial_chat$reaction.list', { channelId, messageId });
     let result = unwrapChatCall(listed, {
       code: 'chat_reaction_list_failed',
-      message: 'Failed to list reactions from the chat provider.'
+      message: 'Failed to list reactions from the chat provider.',
+      invocation: {
+        operation: 'reaction.list',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
 
     if (localMessage) {

@@ -99,7 +99,12 @@ class chatChannelServiceImpl {
         });
         let listing = unwrapChatCall(listed, {
           code: 'chat_channel_list_failed',
-          message: 'Failed to list channels from the chat provider.'
+          message: 'Failed to list channels from the chat provider.',
+          invocation: {
+            operation: 'channel.list',
+            chatInstanceProvider: d.chat.chatInstanceProvider,
+            chat: d.chat
+          }
         });
 
         let upserted = await chatChannelServiceInternal.upsertChatChannels({
@@ -197,7 +202,12 @@ class chatChannelServiceImpl {
     let got = await d.client.call('metorial_chat$channel.get', { channelId });
     let channel = unwrapChatCall(got, {
       code: 'chat_channel_get_failed',
-      message: 'Failed to load the channel from the chat provider.'
+      message: 'Failed to load the channel from the chat provider.',
+      invocation: {
+        operation: 'channel.get',
+        chatInstanceProvider: d.chat.chatInstanceProvider,
+        chat: d.chat
+      }
     });
 
     let [upserted] = await chatChannelServiceInternal.upsertChatChannels({

@@ -32,6 +32,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { chatEventInternalService } from '../internal/chatEvent';
 import {
   archiveChatConnectionProjection,
   getSlug,
@@ -126,6 +127,28 @@ export type ArchiveChatConnectionParams = {
 };
 
 class chatConnectionServiceImpl {
+  private async recordConnectionEvent(
+    chatConnection: ChatConnection,
+    type: 'chat.connection.created' | 'chat.connection.updated' | 'chat.connection.archived'
+  ) {
+    await chatEventInternalService.recordLifecycleEvent({
+      type,
+      tenantOid: chatConnection.tenantOid,
+      projectOid: chatConnection.projectOid,
+      environmentOid: chatConnection.environmentOid,
+      instanceOid: chatConnection.instanceOid,
+      solutionOid: chatConnection.solutionOid,
+      chatConnectionOid: chatConnection.oid,
+      payload: {
+        chatConnection: {
+          id: chatConnection.id,
+          name: chatConnection.name,
+          status: chatConnection.status
+        }
+      }
+    });
+  }
+
   async listChatConnections(d: MetorialFacing<ListChatConnectionsParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
@@ -306,6 +329,11 @@ class chatConnectionServiceImpl {
       if (existing) await enqueueChatConnectionUpdated(chatConnection.id);
       else await enqueueChatConnectionCreated(chatConnection.id);
 
+      await this.recordConnectionEvent(
+        chatConnection,
+        existing ? 'chat.connection.updated' : 'chat.connection.created'
+      );
+
       return chatConnection;
     });
   }
@@ -389,6 +417,8 @@ class chatConnectionServiceImpl {
 
       await enqueueChatConnectionUpdated(chatConnection.id);
 
+      await this.recordConnectionEvent(chatConnection, 'chat.connection.updated');
+
       return chatConnection;
     });
   }
@@ -425,10 +455,14 @@ class chatConnectionServiceImpl {
 
       await enqueueChatConnectionArchived(d.chatConnection.id);
 
-      return db.chatConnection.findUniqueOrThrow({
+      let archived = await db.chatConnection.findUniqueOrThrow({
         where: { oid: d.chatConnection.oid },
         include: chatConnectionInclude
       });
+
+      await this.recordConnectionEvent(archived, 'chat.connection.archived');
+
+      return archived;
     });
   }
 

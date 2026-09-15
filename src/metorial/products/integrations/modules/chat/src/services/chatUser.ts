@@ -48,7 +48,11 @@ class chatUserServiceImpl {
     let got = await client.call('metorial_chat$user.getAuthenticated', {});
     let result = unwrapChatCall(got, {
       code: 'chat_user_get_authenticated_failed',
-      message: 'Failed to load the authenticated user from the chat provider.'
+      message: 'Failed to load the authenticated user from the chat provider.',
+      invocation: {
+        operation: 'user.getAuthenticated',
+        chatInstanceProvider: d.chatInstanceProvider
+      }
     });
 
     let resolved = await chatWorkspaceInternalService.resolveChatForAuthorLink({

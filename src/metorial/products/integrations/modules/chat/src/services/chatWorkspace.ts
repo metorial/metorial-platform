@@ -78,7 +78,11 @@ class chatWorkspaceServiceImpl {
         });
         let listing = unwrapChatCall(listed, {
           code: 'chat_workspace_list_failed',
-          message: 'Failed to list workspaces from the chat provider.'
+          message: 'Failed to list workspaces from the chat provider.',
+          invocation: {
+            operation: 'workspace.list',
+            chatInstanceProvider: d.chatInstanceProvider
+          }
         });
 
         let upserted = await chatWorkspaceInternalService.upsertChatWorkspaces({
@@ -153,7 +157,11 @@ class chatWorkspaceServiceImpl {
     let got = await d.client.call('metorial_chat$workspace.get', { workspaceId });
     let workspace = unwrapChatCall(got, {
       code: 'chat_workspace_get_failed',
-      message: 'Failed to load the workspace from the chat provider.'
+      message: 'Failed to load the workspace from the chat provider.',
+      invocation: {
+        operation: 'workspace.get',
+        chatInstanceProvider: d.chatInstanceProvider
+      }
     });
 
     let upserted = await chatWorkspaceInternalService.upsertChatWorkspace({
