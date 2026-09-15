@@ -11,6 +11,7 @@ import {
 import { resolveChatEventPayload } from '../lib/resolveChatEventPayload';
 
 export let chatEventInclude = {
+  chatConnection: true,
   chat: true,
   channel: true,
   thread: true,

@@ -9,6 +9,7 @@ import {
   type Environment,
   getId,
   type IntegrationInstance,
+  Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -32,7 +33,9 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { chatInstancePresenter } from '@metorial/presenters';
 import { chatEventInternalService } from '../internal/chatEvent';
+import { chatEventPresenterContext } from '../internal/chatEventPayload';
 import { archiveChatsWhere } from '../lib/chatLifecycle';
 import { upsertChatInstanceProjection } from '../lib/project';
 import {
@@ -46,6 +49,10 @@ export let chatInstanceInclude = {
   adapterIntegrationInstance: true,
   providers: { where: { status: 'active' }, take: 1, include: { author: true } }
 } as const;
+
+export type ChatInstanceWithRelations = Prisma.ChatInstanceGetPayload<{
+  include: typeof chatInstanceInclude;
+}>;
 
 export type ListChatInstancesParams = {
   search?: string;
@@ -94,7 +101,7 @@ export type ArchiveChatInstanceParams = {
 
 class chatInstanceServiceImpl {
   private async recordInstanceEvent(
-    chatInstance: ChatInstance,
+    chatInstance: ChatInstanceWithRelations,
     type: 'chat.instance.created' | 'chat.instance.updated' | 'chat.instance.archived'
   ) {
     await chatEventInternalService.recordLifecycleEvent({
@@ -107,11 +114,9 @@ class chatInstanceServiceImpl {
       chatConnectionOid: chatInstance.chatConnectionOid,
       chatInstanceOid: chatInstance.oid,
       payload: {
-        chatInstance: {
-          id: chatInstance.id,
-          name: chatInstance.name,
-          status: chatInstance.status
-        }
+        chatInstance: await chatInstancePresenter
+          .present({ chatInstance })(chatEventPresenterContext)
+          .run()
       }
     });
   }

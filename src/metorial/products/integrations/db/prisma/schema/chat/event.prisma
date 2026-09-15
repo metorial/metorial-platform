@@ -7,14 +7,12 @@ model ChatEvent {
   source          CallbackEventSource
   providerEventId String?
 
-  // Set for internally-recorded events (invocation failures, retried attempts) so a dashboard
-  // view can correlate every event produced by the same outbound provider-call attempt.
-  invocationId String?
+  sessionMessageOid BigInt?
+  sessionMessage    SessionMessage? @relation(fields: [sessionMessageOid], references: [oid], onDelete: SetNull)
 
-  // Only inbound provider events are guaranteed to have a resolved Chat -- a resource-lifecycle
-  // event (e.g. chat_connection.created) can fire before any Chat exists under that connection.
+  // Only inbound provider events are guaranteed to have a resolved Chat
   chatOid BigInt?
-  chat    Chat?  @relation(fields: [chatOid], references: [oid], onDelete: SetNull)
+  chat    Chat?   @relation(fields: [chatOid], references: [oid], onDelete: SetNull)
 
   chatConnectionOid BigInt
   chatConnection    ChatConnection @relation(fields: [chatConnectionOid], references: [oid], onDelete: Cascade)
@@ -76,7 +74,7 @@ model ChatEvent {
   @@index([chatInstanceProviderOid, occurredAt], map: "chevt_ciip_occurred_idx")
   @@index([chatConnectionOid, occurredAt])
   @@index([type, occurredAt])
-  @@index([invocationId])
+  @@index([sessionMessageOid])
   @@index([tenantOid, solutionOid, environmentOid, occurredAt], map: "chevt_scope_occurred_idx")
   @@index([createdAt, id])
   @@index([projectOid])

@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import { type ChannelType, type ChatAdapterInstance } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
+  type ChatAuthor,
   type ChatChannel,
   type ChatChannelType,
   type ChatInstanceProvider,
@@ -28,6 +29,7 @@ export type ChatWithProvider = Chat & {
 export type ChatChannelWithChat = ChatChannel & {
   chat: Chat;
   workspace: ChatWorkspace | null;
+  recipient: ChatAuthor | null;
 };
 
 export type ListChatChannelsParams = {
@@ -35,6 +37,7 @@ export type ListChatChannelsParams = {
   workspaceId?: string;
   type?: ChannelType;
   search?: string;
+  hasAccess?: boolean;
 };
 
 export type GetChatChannelParams = {
@@ -113,7 +116,7 @@ class chatChannelServiceImpl {
         });
 
         return {
-          items: upserted,
+          items: upserted.filter(channel => channel.hasAccess === (d.hasAccess ?? true)),
           nextCursor: listing.nextCursor,
           prevCursor: listing.prevCursor
         };
@@ -143,6 +146,7 @@ class chatChannelServiceImpl {
           ...opts,
           where: {
             chatOid: d.chat.oid,
+            hasAccess: d.hasAccess ?? true,
             ...(workspaceOid !== undefined ? { workspaceOid } : {}),
             ...(d.type ? { type: d.type as ChatChannelType } : {}),
             ...(search
@@ -155,7 +159,7 @@ class chatChannelServiceImpl {
                 }
               : {})
           },
-          include: { chat: true, workspace: true }
+          include: { chat: true, workspace: true, recipient: true }
         });
       })
     );
@@ -224,7 +228,7 @@ class chatChannelServiceImpl {
         chatOid: d.chat.oid,
         OR: [{ id: d.channelId }, { channelId: d.channelId }]
       },
-      include: { chat: true, workspace: true }
+      include: { chat: true, workspace: true, recipient: true }
     });
 
     return requireLocalChatEntity('chatChannel', d.channelId, local);

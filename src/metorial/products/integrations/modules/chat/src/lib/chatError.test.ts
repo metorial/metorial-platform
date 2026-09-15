@@ -1,5 +1,13 @@
 import { chatError, wrapChatError } from '@slates/adapter-chat';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+let { recordInvocationFailedEvent } = vi.hoisted(() => ({
+  recordInvocationFailedEvent: vi.fn()
+}));
+
+vi.mock('../internal/chatEvent', () => ({
+  chatEventInternalService: { recordInvocationFailedEvent }
+}));
 import {
   chatCallErrorToServiceError,
   describeChatFailure,
@@ -111,6 +119,41 @@ describe('unwrapChatCall', () => {
     } catch (error: any) {
       expect(error.data.status).toBe(403);
     }
+  });
+
+  it('records the real session message for invocation failures', async () => {
+    let result = {
+      ...failure(chatError('chat.provider.unavailable')),
+      message: { oid: BigInt(71), id: 'smg_1' }
+    };
+
+    expect(() =>
+      unwrapChatCall(result, {
+        invocation: {
+          operation: 'message.send',
+          chatInstanceProvider: {
+            oid: BigInt(1),
+            chatConnectionOid: BigInt(2),
+            chatInstanceOid: BigInt(3),
+            tenantOid: BigInt(4),
+            projectOid: BigInt(5),
+            environmentOid: BigInt(6),
+            instanceOid: BigInt(7),
+            solutionOid: 8
+          },
+          chat: { oid: BigInt(9) }
+        }
+      })
+    ).toThrow();
+
+    await vi.waitFor(() =>
+      expect(recordInvocationFailedEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionMessageOid: BigInt(71),
+          operation: 'message.send'
+        })
+      )
+    );
   });
 });
 

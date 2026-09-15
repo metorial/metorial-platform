@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import { type Channel } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
+  type ChatAuthor,
   type ChatChannel,
   type ChatChannelType,
   type ChatInstanceProvider,
@@ -12,6 +13,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { isUniqueConstraintError } from '../lib/unique';
+import { chatAuthorServiceInternal } from './chatAuthor';
 
 export type ChatWithProvider = Chat & {
   chatInstanceProvider: ChatInstanceProvider;
@@ -20,21 +22,28 @@ export type ChatWithProvider = Chat & {
 export type ChatChannelWithChat = ChatChannel & {
   chat: Chat;
   workspace: ChatWorkspace | null;
+  recipient: ChatAuthor | null;
 };
 
 class chatChannelServiceInternalImpl {
-  private channelPayload(channel: Channel, workspaceOid: bigint | null) {
+  private channelPayload(
+    channel: Channel,
+    workspaceOid: bigint | null,
+    recipientOid: bigint | null
+  ) {
     return {
       type: channel.type as ChatChannelType,
       providerType: channel.providerType?.trim() || channel.type,
       name: channel.name?.trim() || null,
       topic: channel.topic?.trim() || null,
       subject: channel.subject?.trim() || null,
+      hasAccess: channel.hasAccess ?? true,
       memberCount: channel.memberCount ?? null,
       context: (channel.context as any) ?? null,
       permalink: channel.permalink?.trim() || null,
       raw: (channel.raw as any) ?? {},
-      workspaceOid
+      workspaceOid,
+      recipientOid
     };
   }
 
@@ -51,11 +60,22 @@ class chatChannelServiceInternalImpl {
     let run = () =>
       withTransaction(
         async db => {
+          let recipients = await chatAuthorServiceInternal.upsertChatAuthors({
+            chat: d.chat,
+            authors: d.channels.flatMap(channel =>
+              channel.recipient ? [channel.recipient] : []
+            )
+          });
+          let recipientByUserId = new Map(
+            recipients.map(recipient => [recipient.userId, recipient])
+          );
+
           let existing = await db.chatChannel.findMany({
             where: {
               chatOid: d.chat.oid,
               channelId: { in: d.channels.map(channel => channel.id) }
-            }
+            },
+            include: { recipient: true }
           });
           let existingByRemoteId = new Map(
             existing.map(channel => [channel.channelId, channel])
@@ -89,7 +109,10 @@ class chatChannelServiceInternalImpl {
               ? (workspaceOidByRemoteId.get(channel.workspaceId) ?? null)
               : null;
             let workspace = workspaceOid ? (workspaceByOid.get(workspaceOid) ?? null) : null;
-            let payload = this.channelPayload(channel, workspaceOid);
+            let recipient = channel.recipient
+              ? (recipientByUserId.get(channel.recipient.userId) ?? null)
+              : null;
+            let payload = this.channelPayload(channel, workspaceOid, recipient?.oid ?? null);
             let syncHash = await this.hashChannelSync(payload);
 
             if (!current) {
@@ -102,7 +125,12 @@ class chatChannelServiceInternalImpl {
                   chatOid: d.chat.oid
                 }
               });
-              results.set(channel.id, { ...created, chat: d.chat, workspace });
+              results.set(channel.id, {
+                ...created,
+                chat: d.chat,
+                workspace,
+                recipient
+              });
               continue;
             }
 
@@ -110,10 +138,16 @@ class chatChannelServiceInternalImpl {
             if (current.syncHash !== syncHash) {
               localChannel = await db.chatChannel.update({
                 where: { oid: current.oid },
-                data: { ...payload, syncHash }
+                data: { ...payload, syncHash },
+                include: { recipient: true }
               });
             }
-            results.set(channel.id, { ...localChannel, chat: d.chat, workspace });
+            results.set(channel.id, {
+              ...localChannel,
+              chat: d.chat,
+              workspace,
+              recipient
+            });
           }
 
           return d.channels.map(channel => results.get(channel.id)!);

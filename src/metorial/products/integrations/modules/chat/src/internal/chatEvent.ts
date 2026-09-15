@@ -178,7 +178,7 @@ class chatEventInternalServiceImpl {
   }
 
   async recordInvocationFailedEvent(d: {
-    invocationId: string;
+    sessionMessageOid: bigint;
     operation: string;
     error: { code: string; message: string; [key: string]: unknown };
     tenantOid: bigint;
@@ -200,7 +200,7 @@ class chatEventInternalServiceImpl {
 
   private async insertChatEvent(d: {
     type: string;
-    invocationId?: string | null;
+    sessionMessageOid?: bigint | null;
     payload: Record<string, any>;
     tenantOid: bigint;
     projectOid: bigint;
@@ -220,7 +220,7 @@ class chatEventInternalServiceImpl {
             ...getId('chatEvent'),
             type: d.type,
             source: 'internal',
-            invocationId: d.invocationId ?? null,
+            sessionMessageOid: d.sessionMessageOid ?? null,
             chatConnectionOid: d.chatConnectionOid,
             chatInstanceOid: d.chatInstanceOid ?? null,
             chatInstanceProviderOid: d.chatInstanceProviderOid ?? null,

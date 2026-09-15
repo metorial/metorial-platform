@@ -8,6 +8,7 @@ import {
   type Environment,
   getId,
   type Integration,
+  Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -32,7 +33,9 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { chatConnectionPresenter } from '@metorial/presenters';
 import { chatEventInternalService } from '../internal/chatEvent';
+import { chatEventPresenterContext } from '../internal/chatEventPayload';
 import {
   archiveChatConnectionProjection,
   getSlug,
@@ -65,6 +68,10 @@ export let chatConnectionInclude = {
     }
   }
 } as const;
+
+export type ChatConnectionWithRelations = Prisma.ChatConnectionGetPayload<{
+  include: typeof chatConnectionInclude;
+}>;
 
 export type ListChatConnectionsParams = {
   search?: string;
@@ -128,7 +135,7 @@ export type ArchiveChatConnectionParams = {
 
 class chatConnectionServiceImpl {
   private async recordConnectionEvent(
-    chatConnection: ChatConnection,
+    chatConnection: ChatConnectionWithRelations,
     type: 'chat.connection.created' | 'chat.connection.updated' | 'chat.connection.archived'
   ) {
     await chatEventInternalService.recordLifecycleEvent({
@@ -140,11 +147,9 @@ class chatConnectionServiceImpl {
       solutionOid: chatConnection.solutionOid,
       chatConnectionOid: chatConnection.oid,
       payload: {
-        chatConnection: {
-          id: chatConnection.id,
-          name: chatConnection.name,
-          status: chatConnection.status
-        }
+        chatConnection: await chatConnectionPresenter
+          .present({ chatConnection })(chatEventPresenterContext)
+          .run()
       }
     });
   }

@@ -73,8 +73,6 @@ export type ChatInvocationContext = {
 export interface ChatCallErrorOptions {
   code?: string;
   message?: string;
-  // When set, a call failure is recorded as a `chat.invocation.failed` ChatEvent (dashboard-visible,
-  // deliberately never mirrored into SystemEvent -- see chatEventInternalService.recordInvocationFailedEvent).
   invocation?: ChatInvocationContext;
 }
 
@@ -122,9 +120,11 @@ export let unwrapChatCall = <Output>(
   if (result.result.type === 'success') return result.result.output;
 
   if (options.invocation) {
-    // Fire-and-forget: recording the failure must never block on, or be able to mask, the real
-    // error being thrown below.
-    void recordChatInvocationFailure(options.invocation, result.result.output);
+    void recordChatInvocationFailure(
+      options.invocation,
+      result.message.oid,
+      result.result.output
+    );
   }
 
   throw chatCallErrorToServiceError(result.result.output, options);
@@ -132,18 +132,14 @@ export let unwrapChatCall = <Output>(
 
 let recordChatInvocationFailure = async (
   invocation: ChatInvocationContext,
+  sessionMessageOid: bigint,
   output: AdapterCallFailureOutput | unknown
 ) => {
   try {
-    // Imported lazily so that merely importing this lib file (e.g. from a focused unit test that
-    // never triggers a failure) doesn't drag in the chat module's full internal service graph.
-    let [{ chatEventInternalService }, { ID }] = await Promise.all([
-      import('../internal/chatEvent'),
-      import('@metorial-subspace/db')
-    ]);
+    let { chatEventInternalService } = await import('../internal/chatEvent');
 
     await chatEventInternalService.recordInvocationFailedEvent({
-      invocationId: ID.generateIdSync('chatInvocation'),
+      sessionMessageOid,
       operation: invocation.operation,
       error: describeChatFailure(output),
       tenantOid: invocation.chatInstanceProvider.tenantOid,
@@ -182,8 +178,7 @@ export let describeChatFailure = (output: AdapterCallFailureOutput | unknown) =>
   if (!parsed) return { code: 'unknown', message: 'Unknown chat adapter failure' };
 
   return {
-    code: parsed.chat?.code ?? parsed.slate.code,
-    slateCode: parsed.slate.code,
+    code: parsed.slate.code ?? parsed.chat?.code,
     message: parsed.slate.message,
     status: parsed.slate.status,
     retryable: isChatErrorRetryable(output),

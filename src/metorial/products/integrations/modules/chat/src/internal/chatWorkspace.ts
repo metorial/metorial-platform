@@ -11,8 +11,11 @@ import {
   getId,
   withTransaction
 } from '@metorial-subspace/db';
+import { chatPresenter, chatWorkspacePresenter } from '@metorial/presenters';
 import { isUniqueConstraintError } from '../lib/unique';
+import { chatInclude } from '../services/chat';
 import { chatEventInternalService } from './chatEvent';
+import { chatEventPresenterContext } from './chatEventPayload';
 
 export type UpsertChatWorkspaceParams = {
   chatInstanceProvider: ChatInstanceProvider;
@@ -211,21 +214,32 @@ class chatWorkspaceInternalServiceImpl {
       chatOid: d.chat.oid
     };
 
+    // The event payload needs the same relations the public chat/workspace presenters need
+    // (chatConnection, chatInstance, provider, ...) -- neither the just-written Chat nor
+    // ChatWorkspace row carries them, so hydrate once via withTransaction so it joins the
+    // ambient transaction if one is active.
+    let hydratedChat = await withTransaction(
+      db => db.chat.findUniqueOrThrow({ where: { oid: d.chat.oid }, include: chatInclude }),
+      { ifExists: true }
+    );
+
     await chatEventInternalService.recordLifecycleEvent({
       ...scope,
       type: d.isNew ? 'chat.created' : 'chat.updated',
-      payload: { chat: { id: d.chat.id, name: d.chat.name, status: d.chat.status } }
+      payload: {
+        chat: await chatPresenter.present({ chat: hydratedChat })(chatEventPresenterContext).run()
+      }
     });
 
     await chatEventInternalService.recordLifecycleEvent({
       ...scope,
       type: d.isNew ? 'chat.workspace.created' : 'chat.workspace.updated',
       payload: {
-        chatWorkspace: {
-          id: d.workspace.id,
-          name: d.workspace.name,
-          workspaceId: d.workspace.workspaceId
-        }
+        chatWorkspace: await chatWorkspacePresenter
+          .present({ chatWorkspace: { ...d.workspace, chat: hydratedChat } })(
+            chatEventPresenterContext
+          )
+          .run()
       }
     });
   }

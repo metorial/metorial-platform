@@ -39,6 +39,7 @@ model ChatAuthor {
 
   chatMessages ChatMessage[]
   chatEvents   ChatEvent[]
+  recipientChannels ChatChannel[]
 
   chatInstanceProviders ChatInstanceProvider[]
 

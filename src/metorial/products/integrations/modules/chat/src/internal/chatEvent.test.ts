@@ -59,7 +59,8 @@ vi.mock('@metorial-subspace/adapter-chat', () => ({
 
 vi.mock('@metorial-subspace/db', () => ({
   db,
-  getId: (model: string) => ({ id: `${model}_new`, oid: BigInt(800) })
+  getId: (model: string) => ({ id: `${model}_new`, oid: BigInt(800) }),
+  withTransaction: async (fn: (db: any) => Promise<any>) => await fn(db)
 }));
 
 vi.mock('@metorial/db', () => ({ db: metorialDb }));
@@ -276,5 +277,39 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
     await chatEventInternalService.ingestCallbackEvent({ callbackEventId: 'cbe_gone' });
 
     expect(db.chatInstanceProvider.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('chatEventInternalService.recordInvocationFailedEvent', () => {
+  it('links the failure to the provider session message', async () => {
+    db.chatEvent.create.mockResolvedValue({ id: 'che_1' });
+
+    await chatEventInternalService.recordInvocationFailedEvent({
+      sessionMessageOid: BigInt(700),
+      operation: 'message.send',
+      error: { code: 'chat.provider.error', message: 'Provider call failed' },
+      tenantOid: provider.tenantOid,
+      projectOid: provider.projectOid,
+      environmentOid: provider.environmentOid,
+      instanceOid: provider.instanceOid,
+      solutionOid: provider.solutionOid,
+      chatConnectionOid: provider.chatConnectionOid,
+      chatInstanceOid: provider.chatInstanceOid,
+      chatInstanceProviderOid: provider.oid,
+      chatOid: chat.oid
+    });
+
+    expect(db.chatEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: 'chat.invocation.failed',
+        source: 'internal',
+        sessionMessageOid: BigInt(700),
+        payload: {
+          operation: 'message.send',
+          error: { code: 'chat.provider.error', message: 'Provider call failed' }
+        }
+      })
+    });
+    expect(db.chatEvent.create.mock.calls[0]![0].data).not.toHaveProperty('invocationId');
   });
 });

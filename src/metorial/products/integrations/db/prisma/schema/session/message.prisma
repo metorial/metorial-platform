@@ -110,6 +110,7 @@ model SessionMessage {
   completedAt DateTime?
 
   sessionEvents    SessionEvent[]
+  chatEvents       ChatEvent[]
   providerTool     ProviderTool?     @relation(fields: [providerToolOid], references: [oid])
   providerToolOid  BigInt?
   toolCall         ToolCall?

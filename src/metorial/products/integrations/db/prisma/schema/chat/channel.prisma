@@ -47,6 +47,7 @@ model ChatChannel {
   name      String?
   topic     String?
   subject   String?
+  hasAccess Boolean @default(true)
 
   memberCount Int?
 
@@ -63,6 +64,9 @@ model ChatChannel {
 
   workspaceOid BigInt?
   workspace    ChatWorkspace? @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+
+  recipientOid BigInt?
+  recipient    ChatAuthor? @relation(fields: [recipientOid], references: [oid], onDelete: SetNull)
 
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @default(now()) @updatedAt

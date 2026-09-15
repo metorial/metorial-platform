@@ -16,7 +16,7 @@ import {
 } from '@metorial/presenters';
 import { chatMessageAttachmentInternalService } from './chatMessageAttachment';
 
-let presenterContext: PresenterContext = {
+export let chatEventPresenterContext: PresenterContext = {
   apiVersion: 'mt_2026_01_01_magnetar',
   accessType: 'event_system'
 };
@@ -35,11 +35,14 @@ class chatEventPayloadServiceInternalImpl {
       let workspace = d.channel.workspaceOid
         ? await db.chatWorkspace.findUnique({ where: { oid: d.channel.workspaceOid } })
         : null;
+      let recipient = d.channel.recipientOid
+        ? await db.chatAuthor.findUnique({ where: { oid: d.channel.recipientOid } })
+        : null;
 
       payload.channel = await chatChannelPresenter
         .present({
-          chatChannel: { ...d.channel, chat: d.chat, workspace }
-        })(presenterContext)
+          chatChannel: { ...d.channel, chat: d.chat, workspace, recipient }
+        })(chatEventPresenterContext)
         .run();
     }
 
@@ -47,7 +50,7 @@ class chatEventPayloadServiceInternalImpl {
       payload.thread = await chatThreadPresenter
         .present({
           chatThread: { ...d.thread, chat: d.chat, channel: d.channel }
-        })(presenterContext)
+        })(chatEventPresenterContext)
         .run();
     }
 
@@ -77,7 +80,7 @@ class chatEventPayloadServiceInternalImpl {
             author: messageAuthor,
             attachments
           }
-        })(presenterContext)
+        })(chatEventPresenterContext)
         .run();
     }
 
@@ -85,7 +88,7 @@ class chatEventPayloadServiceInternalImpl {
       payload.author = await chatAuthorPresenter
         .present({
           chatAuthor: { ...d.author, chat: d.chat }
-        })(presenterContext)
+        })(chatEventPresenterContext)
         .run();
     }
 
