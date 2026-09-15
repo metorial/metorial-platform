@@ -141,6 +141,7 @@ export type IntegrationsListOutput = {
               description: string | null;
             }[]
           | null;
+        adapters: string[] | null;
         providerId: string;
         providerSpecificationId: string;
         createdAt: Date;
@@ -498,6 +499,10 @@ export let mapIntegrationsListOutput = mtMap.object<IntegrationsListOutput>({
                         )
                       })
                     )
+                  ),
+                  adapters: mtMap.objectField(
+                    'adapters',
+                    mtMap.array(mtMap.passthrough())
                   ),
                   providerId: mtMap.objectField(
                     'provider_id',

@@ -651,6 +651,7 @@ export type DashboardInstanceProviderListingsListQuery = {
         supportsAuthImport?: boolean | undefined;
       }
     | undefined;
+  adapter?: string | string[] | undefined;
   isPublic?: boolean | undefined;
   onlyFromTenant?: boolean | undefined;
   isVerified?: boolean | undefined;
@@ -775,6 +776,16 @@ export let mapDashboardInstanceProviderListingsListQuery = mtMap.union([
             mtMap.passthrough()
           )
         })
+      ),
+      adapter: mtMap.objectField(
+        'adapter',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
       ),
       isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
       onlyFromTenant: mtMap.objectField(

@@ -3,6 +3,8 @@ export * from './assistants';
 export * from './callback-events';
 export * from './callback-instances';
 export * from './callbacks';
+export * from './chat';
+export * from './chats';
 export * from './consumer-surfaces';
 export * from './consumers';
 export * from './conversations';

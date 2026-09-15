@@ -14,10 +14,11 @@ export type ManagementOrganizationEventDestinationsCreateOutput = {
     id: string;
     instanceId: string;
     eventDestinationId: string;
-    type: 'event' | 'callback';
+    type: 'event' | 'callback' | 'chat';
     eventTypes: string[] | null;
     callbackId: string | null;
     triggers: string[] | null;
+    chatIntegrationId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -63,6 +64,10 @@ export let mapManagementOrganizationEventDestinationsCreateOutput =
           triggers: mtMap.objectField(
             'triggers',
             mtMap.array(mtMap.passthrough())
+          ),
+          chatIntegrationId: mtMap.objectField(
+            'chat_integration_id',
+            mtMap.passthrough()
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())

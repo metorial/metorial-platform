@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Event destination listeners controller
- * @description Event destination listeners subscribe an event destination to events for a specific instance — either generic resource events, or a callback's trigger events.
+ * @description Event destination listeners subscribe an event destination to events for a specific instance — generic resource events, a callback's trigger events, or a chat integration's events.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -110,7 +110,7 @@ export class MetorialManagementOrganizationEventDestinationListenersEndpoint {
 
   /**
    * @name Create event destination listener
-   * @description Subscribes an event destination to events for this instance — either generic resource events or a callback's trigger events.
+   * @description Subscribes an event destination to events for this instance — generic resource events, a callback's trigger events, or a chat integration's events.
    *
    * @param `body` - DashboardOrganizationsEventDestinationListenersCreateBody
    * @param `opts` - { headers?: Record<string, string> }

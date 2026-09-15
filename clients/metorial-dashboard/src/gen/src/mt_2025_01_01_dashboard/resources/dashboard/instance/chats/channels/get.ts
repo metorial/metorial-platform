@@ -1,0 +1,92 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type DashboardInstanceChatsChannelsGetOutput = {
+  object: 'chat.channel';
+  id: string;
+  chatId: string;
+  workspaceId: string | null;
+  type:
+    | 'public'
+    | 'private'
+    | 'dm'
+    | 'group_dm'
+    | 'shared'
+    | 'announcement'
+    | 'forum'
+    | 'unknown';
+  providerType: string;
+  providerChannelId: string;
+  name: string | null;
+  topic: string | null;
+  subject: string | null;
+  memberCount: number | null;
+  permalink: string | null;
+  context: {
+    type:
+      | 'issue'
+      | 'pull_request'
+      | 'review'
+      | 'page'
+      | 'ticket'
+      | 'post'
+      | 'unknown';
+    id: string;
+    description?: string | undefined;
+    status?: string | undefined;
+    url?: string | undefined;
+    author?: { id: string; name: string } | undefined;
+    assignee?: { id: string; name: string } | undefined;
+    labels?: string[] | undefined;
+  } | null;
+  createdAt: Date;
+  updatedAt: Date;
+  lastInteractionAt: Date | null;
+};
+
+export let mapDashboardInstanceChatsChannelsGetOutput =
+  mtMap.object<DashboardInstanceChatsChannelsGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
+    chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
+    workspaceId: mtMap.objectField('workspace_id', mtMap.passthrough()),
+    type: mtMap.objectField('type', mtMap.passthrough()),
+    providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
+    providerChannelId: mtMap.objectField(
+      'provider_channel_id',
+      mtMap.passthrough()
+    ),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    topic: mtMap.objectField('topic', mtMap.passthrough()),
+    subject: mtMap.objectField('subject', mtMap.passthrough()),
+    memberCount: mtMap.objectField('member_count', mtMap.passthrough()),
+    permalink: mtMap.objectField('permalink', mtMap.passthrough()),
+    context: mtMap.objectField(
+      'context',
+      mtMap.object({
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
+        url: mtMap.objectField('url', mtMap.passthrough()),
+        author: mtMap.objectField(
+          'author',
+          mtMap.object({
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough())
+          })
+        ),
+        assignee: mtMap.objectField(
+          'assignee',
+          mtMap.object({
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough())
+          })
+        ),
+        labels: mtMap.objectField('labels', mtMap.array(mtMap.passthrough()))
+      })
+    ),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+    lastInteractionAt: mtMap.objectField('last_interaction_at', mtMap.date())
+  });
+

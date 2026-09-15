@@ -327,6 +327,7 @@ export type ManagementInstanceFilesListQuery = {
     | 'skill_image'
     | 'skill_export'
     | 'generic'
+    | 'chat_message_attachment'
     | (
         | 'user_image'
         | 'organization_image'
@@ -334,6 +335,7 @@ export type ManagementInstanceFilesListQuery = {
         | 'skill_image'
         | 'skill_export'
         | 'generic'
+        | 'chat_message_attachment'
       )[]
     | undefined;
   storeId?: string | string[] | undefined;
