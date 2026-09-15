@@ -1,8 +1,12 @@
 import { CodeEditor } from '@metorial/code-editor';
 import { useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { Markdown } from '@metorial/markdown';
 import {
   useCreateWebhookRegistration,
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
   useDeleteWebhookRegistration,
   useSetupWebhookRegistration,
   useWebhookRegistrations,
@@ -323,6 +327,9 @@ let showWebhookRegistrationSetupPanel = (p: {
 
 type WebhookRegistrationsTableProps = {
   instanceId: string;
+  organization: ReturnType<typeof useCurrentOrganization>;
+  project: ReturnType<typeof useCurrentProject>;
+  instance: ReturnType<typeof useCurrentInstance>;
 };
 
 let useWebhookRegistrationsTableState: TableStateProvider<
@@ -443,18 +450,14 @@ let webhookRegistrationsTable = new DashboardTable<
       type: 'string'
     }
   ])
-  .clickable(((
-    registration: WebhookRegistrationPreview,
-    props: WebhookRegistrationsTableProps
-  ) => {
-    if (registration.status === 'active') return;
-
-    showWebhookRegistrationSetupPanel({
-      instanceId: props.instanceId,
-      registration,
-      onComplete: () => {}
-    });
-  }) as any)
+  .link((registration, props) =>
+    Paths.instance.webhookRegistration(
+      props.organization.data,
+      props.project.data,
+      props.instance.data,
+      registration.id
+    )
+  )
   .actions({
     setup: async (registrations, state) => {
       let registration = registrations[0];
@@ -501,26 +504,34 @@ let webhookRegistrationsTable = new DashboardTable<
   ])
   .build();
 
-export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) =>
-  webhookRegistrationsTable({
+export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) => {
+  let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+
+  return webhookRegistrationsTable({
     instanceId,
+    instance,
+    organization,
+    project,
     emptyState:
       'No webhook receivers yet. Create one to get a Metorial URL you can point a provider at.'
   });
+};
 
 export let CreateWebhookRegistrationButton = ({
   instanceId,
   onCreate
 }: {
   instanceId: string;
-  onCreate?: () => void;
+  onCreate?: (created: { id: string }) => void;
 }) => (
   <Button
     size="2"
     onClick={() =>
       showCreateWebhookRegistrationModal({
         instanceId,
-        onCreate: () => onCreate?.()
+        onCreate: created => onCreate?.(created)
       })
     }
   >

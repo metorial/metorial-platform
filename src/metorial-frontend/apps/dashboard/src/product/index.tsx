@@ -333,12 +333,24 @@ let CallbackEventErrorsPage = dynamicPage(() =>
     c => c.CallbackEventErrorsPage
   )
 );
-let IncomingWebhooksPage = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/incoming-webhooks').then(c => c.IncomingWebhooksPage)
+let WebhookRegistrationLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/webhook-registration/_layout').then(
+    c => c.WebhookRegistrationLayout
+  )
 );
-let IncomingWebhookErrorsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/incoming-webhook-errors').then(
-    c => c.IncomingWebhookErrorsPage
+let WebhookRegistrationOverviewPage = dynamicPage(() =>
+  import('./pages/(callbacks)/webhook-registration').then(
+    c => c.WebhookRegistrationOverviewPage
+  )
+);
+let WebhookRegistrationEventsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/webhook-registration/events').then(
+    c => c.WebhookRegistrationEventsPage
+  )
+);
+let WebhookRegistrationSettingsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/webhook-registration/settings').then(
+    c => c.WebhookRegistrationSettingsPage
   )
 );
 let CallbackLayout = dynamicPage(() =>
@@ -1081,14 +1093,6 @@ export let productCallbacksSlice = createSlice([
               {
                 path: 'callback-event-errors',
                 element: <CallbackEventErrorsPage />
-              },
-              {
-                path: 'incoming-webhooks',
-                element: <IncomingWebhooksPage />
-              },
-              {
-                path: 'incoming-webhook-errors',
-                element: <IncomingWebhookErrorsPage />
               }
             ]
           },
@@ -1131,6 +1135,29 @@ export let productCallbacksSlice = createSlice([
               {
                 path: '',
                 element: <CallbackEventPage />
+              }
+            ]
+          },
+
+          {
+            path: 'webhook-registration/:webhookRegistrationId',
+            element: (
+              <FlaggedPage flag="callbacks-enabled">
+                <WebhookRegistrationLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <WebhookRegistrationOverviewPage />
+              },
+              {
+                path: 'events',
+                element: <WebhookRegistrationEventsPage />
+              },
+              {
+                path: 'settings',
+                element: <WebhookRegistrationSettingsPage />
               }
             ]
           },

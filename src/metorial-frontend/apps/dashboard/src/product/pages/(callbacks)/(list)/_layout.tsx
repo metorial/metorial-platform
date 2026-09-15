@@ -72,7 +72,7 @@ export let CallbackLogsListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Callback Logs"
-        description="Inspect the provider events Metorial recorded, the raw webhooks it received, and everything that failed along the way."
+        description="Inspect the provider events Metorial recorded and everything that failed along the way."
       />
 
       <LinkTabs
@@ -85,14 +85,6 @@ export let CallbackLogsListLayout = () => {
           {
             label: 'Event Errors',
             to: Paths.instance.callbackEventErrors(...params)
-          },
-          {
-            label: 'Incoming Webhooks',
-            to: Paths.instance.incomingWebhooks(...params)
-          },
-          {
-            label: 'Webhook Errors',
-            to: Paths.instance.incomingWebhookErrors(...params)
           }
         ]}
       />

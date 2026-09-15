@@ -106,8 +106,6 @@ export let INCOMING_WEBHOOK_STATUS_LABELS: Record<string, string> = {
 export let getIncomingWebhookStatusLabel = (status: string) =>
   INCOMING_WEBHOOK_STATUS_LABELS[status] ?? status;
 
-export let INCOMING_WEBHOOK_ERROR_STATUSES = ['failed_retrying', 'failed_final'] as const;
-
 export let getWebhookRegistrationStatusColor = (
   status: 'awaiting_setup' | 'active' | 'archived' | 'deleted'
 ) => {

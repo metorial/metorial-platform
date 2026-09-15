@@ -1,11 +1,16 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import { useProvider, useWebhookRegistrations } from '@metorial/state';
+import { Paths } from '@metorial/frontend-config';
+import {
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
+  useProvider,
+  useWebhookRegistrations
+} from '@metorial/state';
 import { Badge, Callout, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
-import {
-  CreateWebhookRegistrationButton,
-  showWebhookRegistrationSetup
-} from './webhookRegistrationsTable';
+import { useNavigate } from 'react-router-dom';
+import { CreateWebhookRegistrationButton } from './webhookRegistrationsTable';
 import {
   getWebhookRegistrationStatusColor,
   WEBHOOK_REGISTRATION_STATUS_LABELS
@@ -18,7 +23,23 @@ let CallbackWebhookRegistrationsTable = ({
   instanceId: string;
   providerId: string;
 }) => {
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let instance = useCurrentInstance();
+  let navigate = useNavigate();
   let registrations = useWebhookRegistrations(instanceId, { order: 'desc', providerId });
+
+  let onCreate = (created: { id: string }) => {
+    registrations.refetch();
+    navigate(
+      Paths.instance.webhookRegistration(
+        organization.data,
+        project.data,
+        instance.data,
+        created.id
+      )
+    );
+  };
 
   return (
     <>
@@ -27,10 +48,7 @@ let CallbackWebhookRegistrationsTable = ({
         description="This provider needs a receiver registered in its own dashboard before it can deliver events."
         rightActions={
           registrations.data?.items.length ? (
-            <CreateWebhookRegistrationButton
-              instanceId={instanceId}
-              onCreate={() => registrations.refetch()}
-            />
+            <CreateWebhookRegistrationButton instanceId={instanceId} onCreate={onCreate} />
           ) : undefined
         }
       >
@@ -45,10 +63,7 @@ let CallbackWebhookRegistrationsTable = ({
                 </span>
               </Callout>
               <Spacer size={12} />
-              <CreateWebhookRegistrationButton
-                instanceId={instanceId}
-                onCreate={() => registrations.refetch()}
-              />
+              <CreateWebhookRegistrationButton instanceId={instanceId} onCreate={onCreate} />
             </>
           )
         })(registrations => (
@@ -56,6 +71,12 @@ let CallbackWebhookRegistrationsTable = ({
             headers={['Receiver', 'Status', 'Receive URL', 'Created', '']}
             padding={{ sides: '16px' }}
             data={registrations.data.items.map(registration => ({
+              href: Paths.instance.webhookRegistration(
+                organization.data,
+                project.data,
+                instance.data,
+                registration.id
+              ),
               data: [
                 registration.name,
                 <Badge color={getWebhookRegistrationStatusColor(registration.status)}>
@@ -73,16 +94,7 @@ let CallbackWebhookRegistrationsTable = ({
                 ),
                 <RenderDate date={registration.createdAt} />,
                 <ID id={registration.id} />
-              ],
-              onClick:
-                registration.status === 'active'
-                  ? undefined
-                  : () =>
-                      showWebhookRegistrationSetup({
-                        instanceId,
-                        registration,
-                        onComplete: () => registrations.refetch()
-                      })
+              ]
             }))}
           />
         ))}

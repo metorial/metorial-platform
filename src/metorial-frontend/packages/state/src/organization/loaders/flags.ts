@@ -1,16 +1,19 @@
 import { createLoader } from '@metorial/data-hooks';
 import { useCallback, useMemo } from 'react';
 import { withAuth } from '../../user';
-import { useCurrentOrganization } from '../current';
+import { useCurrentOrganization, useCurrentProject } from '../current';
 
 export let flagsLoader = createLoader({
   name: 'flags',
   parents: [],
-  fetch: (i: { organizationIds: string[] }) =>
+  fetch: (i: { organizationIds: string[]; projectId?: string }) =>
     withAuth(sdk =>
       Promise.all(
         i.organizationIds.map(async organizationId => {
-          let r = await sdk.organizations.flags.get(organizationId);
+          let r = await sdk.organizations.flags.get(
+            organizationId,
+            i.projectId ? { projectId: i.projectId } : undefined
+          );
 
           return {
             organizationId,
@@ -24,10 +27,17 @@ export let flagsLoader = createLoader({
 
 export let useDashboardFlags = () => {
   let current = useCurrentOrganization();
+  let project = useCurrentProject();
   let res = flagsLoader.use(
     useMemo(
-      () => (current.data ? { organizationIds: [current.data.id] } : null),
-      [current.data?.id]
+      () =>
+        current.data
+          ? {
+              organizationIds: [current.data.id],
+              projectId: project.data?.id
+            }
+          : null,
+      [current.data?.id, project.data?.id]
     )
   );
 

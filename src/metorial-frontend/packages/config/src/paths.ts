@@ -376,19 +376,6 @@ let InstancePaths = Object.assign(
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'callback-event', id, ...subPages);
     },
-    incomingWebhooks: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'incoming-webhooks', ...subPages),
-    incomingWebhookErrors: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) =>
-      InstancePaths(organization, project, instance, 'incoming-webhook-errors', ...subPages),
     incomingWebhook: (
       organization: EntityParam,
       project: EntityParam,
@@ -412,6 +399,23 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'webhook-registrations', ...subPages),
+    webhookRegistration: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'webhook-registration',
+        id,
+        ...subPages
+      );
+    },
     eventDestinations: (
       organization: EntityParam,
       project: EntityParam,

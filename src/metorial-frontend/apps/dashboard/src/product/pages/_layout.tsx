@@ -175,7 +175,10 @@ export let ProjectPageLayout = () => {
                         label: 'Webhook Receivers',
                         to: Paths.instance.webhookRegistrations(...params),
                         getProps: (i: { pathname: string; to: string }) => ({
-                          isActive: checkPath(i, { exact: true })
+                          isActive:
+                            checkPath(i, { exact: true }) ||
+                            i.pathname.includes('/webhook-registration/') ||
+                            i.pathname.includes('/incoming-webhook/')
                         })
                       },
                       ...(webhooksEnabled
@@ -220,20 +223,6 @@ export let ProjectPageLayout = () => {
                             {
                               label: 'Event Errors',
                               to: Paths.instance.callbackEventErrors(...params),
-                              getProps: (i: { pathname: string; to: string }) => ({
-                                isActive: checkPath(i, { exact: true })
-                              })
-                            },
-                            {
-                              label: 'Incoming Webhooks',
-                              to: Paths.instance.incomingWebhooks(...params),
-                              getProps: (i: { pathname: string; to: string }) => ({
-                                isActive: checkPath(i, { exact: true })
-                              })
-                            },
-                            {
-                              label: 'Webhook Errors',
-                              to: Paths.instance.incomingWebhookErrors(...params),
                               getProps: (i: { pathname: string; to: string }) => ({
                                 isActive: checkPath(i, { exact: true })
                               })

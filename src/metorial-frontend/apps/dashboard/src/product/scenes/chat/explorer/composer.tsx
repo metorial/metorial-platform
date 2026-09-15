@@ -15,16 +15,16 @@ let Wrapper = styled.form`
 
 let Field = styled.div`
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
-  border: 1px solid ${theme.colors.gray400};
+  border: 1px solid ${theme.colors.gray300};
   border-radius: 10px;
   padding: 8px 8px 8px 12px;
   background: ${theme.colors.background};
   transition: border-color 0.15s ease;
 
   &:focus-within {
-    border-color: ${theme.colors.gray600};
+    border-color: ${theme.colors.gray400};
   }
 `;
 
