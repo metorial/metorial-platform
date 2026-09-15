@@ -5,7 +5,9 @@ import {
 
 import {
   mapOrganizationsFlagsGetOutput,
-  type OrganizationsFlagsGetOutput
+  mapOrganizationsFlagsGetQuery,
+  type OrganizationsFlagsGetOutput,
+  type OrganizationsFlagsGetQuery
 } from '../resources';
 
 /**
@@ -40,6 +42,7 @@ export class MetorialOrganizationsFlagsEndpoint {
    * @description Get feature flags for the current organization and user
    *
    * @param `organizationId` - string
+   * @param `query` - OrganizationsFlagsGetQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns OrganizationsFlagsGetOutput
    * @see https://metorial.com/api
@@ -47,6 +50,7 @@ export class MetorialOrganizationsFlagsEndpoint {
    */
   get(
     organizationId: string,
+    query?: OrganizationsFlagsGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<OrganizationsFlagsGetOutput> {
     let path = `dashboard/organizations/${organizationId}/flags`;
@@ -54,6 +58,7 @@ export class MetorialOrganizationsFlagsEndpoint {
     let request = {
       path,
 
+      query: query ? mapOrganizationsFlagsGetQuery.transformTo(query) : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
