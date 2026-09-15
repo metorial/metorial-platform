@@ -154,9 +154,22 @@ type ListProviderAuthConfigsParams = {
   consumerIds?: string[];
   identityIds?: string[];
   identityCredentialIds?: string[];
+  adapter?: string;
 
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
+};
+
+let matchesAdapter = (
+  value: { adapters?: string[] | null } | null | undefined,
+  adapter?: string
+) => {
+  if (!adapter) return true;
+
+  let adapters = value?.adapters;
+  if (adapters === undefined || adapters === null) return true;
+
+  return adapters.includes(adapter);
 };
 
 type GetProviderAuthConfigByIdParams = {
@@ -281,6 +294,19 @@ class providerAuthConfigServiceImpl {
       : null;
     let credentials = await resolveProviderAuthCredentials(ts, d.providerAuthCredentialsIds);
     let authMethods = await resolveProviderAuthMethods(ts, d.providerAuthMethodIds);
+    let adapterAuthMethodOids = d.adapter
+      ? (
+          await db.providerAuthMethod.findMany({
+            where: {
+              ...(providers ? { providerOid: providers.in } : {}),
+              ...(authMethods ? { oid: authMethods.in } : {})
+            },
+            select: { oid: true, value: true }
+          })
+        )
+          .filter(m => matchesAdapter(m.value as any, d.adapter))
+          .map(m => m.oid)
+      : null;
     let actors = await resolveIdentityActors(ts, actorIds);
     let identities = await resolveIdentities(ts, d.identityIds);
     let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
@@ -330,6 +356,9 @@ class providerAuthConfigServiceImpl {
                   : undefined!,
                 credentials ? { authCredentialsOid: credentials.in } : undefined!,
                 authMethods ? { authMethodOid: authMethods.in } : undefined!,
+                adapterAuthMethodOids
+                  ? { authMethodOid: { in: adapterAuthMethodOids } }
+                  : undefined!,
                 actors
                   ? { identityCredentials: { some: { identity: { actor: actors.oidIn } } } }
                   : undefined!,

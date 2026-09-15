@@ -45,6 +45,19 @@ export type AdapterCallResult<Output> = {
   connection: SessionConnection;
 };
 
+type AdapterClientTools<T extends SlateAdapterDefinition<any, any, any>> =
+  InferClient<T>['tools'];
+
+type AdapterClientToolInput<
+  T extends SlateAdapterDefinition<any, any, any>,
+  K extends keyof AdapterClientTools<T>
+> = AdapterClientTools<T>[K] extends { input: infer Input } ? Input : never;
+
+type AdapterClientToolOutput<
+  T extends SlateAdapterDefinition<any, any, any>,
+  K extends keyof AdapterClientTools<T>
+> = AdapterClientTools<T>[K] extends { output: infer Output } ? Output : never;
+
 export class AdapterClient<T extends SlateAdapterDefinition<any, any, any>> {
   private constructor(
     private readonly adapter: T,
@@ -73,10 +86,10 @@ export class AdapterClient<T extends SlateAdapterDefinition<any, any, any>> {
     );
   }
 
-  async call<K extends keyof InferClient<T>['tools'] & string>(
+  async call<K extends keyof AdapterClientTools<T> & string>(
     method: K,
-    input: InferClient<T>['tools'][K]['input']
-  ): Promise<AdapterCallResult<InferClient<T>['tools'][K]['output']>> {
+    input: AdapterClientToolInput<T, K>
+  ): Promise<AdapterCallResult<AdapterClientToolOutput<T, K>>> {
     let response = await internalToolCallService.call({
       tenant: this.tenant,
       environment: this.environment,
@@ -91,7 +104,7 @@ export class AdapterClient<T extends SlateAdapterDefinition<any, any, any>> {
       return {
         result: {
           type: 'success',
-          output: response.result.output as InferClient<T>['tools'][K]['output']
+          output: response.result.output as AdapterClientToolOutput<T, K>
         },
         message: response.message,
         connection: response.connection

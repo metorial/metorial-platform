@@ -42,6 +42,7 @@ export type ListProviderInvocationsParams = {
   inputs: {
     providerRunIds?: string[];
     sessionMessageIds?: string[];
+    chatEventIds?: string[];
     callbackEventSourceIds?: string[];
     authConfigEventIds?: string[];
   };
@@ -67,6 +68,26 @@ class providerInvocationServiceImpl {
     d: { tenant: Tenant; environment: Environment } & ListProviderInvocationsParams
   ) {
     let solution = await getMetorialSolution();
+    let sessionMessageIds = [...(d.inputs.sessionMessageIds ?? [])];
+
+    if (d.inputs.chatEventIds?.length) {
+      let chatEvents = await db.chatEvent.findMany({
+        where: {
+          id: { in: d.inputs.chatEventIds },
+          tenantOid: d.tenant.oid,
+          solutionOid: solution.oid,
+          environmentOid: d.environment.oid,
+          sessionMessageOid: { not: null }
+        },
+        include: { sessionMessage: true }
+      });
+
+      sessionMessageIds.push(
+        ...chatEvents.flatMap(chatEvent =>
+          chatEvent.sessionMessage ? [chatEvent.sessionMessage.id] : []
+        )
+      );
+    }
 
     let buckets = new Map<
       bigint,
@@ -113,10 +134,10 @@ class providerInvocationServiceImpl {
       }
     }
 
-    if (d.inputs.sessionMessageIds?.length) {
+    if (sessionMessageIds.length) {
       let sessionMessages = await db.sessionMessage.findMany({
         where: {
-          id: { in: d.inputs.sessionMessageIds },
+          id: { in: Array.from(new Set(sessionMessageIds)) },
           tenantOid: d.tenant.oid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,

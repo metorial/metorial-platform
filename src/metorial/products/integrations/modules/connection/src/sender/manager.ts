@@ -117,7 +117,7 @@ let providerInstanceResolutionPromises = new Map<string, Promise<any>>();
 
 let sender = conduit.createSender({
   defaultTimeout: 10_000,
-  maxRetries: 2
+  maxRetries: 10
 });
 
 export interface InitProps {
