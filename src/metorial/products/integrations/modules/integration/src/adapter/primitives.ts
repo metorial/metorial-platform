@@ -29,6 +29,7 @@ import {
   adapterInstanceLiveStatuses,
   adapterLiveStatuses,
   adapterScopeFromIntegration,
+  assertAuthMethodSupportsAdapter,
   assertProviderImplementsAdapter,
   isLiveAdapterInstanceStatus,
   isLiveAdapterStatus,
@@ -531,6 +532,12 @@ export let ensureAdapterProvider = async (d: {
         adapterGlobalOid: adapterIntegration.adapterGlobalOid
       });
     }
+    if (d.input.providerAuthMethodId) {
+      await assertAuthMethodSupportsAdapter({
+        providerAuthMethodId: d.input.providerAuthMethodId,
+        adapterIdentifier: adapterIntegration.adapterGlobal.identifier
+      });
+    }
 
     let integrationProvider =
       await integrationProviderService.createIntegrationProviderInternal({
@@ -571,6 +578,12 @@ export let updateAdapterProvider = async (d: {
     });
     requireLiveAdapterIntegration(adapterProvider.adapterIntegration);
     if (!adapterProvider.adapterIntegration.isStandalone) rejectExistingProviderMutation();
+    if (d.input.providerAuthMethodId) {
+      await assertAuthMethodSupportsAdapter({
+        providerAuthMethodId: d.input.providerAuthMethodId,
+        adapterIdentifier: adapterProvider.adapterIntegration.adapterGlobal.identifier
+      });
+    }
 
     await integrationProviderService.updateIntegrationProviderInternal({
       tenant: d.tenant,

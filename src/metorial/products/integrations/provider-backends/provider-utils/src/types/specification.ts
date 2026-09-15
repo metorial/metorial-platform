@@ -117,6 +117,8 @@ export interface SpecificationAuthMethod {
     description?: string;
   }[];
 
+  adapters?: string[];
+
   metadata: Record<string, any>;
 }
 

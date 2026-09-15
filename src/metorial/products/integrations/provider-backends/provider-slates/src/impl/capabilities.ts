@@ -193,6 +193,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
         inputJsonSchema: am.inputSchema,
         outputJsonSchema: am.outputSchema,
         scopes: am.scopes,
+        adapters: am.adapters,
         type: am.type,
         capabilities: {},
         metadata: {}

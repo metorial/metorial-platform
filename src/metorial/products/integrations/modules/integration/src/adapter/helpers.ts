@@ -61,6 +61,31 @@ export let assertProviderImplementsAdapter = async (d: {
   });
 };
 
+export let assertAuthMethodSupportsAdapter = async (d: {
+  providerAuthMethodId: string;
+  adapterIdentifier: string;
+}) => {
+  return withTransaction(async db => {
+    let authMethod = await db.providerAuthMethod.findFirst({
+      where: { id: d.providerAuthMethodId },
+      select: { value: true }
+    });
+    if (!authMethod) {
+      throw new ServiceError(notFoundError('provider.auth_method', d.providerAuthMethodId));
+    }
+
+    let adapters = authMethod.value.adapters;
+    if (adapters !== undefined && adapters !== null && !adapters.includes(d.adapterIdentifier)) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'auth_method_does_not_support_adapter',
+          message: 'The selected auth method cannot be used with the requested adapter.'
+        })
+      );
+    }
+  });
+};
+
 export let listAdapterCapableIntegrationProviders = async (d: {
   integrationOid: bigint;
   adapterGlobalOid: bigint;

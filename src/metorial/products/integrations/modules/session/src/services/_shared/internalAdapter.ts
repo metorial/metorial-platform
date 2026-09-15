@@ -1,5 +1,11 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { db, type Environment, type Session, type Tenant } from '@metorial-subspace/db';
+import {
+  db,
+  withTransaction,
+  type Environment,
+  type Session,
+  type Tenant
+} from '@metorial-subspace/db';
 
 export type InternalAdapterInput = { identifier: string };
 
@@ -22,44 +28,49 @@ export let assertInternalAdapterSupportedBySession = async (d: {
   session: Pick<Session, 'oid'>;
   adapterGlobalOid: bigint;
 }) => {
-  let sessionProviders = await db.sessionProvider.findMany({
-    where: { sessionOid: d.session.oid, status: 'active' },
-    include: {
-      deployment: {
+  return withTransaction(
+    async db => {
+      let sessionProviders = await db.sessionProvider.findMany({
+        where: { sessionOid: d.session.oid, status: 'active' },
         include: {
-          currentVersion: true,
-          providerVariant: true
+          deployment: {
+            include: {
+              currentVersion: true,
+              providerVariant: true
+            }
+          }
         }
+      });
+
+      let versionOids = sessionProviders
+        .map(
+          provider =>
+            provider.deployment.currentVersion?.lockedVersionOid ??
+            provider.deployment.providerVariant.currentVersionOid
+        )
+        .filter((oid): oid is bigint => oid != null);
+
+      let supported = versionOids.length
+        ? await db.providerVersionAdapter.findFirst({
+            where: {
+              providerVersionOid: { in: versionOids },
+              adapter: { globalOid: d.adapterGlobalOid }
+            },
+            select: { oid: true }
+          })
+        : null;
+
+      if (!supported) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'internal_adapter_not_supported',
+            message: 'None of the session provider versions support the requested adapter.'
+          })
+        );
       }
-    }
-  });
-
-  let versionOids = sessionProviders
-    .map(
-      provider =>
-        provider.deployment.currentVersion?.lockedVersionOid ??
-        provider.deployment.providerVariant.currentVersionOid
-    )
-    .filter((oid): oid is bigint => oid != null);
-
-  let supported = versionOids.length
-    ? await db.providerVersionAdapter.findFirst({
-        where: {
-          providerVersionOid: { in: versionOids },
-          adapter: { globalOid: d.adapterGlobalOid }
-        },
-        select: { oid: true }
-      })
-    : null;
-
-  if (!supported) {
-    throw new ServiceError(
-      badRequestError({
-        code: 'internal_adapter_not_supported',
-        message: 'None of the session provider versions support the requested adapter.'
-      })
-    );
-  }
+    },
+    { ifExists: true }
+  );
 };
 
 export let assertSessionInternalAdapter = async (d: {

@@ -20,6 +20,16 @@ type ListProviderAuthMethodsParams = {
   providerVersion: ProviderVersion;
   includeDeprecated?: boolean;
   applyAuthMethodPolicy?: boolean;
+  adapter?: string;
+};
+
+let matchesAdapter = (value: { adapters?: string[] | null } | null | undefined, adapter?: string) => {
+  if (!adapter) return true;
+
+  let adapters = value?.adapters;
+  if (adapters === undefined || adapters === null) return true;
+
+  return adapters.includes(adapter);
 };
 
 type GetProviderAuthMethodByIdParams = {
@@ -121,14 +131,15 @@ class providerAuthMethodServiceImpl {
           .filter(g => g.currentInstance || g.providerAuthMethods?.length)
           .map(global => {
             let inner = global.providerAuthMethods?.[0] ?? global.currentInstance!;
-
-            return {
-              ...inner,
-              global,
-              provider: global.provider,
-              specification: (inner as any).specification as ProviderSpecification
-            };
-          });
+            return { inner, global };
+          })
+          .filter(({ inner }) => matchesAdapter(inner.value as any, d.adapter))
+          .map(({ inner, global }) => ({
+            ...inner,
+            global,
+            provider: global.provider,
+            specification: (inner as any).specification as ProviderSpecification
+          }));
       })
     );
   }

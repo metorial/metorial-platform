@@ -113,6 +113,7 @@ export let adapterCoordinationListener = {
           }
         });
         for (let adapterInstance of adapterInstances) {
+          await syncAdapterInstanceStatus({ adapterInstance, cause: 'integration' });
           await syncAdapterInstanceProviders({
             adapterIntegrationInstance: adapterInstance,
             cause: 'integration'
