@@ -1260,27 +1260,41 @@ export class SenderManager {
 
     let providers = await this.listProviders();
 
-    let templateMatch: {
+    type ToolMatch = {
       provider: (typeof providers)[number];
       originalToolName: string;
       finalToolName: string;
-    } | null = null;
+    };
 
-    try {
-      let match = parseNameFromSessionProviderTemplates(d.toolId, providers);
-      if (match) {
-        templateMatch = {
-          provider: match.provider,
-          originalToolName: match.originalName,
-          finalToolName: match.finalName
-        };
+    let matches: ToolMatch[];
+
+    if (this.session.isInternal) {
+      matches = providers.map(provider => ({
+        provider,
+        originalToolName: d.toolId,
+        finalToolName: d.toolId
+      }));
+    } else {
+      let templateMatch: ToolMatch | null = null;
+
+      try {
+        let match = parseNameFromSessionProviderTemplates(d.toolId, providers);
+        if (match) {
+          templateMatch = {
+            provider: match.provider,
+            originalToolName: match.originalName,
+            finalToolName: match.finalName
+          };
+        }
+      } catch (error: any) {
+        throw new ServiceError(badRequestError({ message: error.message }));
       }
-    } catch (error: any) {
-      throw new ServiceError(badRequestError({ message: error.message }));
-    }
 
-    let legacyMatch = await this.getLegacyToolMatch(d);
-    let matches = [templateMatch, legacyMatch].filter(Boolean);
+      let legacyMatch = await this.getLegacyToolMatch(d);
+      matches = [templateMatch, legacyMatch].filter(
+        (match): match is ToolMatch => match !== null
+      );
+    }
 
     if (matches.length === 0) {
       throw new ServiceError(badRequestError({ message: 'Invalid tool ID format' }));
