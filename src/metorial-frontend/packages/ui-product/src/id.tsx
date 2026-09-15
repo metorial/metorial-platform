@@ -14,7 +14,8 @@ export let ID = ({ id, copy }: { id: string | undefined; copy?: boolean }) => (
     <span
       style={{
         wordBreak: 'break-all',
-        overflowWrap: 'break-word'
+        overflowWrap: 'break-word',
+        fontSize: '0.8rem'
       }}
     >
       {id}

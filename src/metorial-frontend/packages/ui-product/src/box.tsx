@@ -5,26 +5,38 @@ import { styled } from 'styled-components';
 let Wrapper = styled.div`
   border: 1px solid ${theme.colors.gray400};
   box-shadow: ${theme.shadows.small};
-  border-radius: 12px;
-  padding: 15px 20px;
+  background: ${theme.colors.gray100};
+  border-radius: 8px;
 `;
 
 let Header = styled.header`
   display: flex;
   gap: 10px;
   justify-content: space-between;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
+  padding: 10px 10px 0px 18px;
+  align-items: center;
 `;
 
 let HeaderContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0px;
 `;
 
 let RightActions = styled.nav`
   display: flex;
   gap: 10px;
+`;
+
+let Content = styled.main`
+  padding: 12px 17px;
+  background: ${theme.colors.background};
+  border-radius: 8px;
+  border: 1px solid ${theme.colors.gray400};
+  margin-left: -1px;
+  margin-right: -1px;
+  margin-bottom: -1px;
 `;
 
 export type BoxProps = {
@@ -39,18 +51,20 @@ export let Box = ({ title, description, children, rightActions }: BoxProps) => {
     <Wrapper>
       <Header>
         <HeaderContent>
-          <Title as="h2" size="3" weight="strong">
+          <Title as="h2" size="2" weight="strong">
             {title}
           </Title>
           {description && (
-            <Text size="2" weight="medium" color="gray600">
+            <Text size="1" weight="strong" color="gray600">
               {description}
             </Text>
           )}
         </HeaderContent>
+
         {rightActions && <RightActions>{rightActions}</RightActions>}
       </Header>
-      <main>{children}</main>
+
+      <Content>{children}</Content>
     </Wrapper>
   );
 };

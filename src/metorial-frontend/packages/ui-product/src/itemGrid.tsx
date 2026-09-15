@@ -1,20 +1,11 @@
-import {
-  Button,
-  getLink,
-  Menu,
-  Spacer,
-  Spinner,
-  Text,
-  theme,
-  Title,
-  toast
-} from '@metorial/ui';
-import { RiMore2Fill } from '@remixicon/react';
+import { Button, getLink, Menu, Spacer, Spinner, theme, Title, toast } from '@metorial/ui';
+import { RiArrowRightSLine, RiMore2Fill } from '@remixicon/react';
 import copy from 'copy-to-clipboard';
 import React from 'react';
 import { styled } from 'styled-components';
 
 type ItemGridItemMode = 'default' | 'compactHorizontal';
+type ItemGridItemVariant = 'v1' | 'v2';
 
 type ItemGridRootProps = React.ComponentPropsWithoutRef<'ul'> & {
   width?: string;
@@ -69,19 +60,23 @@ let Grid = styled.ul.withConfig({
 `;
 
 let Wrapper = styled.li.withConfig({
-  shouldForwardProp: p => p !== '$mode' && p !== '$disabled'
+  shouldForwardProp: p => p !== '$mode' && p !== '$disabled' && p !== '$variant'
 })<{
   $mode?: ItemGridItemMode;
   $disabled?: boolean;
+  $variant?: ItemGridItemVariant;
 }>`
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
-  background: none;
-  border: solid 1px ${theme.colors.gray300};
-  border-radius: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
+  padding: ${p =>
+    p.$variant === 'v2' ? '0' : p.$mode === 'compactHorizontal' ? '12px' : '15px'};
+  background: ${p => (p.$variant === 'v2' ? theme.colors.gray100 : 'none')};
+  border: solid 1px ${p => (p.$variant === 'v2' ? theme.colors.gray400 : theme.colors.gray300)};
+  border-radius: ${p =>
+    p.$variant === 'v2' ? '8px' : p.$mode === 'compactHorizontal' ? '12px' : '15px'};
+  box-shadow: ${p => (p.$variant === 'v2' ? theme.shadows.small : 'none')};
   color: inherit;
   font: inherit;
   text-align: left;
@@ -178,11 +173,69 @@ let TitleWrapper = styled.div`
   }
 `;
 
+let Description = styled.div`
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  margin: 0;
+  padding: 0;
+  color: ${theme.colors.gray700};
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.0025em;
+  line-height: 16px;
+`;
+
 let MenuWrapper = styled.div`
   position: absolute;
   top: 0;
   right: 0;
   z-index: 1;
+`;
+
+let V2Content = styled.div.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
+  $mode?: ItemGridItemMode;
+}>`
+  position: relative;
+  flex: 1;
+  padding: ${p => (p.$mode === 'compactHorizontal' ? '12px' : '15px')};
+  background: ${theme.colors.background};
+  border: 1px solid ${theme.colors.gray400};
+  border-radius: 8px;
+  box-shadow: ${theme.shadows.small};
+  margin: -1px -1px 10px -1px;
+`;
+
+let V2Footer = styled.footer`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 15px 12px 15px;
+  min-height: 20px;
+`;
+
+let V2FooterLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+`;
+
+let V2OpenAction = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: ${theme.colors.gray600};
+
+  svg {
+    height: 18px;
+    width: 18px;
+  }
 `;
 
 type ItemGridActionProps = {
@@ -263,6 +316,7 @@ export let ItemGrid = {
     onClick,
     bottom,
     mode = 'default',
+    variant = 'v1',
     small,
     height,
     disabled = false,
@@ -279,22 +333,88 @@ export let ItemGrid = {
     onClick?: () => void;
     bottom?: React.ReactNode;
     mode?: ItemGridItemMode;
+    variant?: ItemGridItemVariant;
     small?: boolean;
     height?: number;
     disabled?: boolean;
     loading?: boolean;
     nativeLink?: boolean;
   }) => {
-    let menuItems = [
+    let wrapperRef = React.useRef<HTMLLIElement>(null);
+    let isOpenable = !!(href || onClick);
+    let baseMenuItems = [
       ...(entity && showCopyId ? [{ id: 'id', label: 'Copy ID' }] : []),
       ...(menu?.map((item, i) => ({ id: String(i), label: item.label })) ?? [])
     ];
+    let menuItems =
+      baseMenuItems.length > 0 && isOpenable
+        ? [{ id: 'open', label: 'Open' }, ...baseMenuItems]
+        : baseMenuItems;
+
+    let header = (
+      <Header>
+        {mode === 'compactHorizontal' ? (
+          <CompactHeaderContent>
+            <CompactTitleRow $hasMenu={menuItems.length > 0}>
+              {icon}
+
+              <CompactTitleWrapper>
+                <Title as="h2" size="3" weight="strong">
+                  {title}
+                </Title>
+              </CompactTitleWrapper>
+            </CompactTitleRow>
+
+            {description && <Description>{description}</Description>}
+          </CompactHeaderContent>
+        ) : (
+          <HeaderContent $hasMenu={menuItems.length > 0}>
+            {icon && <IconSlot>{icon}</IconSlot>}
+
+            <TitleWrapper>
+              <Title as="h2" size={small ? '3' : '4'} weight="strong">
+                {title}
+              </Title>
+            </TitleWrapper>
+            {description && <Description>{description}</Description>}
+          </HeaderContent>
+        )}
+
+        {menuItems.length > 0 && (
+          <MenuWrapper
+            onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <Menu
+              onItemClick={id => {
+                if (id === 'open') {
+                  if (onClick) onClick();
+                  else wrapperRef.current?.closest('a')?.click();
+                } else if (id == 'id' && entity) {
+                  copy(entity.id);
+                  toast.success('Copied to clipboard');
+                } else {
+                  menu?.find((_, i) => String(i) === id)?.onClick();
+                }
+              }}
+              items={menuItems}
+            >
+              <Button size="2" iconLeft={<RiMore2Fill />} title="More" variant="outline" />
+            </Menu>
+          </MenuWrapper>
+        )}
+      </Header>
+    );
 
     return wrapAction(
       <Wrapper
+        ref={wrapperRef}
         {...getActionProps({ href, onClick, disabled })}
         $mode={mode}
         $disabled={disabled}
+        $variant={variant}
         aria-busy={loading}
         style={{
           height: mode === 'compactHorizontal' ? height : undefined,
@@ -308,70 +428,32 @@ export let ItemGrid = {
           </LoadingIndicator>
         )}
 
-        <Header>
-          {mode === 'compactHorizontal' ? (
-            <CompactHeaderContent>
-              <CompactTitleRow $hasMenu={menuItems.length > 0}>
-                {icon}
-
-                <CompactTitleWrapper>
-                  <Title as="h2" size="3" weight="strong">
-                    {title}
-                  </Title>
-                </CompactTitleWrapper>
-              </CompactTitleRow>
-
-              {description && (
-                <Text size="1" weight="medium" color="gray700">
-                  {description}
-                </Text>
-              )}
-            </CompactHeaderContent>
-          ) : (
-            <HeaderContent $hasMenu={menuItems.length > 0}>
-              {icon && <IconSlot>{icon}</IconSlot>}
-
-              <TitleWrapper>
-                <Title as="h2" size={small ? '3' : '4'} weight="strong">
-                  {title}
-                </Title>
-              </TitleWrapper>
-              {description && (
-                <Text size="1" weight="medium" color="gray700">
-                  {description}
-                </Text>
-              )}
-            </HeaderContent>
-          )}
-
-          {menuItems.length > 0 && (
-            <MenuWrapper
-              onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            >
-              <Menu
-                onItemClick={id => {
-                  if (id == 'id' && entity) {
-                    copy(entity.id);
-                    toast.success('Copied to clipboard');
-                  } else {
-                    menu?.find((_, i) => String(i) === id)?.onClick();
-                  }
-                }}
-                items={menuItems}
-              >
-                <Button size="2" iconLeft={<RiMore2Fill />} title="More" variant="outline" />
-              </Menu>
-            </MenuWrapper>
-          )}
-        </Header>
-
-        {bottom && (
+        {variant === 'v2' ? (
           <>
-            <Spacer />
-            {bottom}
+            <V2Content $mode={mode}>{header}</V2Content>
+
+            {(bottom || isOpenable) && (
+              <V2Footer>
+                <V2FooterLeft>{bottom}</V2FooterLeft>
+
+                {isOpenable && (
+                  <V2OpenAction>
+                    <RiArrowRightSLine />
+                  </V2OpenAction>
+                )}
+              </V2Footer>
+            )}
+          </>
+        ) : (
+          <>
+            {header}
+
+            {bottom && (
+              <>
+                <Spacer />
+                {bottom}
+              </>
+            )}
           </>
         )}
       </Wrapper>,
@@ -425,11 +507,7 @@ export let ItemGrid = {
           </Title>
         </TitleWrapper>
 
-        {description && (
-          <Text size="1" weight="medium" color="gray700">
-            {description}
-          </Text>
-        )}
+        {description && <Description>{description}</Description>}
       </Wrapper>,
       onClick ? undefined : href,
       disabled,

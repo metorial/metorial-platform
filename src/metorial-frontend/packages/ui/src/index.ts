@@ -36,6 +36,7 @@ export * from './or';
 export * from './popover';
 export * from './select';
 export * from './showModal';
+export * from './skeleton';
 export * from './slider';
 export * from './sortableCheckList';
 export * from './spacer';

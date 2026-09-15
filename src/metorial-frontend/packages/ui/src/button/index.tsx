@@ -4,6 +4,7 @@ import { Check, ChevronDown } from 'react-feather';
 import { styled } from 'styled-components';
 import _useDelayed from 'use-delayed';
 import { Menu, MenuProps } from '../menu';
+import { Skeleton } from '../skeleton';
 import { Spinner } from '../spinner';
 import { ButtonStyleProps, buttonTheme, getButtonStyles } from './constants';
 
@@ -115,6 +116,7 @@ export let Button = React.forwardRef(
       iconRight,
       loading,
       success,
+      skeleton,
       fullWidth,
       variant,
       color,
@@ -130,6 +132,7 @@ export let Button = React.forwardRef(
       iconRight?: React.ReactNode;
       loading?: boolean;
       success?: boolean;
+      skeleton?: boolean;
       fullWidth?: boolean;
       onHover?: () => void;
       menu?: MenuProps['items'];
@@ -177,7 +180,7 @@ export let Button = React.forwardRef(
         ref={ref as any}
         {...props}
         style={buttonStyle}
-        disabled={props.disabled || loading}
+        disabled={props.disabled || loading || skeleton}
         onClick={(e: any) => {
           if (loading || success) e.preventDefault();
           else props.onClick?.(e);
@@ -263,16 +266,19 @@ export let Button = React.forwardRef(
       </Wrapper>
     );
 
-    if (!hasMenu) return button;
+    if (!hasMenu) {
+      if (skeleton === undefined) return button;
+      return <Skeleton active={skeleton}>{button}</Skeleton>;
+    }
 
-    return (
+    let splitButton = (
       <SplitButton style={{ width: fullWidth ? '100%' : undefined }}>
         {button}
         <Menu items={menu!} label="More actions">
           <Wrapper
             type="button"
             aria-label="More actions"
-            disabled={props.disabled || loading || success}
+            disabled={props.disabled || loading || success || skeleton}
             style={{
               ...style,
               width: style.height,
@@ -291,5 +297,8 @@ export let Button = React.forwardRef(
         </Menu>
       </SplitButton>
     );
+
+    if (skeleton === undefined) return splitButton;
+    return <Skeleton active={skeleton}>{splitButton}</Skeleton>;
   }
 );

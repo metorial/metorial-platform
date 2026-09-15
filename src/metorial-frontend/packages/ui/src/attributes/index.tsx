@@ -1,9 +1,21 @@
 import React from 'react';
 import { styled } from 'styled-components';
-import { Text } from '../text';
+import { Text, Title } from '../text';
 import { theme } from '../theme';
 
-let Wrapper = styled('div')<{ $columns?: number }>`
+let Wrapper = styled('div')`
+  border: 1px solid ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
+  background: ${theme.colors.gray100};
+  border-radius: 8px;
+`;
+
+let Header = styled('header')`
+  margin-bottom: 6px;
+  padding: 6px 18px 0 18px;
+`;
+
+let Content = styled('div')<{ $columns?: number }>`
   display: grid;
   grid-template-columns: ${({ $columns }) =>
     $columns
@@ -13,9 +25,12 @@ let Wrapper = styled('div')<{ $columns?: number }>`
 
   background: ${theme.colors.background};
   border: 1px solid ${theme.colors.gray400};
-  box-shadow: ${theme.shadows.small};
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
+
+  margin-left: -1px;
+  margin-right: -1px;
+  margin-bottom: -1px;
 
   ${({ $columns }) =>
     $columns
@@ -48,6 +63,7 @@ let Inner = styled('div')`
 
 export let Attributes = ({
   attributes,
+  title = 'Attributes',
   itemWidth = '300px',
   columns
 }: {
@@ -55,30 +71,38 @@ export let Attributes = ({
     label: React.ReactNode;
     content: React.ReactNode;
   }[];
+  title?: React.ReactNode;
   itemWidth?: string;
   columns?: number;
 }) => {
   return (
-    <Wrapper
-      $columns={columns}
-      style={
-        {
-          '--width': itemWidth
-        } as any
-      }
-    >
-      {attributes.map((attr, i) => (
-        <Attribute key={i}>
-          <Inner>
-            <Text weight="bold" size="1">
-              {attr.label}
-            </Text>
-            <Text size="2" weight="medium" color="gray700" as="div">
-              {attr.content}
-            </Text>
-          </Inner>
-        </Attribute>
-      ))}
+    <Wrapper>
+      <Header>
+        <Title as="h2" size="2" weight="strong">
+          {title}
+        </Title>
+      </Header>
+      <Content
+        $columns={columns}
+        style={
+          {
+            '--width': itemWidth
+          } as any
+        }
+      >
+        {attributes.map((attr, i) => (
+          <Attribute key={i}>
+            <Inner>
+              <Text weight="bold" size="1">
+                {attr.label}
+              </Text>
+              <Text size="2" weight="medium" color="gray700" as="div">
+                {attr.content}
+              </Text>
+            </Inner>
+          </Attribute>
+        ))}
+      </Content>
     </Wrapper>
   );
 };
