@@ -110,7 +110,7 @@ class remoteOauthAuthorizationServiceImpl {
     if (d.connection.discoveryStatus == 'failed') {
       throw new ServiceError(
         badRequestError({
-          message: 'Connection setup failed and cannot be used for authentication'
+          message: `Connection setup failed and cannot be used for authentication: ${d.connection.errorCode ?? 'unknown'} - ${d.connection.errorMessage ?? 'no error message provided'}`
         })
       );
     }
