@@ -17,6 +17,7 @@ import {
   getIncomingWebhookStatusColor,
   getIncomingWebhookStatusLabel
 } from '../../../scenes/callbacks/shared';
+import { ChatProviderAvatar, useChatProviderListings } from '../../../scenes/chat/shared';
 import { showWebhookRegistrationSetup } from '../../../scenes/callbacks/webhookRegistrationsTable';
 
 let openedWebhookRegistrationSetups = new Map<string, true>();
@@ -37,8 +38,12 @@ let WebhookRegistrationSetupOnOpen = ({
     )
       return;
 
-    openedWebhookRegistrationSetups.set(registration.id, true);
-    showWebhookRegistrationSetup({ instanceId, registration, onComplete });
+    let timeout = setTimeout(() => {
+      openedWebhookRegistrationSetups.set(registration.id, true);
+      showWebhookRegistrationSetup({ instanceId, registration, onComplete });
+    }, 200);
+
+    return () => clearTimeout(timeout);
   }, [instanceId, onComplete, registration]);
 
   return null;
@@ -50,6 +55,10 @@ export let WebhookRegistrationOverviewPage = () => {
   let project = useCurrentProject();
   let { webhookRegistrationId } = useParams();
   let registration = useWebhookRegistration(instance.data?.id, webhookRegistrationId);
+  let providerListings = useChatProviderListings(
+    instance.data?.id,
+    registration.data ? [registration.data.provider.id] : []
+  );
   let incomingWebhooks = useIncomingWebhooks(instance.data?.id, {
     webhookRegistrationId,
     limit: 10,
@@ -89,7 +98,18 @@ export let WebhookRegistrationOverviewPage = () => {
 
           <Entity.Wrapper header="Provider">
             <Entity.Content>
-              <Entity.Field title={registration.data.provider.name} />
+              <Entity.Field
+                title={
+                  providerListings.lookup.get(registration.data.provider.id)?.name ??
+                  registration.data.provider.name
+                }
+                prefix={
+                  <ChatProviderAvatar
+                    provider={registration.data.provider}
+                    listings={providerListings.lookup}
+                  />
+                }
+              />
             </Entity.Content>
           </Entity.Wrapper>
 
@@ -142,7 +162,7 @@ export let WebhookRegistrationOverviewPage = () => {
 
           <Box
             title="Recent Events"
-            description="The latest inbound webhooks received by this receiver."
+            description="The latest inbound webhooks received."
             rightActions={
               incomingWebhooks.data.items.length ? (
                 <Link to={eventsPath}>

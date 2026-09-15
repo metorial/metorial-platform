@@ -33,7 +33,8 @@ let reactionAuthorSchema = v.object({
     v.string({ description: "The provider's own name for this kind of author" })
   ),
   isMe: v.boolean({
-    description: 'Whether this author is the account the integration itself is authenticated as'
+    description:
+      'Whether this author is the account the integration itself is authenticated as'
   }),
   email: v.optional(v.string({ description: 'Email address of the author' })),
   imageUrl: v.optional(v.string({ description: "URL of the author's avatar" })),

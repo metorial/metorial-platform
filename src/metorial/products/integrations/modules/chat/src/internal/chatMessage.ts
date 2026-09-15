@@ -41,7 +41,7 @@ class chatMessageServiceInternalImpl {
     return {
       providerType: message.providerType?.trim() || 'unknown',
       replyToMessageId: message.reply?.id ?? message.reply?.reference?.id ?? null,
-      body: (message.body as any) ?? { parts: [] },
+      body: this.sanitizeMessageBody(message.body ?? { parts: [] }),
       reactions: message.reactions ? (message.reactions as any) : null,
       unfurls: message.unfurls ? (message.unfurls as any) : null,
       sentAt: new Date(message.metadata.sentAt),
@@ -50,6 +50,24 @@ class chatMessageServiceInternalImpl {
       threadOid,
       authorOid
     };
+  }
+
+  private sanitizeMessageBody(body: Message['body']) {
+    if (!body || typeof body !== 'object') return null;
+
+    return {
+      ...body,
+      attachments: body.attachments?.map(a => ({
+        id: a.id,
+        height: a.height,
+        mimeType: a.mimeType,
+        name: a.name,
+        size: a.size,
+        status: a.status,
+        type: a.type,
+        width: a.width
+      }))
+    } as any;
   }
 
   private async hashMessageSync(payload: ReturnType<typeof this.messagePayload>) {

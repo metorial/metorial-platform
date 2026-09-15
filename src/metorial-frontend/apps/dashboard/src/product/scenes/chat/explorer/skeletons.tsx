@@ -41,11 +41,8 @@ export let SkeletonText = (p: { width: number | string; size?: '1' | '2' | '3' }
   );
 };
 
-// The channel skeleton renders inside the sidebar's own scroller, so it repeats that
-// list's exact box model: a 28px section label, then 30px rows (20px line + 5px above
-// and below), with no spacing of its own.
 let ChannelSection = styled.div`
-  padding: 8px 8px 4px;
+  padding: 8px 8px 5px;
 `;
 
 let ChannelSectionLine = styled.div`
@@ -55,7 +52,7 @@ let ChannelSectionLine = styled.div`
 `;
 
 let ChannelRow = styled.div`
-  padding: 5px 8px;
+  padding: 5px 7px;
 `;
 
 let ChannelRowLine = styled.div`
@@ -76,7 +73,7 @@ export let ChannelListSkeleton = ({ rows = 9 }: { rows?: number }) => (
     {Array.from({ length: rows }).map((_, index) => (
       <ChannelRow key={index}>
         <ChannelRowLine>
-          <SkeletonBar width={10} height={10} />
+          <SkeletonBar width={24} height={24} radius={6} />
           <SkeletonBar width={`${45 + ((index * 17) % 45)}%`} height={12} />
         </ChannelRowLine>
       </ChannelRow>

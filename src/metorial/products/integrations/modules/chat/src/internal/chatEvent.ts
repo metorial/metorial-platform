@@ -463,6 +463,7 @@ class chatEventInternalServiceImpl {
           occurredAt: d.callbackEvent.occurredAt
         }
       });
+
       await this.trackSystemEvent({
         chatEvent,
         chatConnectionOid: provider.chatConnectionOid

@@ -10,7 +10,7 @@ import {
   useCurrentProject
 } from '@metorial/state';
 import { Button, Text, theme } from '@metorial/ui';
-import { RiArrowLeftLine, RiChat3Line } from '@remixicon/react';
+import { RiArrowLeftLine } from '@remixicon/react';
 import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -41,7 +41,7 @@ let TopBar = styled.header`
 let TopBarSide = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
   min-width: 0;
 `;
 
@@ -243,7 +243,6 @@ export let ChatExplorerScene = () => {
           </Button>
 
           <Title>
-            <RiChat3Line />
             <Text size="2" weight="medium" color="gray900">
               Chat Explorer
               {chat.data ? ` · ${chat.data.name}` : ''}

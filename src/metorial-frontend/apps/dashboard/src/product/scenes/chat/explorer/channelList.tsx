@@ -2,7 +2,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import type { ChatChannelPreview, ChatThreadPreview } from '@metorial/state';
 import { useChatChannels } from '@metorial/state';
 import { Button, Input, Text, theme } from '@metorial/ui';
-import { RiDiscussLine } from '@remixicon/react';
+import { RiChat3Line, RiDiscussLine } from '@remixicon/react';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { channelName, channelPrefix, channelTypeLabels, formatRelativeDate } from './shared';
@@ -21,12 +21,13 @@ let Wrapper = styled.aside`
 `;
 
 let Header = styled.div`
-  padding: 12px 14px;
+  padding: 14px;
   border-bottom: 1px solid ${theme.colors.gray300};
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  background: ${theme.colors.background};
 `;
 
 let HeaderTop = styled.div`
@@ -36,18 +37,43 @@ let HeaderTop = styled.div`
   gap: 8px;
   min-height: 30px;
 
-  & > div {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
   p {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+`;
+
+let HeaderIdentity = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+`;
+
+let HeaderIcon = styled.div`
+  height: 30px;
+  width: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${theme.colors.gray350};
+  border-radius: 8px;
+  background: ${theme.colors.gray150};
+  color: ${theme.colors.gray700};
+
+  svg {
+    height: 15px;
+    width: 15px;
+  }
+`;
+
+let HeaderCopy = styled.div`
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 `;
 
 let Scroller = styled.div`
@@ -61,7 +87,22 @@ let SectionLabel = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 8px 4px;
+  padding: 8px 8px 5px;
+`;
+
+let ThreadSectionLabel = styled(SectionLabel)`
+  padding-top: 18px;
+`;
+
+let SectionCount = styled.span`
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: ${theme.colors.gray250};
+  color: ${theme.colors.gray600};
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
 `;
 
 let Item = styled.button`
@@ -73,8 +114,8 @@ let Item = styled.button`
   background: none;
   cursor: pointer;
   text-align: left;
-  padding: 5px 8px;
-  border-radius: 6px;
+  padding: 5px 7px;
+  border-radius: 8px;
   color: ${theme.colors.gray800};
   font-size: 14px;
   line-height: 20px;
@@ -87,20 +128,31 @@ let Item = styled.button`
     background: ${theme.colors.gray800};
     color: ${theme.colors.background};
   }
-
-  svg {
-    height: 14px;
-    width: 14px;
-    flex-shrink: 0;
-  }
 `;
 
-let Prefix = styled.span`
+let ChannelMark = styled.span`
+  height: 24px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid ${theme.colors.gray350};
+  background: ${theme.colors.background};
   color: ${theme.colors.gray600};
   flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
 
   ${Item}[data-active='true'] & {
-    color: ${theme.colors.gray400};
+    border-color: ${theme.colors.gray700};
+    background: ${theme.colors.gray700};
+    color: ${theme.colors.background};
+  }
+
+  svg {
+    height: 13px;
+    width: 13px;
   }
 `;
 
@@ -157,25 +209,20 @@ export let ChatChannelList = (p: {
     <Wrapper>
       <Header>
         <HeaderTop>
-          <div>
-            {p.chatName ? (
-              <Text size="2" weight="strong" color="gray900">
-                {p.chatName}
-              </Text>
-            ) : (
-              <SkeletonText width={120} size="2" />
-            )}
-
-            {channels.data ? (
-              <Text size="1" color="gray600">
-                {appliedSearch
-                  ? `${items.length} matching`
-                  : `${items.length}${channels.data.pagination.hasMoreAfter ? '+' : ''} channels`}
-              </Text>
-            ) : (
-              <SkeletonText width={70} size="1" />
-            )}
-          </div>
+          <HeaderIdentity>
+            <HeaderIcon>
+              <RiChat3Line />
+            </HeaderIcon>
+            <HeaderCopy>
+              {p.chatName ? (
+                <Text size="2" weight="strong" color="gray900">
+                  {p.chatName}
+                </Text>
+              ) : (
+                <SkeletonText width={120} size="2" />
+              )}
+            </HeaderCopy>
+          </HeaderIdentity>
 
           <Button size="1" variant="outline" type="button" onClick={p.onChangeChat}>
             Change
@@ -198,12 +245,6 @@ export let ChatChannelList = (p: {
           { loading: () => <ChannelListSkeleton /> }
         )(() => (
           <>
-            <SectionLabel>
-              <Text size="1" weight="medium" color="gray600" transform="uppercase">
-                Channels
-              </Text>
-            </SectionLabel>
-
             {items.map(channel => (
               <Item
                 key={channel.id}
@@ -211,7 +252,7 @@ export let ChatChannelList = (p: {
                 data-active={channel.id == p.channelId}
                 onClick={() => p.onSelectChannel(channel)}
               >
-                <Prefix>{channelPrefix(channel)}</Prefix>
+                <ChannelMark>{channelPrefix(channel)}</ChannelMark>
                 <Label>{channelName(channel)}</Label>
                 <Meta>{formatRelativeDate(channel.lastInteractionAt) ?? ''}</Meta>
               </Item>
@@ -229,11 +270,12 @@ export let ChatChannelList = (p: {
 
             {p.threads.length > 0 && (
               <>
-                <SectionLabel style={{ paddingTop: 16 }}>
+                <ThreadSectionLabel>
                   <Text size="1" weight="medium" color="gray600" transform="uppercase">
                     Threads
                   </Text>
-                </SectionLabel>
+                  <SectionCount>{p.threads.length}</SectionCount>
+                </ThreadSectionLabel>
 
                 {p.threads.map(thread => (
                   <Item
@@ -242,7 +284,9 @@ export let ChatChannelList = (p: {
                     data-active={thread.id == p.threadId}
                     onClick={() => p.onSelectThread(thread.id)}
                   >
-                    <RiDiscussLine />
+                    <ChannelMark>
+                      <RiDiscussLine />
+                    </ChannelMark>
                     <Label>
                       {thread.subject ?? channelTypeLabels[thread.type] ?? 'Thread'}
                     </Label>

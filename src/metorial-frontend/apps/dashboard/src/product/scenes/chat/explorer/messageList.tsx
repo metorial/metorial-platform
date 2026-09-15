@@ -16,8 +16,8 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { ChatComposer } from './composer';
-import { ChatMessageBody } from './messageBody';
 import { quickReactions } from './emoji';
+import { ChatMessageBody } from './messageBody';
 import { ChatMessageReactions } from './reactions';
 import {
   AuthorAvatar,
@@ -142,16 +142,6 @@ let DayDivider = styled.div`
   justify-content: center;
   padding: 12px 20px 8px;
   pointer-events: none;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 20px;
-    right: 20px;
-    top: 50%;
-    height: 1px;
-    background: ${theme.colors.gray300};
-  }
 `;
 
 let DayLabel = styled.span`
@@ -450,7 +440,9 @@ let MessageRow = (p: {
           chatId={p.chatId}
           channelId={p.channelId}
           message={p.message}
+          isApplying={addReaction.isLoading}
         />
+        <addReaction.RenderError />
 
         {p.showThreadLink && p.message.threadId && p.onOpenThread && (
           <ThreadLink type="button" onClick={() => p.onOpenThread!(p.message.threadId!)}>
@@ -558,8 +550,6 @@ export let ChatMessageList = (p: {
     scroller.scrollTop = scroller.scrollHeight;
   }, [p.channelId, p.thread?.id, lastMessageId]);
 
-  // The pending skeleton renders at the top of the list, alongside where a newly sent
-  // message actually lands — scroll there so sending something is never invisible.
   useLayoutEffect(() => {
     if (!visiblePendingIds.length) return;
 
@@ -568,6 +558,9 @@ export let ChatMessageList = (p: {
 
     scroller.scrollTop = 0;
   }, [visiblePendingIds.length]);
+
+  let hasPendingMessages = visiblePendingIds.length > 0;
+  let today = new Date();
 
   let channelLabel = p.channel
     ? `${channelPrefix(p.channel)}${channelName(p.channel)}`
@@ -592,25 +585,6 @@ export let ChatMessageList = (p: {
               </Badge>
             )}
           </HeaderTitle>
-
-          <HeaderMeta>
-            {p.channel ? (
-              <Text size="1" color="gray600">
-                {p.channel.topic ??
-                  ([
-                    p.channel.memberCount != null ? `${p.channel.memberCount} members` : null,
-                    p.channel.lastInteractionAt
-                      ? `Active ${formatRelativeDate(p.channel.lastInteractionAt)}`
-                      : null
-                  ]
-                    .filter(Boolean)
-                    .join(' · ') ||
-                    'No recent activity')}
-              </Text>
-            ) : (
-              <SkeletonText width={240} size="1" />
-            )}
-          </HeaderMeta>
         </HeaderCopy>
 
         <HeaderActions>
@@ -685,9 +659,17 @@ export let ChatMessageList = (p: {
 
           return (
             <>
-              {visiblePendingIds.map(id => (
-                <PendingMessageRow key={id} />
-              ))}
+              {hasPendingMessages && (
+                <>
+                  <DayDivider>
+                    <DayLabel>Today</DayLabel>
+                  </DayDivider>
+
+                  {visiblePendingIds.map(id => (
+                    <PendingMessageRow key={id} />
+                  ))}
+                </>
+              )}
 
               {loaded.data.pagination.hasMoreAfter && (
                 <PageNav>
@@ -704,7 +686,11 @@ export let ChatMessageList = (p: {
 
               {ordered.map((message, index) => {
                 let previous = ordered[index - 1];
-                let showDayDivider = !previous || !isSameDay(previous.sentAt, message.sentAt);
+                let followsPendingTodayGroup =
+                  !previous && hasPendingMessages && isSameDay(message.sentAt, today);
+                let showDayDivider =
+                  !followsPendingTodayGroup &&
+                  (!previous || !isSameDay(previous.sentAt, message.sentAt));
                 let thread = message.threadId
                   ? p.threadsById?.get(message.threadId)
                   : undefined;

@@ -1,6 +1,6 @@
 import type { ChatMessage } from '@metorial/state';
 import { useCreateChatMessageReaction, useDeleteChatMessageReaction } from '@metorial/state';
-import { Menu, Tooltip, theme } from '@metorial/ui';
+import { Menu, Spinner, Tooltip, theme } from '@metorial/ui';
 import { RiEmotionLine } from '@remixicon/react';
 import styled from 'styled-components';
 import { getEmojiShortcode, quickReactions, resolveEmoji } from './emoji';
@@ -65,12 +65,13 @@ export let ChatMessageReactions = (p: {
   chatId: string;
   channelId: string;
   message: ChatMessage;
+  isApplying?: boolean;
 }) => {
   let addReaction = useCreateChatMessageReaction();
   let removeReaction = useDeleteChatMessageReaction();
 
   let reactions = p.message.reactions ?? [];
-  let isBusy = addReaction.isLoading || removeReaction.isLoading;
+  let isBusy = p.isApplying || addReaction.isLoading || removeReaction.isLoading;
 
   let toggle = (shortcode: string, isMine: boolean) => {
     let base = {
@@ -139,10 +140,18 @@ export let ChatMessageReactions = (p: {
           );
         }}
       >
-        <AddChip type="button" aria-label="Add Reaction">
+        <AddChip type="button" aria-label="Add Reaction" disabled={isBusy}>
           <RiEmotionLine />
         </AddChip>
       </Menu>
+
+      {isBusy && (
+        <Spinner
+          size={12}
+          foreground={theme.colors.gray700}
+          background={theme.colors.gray300}
+        />
+      )}
 
       <addReaction.RenderError />
       <removeReaction.RenderError />
