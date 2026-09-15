@@ -5,8 +5,9 @@ export type ManagementInstanceChatEventsListOutput = {
     object: 'chat.event';
     id: string;
     type: string;
-    source: 'webhook' | 'polling';
-    chatId: string;
+    source: 'webhook' | 'polling' | 'internal';
+    chatConnectionId: string;
+    chatId: string | null;
     channelId: string | null;
     threadId: string | null;
     messageId: string | null;
@@ -19,6 +20,15 @@ export type ManagementInstanceChatEventsListOutput = {
     payload: Record<string, any> | null;
     occurredAt: Date;
     createdAt: Date;
+    error: {
+      code: string | null;
+      message: string | null;
+      providerCode: string | null;
+      operation: string | null;
+      retryable: boolean | null;
+      retryAfterMs: number | null;
+      target: Record<string, any> | null;
+    } | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -33,6 +43,10 @@ export let mapManagementInstanceChatEventsListOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           source: mtMap.objectField('source', mtMap.passthrough()),
+          chatConnectionId: mtMap.objectField(
+            'chat_connection_id',
+            mtMap.passthrough()
+          ),
           chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
           channelId: mtMap.objectField('channel_id', mtMap.passthrough()),
           threadId: mtMap.objectField('thread_id', mtMap.passthrough()),
@@ -60,7 +74,25 @@ export let mapManagementInstanceChatEventsListOutput =
           ),
           payload: mtMap.objectField('payload', mtMap.passthrough()),
           occurredAt: mtMap.objectField('occurred_at', mtMap.date()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          error: mtMap.objectField(
+            'error',
+            mtMap.object({
+              code: mtMap.objectField('code', mtMap.passthrough()),
+              message: mtMap.objectField('message', mtMap.passthrough()),
+              providerCode: mtMap.objectField(
+                'provider_code',
+                mtMap.passthrough()
+              ),
+              operation: mtMap.objectField('operation', mtMap.passthrough()),
+              retryable: mtMap.objectField('retryable', mtMap.passthrough()),
+              retryAfterMs: mtMap.objectField(
+                'retry_after_ms',
+                mtMap.passthrough()
+              ),
+              target: mtMap.objectField('target', mtMap.passthrough())
+            })
+          )
         })
       )
     ),

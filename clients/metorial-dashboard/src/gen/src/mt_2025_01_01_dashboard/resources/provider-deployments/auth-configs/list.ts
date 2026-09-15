@@ -277,6 +277,7 @@ export type ProviderDeploymentsAuthConfigsListQuery = {
   consumerId?: string | string[] | undefined;
   identityId?: string | string[] | undefined;
   identityCredentialId?: string | string[] | undefined;
+  adapter?: string | undefined;
   search?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -393,6 +394,7 @@ export let mapProviderDeploymentsAuthConfigsListQuery = mtMap.union([
           )
         ])
       ),
+      adapter: mtMap.objectField('adapter', mtMap.passthrough()),
       search: mtMap.objectField('search', mtMap.passthrough()),
       createdAt: mtMap.objectField(
         'created_at',

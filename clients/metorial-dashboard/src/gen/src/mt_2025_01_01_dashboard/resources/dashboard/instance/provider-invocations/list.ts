@@ -126,6 +126,7 @@ export let mapDashboardInstanceProviderInvocationsListOutput =
 export type DashboardInstanceProviderInvocationsListQuery = {
   providerRunId?: string | string[] | undefined;
   sessionMessageId?: string | string[] | undefined;
+  chatEventId?: string | string[] | undefined;
   callbackEventId?: string | string[] | undefined;
   authConfigEventId?: string | string[] | undefined;
 };
@@ -144,6 +145,16 @@ export let mapDashboardInstanceProviderInvocationsListQuery =
     ),
     sessionMessageId: mtMap.objectField(
       'session_message_id',
+      mtMap.union([
+        mtMap.unionOption('string', mtMap.passthrough()),
+        mtMap.unionOption(
+          'array',
+          mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+        )
+      ])
+    ),
+    chatEventId: mtMap.objectField(
+      'chat_event_id',
       mtMap.union([
         mtMap.unionOption('string', mtMap.passthrough()),
         mtMap.unionOption(

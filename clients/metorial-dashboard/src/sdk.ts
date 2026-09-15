@@ -19,6 +19,7 @@ import {
   MetorialDashboardInstanceChatsChannelsMembersEndpoint,
   MetorialDashboardInstanceChatsEndpoint,
   MetorialDashboardInstanceChatsMessagesEndpoint,
+  MetorialDashboardInstanceChatsMessagesReactionsEndpoint,
   MetorialDashboardInstanceChatsThreadsEndpoint,
   MetorialDashboardInstanceChatWorkspacesEndpoint,
   MetorialDashboardInstanceConsumersEndpoint,
@@ -1090,7 +1091,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       members: new MetorialDashboardInstanceChatsChannelsMembersEndpoint(manager)
     }),
     threads: new MetorialDashboardInstanceChatsThreadsEndpoint(manager),
-    messages: new MetorialDashboardInstanceChatsMessagesEndpoint(manager)
+    messages: Object.assign(new MetorialDashboardInstanceChatsMessagesEndpoint(manager), {
+      reactions: new MetorialDashboardInstanceChatsMessagesReactionsEndpoint(manager)
+    })
   }),
 
   eventDestinations: Object.assign(
