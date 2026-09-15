@@ -11,8 +11,6 @@ import { Badge, Callout, Datalist, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { CollapsibleBox } from '../../../scenes/sessionTracing/components/collapsibleBox';
-import { SectionList } from '../../../scenes/providerInvocations/styled';
 import {
   DashedLink,
   decodeWebhookBody,
@@ -20,6 +18,8 @@ import {
   getIncomingWebhookStatusColor,
   getIncomingWebhookStatusLabel
 } from '../../../scenes/callbacks/shared';
+import { SectionList } from '../../../scenes/providerInvocations/styled';
+import { CollapsibleBox } from '../../../scenes/sessionTracing/components/collapsibleBox';
 
 export let CallbackEventPage = () => {
   let { callbackEventId } = useParams();

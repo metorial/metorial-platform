@@ -29,7 +29,7 @@ let RightActions = styled.nav`
   gap: 10px;
 `;
 
-let Content = styled.main`
+let Content = styled.main<{ $noPadding?: boolean }>`
   padding: 12px 17px;
   background: ${theme.colors.background};
   border-radius: 8px;
@@ -37,6 +37,9 @@ let Content = styled.main`
   margin-left: -1px;
   margin-right: -1px;
   margin-bottom: -1px;
+  overflow: hidden;
+
+  ${({ $noPadding }) => $noPadding && `padding: 0px;`}
 `;
 
 export type BoxProps = {
@@ -44,9 +47,10 @@ export type BoxProps = {
   description?: React.ReactNode;
   children: React.ReactNode;
   rightActions?: React.ReactNode;
+  noPadding?: boolean;
 };
 
-export let Box = ({ title, description, children, rightActions }: BoxProps) => {
+export let Box = ({ title, description, children, rightActions, noPadding }: BoxProps) => {
   return (
     <Wrapper>
       <Header>
@@ -64,7 +68,7 @@ export let Box = ({ title, description, children, rightActions }: BoxProps) => {
         {rightActions && <RightActions>{rightActions}</RightActions>}
       </Header>
 
-      <Content>{children}</Content>
+      <Content $noPadding={noPadding}>{children}</Content>
     </Wrapper>
   );
 };

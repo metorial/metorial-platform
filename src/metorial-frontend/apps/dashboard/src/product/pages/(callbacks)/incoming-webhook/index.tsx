@@ -1,11 +1,28 @@
+import { CodeBlock } from '@metorial/code';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
-import { JsonViewer } from '@metorial/json-viewer';
 import { useCurrentInstance, useIncomingWebhook } from '@metorial/state';
-import { Callout, Spacer, Text } from '@metorial/ui';
+import { Badge, Callout, Datalist, Flex, Spacer, Text } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import { decodeWebhookBody } from '../../../scenes/callbacks/shared';
+
+let getHttpMethodColor = (method: string) => {
+  switch (method.toUpperCase()) {
+    case 'GET':
+      return 'green' as const;
+    case 'POST':
+      return 'blue' as const;
+    case 'PUT':
+      return 'orange' as const;
+    case 'PATCH':
+      return 'purple' as const;
+    case 'DELETE':
+      return 'red' as const;
+    default:
+      return 'gray' as const;
+  }
+};
 
 export let IncomingWebhookPage = () => {
   let { incomingWebhookId } = useParams();
@@ -33,36 +50,66 @@ export let IncomingWebhookPage = () => {
           </>
         ) : null}
 
-        <Box title="Request" description="The raw inbound HTTP request.">
+        <Box title="Request URL">
           {data.details ? (
-            <>
-              <Text size="2">
-                {data.details.method} {data.details.url}
+            <Flex align="center" gap={10}>
+              <Badge color={getHttpMethodColor(data.details.method)}>
+                {data.details.method.toUpperCase()}
+              </Badge>
+              <Text size="2" style={{ wordBreak: 'break-all' }}>
+                {data.details.url}
               </Text>
-
-              <Spacer height={16} />
-
-              <JsonViewer value={data.details.headers as any} />
-
-              {decodedBody ? (
-                <>
-                  <Spacer height={16} />
-                  {decodedBody.json !== null ? (
-                    <JsonViewer value={decodedBody.json as any} />
-                  ) : (
-                    <Text size="1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                      {decodedBody.text}
-                    </Text>
-                  )}
-                </>
-              ) : null}
-            </>
+            </Flex>
           ) : (
             <Text size="2" color="gray600">
               This event has no request payload.
             </Text>
           )}
         </Box>
+
+        {data.details ? (
+          <>
+            <Spacer height={20} />
+
+            <Box title="Request Body" noPadding>
+              {decodedBody ? (
+                decodedBody.json !== null ? (
+                  <CodeBlock
+                    code={decodedBody.json as any}
+                    language="json"
+                    variant="seamless"
+                    padding="15px"
+                  />
+                ) : (
+                  <Text size="1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    {decodedBody.text}
+                  </Text>
+                )
+              ) : (
+                <Text size="2" color="gray600">
+                  This request did not include a body.
+                </Text>
+              )}
+            </Box>
+
+            <Spacer height={20} />
+
+            <Box title="Request Headers">
+              {Object.entries(data.details.headers).length ? (
+                <Datalist
+                  items={Object.entries(data.details.headers).map(([name, value]) => ({
+                    label: name,
+                    value: Array.isArray(value) ? value.join(', ') : String(value)
+                  }))}
+                />
+              ) : (
+                <Text size="2" color="gray600">
+                  This request did not include headers.
+                </Text>
+              )}
+            </Box>
+          </>
+        ) : null}
       </DetailsOverviewLayout>
     );
   });

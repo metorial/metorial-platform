@@ -6,16 +6,43 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useIncomingWebhooks,
-  useWebhookRegistration
+  useWebhookRegistration,
+  WebhookRegistrationPreview
 } from '@metorial/state';
 import { Badge, Button, Callout, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   getIncomingWebhookStatusColor,
   getIncomingWebhookStatusLabel
 } from '../../../scenes/callbacks/shared';
 import { showWebhookRegistrationSetup } from '../../../scenes/callbacks/webhookRegistrationsTable';
+
+let openedWebhookRegistrationSetups = new Map<string, true>();
+
+let WebhookRegistrationSetupOnOpen = ({
+  instanceId,
+  registration,
+  onComplete
+}: {
+  instanceId: string;
+  registration: WebhookRegistrationPreview;
+  onComplete: () => void;
+}) => {
+  useEffect(() => {
+    if (
+      registration.setup.status !== 'pending' ||
+      openedWebhookRegistrationSetups.has(registration.id)
+    )
+      return;
+
+    openedWebhookRegistrationSetups.set(registration.id, true);
+    showWebhookRegistrationSetup({ instanceId, registration, onComplete });
+  }, [instanceId, onComplete, registration]);
+
+  return null;
+};
 
 export let WebhookRegistrationOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -42,6 +69,12 @@ export let WebhookRegistrationOverviewPage = () => {
 
       return (
         <DetailsOverviewLayout>
+          <WebhookRegistrationSetupOnOpen
+            instanceId={instance.data!.id}
+            registration={registration.data}
+            onComplete={() => void registration.refetch()}
+          />
+
           {isPendingSetup ? (
             <>
               <Callout color="orange">

@@ -136,7 +136,7 @@ export let decodeWebhookBody = (
   try {
     let decoded = atob(body.content);
     try {
-      return { json: JSON.parse(decoded) as unknown, text: decoded };
+      return { json: JSON.stringify(JSON.parse(decoded), null, 2) as unknown, text: decoded };
     } catch {
       return { json: null, text: decoded };
     }

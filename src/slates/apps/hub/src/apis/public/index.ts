@@ -53,6 +53,20 @@ let toHttpResponse = (response: PrismaJson.SlatesWebhookHttpResponse) =>
     headers: response.headers
   });
 
+let webhookHeaders = (headers: Headers) =>
+  Object.fromEntries(
+    [...headers.entries()].filter(([name]) => {
+      let normalizedName = name.toLowerCase();
+      return (
+        !normalizedName.startsWith('cf-') &&
+        !normalizedName.startsWith('cdn-') &&
+        !normalizedName.startsWith('x-forwarded-') &&
+        normalizedName !== 'connection' &&
+        normalizedName !== 'accept-encoding'
+      );
+    })
+  );
+
 let handleWebhookReceive = async (c: Context) => {
   let urlKey = c.req.param('urlKey');
   if (!urlKey) throw new ServiceError(badRequestError({ message: 'urlKey is required' }));
@@ -89,7 +103,7 @@ let handleWebhookReceive = async (c: Context) => {
     request: {
       method: c.req.method,
       url: c.req.url,
-      headers: Object.fromEntries(c.req.raw.headers.entries()),
+      headers: webhookHeaders(c.req.raw.headers),
       body
     }
   });
