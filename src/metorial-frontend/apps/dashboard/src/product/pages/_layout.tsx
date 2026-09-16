@@ -219,13 +219,6 @@ export let ProjectPageLayout = () => {
                               getProps: (i: { pathname: string; to: string }) => ({
                                 isActive: checkPath(i, { exact: true })
                               })
-                            },
-                            {
-                              label: 'Event Errors',
-                              to: Paths.instance.callbackEventErrors(...params),
-                              getProps: (i: { pathname: string; to: string }) => ({
-                                isActive: checkPath(i, { exact: true })
-                              })
                             }
                           ]
                         }

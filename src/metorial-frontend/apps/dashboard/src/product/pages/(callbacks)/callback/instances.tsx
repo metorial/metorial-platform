@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { DetailsTableLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { PageHeaderSection } from '@metorial/layout';
 import {
   useAllCallbackInstances,
   useCallbackById,
@@ -25,7 +25,7 @@ export let CallbackInstancesPage = () => {
 
   return renderWithLoader({ callback, callbackInstances, instance })(
     ({ callbackInstances, instance }) => (
-      <PageHeaderSection
+      <DetailsTableLayout
         title="Registrations"
         description="The callback automatically registers for events on every integration instance. Each registration is listed below."
       >
@@ -64,7 +64,7 @@ export let CallbackInstancesPage = () => {
             Some registrations failed. Open the integration instance to see the provider error.
           </Text>
         ) : null}
-      </PageHeaderSection>
+      </DetailsTableLayout>
     )
   );
 };
