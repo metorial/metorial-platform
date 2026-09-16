@@ -9,10 +9,7 @@ import {
 } from '@metorial/state';
 import { Badge, Callout, Spacer, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
-import {
-  getWebhookRegistrationStatusColor,
-  WEBHOOK_REGISTRATION_STATUS_LABELS
-} from './shared';
+import { truncateReceiverUrl } from './shared';
 import { CreateWebhookRegistrationButton } from './webhookRegistrationsTable';
 
 export let ProviderWebhookRegistrationsBox = ({
@@ -74,7 +71,7 @@ export let ProviderWebhookRegistrationsBox = ({
           )
         })(registrations => (
           <Table
-            headers={['Receiver', 'Status', 'Receive URL']}
+            headers={['Receiver', 'Receive URL']}
             data={registrations.data.items.map(registration => ({
               href: Paths.instance.webhookRegistration(
                 organization.data,
@@ -83,14 +80,19 @@ export let ProviderWebhookRegistrationsBox = ({
                 registration.id
               ),
               data: [
-                registration.name,
-                <Badge color={getWebhookRegistrationStatusColor(registration.status)}>
-                  {WEBHOOK_REGISTRATION_STATUS_LABELS[registration.status] ??
-                    registration.status}
-                </Badge>,
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>{registration.name}</span>
+
+                  {registration.status === 'awaiting_setup' && (
+                    <Badge color="orange" size="1">
+                      Awaiting Setup
+                    </Badge>
+                  )}
+                </div>,
+
                 registration.receiveUrl ? (
                   <Text size="1" style={{ fontFamily: 'jetbrains mono, monospace' }}>
-                    {registration.receiveUrl}
+                    {truncateReceiverUrl(registration.receiveUrl)}
                   </Text>
                 ) : (
                   <Text size="2" color="gray600">

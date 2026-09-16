@@ -144,3 +144,12 @@ export let decodeWebhookBody = (
     return { json: null, text: body.content };
   }
 };
+
+export let truncateReceiverUrl = (url: string) => {
+  let urlObj = new URL(url);
+  let path = urlObj.pathname;
+  if (path.length > 20) {
+    path = path.slice(0, 17) + '...' + path.slice(-8);
+  }
+  return `${urlObj.origin}${path}`;
+};
