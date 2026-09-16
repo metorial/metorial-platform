@@ -172,10 +172,11 @@ class callbackInternalServiceImpl {
   private async getDesiredCallbackOwners(integrationProvider: ReconcileIntegrationProvider) {
     if (!this.areCallbacksAllowed(integrationProvider)) return [];
 
-    return [
-      userCallbackOwner,
-      ...(await listManagedCallbackOwners({ integrationProviderOid: integrationProvider.oid }))
-    ];
+    let managedOwners = await listManagedCallbackOwners({
+      integrationProviderOid: integrationProvider.oid
+    });
+
+    return managedOwners.length ? managedOwners : [userCallbackOwner];
   }
 
   private areCallbacksAllowed(integrationProvider: ReconcileIntegrationProvider) {

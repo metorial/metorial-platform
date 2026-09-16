@@ -1,24 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { tx, ensureAdapterIntegration, applyAdapterIntegrationPresentation } = vi.hoisted(
-  () => {
-    let createModel = () => ({
-      findUnique: vi.fn(),
-      findUniqueOrThrow: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn()
-    });
+let {
+  tx,
+  ensureAdapterIntegration,
+  applyAdapterIntegrationPresentation,
+  afterTransactionHooks,
+  recordLifecycleEvent
+} = vi.hoisted(() => {
+  let createModel = () => ({
+    findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn()
+  });
 
-    return {
-      tx: {
-        chatConnection: createModel(),
-        adapterIntegration: createModel()
-      },
-      ensureAdapterIntegration: vi.fn(),
-      applyAdapterIntegrationPresentation: vi.fn()
-    };
-  }
-);
+  return {
+    tx: {
+      chatConnection: createModel(),
+      adapterIntegration: createModel()
+    },
+    ensureAdapterIntegration: vi.fn(),
+    applyAdapterIntegrationPresentation: vi.fn(),
+    afterTransactionHooks: [] as Array<() => Promise<any>>,
+    recordLifecycleEvent: vi.fn()
+  };
+});
 
 vi.mock('@lowerdeck/service', () => ({
   Service: {
@@ -36,7 +42,23 @@ vi.mock('@metorial-subspace/db', () => ({
   db: tx,
   getId: (kind: string) => ({ id: `${kind}_new`, oid: 600n }),
   withTransaction: async (cb: (db: any) => Promise<any>) => await cb(tx),
-  addAfterTransactionHook: async (hook: () => any) => await hook()
+  addAfterTransactionHook: async (hook: () => Promise<any>) => {
+    afterTransactionHooks.push(hook);
+  }
+}));
+
+vi.mock('../internal/chatEvent', () => ({
+  chatEventInternalService: { recordLifecycleEvent }
+}));
+
+vi.mock('../internal/chatEventPayload', () => ({
+  chatEventPresenterContext: {}
+}));
+
+vi.mock('@metorial/presenters', () => ({
+  chatConnectionPresenter: {
+    present: () => () => ({ run: async () => ({ id: 'chatConnection_new' }) })
+  }
 }));
 
 vi.mock('@metorial-subspace/list-utils', () => ({
@@ -55,8 +77,13 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 vi.mock('@metorial-subspace/module-integration', () => ({
   ensureAdapterIntegration,
   applyAdapterIntegrationPresentation,
+  integrationProviderVersionInclude: {},
   removeAdapterIntegration: vi.fn(),
   resolveAdapterGlobal: vi.fn(async () => ({ oid: 9n, identifier: 'chat' }))
+}));
+
+vi.mock('./chatConnectionProvider', () => ({
+  chatConnectionProviderService: { createChatConnectionProviderInternal: vi.fn() }
 }));
 
 vi.mock('@metorial-subspace/module-search', () => ({
@@ -88,6 +115,7 @@ let environment = { oid: 3n, instanceOid: 33n } as any;
 describe('chatConnectionService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    afterTransactionHooks.length = 0;
     ensureAdapterIntegration.mockResolvedValue({
       oid: 100n,
       tenantOid: 1n,
@@ -131,6 +159,16 @@ describe('chatConnectionService', () => {
           name: 'Support',
           description: 'hello'
         })
+      })
+    );
+    expect(recordLifecycleEvent).not.toHaveBeenCalled();
+
+    await Promise.all(afterTransactionHooks.map(hook => hook()));
+
+    expect(recordLifecycleEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'chat.connection.created',
+        chatConnectionOid: 600n
       })
     );
   });
