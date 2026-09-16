@@ -21,7 +21,11 @@ model EventDestinationListener {
   triggers   String[]
 
   // populated when type = chat
-  chatIntegrationId String?
+  chatConnectionId String?
+
+  // populated when type = callback or chat, no callback or chat identifier, then optionally
+  // the user can choose to match all chat or callback instances for the given provider
+  providerId String?
 
   eventDestinationOid BigInt
   eventDestination    EventDestination @relation(fields: [eventDestinationOid], references: [oid], onDelete: Cascade)
@@ -34,5 +38,6 @@ model EventDestinationListener {
   @@index([eventDestinationOid])
   @@index([instanceOid])
   @@index([type, callbackId])
-  @@index([type, chatIntegrationId])
+  @@index([type, chatConnectionId])
+  @@index([type, providerId])
 }
