@@ -112,6 +112,8 @@ model Organization {
   eventDestinations                      EventDestination[]
   webhookDestinations                    WebhookDestination[]
   systemEvents                           SystemEvent[]
+  eventDeliveryIntents                   EventDeliveryIntent[]
+  eventDeliveryAttempts                  EventDeliveryAttempt[]
 
   @@index([authVersion])
   @@index([previousSlugs])

@@ -8,8 +8,12 @@ model SystemEvent {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  source    SystemEventSource
-  eventType String // "<resource>.<action>" for source = resource, "callback.<triggerKey>", "chat.<event>"
+  source SystemEventSource
+
+  // source = resource: "<resource>.<action>"
+  // source = callback: "callback.<triggerKey>"
+  // source = chat: "chat.<event>"
+  eventType String
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
@@ -29,6 +33,8 @@ model SystemEvent {
   chatIntegrationId String?
 
   createdAt DateTime @default(now())
+
+  deliveryIntents EventDeliveryIntent[]
 
   @@index([organizationOid, createdAt])
   @@index([instanceOid, createdAt])

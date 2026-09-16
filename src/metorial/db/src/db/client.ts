@@ -10,8 +10,8 @@ import type {
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
-import type * as ProductAssistant from '../types/product-assistant.js';
 import { PrismaClient } from '../../prisma/generated/client.js';
+import type * as ProductAssistant from '../types/product-assistant.js';
 export * from '../../prisma/generated/client.js';
 
 let workerIdBits = 12;
@@ -359,5 +359,20 @@ declare global {
     type ProductAssistantSubspaceMcpToolList = ProductAssistant.SubspaceMcpToolList;
 
     type SystemEventPayload = { [key: string]: any };
+
+    type EventDeliveryAttemptDetails = {
+      request: {
+        url: string;
+        method: string;
+        headers: { key: string; value: string }[];
+        body: string | null;
+      };
+      response: {
+        statusCode: number;
+        headers: { key: string; value: string }[];
+        body: string | null;
+        isBodyTruncated: boolean;
+      } | null;
+    };
   }
 }

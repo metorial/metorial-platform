@@ -167,6 +167,7 @@ model Instance {
   outpostAccesses                        OutpostAccess[]
   eventDestinationListeners               EventDestinationListener[]
   systemEvents                            SystemEvent[]
+  eventDeliveryIntents                    EventDeliveryIntent[]
 
   @@index([previousSlugs])
   @@index([oldSlug])
