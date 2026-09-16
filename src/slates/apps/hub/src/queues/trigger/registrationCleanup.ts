@@ -45,7 +45,7 @@ export let triggerRegistrationCleanupQueueProcessor = triggerRegistrationCleanup
       triggerRegistrationId: registration.id
     });
 
-    // Keep connection links until cleanup jobs are durable, so a retry can still find them.
+    // Must run after scheduleOrphanedTargetCleanup.
     await db.triggerRegistrationWebhook.deleteMany({
       where: { triggerRegistrationInstanceOid: { in: instanceOids } }
     });

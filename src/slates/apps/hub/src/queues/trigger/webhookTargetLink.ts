@@ -75,15 +75,13 @@ export let triggerWebhookTargetLinkQueueProcessor = triggerWebhookTargetLinkQueu
         triggerWebhookTargetOid: webhookTarget.oid
       }
     };
-    // Providers may rename targets; keep the stored identity in sync for every status.
     let identity = {
       name: target.name,
       description: target.description ?? null,
       metadata: target.metadata,
       webhookTargetPayload: target.webhookTargetPayload
     };
-    // Postgres jsonb does not preserve key order, so stored and discovered JSON must be compared
-    // canonically or every rediscovery would look like a change.
+    // jsonb reorders keys; compare canonically.
     let hasIdentityChanged = (stored: TriggerWebhookTarget) =>
       identity.name !== stored.name ||
       identity.description !== stored.description ||
@@ -91,8 +89,7 @@ export let triggerWebhookTargetLinkQueueProcessor = triggerWebhookTargetLinkQueu
       canonicalize(identity.webhookTargetPayload) !==
         canonicalize(stored.webhookTargetPayload);
 
-    // Steady state on every rediscovery: nothing to change, and the search job already
-    // refreshed lastDiscoveredAt. Skip the lock so provider calls holding it are not contended.
+    // Fast path: unchanged active target, skip the lock.
     let existingLink = await db.triggerRegistrationWebhook.findUnique({ where: linkWhere });
     if (
       webhookTarget.status === 'active' &&
@@ -115,9 +112,7 @@ export let triggerWebhookTargetLinkQueueProcessor = triggerWebhookTargetLinkQueu
       let existingLink = await db.triggerRegistrationWebhook.findUnique({ where: linkWhere });
       let identityChanged = hasIdentityChanged(webhookTarget);
 
-      // A failed target is retried only when there is a reason to expect a different
-      // outcome: the target changed, a new connection (new credentials) linked it, or the
-      // cool-down passed. Otherwise every rediscovery would fail again and spam errors.
+      // Retry failed targets only when a different outcome is plausible.
       let retryFailed =
         webhookTarget.status === 'failed' &&
         (identityChanged ||
@@ -131,6 +126,7 @@ export let triggerWebhookTargetLinkQueueProcessor = triggerWebhookTargetLinkQueu
       if (webhookTarget.status === 'deleted' || retryFailed) {
         update.status = 'creating';
         update.webhookRegistrationOid = null;
+        update.registeredByTriggerRegistrationOid = null;
         update.unregistrationStarted = false;
       } else if (webhookTarget.status === 'deleting' && !webhookTarget.unregistrationStarted) {
         update.status = webhookTarget.webhookRegistrationOid ? 'active' : 'creating';

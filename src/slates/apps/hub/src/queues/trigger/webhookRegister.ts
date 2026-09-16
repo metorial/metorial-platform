@@ -69,7 +69,7 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
       let target = await findTarget(data.triggerRegistrationInstanceId);
       if (!target || !['creating', 'failed'].includes(target.status)) return;
 
-      // The requested connection may have been disconnected meanwhile; use any other active one.
+      // Requested connection may be gone; fall back to any active one.
       if (target.webhooks.length === 0 && data.triggerRegistrationInstanceId) {
         target = await findTarget();
       }
@@ -131,14 +131,17 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
             metadata: target.metadata as Record<string, any>,
             webhookRegistrationPayload: result.data.webhookRegistrationPayload,
             webhookRegistrationIdentifier: result.data.webhookRegistrationIdentifier,
-            authRouting: 'any',
-            triggerRegistrationId: registration.id
+            authRouting: 'any'
           });
 
         await db.$transaction([
           db.triggerWebhookTarget.update({
             where: { oid: target.oid },
-            data: { status: 'active', webhookRegistrationOid: webhookRegistration.oid }
+            data: {
+              status: 'active',
+              webhookRegistrationOid: webhookRegistration.oid,
+              registeredByTriggerRegistrationOid: registration.oid
+            }
           }),
           db.triggerWebhookTargetRegistrationAttempt.create({
             data: {
@@ -168,7 +171,6 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
         }
       });
 
-      // The attempt row above holds the reason; a plain Error here would be reported to Sentry.
       if (job.attemptsMade + 1 < TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS)
         throw new QueueRetryError();
 
@@ -177,8 +179,7 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
         data: { status: 'failed' }
       });
 
-      // Only the connection whose credentials were used is at fault; another linked
-      // connection may still succeed on its own register job.
+      // Only the connection whose credentials were used is at fault.
       await createTriggerRegistrationInstanceError({
         triggerRegistrationInstanceOid: link.triggerRegistrationInstance.oid,
         triggerWebhookTargetOid: target.oid,

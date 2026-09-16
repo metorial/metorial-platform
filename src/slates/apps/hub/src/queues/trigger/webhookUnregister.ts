@@ -12,7 +12,8 @@ import { triggerWebhookRegisterQueue } from './webhookRegister';
 let include = {
   tenant: true,
   triggerGroup: { include: { slate: true } },
-  webhookRegistration: true
+  webhookRegistration: true,
+  registeredByTriggerRegistration: { select: { id: true } }
 };
 
 export let triggerWebhookUnregisterQueue = createQueue<{
@@ -27,9 +28,7 @@ export let triggerWebhookUnregisterQueue = createQueue<{
 export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueue.process(
   async (data, job) =>
     webhookTargetLock.usingLock(data.triggerWebhookTargetId, async () => {
-      // Provider cleanup is best-effort: it retries with other credentials, but on the
-      // last attempt the target is deleted locally anyway so it cannot stay `deleting`
-      // forever. The recorded attempt rows keep the failure reason visible.
+      // Best-effort: on the last attempt the target is deleted locally regardless.
       let isLastAttempt = job.attemptsMade + 1 >= TRIGGER_WEBHOOK_UNREGISTER_MAX_ATTEMPTS;
       let retryUnlessLastAttempt = () => {
         if (!isLastAttempt) throw new QueueRetryError();
@@ -48,7 +47,6 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
         },
         select: { triggerRegistrationInstance: { select: { id: true } } }
       });
-      // Every active connection is its own registration candidate, like on discovery.
       let scheduleRegister = () =>
         triggerWebhookRegisterQueue.addManyWithOps(
           activeLinks.map(link => ({
@@ -70,7 +68,7 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
       }
 
       if (target.webhookRegistration) {
-        // Once provider deletion starts, a reconnect must wait for a replacement hook.
+        // Past this point a reconnect needs a new hook.
         if (!target.unregistrationStarted) {
           await db.triggerWebhookTarget.update({
             where: { oid: target.oid },
@@ -88,8 +86,7 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
           tenantOid: target.tenantOid,
           instances: { some: { triggerGroupOid: target.triggerGroupOid } }
         };
-        // Active connections first ('active' sorts before 'deleted'); revoked credentials of
-        // disconnected ones would otherwise burn attempts.
+        // status asc puts 'active' before 'deleted'.
         let otherRegistrations = await db.triggerRegistration.findMany({
           where: registrationScope,
           orderBy: [{ status: 'asc' }, { createdAt: 'desc' }, { id: 'asc' }],
@@ -99,7 +96,7 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
         let candidates = [
           ...new Set(
             [
-              decrypted.triggerRegistrationId,
+              target.registeredByTriggerRegistration?.id,
               data.triggerRegistrationId,
               ...otherRegistrations.map(registration => registration.id)
             ].filter((id): id is string => typeof id === 'string')
@@ -177,6 +174,7 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
           data: {
             status: activeLinks.length > 0 ? 'creating' : 'deleted',
             webhookRegistrationOid: null,
+            registeredByTriggerRegistrationOid: null,
             unregistrationStarted: false
           }
         }),

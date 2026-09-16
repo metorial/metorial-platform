@@ -1,9 +1,7 @@
 import { db } from '../../db';
 import { triggerWebhookUnregisterQueue } from './webhookUnregister';
 
-// Marks every given target that no active connection links to anymore as `deleting` and
-// schedules provider cleanup for it. Callers keep their own links intact until this has
-// succeeded, so a retried caller can still find the same targets.
+// Callers must keep their own links until this succeeds so a retry still finds the targets.
 export let scheduleOrphanedTargetCleanup = async (d: {
   targetOids: bigint[];
   triggerRegistrationId?: string;
@@ -32,7 +30,7 @@ export let scheduleOrphanedTargetCleanup = async (d: {
   });
   if (orphanedTargets.length === 0) return;
 
-  // No lock is held here; the status guard keeps a target that was deleted meanwhile deleted.
+  // Unlocked; the status filter guards against concurrent deletion.
   await db.triggerWebhookTarget.updateMany({
     where: {
       oid: { in: orphanedTargets.map(t => t.oid) },

@@ -91,14 +91,14 @@ export let triggerWebhookTargetSearchQueueProcessor = triggerWebhookTargetSearch
     let isPartial = data.isPartial === true || result.data.isPartial === true;
 
     if (targets.length > 0) {
-      // Refresh existing links before scheduling pruning; link jobs run independently.
+      // Refresh links here; link jobs may run after prune is scheduled.
       await db.triggerRegistrationWebhook.updateMany({
         where: {
           triggerRegistrationInstanceOid: instance.oid,
           triggerWebhookTarget: {
             targetIdentifier: { in: targets.map(target => target.webhookTargetIdentifier) }
           },
-          OR: [{ lastDiscoveredAt: null }, { lastDiscoveredAt: { lt: discoveryStartedAt } }]
+          lastDiscoveredAt: { lt: discoveryStartedAt }
         },
         data: { lastDiscoveredAt: discoveryStartedAt }
       });
@@ -116,7 +116,7 @@ export let triggerWebhookTargetSearchQueueProcessor = triggerWebhookTargetSearch
       );
     }
 
-    // Keep paging through empty (permission-filtered) pages; only a missing token ends discovery.
+    // Empty pages don't end discovery; only a missing token does.
     if (nextPageToken == null || nextPageToken === '') {
       if (!isPartial) {
         await triggerWebhookTargetPruneQueue.add({

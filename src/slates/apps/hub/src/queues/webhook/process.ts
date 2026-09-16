@@ -156,8 +156,7 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
       }[];
 
       if (target) {
-        // Links of a disconnected connection survive until its cleanup job finishes; never
-        // fan out to them.
+        // Links of disconnected connections linger until cleanup; skip them.
         let links = await db.triggerRegistrationWebhook.findMany({
           where: {
             triggerWebhookTargetOid: target.oid,

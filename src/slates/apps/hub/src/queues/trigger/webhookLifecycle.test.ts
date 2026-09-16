@@ -140,6 +140,7 @@ beforeEach(async () => {
     updatedAt: new Date(),
     webhookRegistrationOid: 7n,
     webhookRegistration: { oid: 7n, secretOid: 8n, registrationIdentifier: '' },
+    registeredByTriggerRegistration: { id: 'connection' },
     webhooks: [{ triggerRegistrationInstance: instance }]
   };
   discovered = {
@@ -167,7 +168,7 @@ beforeEach(async () => {
   decrypt.mockImplementation(async ({ purpose }: any) =>
     purpose === 'slate_authentication_configuration'
       ? { output: { token: 'credential' } }
-      : { payload: { hook: 42 }, triggerRegistrationId: 'connection' }
+      : { payload: { hook: 42 } }
   );
   invocation.createInvocationWithState.mockResolvedValue({ id: 'stack' });
   invocation.unregisterWebhook.mockResolvedValue({
@@ -350,13 +351,15 @@ describe('automatic webhook lifecycle', () => {
     ).rejects.toThrow();
     expect(invocation.unregisterWebhook).not.toHaveBeenCalled();
   });
-  it('retains the creating connection reference in the encrypted registration', async () => {
+  it('records which connection created the hook on the target', async () => {
     target.status = 'creating';
     await run('whk/register', { triggerWebhookTargetId: target.id });
-    expect(createRegistration).toHaveBeenCalledWith(
+    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        triggerRegistrationId: registration.id,
-        webhookRegistrationPayload: { hook: 42 }
+        data: expect.objectContaining({
+          status: 'active',
+          registeredByTriggerRegistrationOid: registration.oid
+        })
       })
     );
   });
@@ -502,12 +505,8 @@ describe('unregister terminal state', () => {
       data: expect.objectContaining({ status: 'deleted' })
     });
   });
-  it('falls back to any connection of the trigger group for legacy secrets', async () => {
-    decrypt.mockImplementation(async ({ purpose }: any) =>
-      purpose === 'slate_authentication_configuration'
-        ? { output: { token: 'credential' } }
-        : { payload: { hook: 42 } }
-    );
+  it('falls back to any connection of the trigger group when the creator is unknown', async () => {
+    target.registeredByTriggerRegistration = null;
     await run('whk/unregister', { triggerWebhookTargetId: target.id });
     expect(db.triggerRegistration.findFirst).toHaveBeenCalledTimes(1);
     expect(db.triggerRegistration.findFirst.mock.calls[0][0]).toEqual(
@@ -636,7 +635,7 @@ describe('shared targets with mixed webhook permissions', () => {
         triggerRegistrationInstance: {
           ...instance,
           id: 'writer',
-          triggerRegistration: { ...registration, id: 'writer-connection' }
+          triggerRegistration: { ...registration, id: 'writer-connection', oid: 12n }
         }
       }
     ];
@@ -658,8 +657,10 @@ describe('shared targets with mixed webhook permissions', () => {
         })
       })
     );
-    expect(createRegistration).toHaveBeenCalledWith(
-      expect.objectContaining({ triggerRegistrationId: 'writer-connection' })
+    expect(db.triggerWebhookTarget.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ registeredByTriggerRegistrationOid: 12n })
+      })
     );
   });
   it('blames only the connection whose credentials failed', async () => {
@@ -693,8 +694,10 @@ describe('shared targets with mixed webhook permissions', () => {
       db.triggerWebhookTarget.findUnique.mock.calls[1][0].include.webhooks.where
         .triggerRegistrationInstance.id
     ).toBeUndefined();
-    expect(createRegistration).toHaveBeenCalledWith(
-      expect.objectContaining({ triggerRegistrationId: registration.id })
+    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ registeredByTriggerRegistrationOid: registration.oid })
+      })
     );
   });
   it('queues separate credential candidates for the same discovered target', async () => {
@@ -767,7 +770,7 @@ describe('cleanup recovery', () => {
     decrypt.mockImplementation(async ({ purpose, secretOid }: any) =>
       purpose === 'slate_authentication_configuration'
         ? { output: { token: secretOid === 14n ? 'working' : 'revoked' } }
-        : { payload: { hook: 42 }, triggerRegistrationId: registration.id }
+        : { payload: { hook: 42 } }
     );
     invocation.createInvocationWithState.mockImplementation(async (input: any) => input);
     invocation.unregisterWebhook.mockImplementation(async ({ stack }: any) =>
@@ -842,19 +845,15 @@ describe('complete discovery pruning', () => {
       await run('whk/prune', data);
   };
 
-  it.each([false, true])(
-    'prunes an absent target after an empty complete scan (legacy=%s)',
-    async legacy => {
-      if (legacy) links[0].lastDiscoveredAt = null;
-      invocation.listWebhookTargets.mockResolvedValue({
-        status: 'success',
-        data: { targets: [], nextPageToken: null }
-      });
-      await run('whk/search', { triggerRegistrationInstanceId: instance.id });
-      await finishPruning();
-      expect(links).toHaveLength(0);
-    }
-  );
+  it('prunes an absent target after an empty complete scan', async () => {
+    invocation.listWebhookTargets.mockResolvedValue({
+      status: 'success',
+      data: { targets: [], nextPageToken: null }
+    });
+    await run('whk/search', { triggerRegistrationInstanceId: instance.id });
+    await finishPruning();
+    expect(links).toHaveLength(0);
+  });
 
   it('refreshes discovered links before independent link jobs or pruning can run', async () => {
     invocation.listWebhookTargets.mockResolvedValue({
@@ -899,9 +898,8 @@ describe('complete discovery pruning', () => {
     expect(queues.get('shub/trg/whk/prune/1').add).not.toHaveBeenCalled();
   });
 
-  it('keeps the grace period for recent legacy links', async () => {
-    links[0].lastDiscoveredAt = null;
-    links[0].createdAt = new Date();
+  it('keeps a link absent from this scan until it has been unseen for the grace period', async () => {
+    links[0].lastDiscoveredAt = new Date(Date.now() - HOUR);
     invocation.listWebhookTargets.mockResolvedValue({
       status: 'success',
       data: { targets: [], nextPageToken: null }

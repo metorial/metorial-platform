@@ -39,10 +39,7 @@ export let triggerWebhookTargetPruneQueueProcessor = triggerWebhookTargetPruneQu
     let where: Prisma.TriggerRegistrationWebhookWhereInput = {
       triggerRegistrationInstanceOid: instance.oid,
       triggerWebhookTargetOid: { not: null },
-      OR: [
-        { lastDiscoveredAt: { lt: pruneCutoff } },
-        { lastDiscoveredAt: null, createdAt: { lt: pruneCutoff } }
-      ]
+      lastDiscoveredAt: { lt: pruneCutoff }
     };
     let staleLinks = await db.triggerRegistrationWebhook.findMany({
       where: { ...where, oid: data.cursor ? { gt: data.cursor } : undefined },
