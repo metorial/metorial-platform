@@ -1,19 +1,17 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
+import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
-  ContentPanelLayout,
-  ContentPanelLayoutInner,
-  ExtraHeaderLayout
-} from '@metorial/layout';
-import {
+  useCallbackById,
   useCallbackEvent,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { Button } from '@metorial/ui';
-import { RiArrowLeftSLine } from '@remixicon/react';
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Badge, RenderDate } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { Link, Outlet, useParams } from 'react-router-dom';
+import { getCallbackEventStatusColor } from '../../../scenes/callbacks/shared';
 
 export let CallbackEventLayout = () => {
   let instance = useCurrentInstance();
@@ -22,50 +20,90 @@ export let CallbackEventLayout = () => {
 
   let { callbackEventId } = useParams();
   let event = useCallbackEvent(instance.data?.id, callbackEventId);
+  let callback = useCallbackById(instance.data?.id, event.data?.callbackId);
 
-  let pathname = useLocation().pathname;
-  let listPath = Paths.instance.callbackEvents(organization.data, project.data, instance.data);
-  let params = [
+  let eventPath = Paths.instance.callbackEvent(
     organization.data,
     project.data,
     instance.data,
     event.data?.id ?? callbackEventId
-  ] as const;
+  );
 
   return (
-    <ExtraHeaderLayout
-      header={
-        <Link to={listPath}>
-          <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
-            Back to all callback events
-          </Button>
-        </Link>
+    <DetailsLayout
+      entity={event.data ? { ...event.data, name: event.data.providerTriggerKey } : event.data}
+      breadcrumbs={[
+        {
+          label: 'Callbacks',
+          to: Paths.instance.callbacks(organization.data, project.data, instance.data)
+        },
+        {
+          label: callback.data?.name ?? 'Callback',
+          to: Paths.instance.callback(
+            organization.data,
+            project.data,
+            instance.data,
+            event.data?.callbackId
+          )
+        },
+        {
+          label: event.data?.providerTriggerKey,
+          to: eventPath
+        }
+      ]}
+      attributes={
+        event.data
+          ? [
+              { label: 'Event ID', value: <ID id={event.data.id} /> },
+              {
+                label: 'Status',
+                value: (
+                  <Badge color={getCallbackEventStatusColor(event.data.status)}>
+                    {event.data.status}
+                  </Badge>
+                )
+              },
+              { label: 'Source', value: event.data.source },
+              {
+                label: 'Callback',
+                value: (
+                  <Link
+                    to={Paths.instance.callback(
+                      organization.data,
+                      project.data,
+                      instance.data,
+                      event.data.callbackId
+                    )}
+                  >
+                    <ID id={event.data.callbackId} copy={false} />
+                  </Link>
+                )
+              },
+              {
+                label: 'Callback Instance',
+                value: <ID id={event.data.callbackInstanceId} />
+              },
+              ...(event.data.mappedType
+                ? [
+                    {
+                      label: 'Mapped Resource',
+                      value: `${event.data.mappedType}${
+                        event.data.mappedId ? ` · ${event.data.mappedId}` : ''
+                      }`
+                    }
+                  ]
+                : []),
+              { label: 'Occurred', value: <RenderDate date={event.data.occurredAt} /> },
+              { label: 'Recorded', value: <RenderDate date={event.data.createdAt} /> }
+            ]
+          : []
       }
     >
-      <ContentPanelLayout
-        title={
-          event.data?.providerTriggerKey ?? `Callback event ${callbackEventId?.slice(0, 8)}...`
-        }
-        breadcrumbs={[
-          { label: 'Callback Events', to: listPath },
-          {
-            label: event.data?.providerTriggerKey ?? 'Callback Event',
-            to: Paths.instance.callbackEvent(...params)
-          }
-        ]}
-        links={{
-          current: pathname,
-          items: [{ label: 'Details', to: Paths.instance.callbackEvent(...params) }]
-        }}
-      >
-        <ContentPanelLayoutInner>
-          <InitialLoadBoundary>
-            {renderWithLoader({ event })(() => (
-              <Outlet />
-            ))}
-          </InitialLoadBoundary>
-        </ContentPanelLayoutInner>
-      </ContentPanelLayout>
-    </ExtraHeaderLayout>
+      <InitialLoadBoundary>
+        {renderWithLoader({ event })(() => (
+          <Outlet />
+        ))}
+      </InitialLoadBoundary>
+    </DetailsLayout>
   );
 };

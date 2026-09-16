@@ -21,6 +21,12 @@ export let v1EventDestinationPresenter = Presenter.create(eventDestinationType)
           signing_secret: revealSecret ?? null
         }
       : null,
+    retry: {
+      strategy: eventDestination.retryStrategy,
+      max_attempts: eventDestination.retryMaxAttempts,
+      base_delay_seconds: eventDestination.retryBaseDelaySeconds,
+      max_delay_seconds: eventDestination.retryMaxDelaySeconds
+    },
     listeners: await Promise.all(
       eventDestination.listeners.map(listener =>
         v1EventDestinationListenerPresenter
@@ -87,6 +93,29 @@ export let v1EventDestinationPresenter = Presenter.create(eventDestinationType)
           },
           { description: 'Webhook-specific settings, present when `type` is `webhook`' }
         )
+      ),
+      retry: v.object(
+        {
+          strategy: v.enumOf(['exponential', 'linear', 'fixed'], {
+            description: 'How the delay between delivery attempts grows'
+          }),
+          max_attempts: v.number({
+            description: 'How many attempts a delivery to this destination may make in total',
+            examples: [8]
+          }),
+          base_delay_seconds: v.number({
+            description: 'Delay the backoff curve starts from',
+            examples: [10]
+          }),
+          max_delay_seconds: v.number({
+            description: 'Ceiling the backoff delay is clamped to',
+            examples: [10800]
+          })
+        },
+        {
+          description:
+            'Retry policy applied to deliveries scheduled for this destination. A delivery captures this policy when it is scheduled, so changes here only affect new deliveries.'
+        }
       ),
       listeners: v.array(v1EventDestinationListenerPresenter.schema, {
         description: 'Listeners that deliver matching instance events to this destination'

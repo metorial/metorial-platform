@@ -6,12 +6,19 @@ import {
   db,
   EventDestination,
   EventDestinationStatus,
+  type EventDeliveryRetryStrategy,
   ID,
   Organization,
   WebhookDestination,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import {
+  assertDeliveryUrlAllowedForInput,
+  MAX_RETRY_ATTEMPTS,
+  MAX_RETRY_DELAY_SECONDS,
+  MIN_RETRY_DELAY_SECONDS
+} from '@metorial/module-event-delivery';
 
 export let eventDestinationInclude = {
   webhookDestination: true,
@@ -22,7 +29,46 @@ export let eventDestinationInclude = {
   }
 } as const;
 
+export interface EventDestinationRetryInput {
+  strategy?: EventDeliveryRetryStrategy;
+  maxAttempts?: number;
+  baseDelaySeconds?: number;
+  maxDelaySeconds?: number;
+}
+
 class EventDestinationServiceImpl {
+  private assertValidRetryInput(retry: EventDestinationRetryInput) {
+    let assertInRange = (
+      label: string,
+      value: number | undefined,
+      min: number,
+      max: number
+    ) => {
+      if (value == undefined) return;
+      if (!Number.isInteger(value) || value < min || value > max) {
+        throw new ServiceError(
+          badRequestError({
+            message: `retry.${label} must be a whole number between ${min} and ${max}`
+          })
+        );
+      }
+    };
+
+    assertInRange('max_attempts', retry.maxAttempts, 1, MAX_RETRY_ATTEMPTS);
+    assertInRange(
+      'base_delay_seconds',
+      retry.baseDelaySeconds,
+      MIN_RETRY_DELAY_SECONDS,
+      MAX_RETRY_DELAY_SECONDS
+    );
+    assertInRange(
+      'max_delay_seconds',
+      retry.maxDelaySeconds,
+      MIN_RETRY_DELAY_SECONDS,
+      MAX_RETRY_DELAY_SECONDS
+    );
+  }
+
   private assertEventDestinationActive(eventDestination: EventDestination) {
     if (eventDestination.status != 'active') {
       throw new ServiceError(
@@ -77,8 +123,12 @@ class EventDestinationServiceImpl {
       description?: string | null;
       type: 'webhook';
       webhook: { url: string };
+      retry?: EventDestinationRetryInput;
     };
   }) {
+    assertDeliveryUrlAllowedForInput(d.input.webhook.url);
+    if (d.input.retry) this.assertValidRetryInput(d.input.retry);
+
     return withTransaction(async db => {
       await Fabric.fire('organization.event_destination.created:before', {
         organization: d.organization,
@@ -103,6 +153,10 @@ class EventDestinationServiceImpl {
           description: d.input.description,
           status: 'active',
           type: d.input.type,
+          retryStrategy: d.input.retry?.strategy,
+          retryMaxAttempts: d.input.retry?.maxAttempts,
+          retryBaseDelaySeconds: d.input.retry?.baseDelaySeconds,
+          retryMaxDelaySeconds: d.input.retry?.maxDelaySeconds,
           organizationOid: d.organization.oid,
           webhookDestinationOid: webhookDestination.oid
         },
@@ -128,9 +182,12 @@ class EventDestinationServiceImpl {
       name?: string;
       description?: string | null;
       webhook?: { url?: string };
+      retry?: EventDestinationRetryInput;
     };
   }) {
     this.assertEventDestinationActive(d.eventDestination);
+    if (d.input.webhook?.url) assertDeliveryUrlAllowedForInput(d.input.webhook.url);
+    if (d.input.retry) this.assertValidRetryInput(d.input.retry);
 
     return withTransaction(async db => {
       await Fabric.fire('organization.event_destination.updated:before', {
@@ -153,7 +210,11 @@ class EventDestinationServiceImpl {
         where: { oid: d.eventDestination.oid },
         data: {
           name: d.input.name,
-          description: d.input.description
+          description: d.input.description,
+          retryStrategy: d.input.retry?.strategy,
+          retryMaxAttempts: d.input.retry?.maxAttempts,
+          retryBaseDelaySeconds: d.input.retry?.baseDelaySeconds,
+          retryMaxDelaySeconds: d.input.retry?.maxDelaySeconds
         },
         include: eventDestinationInclude
       });

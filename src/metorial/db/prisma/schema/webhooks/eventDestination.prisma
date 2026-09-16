@@ -17,6 +17,11 @@ model EventDestination {
   status EventDestinationStatus @default(active)
   type   EventDestinationType
 
+  retryStrategy         EventDeliveryRetryStrategy @default(exponential)
+  retryMaxAttempts      Int                        @default(8)
+  retryBaseDelaySeconds Int                        @default(10)
+  retryMaxDelaySeconds  Int                        @default(10800)
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -27,7 +32,8 @@ model EventDestination {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  listeners EventDestinationListener[]
+  listeners        EventDestinationListener[]
+  deliveryIntents  EventDeliveryIntent[]
 
   @@index([organizationOid, status])
 }

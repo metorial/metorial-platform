@@ -298,5 +298,8 @@ export let ID = createIdGenerator({
   // `_` (so 'evt' -> 'evt_'), which is an exact collision with `auditEvent: idType.sorted('evt_')`
   // above (AuditLogEvent, mapped to table "Event") and throws at import time. `evnt` is the closest
   // available prefix to what was asked for.
-  systemEvent: idType.sorted('evnt')
+  systemEvent: idType.sorted('evnt'),
+
+  eventDeliveryIntent: idType.sorted('evdi'),
+  eventDeliveryAttempt: idType.sorted('evda')
 });

@@ -360,12 +360,6 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'callback-events', ...subPages),
-    callbackEventErrors: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'callback-event-errors', ...subPages),
     callbackEvent: (
       organization: EntityParam,
       project: EntityParam,

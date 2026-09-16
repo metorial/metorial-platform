@@ -61,32 +61,11 @@ export let CallbacksListLayout = () => {
 };
 
 export let CallbackLogsListLayout = () => {
-  let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
-
-  let pathname = useLocation().pathname;
-  let params = [organization.data, project.data, instance.data] as const;
-
   return (
     <ContentLayout>
       <PageHeader
-        title="Callback Logs"
-        description="Inspect the provider events Metorial recorded and everything that failed along the way."
-      />
-
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'Events',
-            to: Paths.instance.callbackEvents(...params)
-          },
-          {
-            label: 'Event Errors',
-            to: Paths.instance.callbackEventErrors(...params)
-          }
-        ]}
+        title="Callback Events"
+        description="Inspect the provider events Metorial recorded from your callbacks."
       />
 
       <PaginationSearchParamsProvider enabled={true}>

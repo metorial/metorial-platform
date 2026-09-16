@@ -2,6 +2,8 @@ export * from './auditLog';
 export * from './auditLogStream';
 export * from './auditLogStreamEvent';
 export * from './event';
+export * from './eventDelivery';
+export * from './eventDeliveryAttempt';
 export * from './eventDestination';
 export * from './eventDestinationListener';
 export * from './instance';

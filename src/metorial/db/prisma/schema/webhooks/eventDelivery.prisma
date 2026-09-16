@@ -1,0 +1,106 @@
+enum EventDeliveryRetryStrategy {
+  exponential
+  linear
+  fixed
+}
+
+enum EventDeliveryIntentStatus {
+  pending
+  retrying
+  delivered
+  failed
+  cancelled
+}
+
+model EventDeliveryIntent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status EventDeliveryIntentStatus @default(pending)
+
+  // Mirrors the destination's type at scheduling time. Webhook is the only transport today; a new
+  // transport adds a value here rather than a parallel set of tables.
+  type EventDestinationType
+
+  attemptCount Int @default(0)
+
+  errorCode    String?
+  errorMessage String?
+
+  // Snapshot of the destination's retry policy, so editing the destination mid-flight cannot change
+  // how an already-scheduled delivery backs off or when it gives up.
+  retryStrategy         EventDeliveryRetryStrategy
+  retryMaxAttempts      Int
+  retryBaseDelaySeconds Int
+  retryMaxDelaySeconds  Int
+
+  systemEventOid BigInt
+  systemEvent    SystemEvent @relation(fields: [systemEventOid], references: [oid], onDelete: Cascade)
+
+  eventDestinationOid BigInt
+  eventDestination    EventDestination @relation(fields: [eventDestinationOid], references: [oid], onDelete: Cascade)
+
+  eventDestinationListenerOid BigInt?
+  eventDestinationListener    EventDestinationListener? @relation(fields: [eventDestinationListenerOid], references: [oid], onDelete: SetNull)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
+
+  lastAttemptAt DateTime?
+  nextAttemptAt DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  attempts EventDeliveryAttempt[]
+
+  @@unique([systemEventOid, eventDestinationOid])
+  @@index([organizationOid, createdAt])
+  @@index([instanceOid, createdAt])
+  @@index([eventDestinationOid, createdAt])
+  @@index([status, nextAttemptAt])
+}
+
+enum EventDeliveryAttemptStatus {
+  succeeded
+  failed
+}
+
+model EventDeliveryAttempt {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status EventDeliveryAttemptStatus
+
+  attemptNumber Int
+  durationMs    Int
+
+  isRetryable Boolean @default(false)
+
+  errorCode    String?
+  errorMessage String?
+
+  responseStatusCode Int?
+
+  intentOid BigInt
+  intent    EventDeliveryIntent @relation(fields: [intentOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  /// [EventDeliveryAttemptDetails]
+  detailsJson       Json?
+  detailsStorageKey String?
+
+  startedAt   DateTime
+  completedAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([intentOid, attemptNumber])
+  @@index([organizationOid, createdAt])
+  @@index([status, createdAt])
+  @@index([detailsStorageKey])
+}

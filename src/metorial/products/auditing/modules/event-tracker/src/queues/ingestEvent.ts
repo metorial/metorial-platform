@@ -1,4 +1,5 @@
 import { db, ID } from '@metorial/db';
+import { dispatchSystemEventDelivery } from '@metorial/module-event-delivery';
 import type { PresenterContext } from '@metorial/presenter';
 import { createQueue } from '@metorial/queue';
 import { webhookEvents } from '@metorial/webhook-event-schema';
@@ -75,4 +76,6 @@ export let systemEventIngestQueueProcessor = systemEventIngestQueue.process(asyn
     },
     update: {}
   });
+
+  await dispatchSystemEventDelivery({ systemEventId: data.id });
 });

@@ -359,5 +359,20 @@ declare global {
     type ProductAssistantSubspaceMcpToolList = ProductAssistant.SubspaceMcpToolList;
 
     type SystemEventPayload = { [key: string]: any };
+
+    type EventDeliveryAttemptDetails = {
+      request: {
+        url: string;
+        method: string;
+        headers: { key: string; value: string }[];
+        body: string | null;
+      };
+      response: {
+        statusCode: number;
+        headers: { key: string; value: string }[];
+        body: string | null;
+        isBodyTruncated: boolean;
+      } | null;
+    };
   }
 }

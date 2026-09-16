@@ -46,6 +46,7 @@ import {
   ConsumerSession,
   ConsumerSurface,
   Document,
+  EventDeliveryIntent,
   EventDestination,
   EventDestinationListener,
   File,
@@ -89,6 +90,7 @@ import {
   SkillTemplate,
   Store,
   StoreItem,
+  SystemEvent,
   Team,
   TeamMember,
   TeamProject,
@@ -844,6 +846,9 @@ export interface FabricEvents {
   'organization.event_destination.archived:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; previousEventDestination: EventDestination };
   'organization.event_destination.webhook_secret_rotated:before': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null } };
   'organization.event_destination.webhook_secret_rotated:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; previousEventDestination: EventDestination & { webhookDestination: WebhookDestination | null } };
+
+  'organization.event_delivery.retried:before': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination } };
+  'organization.event_delivery.retried:after': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination }; previousEventDelivery: EventDeliveryIntent };
 
   'instance.event_destination_listener.created:before': { instance: Instance; auditScope: AuditScope; input: { type: EventDestinationListener['type'] } };
   'instance.event_destination_listener.created:after': { instance: Instance; auditScope: AuditScope; listener: EventDestinationListener & { eventDestination: EventDestination }; input: { type: EventDestinationListener['type'] } };

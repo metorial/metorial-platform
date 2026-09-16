@@ -1,4 +1,5 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { DetailsSettingsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCallbackById,
@@ -41,7 +42,7 @@ export let CallbackSettingsPage = () => {
   });
 
   return renderWithLoader({ callback })(({ callback }) => (
-    <>
+    <DetailsSettingsLayout>
       <Box
         title="Callback Details"
         description="How this callback is labelled in the dashboard. Everything else about it is derived from the integration provider."
@@ -89,6 +90,6 @@ export let CallbackSettingsPage = () => {
           navigate(Paths.instance.callbacks(organization.data, project.data, instance.data));
         }}
       />
-    </>
+    </DetailsSettingsLayout>
   ));
 };

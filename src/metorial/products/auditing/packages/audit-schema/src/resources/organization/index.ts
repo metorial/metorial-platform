@@ -19,7 +19,11 @@ import {
 } from './projectSettings';
 import { auditLogStreamResource } from './auditLogStream';
 import { auditLogRetentionResource } from './auditLogRetention';
-import { eventDestinationListenerResource, eventDestinationResource } from './eventDestination';
+import { eventDeliveryResource } from './eventDelivery';
+import {
+  eventDestinationListenerResource,
+  eventDestinationResource
+} from './eventDestination';
 import { teamMemberResource, teamResource } from './team';
 
 export let organizationResources = resourceSet({
@@ -30,6 +34,7 @@ export let organizationResources = resourceSet({
   audit_log_retention: auditLogRetentionResource,
   event_destination: eventDestinationResource,
   event_destination_listener: eventDestinationListenerResource,
+  event_delivery: eventDeliveryResource,
   team: teamResource,
   team_member: teamMemberResource,
   access_role: accessRoleResource,

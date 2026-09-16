@@ -123,7 +123,41 @@ export let eventDestinationManagementController = Controller.create(
               modifiers: [v.url()],
               examples: ['https://example.com/webhooks/metorial']
             })
-          })
+          }),
+          retry: v.optional(
+            v.object(
+              {
+                strategy: v.optional(
+                  v.enumOf(['exponential', 'linear', 'fixed'], {
+                    description: 'How the delay between delivery attempts grows'
+                  })
+                ),
+                max_attempts: v.optional(
+                  v.number({
+                    description:
+                      'How many attempts a delivery to this destination may make in total',
+                    examples: [8]
+                  })
+                ),
+                base_delay_seconds: v.optional(
+                  v.number({
+                    description: 'Delay the backoff curve starts from',
+                    examples: [10]
+                  })
+                ),
+                max_delay_seconds: v.optional(
+                  v.number({
+                    description: 'Ceiling the backoff delay is clamped to',
+                    examples: [10800]
+                  })
+                )
+              },
+              {
+                description:
+                  'Retry policy for deliveries to this destination. Deliveries capture the policy when they are scheduled, so changes only affect new deliveries.'
+              }
+            )
+          )
         })
       )
       .output(eventDestinationPresenter)
@@ -137,6 +171,12 @@ export let eventDestinationManagementController = Controller.create(
             type: ctx.body.type,
             webhook: {
               url: ctx.body.webhook.url
+            },
+            retry: ctx.body.retry && {
+              strategy: ctx.body.retry.strategy,
+              maxAttempts: ctx.body.retry.max_attempts,
+              baseDelaySeconds: ctx.body.retry.base_delay_seconds,
+              maxDelaySeconds: ctx.body.retry.max_delay_seconds
             }
           }
         });
@@ -187,6 +227,40 @@ export let eventDestinationManagementController = Controller.create(
                 })
               )
             })
+          ),
+          retry: v.optional(
+            v.object(
+              {
+                strategy: v.optional(
+                  v.enumOf(['exponential', 'linear', 'fixed'], {
+                    description: 'How the delay between delivery attempts grows'
+                  })
+                ),
+                max_attempts: v.optional(
+                  v.number({
+                    description:
+                      'How many attempts a delivery to this destination may make in total',
+                    examples: [8]
+                  })
+                ),
+                base_delay_seconds: v.optional(
+                  v.number({
+                    description: 'Delay the backoff curve starts from',
+                    examples: [10]
+                  })
+                ),
+                max_delay_seconds: v.optional(
+                  v.number({
+                    description: 'Ceiling the backoff delay is clamped to',
+                    examples: [10800]
+                  })
+                )
+              },
+              {
+                description:
+                  'Retry policy for deliveries to this destination. Deliveries capture the policy when they are scheduled, so changes only affect new deliveries.'
+              }
+            )
           )
         })
       )
@@ -199,7 +273,13 @@ export let eventDestinationManagementController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            webhook: ctx.body.webhook
+            webhook: ctx.body.webhook,
+            retry: ctx.body.retry && {
+              strategy: ctx.body.retry.strategy,
+              maxAttempts: ctx.body.retry.max_attempts,
+              baseDelaySeconds: ctx.body.retry.base_delay_seconds,
+              maxDelaySeconds: ctx.body.retry.max_delay_seconds
+            }
           }
         });
 

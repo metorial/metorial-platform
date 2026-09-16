@@ -201,6 +201,9 @@ let coreScopesRaw = [
 
   'organization.event:read' as const,
 
+  'organization.event_delivery:read' as const,
+  'organization.event_delivery:write' as const,
+
   'organization.team:read' as const,
   'organization.team:write' as const,
 

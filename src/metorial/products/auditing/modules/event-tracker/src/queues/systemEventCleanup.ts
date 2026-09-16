@@ -2,6 +2,7 @@ import { createCron } from '@metorial/cron';
 import { db as metorialDb } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { db as integrationsDb } from '@metorial-subspace/db';
+import { purgeEventDeliveriesForSystemEvent } from '@metorial/module-event-delivery';
 import {
   getChatEventPayloadsBucketName,
   getEventPayloadsBucketName,
@@ -99,9 +100,13 @@ export let systemEventCleanupSingleProcessor = systemEventCleanupSingleQueue.pro
     if (data.resource === 'systemEvent') {
       let event = await metorialDb.systemEvent.findFirst({
         where: { id: data.eventId, createdAt: { lt: dueBefore } },
-        select: { id: true, payloadStorageKey: true }
+        select: { oid: true, id: true, payloadStorageKey: true }
       });
       if (!event) return;
+
+      // Delivery rows cascade away with the event, so their attempt details have to be removed
+      // from object storage before the event row goes.
+      await purgeEventDeliveriesForSystemEvent({ systemEventOid: event.oid });
 
       if (event.payloadStorageKey) {
         await getStorage().deleteObject(getEventPayloadsBucketName(), event.payloadStorageKey);

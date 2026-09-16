@@ -30,6 +30,8 @@ model SystemEvent {
 
   createdAt DateTime @default(now())
 
+  deliveryIntents EventDeliveryIntent[]
+
   @@index([organizationOid, createdAt])
   @@index([instanceOid, createdAt])
   @@index([createdAt, id])
