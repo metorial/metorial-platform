@@ -58,6 +58,18 @@ export let recordEventDestinationArchived = async (
   });
 };
 
+export let recordEventDestinationPinged = async (
+  event: FabricEvents['organization.event_destination.pinged:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'event_destination', 'ping', {
+      payload: eventDestinationPayload(event.eventDestination),
+      recordedAt
+    });
+  });
+};
+
 Fabric.listen('organization.event_destination.created:after', recordEventDestinationCreated);
 Fabric.listen('organization.event_destination.updated:after', recordEventDestinationUpdated);
 Fabric.listen('organization.event_destination.archived:after', recordEventDestinationArchived);
+Fabric.listen('organization.event_destination.pinged:after', recordEventDestinationPinged);

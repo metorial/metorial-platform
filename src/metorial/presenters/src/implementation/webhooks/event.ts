@@ -20,7 +20,9 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
     callback_trigger_key: event.callbackTriggerKey ?? null,
 
     chat_event_id: event.chatEventId ?? null,
-    chat_integration_id: event.chatIntegrationId ?? null,
+    chat_connection_id: event.chatConnectionId ?? null,
+
+    provider_id: event.providerId ?? null,
 
     created_at: event.createdAt
   }))
@@ -41,13 +43,13 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
           examples: ['ins_1aBcDeFgHjKlMnPq']
         })
       ),
-      source: v.enumOf(['resource', 'callback', 'chat'], {
+      source: v.enumOf(['resource', 'callback', 'chat', 'ping'], {
         description:
-          'Whether this event was produced by a normal resource action, a callback occurrence, or a chat integration'
+          'Whether this event was produced by a normal resource action, a callback occurrence, a chat connection, or a manual ping'
       }),
       event_type: v.string({
         description:
-          'The declared event type for `resource` events (e.g. "organization.created"), or a display-only "callback.<trigger_key>" label for `callback` events',
+          'The declared event type for `resource` events (e.g. "organization.created"), a display-only "callback.<trigger_key>" label for `callback` events, or "ping" for `ping` events',
         examples: ['organization.created']
       }),
       payload: v.nullable(
@@ -76,11 +78,18 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
           examples: ['chevt_1aBcDeFgHjKlMnPq']
         })
       ),
-      chat_integration_id: v.nullable(
+      chat_connection_id: v.nullable(
         v.string({
           description:
-            'The chat integration that produced this event, present only for `chat` events',
-          examples: ['chint_1aBcDeFgHjKlMnPq']
+            'The chat connection that produced this event, present only for `chat` events',
+          examples: ['chc_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      provider_id: v.nullable(
+        v.string({
+          description:
+            'The catalog provider this event is associated with, present for `callback` and `chat` events when resolvable',
+          examples: ['prv_1aBcDeFgHjKlMnPq']
         })
       ),
       created_at: v.date({ description: 'When the event was recorded' })

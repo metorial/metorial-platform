@@ -9,6 +9,8 @@ let eventDestinationListenerPayload = (listener: {
   eventTypes: string[];
   callbackId: string | null;
   triggers: string[];
+  chatConnectionId: string | null;
+  providerId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) => ({
@@ -18,6 +20,8 @@ let eventDestinationListenerPayload = (listener: {
   eventTypes: listener.eventTypes,
   callbackId: listener.callbackId,
   triggers: listener.triggers,
+  chatConnectionId: listener.chatConnectionId,
+  providerId: listener.providerId,
   createdAt: listener.createdAt,
   updatedAt: listener.updatedAt
 });

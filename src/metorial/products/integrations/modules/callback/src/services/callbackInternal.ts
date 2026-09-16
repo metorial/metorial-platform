@@ -238,6 +238,19 @@ class callbackInternalServiceImpl {
     return callback;
   }
 
+  async getProviderIdsForCallbackIdsInternal(
+    callbackIds: string[]
+  ): Promise<Map<string, string>> {
+    if (callbackIds.length === 0) return new Map();
+
+    let callbacks = await db.callback.findMany({
+      where: { id: { in: callbackIds } },
+      select: { id: true, provider: { select: { id: true } } }
+    });
+
+    return new Map(callbacks.map(callback => [callback.id, callback.provider.id]));
+  }
+
   async pushCallbackById(d: { callbackId: string }) {
     let callback = await db.callback.findUnique({ where: { id: d.callbackId } });
     if (!callback || callback.status !== 'active') return;

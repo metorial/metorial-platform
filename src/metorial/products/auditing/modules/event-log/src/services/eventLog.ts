@@ -32,7 +32,8 @@ class EventLogServiceImpl {
     sources?: SystemEventSource[];
     callbackIds?: string[];
     callbackTriggerKeys?: string[];
-    chatIntegrationIds?: string[];
+    chatConnectionIds?: string[];
+    providerIds?: string[];
   }) {
     let instanceOid: bigint | undefined;
     if (d.instanceId) {
@@ -60,9 +61,10 @@ class EventLogServiceImpl {
               callbackTriggerKey: d.callbackTriggerKeys?.length
                 ? { in: d.callbackTriggerKeys }
                 : undefined,
-              chatIntegrationId: d.chatIntegrationIds?.length
-                ? { in: d.chatIntegrationIds }
-                : undefined
+              chatConnectionId: d.chatConnectionIds?.length
+                ? { in: d.chatConnectionIds }
+                : undefined,
+              providerId: d.providerIds?.length ? { in: d.providerIds } : undefined
             },
             include: systemEventInclude
           })

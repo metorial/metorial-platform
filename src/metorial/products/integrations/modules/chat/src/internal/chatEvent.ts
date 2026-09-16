@@ -50,6 +50,20 @@ let triggerByKey = new Map(
   Object.values(chatTriggers).map(trigger => [trigger.key as string, trigger])
 );
 
+export let chatInstanceProviderCatalogProviderInclude = {
+  adapterIntegrationProvider: {
+    select: { integrationProvider: { select: { provider: { select: { id: true } } } } }
+  }
+} as const;
+
+type ChatInstanceProviderWithCatalogProvider = ChatInstanceProvider & {
+  adapterIntegrationProvider: { integrationProvider: { provider: { id: string } } };
+};
+
+let resolveCatalogProviderId = (
+  chatInstanceProvider: Partial<ChatInstanceProviderWithCatalogProvider>
+) => chatInstanceProvider.adapterIntegrationProvider?.integrationProvider.provider.id ?? null;
+
 type ChatTriggerPayload = {
   type: string;
   id: string;
@@ -123,7 +137,8 @@ class chatEventInternalServiceImpl {
             callbackEvent.callbackInstance.integrationInstanceProviderOid,
           status: 'active'
         }
-      }
+      },
+      include: chatInstanceProviderCatalogProviderInclude
     });
     if (providers.length === 0) return;
 
@@ -173,7 +188,11 @@ class chatEventInternalServiceImpl {
     occurredAt?: Date;
   }) {
     let chatEvent = await this.insertChatEvent({ ...d, payload: d.payload ?? {} });
-    await this.trackSystemEvent({ chatEvent, chatConnectionOid: d.chatConnectionOid });
+    await this.trackSystemEvent({
+      chatEvent,
+      chatConnectionOid: d.chatConnectionOid,
+      chatInstanceProviderOid: d.chatInstanceProviderOid
+    });
     return chatEvent;
   }
 
@@ -270,7 +289,7 @@ class chatEventInternalServiceImpl {
   private async ingestForProvider(d: {
     tenant: Tenant;
     environment: Environment;
-    chatInstanceProvider: ChatInstanceProvider;
+    chatInstanceProvider: ChatInstanceProviderWithCatalogProvider;
     callbackEvent: {
       oid: bigint;
       id: string;
@@ -393,7 +412,7 @@ class chatEventInternalServiceImpl {
 
   private async recordChatEvent(d: {
     chat: Chat;
-    chatInstanceProvider: ChatInstanceProvider;
+    chatInstanceProvider: ChatInstanceProviderWithCatalogProvider;
     callbackEvent: {
       oid: bigint;
       source: 'webhook' | 'polling' | 'internal';
@@ -466,7 +485,8 @@ class chatEventInternalServiceImpl {
 
       await this.trackSystemEvent({
         chatEvent,
-        chatConnectionOid: provider.chatConnectionOid
+        chatConnectionOid: provider.chatConnectionOid,
+        providerId: resolveCatalogProviderId(provider)
       });
     } catch (err) {
       // Replaying the same callback event for the same chat must stay a no-op.
@@ -474,7 +494,12 @@ class chatEventInternalServiceImpl {
     }
   }
 
-  private async trackSystemEvent(d: { chatEvent: ChatEvent; chatConnectionOid: bigint }) {
+  private async trackSystemEvent(d: {
+    chatEvent: ChatEvent;
+    chatConnectionOid: bigint;
+    chatInstanceProviderOid?: bigint | null;
+    providerId?: string | null;
+  }) {
     let instance = await metorialDb.instance.findUnique({
       where: { oid: d.chatEvent.instanceOid }
     });
@@ -485,12 +510,26 @@ class chatEventInternalServiceImpl {
       select: { id: true }
     });
 
+    // Connection/instance-level lifecycle events have no single well-defined provider — a resolved
+    // providerId is only ever passed for events tied to one specific ChatInstanceProvider.
+    let providerId =
+      d.providerId ??
+      (d.chatInstanceProviderOid
+        ? resolveCatalogProviderId(
+            (await db.chatInstanceProvider.findUnique({
+              where: { oid: d.chatInstanceProviderOid },
+              include: chatInstanceProviderCatalogProviderInclude
+            })) ?? {}
+          )
+        : null);
+
     await eventTrackerService.recordChatEvent({
       organizationOid: instance.organizationOid,
       instanceOid: instance.oid,
       chatEventId: d.chatEvent.id,
-      chatIntegrationId: chatConnection.id,
-      eventType: d.chatEvent.type
+      chatConnectionId: chatConnection.id,
+      eventType: d.chatEvent.type,
+      providerId
     });
   }
 }

@@ -9,6 +9,7 @@ class EventTrackerServiceImpl {
     callbackEventId: string;
     callbackId: string;
     callbackTriggerKey?: string | null;
+    providerId?: string | null;
   }) {
     let systemEvent = await db.systemEvent.upsert({
       where: { callbackEventId: d.callbackEventId },
@@ -20,7 +21,8 @@ class EventTrackerServiceImpl {
         instanceOid: d.instanceOid,
         callbackEventId: d.callbackEventId,
         callbackId: d.callbackId,
-        callbackTriggerKey: d.callbackTriggerKey ?? null
+        callbackTriggerKey: d.callbackTriggerKey ?? null,
+        providerId: d.providerId ?? null
       },
       update: {},
       select: { id: true }
@@ -33,8 +35,9 @@ class EventTrackerServiceImpl {
     organizationOid: bigint;
     instanceOid: bigint;
     chatEventId: string;
-    chatIntegrationId: string;
+    chatConnectionId: string;
     eventType: string;
+    providerId?: string | null;
   }) {
     let systemEvent = await db.systemEvent.upsert({
       where: { chatEventId: d.chatEventId },
@@ -45,7 +48,8 @@ class EventTrackerServiceImpl {
         organizationOid: d.organizationOid,
         instanceOid: d.instanceOid,
         chatEventId: d.chatEventId,
-        chatIntegrationId: d.chatIntegrationId
+        chatConnectionId: d.chatConnectionId,
+        providerId: d.providerId ?? null
       },
       update: {},
       select: { id: true }

@@ -12,7 +12,8 @@ export let v1EventDestinationListenerPresenter = Presenter.create(eventDestinati
     event_types: listener.type == 'callback' ? null : listener.eventTypes,
     callback_id: listener.type == 'callback' ? listener.callbackId : null,
     triggers: listener.type == 'callback' ? listener.triggers : null,
-    chat_integration_id: listener.type == 'chat' ? listener.chatIntegrationId : null,
+    chat_connection_id: listener.type == 'chat' ? listener.chatConnectionId : null,
+    provider_id: listener.type == 'event' ? null : listener.providerId,
     created_at: listener.createdAt,
     updated_at: listener.updatedAt
   }))
@@ -33,7 +34,7 @@ export let v1EventDestinationListenerPresenter = Presenter.create(eventDestinati
       }),
       type: v.enumOf(['event', 'callback', 'chat'], {
         description:
-          "Whether this listener subscribes to generic resource lifecycle events, to a specific callback's trigger events, or to a specific chat integration's events"
+          'Whether this listener subscribes to generic resource lifecycle events, to callback trigger events, or to chat connection events'
       }),
       event_types: v.nullable(
         v.array(v.string(), {
@@ -45,7 +46,7 @@ export let v1EventDestinationListenerPresenter = Presenter.create(eventDestinati
       callback_id: v.nullable(
         v.string({
           description:
-            'The callback whose trigger events are delivered, present when `type` is `callback`',
+            'The callback whose trigger events are delivered, present when `type` is `callback` and targeting a specific callback',
           examples: ['clb_1aBcDeFgHjKlMnPq']
         })
       ),
@@ -55,11 +56,18 @@ export let v1EventDestinationListenerPresenter = Presenter.create(eventDestinati
           examples: [['issue.created']]
         })
       ),
-      chat_integration_id: v.nullable(
+      chat_connection_id: v.nullable(
         v.string({
           description:
-            'The chat integration whose events are delivered, present when `type` is `chat`',
-          examples: ['chint_1aBcDeFgHjKlMnPq']
+            'The chat connection whose events are delivered, present when `type` is `chat` and targeting a specific connection',
+          examples: ['chc_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      provider_id: v.nullable(
+        v.string({
+          description:
+            'The catalog provider whose callbacks/connections are delivered, present when `type` is `callback` or `chat` and targeting a whole provider',
+          examples: ['prv_1aBcDeFgHjKlMnPq']
         })
       ),
       created_at: v.date({ description: 'When the listener was created' }),
