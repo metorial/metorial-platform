@@ -20,10 +20,19 @@ import {
   triggerScheduleSearchQueueProcessor
 } from './schedule';
 import { triggerRegistrationInstanceSetupQueueProcessor } from './setup';
+import {
+  triggerWebhookRediscoverCron,
+  triggerWebhookRediscoverQueueProcessor
+} from './webhookRediscover';
 import { triggerWebhookRegisterQueueProcessor } from './webhookRegister';
 import { triggerWebhookRegistrationRematchQueueProcessor } from './webhookRegistrationRematch';
 import { triggerWebhookTargetLinkQueueProcessor } from './webhookTargetLink';
 import { triggerWebhookTargetSearchQueueProcessor } from './webhookTargetSearch';
+import {
+  triggerWebhookTargetPruneQueueProcessor,
+  triggerWebhookTargetSweepCron,
+  triggerWebhookTargetSweepQueueProcessor
+} from './webhookTargetSweep';
 import { triggerWebhookUnregisterQueueProcessor } from './webhookUnregister';
 
 export let triggerQueues = combineQueueProcessors([
@@ -33,6 +42,11 @@ export let triggerQueues = combineQueueProcessors([
   triggerPollQueueProcessor,
   triggerRegistrationInstanceSetupQueueProcessor,
   triggerWebhookTargetSearchQueueProcessor,
+  triggerWebhookRediscoverCron,
+  triggerWebhookRediscoverQueueProcessor,
+  triggerWebhookTargetSweepCron,
+  triggerWebhookTargetSweepQueueProcessor,
+  triggerWebhookTargetPruneQueueProcessor,
   triggerWebhookTargetLinkQueueProcessor,
   triggerWebhookRegisterQueueProcessor,
   triggerWebhookRegistrationRematchQueueProcessor,

@@ -1,5 +1,4 @@
-import { createLock } from '@lowerdeck/lock';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
@@ -10,17 +9,16 @@ import { secretService } from '../../services/secret';
 import { slateInvocationService } from '../../services/slateInvocation';
 import { generateWebhookRegistrationUrlKey } from '../../services/slateWebhookRegistration';
 import { TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS } from './_config';
+import { webhookTargetLock } from './_webhookTargetLock';
 import { createTriggerRegistrationInstanceError } from './_instanceError';
-
-let registerLock = createLock({
-  name: 'shub/trg/whk/register/lock',
-  redisUrl: env.service.REDIS_URL
-});
 
 let include = {
   triggerGroup: true,
   webhooks: {
     take: 1,
+    where: {
+      triggerRegistrationInstance: { triggerRegistration: { status: 'active' as const } }
+    },
     include: {
       triggerRegistrationInstance: {
         include: {
@@ -39,23 +37,44 @@ let include = {
   }
 };
 
-export let triggerWebhookRegisterQueue = createQueue<{ triggerWebhookTargetId: string }>({
+export let triggerWebhookRegisterQueue = createQueue<{
+  triggerWebhookTargetId: string;
+  triggerRegistrationInstanceId?: string;
+}>({
   name: 'shub/trg/whk/register/1',
   redisUrl: env.service.REDIS_URL,
-  jobOpts: { attempts: TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS }
+  jobOpts: { attempts: TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS, removeOnFail: true }
 });
 
 export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.process(
   async (data, job) =>
-    registerLock.usingLock(data.triggerWebhookTargetId, async () => {
-      let target = await db.triggerWebhookTarget.findUnique({
-        where: { id: data.triggerWebhookTargetId },
-        include
-      });
-      if (!target || target.status !== 'creating') return;
+    webhookTargetLock.usingLock(data.triggerWebhookTargetId, async () => {
+      let findTarget = (triggerRegistrationInstanceId?: string) =>
+        db.triggerWebhookTarget.findUnique({
+          where: { id: data.triggerWebhookTargetId },
+          include: {
+            ...include,
+            webhooks: {
+              ...include.webhooks,
+              where: {
+                triggerRegistrationInstance: {
+                  id: triggerRegistrationInstanceId,
+                  triggerRegistration: { status: 'active' }
+                }
+              }
+            }
+          }
+        });
 
-      let link = target.webhooks[0];
-      if (!link) return;
+      let target = await findTarget(data.triggerRegistrationInstanceId);
+      if (!target || !['creating', 'failed'].includes(target.status)) return;
+
+      // The requested connection may have been disconnected meanwhile; use any other active one.
+      if (target.webhooks.length === 0 && data.triggerRegistrationInstanceId) {
+        target = await findTarget();
+      }
+      let link = target?.webhooks[0];
+      if (!target || !link) return;
       let registration = link.triggerRegistrationInstance.triggerRegistration;
 
       let version = await getActiveSlateVersion({
@@ -112,7 +131,8 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
             metadata: target.metadata as Record<string, any>,
             webhookRegistrationPayload: result.data.webhookRegistrationPayload,
             webhookRegistrationIdentifier: result.data.webhookRegistrationIdentifier,
-            authRouting: 'any'
+            authRouting: 'any',
+            triggerRegistrationId: registration.id
           });
 
         await db.$transaction([
@@ -148,41 +168,23 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
         }
       });
 
-      if (job.attemptsMade + 1 < TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS) {
-        throw new Error(
-          `Webhook registration failed for target ${target.id} (attempt ${job.attemptsMade + 1}/${TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS}): ${result.error.message}`
-        );
-      }
+      // The attempt row above holds the reason; a plain Error here would be reported to Sentry.
+      if (job.attemptsMade + 1 < TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS)
+        throw new QueueRetryError();
 
       await db.triggerWebhookTarget.update({
         where: { oid: target.oid },
         data: { status: 'failed' }
       });
 
-      let instanceOids = [
-        ...new Set(
-          (
-            await db.triggerRegistrationWebhook.findMany({
-              where: {
-                triggerWebhookTargetOid: target.oid,
-                triggerRegistrationInstance: {
-                  triggerRegistration: { tenantOid: target.tenantOid }
-                }
-              },
-              select: { triggerRegistrationInstanceOid: true }
-            })
-          ).map(w => w.triggerRegistrationInstanceOid)
-        )
-      ];
-
-      for (let instanceOid of instanceOids) {
-        await createTriggerRegistrationInstanceError({
-          triggerRegistrationInstanceOid: instanceOid,
-          triggerWebhookTargetOid: target.oid,
-          registrationAttemptOid: attempt.oid,
-          code: 'webhook_registration_failed',
-          message: `We couldn't set up the webhook for "${target.name}" after ${TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS} attempts: ${result.error.message}`
-        });
-      }
+      // Only the connection whose credentials were used is at fault; another linked
+      // connection may still succeed on its own register job.
+      await createTriggerRegistrationInstanceError({
+        triggerRegistrationInstanceOid: link.triggerRegistrationInstance.oid,
+        triggerWebhookTargetOid: target.oid,
+        registrationAttemptOid: attempt.oid,
+        code: 'webhook_registration_failed',
+        message: `We couldn't set up the webhook for "${target.name}" after ${TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS} attempts: ${result.error.message}`
+      });
     })
 );
