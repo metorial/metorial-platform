@@ -387,12 +387,6 @@ let InstancePaths = Object.assign(
         ...subPages
       );
     },
-    webhookRegistrations: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'webhook-registrations', ...subPages),
     webhookRegistration: (
       organization: EntityParam,
       project: EntityParam,

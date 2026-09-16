@@ -3409,7 +3409,19 @@ type RawChatEvent = ChatEvent & {
 // here rather than imported from `@metorial-subspace/module-chat`.
 type RawChatBackingIntegrationProvider = SubspacePrisma.IntegrationProviderGetPayload<{
   include: {
-    provider: true;
+    provider: {
+      include: {
+        defaultVariant: {
+          include: {
+            currentVersion: {
+              include: {
+                specification: { include: { providerTriggerGroups: true } };
+              };
+            };
+          };
+        };
+      };
+    };
     currentVersion: { include: typeof integrationProviderVersionInclude };
   };
 }>;

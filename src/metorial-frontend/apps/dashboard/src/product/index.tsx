@@ -314,11 +314,6 @@ let CallbackLogsListLayout = dynamicPage(() =>
 let CallbacksPage = dynamicPage(() =>
   import('./pages/(callbacks)/(list)/callbacks').then(c => c.CallbacksPage)
 );
-let WebhookRegistrationsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/webhook-registrations').then(
-    c => c.WebhookRegistrationsPage
-  )
-);
 let EventDestinationsPage = dynamicPage(() =>
   import('./pages/(callbacks)/(list)/event-destinations').then(c => c.EventDestinationsPage)
 );
@@ -1049,10 +1044,6 @@ export let productCallbacksSlice = createSlice([
               {
                 path: 'callbacks',
                 element: <CallbacksPage />
-              },
-              {
-                path: 'webhook-registrations',
-                element: <WebhookRegistrationsPage />
               },
               {
                 path: 'event-destinations',

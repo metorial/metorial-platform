@@ -34,10 +34,6 @@ export let CallbacksListLayout = () => {
             label: 'Callbacks',
             to: Paths.instance.callbacks(...params)
           },
-          {
-            label: 'Webhook Receivers',
-            to: Paths.instance.webhookRegistrations(...params)
-          },
           ...(webhooksEnabled
             ? [
                 {

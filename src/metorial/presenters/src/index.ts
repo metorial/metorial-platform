@@ -6,6 +6,8 @@ import {
   consumerMagicMcpTokenPresenter,
   dashboardApiKeyPresenter,
   dashboardAuditLogStreamPresenter,
+  dashboardChatConnectionPresenter,
+  dashboardChatConnectionProviderPresenter,
   dashboardChatEventPresenter,
   dashboardConsumerGroupPresenter,
   dashboardConsumerPresenter,
@@ -1088,12 +1090,12 @@ export let chatPresenter = declarePresenter(chatType, {
 });
 
 export let chatConnectionPresenter = declarePresenter(chatConnectionType, {
-  mt_2025_01_01_dashboard: v1ChatConnectionPresenter,
+  mt_2025_01_01_dashboard: dashboardChatConnectionPresenter,
   mt_2026_01_01_magnetar: v1ChatConnectionPresenter
 });
 
 export let chatConnectionProviderPresenter = declarePresenter(chatConnectionProviderType, {
-  mt_2025_01_01_dashboard: v1ChatConnectionProviderPresenter,
+  mt_2025_01_01_dashboard: dashboardChatConnectionProviderPresenter,
   mt_2026_01_01_magnetar: v1ChatConnectionProviderPresenter
 });
 

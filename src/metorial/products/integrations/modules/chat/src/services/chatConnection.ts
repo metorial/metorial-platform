@@ -59,7 +59,21 @@ export let chatConnectionInclude = {
         include: {
           integrationProvider: {
             include: {
-              provider: true,
+              provider: {
+                include: {
+                  defaultVariant: {
+                    include: {
+                      currentVersion: {
+                        include: {
+                          specification: {
+                            include: { providerTriggerGroups: true }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
               currentVersion: { include: integrationProviderVersionInclude }
             }
           }

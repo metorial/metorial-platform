@@ -171,16 +171,6 @@ export let ProjectPageLayout = () => {
                           isActive: checkPath(i, { exact: true })
                         })
                       },
-                      {
-                        label: 'Webhook Receivers',
-                        to: Paths.instance.webhookRegistrations(...params),
-                        getProps: (i: { pathname: string; to: string }) => ({
-                          isActive:
-                            checkPath(i, { exact: true }) ||
-                            i.pathname.includes('/webhook-registration/') ||
-                            i.pathname.includes('/incoming-webhook/')
-                        })
-                      },
                       ...(webhooksEnabled
                         ? [
                             {

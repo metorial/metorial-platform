@@ -39,7 +39,21 @@ export let chatConnectionProviderInclude = {
     include: {
       integrationProvider: {
         include: {
-          provider: true,
+          provider: {
+            include: {
+              defaultVariant: {
+                include: {
+                  currentVersion: {
+                    include: {
+                      specification: {
+                        include: { providerTriggerGroups: true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           currentVersion: { include: integrationProviderVersionInclude }
         }
       }
@@ -289,6 +303,34 @@ class chatConnectionProviderServiceImpl {
 
       return updated;
     });
+  }
+
+  // Resolves each chat connection's catalog provider id(s) — a connection can back several providers
+  // simultaneously — used by the event-destination module to broaden a chat_connection_id listener
+  // filter to provider-tier and all-connections listeners as well.
+  async getProviderIdsForChatConnectionIdsInternal(
+    chatConnectionIds: string[]
+  ): Promise<Map<string, string[]>> {
+    if (chatConnectionIds.length === 0) return new Map();
+
+    let providers = await db.chatConnectionProvider.findMany({
+      where: { status: 'active', chatConnection: { id: { in: chatConnectionIds } } },
+      select: {
+        chatConnection: { select: { id: true } },
+        adapterIntegrationProvider: {
+          select: { integrationProvider: { select: { provider: { select: { id: true } } } } }
+        }
+      }
+    });
+
+    let result = new Map<string, string[]>();
+    for (let provider of providers) {
+      let connectionId = provider.chatConnection.id;
+      let providerId = provider.adapterIntegrationProvider.integrationProvider.provider.id;
+      result.set(connectionId, [...(result.get(connectionId) ?? []), providerId]);
+    }
+
+    return result;
   }
 
   async archiveChatConnectionProvider(d: MetorialFacing<ArchiveChatConnectionProviderParams>) {
