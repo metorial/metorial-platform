@@ -7,14 +7,14 @@ import {
   useProvider,
   useWebhookRegistrations
 } from '@metorial/state';
-import { Badge, Callout, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
+import { Badge, Callout, Spacer, Text } from '@metorial/ui';
+import { Box, Table } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
-import { CreateWebhookRegistrationButton } from './webhookRegistrationsTable';
 import {
   getWebhookRegistrationStatusColor,
   WEBHOOK_REGISTRATION_STATUS_LABELS
 } from './shared';
+import { CreateWebhookRegistrationButton } from './webhookRegistrationsTable';
 
 let CallbackWebhookRegistrationsTable = ({
   instanceId,
@@ -68,8 +68,7 @@ let CallbackWebhookRegistrationsTable = ({
           )
         })(registrations => (
           <Table
-            headers={['Receiver', 'Status', 'Receive URL', 'Created', '']}
-            padding={{ sides: '16px' }}
+            headers={['Receiver', 'Status', 'Receive URL']}
             data={registrations.data.items.map(registration => ({
               href: Paths.instance.webhookRegistration(
                 organization.data,
@@ -91,9 +90,7 @@ let CallbackWebhookRegistrationsTable = ({
                   <Text size="2" color="gray600">
                     Not provisioned
                   </Text>
-                ),
-                <RenderDate date={registration.createdAt} />,
-                <ID id={registration.id} />
+                )
               ]
             }))}
           />

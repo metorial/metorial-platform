@@ -15,6 +15,7 @@ import { consumerCoreQueueProcessor } from '@metorial/module-consumer-core';
 import { consumerEntitiesQueueProcessor } from '@metorial/module-consumer-entities';
 import { consumerOAuthQueueProcessor } from '@metorial/module-consumer-oauth';
 import { emailQueueProcessor } from '@metorial/module-email';
+import { eventDeliveryQueueProcessor } from '@metorial/module-event-delivery';
 import { eventTrackerQueueProcessor } from '@metorial/module-event-tracker';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
@@ -38,6 +39,7 @@ export let worker = runQueueProcessors([
   auditLogQueueProcessor,
   auditLogStreamQueueProcessor,
   eventTrackerQueueProcessor,
+  eventDeliveryQueueProcessor,
   productAssistantQueueProcessor,
   userQueueProcessor,
   machineAccessQueueProcessor,
