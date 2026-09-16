@@ -15,7 +15,11 @@ import { versionIdentifier } from '../../lib/identifier/version';
 import { OAuthDiscovery } from '../../lib/oauth/discovery';
 import { oauthConfigValidator, type OAuthConfiguration } from '../../lib/oauth/types';
 import { checkRemote } from '../../lib/remote/check';
-import { remoteOAuthDiscoveryService } from '../../services';
+import {
+  remoteOAuthDiscoveryService,
+  remoteOAuthRegistrationService,
+  serverOAuthCredentialsService
+} from '../../services';
 import { deployServerFailedQueue } from '../deployment/failed';
 import { deployServerSucceededQueue } from '../deployment/succeeded';
 import { discoverRemoteOAuthConfigQueue } from '../discovery/remoteOAuthConfig';
@@ -30,6 +34,7 @@ export let deployRemoteServerStartQueue = createQueue<{
   remoteProtocol: ServerRemoteProtocol;
 
   oauthConfig: OAuthConfiguration | undefined;
+  preflightOAuthRegistration?: boolean;
 }>({
   name: 'shut/rem-ser/deploy/start',
   redisUrl: env.service.REDIS_URL
@@ -181,6 +186,91 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
           await retryFailedRegistrationsSearchQueue.add({ serverId: server.id });
 
           await rotateStaleCredentialsSearchQueue.add({ serverId: server.id });
+
+          if (data.preflightOAuthRegistration) {
+            if (!deployment.tenant) {
+              throw new Error('OAuth registration preflight requires a tenant');
+            }
+
+            if (oauthConfig.discoverStatus == 'manual') {
+              deployingStep.log(
+                'OAuth provider does not advertise dynamic client registration. Manual client credentials will be required.'
+              );
+            } else {
+              deployingStep.log('Validating OAuth dynamic client registration.');
+
+              let credentials =
+                await serverOAuthCredentialsService.ensureDefaultRemoteServerOAuthCredentials({
+                  tenant: deployment.tenant,
+                  server,
+                  config: oauthConfig,
+                  registrationMode: 'deferred'
+                });
+              let connection = credentials.remoteConnection;
+              if (!connection) {
+                throw new Error('Default OAuth credentials have no remote connection');
+              }
+
+              let registrationSucceeded = connection.discoveryStatus == 'succeeded';
+              let lastFailureMessage = connection.errorMessage;
+
+              for (let attempt = 1; attempt <= 3 && !registrationSucceeded; attempt++) {
+                let registration = await remoteOAuthRegistrationService.runAutoRegistration({
+                  connectionId: connection.id
+                });
+
+                if (
+                  registration.ok ||
+                  (registration.reason == 'skipped' &&
+                    registration.blocker == 'already_succeeded')
+                ) {
+                  registrationSucceeded = true;
+                  break;
+                }
+
+                if (registration.reason != 'failed') {
+                  lastFailureMessage = `OAuth registration could not run: ${registration.reason}`;
+                  break;
+                }
+
+                lastFailureMessage = registration.diagnostics.message;
+                deployingStep.log(`OAuth registration attempt ${attempt} failed.`);
+                if (registration.diagnostics.status !== null) {
+                  deployingStep.log(`HTTP Status: ${registration.diagnostics.status}`);
+                }
+                if (registration.diagnostics.oauthCode) {
+                  deployingStep.log(`OAuth Error: ${registration.diagnostics.oauthCode}`);
+                }
+                deployingStep.log(`Message: ${registration.diagnostics.message}`);
+                if (registration.diagnostics.description) {
+                  deployingStep.log(`Description: ${registration.diagnostics.description}`);
+                }
+                if (registration.diagnostics.contentType) {
+                  deployingStep.log(
+                    `Response Content-Type: ${registration.diagnostics.contentType}`
+                  );
+                }
+                deployingStep.log(
+                  `Provider Response${registration.diagnostics.responseTruncated ? ' (truncated to 16 KiB)' : ''}: ${registration.diagnostics.responseText}`
+                );
+
+                if (!registration.isTransient || attempt == 3) break;
+
+                let retryDelay =
+                  registration.diagnostics.retryAfterMs ?? (attempt == 1 ? 1000 : 2000);
+                deployingStep.log(`Retrying OAuth registration in ${retryDelay}ms.`);
+                await delay(retryDelay);
+              }
+
+              if (!registrationSucceeded) {
+                throw new Error(
+                  lastFailureMessage ?? 'OAuth dynamic client registration failed'
+                );
+              }
+
+              deployingStep.log('OAuth dynamic client registration succeeded.');
+            }
+          }
 
           deployingStep.log(encode(oauthConfig.config));
         }

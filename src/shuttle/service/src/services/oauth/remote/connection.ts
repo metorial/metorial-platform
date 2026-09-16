@@ -65,6 +65,7 @@ class remoteOAuthConnectionServiceImpl {
       clientId?: string;
       clientSecret?: string;
       scopes?: string[];
+      registrationMode?: 'background' | 'deferred';
 
       // Set when this connection replaces the client of an existing connection.
       rotatedFromOid?: bigint;
@@ -125,9 +126,11 @@ class remoteOAuthConnectionServiceImpl {
         }
       });
 
-      await discoverRemoteOAuthConnectionQueue.add({
-        oauthConnectionId: con.id
-      });
+      if ((d.input.registrationMode ?? 'background') == 'background') {
+        await discoverRemoteOAuthConnectionQueue.add({
+          oauthConnectionId: con.id
+        });
+      }
 
       return await db.remoteOAuthConnection.findUniqueOrThrow({
         where: { oid: con.oid },

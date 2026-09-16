@@ -2,7 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Server, Tenant } from '../../../prisma/generated/client';
+import type { RemoteOAuthConfig, Server, Tenant } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { env } from '../../env';
 import { secretService } from '../secret';
@@ -33,6 +33,7 @@ class serverOAuthCredentialsServiceImpl {
       clientId?: string;
       clientSecret?: string;
       scopes?: string[];
+      reuseDefault?: boolean;
     };
   }) {
     if (!d.input.server.currentVersionOid) {
@@ -41,6 +42,13 @@ class serverOAuthCredentialsServiceImpl {
           message: 'Provider has not been deployed yet'
         })
       );
+    }
+
+    if (d.input.reuseDefault) {
+      return await this.ensureDefaultServerOAuthCredentials({
+        tenant: d.tenant,
+        server: d.input.server
+      });
     }
 
     if (d.input.server.type == 'remote' && d.input.server.remoteOauthConfigOid) {
@@ -116,7 +124,29 @@ class serverOAuthCredentialsServiceImpl {
       );
     }
 
-    let exiting = await db.serverOAuthCredentials.findFirst({
+    if (d.server.type != 'remote' || !d.server.remoteOauthConfigOid) {
+      throw new ServiceError(badRequestError({ message: 'Provider does not support OAuth' }));
+    }
+
+    let config = await db.remoteOAuthConfig.findUniqueOrThrow({
+      where: { oid: d.server.remoteOauthConfigOid }
+    });
+
+    return await this.ensureDefaultRemoteServerOAuthCredentials({
+      tenant: d.tenant,
+      server: d.server,
+      config,
+      registrationMode: 'background'
+    });
+  }
+
+  async ensureDefaultRemoteServerOAuthCredentials(d: {
+    tenant: Tenant;
+    server: Server;
+    config: RemoteOAuthConfig;
+    registrationMode: 'background' | 'deferred';
+  }) {
+    let existing = await db.serverOAuthCredentials.findFirst({
       where: {
         tenantOid: d.tenant.oid,
         serverOid: d.server.oid,
@@ -124,12 +154,12 @@ class serverOAuthCredentialsServiceImpl {
       },
       include
     });
-    if (exiting) return exiting;
+    if (existing) return existing;
 
     return createDefaultCredentialsLock.usingLock(
       `${d.tenant.oid}-${d.server.oid}`,
       async () => {
-        let exiting = await db.serverOAuthCredentials.findFirst({
+        let existing = await db.serverOAuthCredentials.findFirst({
           where: {
             tenantOid: d.tenant.oid,
             serverOid: d.server.oid,
@@ -137,13 +167,23 @@ class serverOAuthCredentialsServiceImpl {
           },
           include
         });
-        if (exiting) return exiting;
+        if (existing) return existing;
 
-        let newCreds = await this.createServerOAuthCredentials({
+        let connection = await remoteOAuthConnectionService.createConnection({
           tenant: d.tenant,
           input: {
-            server: d.server
+            config: d.config,
+            registrationMode: d.registrationMode
           }
+        });
+
+        if (!connection.serverOAuthCredentials) {
+          throw new Error('OAuth connection did not create server OAuth credentials');
+        }
+
+        let newCreds = await db.serverOAuthCredentials.findUniqueOrThrow({
+          where: { oid: connection.serverOAuthCredentials.oid },
+          include
         });
 
         newCreds.isDefault = true;

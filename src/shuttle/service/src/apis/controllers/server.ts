@@ -88,7 +88,8 @@ export let serverController = app.controller({
 
         name: v.string(),
         description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any()))
+        metadata: v.optional(v.record(v.any())),
+        preflightOAuthRegistration: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -99,6 +100,7 @@ export let serverController = app.controller({
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
+          preflightOAuthRegistration: ctx.input.preflightOAuthRegistration,
 
           config: ctx.input.config,
           from: ctx.input.from

@@ -123,6 +123,7 @@ class serverDeploymentCreateServiceImpl {
       remoteUrl: string;
       protocol: ServerRemoteProtocol;
       oauthConfig?: Record<string, any>;
+      preflightOAuthRegistration?: boolean;
     };
   }) {
     let url: URL;
@@ -172,7 +173,8 @@ class serverDeploymentCreateServiceImpl {
           serverDeploymentId: deployment.id,
           remoteUrl: d.input.remoteUrl,
           remoteProtocol: d.input.protocol,
-          oauthConfig
+          oauthConfig,
+          preflightOAuthRegistration: d.input.preflightOAuthRegistration ?? false
         })
       );
 
