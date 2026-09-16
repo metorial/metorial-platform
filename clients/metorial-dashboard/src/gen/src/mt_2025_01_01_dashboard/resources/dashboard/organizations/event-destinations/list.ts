@@ -14,6 +14,12 @@ export type DashboardOrganizationsEventDestinationsListOutput = {
       method: 'POST';
       signingSecret: string | null;
     } | null;
+    retry: {
+      strategy: 'exponential' | 'linear' | 'fixed';
+      maxAttempts: number;
+      baseDelaySeconds: number;
+      maxDelaySeconds: number;
+    };
     listeners: {
       object: 'event.destination_listener';
       id: string;
@@ -23,7 +29,8 @@ export type DashboardOrganizationsEventDestinationsListOutput = {
       eventTypes: string[] | null;
       callbackId: string | null;
       triggers: string[] | null;
-      chatIntegrationId: string | null;
+      chatConnectionId: string | null;
+      providerId: string | null;
       createdAt: Date;
       updatedAt: Date;
     }[];
@@ -61,6 +68,24 @@ export let mapDashboardOrganizationsEventDestinationsListOutput =
               )
             })
           ),
+          retry: mtMap.objectField(
+            'retry',
+            mtMap.object({
+              strategy: mtMap.objectField('strategy', mtMap.passthrough()),
+              maxAttempts: mtMap.objectField(
+                'max_attempts',
+                mtMap.passthrough()
+              ),
+              baseDelaySeconds: mtMap.objectField(
+                'base_delay_seconds',
+                mtMap.passthrough()
+              ),
+              maxDelaySeconds: mtMap.objectField(
+                'max_delay_seconds',
+                mtMap.passthrough()
+              )
+            })
+          ),
           listeners: mtMap.objectField(
             'listeners',
             mtMap.array(
@@ -88,8 +113,12 @@ export let mapDashboardOrganizationsEventDestinationsListOutput =
                   'triggers',
                   mtMap.array(mtMap.passthrough())
                 ),
-                chatIntegrationId: mtMap.objectField(
-                  'chat_integration_id',
+                chatConnectionId: mtMap.objectField(
+                  'chat_connection_id',
+                  mtMap.passthrough()
+                ),
+                providerId: mtMap.objectField(
+                  'provider_id',
                   mtMap.passthrough()
                 ),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),

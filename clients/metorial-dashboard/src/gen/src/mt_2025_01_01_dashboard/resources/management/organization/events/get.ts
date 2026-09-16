@@ -5,13 +5,14 @@ export type ManagementOrganizationEventsGetOutput = {
   id: string;
   organizationId: string;
   instanceId: string | null;
-  source: 'resource' | 'callback' | 'chat';
+  source: 'resource' | 'callback' | 'chat' | 'ping';
   eventType: string;
   payload: Record<string, any> | null;
   callbackId: string | null;
   callbackTriggerKey: string | null;
   chatEventId: string | null;
-  chatIntegrationId: string | null;
+  chatConnectionId: string | null;
+  providerId: string | null;
   createdAt: Date;
 };
 
@@ -30,10 +31,11 @@ export let mapManagementOrganizationEventsGetOutput =
       mtMap.passthrough()
     ),
     chatEventId: mtMap.objectField('chat_event_id', mtMap.passthrough()),
-    chatIntegrationId: mtMap.objectField(
-      'chat_integration_id',
+    chatConnectionId: mtMap.objectField(
+      'chat_connection_id',
       mtMap.passthrough()
     ),
+    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date())
   });
 

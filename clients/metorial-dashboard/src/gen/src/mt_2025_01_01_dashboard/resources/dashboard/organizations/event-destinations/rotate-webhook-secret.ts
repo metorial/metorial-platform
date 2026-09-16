@@ -9,6 +9,12 @@ export type DashboardOrganizationsEventDestinationsRotateWebhookSecretOutput = {
   status: 'active' | 'archived';
   type: 'webhook';
   webhook: { url: string; method: 'POST'; signingSecret: string | null } | null;
+  retry: {
+    strategy: 'exponential' | 'linear' | 'fixed';
+    maxAttempts: number;
+    baseDelaySeconds: number;
+    maxDelaySeconds: number;
+  };
   listeners: {
     object: 'event.destination_listener';
     id: string;
@@ -18,7 +24,8 @@ export type DashboardOrganizationsEventDestinationsRotateWebhookSecretOutput = {
     eventTypes: string[] | null;
     callbackId: string | null;
     triggers: string[] | null;
-    chatIntegrationId: string | null;
+    chatConnectionId: string | null;
+    providerId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -48,6 +55,21 @@ export let mapDashboardOrganizationsEventDestinationsRotateWebhookSecretOutput =
           )
         })
       ),
+      retry: mtMap.objectField(
+        'retry',
+        mtMap.object({
+          strategy: mtMap.objectField('strategy', mtMap.passthrough()),
+          maxAttempts: mtMap.objectField('max_attempts', mtMap.passthrough()),
+          baseDelaySeconds: mtMap.objectField(
+            'base_delay_seconds',
+            mtMap.passthrough()
+          ),
+          maxDelaySeconds: mtMap.objectField(
+            'max_delay_seconds',
+            mtMap.passthrough()
+          )
+        })
+      ),
       listeners: mtMap.objectField(
         'listeners',
         mtMap.array(
@@ -69,10 +91,11 @@ export let mapDashboardOrganizationsEventDestinationsRotateWebhookSecretOutput =
               'triggers',
               mtMap.array(mtMap.passthrough())
             ),
-            chatIntegrationId: mtMap.objectField(
-              'chat_integration_id',
+            chatConnectionId: mtMap.objectField(
+              'chat_connection_id',
               mtMap.passthrough()
             ),
+            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
             createdAt: mtMap.objectField('created_at', mtMap.date()),
             updatedAt: mtMap.objectField('updated_at', mtMap.date())
           })

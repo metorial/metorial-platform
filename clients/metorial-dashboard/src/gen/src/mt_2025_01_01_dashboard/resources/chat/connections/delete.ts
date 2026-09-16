@@ -49,6 +49,12 @@ export type ChatConnectionsDeleteOutput = {
     description: string | null;
     createdAt: Date;
     updatedAt: Date;
+    authCredentialsIsManaged: boolean;
+    manualWebhookTriggerGroups: {
+      key: string;
+      name: string;
+      description: string | null;
+    }[];
   }[];
   createdAt: Date;
   updatedAt: Date;
@@ -130,7 +136,24 @@ export let mapChatConnectionsDeleteOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+          authCredentialsIsManaged: mtMap.objectField(
+            'auth_credentials_is_managed',
+            mtMap.passthrough()
+          ),
+          manualWebhookTriggerGroups: mtMap.objectField(
+            'manual_webhook_trigger_groups',
+            mtMap.array(
+              mtMap.object({
+                key: mtMap.objectField('key', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                )
+              })
+            )
+          )
         })
       )
     ),

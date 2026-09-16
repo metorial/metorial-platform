@@ -1,13 +1,5 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type OrganizationsFlagsGetQuery = {
-  projectId?: string | undefined;
-};
-
-export let mapOrganizationsFlagsGetQuery = mtMap.object<OrganizationsFlagsGetQuery>({
-  projectId: mtMap.objectField('project_id', mtMap.passthrough())
-});
-
 export type OrganizationsFlagsGetOutput = {
   object: 'flags';
   flags: { slug: string; value: boolean }[];
@@ -26,3 +18,11 @@ export let mapOrganizationsFlagsGetOutput =
       )
     )
   });
+
+export type OrganizationsFlagsGetQuery = { projectId?: string | undefined };
+
+export let mapOrganizationsFlagsGetQuery =
+  mtMap.object<OrganizationsFlagsGetQuery>({
+    projectId: mtMap.objectField('project_id', mtMap.passthrough())
+  });
+

@@ -41,7 +41,14 @@ export type ManagementInstanceChatsChannelsListOutput = {
     memberCount: number | null;
     permalink: string | null;
     context: {
-      type: 'issue' | 'pull_request' | 'review' | 'page' | 'ticket' | 'post' | 'unknown';
+      type:
+        | 'issue'
+        | 'pull_request'
+        | 'review'
+        | 'page'
+        | 'ticket'
+        | 'post'
+        | 'unknown';
       id: string;
       description?: string | undefined;
       status?: string | undefined;
@@ -69,7 +76,10 @@ export let mapManagementInstanceChatsChannelsListOutput =
           workspaceId: mtMap.objectField('workspace_id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-          providerChannelId: mtMap.objectField('provider_channel_id', mtMap.passthrough()),
+          providerChannelId: mtMap.objectField(
+            'provider_channel_id',
+            mtMap.passthrough()
+          ),
           name: mtMap.objectField('name', mtMap.passthrough()),
           topic: mtMap.objectField('topic', mtMap.passthrough()),
           subject: mtMap.objectField('subject', mtMap.passthrough()),
@@ -82,8 +92,14 @@ export let mapManagementInstanceChatsChannelsListOutput =
               chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
               role: mtMap.objectField('role', mtMap.passthrough()),
-              providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-              providerAuthorId: mtMap.objectField('provider_author_id', mtMap.passthrough()),
+              providerType: mtMap.objectField(
+                'provider_type',
+                mtMap.passthrough()
+              ),
+              providerAuthorId: mtMap.objectField(
+                'provider_author_id',
+                mtMap.passthrough()
+              ),
               userName: mtMap.objectField('user_name', mtMap.passthrough()),
               fullName: mtMap.objectField('full_name', mtMap.passthrough()),
               email: mtMap.objectField('email', mtMap.passthrough()),
@@ -91,7 +107,10 @@ export let mapManagementInstanceChatsChannelsListOutput =
               isSelf: mtMap.objectField('is_self', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-              lastInteractionAt: mtMap.objectField('last_interaction_at', mtMap.date())
+              lastInteractionAt: mtMap.objectField(
+                'last_interaction_at',
+                mtMap.date()
+              )
             })
           ),
           memberCount: mtMap.objectField('member_count', mtMap.passthrough()),
@@ -101,7 +120,10 @@ export let mapManagementInstanceChatsChannelsListOutput =
             mtMap.object({
               type: mtMap.objectField('type', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
               status: mtMap.objectField('status', mtMap.passthrough()),
               url: mtMap.objectField('url', mtMap.passthrough()),
               author: mtMap.objectField(
@@ -118,19 +140,28 @@ export let mapManagementInstanceChatsChannelsListOutput =
                   name: mtMap.objectField('name', mtMap.passthrough())
                 })
               ),
-              labels: mtMap.objectField('labels', mtMap.array(mtMap.passthrough()))
+              labels: mtMap.objectField(
+                'labels',
+                mtMap.array(mtMap.passthrough())
+              )
             })
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          lastInteractionAt: mtMap.objectField('last_interaction_at', mtMap.date())
+          lastInteractionAt: mtMap.objectField(
+            'last_interaction_at',
+            mtMap.date()
+          )
         })
       )
     ),
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -174,3 +205,4 @@ export let mapManagementInstanceChatsChannelsListQuery = mtMap.union([
     })
   )
 ]);
+

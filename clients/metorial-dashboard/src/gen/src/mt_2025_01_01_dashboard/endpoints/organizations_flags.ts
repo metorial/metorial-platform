@@ -58,7 +58,9 @@ export class MetorialOrganizationsFlagsEndpoint {
     let request = {
       path,
 
-      query: query ? mapOrganizationsFlagsGetQuery.transformTo(query) : undefined,
+      query: query
+        ? mapOrganizationsFlagsGetQuery.transformTo(query)
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 

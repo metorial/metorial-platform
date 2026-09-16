@@ -10,7 +10,8 @@ export type DashboardOrganizationsEventDestinationListenersListOutput = {
     eventTypes: string[] | null;
     callbackId: string | null;
     triggers: string[] | null;
-    chatIntegrationId: string | null;
+    chatConnectionId: string | null;
+    providerId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -40,10 +41,11 @@ export let mapDashboardOrganizationsEventDestinationListenersListOutput =
             'triggers',
             mtMap.array(mtMap.passthrough())
           ),
-          chatIntegrationId: mtMap.objectField(
-            'chat_integration_id',
+          chatConnectionId: mtMap.objectField(
+            'chat_connection_id',
             mtMap.passthrough()
           ),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
@@ -71,7 +73,8 @@ export type DashboardOrganizationsEventDestinationListenersListQuery = {
   eventDestinationId?: string | string[] | undefined;
   instanceId?: string | string[] | undefined;
   callbackId?: string | string[] | undefined;
-  chatIntegrationId?: string | string[] | undefined;
+  chatConnectionId?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
   type?:
     | 'event'
     | 'callback'
@@ -120,8 +123,18 @@ export let mapDashboardOrganizationsEventDestinationListenersListQuery =
             )
           ])
         ),
-        chatIntegrationId: mtMap.objectField(
-          'chat_integration_id',
+        chatConnectionId: mtMap.objectField(
+          'chat_connection_id',
+          mtMap.union([
+            mtMap.unionOption('string', mtMap.passthrough()),
+            mtMap.unionOption(
+              'array',
+              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+            )
+          ])
+        ),
+        providerId: mtMap.objectField(
+          'provider_id',
           mtMap.union([
             mtMap.unionOption('string', mtMap.passthrough()),
             mtMap.unionOption(
