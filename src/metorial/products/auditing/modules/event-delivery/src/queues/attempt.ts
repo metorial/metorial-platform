@@ -33,7 +33,8 @@ let buildEventBody = (
     callbackId: string | null;
     callbackTriggerKey: string | null;
     chatEventId: string | null;
-    chatIntegrationId: string | null;
+    chatConnectionId: string | null;
+    providerId: string | null;
     createdAt: Date;
   },
   d: { organizationId: string; instanceId: string | null; payload: Record<string, any> | null }
@@ -53,7 +54,9 @@ let buildEventBody = (
   callback_trigger_key: event.callbackTriggerKey,
 
   chat_event_id: event.chatEventId,
-  chat_integration_id: event.chatIntegrationId,
+  chat_connection_id: event.chatConnectionId,
+
+  provider_id: event.providerId,
 
   occurred_at: event.createdAt.toISOString()
 });

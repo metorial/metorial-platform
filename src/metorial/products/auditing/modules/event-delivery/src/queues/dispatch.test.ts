@@ -20,7 +20,8 @@ let event = (overrides: Record<string, any> = {}) =>
     eventType: 'organization.created',
     callbackId: null,
     callbackTriggerKey: null,
-    chatIntegrationId: null,
+    chatConnectionId: null,
+    providerId: null,
     ...overrides
   }) as any;
 
@@ -30,7 +31,8 @@ let listener = (overrides: Record<string, any> = {}) =>
     eventTypes: [],
     triggers: [],
     callbackId: null,
-    chatIntegrationId: null,
+    chatConnectionId: null,
+    providerId: null,
     eventDestination: { status: 'active' },
     ...overrides
   }) as any;
@@ -124,35 +126,80 @@ describe('matchesListener', () => {
         )
       ).toBe(false);
     });
+
+    it('matches a provider-tier listener when the event carries that provider', () => {
+      expect(
+        matchesListener(
+          event({
+            source: 'callback',
+            eventType: 'callback.issue.created',
+            callbackId: 'clb_1',
+            callbackTriggerKey: 'issue.created',
+            providerId: 'prov_1'
+          }),
+          listener({ type: 'callback', providerId: 'prov_1', triggers: [] })
+        )
+      ).toBe(true);
+    });
+
+    it('does not match a provider-tier listener for another provider', () => {
+      expect(
+        matchesListener(
+          event({
+            source: 'callback',
+            eventType: 'callback.issue.created',
+            callbackId: 'clb_1',
+            callbackTriggerKey: 'issue.created',
+            providerId: 'prov_1'
+          }),
+          listener({ type: 'callback', providerId: 'prov_2', triggers: [] })
+        )
+      ).toBe(false);
+    });
+
+    it('never matches a provider-tier listener when the event has no resolvable provider', () => {
+      expect(
+        matchesListener(
+          callbackEvent,
+          listener({ type: 'callback', providerId: 'prov_1', triggers: [] })
+        )
+      ).toBe(false);
+    });
+
+    it('matches a pure ALL-tier listener regardless of callback or provider', () => {
+      expect(
+        matchesListener(callbackEvent, listener({ type: 'callback', triggers: [] }))
+      ).toBe(true);
+    });
   });
 
   describe('chat events', () => {
     let chatEvent = event({
       source: 'chat',
       eventType: 'chat.message.received',
-      chatIntegrationId: 'chint_1'
+      chatConnectionId: 'chi_1'
     });
 
-    it('matches the right integration and event type', () => {
+    it('matches the right connection and event type', () => {
       expect(
         matchesListener(
           chatEvent,
           listener({
             type: 'chat',
-            chatIntegrationId: 'chint_1',
+            chatConnectionId: 'chi_1',
             eventTypes: ['chat.message.received']
           })
         )
       ).toBe(true);
     });
 
-    it('does not match another integration', () => {
+    it('does not match another connection', () => {
       expect(
         matchesListener(
           chatEvent,
           listener({
             type: 'chat',
-            chatIntegrationId: 'chint_2',
+            chatConnectionId: 'chi_2',
             eventTypes: ['chat.message.received']
           })
         )
@@ -165,11 +212,69 @@ describe('matchesListener', () => {
           chatEvent,
           listener({
             type: 'chat',
-            chatIntegrationId: 'chint_1',
+            chatConnectionId: 'chi_1',
             eventTypes: ['chat.member.joined']
           })
         )
       ).toBe(false);
+    });
+
+    it('matches a provider-tier listener when the event carries that provider', () => {
+      expect(
+        matchesListener(
+          event({
+            source: 'chat',
+            eventType: 'chat.message.received',
+            chatConnectionId: 'chi_1',
+            providerId: 'prov_1'
+          }),
+          listener({
+            type: 'chat',
+            providerId: 'prov_1',
+            eventTypes: ['chat.message.received']
+          })
+        )
+      ).toBe(true);
+    });
+
+    it('does not match a provider-tier listener for another provider', () => {
+      expect(
+        matchesListener(
+          event({
+            source: 'chat',
+            eventType: 'chat.message.received',
+            chatConnectionId: 'chi_1',
+            providerId: 'prov_1'
+          }),
+          listener({
+            type: 'chat',
+            providerId: 'prov_2',
+            eventTypes: ['chat.message.received']
+          })
+        )
+      ).toBe(false);
+    });
+
+    it('never matches a provider-tier listener when the event has no resolvable provider', () => {
+      expect(
+        matchesListener(
+          chatEvent,
+          listener({
+            type: 'chat',
+            providerId: 'prov_1',
+            eventTypes: ['chat.message.received']
+          })
+        )
+      ).toBe(false);
+    });
+
+    it('matches a pure ALL-tier listener regardless of connection or provider', () => {
+      expect(
+        matchesListener(
+          chatEvent,
+          listener({ type: 'chat', eventTypes: ['chat.message.received'] })
+        )
+      ).toBe(true);
     });
   });
 });
