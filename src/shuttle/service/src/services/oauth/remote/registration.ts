@@ -85,21 +85,21 @@ class remoteOAuthRegistrationServiceImpl {
       return { ok: true as const, connection, registration: reg.registration };
     }
 
-    let inner = (reg?.error.payload as any)?.error || 'unknown_error';
-
-    let jsonInner = inner;
-    try {
-      jsonInner = JSON.stringify(inner);
-    } catch (e) {}
-
     let isTransient = reg?.isTransient ?? false;
+    let baseErrorMessage =
+      reg?.message ??
+      'OAuth client registration failed because the provider could not be reached';
+    let detail = reg?.description ? `: ${reg.description}` : '';
+    let errorMessage = isTransient
+      ? `${baseErrorMessage}${detail}. Try again later.`
+      : `${baseErrorMessage}${detail}. Configure OAuth client credentials manually to continue.`;
 
     await db.remoteOAuthConnection.update({
       where: { oid: connection.oid },
       data: {
         discoveryStatus: 'failed',
         errorCode: 'auto_registration_failed',
-        errorMessage: `Failed to auto-register OAuth client for connection: ${jsonInner}`,
+        errorMessage,
         registrationAttemptCount: isTransient ? connection.registrationAttemptCount : attempt
       }
     });
@@ -110,14 +110,31 @@ class remoteOAuthRegistrationServiceImpl {
         connectionOid: connection.oid,
         type: 'auto_registration_failed',
         metadata: {
-          error: inner,
+          error: (reg?.error.payload as any)?.error ?? 'unknown_error',
+          errorCode: 'auto_registration_failed',
           attempt,
-          status: reg?.status ?? null
+          status: reg?.status ?? null,
+          oauthCode: reg?.oauthCode ?? null,
+          retryable: isTransient
         }
       }
     });
 
-    return { ok: false as const, reason: 'failed' as const, isTransient };
+    return {
+      ok: false as const,
+      reason: 'failed' as const,
+      isTransient,
+      diagnostics: {
+        status: reg?.status ?? null,
+        oauthCode: reg?.oauthCode ?? null,
+        message: errorMessage,
+        description: reg?.description ?? null,
+        responseText: reg?.responseText ?? 'null',
+        responseTruncated: reg?.responseTruncated ?? false,
+        contentType: reg?.contentType ?? null,
+        retryAfterMs: reg?.retryAfterMs ?? null
+      }
+    };
   }
 }
 

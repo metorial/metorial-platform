@@ -50,6 +50,7 @@ export let backend = {
 
       name: d.name,
       description: d.description,
+      ...(d.from.type === 'remote' ? { preflightOAuthRegistration: true } : {}),
 
       from: d.from,
       config: d.config

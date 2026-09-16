@@ -112,6 +112,7 @@ class serverServiceImpl {
       name: string;
       description?: string;
       metadata?: Record<string, any>;
+      preflightOAuthRegistration?: boolean;
     };
   }) {
     if (d.input.config) {
@@ -187,7 +188,8 @@ class serverServiceImpl {
           oauthConfig: d.input.from.oauthConfig,
           name: d.input.name,
           description: d.input.description,
-          metadata: d.input.metadata
+          metadata: d.input.metadata,
+          preflightOAuthRegistration: d.input.preflightOAuthRegistration
         }
       });
     }
@@ -521,6 +523,7 @@ class serverServiceImpl {
       remoteUrl: string;
       protocol: ServerRemoteProtocol;
       oauthConfig?: Record<string, any>;
+      preflightOAuthRegistration?: boolean;
 
       name: string;
       description?: string;
@@ -555,7 +558,8 @@ class serverServiceImpl {
         input: {
           remoteUrl: d.input.remoteUrl,
           protocol: d.input.protocol,
-          oauthConfig: d.input.oauthConfig
+          oauthConfig: d.input.oauthConfig,
+          preflightOAuthRegistration: d.input.preflightOAuthRegistration
         }
       });
 

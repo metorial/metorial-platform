@@ -50,7 +50,8 @@ export class ProviderAuth extends IProviderAuth {
             clientId: data.input.clientId,
             clientSecret: data.input.clientSecret
           }
-        : {})
+        : {}),
+      reuseDefault: data.reuseDefaultCredentials
     });
 
     let shuttleOAuthCredentials = await db.shuttleOAuthCredentials.create({

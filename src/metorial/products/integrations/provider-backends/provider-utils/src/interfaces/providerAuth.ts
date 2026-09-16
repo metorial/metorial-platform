@@ -89,6 +89,7 @@ export interface ProviderAuthCredentialsScopesRes {
 export interface ProviderAuthCredentialsCreateParam {
   tenant: Tenant;
   provider: Provider & { defaultVariant: ProviderVariant | null };
+  reuseDefaultCredentials?: boolean;
   input:
     | {
         type: 'oauth';

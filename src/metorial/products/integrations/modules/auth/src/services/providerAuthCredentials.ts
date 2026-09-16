@@ -775,6 +775,7 @@ class providerAuthCredentialsServiceImpl {
       let backendProviderAuthCredentials = await backend.auth.createProviderAuthCredentials({
         tenant: d.tenant,
         provider: d.provider,
+        reuseDefaultCredentials: !!d.isDefault && d.input.config.type === 'auto_registration',
         input: d.input.config
       });
 
