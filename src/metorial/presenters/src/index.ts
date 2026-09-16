@@ -91,6 +91,8 @@ import {
   v1DocumentPresenter,
   v1DocumentVersionPresenter,
   v1EnclavePresenter,
+  v1EventDeliveryAttemptPresenter,
+  v1EventDeliveryPresenter,
   v1EventDestinationListenerPresenter,
   v1EventDestinationPresenter,
   v1SystemEventPresenter,
@@ -319,6 +321,8 @@ import {
   documentType,
   documentVersionType,
   enclaveType,
+  eventDeliveryAttemptType,
+  eventDeliveryType,
   eventDestinationListenerType,
   eventDestinationType,
   fileLinkType,
@@ -705,6 +709,16 @@ export let eventDestinationListenerPresenter = declarePresenter(eventDestination
 export let eventPresenter = declarePresenter(systemEventType, {
   mt_2025_01_01_dashboard: v1SystemEventPresenter,
   mt_2026_01_01_magnetar: v1SystemEventPresenter
+});
+
+export let eventDeliveryPresenter = declarePresenter(eventDeliveryType, {
+  mt_2025_01_01_dashboard: v1EventDeliveryPresenter,
+  mt_2026_01_01_magnetar: v1EventDeliveryPresenter
+});
+
+export let eventDeliveryAttemptPresenter = declarePresenter(eventDeliveryAttemptType, {
+  mt_2025_01_01_dashboard: v1EventDeliveryAttemptPresenter,
+  mt_2026_01_01_magnetar: v1EventDeliveryAttemptPresenter
 });
 
 export let webhookEventPresenter = declarePresenter(webhookEventType, {

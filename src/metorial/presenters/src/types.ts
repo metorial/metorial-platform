@@ -93,6 +93,8 @@ import {
   ConsumerToken,
   Document,
   DocumentParticipant,
+  EventDeliveryAttempt,
+  EventDeliveryIntent,
   EventDestination,
   EventDestinationListener,
   File,
@@ -1145,6 +1147,29 @@ export let systemEventType = PresentableType.create<{
   };
   organization: Organization;
 }>()('event');
+
+export let eventDeliveryType = PresentableType.create<{
+  eventDelivery: EventDeliveryIntent & {
+    systemEvent: SystemEvent;
+    eventDestination: EventDestination;
+    instance: Instance | null;
+    attempts: EventDeliveryAttempt[];
+  };
+  organization: Organization;
+}>()('eventDelivery');
+
+export let eventDeliveryAttemptType = PresentableType.create<{
+  attempt: EventDeliveryAttempt & {
+    intent: EventDeliveryIntent & {
+      systemEvent: SystemEvent;
+      eventDestination: EventDestination;
+    };
+  };
+  // Resolved by the caller rather than inside the presenter: the request/response bodies live in
+  // object storage once an attempt is older than a few minutes, so list endpoints leave this unset
+  // and only the single-attempt read pays for the fetch.
+  details?: PrismaJson.EventDeliveryAttemptDetails | null;
+}>()('eventDeliveryAttempt');
 
 export let webhookEventType = PresentableType.create<{
   webhookEvent: { name: string };
