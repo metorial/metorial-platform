@@ -114,4 +114,17 @@ describe('retryRegistrationQueueProcessor', () => {
       retryProcessor()({ oauthConnectionId: 'cso_replacement' })
     ).rejects.toBeInstanceOf(QueueRetryError);
   });
+
+  it('does not retry permanent registration failures', async () => {
+    runAutoRegistration.mockResolvedValue({
+      ok: false,
+      reason: 'failed',
+      isTransient: false
+    });
+    dbMock.serverOAuthCredentials.findFirst.mockResolvedValue(null);
+
+    await expect(
+      retryProcessor()({ oauthConnectionId: 'cso_replacement' })
+    ).resolves.toBeUndefined();
+  });
 });

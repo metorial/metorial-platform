@@ -64,6 +64,13 @@ await lock.usingLock('resource-key', performWork, {
 });
 ```
 
+Acquisition-budget exhaustion throws `LockAcquisitionError`, allowing callers to handle lock
+contention separately from errors thrown by the critical section:
+
+```typescript
+import { LockAcquisitionError } from '@lowerdeck/lock';
+```
+
 Redis connections are pooled by URL. Long-running services may close the shared pool during
 graceful shutdown:
 

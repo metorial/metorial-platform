@@ -13,7 +13,7 @@ let include = {
 };
 
 export let triggerWebhookUnregisterQueue = createQueue<{ triggerWebhookTargetId: string }>({
-  name: 'shub/trg/whk/unregister',
+  name: 'shub/trg/whk/unregister/1',
   redisUrl: env.service.REDIS_URL
 });
 

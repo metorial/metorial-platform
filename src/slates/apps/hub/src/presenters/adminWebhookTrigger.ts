@@ -17,7 +17,7 @@ export let adminWebhookTriggerPresenter = (
     triggerWebhookTarget: TriggerWebhookTarget | null;
   }
 ) => ({
-  object: 'slate.webhook_trigger',
+  object: 'webhook_trigger',
 
   id: registration.id,
   type: registration.type,

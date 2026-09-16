@@ -3,7 +3,12 @@ import { v } from '@lowerdeck/validation';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { getId } from '../../../id';
-import { validateDelegationRedirectUri, allowHttpDelegationRedirect, parseDelegationMetadataRedirectUri } from '../../../lib/ssoDelegationProtocol';
+import {
+  allowHttpDelegationRedirect,
+  DELEGATION_TOKEN_TTL_SECONDS,
+  parseDelegationMetadataRedirectUri,
+  validateDelegationRedirectUri
+} from '../../../lib/ssoDelegationProtocol';
 import { ssoAuthService } from '../../../services/sso/auth';
 import { ssoDelegationService } from '../../../services/sso/delegation';
 
@@ -168,7 +173,7 @@ export let ssoDelegationApp = createHono()
       return c.json({
         access_token: token,
         token_type: 'Bearer',
-        expires_in: 300
+        expires_in: DELEGATION_TOKEN_TTL_SECONDS
       });
     }
 
@@ -187,7 +192,7 @@ export let ssoDelegationApp = createHono()
         return c.json({
           access_token: token,
           token_type: 'Bearer',
-          expires_in: 300
+          expires_in: DELEGATION_TOKEN_TTL_SECONDS
         });
       } catch {
         return c.json({ error: 'invalid_grant' }, 400);

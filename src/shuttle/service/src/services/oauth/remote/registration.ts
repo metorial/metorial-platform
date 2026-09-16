@@ -53,8 +53,7 @@ class remoteOAuthRegistrationServiceImpl {
       owner: {
         config: connection.config,
         connection
-      },
-      captureErrors: connection.registrationAttemptCount == 0
+      }
     });
 
     if (reg?.ok) {

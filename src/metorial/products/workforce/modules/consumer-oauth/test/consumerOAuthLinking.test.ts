@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { addDays, addMonths } from 'date-fns';
 
 vi.mock('@lowerdeck/hash', () => ({
   Hash: {
@@ -140,6 +141,7 @@ import {
   consumerOAuthRegistrationService,
   consumerOAuthTestAuthorizationService
 } from '../src/services';
+import { slideConsumerAuthClientExpiration } from '../src/services/_helpers';
 
 describe('consumer OAuth integration endpoint linking', () => {
   beforeEach(() => {
@@ -153,6 +155,40 @@ describe('consumer OAuth integration endpoint linking', () => {
     vi.mocked(db.consumerClient.create).mockResolvedValue({
       oid: 99n
     } as any);
+  });
+
+  it('slides a client expiry only when it is less than seven days away', async () => {
+    vi.useFakeTimers();
+    let now = new Date('2026-01-15T00:00:00.000Z');
+    vi.setSystemTime(now);
+
+    await slideConsumerAuthClientExpiration({
+      consumerAuthClient: {
+        oid: 10n,
+        expiresAt: new Date(addDays(now, 7).getTime() - 1)
+      }
+    });
+
+    expect(db.consumerAuthClient.updateMany).toHaveBeenCalledWith({
+      where: {
+        oid: 10n,
+        expiresAt: { lt: addDays(now, 7) }
+      },
+      data: {
+        expiresAt: addMonths(now, 3)
+      }
+    });
+
+    vi.mocked(db.consumerAuthClient.updateMany).mockClear();
+    await slideConsumerAuthClientExpiration({
+      consumerAuthClient: {
+        oid: 10n,
+        expiresAt: addDays(now, 7)
+      }
+    });
+
+    expect(db.consumerAuthClient.updateMany).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('upserts a consumer client during auth client self-registration', async () => {

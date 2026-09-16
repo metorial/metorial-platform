@@ -1,4 +1,3 @@
-import { getSentry } from '@lowerdeck/sentry';
 import type {
   ServerAuthConfig,
   ServerConfig,
@@ -6,9 +5,8 @@ import type {
   Tenant
 } from '../../../prisma/generated/client';
 import { serverAuthTokenService } from '../../services/oauth/serverAuthToken';
+import { ConnectionError, toConnectionError } from '../utils/connectionError';
 import type { ConnectionLogger } from '../utils/logger';
-
-let Sentry = getSentry();
 
 const EXPIRY_SAFETY_MARGIN_MS = 1000 * 30;
 
@@ -41,7 +39,8 @@ export class FunctionConnectionAuthManager {
         try {
           let res = await serverAuthTokenService.useAuthToken({
             tenant: this.tenant,
-            authConfig: this.connection.serverAuthConfig!
+            authConfig: this.connection.serverAuthConfig!,
+            serverConnectionId: this.connection.id
           });
 
           if (res.didRefresh) {
@@ -68,19 +67,12 @@ export class FunctionConnectionAuthManager {
             tokenType: res.delegatedToken?.tokenType
           };
         } catch (err) {
-          Sentry.captureException(err, {
-            extra: {
-              connectionId: this.connection.id,
-              tenantId: this.tenant.id
-            }
-          });
+          let mapped = toConnectionError(err, 'auth_token_refresh_failed');
+          this.logger.log('debug.error', `Failed to obtain access token: ${mapped.message}`);
 
-          this.logger.log(
-            'debug.error',
-            `Failed to obtain access token: ${(err as Error).message}`
-          );
+          this.#accessTokenPromise = null;
 
-          throw err;
+          throw new ConnectionError(mapped);
         }
       })();
     }

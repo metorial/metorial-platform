@@ -5,12 +5,17 @@ import { delegatedAuthTokenService } from './delegated';
 import { remoteAuthTokenService } from './remote';
 
 class serverAuthTokenServiceImpl {
-  async useAuthToken(d: { tenant: Tenant; authConfig: ServerAuthConfig }) {
+  async useAuthToken(d: {
+    tenant: Tenant;
+    authConfig: ServerAuthConfig;
+    serverConnectionId?: string;
+  }) {
     if (d.authConfig.type == 'remote' && d.authConfig.remoteOAuthConnectionAuthTokenOid) {
       let token = await remoteAuthTokenService.useAuthToken({
         tenant: d.tenant,
         remoteOAuthConnectionAuthTokenOid: d.authConfig.remoteOAuthConnectionAuthTokenOid,
-        serverAuthConfig: d.authConfig
+        serverAuthConfig: d.authConfig,
+        serverConnectionId: d.serverConnectionId
       });
 
       return {
@@ -30,7 +35,8 @@ class serverAuthTokenServiceImpl {
     ) {
       let token = await delegatedAuthTokenService.useAuthToken({
         tenant: d.tenant,
-        delegatedOAuthConnectionAuthTokenOid: d.authConfig.delegatedOAuthConnectionAuthTokenOid,
+        delegatedOAuthConnectionAuthTokenOid:
+          d.authConfig.delegatedOAuthConnectionAuthTokenOid,
         serverAuthConfig: d.authConfig
       });
 

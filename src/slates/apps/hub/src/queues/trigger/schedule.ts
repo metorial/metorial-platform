@@ -3,12 +3,15 @@ import { createQueue } from '@lowerdeck/queue';
 import { addMinutes } from 'date-fns';
 import { db } from '../../db';
 import { env } from '../../env';
-import { TRIGGER_POLL_CLAIM_DURATION_MINUTES, TRIGGER_POLL_SEARCH_BATCH_SIZE } from './_config';
+import {
+  TRIGGER_POLL_CLAIM_DURATION_MINUTES,
+  TRIGGER_POLL_SEARCH_BATCH_SIZE
+} from './_config';
 import { triggerPollQueue } from './poll';
 
 export let triggerScheduleSearchCron = createCron(
   {
-    name: 'shub/trg/sched/cron',
+    name: 'shub/trg/sched/cron/1',
     redisUrl: env.service.REDIS_URL,
     cron: '* * * * *'
   },
@@ -19,7 +22,7 @@ export let triggerScheduleSearchCron = createCron(
 
 export let triggerScheduleReleaseStaleClaimsCron = createCron(
   {
-    name: 'shub/trg/sched/release/cron',
+    name: 'shub/trg/sched/release/cron/1',
     redisUrl: env.service.REDIS_URL,
     cron: '* * * * *'
   },
@@ -32,7 +35,7 @@ export let triggerScheduleReleaseStaleClaimsCron = createCron(
 );
 
 export let triggerScheduleSearchQueue = createQueue<{ cutoff: string; cursor?: string }>({
-  name: 'shub/trg/sched/search',
+  name: 'shub/trg/sched/search/1',
   redisUrl: env.service.REDIS_URL
 });
 

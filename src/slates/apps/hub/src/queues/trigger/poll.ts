@@ -32,7 +32,7 @@ let include = {
 };
 
 export let triggerPollQueue = createQueue<{ scheduleId: string }>({
-  name: 'shub/trg/poll',
+  name: 'shub/trg/poll/2',
   redisUrl: env.service.REDIS_URL,
   workerOpts: triggerPollWorkerOpts
 });

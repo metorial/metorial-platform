@@ -20,7 +20,7 @@ export let slateWebhookEventPresenter = async (
   }
 
   return {
-    object: 'slate.webhook_event',
+    object: 'webhook_event',
 
     id: event.id,
     status: event.status,

@@ -9,7 +9,7 @@ export let triggerWebhookRegistrationRematchQueue = createQueue<{
   webhookRegistrationId: string;
   cursor?: string;
 }>({
-  name: 'shub/trg/whk/rematch',
+  name: 'shub/trg/whk/rematch/1',
   redisUrl: env.service.REDIS_URL,
   workerOpts: { concurrency: 1 }
 });

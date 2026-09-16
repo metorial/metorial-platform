@@ -14,7 +14,7 @@ import { triggerWebhookTargetSearchQueue } from './webhookTargetSearch';
 export let triggerRegistrationInstanceSetupQueue = createQueue<{
   triggerRegistrationInstanceId: string;
 }>({
-  name: 'shub/trg/inst/setup',
+  name: 'shub/trg/inst/setup/1',
   redisUrl: env.service.REDIS_URL
 });
 

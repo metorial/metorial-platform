@@ -436,7 +436,7 @@ let useIntegrationInstanceProvidersTableState = (
   ]);
 
   return {
-    isLoading: providers.isLoading || callbackInstances.isLoading,
+    isLoading: providers.isLoading || (hasCallbacks && callbackInstances.isLoading),
     error: providers.error,
     hasMoreAfter: false,
     hasMoreBefore: false,

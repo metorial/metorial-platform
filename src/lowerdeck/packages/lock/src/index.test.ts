@@ -29,7 +29,7 @@ vi.mock('redlock', () => ({
   }
 }));
 
-import { closeLockPool, createLock } from './index';
+import { closeLockPool, createLock, LockAcquisitionError } from './index';
 
 let createFakeLease = (durationMs: number) => {
   let lease: any = {
@@ -126,9 +126,32 @@ describe('lock pooling and acquisition', () => {
       retryJitter: 0
     });
 
-    let assertion = expect(resultPromise).rejects.toThrow('locked');
+    let assertion = expect(resultPromise).rejects.toMatchObject({
+      name: 'LockAcquisitionError',
+      message: 'locked',
+      cause: expect.objectContaining({ message: 'locked' })
+    });
     await vi.advanceTimersByTimeAsync(2_500);
     await assertion;
     expect(mocks.acquire).toHaveBeenCalledTimes(3);
+  });
+
+  it('exposes acquisition failures separately from critical-section failures', async () => {
+    mocks.acquire.mockRejectedValueOnce(new Error('redis unavailable'));
+
+    let lock = createLock({ name: 'classified', redisUrl: 'redis://localhost:6379/0' });
+    await expect(
+      lock.usingLock('resource', async () => 'never', {
+        acquisitionTimeoutMs: 0
+      })
+    ).rejects.toBeInstanceOf(LockAcquisitionError);
+
+    let criticalSectionError = new Error('critical section failed');
+    mocks.acquire.mockResolvedValueOnce(createFakeLease(10_000));
+    await expect(
+      lock.usingLock('resource', async () => {
+        throw criticalSectionError;
+      })
+    ).rejects.toBe(criticalSectionError);
   });
 });

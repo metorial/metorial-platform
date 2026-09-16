@@ -113,6 +113,35 @@ let getSerializedExecutionContext = (
 
 let sanitizeJobId = (jobId?: string) => jobId?.replace(/:/g, '_');
 
+let isPostgresDeadlockError = (error: unknown) => {
+  let seen = new Set<object>();
+
+  let inspect = (value: unknown): boolean => {
+    if (!value || typeof value !== 'object' || seen.has(value)) return false;
+    seen.add(value);
+
+    let candidate = value as {
+      code?: unknown;
+      message?: unknown;
+      cause?: unknown;
+      meta?: unknown;
+      driverAdapterError?: unknown;
+    };
+
+    if (candidate.code === '40P01' || candidate.message === 'deadlock detected') {
+      return true;
+    }
+
+    return (
+      inspect(candidate.cause) ||
+      inspect(candidate.meta) ||
+      inspect(candidate.driverAdapterError)
+    );
+  };
+
+  return inspect(error);
+};
+
 export interface BullMqQueueOptions {
   delay?: number;
   id?: string;
@@ -313,6 +342,12 @@ export let createBullMqQueue = <JobData>(
             } catch (e: any) {
               if (e instanceof QueueRetryError) {
                 await delay(1000);
+                throw e;
+              } else if (
+                isPostgresDeadlockError(e) &&
+                job.attemptsMade + 1 < (job.opts.attempts ?? opts.jobOpts?.attempts ?? 25)
+              ) {
+                await delay(1000 + Math.random() * 5000);
                 throw e;
               } else {
                 Sentry.captureException(e);

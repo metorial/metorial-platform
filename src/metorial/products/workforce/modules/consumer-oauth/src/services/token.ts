@@ -28,7 +28,8 @@ import {
   getConsumerAuthClientPlugin,
   getConsumerAuthClientSurface,
   getConsumerAuthRefreshTokenExpiry,
-  resolveConsumerSurface
+  resolveConsumerSurface,
+  slideConsumerAuthClientExpiration
 } from './_helpers';
 import {
   consumerAuthAttemptInclude,
@@ -38,12 +39,6 @@ import {
   ConsumerSurfaceWithContext
 } from './_types';
 
-/**
- * Token issuance and rotation happen inside the OAuth exchange, which carries no request
- * context of its own -- the client presents a code or refresh token, not a session. The
- * consumer holding the authorization is the actor; where the authorization has no profile
- * yet the exchange is attributed to the flow itself.
- */
 let consumerOAuthAuditScope = (d: {
   consumerSurface: Pick<ConsumerSurface, 'organizationOid' | 'instanceOid'>;
   consumerProfile?: { id: string } | null;
@@ -526,6 +521,7 @@ class ConsumerOAuthTokenService {
         expiresAt
       }
     });
+    await slideConsumerAuthClientExpiration({ consumerAuthClient: d.client });
 
     return {
       accessToken: accessToken.secret,
@@ -589,6 +585,7 @@ class ConsumerOAuthTokenService {
         expiresAt
       }
     });
+    await slideConsumerAuthClientExpiration({ consumerAuthClient: d.client });
 
     return {
       accessToken: rotatedAccessToken.secret,

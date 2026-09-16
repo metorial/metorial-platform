@@ -1,4 +1,4 @@
-import { setSentry } from '@lowerdeck/sentry';
+import { setSentry, shouldIgnoreSentryHttpError } from '@lowerdeck/sentry';
 import { initTelemetry } from '@lowerdeck/telemetry';
 import * as Sentry from '@sentry/bun';
 
@@ -26,7 +26,9 @@ if (
 
     environment: process.env.METORIAL_ENV,
 
-    beforeSend(event) {
+    beforeSend(event, hint) {
+      if (shouldIgnoreSentryHttpError(hint)) return null;
+
       if (!event.tags) event.tags = {};
       event.tags.allocationId = process.env.NOMAD_ALLOC_ID || 'unknown';
       return event;
