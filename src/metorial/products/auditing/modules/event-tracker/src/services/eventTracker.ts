@@ -1,5 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import { db, ID } from '@metorial/db';
+import { dispatchSystemEventDelivery } from '@metorial/module-event-delivery';
 
 class EventTrackerServiceImpl {
   async recordCallbackEvent(d: {
@@ -9,7 +10,7 @@ class EventTrackerServiceImpl {
     callbackId: string;
     callbackTriggerKey?: string | null;
   }) {
-    await db.systemEvent.upsert({
+    let systemEvent = await db.systemEvent.upsert({
       where: { callbackEventId: d.callbackEventId },
       create: {
         id: await ID.generateId('systemEvent'),
@@ -21,8 +22,11 @@ class EventTrackerServiceImpl {
         callbackId: d.callbackId,
         callbackTriggerKey: d.callbackTriggerKey ?? null
       },
-      update: {}
+      update: {},
+      select: { id: true }
     });
+
+    await dispatchSystemEventDelivery({ systemEventId: systemEvent.id });
   }
 
   async recordChatEvent(d: {
@@ -32,7 +36,7 @@ class EventTrackerServiceImpl {
     chatIntegrationId: string;
     eventType: string;
   }) {
-    await db.systemEvent.upsert({
+    let systemEvent = await db.systemEvent.upsert({
       where: { chatEventId: d.chatEventId },
       create: {
         id: await ID.generateId('systemEvent'),
@@ -43,8 +47,11 @@ class EventTrackerServiceImpl {
         chatEventId: d.chatEventId,
         chatIntegrationId: d.chatIntegrationId
       },
-      update: {}
+      update: {},
+      select: { id: true }
     });
+
+    await dispatchSystemEventDelivery({ systemEventId: systemEvent.id });
   }
 }
 

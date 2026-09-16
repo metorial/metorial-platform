@@ -13,7 +13,12 @@ let mocks = vi.hoisted(() => ({
   callbackEventDelete: vi.fn(),
   chatEventFindFirst: vi.fn(),
   chatEventFindMany: vi.fn(),
-  chatEventDelete: vi.fn()
+  chatEventDelete: vi.fn(),
+  purgeEventDeliveriesForSystemEvent: vi.fn()
+}));
+
+vi.mock('@metorial/module-event-delivery', () => ({
+  purgeEventDeliveriesForSystemEvent: mocks.purgeEventDeliveriesForSystemEvent
 }));
 
 vi.mock('@metorial/cron', () => ({
