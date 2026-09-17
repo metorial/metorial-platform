@@ -8,7 +8,8 @@ import {
   getRetentionCutoffDate,
   RETENTION_BATCH_SIZE,
   retentionCleanupWorkerOpts,
-  retentionStorageCleanupWorkerOpts
+  retentionStorageCleanupWorkerOpts,
+  TRIGGER_AND_WEBHOOK_RETENTION_DAYS
 } from './_config';
 
 type StorageCleanupRecord = {
@@ -383,6 +384,7 @@ export let slatesTenantRetentionCleanupQueueProcessor =
     if (!tenant) return;
 
     let cutoffDate = getRetentionCutoffDate(tenant.logRetentionInDays);
+    let triggerAndWebhookCutoffDate = getRetentionCutoffDate(TRIGGER_AND_WEBHOOK_RETENTION_DAYS);
 
     await cleanupTenantInstanceEvents({
       tenantOid: tenant.oid,
@@ -422,7 +424,7 @@ export let slatesTenantRetentionCleanupQueueProcessor =
     });
     await cleanupTenantTriggerEvents({
       tenantOid: tenant.oid,
-      cutoffDate
+      cutoffDate: triggerAndWebhookCutoffDate
     });
     await cleanupTenantTriggerRawEvents({
       tenantOid: tenant.oid,
@@ -430,7 +432,7 @@ export let slatesTenantRetentionCleanupQueueProcessor =
     });
     await cleanupTenantSlateWebhookEvents({
       tenantOid: tenant.oid,
-      cutoffDate
+      cutoffDate: triggerAndWebhookCutoffDate
     });
   });
 

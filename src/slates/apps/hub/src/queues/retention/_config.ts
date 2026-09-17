@@ -2,6 +2,8 @@ import { subDays } from 'date-fns';
 
 export let RETENTION_BATCH_SIZE = 500;
 
+export let TRIGGER_AND_WEBHOOK_RETENTION_DAYS = 15;
+
 export let retentionCleanupWorkerOpts = {
   concurrency: 2,
   limiter: {

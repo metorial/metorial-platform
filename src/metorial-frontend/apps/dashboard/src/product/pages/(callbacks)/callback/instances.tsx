@@ -32,7 +32,6 @@ export let CallbackInstancesPage = () => {
         {callbackInstances.data.length ? (
           <Table
             headers={['Integration Instance', 'Registration', 'Updated', 'ID']}
-            padding={{ sides: '16px' }}
             data={callbackInstances.data.map(callbackInstance => ({
               href: Paths.instance.integrationInstance(
                 organization.data,
