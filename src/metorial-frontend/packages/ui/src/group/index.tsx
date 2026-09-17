@@ -4,14 +4,11 @@ import { Text, Title } from '../text';
 import { theme } from '../theme';
 
 let GroupWrapper = styled('div')`
-  border: solid 1px ${theme.colors.gray400};
+  border: 1px solid ${theme.colors.gray400};
   box-shadow: ${theme.shadows.small};
-  border-radius: 10px;
+  background: ${theme.colors.gray100};
+  border-radius: 8px;
   overflow: hidden;
-
-  & > *:not(:last-child) {
-    border-bottom: solid 1px ${theme.colors.gray400};
-  }
 `;
 
 let IsGroupContext = React.createContext(false);
@@ -41,15 +38,14 @@ export let Group = {
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: 2
+            flexDirection: 'column'
           }}
         >
-          <Title as="h2" size="3" weight="strong">
+          <Title as="h2" size="2" weight="strong">
             {props.title}
           </Title>
           {props.description && (
-            <Text size="2" weight="medium" color="gray600">
+            <Text size="1" weight="strong" color="gray600">
               {props.description}
             </Text>
           )}
@@ -69,22 +65,25 @@ export let Group = {
     </Group.HeaderRow>
   ),
   HeaderRow: styled('header')`
-    padding: 15px 20px;
+    padding: 10px 20px;
     display: flex;
     flex-direction: column;
-
-    &:not(:last-child) {
-      border-bottom: solid 1px ${theme.colors.gray400};
-    }
   `,
   Row: styled('main')`
     display: flex;
     flex-direction: column;
   `,
   Content: styled('div')`
-    padding: 15px;
+    padding: 12px 17px;
     display: flex;
     flex-direction: column;
+    background: ${theme.colors.background};
+    border-radius: 8px;
+    border: 1px solid ${theme.colors.gray400};
+    margin-left: -1px;
+    margin-right: -1px;
+    margin-bottom: -1px;
+    overflow: hidden;
   `,
   Footer: styled('footer')`
     padding: 10px 15px;

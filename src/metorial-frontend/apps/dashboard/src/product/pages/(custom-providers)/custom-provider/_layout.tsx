@@ -112,19 +112,6 @@ export let CustomProviderLayout = () => {
                       }
                     ]
                   : []),
-                {
-                  label: 'Commits',
-                  to: Paths.instance.customProvider(...pathParams, 'commits')
-                },
-                {
-                  label: 'Deployments',
-                  to: Paths.instance.customProvider(...pathParams, 'deployments')
-                },
-
-                {
-                  label: 'Listing',
-                  to: Paths.instance.customProvider(...pathParams, 'listing')
-                },
 
                 {
                   label: 'Settings',

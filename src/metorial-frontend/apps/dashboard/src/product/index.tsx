@@ -216,6 +216,11 @@ let CustomProviderSettingsPage = dynamicPage(() =>
     c => c.CustomProviderSettingsPage
   )
 );
+let CustomProviderSettingsLayout = dynamicPage(() =>
+  import('./pages/(custom-providers)/custom-provider/settings/_layout').then(
+    c => c.CustomProviderSettingsLayout
+  )
+);
 let CustomProviderLayout = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/_layout').then(
     c => c.CustomProviderLayout
@@ -1024,11 +1029,18 @@ export let productIntegrationsSlice = createSlice([
               },
               {
                 path: 'settings',
-                element: <CustomProviderSettingsPage />
-              },
-              {
-                path: 'listing',
-                element: <CustomProviderListingPage />
+                element: <CustomProviderSettingsLayout />,
+
+                children: [
+                  {
+                    path: '',
+                    element: <CustomProviderSettingsPage />
+                  },
+                  {
+                    path: 'listing',
+                    element: <CustomProviderListingPage />
+                  }
+                ]
               }
             ]
           }
