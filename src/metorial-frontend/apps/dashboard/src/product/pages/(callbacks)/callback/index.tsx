@@ -61,7 +61,9 @@ export let CallbackOverviewPage = () => {
           title="Recent Events"
           rightActions={
             events.data.items.length ? (
-              <Link to={Paths.instance.events(organization.data, project.data, instance.data)}>
+              <Link
+                to={`${Paths.instance.events(organization.data, project.data, instance.data, { callbackId: callback.data.id })}`}
+              >
                 <Button size="2" as="span" variant="outline">
                   View All Events
                 </Button>

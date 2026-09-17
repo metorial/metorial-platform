@@ -9,15 +9,15 @@ import {
   useCurrentProject,
   useToolCalls
 } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
 import {
+  Table as DashboardTable,
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
   getStringFilterValue
 } from '@metorial/table';
+import { Badge, RenderDate, Text } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 
 type ToolCall = DashboardInstanceToolCallsListOutput['items'][number];
 
@@ -170,8 +170,7 @@ let toolCallsTable = new DashboardTable<ToolCallsTableProps, ToolCall>('tool-cal
         props.organization.data,
         props.project.data,
         props.instance.data,
-        toolCall.sessionId
-      )}?${new URLSearchParams(
+        toolCall.sessionId,
         Object.fromEntries(
           Object.entries({
             connection_id: toolCall.connectionId ?? undefined,
@@ -179,7 +178,7 @@ let toolCallsTable = new DashboardTable<ToolCallsTableProps, ToolCall>('tool-cal
             tool_call_id: toolCall.id
           }).filter(([, value]) => !!value)
         ) as Record<string, string>
-      ).toString()}`
+      )}`
   )
   .build();
 

@@ -9,16 +9,16 @@ import {
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
 import {
+  Table as DashboardTable,
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
+import { Badge, RenderDate, Text } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 
 type SessionConnection = DashboardInstanceSessionsConnectionsListOutput['items'][number];
 
@@ -205,8 +205,9 @@ let sessionConnectionsTable = new DashboardTable<
         props.organization.data,
         props.project.data,
         props.instance.data,
-        connection.sessionId
-      )}?${new URLSearchParams({ connection_id: connection.id }).toString()}`
+        connection.sessionId,
+        { connection_id: connection.id }
+      )}`
   )
   .build();
 
