@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { slateWebhookEventPresenter } from '../../presenters';
+import { slateWebhookEventListPresenter, slateWebhookEventPresenter } from '../../presenters';
 import { slateWebhookEventService } from '../../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
@@ -42,7 +42,7 @@ export let slateWebhookEventController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, slateWebhookEventPresenter);
+      return Paginator.presentLight(list, slateWebhookEventListPresenter);
     }),
 
   get: slateWebhookEventApp

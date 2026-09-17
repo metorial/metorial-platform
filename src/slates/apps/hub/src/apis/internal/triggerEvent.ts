@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { triggerEventPresenter } from '../../presenters';
+import { triggerEventListPresenter, triggerEventPresenter } from '../../presenters';
 import { triggerEventService } from '../../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
@@ -40,7 +40,7 @@ export let triggerEventController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, triggerEventPresenter);
+      return Paginator.presentLight(list, triggerEventListPresenter);
     }),
 
   get: triggerEventApp
