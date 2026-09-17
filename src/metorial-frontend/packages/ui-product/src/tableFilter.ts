@@ -1,8 +1,17 @@
+export type TableFilterEntityOption = { id: string; label: string; description?: string };
+
+export type TableFilterEntityOptions = {
+  items: TableFilterEntityOption[];
+  isLoading?: boolean;
+  empty?: string;
+};
+
 export type TableFilter<Item extends { id: string }> = {
   id: string;
   fields: (keyof Item | string)[];
   label: string;
   description: `Filter by ${string}`;
+  pinned?: boolean;
 } & (
   | {
       type: 'number';
@@ -16,6 +25,13 @@ export type TableFilter<Item extends { id: string }> = {
   | {
       type: 'select';
       options: { id: string; label: string }[];
+    }
+  | {
+      type: 'entity';
+      useOptions: (args: { search: string }) => TableFilterEntityOptions;
+      useValueLabels?: (ids: string[]) => Record<string, string>;
+      searchPlaceholder?: string;
+      remoteSearch?: boolean;
     }
 );
 
@@ -65,20 +81,45 @@ export type TableFilterStateSelect = {
   value: string[];
 };
 
+export type TableFilterStateEntity = {
+  id: string;
+  fields: string[];
+  type: 'entity';
+  operation: 'eq';
+  value: string[];
+};
+
 export type TableFilterState =
   | TableFilterStateNumber
   | TableFilterStateDate
   | TableFilterStateString
-  | TableFilterStateSelect;
+  | TableFilterStateSelect
+  | TableFilterStateEntity;
 
 export let toFilterFieldNames = (fields: ReadonlyArray<PropertyKey>): string[] =>
   fields.map(field => field.toString());
 
 export let isEmptyFilterValue = (state: TableFilterState) => {
-  if (state.type == 'select') return state.value.length == 0;
+  if (state.type == 'select' || state.type == 'entity') return state.value.length == 0;
   if (state.type == 'string') return !state.value;
   return false;
 };
+
+let filterLabelCache = new Map<string, string>();
+
+let filterLabelCacheKey = (filterId: string, optionId: string) => `${filterId}:${optionId}`;
+
+export let rememberFilterLabels = (
+  filterId: string,
+  options: { id: string; label: string }[]
+) => {
+  for (let option of options) {
+    filterLabelCache.set(filterLabelCacheKey(filterId, option.id), option.label);
+  }
+};
+
+export let getCachedFilterLabel = (filterId: string, optionId: string) =>
+  filterLabelCache.get(filterLabelCacheKey(filterId, optionId)) ?? optionId;
 
 export type FilterPayload =
   | number
@@ -109,7 +150,7 @@ export let getFilterPayload = (currentFilters: TableFilterState[]) => {
         filterPayload = { gte: filter.value[0], lte: filter.value[1] };
     } else if (filter.type == 'string') {
       filterPayload = filter.value;
-    } else if (filter.type == 'select') {
+    } else if (filter.type == 'select' || filter.type == 'entity') {
       filterPayload = { in: filter.value };
     }
 
@@ -145,7 +186,7 @@ export let serializeToQuery = (currentFilters: TableFilterState[]) => {
       }
     } else if (filter.type == 'string') {
       query.append(filter.id, filter.value);
-    } else if (filter.type == 'select') {
+    } else if (filter.type == 'select' || filter.type == 'entity') {
       query.append(filter.id, filter.value.join(','));
     }
   }
@@ -251,6 +292,16 @@ export let deserializeFromQuery = (query: URLSearchParams, filters: TableFilter<
           operation: 'eq',
           value: query.get(filter.id)!.split(',')
         } as TableFilterStateSelect);
+      }
+    } else if (type == 'entity') {
+      if (query.has(filter.id)) {
+        filterState.push({
+          id: filter.id,
+          fields,
+          type,
+          operation: 'eq',
+          value: query.get(filter.id)!.split(',')
+        } as TableFilterStateEntity);
       }
     }
   }

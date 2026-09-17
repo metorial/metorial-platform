@@ -343,7 +343,7 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'callbacks', ...subPages),
+    ) => InstancePaths(organization, project, instance, 'integrations', 'callbacks', ...subPages),
     callback: (
       organization: EntityParam,
       project: EntityParam,

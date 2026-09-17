@@ -5,23 +5,27 @@ import {
   Input,
   Select,
   Spacer,
+  Spinner,
   Text,
   Title,
   Tooltip,
   theme
 } from '@metorial/ui';
 import * as RadixPopover from '@radix-ui/react-popover';
-import { RiFilter2Line } from '@remixicon/react';
+import { RiAddLine, RiFilter2Line } from '@remixicon/react';
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import {
   TableFilter,
   TableFilterState,
   TableFilterStateDate,
+  TableFilterStateEntity,
   TableFilterStateNumber,
   TableFilterStateSelect,
   TableFilterStateString,
+  getCachedFilterLabel,
   isEmptyFilterValue,
+  rememberFilterLabels,
   toFilterFieldNames
 } from './tableFilter';
 
@@ -62,6 +66,13 @@ let CurrentFilters = styled('div')<{ $wrap: boolean }>`
   gap: 10px;
   align-items: center;
   flex-wrap: ${p => (p.$wrap ? 'wrap' : 'nowrap')};
+`;
+
+let PinnedFilters = styled('div')`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 `;
 
 let CurrentFilter = styled('div')`
@@ -119,6 +130,7 @@ let FilterPopover = styled(RadixPopover.Content)<{ $compact?: boolean }>`
   max-height: min(350px, calc(100vh - 32px));
   display: grid;
   grid-template-columns: ${({ $compact }) => ($compact ? '1fr' : '200px auto')};
+  grid-template-rows: minmax(0, 1fr);
 
   &[data-state='open'] {
     animation: ${fadeIn} 0.15s ease-in-out;
@@ -185,6 +197,10 @@ let getFilterText = (filter: TableFilter<any>, state: TableFilterState): string 
       .filter(option => state.value.includes(option.id))
       .map(option => option.label)
       .join(', ');
+  }
+
+  if (filter.type == 'entity' && state.type == 'entity') {
+    return state.value.map(id => getCachedFilterLabel(filter.id, id)).join(', ');
   }
 
   if (filter.type == 'number' && state.type == 'number') {
@@ -286,6 +302,11 @@ export let TableFilters = memo(
     };
 
     let compact = filters.length == 1;
+    let pinnedFilters = useMemo(() => filters.filter(f => f.pinned), [filters]);
+    let unpinnedFilterState = useMemo(
+      () => filterState.filter(state => !filters.find(f => f.id == state.id)?.pinned),
+      [filterState, filters]
+    );
 
     return (
       <Wrapper $fullWidth={fullWidth} $wrap={wrap}>
@@ -329,41 +350,11 @@ export let TableFilters = memo(
                   </Title>
                 </FilterContentHeader>
 
-                {currentFilter?.type == 'string' && (
-                  <FilterString
+                {currentFilter && (
+                  <FilterBody
                     key={currentFilter.id}
                     filter={currentFilter}
-                    state={currentFilterState as TableFilterStateString}
-                    apply={applyFilter}
-                    reset={currentFilterState ? () => resetFilter(currentFilterId) : undefined}
-                  />
-                )}
-
-                {currentFilter?.type == 'select' && (
-                  <FilterSelect
-                    key={currentFilter.id}
-                    filter={currentFilter}
-                    state={currentFilterState as TableFilterStateSelect}
-                    apply={applyFilter}
-                    reset={currentFilterState ? () => resetFilter(currentFilterId) : undefined}
-                  />
-                )}
-
-                {currentFilter?.type == 'number' && (
-                  <FilterNumber
-                    key={currentFilter.id}
-                    filter={currentFilter}
-                    state={currentFilterState as TableFilterStateNumber}
-                    apply={applyFilter}
-                    reset={currentFilterState ? () => resetFilter(currentFilterId) : undefined}
-                  />
-                )}
-
-                {currentFilter?.type == 'date' && (
-                  <FilterDate
-                    key={currentFilter.id}
-                    filter={currentFilter}
-                    state={currentFilterState as TableFilterStateDate}
+                    state={currentFilterState}
                     apply={applyFilter}
                     reset={currentFilterState ? () => resetFilter(currentFilterId) : undefined}
                   />
@@ -373,9 +364,23 @@ export let TableFilters = memo(
           </RadixPopover.Portal>
         </RadixPopover.Root>
 
-        {filterState.length > 0 && (
+        {pinnedFilters.length > 0 && (
+          <PinnedFilters>
+            {pinnedFilters.map(filter => (
+              <PinnedFilterPill
+                key={filter.id}
+                filter={filter}
+                state={filterState.find(f => f.id == filter.id)}
+                apply={applyFilter}
+                reset={() => resetFilter(filter.id)}
+              />
+            ))}
+          </PinnedFilters>
+        )}
+
+        {unpinnedFilterState.length > 0 && (
           <CurrentFilters $wrap={wrap}>
-            {filterState.map(state => {
+            {unpinnedFilterState.map(state => {
               let filter = filters.find(f => f.id == state.id);
               if (!filter) return null;
 
@@ -409,16 +414,184 @@ export let TableFilters = memo(
                 </Tooltip>
               );
             })}
-
-            <Button size="1" variant="ghost" onClick={() => setFilterState([])}>
-              Clear all filters
-            </Button>
           </CurrentFilters>
+        )}
+
+        {filterState.length > 0 && (
+          <Button size="1" variant="ghost" onClick={() => setFilterState([])}>
+            Clear all filters
+          </Button>
         )}
       </Wrapper>
     );
   }
 );
+
+let FilterBody = ({
+  filter,
+  state,
+  apply,
+  reset
+}: {
+  filter: TableFilter<any>;
+  state?: TableFilterState;
+  apply: (state: TableFilterState) => void;
+  reset?: () => void;
+}) => {
+  if (filter.type == 'string') {
+    return (
+      <FilterString
+        filter={filter}
+        state={state as TableFilterStateString}
+        apply={apply}
+        reset={reset}
+      />
+    );
+  }
+
+  if (filter.type == 'select') {
+    return (
+      <FilterSelect
+        filter={filter}
+        state={state as TableFilterStateSelect}
+        apply={apply}
+        reset={reset}
+      />
+    );
+  }
+
+  if (filter.type == 'entity') {
+    return (
+      <FilterEntity
+        filter={filter}
+        state={state as TableFilterStateEntity}
+        apply={apply}
+        reset={reset}
+      />
+    );
+  }
+
+  if (filter.type == 'number') {
+    return (
+      <FilterNumber
+        filter={filter}
+        state={state as TableFilterStateNumber}
+        apply={apply}
+        reset={reset}
+      />
+    );
+  }
+
+  if (filter.type == 'date') {
+    return (
+      <FilterDate
+        filter={filter}
+        state={state as TableFilterStateDate}
+        apply={apply}
+        reset={reset}
+      />
+    );
+  }
+
+  return null;
+};
+
+let AddIconTrack = styled('div')`
+  display: flex;
+  align-items: center;
+  width: 0;
+  margin-right: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    width 0.18s ease,
+    margin-right 0.18s ease,
+    opacity 0.18s ease;
+`;
+
+let PreviewFilter = styled(CurrentFilter)`
+  gap: 0;
+  border: 1px dashed ${theme.colors.gray500};
+
+  &:hover ${AddIconTrack} {
+    width: 12px;
+    margin-right: 5px;
+    opacity: 1;
+  }
+`;
+
+let PinnedFilterPill = ({
+  filter,
+  state,
+  apply,
+  reset
+}: {
+  filter: TableFilter<any>;
+  state?: TableFilterState;
+  apply: (state: TableFilterState) => void;
+  reset: () => void;
+}) => {
+  let [open, setOpen] = useState(false);
+  let text = state ? getFilterText(filter, state) : undefined;
+
+  return (
+    <RadixPopover.Root open={open} onOpenChange={setOpen}>
+      <RadixPopover.Trigger asChild>
+        {text ? (
+          <CurrentFilter>
+            <FilterIcon>
+              <RiFilter2Line size={12} />
+            </FilterIcon>
+
+            <FilterLabel>{filter.label}</FilterLabel>
+
+            <FilterValue>{text}</FilterValue>
+          </CurrentFilter>
+        ) : (
+          <PreviewFilter>
+            <AddIconTrack>
+              <FilterIcon>
+                <RiAddLine size={12} />
+              </FilterIcon>
+            </AddIconTrack>
+
+            <FilterLabel>{filter.label}</FilterLabel>
+          </PreviewFilter>
+        )}
+      </RadixPopover.Trigger>
+
+      <RadixPopover.Portal>
+        <FilterPopover $compact side="bottom" align="start" sideOffset={5} collisionPadding={16}>
+          <FilterContent>
+            <FilterContentHeader>
+              <Title as="h1" size="2" weight="bold">
+                {filter.description}
+              </Title>
+            </FilterContentHeader>
+
+            <FilterBody
+              key={filter.id}
+              filter={filter}
+              state={state}
+              apply={next => {
+                apply(next);
+                setOpen(false);
+              }}
+              reset={
+                state
+                  ? () => {
+                      reset();
+                      setOpen(false);
+                    }
+                  : undefined
+              }
+            />
+          </FilterContent>
+        </FilterPopover>
+      </RadixPopover.Portal>
+    </RadixPopover.Root>
+  );
+};
 
 let FilterString = ({
   filter,
@@ -531,6 +704,142 @@ let FilterSelect = ({
               id: filter.id,
               fields: toFilterFieldNames(filter.fields),
               type: 'select',
+              operation: 'eq',
+              value
+            });
+          }}
+        >
+          Apply
+        </Button>
+
+        <Button variant="soft" size="2" disabled={!reset} onClick={reset} type="button">
+          Reset
+        </Button>
+      </FilterContentFooter>
+    </form>
+  );
+};
+
+let noValueLabels = (): Record<string, string> => ({});
+
+let FilterEntity = ({
+  filter,
+  state,
+  apply,
+  reset
+}: {
+  filter: TableFilter<any> & { type: 'entity' };
+  state?: TableFilterStateEntity;
+  apply: (state: TableFilterStateEntity) => void;
+  reset?: () => void;
+}) => {
+  let [value, setValue] = useState(() => state?.value ?? []);
+  useEffect(() => setValue(state?.value ?? []), [state, filter.id]);
+
+  let [search, setSearch] = useState('');
+  let [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    let to = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(to);
+  }, [search]);
+
+  let remoteSearch = filter.remoteSearch !== false;
+  let { items, isLoading, empty } = filter.useOptions({
+    search: remoteSearch ? debouncedSearch : ''
+  });
+
+  useEffect(() => rememberFilterLabels(filter.id, items), [filter.id, items]);
+
+  let missingIds = useMemo(
+    () => value.filter(id => !items.some(item => item.id == id)),
+    [value, items]
+  );
+
+  let useValueLabels = filter.useValueLabels ?? noValueLabels;
+  let missingLabels = useValueLabels(missingIds);
+
+  useEffect(() => {
+    let resolved = missingIds
+      .filter(id => missingLabels[id])
+      .map(id => ({ id, label: missingLabels[id] }));
+    if (resolved.length) rememberFilterLabels(filter.id, resolved);
+  }, [filter.id, missingIds, missingLabels]);
+
+  let visibleItems = useMemo(() => {
+    if (remoteSearch || !debouncedSearch.trim()) return items;
+
+    let normalizedSearch = debouncedSearch.trim().toLowerCase();
+    return items.filter(item =>
+      `${item.label} ${item.description ?? ''}`.toLowerCase().includes(normalizedSearch)
+    );
+  }, [items, remoteSearch, debouncedSearch]);
+
+  let pinnedMissingItems = missingIds.map(id => ({
+    id,
+    label: missingLabels[id] ?? getCachedFilterLabel(filter.id, id)
+  }));
+
+  let toggle = (id: string, checked: boolean) =>
+    setValue(prev => (checked ? [...prev, id] : prev.filter(item => item != id)));
+
+  return (
+    <form onSubmit={e => e.preventDefault()}>
+      <FilterContentBody>
+        <Input
+          label={`Search ${filter.label}`}
+          hideLabel
+          size="2"
+          placeholder={filter.searchPlaceholder ?? `Search ${filter.label.toLowerCase()}...`}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+
+        <Spacer size={10} />
+
+        {isLoading ? (
+          <Spinner size={20} />
+        ) : (
+          <SelectList>
+            {pinnedMissingItems.map(item => (
+              <SelectItem key={item.id}>
+                <Checkbox
+                  label={item.label}
+                  checked={value.includes(item.id)}
+                  onCheckedChange={checked => toggle(item.id, checked)}
+                />
+              </SelectItem>
+            ))}
+
+            {visibleItems.map(item => (
+              <SelectItem key={item.id}>
+                <Checkbox
+                  label={item.label}
+                  checked={value.includes(item.id)}
+                  onCheckedChange={checked => toggle(item.id, checked)}
+                />
+              </SelectItem>
+            ))}
+
+            {!pinnedMissingItems.length && !visibleItems.length && (
+              <Text size="2" color="gray600">
+                {empty ?? 'No results found.'}
+              </Text>
+            )}
+          </SelectList>
+        )}
+      </FilterContentBody>
+
+      <FilterContentFooter>
+        <Button
+          variant="soft"
+          size="2"
+          type="submit"
+          onClick={() => {
+            apply({
+              id: filter.id,
+              fields: toFilterFieldNames(filter.fields),
+              type: 'entity',
               operation: 'eq',
               value
             });
