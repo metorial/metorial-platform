@@ -31,7 +31,9 @@ import {
 } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
 
-type SlateWebhookEventRecord = Awaited<ReturnType<typeof slates.slateWebhookEvent.get>>;
+type SlateWebhookEventRecord =
+  | Awaited<ReturnType<typeof slates.slateWebhookEvent.get>>
+  | Awaited<ReturnType<typeof slates.slateWebhookEvent.list>>['items'][number];
 
 let resolveSubspaceRefs = async (d: { tenant: Tenant; events: SlateWebhookEventRecord[] }) => {
   let slateIds = [...new Set(d.events.map(e => e.slateId))];
@@ -83,7 +85,7 @@ let presentSlateWebhookEvent = (
     status: event.status,
     attemptCount: event.attemptCount,
 
-    request: event.request,
+    ...('request' in event ? { request: event.request } : {}),
 
     provider,
     webhookRegistrationOid:
@@ -494,6 +496,7 @@ export class ProviderCallbacks extends IProviderCallbacks {
         return [
           {
             callbackEventOid: mirror.callbackEventOid,
+            id: webhookEvent.id,
 
             status: webhookEvent.status,
             attemptCount: webhookEvent.attemptCount,

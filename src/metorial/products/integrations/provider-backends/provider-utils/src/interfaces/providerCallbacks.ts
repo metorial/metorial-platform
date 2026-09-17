@@ -176,7 +176,7 @@ export interface ProviderWebhookEvent {
   status: string;
   attemptCount: number;
 
-  request: ProviderWebhookEventRequest | null;
+  request?: ProviderWebhookEventRequest | null;
 
   provider: Provider;
 
@@ -216,6 +216,7 @@ export interface CallbackWebhookEventGetManyRes {
 
 export interface ProviderCallbackWebhookEvent {
   callbackEventOid: bigint;
+  id: string;
 
   status: string;
   attemptCount: number;
