@@ -1,3 +1,5 @@
+import { dismissEditorOverlays } from './overlays';
+import { dismissSlash } from './extensions/SlashCommand';
 import { TextSelection } from '@tiptap/pm/state';
 import {
   EditorContent as TiptapEditorContent,
@@ -21,7 +23,7 @@ import { TableOfContents } from './TableOfContents';
 import { TitleStatusBar } from './TitleStatusBar';
 import { buildExtensions } from './extensions';
 import { makePlaceholderId, stashPendingFile } from './extensions/ImagePlaceholder';
-import { SlashCommand } from './extensions/SlashCommand';
+import { SlashCommand, SlashCommandPluginKey } from './extensions/SlashCommand';
 import { slashSuggestion } from './slashMenuRenderer';
 
 interface MarkdownStorage {
@@ -283,6 +285,8 @@ export function Editor({
         let { selection } = state;
         if (!selection.empty) return false;
 
+        if (event.key === 'ArrowUp' && SlashCommandPluginKey.getState(view.state)?.active)
+          return false;
         if (event.key === 'ArrowUp') {
           try {
             let cursor = view.coordsAtPos(selection.from);
@@ -353,6 +357,10 @@ export function Editor({
   useEffect(() => {
     if (!editor) return;
     editor.setEditable(!readOnly, false);
+    if (readOnly) {
+      dismissSlash(editor.view);
+      dismissEditorOverlays();
+    }
   }, [editor, readOnly]);
 
   // Keep editorRef in sync so editorProps callbacks (which were created

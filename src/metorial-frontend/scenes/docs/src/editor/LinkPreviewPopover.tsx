@@ -1,6 +1,6 @@
-import { getMarkRange } from '@tiptap/core';
 import type { Editor as TiptapEditor } from '@tiptap/react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { hasEditorOverlay, registerEditorOverlay, useOverlayPosition } from './overlays';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { menuEnter } from './animations';
@@ -58,245 +58,170 @@ let OpenBtn = styled.button`
   }
 `;
 
-interface AnchorData {
-  href: string;
-  left: number;
-  top: number;
-}
-
 interface Props {
   editor: TiptapEditor | null;
   suppress?: boolean;
 }
 
-function normalizeHref(raw: string): string {
-  if (!raw.trim()) return '';
-  try {
-    return new URL(raw, window.location.href).toString();
-  } catch {
-    return raw;
-  }
-}
-
-function isSameAnchor(a: AnchorData | null, b: AnchorData | null): boolean {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  return (
-    a.href === b.href &&
-    Math.round(a.left) === Math.round(b.left) &&
-    Math.round(a.top) === Math.round(b.top)
-  );
-}
-
-function isSamePosition(
-  a: { left: number; top: number } | null,
-  b: { left: number; top: number } | null
-): boolean {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  return Math.round(a.left) === Math.round(b.left) && Math.round(a.top) === Math.round(b.top);
-}
-
 export function LinkPreviewPopover({ editor, suppress = false }: Props) {
-  let [hovered, setHovered] = useState<AnchorData | null>(null);
-  let [caret, setCaret] = useState<AnchorData | null>(null);
-  let [isOverPopover, setIsOverPopover] = useState(false);
-  let [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  let [active, setActive] = useState<HTMLAnchorElement | null>(null);
   let wrapRef = useRef<HTMLDivElement | null>(null);
-  let hideHoverTimerRef = useRef<number | null>(null);
-
-  let clearHideHoverTimer = useCallback(() => {
-    if (hideHoverTimerRef.current == null) return;
-    window.clearTimeout(hideHoverTimerRef.current);
-    hideHoverTimerRef.current = null;
-  }, []);
-
-  let setHoveredAnchor = useCallback((next: AnchorData | null) => {
-    setHovered(prev => (isSameAnchor(prev, next) ? prev : next));
-  }, []);
-
-  let setCaretAnchor = useCallback((next: AnchorData | null) => {
-    setCaret(prev => (isSameAnchor(prev, next) ? prev : next));
-  }, []);
-
-  let scheduleHideHover = useCallback(() => {
-    clearHideHoverTimer();
-    hideHoverTimerRef.current = window.setTimeout(() => {
-      setHovered(prev => (prev ? null : prev));
-      hideHoverTimerRef.current = null;
-    }, 220);
-  }, [clearHideHoverTimer]);
+  let cancelRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    if (!editor) return;
-    let dom = editor.view.dom;
-    let onMouseMove = (event: MouseEvent) => {
-      if (suppress) {
-        clearHideHoverTimer();
-        setHoveredAnchor(null);
-        return;
-      }
-      let target = event.target as Element | null;
-      let link = target?.closest('a[href]');
-      if (!link || !dom.contains(link)) {
-        if (isOverPopover) return;
-        scheduleHideHover();
-        return;
-      }
-      clearHideHoverTimer();
-      let element = link as HTMLAnchorElement;
-      let href = normalizeHref(element.getAttribute('href') ?? element.href ?? '');
-      if (!href) {
-        setHoveredAnchor(null);
-        return;
-      }
-      let rect = element.getBoundingClientRect();
-      if (
-        !Number.isFinite(rect.left) ||
-        !Number.isFinite(rect.top) ||
-        (rect.width === 0 && rect.height === 0)
-      ) {
-        setHoveredAnchor(null);
-        return;
-      }
-      setHoveredAnchor({
-        href,
-        left: rect.left + rect.width / 2,
-        top: rect.top
-      });
-    };
-    let onMouseLeave = () => {
-      if (isOverPopover) return;
-      scheduleHideHover();
-    };
-    dom.addEventListener('mousemove', onMouseMove);
-    dom.addEventListener('mouseleave', onMouseLeave);
-    return () => {
-      dom.removeEventListener('mousemove', onMouseMove);
-      dom.removeEventListener('mouseleave', onMouseLeave);
-      clearHideHoverTimer();
-    };
-  }, [editor, suppress, isOverPopover, clearHideHoverTimer, scheduleHideHover]);
-
-  let updateCaretAnchor = useCallback(() => {
     if (!editor || suppress) {
-      setCaretAnchor(null);
+      setActive(null);
       return;
     }
-    let { selection, schema } = editor.state;
-    if (!selection.empty) {
-      setCaretAnchor(null);
-      return;
-    }
-    let linkMark = schema.marks.link;
-    if (!linkMark) {
-      setCaretAnchor(null);
-      return;
-    }
-    let range = getMarkRange(selection.$from, linkMark);
-    if (!range) {
-      setCaretAnchor(null);
-      return;
-    }
-    let href = normalizeHref((editor.getAttributes('link').href as string) ?? '');
-    if (!href) {
-      setCaretAnchor(null);
-      return;
-    }
-    try {
-      let start = editor.view.coordsAtPos(range.from);
-      let end = editor.view.coordsAtPos(Math.max(range.to - 1, range.from));
-      setCaretAnchor({
-        href,
-        left: (start.left + end.right) / 2,
-        top: Math.min(start.top, end.top)
-      });
-    } catch {
-      setCaretAnchor(null);
-    }
-  }, [editor, suppress, setCaretAnchor]);
-
-  useEffect(() => {
-    if (!editor) return;
-    updateCaretAnchor();
-    let onSelectionOrDocChange = () => updateCaretAnchor();
-    let onBlur = () => setCaretAnchor(null);
-    editor.on('selectionUpdate', onSelectionOrDocChange);
-    editor.on('transaction', onSelectionOrDocChange);
-    editor.on('focus', onSelectionOrDocChange);
-    editor.on('blur', onBlur);
-    return () => {
-      editor.off('selectionUpdate', onSelectionOrDocChange);
-      editor.off('transaction', onSelectionOrDocChange);
-      editor.off('focus', onSelectionOrDocChange);
-      editor.off('blur', onBlur);
+    let dom = editor.view.dom;
+    let candidate: HTMLAnchorElement | null = null;
+    let dismissed: HTMLAnchorElement | null = null;
+    let visible: HTMLAnchorElement | null = null;
+    let overLink = false;
+    let candidateHref = '';
+    let openTimer: ReturnType<typeof setTimeout> | null = null;
+    let closeTimer: ReturnType<typeof setTimeout> | null = null;
+    let unregister: (() => void) | null = null;
+    let clearOpen = () => {
+      if (openTimer) clearTimeout(openTimer);
+      openTimer = null;
     };
-  }, [editor, setCaretAnchor, updateCaretAnchor]);
+    let clearClose = () => {
+      if (closeTimer) clearTimeout(closeTimer);
+      closeTimer = null;
+    };
+    let cancel = () => {
+      clearOpen();
+      clearClose();
+      dismissed = candidate;
+      candidate = null;
+      visible = null;
+      setActive(null);
+      unregister?.();
+      unregister = null;
+    };
+    cancelRef.current = cancel;
+    let insidePreview = () =>
+      !!wrapRef.current &&
+      (wrapRef.current.matches(':hover') || wrapRef.current.contains(document.activeElement));
+    let scheduleClose = () => {
+      clearOpen();
+      if (closeTimer || insidePreview()) return;
+      closeTimer = setTimeout(() => {
+        closeTimer = null;
+        if (!overLink && !insidePreview()) cancel();
+      }, 250);
+    };
+    let onMove = (event: PointerEvent) => {
+      let target = event.target instanceof Element ? event.target : null;
+      if (wrapRef.current?.contains(target)) {
+        clearClose();
+        return;
+      }
+      let link = target?.closest<HTMLAnchorElement>('a[href]') ?? null;
+      if (link && !dom.contains(link)) link = null;
+      overLink = !!link;
+      if (!link) {
+        dismissed = null;
+        scheduleClose();
+        return;
+      }
+      if (link === dismissed || hasEditorOverlay()) return;
+      clearClose();
+      if (link === candidate) {
+        if (visible || openTimer) return;
+      } else {
+        cancel();
+        dismissed = null;
+        candidate = link;
+        candidateHref = link.href;
+      }
+      if (!validateLinkUrl(link.href).ok) return;
+      if (!unregister)
+        unregister = registerEditorOverlay({
+          element: () => wrapRef.current,
+          trigger: () => candidate,
+          automatic: true,
+          close: cancel
+        });
+      openTimer = setTimeout(() => {
+        openTimer = null;
+        if (candidate?.isConnected && overLink && !hasEditorOverlay()) {
+          visible = candidate;
+          setActive(candidate);
+        }
+      }, 800);
+    };
+    let onOut = (event: PointerEvent) => {
+      let next = event.relatedTarget as Node | null;
+      if (candidate?.contains(next)) return;
+      overLink = false;
+      dismissed = null;
+      if (wrapRef.current?.contains(next)) {
+        clearClose();
+        return;
+      }
+      scheduleClose();
+    };
+    let onFocusOut = () => {
+      if (!overLink) scheduleClose();
+    };
+    let onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' && !wrapRef.current?.contains(event.target as Node)) cancel();
+    };
+    let onTransaction = () => {
+      if (
+        candidate &&
+        (!candidate.isConnected ||
+          candidate.href !== candidateHref ||
+          !validateLinkUrl(candidate.href).ok)
+      )
+        cancel();
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerout', onOut);
+    document.addEventListener('focusout', onFocusOut);
+    dom.addEventListener('keydown', onKey);
+    editor.on('transaction', onTransaction);
+    return () => {
+      cancel();
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerout', onOut);
+      document.removeEventListener('focusout', onFocusOut);
+      dom.removeEventListener('keydown', onKey);
+      editor.off('transaction', onTransaction);
+    };
+  }, [editor, suppress]);
 
-  useEffect(() => {
-    if (!suppress) return;
-    clearHideHoverTimer();
-    setHoveredAnchor(null);
-    setCaretAnchor(null);
-  }, [suppress, setCaretAnchor, setHoveredAnchor, clearHideHoverTimer]);
+  let position = useOverlayPosition(
+    !!active,
+    wrapRef,
+    () => {
+      if (!active?.isConnected) return null;
+      let rect = active.getBoundingClientRect();
+      if (!rect.width && !rect.height) return null;
+      let height = wrapRef.current?.getBoundingClientRect().height ?? 36;
+      let width = wrapRef.current?.getBoundingClientRect().width ?? 240;
+      return {
+        left: rect.left + (rect.width - width) / 2,
+        top: rect.top >= height + 16 ? rect.top - height - 8 : rect.bottom + 8
+      };
+    },
+    () => cancelRef.current()
+  );
 
-  let active = useMemo(() => {
-    if (suppress) return null;
-    return hovered ?? caret;
-  }, [caret, hovered, suppress]);
-
-  useEffect(() => {
-    if (!active) {
-      setPosition(null);
-      return;
-    }
-    setPosition(prev => {
-      let next = { left: active.left, top: active.top };
-      return isSamePosition(prev, next) ? prev : next;
-    });
-  }, [active]);
-
-  useLayoutEffect(() => {
-    if (!active) return;
-    let el = wrapRef.current;
-    if (!el) return;
-    let rect = el.getBoundingClientRect();
-    let padding = 8;
-    let left = active.left - rect.width / 2;
-    let top = active.top - rect.height - 8;
-    if (left < padding) left = padding;
-    if (left + rect.width + padding > window.innerWidth) {
-      left = Math.max(padding, window.innerWidth - rect.width - padding);
-    }
-    if (top < padding) top = padding;
-    let next = { left, top };
-    setPosition(prev => (isSamePosition(prev, next) ? prev : next));
-  }, [active, position?.left, position?.top]);
-
-  let handleOpen = useCallback(() => {
-    if (!active) return;
-    let result = validateLinkUrl(active.href);
-    if (!result.ok) return;
-    window.open(result.url, '_blank', 'noopener,noreferrer');
-  }, [active]);
-
-  if (!active || !position) return null;
-
+  if (!active || suppress) return null;
   return createPortal(
-    <Wrap
-      ref={wrapRef}
-      style={{ left: position.left, top: position.top }}
-      onMouseEnter={() => {
-        clearHideHoverTimer();
-        setIsOverPopover(true);
-      }}
-      onMouseLeave={() => {
-        setIsOverPopover(false);
-        if (!caret) scheduleHideHover();
-      }}
-    >
+    <Wrap ref={wrapRef} style={position} aria-label="Link preview">
       <UrlText title={active.href}>{active.href}</UrlText>
-      <OpenBtn type="button" onMouseDown={e => e.preventDefault()} onClick={handleOpen}>
+      <OpenBtn
+        type="button"
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => {
+          let result = validateLinkUrl(active.href);
+          if (result.ok) window.open(result.url, '_blank', 'noopener,noreferrer');
+        }}
+      >
         <IconExternalLink />
         Open
       </OpenBtn>

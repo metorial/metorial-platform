@@ -1,5 +1,6 @@
+import { useEditorOverlay, useOverlayPosition } from '../editor/overlays';
 import { useZindex } from '@metorial/ui';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { menuEnter, menuExit } from '../editor/animations';
@@ -15,6 +16,9 @@ interface WrapProps {
 
 let Wrap = styled.div<WrapProps>`
   position: fixed;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
   ${({ $width }) =>
     $width != null ? `width: ${typeof $width === 'number' ? `${$width}px` : $width};` : ''}
   display: flex;
@@ -38,6 +42,7 @@ let Wrap = styled.div<WrapProps>`
 `;
 
 interface PopoverProps {
+  triggerRef?: { current: HTMLElement | null };
   open: boolean;
   /** Anchor point in viewport coordinates. Treated as the top edge; the
    *  horizontal edge is controlled by `align`. */
@@ -46,73 +51,48 @@ interface PopoverProps {
    *  Otherwise the left edge aligns. Defaults to 'left'. */
   align?: 'left' | 'right';
   width?: number | string;
-  /** Selector for elements that should be ignored by the outside-click
-   *  handler (typically the trigger button itself). */
-  ignoreClickOnSelector?: string;
+
   onClose: () => void;
   children: ReactNode;
 }
 
 export function Popover({
+  triggerRef,
   open,
   anchor,
   align = 'left',
   width,
-  ignoreClickOnSelector,
+
   onClose,
   children
 }: PopoverProps) {
   let presence = usePresence(open, EXIT);
   let wrapRef = useRef<HTMLDivElement | null>(null);
-  let [position, setPosition] = useState({ left: anchor.left, top: anchor.top });
+
   let zIndex = useZindex(open);
 
-  useEffect(() => {
-    if (!open) return;
-    let onMouse = (e: MouseEvent) => {
-      let target = e.target as Element | null;
-      if (!wrapRef.current) return;
-      if (wrapRef.current.contains(target as Node)) return;
-      if (target?.closest('[data-metorial-select-content]')) return;
-      if (ignoreClickOnSelector && target?.closest(ignoreClickOnSelector)) return;
-      onClose();
-    };
-    let onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', onMouse);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onMouse);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, onClose, ignoreClickOnSelector]);
+  useEditorOverlay(open, {
+    element: () => wrapRef.current,
+    trigger: () => triggerRef?.current ?? null,
+    close: onClose,
+    restoreFocus: () => triggerRef?.current?.focus()
+  });
 
-  useLayoutEffect(() => {
-    if (!presence.shouldRender) return;
-    let padding = 8;
-    let el = wrapRef.current;
-    let left = anchor.left;
-    let top = anchor.top;
-    if (el) {
-      let rect = el.getBoundingClientRect();
-      if (align === 'right') {
-        left = anchor.left - rect.width;
+  let position = useOverlayPosition(
+    presence.shouldRender,
+    wrapRef,
+    () => {
+      if (triggerRef && !triggerRef.current?.isConnected) return null;
+      if (triggerRef?.current) {
+        let rect = triggerRef.current.getBoundingClientRect();
+        if (!rect.width && !rect.height) return null;
+        return { left: align === 'right' ? rect.right : rect.left, top: rect.bottom + 4 };
       }
-      if (left + rect.width + padding > window.innerWidth) {
-        left = Math.max(padding, window.innerWidth - rect.width - padding);
-      }
-      if (left < padding) left = padding;
-      if (top + rect.height + padding > window.innerHeight) {
-        top = Math.max(padding, window.innerHeight - rect.height - padding);
-      }
-      if (top < padding) top = padding;
-    }
-    setPosition({ left, top });
-  }, [presence.shouldRender, anchor.left, anchor.top, align]);
+      return anchor;
+    },
+    onClose,
+    align
+  );
 
   if (!presence.shouldRender) return null;
 

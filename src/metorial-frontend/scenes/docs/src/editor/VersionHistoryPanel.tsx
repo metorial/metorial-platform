@@ -3,6 +3,7 @@ import type { StructuredPatchHunk } from 'diff';
 import { structuredPatch } from 'diff';
 import { useMemo } from 'react';
 import styled from 'styled-components';
+import { useDismissEditorOverlays } from './overlays';
 import { Avatar } from '../components/Avatar';
 
 export interface VersionEditor {
@@ -318,6 +319,8 @@ export function VersionHistoryPanel({
   versions,
   contextLines = 3
 }: VersionHistoryPanelProps) {
+  useDismissEditorOverlays(open);
+
   let resolved = useMemo<ResolvedVersion[]>(() => {
     let byId = new Map(versions.map(v => [v.id, v]));
     let sorted = [...versions].sort((a, b) => {

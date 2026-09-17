@@ -462,6 +462,16 @@ export let SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(
 
     useImperativeHandle(ref, () => ({
       onKeyDown: event => {
+        if (
+          closing ||
+          !items.length ||
+          event.isComposing ||
+          event.shiftKey ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey
+        )
+          return false;
         if (event.key === 'ArrowUp') {
           setSelectedIndex(i => (i + items.length - 1) % items.length);
           return true;
@@ -481,7 +491,12 @@ export let SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(
 
     if (items.length === 0) {
       return (
-        <Wrap ref={containerRef} data-state={dataState}>
+        <Wrap
+          ref={containerRef}
+          data-state={dataState}
+          role="menu"
+          aria-label="Slash commands"
+        >
           <Empty>No matching blocks</Empty>
         </Wrap>
       );
@@ -497,7 +512,7 @@ export let SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(
     let recommendedItems = isFiltered ? [] : items.filter(i => i.recommended);
 
     return (
-      <Wrap ref={containerRef} data-state={dataState}>
+      <Wrap ref={containerRef} data-state={dataState} role="menu" aria-label="Slash commands">
         <Scroll>
           {recommendedItems.length > 0 && (
             <>
@@ -526,6 +541,7 @@ export let SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(
                   key={item.title}
                   data-index={index}
                   $selected={index === selectedIndex}
+                  role="menuitem"
                   onMouseEnter={() => setSelectedIndex(index)}
                   onClick={() => command(item)}
                   title={item.description}

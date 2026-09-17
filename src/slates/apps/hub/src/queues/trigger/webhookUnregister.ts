@@ -28,17 +28,17 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
     if (target.webhookRegistration) {
       let version = await getActiveSlateVersion({ slate: target.triggerGroup.slate });
 
-      let stack = await slateInvocationService.createInvocation({
-        participants: [],
-        slateVersion: version,
-        tenant: target.tenant
-      });
-
       let decrypted = await secretService.DANGEROUSLY_decryptSecret({
         secretOid: target.webhookRegistration.secretOid,
         purpose: 'slate_webhook_registration_payload',
         tenant: target.tenant,
         note: `trigger-webhook-unregister:${target.id}`
+      });
+
+      let stack = await slateInvocationService.createInvocation({
+        participants: [],
+        slateVersion: version,
+        tenant: target.tenant
       });
 
       let result = await slateInvocationService.unregisterWebhook({

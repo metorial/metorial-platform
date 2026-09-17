@@ -1,5 +1,7 @@
+import { useBubbleOverlay } from './useBubbleOverlay';
+import { preserveEditorSelection } from './overlays';
 import { useCallback, useMemo } from 'react';
-import { BubbleMenu } from '@tiptap/react/menus';
+import { BubbleMenu } from './BubbleMenu';
 import type { Editor } from '@tiptap/react';
 import { PluginKey } from '@tiptap/pm/state';
 import styled from 'styled-components';
@@ -93,7 +95,7 @@ let calloutMenuPluginKey = new PluginKey('calloutMenu');
 let CALLOUT_MENU_OPTIONS = {
   placement: 'top',
   offset: 8,
-  flip: false,
+  flip: true,
   shift: { padding: 8 }
 } as const;
 
@@ -130,7 +132,11 @@ export function CalloutMenu({ editor }: Props) {
     editor.chain().focus().unsetCallout().run();
   }, [editor]);
 
-  let options = useMemo(() => CALLOUT_MENU_OPTIONS, []);
+  let overlay = useBubbleOverlay(editor, calloutMenuPluginKey);
+  let options = useMemo(
+    () => ({ ...CALLOUT_MENU_OPTIONS, ...overlay.lifecycle }),
+    [overlay.lifecycle]
+  );
 
   let getReferencedVirtualElement = useCallback(() => {
     if (!editor) return null;
@@ -151,10 +157,10 @@ export function CalloutMenu({ editor }: Props) {
       editor={editor}
       pluginKey={calloutMenuPluginKey}
       options={options}
-      shouldShow={calloutShouldShow}
+      shouldShow={props => overlay.canShow() && calloutShouldShow(props)}
       getReferencedVirtualElement={getReferencedVirtualElement}
     >
-      <Floating onMouseDown={e => e.preventDefault()}>
+      <Floating ref={overlay.element} onMouseDown={preserveEditorSelection}>
         {TYPES.map(t => (
           <TypeBtn
             key={t}

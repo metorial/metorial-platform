@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactElement } from 'react';
 import type { Editor, Range } from '@tiptap/core';
 import { useEditorState } from '@tiptap/react';
 import { Tooltip } from '@metorial/ui';
@@ -95,12 +95,6 @@ function useAnchor() {
     return { left: rect.left, top: rect.bottom + 4 };
   }, []);
 
-  let updateAnchor = useCallback(() => {
-    let next = readAnchor();
-    if (!next) return;
-    setAnchor(prev => (prev.left === next.left && prev.top === next.top ? prev : next));
-  }, [readAnchor]);
-
   let openMenu = useCallback(() => {
     let next = readAnchor();
     if (next) setAnchor(next);
@@ -113,24 +107,6 @@ function useAnchor() {
     if (open) closeMenu();
     else openMenu();
   }, [open, closeMenu, openMenu]);
-
-  useEffect(() => {
-    if (!open) return;
-    let raf = 0;
-    let tick = () => {
-      updateAnchor();
-      raf = window.requestAnimationFrame(tick);
-    };
-    let onViewportChange = () => updateAnchor();
-    tick();
-    window.addEventListener('resize', onViewportChange);
-    window.addEventListener('scroll', onViewportChange, true);
-    return () => {
-      window.cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onViewportChange);
-      window.removeEventListener('scroll', onViewportChange, true);
-    };
-  }, [open, updateAnchor]);
 
   return { triggerRef, open, anchor, openMenu, closeMenu, toggle };
 }
@@ -362,6 +338,8 @@ export function TextTypeDropdown({ editor }: DropdownProps) {
       <Tooltip content="Text style" side="bottom">
         <TriggerBtn
           ref={triggerRef}
+          aria-expanded={open}
+          aria-haspopup="menu"
           type="button"
           data-toolbar-dropdown-trigger="true"
           $expanded={open}
@@ -377,13 +355,13 @@ export function TextTypeDropdown({ editor }: DropdownProps) {
         </TriggerBtn>
       </Tooltip>
       <BlocksPopover
+        triggerRef={triggerRef}
         open={open}
         anchor={anchor}
         items={TEXT_TYPE_ITEMS}
         activeTitle={current.title}
         width={240}
         maxHeight={420}
-        ignoreClickOnSelector="[data-toolbar-dropdown-trigger]"
         onSelect={onSelect}
         onClose={closeMenu}
       />
@@ -495,6 +473,8 @@ export function ListDropdown({ editor }: DropdownProps) {
       <Tooltip content="List type" side="bottom">
         <TriggerBtn
           ref={triggerRef}
+          aria-expanded={open}
+          aria-haspopup="menu"
           type="button"
           data-toolbar-dropdown-trigger="true"
           $active={isActiveList}
@@ -510,13 +490,13 @@ export function ListDropdown({ editor }: DropdownProps) {
         </TriggerBtn>
       </Tooltip>
       <BlocksPopover
+        triggerRef={triggerRef}
         open={open}
         anchor={anchor}
         items={LIST_ITEMS}
         activeTitle={current.title}
         width={220}
         maxHeight={260}
-        ignoreClickOnSelector="[data-toolbar-dropdown-trigger]"
         onSelect={onSelect}
         onClose={closeMenu}
       />
@@ -550,6 +530,8 @@ export function InlineTurnIntoDropdown({ editor }: DropdownProps) {
     <>
       <TriggerBtn
         ref={triggerRef}
+        aria-expanded={open}
+        aria-haspopup="menu"
         type="button"
         data-toolbar-dropdown-trigger="true"
         $expanded={open}
@@ -564,13 +546,13 @@ export function InlineTurnIntoDropdown({ editor }: DropdownProps) {
         </span>
       </TriggerBtn>
       <BlocksPopover
+        triggerRef={triggerRef}
         open={open}
         anchor={anchor}
         items={TURN_INTO_ITEMS}
         activeTitle={current.title}
         width={240}
         maxHeight={420}
-        ignoreClickOnSelector="[data-toolbar-dropdown-trigger]"
         onSelect={onSelect}
         onClose={closeMenu}
       />
@@ -600,6 +582,8 @@ export function MoreDropdown({ editor }: DropdownProps) {
       <Tooltip content="Insert block" side="bottom">
         <TriggerBtn
           ref={triggerRef}
+          aria-expanded={open}
+          aria-haspopup="menu"
           type="button"
           data-toolbar-dropdown-trigger="true"
           $expanded={open}
@@ -615,6 +599,7 @@ export function MoreDropdown({ editor }: DropdownProps) {
         </TriggerBtn>
       </Tooltip>
       <BlocksPopover
+        triggerRef={triggerRef}
         open={open}
         anchor={anchor}
         items={items}
@@ -623,7 +608,6 @@ export function MoreDropdown({ editor }: DropdownProps) {
         searchPlaceholder="Insert block…"
         width={300}
         maxHeight={460}
-        ignoreClickOnSelector="[data-toolbar-dropdown-trigger]"
         onSelect={onSelect}
         onClose={closeMenu}
       />
