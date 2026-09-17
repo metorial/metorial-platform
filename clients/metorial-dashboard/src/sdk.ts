@@ -181,6 +181,8 @@ import {
   MetorialDashboardOrganizationsSandboxesEndpoint,
   MetorialDashboardOrganizationsServiceAccountsClientSecretsEndpoint,
   MetorialDashboardOrganizationsServiceAccountsCredentialsEndpoint,
+  MetorialDashboardOrganizationsEventDeliveriesEndpoint,
+  MetorialDashboardOrganizationsEventDeliveryAttemptsEndpoint,
   MetorialDashboardOrganizationsEventDestinationListenersEndpoint,
   MetorialDashboardOrganizationsEventDestinationsEndpoint,
   MetorialDashboardOrganizationsEventsEndpoint,
@@ -1101,6 +1103,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     {
       listeners: new MetorialDashboardOrganizationsEventDestinationListenersEndpoint(manager)
     }
+  ),
+
+  eventDeliveries: new MetorialDashboardOrganizationsEventDeliveriesEndpoint(manager),
+  eventDeliveryAttempts: new MetorialDashboardOrganizationsEventDeliveryAttemptsEndpoint(
+    manager
   ),
 
   events: Object.assign(new MetorialDashboardOrganizationsEventsEndpoint(manager), {

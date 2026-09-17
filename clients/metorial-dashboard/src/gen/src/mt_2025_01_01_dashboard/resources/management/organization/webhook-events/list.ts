@@ -1,7 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementOrganizationWebhookEventsListOutput = {
-  items: { object: 'event.type'; name: string }[];
+  items: { object: 'event.type'; name: string; description: string }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -12,7 +12,8 @@ export let mapManagementOrganizationWebhookEventsListOutput =
       mtMap.array(
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough())
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough())
         })
       )
     ),

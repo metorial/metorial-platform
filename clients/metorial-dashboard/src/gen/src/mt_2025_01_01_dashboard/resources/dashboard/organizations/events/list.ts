@@ -8,8 +8,8 @@ export type DashboardOrganizationsEventsListOutput = {
     instanceId: string | null;
     source: 'resource' | 'callback' | 'chat' | 'ping';
     eventType: string;
-    payload: Record<string, any> | null;
     callbackId: string | null;
+    callbackEventId: string | null;
     callbackTriggerKey: string | null;
     chatEventId: string | null;
     chatConnectionId: string | null;
@@ -34,8 +34,11 @@ export let mapDashboardOrganizationsEventsListOutput =
           instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
           source: mtMap.objectField('source', mtMap.passthrough()),
           eventType: mtMap.objectField('event_type', mtMap.passthrough()),
-          payload: mtMap.objectField('payload', mtMap.passthrough()),
           callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
+          callbackEventId: mtMap.objectField(
+            'callback_event_id',
+            mtMap.passthrough()
+          ),
           callbackTriggerKey: mtMap.objectField(
             'callback_trigger_key',
             mtMap.passthrough()

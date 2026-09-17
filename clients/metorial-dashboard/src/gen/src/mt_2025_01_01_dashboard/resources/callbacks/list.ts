@@ -104,6 +104,7 @@ export type CallbacksListQuery = {
   integrationId?: string | string[] | undefined;
   integrationProviderId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  search?: string | undefined;
   status?:
     | 'active'
     | 'archived'
@@ -163,6 +164,7 @@ export let mapCallbacksListQuery = mtMap.union([
           )
         ])
       ),
+      search: mtMap.objectField('search', mtMap.passthrough()),
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])

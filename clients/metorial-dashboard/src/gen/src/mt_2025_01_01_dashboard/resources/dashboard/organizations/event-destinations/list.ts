@@ -150,7 +150,11 @@ export type DashboardOrganizationsEventDestinationsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined };
+} & {
+  status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
+  callbackId?: string | string[] | undefined;
+  chatConnectionId?: string | string[] | undefined;
+};
 
 export let mapDashboardOrganizationsEventDestinationsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -164,6 +168,26 @@ export let mapDashboardOrganizationsEventDestinationsListQuery = mtMap.union([
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      callbackId: mtMap.objectField(
+        'callback_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      chatConnectionId: mtMap.objectField(
+        'chat_connection_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
       )
     })
   )
