@@ -1,4 +1,11 @@
-import { db, EventDestination, EventDestinationListener, ID, SystemEvent } from '@metorial/db';
+import {
+  db,
+  EventDestination,
+  EventDestinationListener,
+  ID,
+  Prisma,
+  SystemEvent
+} from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { attemptDeliveryQueue } from './attempt';
 
@@ -64,6 +71,42 @@ export let matchesListener = (
   return listener.eventTypes.includes(event.eventType);
 };
 
+let listenerMatchWhere = (event: SystemEvent): Prisma.EventDestinationListenerWhereInput => {
+  if (event.source == 'callback') {
+    let targetOr: Prisma.EventDestinationListenerWhereInput[] = [
+      { callbackId: null, providerId: null }
+    ];
+    if (event.callbackId != null) targetOr.push({ callbackId: event.callbackId });
+    if (event.providerId != null) {
+      targetOr.push({ callbackId: null, providerId: event.providerId });
+    }
+
+    let triggerOr: Prisma.EventDestinationListenerWhereInput[] = [
+      { triggers: { isEmpty: true } }
+    ];
+    if (event.callbackTriggerKey != null) {
+      triggerOr.push({ triggers: { has: event.callbackTriggerKey } });
+    }
+
+    return { type: 'callback', AND: [{ OR: targetOr }, { OR: triggerOr }] };
+  }
+
+  if (event.source == 'chat') {
+    let targetOr: Prisma.EventDestinationListenerWhereInput[] = [
+      { chatConnectionId: null, providerId: null }
+    ];
+    if (event.chatConnectionId != null)
+      targetOr.push({ chatConnectionId: event.chatConnectionId });
+    if (event.providerId != null) {
+      targetOr.push({ chatConnectionId: null, providerId: event.providerId });
+    }
+
+    return { type: 'chat', eventTypes: { has: event.eventType }, OR: targetOr };
+  }
+
+  return { type: 'event', eventTypes: { has: event.eventType } };
+};
+
 export let eventDeliveryDispatchQueueProcessor = eventDeliveryDispatchQueue.process(
   async data => {
     let event = await db.systemEvent.findUnique({ where: { id: data.systemEventId } });
@@ -76,23 +119,23 @@ export let eventDeliveryDispatchQueueProcessor = eventDeliveryDispatchQueue.proc
         eventDestination: {
           organizationOid: event.organizationOid,
           status: 'active'
-        }
+        },
+        ...listenerMatchWhere(event)
       },
       take: dispatchBatchSize,
       orderBy: { oid: 'asc' },
       include: { eventDestination: true }
     });
 
-    let matching = listeners.filter(listener => matchesListener(event, listener));
-    if (matching.length > 0) {
-      let byDestination = new Map<bigint, (typeof matching)[number]>();
-      for (let listener of matching) {
+    if (listeners.length > 0) {
+      let byDestination = new Map<bigint, (typeof listeners)[number]>();
+      for (let listener of listeners) {
         if (!byDestination.has(listener.eventDestinationOid)) {
           byDestination.set(listener.eventDestinationOid, listener);
         }
       }
 
-      await db.eventDeliveryIntent.createMany({
+      let intents = await db.eventDeliveryIntent.createManyAndReturn({
         data: await Promise.all(
           [...byDestination.values()].map(async listener => ({
             id: await ID.generateId('eventDeliveryIntent'),
@@ -111,16 +154,7 @@ export let eventDeliveryDispatchQueueProcessor = eventDeliveryDispatchQueue.proc
           }))
         ),
         // A redelivered dispatch job must not schedule the same event to the same destination twice.
-        skipDuplicates: true
-      });
-
-      let intents = await db.eventDeliveryIntent.findMany({
-        where: {
-          systemEventOid: event.oid,
-          eventDestinationOid: { in: [...byDestination.keys()] },
-          status: 'pending',
-          attemptCount: 0
-        },
+        skipDuplicates: true,
         select: { id: true }
       });
 

@@ -142,6 +142,7 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
     let requestHeaders: Record<string, string> = {
       'content-type': 'application/json',
       'user-agent': 'Metorial (https://metorial.com)',
+      accept: '*/*',
       'metorial-event-id': intent.systemEvent.id,
       'metorial-event-type': intent.systemEvent.eventType,
       'metorial-delivery-id': intent.id,

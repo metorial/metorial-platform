@@ -1,13 +1,32 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./attempt', () => ({ attemptDeliveryQueue: { addManyWithOps: vi.fn() } }));
-vi.mock('@metorial/db', () => ({ db: {}, ID: {}, withTransaction: vi.fn() }));
+let attemptDeliveryAddManyWithOps = vi.fn();
+let eventDeliveryIntentCreateManyAndReturn = vi.fn();
+let eventDestinationListenerFindMany = vi.fn();
+let systemEventFindUnique = vi.fn();
+let dispatchProcessor: (data: { systemEventId: string; cursor?: string }) => Promise<void>;
+
+vi.mock('./attempt', () => ({
+  attemptDeliveryQueue: { addManyWithOps: attemptDeliveryAddManyWithOps }
+}));
+vi.mock('@metorial/db', () => ({
+  db: {
+    eventDeliveryIntent: { createManyAndReturn: eventDeliveryIntentCreateManyAndReturn },
+    eventDestinationListener: { findMany: eventDestinationListenerFindMany },
+    systemEvent: { findUnique: systemEventFindUnique }
+  },
+  ID: { generateId: vi.fn(async () => 'evtdi_1') },
+  withTransaction: vi.fn()
+}));
 vi.mock('@metorial/queue', () => ({
   createQueue: vi.fn(() => ({
     add: vi.fn(),
     addMany: vi.fn(),
     addManyWithOps: vi.fn(),
-    process: vi.fn(() => ({}))
+    process: vi.fn(callback => {
+      dispatchProcessor = callback;
+      return {};
+    })
   })),
   QueueRetryError: class extends Error {}
 }));
@@ -36,6 +55,98 @@ let listener = (overrides: Record<string, any> = {}) =>
     eventDestination: { status: 'active' },
     ...overrides
   }) as any;
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('event delivery dispatch', () => {
+  it('creates and schedules one delivery when multiple listeners match the same destination', async () => {
+    systemEventFindUnique.mockResolvedValue(
+      event({ id: 'evt_1', oid: BigInt(10), organizationOid: BigInt(20), instanceOid: null })
+    );
+    eventDestinationListenerFindMany.mockResolvedValue([
+      listener({
+        oid: BigInt(30),
+        eventDestinationOid: BigInt(40),
+        eventTypes: ['organization.created'],
+        eventDestination: {
+          status: 'active',
+          type: 'webhook',
+          retryStrategy: 'exponential',
+          retryMaxAttempts: 5,
+          retryBaseDelaySeconds: 10,
+          retryMaxDelaySeconds: 300
+        }
+      }),
+      listener({
+        oid: BigInt(31),
+        eventDestinationOid: BigInt(40),
+        eventTypes: ['organization.created'],
+        eventDestination: {
+          status: 'active',
+          type: 'webhook',
+          retryStrategy: 'exponential',
+          retryMaxAttempts: 5,
+          retryBaseDelaySeconds: 10,
+          retryMaxDelaySeconds: 300
+        }
+      })
+    ]);
+    eventDeliveryIntentCreateManyAndReturn.mockResolvedValue([{ id: 'evtdi_1' }]);
+
+    await dispatchProcessor({ systemEventId: 'evt_1' });
+
+    expect(eventDeliveryIntentCreateManyAndReturn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({
+            eventDestinationOid: BigInt(40),
+            eventDestinationListenerOid: BigInt(30),
+            systemEventOid: BigInt(10)
+          })
+        ],
+        select: { id: true },
+        skipDuplicates: true
+      })
+    );
+    expect(attemptDeliveryAddManyWithOps).toHaveBeenCalledWith([
+      {
+        data: { intentId: 'evtdi_1', attemptNumber: 1 },
+        opts: { id: 'event-delivery-attempt:evtdi_1:1' }
+      }
+    ]);
+  });
+
+  it('does not schedule an attempt when another listener already created the delivery', async () => {
+    systemEventFindUnique.mockResolvedValue(
+      event({ id: 'evt_1', oid: BigInt(10), organizationOid: BigInt(20), instanceOid: null })
+    );
+    eventDestinationListenerFindMany.mockResolvedValue([
+      listener({
+        oid: BigInt(30),
+        eventDestinationOid: BigInt(40),
+        eventTypes: ['organization.created'],
+        eventDestination: {
+          status: 'active',
+          type: 'webhook',
+          retryStrategy: 'exponential',
+          retryMaxAttempts: 5,
+          retryBaseDelaySeconds: 10,
+          retryMaxDelaySeconds: 300
+        }
+      })
+    ]);
+    eventDeliveryIntentCreateManyAndReturn.mockResolvedValue([]);
+
+    await dispatchProcessor({ systemEventId: 'evt_1' });
+
+    expect(eventDeliveryIntentCreateManyAndReturn).toHaveBeenCalledWith(
+      expect.objectContaining({ skipDuplicates: true })
+    );
+    expect(attemptDeliveryAddManyWithOps).not.toHaveBeenCalled();
+  });
+});
 
 describe('matchesListener', () => {
   it('skips an archived destination', () => {
@@ -215,6 +326,15 @@ describe('matchesListener', () => {
             chatConnectionId: 'chi_1',
             eventTypes: ['chat.member.joined']
           })
+        )
+      ).toBe(false);
+    });
+
+    it('does not match a system event listener', () => {
+      expect(
+        matchesListener(
+          chatEvent,
+          listener({ type: 'event', eventTypes: ['chat.message.received'] })
         )
       ).toBe(false);
     });

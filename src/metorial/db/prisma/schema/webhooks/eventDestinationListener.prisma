@@ -37,7 +37,10 @@ model EventDestinationListener {
 
   @@index([eventDestinationOid])
   @@index([instanceOid])
+  @@index([instanceOid, type])
   @@index([type, callbackId])
   @@index([type, chatConnectionId])
   @@index([type, providerId])
+  @@index([eventTypes], type: Gin)
+  @@index([triggers], type: Gin)
 }
