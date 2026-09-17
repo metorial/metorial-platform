@@ -78,10 +78,16 @@ let readResponseBody = async (response: Response) => {
   return { body: body.slice(0, MAX_STORED_RESPONSE_BODY_BYTES), isBodyTruncated: true };
 };
 
-let headerEntries = (headers: Headers | Record<string, string>) =>
-  (headers instanceof Headers ? [...headers.entries()] : Object.entries(headers)).map(
-    ([key, value]) => ({ key, value })
-  );
+let headerEntries = (headers: Headers | Record<string, string>) => {
+  let entries: [string, string][] = [];
+  if (headers instanceof Headers) {
+    headers.forEach((value, key) => entries.push([key, value]));
+  } else {
+    entries = Object.entries(headers);
+  }
+
+  return entries.map(([key, value]) => ({ key, value }));
+};
 
 export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async data => {
   let intent = await db.eventDeliveryIntent.findUnique({
