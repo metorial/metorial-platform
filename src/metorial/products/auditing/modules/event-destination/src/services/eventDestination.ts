@@ -19,6 +19,7 @@ import {
   MAX_RETRY_DELAY_SECONDS,
   MIN_RETRY_DELAY_SECONDS
 } from '@metorial/module-event-delivery';
+import { buildListenerTargetOrBlocks } from '../lib/listenerTargetMatch';
 
 export let eventDestinationInclude = {
   webhookDestination: true,
@@ -82,16 +83,40 @@ class EventDestinationServiceImpl {
   async listEventDestinations(d: {
     organization: Organization;
     statuses?: EventDestinationStatus[];
+    callbackIds?: string[];
+    chatConnectionIds?: string[];
   }) {
+    let targetBlocks = await buildListenerTargetOrBlocks({
+      callbackIds: d.callbackIds,
+      chatConnectionIds: d.chatConnectionIds
+    });
+
+    // Destination-level: must have *some* listener satisfying each supplied block independently
+    // (a destination can hold both a callback listener and a chat listener at once, unlike a
+    // single listener row) — so this is AND-of-some, not a single combined OR/AND on one listener.
+    let destinationAnd = targetBlocks.map(block => ({ listeners: { some: block } }));
+
+    // Nested include: surface every listener that matches *any* supplied block, for display.
+    let nestedListenersWhere =
+      targetBlocks.length === 0
+        ? undefined
+        : targetBlocks.length === 1
+          ? targetBlocks[0]
+          : { OR: targetBlocks };
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
         db.eventDestination.findMany({
           ...opts,
           where: {
             organizationOid: d.organization.oid,
-            status: d.statuses ? { in: d.statuses } : 'active'
+            status: d.statuses ? { in: d.statuses } : 'active',
+            AND: destinationAnd.length ? destinationAnd : undefined
           },
-          include: eventDestinationInclude
+          include: {
+            webhookDestination: true,
+            listeners: { where: nestedListenersWhere, include: { instance: true } }
+          }
         })
       )
     );

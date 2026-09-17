@@ -1,12 +1,9 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { callbackInternalService, callbackService } from '@metorial-subspace/module-callback';
+import { callbackService } from '@metorial-subspace/module-callback';
 import { providerService, providerTriggerService } from '@metorial-subspace/module-catalog';
-import {
-  chatConnectionProviderService,
-  chatConnectionService
-} from '@metorial-subspace/module-chat';
+import { chatConnectionService } from '@metorial-subspace/module-chat';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
@@ -24,6 +21,7 @@ import {
   MAX_ACTIVE_LISTENERS_PER_ORGANIZATION
 } from '@metorial/module-event-delivery';
 import { chatEventNames, webhookEvents } from '@metorial/webhook-event-schema';
+import { buildListenerTargetOrBlocks } from '../lib/listenerTargetMatch';
 
 export let eventDestinationListenerInclude = {
   eventDestination: true,
@@ -202,61 +200,10 @@ class EventDestinationListenerServiceImpl {
     providerIds?: string[];
     types?: EventDestinationListenerType[];
   }) {
-    let [callbackProviderIdsById, chatProviderIdsByConnection] = await Promise.all([
-      d.callbackIds?.length
-        ? callbackInternalService.getProviderIdsForCallbackIdsInternal(d.callbackIds)
-        : null,
-      d.chatConnectionIds?.length
-        ? chatConnectionProviderService.getProviderIdsForChatConnectionIdsInternal(
-            d.chatConnectionIds
-          )
-        : null
-    ]);
-
-    let callbackProviderIds = callbackProviderIdsById
-      ? [...new Set(callbackProviderIdsById.values())]
-      : [];
-    let chatProviderIds = chatProviderIdsByConnection
-      ? [...new Set([...chatProviderIdsByConnection.values()].flat())]
-      : [];
-
-    let andConditions: object[] = [];
-
-    if (d.callbackIds?.length) {
-      andConditions.push({
-        OR: [
-          { type: 'callback' as const, callbackId: { in: d.callbackIds } },
-          ...(callbackProviderIds.length
-            ? [
-                {
-                  type: 'callback' as const,
-                  callbackId: null,
-                  providerId: { in: callbackProviderIds }
-                }
-              ]
-            : []),
-          { type: 'callback' as const, callbackId: null, providerId: null }
-        ]
-      });
-    }
-
-    if (d.chatConnectionIds?.length) {
-      andConditions.push({
-        OR: [
-          { type: 'chat' as const, chatConnectionId: { in: d.chatConnectionIds } },
-          ...(chatProviderIds.length
-            ? [
-                {
-                  type: 'chat' as const,
-                  chatConnectionId: null,
-                  providerId: { in: chatProviderIds }
-                }
-              ]
-            : []),
-          { type: 'chat' as const, chatConnectionId: null, providerId: null }
-        ]
-      });
-    }
+    let andConditions = await buildListenerTargetOrBlocks({
+      callbackIds: d.callbackIds,
+      chatConnectionIds: d.chatConnectionIds
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -267,9 +214,10 @@ class EventDestinationListenerServiceImpl {
               organizationOid: d.organization.oid,
               id: d.instanceIds ? { in: d.instanceIds } : undefined
             },
-            eventDestination: d.eventDestinationIds
-              ? { id: { in: d.eventDestinationIds } }
-              : undefined,
+            eventDestination: {
+              status: 'active',
+              ...(d.eventDestinationIds ? { id: { in: d.eventDestinationIds } } : {})
+            },
             type: d.types ? { in: d.types } : undefined,
             providerId: d.providerIds ? { in: d.providerIds } : undefined,
             AND: andConditions.length ? andConditions : undefined

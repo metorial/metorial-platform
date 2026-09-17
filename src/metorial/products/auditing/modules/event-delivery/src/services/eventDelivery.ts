@@ -48,7 +48,9 @@ class EventDeliveryServiceImpl {
             eventDestination: d.eventDestinationIds
               ? { id: { in: d.eventDestinationIds } }
               : undefined,
-            instance: d.instanceIds ? { id: { in: d.instanceIds } } : undefined
+            OR: d.instanceIds?.length
+              ? [{ instanceOid: null }, { instance: { id: { in: d.instanceIds } } }]
+              : undefined
           },
           include: eventDeliveryInclude
         })
