@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import styled from 'styled-components';
 import { Avatar } from '../components/Avatar';
 import type { SharedPerson } from './HeaderActions';
+import { useDismissEditorOverlays } from './overlays';
 
 interface PageInfoDialogProps {
   open: boolean;
@@ -176,6 +177,8 @@ export function PageInfoDialog({
   wordCount,
   charCount
 }: PageInfoDialogProps) {
+  useDismissEditorOverlays(open);
+
   let editors = useMemo(() => people.filter(p => p.role === 'editor'), [people]);
   let viewers = useMemo(() => people.filter(p => p.role === 'viewer'), [people]);
   let tokenCount = Math.max(0, Math.round(charCount / 4));

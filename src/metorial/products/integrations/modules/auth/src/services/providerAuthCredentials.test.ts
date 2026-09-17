@@ -264,3 +264,45 @@ describe('listProviderAuthCredentialsInternal auth method filtering', () => {
     ]);
   });
 });
+
+describe('listProviderAuthCredentialsInternal auth method filtering', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.resolveProviders.mockResolvedValue(undefined);
+    mocks.resolveAuthMethodsGlobal.mockResolvedValue({
+      oids: [70n],
+      in: { in: [70n] },
+      oidIn: { oid: { in: [70n] } }
+    });
+    mocks.providerAuthCredentialsFindMany.mockResolvedValue([]);
+  });
+
+  it('matches managed credentials through their global family, including legacy rows', async () => {
+    let paginator = await providerAuthCredentialsService.listProviderAuthCredentialsInternal({
+      tenant: { oid: 10n, id: 'ten_1' } as any,
+      environment: { oid: 30n } as any,
+      providerAuthMethodIds: ['pam_1']
+    });
+
+    await paginator.run({});
+
+    let where = mocks.providerAuthCredentialsFindMany.mock.calls[0]![0].where;
+    let managedBackingFilter = where.AND.at(-1).OR[1];
+
+    expect(managedBackingFilter.managedCredentialsBacking.is.managedCredentials.OR).toEqual([
+      {
+        providerAuthMethodGlobalOid: {
+          in: [70n]
+        }
+      },
+      {
+        providerAuthMethodGlobalOid: null,
+        initialProviderAuthMethod: {
+          globalOid: {
+            in: [70n]
+          }
+        }
+      }
+    ]);
+  });
+});

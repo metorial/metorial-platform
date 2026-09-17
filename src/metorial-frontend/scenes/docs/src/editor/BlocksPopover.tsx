@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEditorOverlay, useOverlayPosition, preserveEditorSelection } from './overlays';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import type { Theme } from '../styles/theme';
@@ -11,6 +12,9 @@ let EXIT = 140;
 
 let Wrap = styled.div<{ $width: number; $maxHeight: number }>`
   position: fixed;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
   z-index: 1000;
   width: ${({ $width }) => $width}px;
   max-height: ${({ $maxHeight }) => $maxHeight}px;
@@ -168,6 +172,7 @@ let Empty = styled.div`
 interface Props {
   /** Whether the popover is open. When toggled to `false`, the popover
    *  stays mounted long enough to play its exit animation. */
+  triggerRef?: { current: HTMLElement | null };
   open: boolean;
   /** top-left corner in viewport coordinates where the popover should anchor */
   anchor: { left: number; top: number };
@@ -179,12 +184,13 @@ interface Props {
   searchPlaceholder?: string;
   width?: number;
   maxHeight?: number;
-  ignoreClickOnSelector?: string;
+
   onSelect: (item: SlashItem) => void;
   onClose: () => void;
 }
 
 export function BlocksPopover({
+  triggerRef,
   open,
   anchor,
   items,
@@ -194,7 +200,7 @@ export function BlocksPopover({
   searchPlaceholder = 'Search…',
   width = 280,
   maxHeight = 380,
-  ignoreClickOnSelector,
+
   onSelect,
   onClose
 }: Props) {
@@ -202,7 +208,6 @@ export function BlocksPopover({
   let wrapRef = useRef<HTMLDivElement | null>(null);
   let [search, setSearch] = useState('');
   let [activeIndex, setActiveIndex] = useState(0);
-  let [position, setPosition] = useState(anchor);
 
   let filtered = useMemo(() => {
     let q = search.trim().toLowerCase();
@@ -225,57 +230,39 @@ export function BlocksPopover({
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    let onMouse = (e: MouseEvent) => {
-      let target = e.target as Element | null;
-      if (!wrapRef.current) return;
-      if (wrapRef.current.contains(target as Node)) return;
-      if (ignoreClickOnSelector && target?.closest(ignoreClickOnSelector)) return;
-      onClose();
-    };
-    let onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', onMouse);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onMouse);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, onClose, ignoreClickOnSelector]);
+  useEditorOverlay(open, {
+    element: () => wrapRef.current,
+    trigger: () => triggerRef?.current ?? null,
+    close: onClose,
+    restoreFocus: () => triggerRef?.current?.focus()
+  });
 
-  // Keep popover within the viewport. We depend on `presence.shouldRender`
-  // (not just `open`) so the effect re-runs after the Wrap actually mounts
-  // — usePresence flips `shouldRender` from inside a `useEffect`, so the
-  // first render with `open=true` still has `shouldRender=false` and the
-  // wrap ref is null. Without this dep the layout effect never sees the
-  // mounted element on the very first open and the popover renders at
-  // its initial 0/0 position. Only realign while open so a closing
-  // popover doesn't reposition on its way out.
-  useLayoutEffect(() => {
-    if (!presence.shouldRender) return;
-    let padding = 8;
-    let { left, top } = anchor;
-    let el = wrapRef.current;
-    if (el) {
-      let rect = el.getBoundingClientRect();
-      if (left + rect.width + padding > window.innerWidth) {
-        left = Math.max(padding, window.innerWidth - rect.width - padding);
+  let position = useOverlayPosition(
+    presence.shouldRender,
+    wrapRef,
+    () => {
+      if (triggerRef && !triggerRef.current?.isConnected) return null;
+      if (triggerRef?.current) {
+        let rect = triggerRef.current.getBoundingClientRect();
+        if (!rect.width && !rect.height) return null;
+        return { left: rect.left, top: rect.bottom + 4 };
       }
-      if (top + rect.height + padding > window.innerHeight) {
-        top = Math.max(padding, window.innerHeight - rect.height - padding);
-      }
-    }
-    setPosition({ left, top });
-  }, [presence.shouldRender, anchor.left, anchor.top, filtered.length]);
+      return anchor;
+    },
+    onClose,
+    'left'
+  );
+
+  useEffect(() => {
+    wrapRef.current
+      ?.querySelector(`[data-block-index="${safeIndex}"]`)
+      ?.scrollIntoView?.({ block: 'nearest' });
+  }, [safeIndex]);
 
   if (!presence.shouldRender) return null;
 
   let handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing || !filtered.length) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveIndex(Math.min(filtered.length - 1, safeIndex + 1));
@@ -302,12 +289,14 @@ export function BlocksPopover({
 
   return createPortal(
     <Wrap
+      role="menu"
+      aria-label="Blocks"
       ref={wrapRef}
       data-state={presence.dataState}
       style={{ left: position.left, top: position.top }}
       $width={width}
       $maxHeight={maxHeight}
-      onMouseDown={e => e.preventDefault()}
+      onMouseDown={preserveEditorSelection}
     >
       {showSearch && (
         <Search
@@ -349,6 +338,8 @@ export function BlocksPopover({
               return (
                 <RowBtn
                   key={item.title}
+                  role="menuitem"
+                  data-block-index={myIndex}
                   type="button"
                   $selected={myIndex === safeIndex}
                   $active={item.title === activeTitle}

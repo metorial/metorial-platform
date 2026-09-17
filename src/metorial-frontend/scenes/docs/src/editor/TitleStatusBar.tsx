@@ -245,6 +245,8 @@ export function TitleStatusBar({
       <Bar>
         <EditorsTrigger
           ref={triggerRef}
+          aria-expanded={open}
+          aria-haspopup="menu"
           type="button"
           data-title-status-editors-trigger="true"
           onClick={toggle}
@@ -309,10 +311,10 @@ export function TitleStatusBar({
       </Bar>
 
       <Popover
+        triggerRef={triggerRef}
         open={open}
         anchor={anchor}
         width={300}
-        ignoreClickOnSelector={TRIGGER_SELECTOR}
         onClose={closeMenu}
       >
         <PopoverList>

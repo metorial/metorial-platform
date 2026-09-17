@@ -17,12 +17,12 @@ import { assertUrlAllowedByEgressPolicy } from '../network/egressPolicy';
 import { buildClientRegistrationMetadata } from './clientRegistrationMetadata';
 import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
 import { getOAuthRegistrationErrorDetails } from './oauthRegistrationError';
-import { isTransientRegistrationError } from './registrationRetry';
 import {
   formatOAuthRequestError,
   getOAuthRequestErrorDetails,
   type OAuthRequestErrorDetails
 } from './oauthRequestError';
+import { isTransientRegistrationError } from './registrationRetry';
 import {
   type OAuthConfiguration,
   type RegistrationResponse,
@@ -460,15 +460,15 @@ export class OAuthUtils {
         }
       });
 
-      if (captureErrors) {
-        Sentry.captureException(error, {
-          extra: {
-            registrationEndpoint: config.registration_endpoint,
-            tenantId: tenant.id,
-            status: details.status
-          }
-        });
-      }
+      // if (captureErrors) {
+      //   Sentry.captureException(error, {
+      //     extra: {
+      //       registrationEndpoint: config.registration_endpoint,
+      //       tenantId: tenant.id,
+      //       status: details.status
+      //     }
+      //   });
+      // }
 
       return {
         ok: false as const,

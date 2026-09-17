@@ -160,6 +160,35 @@ function getCurrentBlockLabel(target: ProseMirrorNode | null): string | undefine
   return undefined;
 }
 
+function normalizeNextDragImage(event: DragEvent) {
+  let transfer = event.dataTransfer;
+  if (!transfer) return;
+
+  let original = transfer.setDragImage;
+  let descriptor = Object.getOwnPropertyDescriptor(transfer, 'setDragImage');
+  let patched = (image: Element, x: number, y: number) => {
+    let firstBlock = image instanceof HTMLElement ? image.firstElementChild : null;
+    if (firstBlock instanceof HTMLElement) firstBlock.style.marginTop = '0px';
+    original.call(transfer, image, x, y);
+  };
+
+  try {
+    Object.defineProperty(transfer, 'setDragImage', {
+      configurable: true,
+      writable: true,
+      value: patched
+    });
+  } catch {
+    return;
+  }
+
+  queueMicrotask(() => {
+    if (transfer.setDragImage !== patched) return;
+    if (descriptor) Object.defineProperty(transfer, 'setDragImage', descriptor);
+    else Reflect.deleteProperty(transfer, 'setDragImage');
+  });
+}
+
 export function BlockHandle({ editor, onMenuOpenChange }: Props) {
   let currentRef = useRef<{
     node: ProseMirrorNode;
@@ -189,22 +218,23 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
   let draggingRef = useRef(false);
 
   let lock = useCallback(() => {
-    if (lockedRef.current) return;
+    if (lockedRef.current || editor.isDestroyed) return;
     lockedRef.current = true;
-    editor.commands.lockDragHandle();
+    editor.commands.setMeta('lockDragHandle', true);
   }, [editor]);
 
   let unlock = useCallback(() => {
     if (!lockedRef.current) return;
     lockedRef.current = false;
-    editor.commands.unlockDragHandle();
+    if (!editor.isDestroyed) editor.commands.setMeta('lockDragHandle', false);
   }, [editor]);
 
   useEffect(() => {
     return () => {
       if (lockedRef.current && !editor.isDestroyed) {
-        editor.commands.unlockDragHandle();
+        editor.commands.setMeta('lockDragHandle', false);
       }
+      lockedRef.current = false;
     };
   }, [editor]);
 
@@ -239,7 +269,6 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
     setMenuOpen(false);
     setPinnedHandleAnchor(null);
     pinnedNodeRef.current = null;
-    menuTriggerRef.current = null;
     unlock();
   }, [unlock]);
 
@@ -285,7 +314,10 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
     let raf = 0;
     let updatePinned = () => {
       let node = pinnedNodeRef.current;
-      if (!node || !node.isConnected) return;
+      if (!node || !node.isConnected) {
+        closeMenu();
+        return;
+      }
       let rect = node.getBoundingClientRect();
       if (!Number.isFinite(rect.left) || !Number.isFinite(rect.top)) return;
       if (rect.width === 0 && rect.height === 0) return;
@@ -312,15 +344,24 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
         prev.left === nextMenu.left && prev.top === nextMenu.top ? prev : nextMenu
       );
     };
-    let tick = () => {
-      updatePinned();
-      raf = window.requestAnimationFrame(tick);
+    let update = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updatePinned);
     };
-    tick();
+    updatePinned();
+    let observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(editor.view.dom);
+    editor.on('transaction', update);
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
     return () => {
       window.cancelAnimationFrame(raf);
+      observer?.disconnect();
+      editor.off('transaction', update);
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
     };
-  }, [menuOpen]);
+  }, [menuOpen, editor, closeMenu]);
 
   useEffect(() => {
     onMenuOpenChange?.(menuOpen);
@@ -503,7 +544,8 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
   // useEffect re-registers (and resets) the entire ProseMirror plugin chain
   // whenever any of these references change, which would clobber other
   // plugin views (e.g. the slash command menu) on every render.
-  let onElementDragStart = useCallback(() => {
+  let onElementDragStart = useCallback((event: DragEvent) => {
+    normalizeNextDragImage(event);
     draggingRef.current = true;
     pressRef.current = null;
     if (menuOpenRef.current) setMenuOpen(false);
@@ -583,17 +625,14 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
         onElementDragEnd={onElementDragEnd}
         onNodeChange={onNodeChange}
       >
-        {!isHidden && !menuOpen && (
+        {!isHidden && (
           <HandleBtn
+            style={{ visibility: menuOpen ? 'hidden' : undefined }}
             type="button"
             data-block-handle="true"
             title="Drag to move · Click to change type"
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
-            onMouseEnter={lock}
-            onMouseLeave={() => {
-              if (!menuOpenRef.current) unlock();
-            }}
           >
             <IconGrip />
           </HandleBtn>
@@ -611,6 +650,7 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
         </PinnedHandle>
       )}
       <BlockMenu
+        triggerRef={menuTriggerRef}
         open={menuOpen}
         anchor={menuAnchor}
         isCodeBlock={currentNodeType === 'codeBlock'}

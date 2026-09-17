@@ -1,6 +1,9 @@
+import { mapLinkRange } from './linkRange';
+import { useBubbleOverlay } from './useBubbleOverlay';
+import { preserveEditorSelection } from './overlays';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { BubbleMenu } from '@tiptap/react/menus';
+import { BubbleMenu } from './BubbleMenu';
 import type { Editor } from '@tiptap/react';
 import { PluginKey, type EditorState } from '@tiptap/pm/state';
 import { CellSelection } from '@tiptap/pm/tables';
@@ -184,6 +187,8 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
   let [linkUrl, setLinkUrl] = useState('');
   let [linkError, setLinkError] = useState<string | null>(null);
   let [savedRange, setSavedRange] = useState<SavedRange | null>(null);
+  let savedRangeRef = useRef(savedRange);
+  savedRangeRef.current = savedRange;
   // True when we forced the menu to show despite an empty selection (eg
   // entered link mode from the toolbar with no text selected). Used to
   // hide the menu again when link mode is dismissed.
@@ -195,6 +200,7 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
     (opts: { hideMenu?: boolean } = {}) => {
       setMode('menu');
       setLinkError(null);
+      savedRangeRef.current = null;
       if (!editor) return;
       let shouldHide = opts.hideMenu ?? forcedVisible;
       if (shouldHide) {
@@ -247,10 +253,12 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
     let el = inputRef.current;
     if (!el) return;
     // Defer to next frame so the element is fully attached/visible.
-    requestAnimationFrame(() => {
+    let frame = requestAnimationFrame(() => {
+      if (!el.isConnected) return;
       el.focus();
       el.select();
     });
+    return () => cancelAnimationFrame(frame);
   }, [mode]);
 
   // If the editor's selection moves while link mode is open via natural
@@ -264,6 +272,7 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
       // The selection actually moved (not just doc-only changes).
       setMode('menu');
       setLinkError(null);
+      savedRangeRef.current = null;
       if (forcedVisible) {
         editor.view.dispatch(editor.state.tr.setMeta(inlineBubbleMenuPluginKey, 'hide'));
       }
@@ -276,32 +285,39 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
     };
   }, [editor, mode, forcedVisible]);
 
-  // Click-outside dismissal: while editing a link, clicks anywhere outside
-  // the editor and the menu should cancel link mode and hide the menu.
-  // The bubble-menu plugin only handles editor blur, which doesn't fire
-  // when focus is already on our URL input.
   useEffect(() => {
     if (!editor || mode !== 'link') return;
-    let onMouseDown = (e: MouseEvent) => {
-      let target = e.target as Node | null;
-      if (!target) return;
-      if (editor.view.dom.contains(target)) return;
-      let menu = inputRef.current?.closest('[data-link-mode="true"]');
-      if (menu && menu.contains(target)) return;
-      closeLinkMode({ hideMenu: true });
+    let mapRange = ({
+      transaction
+    }: {
+      transaction: import('@tiptap/pm/state').Transaction;
+    }) => {
+      let range = savedRangeRef.current;
+      if (!range || !transaction.docChanged) return;
+      let next = mapLinkRange(range, transaction);
+      if (!next) {
+        savedRangeRef.current = null;
+        closeLinkMode({ hideMenu: true });
+        return;
+      }
+      savedRangeRef.current = next;
+      setSavedRange(next);
     };
-    document.addEventListener('mousedown', onMouseDown, true);
-    return () => document.removeEventListener('mousedown', onMouseDown, true);
+    editor.on('transaction', mapRange);
+    return () => {
+      editor.off('transaction', mapRange);
+    };
   }, [editor, mode, closeLinkMode]);
 
   let applyLink = useCallback(() => {
-    if (!editor || !savedRange) return;
+    let range = savedRangeRef.current;
+    if (!editor || !range) return;
     let result = validateLinkUrl(linkUrl);
     if (!result.ok) {
       setLinkError(result.reason);
       return;
     }
-    let { from, to } = savedRange;
+    let { from, to } = range;
     let isEmpty = from === to;
     if (isEmpty) {
       // Insert the URL as link text at the saved position.
@@ -327,19 +343,14 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
         .run();
     }
     closeLinkMode({ hideMenu: isEmpty });
-  }, [editor, savedRange, linkUrl, closeLinkMode]);
+  }, [editor, linkUrl, closeLinkMode]);
 
   let removeLink = useCallback(() => {
-    if (!editor || !savedRange) return;
-    editor
-      .chain()
-      .focus()
-      .setTextSelection(savedRange)
-      .extendMarkRange('link')
-      .unsetLink()
-      .run();
+    let range = savedRangeRef.current;
+    if (!editor || !range) return;
+    editor.chain().focus().setTextSelection(range).extendMarkRange('link').unsetLink().run();
     closeLinkMode({ hideMenu: false });
-  }, [editor, savedRange, closeLinkMode]);
+  }, [editor, closeLinkMode]);
 
   let openLink = useCallback(() => {
     let result = validateLinkUrl(linkUrl);
@@ -350,7 +361,13 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
     window.open(result.url, '_blank', 'noopener,noreferrer');
   }, [linkUrl]);
 
-  let options = useMemo(() => BUBBLE_MENU_OPTIONS, []);
+  let overlay = useBubbleOverlay(editor, inlineBubbleMenuPluginKey, () =>
+    closeLinkMode({ hideMenu: true })
+  );
+  let options = useMemo(
+    () => ({ ...BUBBLE_MENU_OPTIONS, ...overlay.lifecycle }),
+    [overlay.lifecycle]
+  );
 
   if (!editor) return null;
 
@@ -361,9 +378,9 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
       editor={editor}
       pluginKey={inlineBubbleMenuPluginKey}
       options={options}
-      shouldShow={bubbleShouldShow}
+      shouldShow={props => overlay.canShow() && bubbleShouldShow(props)}
     >
-      <Floating onMouseDown={e => e.preventDefault()}>
+      <Floating ref={overlay.element} onMouseDown={preserveEditorSelection}>
         {mode === 'menu' ? (
           <>
             <InlineTurnIntoDropdown editor={editor} />
@@ -444,6 +461,7 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
                   if (linkError) setLinkError(null);
                 }}
                 onKeyDown={e => {
+                  if (e.nativeEvent.isComposing) return;
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     applyLink();
