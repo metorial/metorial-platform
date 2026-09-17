@@ -40,6 +40,18 @@ vi.mock('@metorial-subspace/module-integration', () => ({
   isLiveAdapterInstanceStatus: (status: string) => status === 'draft' || status === 'active'
 }));
 
+vi.mock('@metorial-subspace/module-search', () => ({
+  voyager: { record: { delete: vi.fn(), index: vi.fn() } },
+  voyagerIndex: {
+    chat: { id: 'chat-index' },
+    chatChannel: { id: 'channel-index' },
+    chatWorkspace: { id: 'workspace-index' }
+  },
+  voyagerSource: Promise.resolve({ id: 'source' })
+}));
+
+vi.mock('./env', () => ({ env: { service: { REDIS_URL: 'redis://test' } } }));
+
 vi.mock('./queues/lifecycle', () => ({
   enqueueChatConnectionArchived: vi.fn(),
   enqueueChatConnectionCreated: vi.fn(),
@@ -52,6 +64,18 @@ vi.mock('./queues/lifecycle', () => ({
 vi.mock('./queues/sync', () => ({
   enqueueSyncChatWorkspacesForProvider: vi.fn(),
   enqueueSyncChatInstanceProviderAuthorization: vi.fn()
+}));
+
+vi.mock('./queues/search/chat', () => ({ enqueueIndexChatChildren: vi.fn() }));
+vi.mock('./queues/search/chatConnectionProvider', () => ({
+  enqueueIndexChatConnectionProvider: vi.fn()
+}));
+vi.mock('./queues/search/chatInstanceProvider', () => ({
+  enqueueIndexChatInstanceProvider: vi.fn()
+}));
+
+vi.mock('./queues/attachment/cleanup', () => ({
+  enqueueChatMessageAttachmentCleanup: vi.fn()
 }));
 
 import {

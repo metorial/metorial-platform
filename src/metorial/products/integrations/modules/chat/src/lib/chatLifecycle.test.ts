@@ -20,7 +20,19 @@ let { tx } = vi.hoisted(() => {
 });
 
 vi.mock('@metorial-subspace/db', () => ({
-  withTransaction: async (cb: (db: any) => Promise<any>) => await cb(tx)
+  withTransaction: async (cb: (db: any) => Promise<any>) => await cb(tx),
+  addAfterTransactionHook: async (hook: () => Promise<any>) => await hook()
+}));
+
+vi.mock('../queues/attachment/cleanup', () => ({
+  enqueueChatMessageAttachmentCleanup: vi.fn()
+}));
+vi.mock('../queues/search/chat', () => ({ enqueueIndexChats: vi.fn() }));
+vi.mock('../queues/search/chatChannel', () => ({
+  enqueueIndexChatChannels: vi.fn()
+}));
+vi.mock('../queues/search/chatWorkspace', () => ({
+  enqueueIndexChatWorkspaces: vi.fn()
 }));
 
 import { archiveChatsWhere, deleteChatsWhere, restoreChatsWhere } from './chatLifecycle';
@@ -30,6 +42,7 @@ describe('chatLifecycle', () => {
     vi.clearAllMocks();
     tx.chat.updateMany.mockResolvedValue({ count: 1 });
     tx.chat.findMany.mockResolvedValue([]);
+    tx.chatMessage.findMany.mockResolvedValue([]);
     tx.chatMessage.deleteMany.mockResolvedValue({ count: 0 });
     tx.chatThread.deleteMany.mockResolvedValue({ count: 0 });
     tx.chatChannel.deleteMany.mockResolvedValue({ count: 0 });
@@ -69,13 +82,16 @@ describe('chatLifecycle', () => {
 
   it('deletes nested workspace, thread, channel, and message rows then marks chats deleted', async () => {
     tx.chat.findMany
-      .mockResolvedValueOnce([{ oid: 500n }, { oid: 501n }])
+      .mockResolvedValueOnce([
+        { oid: 500n, id: 'cht_1', workspace: null, channels: [] },
+        { oid: 501n, id: 'cht_2', workspace: null, channels: [] }
+      ])
       .mockResolvedValueOnce([]);
 
     await deleteChatsWhere({ chatConnectionOid: 10n });
 
     expect(tx.chatMessage.deleteMany).toHaveBeenCalledWith({
-      where: { author: { chatOid: { in: [500n, 501n] } } }
+      where: { oid: { in: [] } }
     });
     expect(tx.chatThread.deleteMany).toHaveBeenCalledWith({
       where: { chatOid: { in: [500n, 501n] } }

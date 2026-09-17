@@ -1,5 +1,8 @@
 import { withTransaction } from '@metorial-subspace/db';
 import { enqueueChatMessageAttachmentCleanup } from '../queues/attachment/cleanup';
+import { enqueueIndexChats } from '../queues/search/chat';
+import { enqueueIndexChatChannels } from '../queues/search/chatChannel';
+import { enqueueIndexChatWorkspaces } from '../queues/search/chatWorkspace';
 
 export type ChatLifecycleWhere = {
   oid?: bigint | { in: bigint[] };
@@ -47,7 +50,12 @@ export let deleteChatsWhere = async (where: ChatLifecycleWhere) => {
           AND: [where, { status: { not: 'deleted' } }]
         },
         take: 100,
-        select: { oid: true }
+        select: {
+          oid: true,
+          id: true,
+          workspace: { select: { id: true } },
+          channels: { select: { id: true } }
+        }
       });
       if (chats.length === 0) return true;
 
@@ -89,6 +97,13 @@ export let deleteChatsWhere = async (where: ChatLifecycleWhere) => {
           isParentDeleted: true
         }
       });
+      await enqueueIndexChats(chats.map(chat => chat.id));
+      await enqueueIndexChatWorkspaces(
+        chats.flatMap(chat => (chat.workspace ? [chat.workspace.id] : []))
+      );
+      await enqueueIndexChatChannels(
+        chats.flatMap(chat => chat.channels.map(channel => channel.id))
+      );
 
       return false;
     });
