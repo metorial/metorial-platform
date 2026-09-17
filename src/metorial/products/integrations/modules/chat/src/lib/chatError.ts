@@ -178,7 +178,7 @@ export let describeChatFailure = (output: AdapterCallFailureOutput | unknown) =>
   if (!parsed) return { code: 'unknown', message: 'Unknown chat adapter failure' };
 
   return {
-    code: parsed.slate.code ?? parsed.chat?.code,
+    code: parsed.chat?.code ?? parsed.slate.code,
     message: parsed.slate.message,
     status: parsed.slate.status,
     retryable: isChatErrorRetryable(output),

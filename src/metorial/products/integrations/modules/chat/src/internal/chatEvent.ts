@@ -307,6 +307,16 @@ class chatEventInternalServiceImpl {
     }
 
     await usingChatMessageLock(chat.oid, async () => {
+      let alreadyProcessed = await db.chatEvent.findUnique({
+        where: {
+          callbackEventOid_chatOid: {
+            callbackEventOid: d.callbackEvent.oid,
+            chatOid: chat.oid
+          }
+        }
+      });
+      if (alreadyProcessed) return;
+
       let persisted = await this.persist({
         ...d,
         chat,

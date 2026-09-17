@@ -58,6 +58,24 @@ vi.mock('../queues/search/chatWorkspace', () => ({
   enqueueIndexChatWorkspaces: vi.fn()
 }));
 
+vi.mock('../services/chat', () => ({ chatInclude: {} }));
+
+vi.mock('./chatEventPayload', () => ({
+  chatEventPresenterContext: { apiVersion: 'mt_2026_01_01_magnetar', accessType: 'event_system' }
+}));
+
+vi.mock('./chatEvent', () => ({
+  chatEventInternalService: { recordLifecycleEvent: vi.fn() }
+}));
+
+vi.mock('@metorial/presenters', () => {
+  let presenterStub = () => ({ present: () => () => ({ run: async () => ({}) }) });
+  return {
+    chatPresenter: presenterStub(),
+    chatWorkspacePresenter: presenterStub()
+  };
+});
+
 import { chatWorkspaceInternalService } from './chatWorkspace';
 
 let workspaceSyncHash = (payload: Record<string, unknown>) =>

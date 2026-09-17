@@ -85,13 +85,22 @@ class remoteOAuthRegistrationServiceImpl {
     }
 
     let isTransient = reg?.isTransient ?? false;
-    let baseErrorMessage =
-      reg?.message ??
-      'OAuth client registration failed because the provider could not be reached';
-    let detail = reg?.description ? `: ${reg.description}` : '';
+
+    let diagnosticParts: string[] = [];
+    if (reg?.status != null) diagnosticParts.push(`HTTP ${reg.status}`);
+    if (reg?.oauthCode) diagnosticParts.push(`OAuth error ${reg.oauthCode}`);
+    let baseErrorMessage = diagnosticParts.length
+      ? `OAuth client registration failed (${diagnosticParts.join(', ')})`
+      : 'OAuth client registration failed because the provider could not be reached';
     let errorMessage = isTransient
-      ? `${baseErrorMessage}${detail}. Try again later.`
-      : `${baseErrorMessage}${detail}. Configure OAuth client credentials manually to continue.`;
+      ? `${baseErrorMessage}. Try again later.`
+      : `${baseErrorMessage}. Configure OAuth client credentials manually to continue.`;
+
+    let detailedBaseMessage = reg?.message ?? baseErrorMessage;
+    let detail = reg?.description ? `: ${reg.description}` : '';
+    let detailedMessage = isTransient
+      ? `${detailedBaseMessage}${detail}. Try again later.`
+      : `${detailedBaseMessage}${detail}. Configure OAuth client credentials manually to continue.`;
 
     await db.remoteOAuthConnection.update({
       where: { oid: connection.oid },
@@ -109,7 +118,7 @@ class remoteOAuthRegistrationServiceImpl {
         connectionOid: connection.oid,
         type: 'auto_registration_failed',
         metadata: {
-          error: (reg?.error.payload as any)?.error ?? 'unknown_error',
+          error: (reg?.error?.payload as any)?.error ?? 'unknown_error',
           errorCode: 'auto_registration_failed',
           attempt,
           status: reg?.status ?? null,
@@ -126,7 +135,7 @@ class remoteOAuthRegistrationServiceImpl {
       diagnostics: {
         status: reg?.status ?? null,
         oauthCode: reg?.oauthCode ?? null,
-        message: errorMessage,
+        message: detailedMessage,
         description: reg?.description ?? null,
         responseText: reg?.responseText ?? 'null',
         responseTruncated: reg?.responseTruncated ?? false,

@@ -50,7 +50,11 @@ export class OAuthDiscovery {
         `${baseUrl}${normalizedPath}/.well-known/oauth-protected-resource`,
         `${baseUrl}${normalizedPath}/oauth/metadata.json`,
         `${baseUrl}/.well-known/openid-configuration`,
-        `${baseUrl}/oauth/metadata.json`
+        `${baseUrl}/oauth/metadata.json`,
+
+        // Fallback: providers that publish metadata at the host root regardless of path
+        `${baseUrl}/.well-known/oauth-protected-resource`,
+        `${baseUrl}/.well-known/oauth-authorization-server`
       ])
     );
   }

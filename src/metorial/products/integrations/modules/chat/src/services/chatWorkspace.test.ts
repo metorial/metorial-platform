@@ -170,7 +170,8 @@ describe('chatWorkspaceService', () => {
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => true,
       call: vi.fn(async () => ({
-        result: { type: 'failure', output: { message: 'provider down' } }
+        result: { type: 'failure', output: { message: 'provider down' } },
+        message: { oid: BigInt(71), id: 'smg_1' }
       }))
     });
 
@@ -191,7 +192,10 @@ describe('chatWorkspaceService', () => {
 
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => true,
-      call: vi.fn(async () => failure(chatError('chat.auth.missing_scope')))
+      call: vi.fn(async () => ({
+        ...failure(chatError('chat.auth.missing_scope')),
+        message: { oid: BigInt(71), id: 'smg_1' }
+      }))
     });
 
     let paginator = await chatWorkspaceService.listChatWorkspacesInternal({
@@ -216,7 +220,8 @@ describe('chatWorkspaceService', () => {
         result: {
           type: 'failure',
           output: JSON.parse(JSON.stringify(chatError('chat.workspace.not_found')))
-        }
+        },
+        message: { oid: BigInt(71), id: 'smg_1' }
       }))
     });
 
@@ -240,7 +245,8 @@ describe('chatWorkspaceService', () => {
         result: {
           type: 'failure',
           output: JSON.parse(JSON.stringify(chatError('chat.rate_limit.exceeded')))
-        }
+        },
+        message: { oid: BigInt(71), id: 'smg_1' }
       }))
     });
 
@@ -368,7 +374,8 @@ describe('chatWorkspaceService', () => {
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => true,
       call: vi.fn(async () => ({
-        result: { type: 'failure', output: { message: 'missing' } }
+        result: { type: 'failure', output: { message: 'missing' } },
+        message: { oid: BigInt(71), id: 'smg_1' }
       }))
     });
 

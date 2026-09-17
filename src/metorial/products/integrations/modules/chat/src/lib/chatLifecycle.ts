@@ -62,7 +62,7 @@ export let deleteChatsWhere = async (where: ChatLifecycleWhere) => {
       let chatOids = chats.map(chat => chat.oid);
 
       let messages = await db.chatMessage.findMany({
-        where: { author: { chatOid: { in: chatOids } } },
+        where: { channel: { chatOid: { in: chatOids } } },
         select: { oid: true }
       });
       let messageOids = messages.map(message => message.oid);
