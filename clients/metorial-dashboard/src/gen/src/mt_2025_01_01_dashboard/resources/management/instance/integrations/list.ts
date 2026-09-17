@@ -81,6 +81,7 @@ export type ManagementInstanceIntegrationsListOutput = {
           };
           createdAt: Date;
           updatedAt: Date;
+          authCredentialsIsManaged: boolean;
           sync: {
             object: 'callback.sync';
             status: 'pending' | 'synced' | 'failed';
@@ -400,6 +401,10 @@ export let mapManagementInstanceIntegrationsListOutput =
                         updatedAt: mtMap.objectField(
                           'updated_at',
                           mtMap.date()
+                        ),
+                        authCredentialsIsManaged: mtMap.objectField(
+                          'auth_credentials_is_managed',
+                          mtMap.passthrough()
                         ),
                         sync: mtMap.objectField(
                           'sync',

@@ -20,6 +20,7 @@ export type CallbacksCreateOutput = {
   };
   createdAt: Date;
   updatedAt: Date;
+  authCredentialsIsManaged: boolean;
   sync: {
     object: 'callback.sync';
     status: 'pending' | 'synced' | 'failed';
@@ -58,6 +59,10 @@ export let mapCallbacksCreateOutput = mtMap.object<CallbacksCreateOutput>({
   ),
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+  authCredentialsIsManaged: mtMap.objectField(
+    'auth_credentials_is_managed',
+    mtMap.passthrough()
+  ),
   sync: mtMap.objectField(
     'sync',
     mtMap.object({

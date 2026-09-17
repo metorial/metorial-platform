@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackType } from '../../../types';
-import { v1ProviderPreview } from '../provider';
+import { v1ProviderPreview } from '../provider/providerPreview';
 
 export let callbackSyncPresenter = Object.assign(
   (callback: {
@@ -172,12 +172,21 @@ export let dashboardCallbackPresenter = Presenter.create(callbackType)
 
     return {
       ...inner,
+      auth_credentials_is_managed: callback.integrationProvider.currentVersion?.authCredentials
+        ? callback.integrationProvider.currentVersion.authCredentials.origin !==
+          'tenant_created'
+        : false,
       sync: callbackSyncPresenter(callback)
     };
   })
   .schema(
     v.object({
       ...v1CallbackPresenter.schema.properties,
+      auth_credentials_is_managed: v.boolean({
+        name: 'auth_credentials_is_managed',
+        description: 'Whether the selected auth credentials are managed by Metorial',
+        examples: [true, false]
+      }),
       sync: callbackSyncPresenter.schema
     }) as any
   )

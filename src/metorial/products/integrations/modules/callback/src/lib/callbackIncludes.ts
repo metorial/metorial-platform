@@ -2,7 +2,13 @@ import type { Prisma } from '@metorial-subspace/db';
 
 export let callbackInclude = {
   integration: true,
-  integrationProvider: true,
+  integrationProvider: {
+    include: {
+      currentVersion: {
+        include: { authCredentials: true }
+      }
+    }
+  },
   provider: { include: { type: true } }
 } as const;
 

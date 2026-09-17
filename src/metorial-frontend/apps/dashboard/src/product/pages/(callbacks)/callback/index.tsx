@@ -40,10 +40,12 @@ export let CallbackOverviewPage = () => {
         <CallbackPendingCallout sync={callback.data.sync} />
         {callback.data.sync.status !== 'synced' ? <Spacer height={20} /> : null}
 
-        <CallbackWebhookRegistrationsBox
-          instanceId={instance.data.id}
-          providerId={callback.data.provider.id}
-        />
+        {!callback.data.authCredentialsIsManaged ? (
+          <CallbackWebhookRegistrationsBox
+            instanceId={instance.data.id}
+            providerId={callback.data.provider.id}
+          />
+        ) : null}
 
         {flags.data?.flags['webhooks-enabled'] ? (
           <>
