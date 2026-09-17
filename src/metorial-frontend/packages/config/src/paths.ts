@@ -354,22 +354,6 @@ let InstancePaths = Object.assign(
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'callback', id, ...subPages);
     },
-    callbackEvents: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'callback-events', ...subPages),
-    callbackEvent: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      id?: string,
-      ...subPages: SubPages
-    ) => {
-      if (!id) return '#';
-      return InstancePaths(organization, project, instance, 'callback-event', id, ...subPages);
-    },
     incomingWebhook: (
       organization: EntityParam,
       project: EntityParam,
@@ -426,6 +410,68 @@ let InstancePaths = Object.assign(
         id,
         ...subPages
       );
+    },
+    eventDestinationSettings: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'event-destination',
+        id,
+        'settings',
+        ...subPages
+      );
+    },
+    eventDestinationListeners: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths.eventDestinationSettings(
+        organization,
+        project,
+        instance,
+        id,
+        'listeners',
+        ...subPages
+      );
+    },
+    eventDestinationDeliveries: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths.eventDestination(
+        organization,
+        project,
+        instance,
+        id,
+        'deliveries',
+        ...subPages
+      );
+    },
+    eventDelivery: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'event-delivery', id, ...subPages);
     },
     events: (
       organization: EntityParam,

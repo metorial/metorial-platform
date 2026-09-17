@@ -6,6 +6,7 @@ import type {
   DashboardInstanceChatConnectionsUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -38,6 +39,26 @@ export let useHasChatConnections = (instanceId: string | null | undefined) => {
 
   return { ...data, hasChatConnections: (data.data?.items.length ?? 0) > 0 };
 };
+
+export let allChatConnectionsLoader = createLoader({
+  name: 'allChatConnections',
+  parents: [chatConnectionsLoader],
+  fetch: (
+    i: { instanceId: string } & Omit<DashboardInstanceChatConnectionsListQuery, 'limit'>
+  ) =>
+    withAuth(sdk => {
+      let { instanceId, ...query } = i;
+      return autoPaginate(cursor =>
+        sdk.chat.connections.list(instanceId, { ...query, ...cursor })
+      );
+    }),
+  mutators: {}
+});
+
+export let useAllChatConnections = (
+  instanceId: string | null | undefined,
+  query?: Omit<DashboardInstanceChatConnectionsListQuery, 'limit'>
+) => allChatConnectionsLoader.use(instanceId ? { instanceId, ...query } : null);
 
 export let useCreateChatConnection = chatConnectionsLoader.createExternalMutator(
   (i: { instanceId: string } & DashboardInstanceChatConnectionsCreateBody) => {
