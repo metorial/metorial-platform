@@ -2,7 +2,9 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/audit-search';
 import {
+  addAfterTransactionHook,
   db,
   EventDestination,
   EventDestinationStatus,
@@ -20,6 +22,7 @@ import {
   MIN_RETRY_DELAY_SECONDS
 } from '@metorial/module-event-delivery';
 import { buildListenerTargetOrBlocks } from '../lib/listenerTargetMatch';
+import { indexEventDestinationQueue } from '../queues/search/eventDestination';
 
 export let eventDestinationInclude = {
   webhookDestination: true,
@@ -85,6 +88,7 @@ class EventDestinationServiceImpl {
     statuses?: EventDestinationStatus[];
     callbackIds?: string[];
     chatConnectionIds?: string[];
+    search?: string;
   }) {
     let targetBlocks = await buildListenerTargetOrBlocks({
       callbackIds: d.callbackIds,
@@ -104,6 +108,16 @@ class EventDestinationServiceImpl {
           ? targetBlocks[0]
           : { OR: targetBlocks };
 
+    let search = d.search?.trim();
+    let searchResults = search
+      ? await voyager.record.search({
+          tenantId: d.organization.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.eventDestination.id,
+          query: search
+        })
+      : null;
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
         db.eventDestination.findMany({
@@ -111,7 +125,10 @@ class EventDestinationServiceImpl {
           where: {
             organizationOid: d.organization.oid,
             status: d.statuses ? { in: d.statuses } : 'active',
-            AND: destinationAnd.length ? destinationAnd : undefined
+            AND: [
+              ...destinationAnd,
+              searchResults ? { id: { in: searchResults.map(r => r.documentId) } } : undefined!
+            ].filter(Boolean)
           },
           include: {
             webhookDestination: true,
@@ -195,6 +212,10 @@ class EventDestinationServiceImpl {
         input: { type: d.input.type }
       });
 
+      addAfterTransactionHook(() =>
+        indexEventDestinationQueue.add({ eventDestinationId: eventDestination.id })
+      );
+
       return eventDestination;
     });
   }
@@ -252,6 +273,10 @@ class EventDestinationServiceImpl {
         input: { name: d.input.name, description: d.input.description }
       });
 
+      addAfterTransactionHook(() =>
+        indexEventDestinationQueue.add({ eventDestinationId: eventDestination.id })
+      );
+
       return eventDestination;
     });
   }
@@ -282,6 +307,10 @@ class EventDestinationServiceImpl {
         eventDestination,
         previousEventDestination: d.eventDestination
       });
+
+      addAfterTransactionHook(() =>
+        indexEventDestinationQueue.add({ eventDestinationId: eventDestination.id })
+      );
 
       return eventDestination;
     });

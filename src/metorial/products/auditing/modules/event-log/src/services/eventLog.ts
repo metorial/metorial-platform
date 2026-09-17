@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import { callbackEventService } from '@metorial-subspace/module-callback';
 import { chatEventService } from '@metorial-subspace/module-chat';
 import { db, Organization, SystemEventSource } from '@metorial/db';
+import { DateFilter, normalizeDateFilter } from '@metorial/list-utils';
 import { webhookEvents } from '@metorial/webhook-event-schema';
 
 export let systemEventInclude = {
@@ -24,6 +25,7 @@ class EventLogServiceImpl {
     callbackTriggerKeys?: string[];
     chatConnectionIds?: string[];
     providerIds?: string[];
+    createdAt?: DateFilter;
   }) {
     let instanceOid: bigint | undefined;
     if (d.instanceId) {
@@ -53,7 +55,8 @@ class EventLogServiceImpl {
             chatConnectionId: d.chatConnectionIds?.length
               ? { in: d.chatConnectionIds }
               : undefined,
-            providerId: d.providerIds?.length ? { in: d.providerIds } : undefined
+            providerId: d.providerIds?.length ? { in: d.providerIds } : undefined,
+            createdAt: normalizeDateFilter(d.createdAt)
           },
           include: systemEventInclude
         })
