@@ -1,3 +1,4 @@
+import { useEditorOverlay, useOverlayPosition } from '../overlays';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -25,7 +26,8 @@ let PopoverWrap = styled.div`
   position: fixed;
   z-index: 1000;
   width: 240px;
-  max-height: 320px;
+  max-width: calc(100vw - 16px);
+  max-height: min(320px, calc(100vh - 16px));
   display: flex;
   flex-direction: column;
   background: ${({ theme }) => theme.color.bg};
@@ -111,7 +113,6 @@ export function LanguagePicker({ value, onChange }: Props) {
   let presence = usePresence(open, 140);
   let [search, setSearch] = useState('');
   let [activeIndex, setActiveIndex] = useState(0);
-  let [coords, setCoords] = useState<{ left: number; top: number } | null>(null);
 
   let filtered = useMemo(() => {
     let q = search.trim().toLowerCase();
@@ -119,45 +120,32 @@ export function LanguagePicker({ value, onChange }: Props) {
     return LANGUAGES.filter(l => l.toLowerCase().includes(q));
   }, [search]);
 
+  useEditorOverlay(open, {
+    element: () => popoverRef.current,
+    trigger: () => buttonRef.current,
+    close: () => setOpen(false),
+    restoreFocus: () => buttonRef.current?.focus()
+  });
+  let position = useOverlayPosition(
+    presence.shouldRender,
+    popoverRef,
+    () => {
+      if (!buttonRef.current?.isConnected) return null;
+      let rect = buttonRef.current.getBoundingClientRect();
+      if (!rect.width && !rect.height) return null;
+      return { left: rect.left, top: rect.bottom + 4 };
+    },
+    () => setOpen(false)
+  );
   useEffect(() => {
-    if (!open) return;
-    let updatePos = () => {
-      let btn = buttonRef.current;
-      if (!btn) return;
-      let rect = btn.getBoundingClientRect();
-      setCoords({ left: rect.left, top: rect.bottom + 4 });
-    };
-    updatePos();
-    window.addEventListener('resize', updatePos);
-    window.addEventListener('scroll', updatePos, true);
-    return () => {
-      window.removeEventListener('resize', updatePos);
-      window.removeEventListener('scroll', updatePos, true);
-    };
+    if (open) {
+      setSearch('');
+      setActiveIndex(0);
+    }
   }, [open]);
-
   useEffect(() => {
-    if (!open) return;
-    let onClick = (e: MouseEvent) => {
-      let target = e.target as Node;
-      if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) {
-        return;
-      }
-      setOpen(false);
-    };
-    let onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-    document.addEventListener('mousedown', onClick);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+    popoverRef.current?.querySelector('.is-focused')?.scrollIntoView?.({ block: 'nearest' });
+  }, [activeIndex]);
 
   let safeActiveIndex = Math.min(activeIndex, Math.max(0, filtered.length - 1));
 
@@ -169,6 +157,7 @@ export function LanguagePicker({ value, onChange }: Props) {
   };
 
   let handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing || !filtered.length) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveIndex(Math.min(filtered.length - 1, safeActiveIndex + 1));
@@ -194,6 +183,8 @@ export function LanguagePicker({ value, onChange }: Props) {
           setOpen(o => !o);
         }}
         onMouseDown={e => e.preventDefault()}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         title="Change language"
       >
         <span>{value || 'plaintext'}</span>
@@ -207,13 +198,12 @@ export function LanguagePicker({ value, onChange }: Props) {
         </svg>
       </button>
       {presence.shouldRender &&
-        coords &&
         createPortal(
           <PopoverWrap
             ref={popoverRef}
             className="code-block-lang-popover"
             data-state={presence.dataState}
-            style={{ left: coords.left, top: coords.top }}
+            style={position}
             contentEditable={false}
           >
             <Search
@@ -234,6 +224,8 @@ export function LanguagePicker({ value, onChange }: Props) {
               {filtered.map((lang, i) => (
                 <Item
                   key={lang}
+                  role="option"
+                  aria-selected={lang === value}
                   className={
                     'code-block-lang-item' +
                     (lang === value ? ' is-active' : '') +

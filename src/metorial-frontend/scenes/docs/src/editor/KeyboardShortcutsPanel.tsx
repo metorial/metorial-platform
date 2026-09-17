@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Panel } from '@metorial/ui';
+import { useDismissEditorOverlays } from './overlays';
 
 interface KeyboardShortcutsPanelProps {
   open: boolean;
@@ -224,6 +225,8 @@ function KeyCombo({ shortcut, isMac }: KeyComboProps) {
 }
 
 export function KeyboardShortcutsPanel({ open, onOpenChange }: KeyboardShortcutsPanelProps) {
+  useDismissEditorOverlays(open);
+
   let isMac = useIsMac();
   let sections = useMemo(() => SECTIONS, []);
 

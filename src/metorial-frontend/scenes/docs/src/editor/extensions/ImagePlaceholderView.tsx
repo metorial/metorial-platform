@@ -1,3 +1,4 @@
+import { useEditorOverlay } from '../overlays';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { NodeViewWrapper } from '@tiptap/react';
@@ -226,6 +227,12 @@ export function ImagePlaceholderView({
   let [dragOver, setDragOver] = useState(false);
   let [showUrl, setShowUrl] = useState(false);
   let [urlValue, setUrlValue] = useState('');
+  let urlFormRef = useRef<HTMLFormElement | null>(null);
+  useEditorOverlay(showUrl, {
+    element: () => urlFormRef.current,
+    close: () => setShowUrl(false),
+    restoreFocus: () => editor.view.focus()
+  });
   let [status, setStatus] = useState<'idle' | 'uploading' | 'error'>(attrs.status ?? 'idle');
   let [error, setError] = useState<string | null>(attrs.errorMessage ?? null);
   let [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -374,7 +381,7 @@ export function ImagePlaceholderView({
               <span className="error">{error}</span>
             </>
           ) : showUrl ? (
-            <form onSubmit={onSubmitUrl} style={{ display: 'flex', gap: 6 }}>
+            <form ref={urlFormRef} onSubmit={onSubmitUrl} style={{ display: 'flex', gap: 6 }}>
               <input
                 type="url"
                 autoFocus

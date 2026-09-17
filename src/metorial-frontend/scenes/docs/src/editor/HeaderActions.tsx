@@ -165,6 +165,8 @@ export function TitleButton({ title, location, readOnly, onTitleChange }: TitleB
     <>
       <TitleTriggerBtn
         ref={triggerRef}
+        aria-expanded={open}
+        aria-haspopup="menu"
         type="button"
         data-header-popover-trigger="true"
         onClick={isReadOnly ? undefined : toggle}
@@ -179,10 +181,10 @@ export function TitleButton({ title, location, readOnly, onTitleChange }: TitleB
       </TitleTriggerBtn>
       {!isReadOnly && (
         <Popover
+          triggerRef={triggerRef}
           open={open}
           anchor={anchor}
           width={300}
-          ignoreClickOnSelector={POPOVER_TRIGGER_SELECTOR}
           onClose={closeMenu}
         >
           <PopoverInner>
@@ -528,6 +530,8 @@ export function ShareButton({
       <ShareTriggerWrap data-header-popover-trigger="true">
         <Button
           ref={triggerRef}
+          aria-expanded={open}
+          aria-haspopup="menu"
           type="button"
           variant="solid"
           size="2"
@@ -539,11 +543,11 @@ export function ShareButton({
         </Button>
       </ShareTriggerWrap>
       <Popover
+        triggerRef={triggerRef}
         open={open}
         anchor={anchor}
         align="right"
         width={skillShareContext ? 450 : 320}
-        ignoreClickOnSelector={POPOVER_TRIGGER_SELECTOR}
         onClose={closeMenu}
       >
         {skillShareContext ? (
@@ -757,6 +761,8 @@ export function SettingsButton({
     <>
       <IconButton
         ref={triggerRef}
+        aria-expanded={open}
+        aria-haspopup="menu"
         type="button"
         data-header-popover-trigger="true"
         title="Page settings"
@@ -767,11 +773,11 @@ export function SettingsButton({
         <IconDots />
       </IconButton>
       <Popover
+        triggerRef={triggerRef}
         open={open}
         anchor={anchor}
         align="right"
         width={300}
-        ignoreClickOnSelector={POPOVER_TRIGGER_SELECTOR}
         onClose={closeMenu}
       >
         <PopoverList>

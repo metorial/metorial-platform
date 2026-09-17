@@ -4,6 +4,8 @@ import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
 import { filterItems, SlashMenu, type SlashItem, type SlashMenuRef } from './SlashMenu';
 import type { Theme } from '../styles/theme';
 import { createRef } from 'react';
+import { dismissSlash } from './extensions/SlashCommand';
+import { registerEditorOverlay } from './overlays';
 
 type ItemsProps = Parameters<NonNullable<SuggestionOptions<SlashItem>['items']>>[0];
 
@@ -30,12 +32,15 @@ export let slashSuggestion = (
     let exitTimer: ReturnType<typeof setTimeout> | null = null;
     let lastProps: SuggestionProps<SlashItem> | null = null;
     let ref = createRef<SlashMenuRef>();
+    let unregister: (() => void) | null = null;
+    let cleanupPosition: (() => void) | null = null;
+    let active = false;
 
     let positionAt = (rect: DOMRect | null | undefined) => {
       if (!host || !rect) return;
       let padding = 8;
-      let menuWidth = 280;
-      let menuHeight = 340;
+      let menuWidth = host.getBoundingClientRect().width || 280;
+      let menuHeight = host.getBoundingClientRect().height || 340;
       let viewportWidth = window.innerWidth;
       let viewportHeight = window.innerHeight;
 
@@ -55,7 +60,7 @@ export let slashSuggestion = (
       }
 
       host.style.left = `${left}px`;
-      host.style.top = `${top}px`;
+      host.style.top = `${Math.max(window.scrollY + padding, Math.min(top, window.scrollY + viewportHeight - menuHeight - padding))}px`;
     };
 
     let renderMenu = (props: SuggestionProps<SlashItem>, closing = false) => {
@@ -73,6 +78,11 @@ export let slashSuggestion = (
     };
 
     let teardown = () => {
+      active = false;
+      unregister?.();
+      unregister = null;
+      cleanupPosition?.();
+      cleanupPosition = null;
       if (exitTimer) {
         clearTimeout(exitTimer);
         exitTimer = null;
@@ -87,19 +97,50 @@ export let slashSuggestion = (
 
     return {
       onStart: props => {
-        if (exitTimer) {
-          clearTimeout(exitTimer);
-          exitTimer = null;
-        }
+        teardown();
+        active = true;
         host = document.createElement('div');
         host.style.position = 'absolute';
         host.style.zIndex = '1000';
         host.style.pointerEvents = 'auto';
+        host.style.maxWidth = 'calc(100vw - 16px)';
+        host.style.maxHeight = 'calc(100vh - 16px)';
+        host.style.overflow = 'auto';
         document.body.appendChild(host);
         root = createRoot(host);
         lastProps = props;
         renderMenu(props);
         positionAt(props.clientRect?.());
+        unregister = registerEditorOverlay({
+          element: () => host,
+          trigger: () => props.editor.view.dom,
+          close: () => dismissSlash(props.editor.view)
+        });
+        let reposition = () => {
+          let rect = lastProps?.clientRect?.();
+          if (!rect) {
+            dismissSlash(props.editor.view);
+            return;
+          }
+          positionAt(rect);
+        };
+        let onFocus = (event: FocusEvent) => {
+          let target = event.target as Node;
+          if (!host?.contains(target) && !props.editor.view.dom.contains(target))
+            dismissSlash(props.editor.view);
+        };
+        let observer =
+          typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reposition);
+        observer?.observe(host);
+        window.addEventListener('scroll', reposition, true);
+        window.addEventListener('resize', reposition);
+        document.addEventListener('focusin', onFocus);
+        cleanupPosition = () => {
+          observer?.disconnect();
+          window.removeEventListener('scroll', reposition, true);
+          window.removeEventListener('resize', reposition);
+          document.removeEventListener('focusin', onFocus);
+        };
       },
 
       onUpdate: props => {
@@ -109,16 +150,37 @@ export let slashSuggestion = (
       },
 
       onKeyDown: props => {
+        if (!active || props.event.isComposing) return false;
         if (props.event.key === 'Escape') {
-          if (host) host.style.display = 'none';
+          dismissSlash(props.view);
           return true;
         }
+        if (
+          props.event.key === 'Enter' &&
+          (props.event.shiftKey || !lastProps?.items.length)
+        ) {
+          dismissSlash(props.view);
+          return false;
+        }
+        if (
+          props.event.shiftKey ||
+          props.event.metaKey ||
+          props.event.ctrlKey ||
+          props.event.altKey
+        )
+          return false;
         return ref.current?.onKeyDown(props.event) ?? false;
       },
 
       // Re-render the menu in its closing state so the exit animation can
       // play, then actually unmount once it has finished.
       onExit: () => {
+        active = false;
+        unregister?.();
+        unregister = null;
+        cleanupPosition?.();
+        cleanupPosition = null;
+        if (host) host.style.pointerEvents = 'none';
         if (!root || !host) return teardown();
         if (lastProps) renderMenu(lastProps, true);
         exitTimer = setTimeout(teardown, 160);

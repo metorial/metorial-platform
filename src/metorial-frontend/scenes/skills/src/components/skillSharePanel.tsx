@@ -178,7 +178,9 @@ let InvitePermissionLabel = styled.div`
   color: ${theme.colors.gray700};
 `;
 
-let EmptyState = styled.div``;
+let EmptyState = styled.div`
+  padding: 5px 15px 12px 15px;
+`;
 
 let inviteAccessItems = [
   { id: 'read', label: 'Can view' },
@@ -202,9 +204,7 @@ let getSkillItems = (skills: SkillSharePanelSkill[]) =>
   skills.map(skill => ({ id: skill.id, label: getSkillLabel(skill) }));
 
 let getParticipantPermission = (roles: string[]): 'read' | 'write' =>
-  roles.some(role => role == 'creator' || role == 'editor')
-    ? 'write'
-    : 'read';
+  roles.some(role => role == 'creator' || role == 'editor') ? 'write' : 'read';
 
 let canParticipantWrite = (roles: string[]) =>
   roles.some(role => role == 'creator' || role == 'editor');
@@ -247,7 +247,10 @@ export let SkillSharePanelContent = (p: {
     order: 'asc'
   });
   let accessibleParticipants = useMemo(
-    () => (participants.data?.items ?? []).filter(participant => hasParticipantAccess(participant.roles)),
+    () =>
+      (participants.data?.items ?? []).filter(participant =>
+        hasParticipantAccess(participant.roles)
+      ),
     [participants.data?.items]
   );
   let consumerProfiles = usePortalConsumerProfiles(p.instanceId, activePortalId, {
@@ -772,14 +775,13 @@ export let SkillSharePanelContent = (p: {
                         </AccessRow>
                       );
                     })}
-                    {!participants.isLoading &&
-                      accessibleParticipants.length == 0 && (
-                        <EmptyState>
-                          <Text size="2" color="gray600">
-                            No accounts have access yet.
-                          </Text>
-                        </EmptyState>
-                      )}
+                    {!participants.isLoading && accessibleParticipants.length == 0 && (
+                      <EmptyState>
+                        <Text size="2" color="gray600">
+                          No accounts have access yet.
+                        </Text>
+                      </EmptyState>
+                    )}
                   </RowList>
                 </>
               )}

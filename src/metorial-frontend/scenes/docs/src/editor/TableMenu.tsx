@@ -1,5 +1,7 @@
+import { useBubbleOverlay } from './useBubbleOverlay';
+import { preserveEditorSelection } from './overlays';
 import { useCallback, useMemo } from 'react';
-import { BubbleMenu } from '@tiptap/react/menus';
+import { BubbleMenu } from './BubbleMenu';
 import type { Editor } from '@tiptap/react';
 import { PluginKey } from '@tiptap/pm/state';
 import { CellSelection, moveTableColumn, moveTableRow, selectedRect } from '@tiptap/pm/tables';
@@ -92,7 +94,7 @@ let tableMenuPluginKey = new PluginKey('tableMenu');
 let TABLE_MENU_OPTIONS = {
   placement: 'top',
   offset: 8,
-  flip: false,
+  flip: true,
   shift: { padding: 8 }
 } as const;
 
@@ -263,7 +265,11 @@ export function TableMenu({ editor }: Props) {
     [editor]
   );
 
-  let options = useMemo(() => TABLE_MENU_OPTIONS, []);
+  let overlay = useBubbleOverlay(editor, tableMenuPluginKey);
+  let options = useMemo(
+    () => ({ ...TABLE_MENU_OPTIONS, ...overlay.lifecycle }),
+    [overlay.lifecycle]
+  );
 
   let getReferencedVirtualElement = useCallback(() => {
     if (!editor) return null;
@@ -296,11 +302,11 @@ export function TableMenu({ editor }: Props) {
       editor={editor}
       pluginKey={tableMenuPluginKey}
       options={options}
-      shouldShow={tableShouldShow}
+      shouldShow={props => overlay.canShow() && tableShouldShow(props)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       updateDelay={0}
     >
-      <Floating onMouseDown={e => e.preventDefault()}>
+      <Floating ref={overlay.element} onMouseDown={preserveEditorSelection}>
         <InlineFormatting editor={editor} />
         {context !== 'cells' && <Divider />}
 

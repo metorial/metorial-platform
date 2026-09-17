@@ -1,3 +1,4 @@
+import { useEditorOverlay, hasEditorOverlay } from './overlays';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type { Editor } from '@tiptap/react';
@@ -180,6 +181,12 @@ export function TableOfContents({
   onInitialHashScrollComplete
 }: TableOfContentsProps) {
   let [expanded, setExpanded] = useState(false);
+  let overlayRef = useRef<HTMLElement | null>(null);
+  useEditorOverlay(expanded, {
+    element: () => overlayRef.current,
+    automatic: true,
+    close: () => setExpanded(false)
+  });
   let [items, setItems] = useState<TocItem[]>(() => getHeadingItems(editor));
   let [activeId, setActiveId] = useState<string | null>(null);
   let lastHandledHashRef = useRef<string | null>(null);
@@ -288,9 +295,12 @@ export function TableOfContents({
 
   return (
     <Wrap
+      ref={overlayRef}
       $expanded={expanded && hasItems}
       $visible={hasItems}
-      onMouseEnter={() => setExpanded(true)}
+      onMouseEnter={() => {
+        if (!hasEditorOverlay()) setExpanded(true);
+      }}
       onMouseLeave={() => setExpanded(false)}
       aria-label="Table of contents"
       aria-hidden={!hasItems}

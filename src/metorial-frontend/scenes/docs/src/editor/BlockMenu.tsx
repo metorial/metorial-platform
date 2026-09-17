@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEditorOverlay, useOverlayPosition } from './overlays';
+import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import type { Theme } from '../styles/theme';
@@ -20,6 +21,9 @@ let EXIT = 140;
 
 let Wrap = styled.div`
   position: fixed;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
   z-index: 1000;
   width: 260px;
   max-height: 360px;
@@ -162,6 +166,7 @@ let ActionBtn = styled.button<{ $danger?: boolean }>`
 let turnIntoItems = slashItems.filter(i => i.convertible && i.icon);
 
 interface Props {
+  triggerRef?: { current: HTMLElement | null };
   open: boolean;
   anchor: { left: number; top: number };
   isCodeBlock?: boolean;
@@ -181,6 +186,7 @@ interface Props {
 }
 
 export function BlockMenu({
+  triggerRef,
   open,
   anchor,
   isCodeBlock = false,
@@ -203,38 +209,26 @@ export function BlockMenu({
   let showTurnInto = !isCodeBlock && !isImageBlock;
   let showTopSection = isCodeBlock || showTurnInto;
 
-  useEffect(() => {
-    if (!open) return;
-    let onMouse = (e: MouseEvent) => {
-      if (!wrapRef.current) return;
-      let target = e.target as Element | null;
-      if (wrapRef.current.contains(target as Node)) return;
-      if (target?.closest('[data-block-handle="true"]')) return;
-      if (target?.closest('.code-block-lang-popover')) return;
-      onClose();
-    };
-    let onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', onMouse);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onMouse);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, onClose]);
+  useEditorOverlay(open, {
+    element: () => wrapRef.current,
+    trigger: () => triggerRef?.current ?? null,
+    close: onClose,
+    restoreFocus: () => triggerRef?.current?.focus()
+  });
 
+  let position = useOverlayPosition(
+    presence.shouldRender,
+    wrapRef,
+    () => {
+      if (triggerRef && !triggerRef.current?.isConnected) return null;
+      return anchor;
+    },
+    onClose
+  );
   if (!presence.shouldRender) return null;
 
   return createPortal(
-    <Wrap
-      ref={wrapRef}
-      data-state={presence.dataState}
-      style={{ left: anchor.left, top: anchor.top }}
-    >
+    <Wrap ref={wrapRef} data-state={presence.dataState} style={position}>
       <Scroll>
         {isCodeBlock ? (
           <>
