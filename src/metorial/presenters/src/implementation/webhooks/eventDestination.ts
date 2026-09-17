@@ -20,7 +20,6 @@ export let v1EventDestinationPresenter = Presenter.create(eventDestinationType)
           signing_secret: revealSecret ?? null
         }
       : null,
-
     listeners: await Promise.all(
       eventDestination.listeners.map(listener =>
         v1EventDestinationListenerPresenter

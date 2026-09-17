@@ -16,6 +16,7 @@ import { getAxiosSsrfFilter } from '../http/axiosSsrf';
 import { assertUrlAllowedByEgressPolicy } from '../network/egressPolicy';
 import { buildClientRegistrationMetadata } from './clientRegistrationMetadata';
 import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
+import { getOAuthRegistrationErrorDetails } from './oauthRegistrationError';
 import { isTransientRegistrationError } from './registrationRetry';
 import {
   type OAuthConfiguration,
@@ -435,7 +436,7 @@ export class OAuthUtils {
         registration: reg
       };
     } catch (error: any) {
-      let status = typeof error?.response?.status == 'number' ? error.response.status : null;
+      let details = getOAuthRegistrationErrorDetails(error);
 
       let err = await db.remoteOAuthRegistrationError.create({
         data: {
@@ -445,7 +446,16 @@ export class OAuthUtils {
           connectionOid: owner?.connection?.oid || null,
 
           payload: {
-            error: error?.response?.data || error.message
+            error: {
+              status: details.status,
+              oauthCode: details.oauthCode,
+              message: details.message,
+              description: details.description,
+              response: details.response,
+              responseTruncated: details.responseTruncated,
+              contentType: details.contentType,
+              retryAfterMs: details.retryAfterMs
+            }
           }
         }
       });
@@ -455,7 +465,7 @@ export class OAuthUtils {
           extra: {
             registrationEndpoint: config.registration_endpoint,
             tenantId: tenant.id,
-            status
+            status: details.status
           }
         });
       }
@@ -463,8 +473,15 @@ export class OAuthUtils {
       return {
         ok: false as const,
         error: err,
-        status,
-        isTransient: isTransientRegistrationError({ status })
+        status: details.status,
+        oauthCode: details.oauthCode,
+        message: details.message ?? details.summary,
+        description: details.description,
+        responseText: details.responseText,
+        responseTruncated: details.responseTruncated,
+        contentType: details.contentType,
+        retryAfterMs: details.retryAfterMs,
+        isTransient: isTransientRegistrationError({ status: details.status })
       };
     }
   }

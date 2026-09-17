@@ -48,7 +48,8 @@ export let serverOAuthCredentialsController = app.controller({
 
         clientId: v.optional(v.string()),
         clientSecret: v.optional(v.string()),
-        scopes: v.optional(v.array(v.string()))
+        scopes: v.optional(v.array(v.string())),
+        reuseDefault: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -65,7 +66,8 @@ export let serverOAuthCredentialsController = app.controller({
 
           clientId: ctx.input.clientId,
           clientSecret: ctx.input.clientSecret,
-          scopes: ctx.input.scopes
+          scopes: ctx.input.scopes,
+          reuseDefault: ctx.input.reuseDefault
         }
       });
 

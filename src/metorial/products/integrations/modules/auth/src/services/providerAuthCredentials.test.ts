@@ -190,4 +190,27 @@ describe('createProviderAuthCredentialsInternal double writes', () => {
     expect(where).not.toHaveProperty('projectOid');
     expect(where).not.toHaveProperty('instanceOid');
   });
+
+  it('requests default credential reuse only for default auto-registration', async () => {
+    let params = makeParams() as any;
+    params.isDefault = true;
+    params.input.config = { type: 'auto_registration' };
+
+    await providerAuthCredentialsService.createProviderAuthCredentialsInternal(params);
+
+    expect(mocks.backendCreateProviderAuthCredentials).toHaveBeenCalledWith(
+      expect.objectContaining({ reuseDefaultCredentials: true })
+    );
+  });
+
+  it('does not request default credential reuse for explicit credentials', async () => {
+    let params = makeParams() as any;
+    params.isDefault = true;
+
+    await providerAuthCredentialsService.createProviderAuthCredentialsInternal(params);
+
+    expect(mocks.backendCreateProviderAuthCredentials).toHaveBeenCalledWith(
+      expect.objectContaining({ reuseDefaultCredentials: false })
+    );
+  });
 });

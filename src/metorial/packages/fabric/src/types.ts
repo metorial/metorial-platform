@@ -852,6 +852,9 @@ export interface FabricEvents {
   'organization.event_delivery.retried:before': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination } };
   'organization.event_delivery.retried:after': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination }; previousEventDelivery: EventDeliveryIntent };
 
+  'organization.event_delivery.retried:before': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination } };
+  'organization.event_delivery.retried:after': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination }; previousEventDelivery: EventDeliveryIntent };
+
   'instance.event_destination_listener.created:before': { instance: Instance; auditScope: AuditScope; input: { type: EventDestinationListener['type'] } };
   'instance.event_destination_listener.created:after': { instance: Instance; auditScope: AuditScope; listener: EventDestinationListener & { eventDestination: EventDestination }; input: { type: EventDestinationListener['type'] } };
   'instance.event_destination_listener.updated:before': { instance: Instance; auditScope: AuditScope; listener: EventDestinationListener & { eventDestination: EventDestination }; input: { eventTypes?: string[]; triggers?: string[] } };

@@ -37,7 +37,10 @@ let connection = (partial: Record<string, any> = {}) => ({
   secretOid: null,
   registrationAttemptCount: 0,
   tenant: { oid: 2n, id: 'ten_test', name: 'Test' },
-  config: { oid: 3n, config: { registration_endpoint: 'https://provider.example.com/register' } },
+  config: {
+    oid: 3n,
+    config: { registration_endpoint: 'https://provider.example.com/register' }
+  },
   _count: { remoteOAuthConnectionAuthTokens: 0, serverAuthConfigs: 0 },
   ...partial
 });
@@ -95,6 +98,13 @@ describe('runAutoRegistration', () => {
       ok: false,
       error: { payload: { error: { message: 'Validation failed' } } },
       status: 400,
+      oauthCode: 'invalid_client_metadata',
+      message: 'Invalid redirect URI',
+      description: 'redirect_uris is not allowed',
+      responseText: '{"error":"invalid_client_metadata"}',
+      responseTruncated: false,
+      contentType: 'application/json',
+      retryAfterMs: null,
       isTransient: false
     });
 
@@ -102,7 +112,20 @@ describe('runAutoRegistration', () => {
       connectionId: 'cso_test'
     });
 
-    expect(res).toEqual({ ok: false, reason: 'failed', isTransient: false });
+    expect(res).toEqual(
+      expect.objectContaining({
+        ok: false,
+        reason: 'failed',
+        isTransient: false,
+        diagnostics: expect.objectContaining({
+          status: 400,
+          oauthCode: 'invalid_client_metadata',
+          message:
+            'Invalid redirect URI: redirect_uris is not allowed. Configure OAuth client credentials manually to continue.',
+          responseText: '{"error":"invalid_client_metadata"}'
+        })
+      })
+    );
     expect(dbMock.remoteOAuthConnection.update).toHaveBeenLastCalledWith({
       where: { oid: 10n },
       data: expect.objectContaining({
@@ -128,7 +151,9 @@ describe('runAutoRegistration', () => {
       connectionId: 'cso_test'
     });
 
-    expect(res).toEqual({ ok: false, reason: 'failed', isTransient: true });
+    expect(res).toEqual(
+      expect.objectContaining({ ok: false, reason: 'failed', isTransient: true })
+    );
     expect(dbMock.remoteOAuthConnection.update).toHaveBeenLastCalledWith({
       where: { oid: 10n },
       data: expect.objectContaining({ registrationAttemptCount: 3 })

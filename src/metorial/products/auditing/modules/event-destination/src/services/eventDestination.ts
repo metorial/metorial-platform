@@ -6,6 +6,7 @@ import {
   db,
   EventDestination,
   EventDestinationStatus,
+  type EventDeliveryRetryStrategy,
   ID,
   Organization,
   WebhookDestination,
