@@ -104,7 +104,10 @@ export type DashboardInstanceProvidersTriggersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { providerVersionId: string };
+} & {
+  providerVersionId?: string | undefined;
+  userManagedCallbacks?: boolean | undefined;
+};
 
 export let mapDashboardInstanceProvidersTriggersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -117,6 +120,10 @@ export let mapDashboardInstanceProvidersTriggersListQuery = mtMap.union([
       order: mtMap.objectField('order', mtMap.passthrough()),
       providerVersionId: mtMap.objectField(
         'provider_version_id',
+        mtMap.passthrough()
+      ),
+      userManagedCallbacks: mtMap.objectField(
+        'user_managed_callbacks',
         mtMap.passthrough()
       )
     })

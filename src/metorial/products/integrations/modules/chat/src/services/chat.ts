@@ -20,6 +20,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { syncChatWorkspacesForProviderQueue } from '../queues/sync/workspaces';
 
 export let chatInclude = {
@@ -70,6 +71,15 @@ class chatServiceImpl {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
+    let search = d.search
+      ? await voyager.record.search({
+          tenantId: d.tenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.chat.id,
+          query: d.search
+        })
+      : null;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -97,18 +107,7 @@ class chatServiceImpl {
                       }
                     }
                   : undefined!,
-                d.search
-                  ? {
-                      OR: [
-                        { name: { contains: d.search, mode: 'insensitive' as const } },
-                        {
-                          workspace: {
-                            name: { contains: d.search, mode: 'insensitive' as const }
-                          }
-                        }
-                      ]
-                    }
-                  : undefined!,
+                search ? { id: { in: search.map(result => result.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)

@@ -25,13 +25,6 @@ export let v1EventDeliveryPresenter = Presenter.create(eventDeliveryType)
         }
       : null,
 
-    retry: {
-      strategy: eventDelivery.retryStrategy,
-      max_attempts: eventDelivery.retryMaxAttempts,
-      base_delay_seconds: eventDelivery.retryBaseDelaySeconds,
-      max_delay_seconds: eventDelivery.retryMaxDelaySeconds
-    },
-
     attempts: await Promise.all(
       eventDelivery.attempts.map(attempt =>
         v1EventDeliveryAttemptPresenter

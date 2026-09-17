@@ -12,8 +12,6 @@ let readJsonObject = async (bucket: string, key: string) => {
   return JSON.parse(object.data.toString('utf-8'));
 };
 
-// A payload starts out inline on the row and is moved into object storage by a flush cron, so it
-// may live in either place depending on the row's age.
 export let resolveSystemEventDeliveryPayload = async (
   event: Pick<SystemEvent, 'source' | 'chatEventId' | 'payloadJson' | 'payloadStorageKey'>
 ): Promise<Record<string, any> | null> => {

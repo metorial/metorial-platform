@@ -6,14 +6,13 @@ import { withAuth } from '../../user';
 export let providerTriggersLoader = createLoader({
   name: 'providerTriggers',
   parents: [],
-  fetch: async (
-    i: {
-      instanceId: string;
-      providerVersionId: string;
-    } & DashboardInstanceProvidersTriggersListQuery
-  ) => {
+  fetch: async (i: { instanceId: string } & DashboardInstanceProvidersTriggersListQuery) => {
     return await withAuth(sdk =>
-      autoPaginate(c => sdk.providers.triggers.list(i.instanceId, { ...i, ...c }))
+      autoPaginate(
+        c => sdk.providers.triggers.list(i.instanceId, { ...i, ...c }),
+        undefined,
+        1000
+      )
     );
   },
   mutators: {}

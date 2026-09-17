@@ -26,9 +26,6 @@ export let IntegrationCallbacksPage = () => {
       let providers = (integration.data.providers ?? []).filter(
         provider => provider.callbacks.status === 'enabled'
       );
-      let callbackIds = providers.flatMap(provider =>
-        provider.callbacks.callback ? [provider.callbacks.callback.id] : []
-      );
 
       let rows = providers.map(provider => {
         let callback = provider.callbacks.callback;
@@ -92,21 +89,6 @@ export let IntegrationCallbacksPage = () => {
               <Table headers={['Provider', 'Delivery', 'Callback ID']} data={rows} />
             </PageHeaderSection>
           )}
-
-          {/* <Spacer height={50} />
-
-          <PageHeaderSection
-            title="Events"
-            description="Provider events recorded for this integration's callbacks."
-          >
-            <PaginationSearchParamsProvider enabled={true}>
-              <CallbackEventsTable
-                instanceId={instance.data.id}
-                filters={{ integrationId: integration.data.id }}
-                emptyState="No events have been recorded for this integration yet."
-              />
-            </PaginationSearchParamsProvider>
-          </PageHeaderSection> */}
         </>
       );
     }

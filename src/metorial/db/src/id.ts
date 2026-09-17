@@ -292,7 +292,7 @@ export let ID = createIdGenerator({
 
   eventDestination: idType.sorted('evtd'),
   webhookDestination: idType.sorted('whd'),
-  webhookSigningSecret: idType.key('whsec'),
+  webhookSigningSecret: idType.key('metorial_whsec_', 50),
   eventDestinationListener: idType.sorted('evtl'),
   // Note: `evt` isn't actually available — `createIdGenerator` normalizes every prefix to end with
   // `_` (so 'evt' -> 'evt_'), which is an exact collision with `auditEvent: idType.sorted('evt_')`

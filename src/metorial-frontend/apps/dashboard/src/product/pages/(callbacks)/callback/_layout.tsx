@@ -45,7 +45,6 @@ export let CallbackLayout = () => {
       ]}
       tabs={[
         { label: 'Overview', to: callbackPath() },
-        { label: 'Events', to: callbackPath('events') },
         { label: 'Registrations', to: callbackPath('instances') },
         { label: 'Settings', to: callbackPath('settings') }
       ]}

@@ -37,8 +37,6 @@ export let v1EventDeliveryAttemptPresenter = Presenter.create(eventDeliveryAttem
         }
       : null,
 
-    // The status code is kept on the row, the headers and body only in the attempt details — so a
-    // list response still reports what the destination answered, just without the payload.
     response:
       details?.response || attempt.responseStatusCode != null
         ? {

@@ -9,13 +9,6 @@ export type DashboardInstanceIncomingWebhooksListOutput = {
     webhookRegistrationId: string | null;
     providerId: string;
     receivedAt: Date;
-    details: {
-      object: 'incoming_webhook.details';
-      method: string;
-      url: string;
-      headers: Record<string, string>;
-      body: { encoding: 'base64'; content: string } | null;
-    } | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -35,23 +28,7 @@ export let mapDashboardInstanceIncomingWebhooksListOutput =
             mtMap.passthrough()
           ),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          receivedAt: mtMap.objectField('received_at', mtMap.date()),
-          details: mtMap.objectField(
-            'details',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              method: mtMap.objectField('method', mtMap.passthrough()),
-              url: mtMap.objectField('url', mtMap.passthrough()),
-              headers: mtMap.objectField('headers', mtMap.passthrough()),
-              body: mtMap.objectField(
-                'body',
-                mtMap.object({
-                  encoding: mtMap.objectField('encoding', mtMap.passthrough()),
-                  content: mtMap.objectField('content', mtMap.passthrough())
-                })
-              )
-            })
-          )
+          receivedAt: mtMap.objectField('received_at', mtMap.date())
         })
       )
     ),

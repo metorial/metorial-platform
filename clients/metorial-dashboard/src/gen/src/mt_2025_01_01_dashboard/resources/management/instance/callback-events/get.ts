@@ -21,6 +21,7 @@ export type ManagementInstanceCallbackEventsGetOutput = {
     } | null;
     webhook: {
       object: 'callback_event.details.webhook';
+      id: string;
       status: string;
       request: {
         object: 'callback_event.details.webhook.request';
@@ -71,6 +72,7 @@ export let mapManagementInstanceCallbackEventsGetOutput =
           'webhook',
           mtMap.object({
             object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
             status: mtMap.objectField('status', mtMap.passthrough()),
             request: mtMap.objectField(
               'request',

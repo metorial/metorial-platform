@@ -200,16 +200,19 @@ let eventDestinationsTable = new DashboardTable<
     {
       id: 'name',
       isDefault: true,
-      header: 'Destination',
+      header: 'Webhook',
       render: destination => (
-        <div>
-          <Text size="2" weight="strong">
-            {destination.name}
-          </Text>
-          <Text size="1" color="gray600">
-            {destination.webhook?.url ?? 'No endpoint'}
-          </Text>
-        </div>
+        <Text size="2" weight="strong">
+          {destination.name}
+        </Text>
+      )
+    },
+    {
+      id: 'endpoint',
+      isDefault: true,
+      header: 'Endpoint',
+      render: destination => (
+        <Text size="2">{destination.webhook?.url ?? 'Endpoint unavailable'}</Text>
       )
     },
     {
@@ -223,15 +226,17 @@ let eventDestinationsTable = new DashboardTable<
     {
       id: 'listeners',
       isDefault: true,
-      header: 'Subscriptions',
+      header: 'Listeners',
       render: destination =>
         destination.listeners.length ? (
           <Text size="2">
             {destination.listeners.length}{' '}
-            {destination.listeners.length === 1 ? 'subscription' : 'subscriptions'}
+            {destination.listeners.length === 1 ? 'listener' : 'listeners'}
           </Text>
         ) : (
-          <Badge color="orange">None</Badge>
+          <Text size="2" color="gray600">
+            No listeners
+          </Text>
         )
     },
     {
@@ -281,6 +286,6 @@ export let EventDestinationsTable = ({ organizationId }: { organizationId: strin
     organization,
     project,
     emptyState:
-      'No event destinations yet. Create one to have Metorial deliver callback events to your own endpoint.'
+      'No webhooks yet. Create a webhook to start delivering events to your HTTPS endpoint.'
   });
 };

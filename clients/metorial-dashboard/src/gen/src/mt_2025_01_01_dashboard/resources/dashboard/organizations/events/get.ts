@@ -5,14 +5,16 @@ export type DashboardOrganizationsEventsGetOutput = {
   id: string;
   organizationId: string;
   instanceId: string | null;
-  source: 'resource' | 'callback' | 'chat';
+  source: 'resource' | 'callback' | 'chat' | 'ping';
   eventType: string;
-  payload: Record<string, any> | null;
   callbackId: string | null;
+  callbackEventId: string | null;
   callbackTriggerKey: string | null;
   chatEventId: string | null;
-  chatIntegrationId: string | null;
+  chatConnectionId: string | null;
+  providerId: string | null;
   createdAt: Date;
+  payload: Record<string, any> | null;
 };
 
 export let mapDashboardOrganizationsEventsGetOutput =
@@ -23,17 +25,22 @@ export let mapDashboardOrganizationsEventsGetOutput =
     instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
     source: mtMap.objectField('source', mtMap.passthrough()),
     eventType: mtMap.objectField('event_type', mtMap.passthrough()),
-    payload: mtMap.objectField('payload', mtMap.passthrough()),
     callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
+    callbackEventId: mtMap.objectField(
+      'callback_event_id',
+      mtMap.passthrough()
+    ),
     callbackTriggerKey: mtMap.objectField(
       'callback_trigger_key',
       mtMap.passthrough()
     ),
     chatEventId: mtMap.objectField('chat_event_id', mtMap.passthrough()),
-    chatIntegrationId: mtMap.objectField(
-      'chat_integration_id',
+    chatConnectionId: mtMap.objectField(
+      'chat_connection_id',
       mtMap.passthrough()
     ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
+    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    payload: mtMap.objectField('payload', mtMap.passthrough())
   });
 

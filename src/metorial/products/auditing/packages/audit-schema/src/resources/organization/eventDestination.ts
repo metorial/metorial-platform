@@ -18,7 +18,8 @@ export let eventDestinationResource = resource({
   actions: {
     create: true,
     update: true,
-    archive: true
+    archive: true,
+    ping: true
   }
 });
 
@@ -31,6 +32,8 @@ export let eventDestinationListenerResource = resource({
     eventTypes: string[];
     callbackId: string | null;
     triggers: string[];
+    chatConnectionId: string | null;
+    providerId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }>('event_destination_listener'),

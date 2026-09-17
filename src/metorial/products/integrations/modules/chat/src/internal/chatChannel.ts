@@ -13,6 +13,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { isUniqueConstraintError } from '../lib/unique';
+import { enqueueIndexChatChannels } from '../queues/search/chatChannel';
 import { chatAuthorServiceInternal } from './chatAuthor';
 
 export type ChatWithProvider = Chat & {
@@ -150,7 +151,9 @@ class chatChannelServiceInternalImpl {
             });
           }
 
-          return d.channels.map(channel => results.get(channel.id)!);
+          let channels = d.channels.map(channel => results.get(channel.id)!);
+          await enqueueIndexChatChannels(channels.map(channel => channel.id));
+          return channels;
         },
         { ifExists: true }
       );

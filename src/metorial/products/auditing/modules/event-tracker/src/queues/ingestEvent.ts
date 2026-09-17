@@ -3,6 +3,7 @@ import { dispatchSystemEventDelivery } from '@metorial/module-event-delivery';
 import type { PresenterContext } from '@metorial/presenter';
 import { createQueue } from '@metorial/queue';
 import { webhookEvents } from '@metorial/webhook-event-schema';
+import { randomBigInt } from '../lib/oid';
 
 let eventPresenterContext: PresenterContext = {
   apiVersion: 'mt_2026_01_01_magnetar',
@@ -64,9 +65,12 @@ export let systemEventIngestQueueProcessor = systemEventIngestQueue.process(asyn
     .present(data.payload)(eventPresenterContext)
     .run();
 
-  await db.systemEvent.upsert({
+  let oid = randomBigInt();
+
+  let newEvent = await db.systemEvent.upsert({
     where: { id: data.id },
     create: {
+      oid,
       id: data.id,
       source: 'resource',
       eventType: data.eventType,
@@ -77,5 +81,7 @@ export let systemEventIngestQueueProcessor = systemEventIngestQueue.process(asyn
     update: {}
   });
 
-  await dispatchSystemEventDelivery({ systemEventId: data.id });
+  if (newEvent.oid === oid) {
+    await dispatchSystemEventDelivery({ systemEventId: data.id });
+  }
 });

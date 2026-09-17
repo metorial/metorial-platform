@@ -71,7 +71,7 @@ export let IncomingWebhookPage = () => {
           <>
             <Spacer height={20} />
 
-            <Box title="Request Body" noPadding>
+            <Box title="Request Body" noPadding={!!decodedBody}>
               {decodedBody ? (
                 decodedBody.json !== null ? (
                   <CodeBlock
@@ -97,10 +97,23 @@ export let IncomingWebhookPage = () => {
             <Box title="Request Headers">
               {Object.entries(data.details.headers).length ? (
                 <Datalist
-                  items={Object.entries(data.details.headers).map(([name, value]) => ({
-                    label: name,
-                    value: Array.isArray(value) ? value.join(', ') : String(value)
-                  }))}
+                  items={Object.entries(data.details.headers).map(([name, value]) => {
+                    let presentedValue = Array.isArray(value)
+                      ? value.join(', ')
+                      : String(value);
+
+                    if (name.toLowerCase() === 'accept') {
+                      presentedValue = presentedValue
+                        .split(',')
+                        .map(v => v.trim())
+                        .join(', ');
+                    }
+
+                    return {
+                      label: name,
+                      value: presentedValue
+                    };
+                  })}
                 />
               ) : (
                 <Text size="2" color="gray600">

@@ -10,6 +10,7 @@ import {
   mapDashboardOrganizationsEventDestinationsGetOutput,
   mapDashboardOrganizationsEventDestinationsListOutput,
   mapDashboardOrganizationsEventDestinationsListQuery,
+  mapDashboardOrganizationsEventDestinationsPingOutput,
   mapDashboardOrganizationsEventDestinationsRotateWebhookSecretOutput,
   mapDashboardOrganizationsEventDestinationsUpdateBody,
   mapDashboardOrganizationsEventDestinationsUpdateOutput,
@@ -19,6 +20,7 @@ import {
   type DashboardOrganizationsEventDestinationsGetOutput,
   type DashboardOrganizationsEventDestinationsListOutput,
   type DashboardOrganizationsEventDestinationsListQuery,
+  type DashboardOrganizationsEventDestinationsPingOutput,
   type DashboardOrganizationsEventDestinationsRotateWebhookSecretOutput,
   type DashboardOrganizationsEventDestinationsUpdateBody,
   type DashboardOrganizationsEventDestinationsUpdateOutput
@@ -233,6 +235,35 @@ export class MetorialDashboardOrganizationsEventDestinationsEndpoint {
 
     return this._post(request).transform(
       mapDashboardOrganizationsEventDestinationsRotateWebhookSecretOutput
+    );
+  }
+
+  /**
+   * @name Ping event destination
+   * @description Sends a test delivery to this event destination immediately, regardless of its listeners. The ping goes through the normal delivery/retry pipeline and shows up in delivery history.
+   *
+   * @param `organizationId` - string
+   * @param `eventDestinationId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardOrganizationsEventDestinationsPingOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  ping(
+    organizationId: string,
+    eventDestinationId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsEventDestinationsPingOutput> {
+    let path = `dashboard/organizations/${organizationId}/event-destinations/${eventDestinationId}/ping`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsEventDestinationsPingOutput
     );
   }
 }

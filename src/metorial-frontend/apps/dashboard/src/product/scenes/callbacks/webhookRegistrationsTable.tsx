@@ -54,14 +54,18 @@ import {
 
 let showCreateWebhookRegistrationModal = (p: {
   instanceId: string;
+  provider?: { id: string; name: string };
   onCreate: (created: { id: string }) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
-    let [providerId, setProviderId] = useState('');
+    let [providerId, setProviderId] = useState(p.provider?.id ?? '');
     let createRegistration = useCreateWebhookRegistration();
 
     let form = useForm({
-      initialValues: { name: '', description: '' },
+      initialValues: {
+        name: p.provider ? `${p.provider.name} Webhook Receiver` : '',
+        description: ''
+      },
       onSubmit: async values => {
         if (!providerId) return;
 
@@ -93,12 +97,23 @@ let showCreateWebhookRegistrationModal = (p: {
     return (
       <Panel.Wrapper {...dialogProps} width={900}>
         <Panel.Header>
-          <Panel.Title>Create Webhook Receiver</Panel.Title>
+          <Panel.Title>
+            {p.provider
+              ? `Set Up ${p.provider.name} Webhook Receiver`
+              : 'Create Webhook Receiver'}
+          </Panel.Title>
         </Panel.Header>
 
         <Panel.Content>
           {providerId ? (
             <form onSubmit={form.handleSubmit}>
+              <Text size="2" color="gray600">
+                Metorial will create a secure receive URL, then guide you through adding it to
+                the provider and saving any required verification values.
+              </Text>
+
+              <Spacer size={16} />
+
               <Input label="Name" required {...form.getFieldProps('name')} />
               <form.RenderError field="name" />
 
@@ -110,14 +125,25 @@ let showCreateWebhookRegistrationModal = (p: {
               <Spacer size={18} />
 
               <Dialog.Actions>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={createRegistration.isLoading}
-                  onClick={() => setProviderId('')}
-                >
-                  Back
-                </Button>
+                {p.provider ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={createRegistration.isLoading}
+                    onClick={close}
+                  >
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={createRegistration.isLoading}
+                    onClick={() => setProviderId('')}
+                  >
+                    Back
+                  </Button>
+                )}
                 <Button
                   type="submit"
                   loading={createRegistration.isLoading}
@@ -521,9 +547,11 @@ export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) 
 
 export let CreateWebhookRegistrationButton = ({
   instanceId,
+  provider,
   onCreate
 }: {
   instanceId: string;
+  provider?: { id: string; name: string };
   onCreate?: (created: { id: string }) => void;
 }) => (
   <Button
@@ -531,6 +559,7 @@ export let CreateWebhookRegistrationButton = ({
     onClick={() =>
       showCreateWebhookRegistrationModal({
         instanceId,
+        provider,
         onCreate: created => onCreate?.(created)
       })
     }

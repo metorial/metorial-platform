@@ -35,7 +35,7 @@ export let eventDestinationListenerController = Controller.create(
   {
     name: 'Event destination listeners',
     description:
-      "Event destination listeners subscribe an event destination to events for a specific instance — generic resource events, a callback's trigger events, or a chat integration's events."
+      "Event destination listeners subscribe an event destination to events for a specific instance — generic resource events, a callback's trigger events, or a chat connection's events."
   },
   {
     list: organizationGroup
@@ -66,9 +66,13 @@ export let eventDestinationListenerController = Controller.create(
             callback_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by callback ID(s), for listeners whose `type` is `callback`'
             }),
-            chat_integration_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+            chat_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description:
-                'Filter by chat integration ID(s), for listeners whose `type` is `chat`'
+                'Filter by chat connection ID(s), for listeners whose `type` is `chat`'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter by catalog provider ID(s), for listeners targeting all callbacks/connections of that provider'
             }),
             type: v.optional(
               v.union([
@@ -86,7 +90,8 @@ export let eventDestinationListenerController = Controller.create(
           instanceIds: normalizeArrayParam(ctx.query.instance_id),
           eventDestinationIds: normalizeArrayParam(ctx.query.event_destination_id),
           callbackIds: normalizeArrayParam(ctx.query.callback_id),
-          chatIntegrationIds: normalizeArrayParam(ctx.query.chat_integration_id),
+          chatConnectionIds: normalizeArrayParam(ctx.query.chat_connection_id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
           types: normalizeArrayParam(ctx.query.type)
         });
         let list = await paginator.run(ctx.query);
@@ -126,7 +131,7 @@ export let eventDestinationListenerController = Controller.create(
         {
           name: 'Create event destination listener',
           description:
-            "Subscribes an event destination to events for this instance — generic resource events, a callback's trigger events, or a chat integration's events."
+            "Subscribes an event destination to events for this instance — generic resource events, a callback's trigger events, or a chat connection's events."
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.event_destination:write'] }))
@@ -161,11 +166,17 @@ export let eventDestinationListenerController = Controller.create(
               examples: ['evtd_1aBcDeFgHjKlMnPq']
             }),
             type: v.literal('callback', {
-              description: "Listen for a specific callback's trigger events"
+              description:
+                "Listen for a specific callback's trigger events, all callbacks of one provider, or all callbacks (with neither `callback_id` nor `provider_id` set)"
             }),
-            callback_id: v.string({
+            callback_id: v.optional(v.string(), {
               description: 'Callback whose trigger events should be delivered',
               examples: ['clb_1aBcDeFgHjKlMnPq']
+            }),
+            provider_id: v.optional(v.string(), {
+              description:
+                'Catalog provider whose callbacks should be delivered — mutually exclusive with `callback_id`',
+              examples: ['prv_1aBcDeFgHjKlMnPq']
             }),
             triggers: v.array(v.string(), {
               description: 'Callback trigger keys to deliver',
@@ -182,11 +193,17 @@ export let eventDestinationListenerController = Controller.create(
               examples: ['evtd_1aBcDeFgHjKlMnPq']
             }),
             type: v.literal('chat', {
-              description: "Listen for a specific chat integration's events"
+              description:
+                "Listen for a specific chat connection's events, all connections of one provider, or all chat connections (with neither `chat_connection_id` nor `provider_id` set)"
             }),
-            chat_integration_id: v.string({
-              description: 'Chat integration whose events should be delivered',
-              examples: ['chint_1aBcDeFgHjKlMnPq']
+            chat_connection_id: v.optional(v.string(), {
+              description: 'Chat connection whose events should be delivered',
+              examples: ['chc_1aBcDeFgHjKlMnPq']
+            }),
+            provider_id: v.optional(v.string(), {
+              description:
+                'Catalog provider whose chat connections should be delivered — mutually exclusive with `chat_connection_id`',
+              examples: ['prv_1aBcDeFgHjKlMnPq']
             }),
             event_types: v.array(v.string(), {
               description: 'Chat event types to deliver, e.g. `chat.message.received`',
@@ -218,13 +235,15 @@ export let eventDestinationListenerController = Controller.create(
                 ? {
                     eventDestinationId: ctx.body.event_destination_id,
                     type: 'chat',
-                    chatIntegrationId: ctx.body.chat_integration_id,
+                    chatConnectionId: ctx.body.chat_connection_id,
+                    providerId: ctx.body.provider_id,
                     eventTypes: ctx.body.event_types
                   }
                 : {
                     eventDestinationId: ctx.body.event_destination_id,
                     type: 'callback',
                     callbackId: ctx.body.callback_id,
+                    providerId: ctx.body.provider_id,
                     triggers: ctx.body.triggers
                   }
         });

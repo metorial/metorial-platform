@@ -7,6 +7,7 @@ import {
   EventDeliveryIntent,
   EventDeliveryIntentStatus,
   EventDestination,
+  ID,
   Organization,
   SystemEvent,
   withTransaction
@@ -47,7 +48,9 @@ class EventDeliveryServiceImpl {
             eventDestination: d.eventDestinationIds
               ? { id: { in: d.eventDestinationIds } }
               : undefined,
-            instance: d.instanceIds ? { id: { in: d.instanceIds } } : undefined
+            OR: d.instanceIds?.length
+              ? [{ instanceOid: null }, { instance: { id: { in: d.instanceIds } } }]
+              : undefined
           },
           include: eventDeliveryInclude
         })
@@ -100,8 +103,6 @@ class EventDeliveryServiceImpl {
           errorMessage: null,
           completedAt: null,
           nextAttemptAt: new Date(),
-          // A manual retry gets its own budget on top of whatever the automatic attempts used, so
-          // an exhausted delivery can still be replayed without editing the destination.
           retryMaxAttempts: d.eventDelivery.attemptCount + d.eventDelivery.retryMaxAttempts
         },
         include: eventDeliveryInclude
@@ -122,6 +123,74 @@ class EventDeliveryServiceImpl {
     await attemptDeliveryQueue.add(
       { intentId: eventDelivery.id, attemptNumber },
       { id: `event-delivery-attempt:${eventDelivery.id}:${attemptNumber}` }
+    );
+
+    return eventDelivery;
+  }
+
+  async pingEventDestination(d: {
+    organization: Organization;
+    eventDestination: EventDestination;
+    auditScope: AuditScope;
+  }) {
+    if (d.eventDestination.status != 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot ping an archived event destination'
+        })
+      );
+    }
+
+    let eventDelivery = await withTransaction(async db => {
+      await Fabric.fire('organization.event_destination.pinged:before', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        eventDestination: d.eventDestination
+      });
+
+      let systemEvent = await db.systemEvent.create({
+        data: {
+          id: await ID.generateId('systemEvent'),
+          source: 'ping',
+          eventType: 'ping',
+          organizationOid: d.organization.oid,
+          instanceOid: null,
+          payloadJson: { message: 'ping' }
+        }
+      });
+
+      let eventDelivery = await db.eventDeliveryIntent.create({
+        data: {
+          id: await ID.generateId('eventDeliveryIntent'),
+          status: 'pending',
+          type: d.eventDestination.type,
+          retryStrategy: d.eventDestination.retryStrategy,
+          retryMaxAttempts: d.eventDestination.retryMaxAttempts,
+          retryBaseDelaySeconds: d.eventDestination.retryBaseDelaySeconds,
+          retryMaxDelaySeconds: d.eventDestination.retryMaxDelaySeconds,
+          systemEventOid: systemEvent.oid,
+          eventDestinationOid: d.eventDestination.oid,
+          eventDestinationListenerOid: null,
+          organizationOid: d.organization.oid,
+          instanceOid: null,
+          nextAttemptAt: new Date()
+        },
+        include: eventDeliveryInclude
+      });
+
+      await Fabric.fire('organization.event_destination.pinged:after', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        eventDestination: d.eventDestination,
+        eventDelivery
+      });
+
+      return eventDelivery;
+    });
+
+    await attemptDeliveryQueue.add(
+      { intentId: eventDelivery.id, attemptNumber: 1 },
+      { id: `event-delivery-attempt:${eventDelivery.id}:1` }
     );
 
     return eventDelivery;

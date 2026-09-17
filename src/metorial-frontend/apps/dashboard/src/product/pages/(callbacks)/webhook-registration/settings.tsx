@@ -91,9 +91,7 @@ export let WebhookRegistrationSettingsPage = () => {
           let [res] = await deleteMutator.mutate(undefined as never);
           if (!res) return;
 
-          navigate(
-            Paths.instance.webhookRegistrations(organization.data, project.data, instance.data)
-          );
+          navigate(Paths.instance.callbacks(organization.data, project.data, instance.data));
         }}
       />
     </DetailsSettingsLayout>

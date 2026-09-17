@@ -10,7 +10,9 @@ let {
   archiveIntegrationInstanceInternal,
   createIntegrationProviderInternal,
   archiveIntegrationProviderInternal,
-  setIntegrationInstanceProviderInternal
+  setIntegrationInstanceProviderInternal,
+  afterTransactionHooks,
+  enqueueCallbackReconcile
 } = vi.hoisted(() => {
   let createModel = () => ({
     create: vi.fn(),
@@ -46,17 +48,22 @@ let {
     archiveIntegrationInstanceInternal: vi.fn(),
     createIntegrationProviderInternal: vi.fn(),
     archiveIntegrationProviderInternal: vi.fn(),
-    setIntegrationInstanceProviderInternal: vi.fn()
+    setIntegrationInstanceProviderInternal: vi.fn(),
+    afterTransactionHooks: [] as Array<() => Promise<any>>,
+    enqueueCallbackReconcile: vi.fn()
   };
 });
 
 vi.mock('@metorial-subspace/db', () => ({
+  addAfterTransactionHook: async (hook: () => Promise<any>) => {
+    afterTransactionHooks.push(hook);
+  },
   getId: (kind: string) => ({ id: `${kind}_new`, oid: 100n }),
   withTransaction: async (cb: (db: any) => Promise<any>) => await cb(tx)
 }));
 
 vi.mock('@metorial-subspace/module-callback/src/queues/reconcile/callback', () => ({
-  enqueueCallbackReconcile: vi.fn()
+  enqueueCallbackReconcile
 }));
 
 vi.mock('../services/integration', () => ({
@@ -149,6 +156,7 @@ let adapterIntegrationRow = {
 describe('adapter primitives', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    afterTransactionHooks.length = 0;
     tx.adapterIntegration.findFirst.mockResolvedValue(null);
     tx.adapterIntegration.findUniqueOrThrow.mockResolvedValue(adapterIntegrationRow);
     tx.adapterIntegration.create.mockResolvedValue(adapterIntegrationRow);
@@ -311,6 +319,41 @@ describe('adapter primitives', () => {
     });
     expect(second.oid).toBe(first.oid);
     expect(tx.adapterIntegration.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('reconciles callbacks only after adapter provider links commit', async () => {
+    tx.integrationProvider.findMany
+      .mockResolvedValueOnce([{ oid: 70n, providerOid: 8n }])
+      .mockResolvedValueOnce([
+        {
+          oid: 70n,
+          id: 'integrationProvider_1',
+          status: 'active',
+          areCallbacksEnabled: false,
+          provider: {
+            type: { attributes: { triggers: { status: 'enabled' } } },
+            defaultVariant: { oid: 80n }
+          }
+        }
+      ]);
+
+    await ensureAdapterIntegration({
+      tenant,
+      environment,
+      type: 'chat',
+      adapterGlobal,
+      isStandalone: true,
+      presentation: { name: 'Support' }
+    });
+
+    expect(enqueueCallbackReconcile).not.toHaveBeenCalled();
+    expect(afterTransactionHooks).toHaveLength(1);
+
+    await Promise.all(afterTransactionHooks.map(hook => hook()));
+
+    expect(enqueueCallbackReconcile).toHaveBeenCalledWith({
+      integrationProviderId: 'integrationProvider_1'
+    });
   });
 
   it('rejects definition provider writes on existing adapter integrations', async () => {

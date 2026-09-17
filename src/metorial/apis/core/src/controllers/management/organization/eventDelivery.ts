@@ -33,8 +33,7 @@ export let eventDeliveryManagementGroup = organizationGroup.use(async ctx => {
 export let eventDeliveryManagementController = Controller.create(
   {
     name: 'Event deliveries',
-    description:
-      'An event delivery is Metorial’s record of sending one event to one event destination, including every attempt it took to get there.'
+    description: `An event delivery is Metorial's record of sending one event to one event destination, including every attempt it took to get there.`
   },
   {
     list: organizationGroup

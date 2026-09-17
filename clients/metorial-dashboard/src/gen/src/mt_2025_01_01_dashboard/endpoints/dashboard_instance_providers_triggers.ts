@@ -41,7 +41,7 @@ export class MetorialDashboardInstanceProvidersTriggersEndpoint {
 
   /**
    * @name List provider triggers
-   * @description Returns a paginated list of provider triggers for a specific provider version.
+   * @description Returns a paginated list of provider triggers for a provider version or all active user-managed callbacks in the instance.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceProvidersTriggersListQuery

@@ -1,16 +1,16 @@
 import { safeFetch } from '@lowerdeck/ssrf';
 import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { resolveSystemEventDeliveryPayload } from '../lib/payload';
 import {
   calculateRetryDelaySeconds,
   isRetryableStatusCode,
   parseRetryAfterSeconds
 } from '../lib/retry';
-import { DeliveryUrlNotAllowedError, assertDeliveryUrlAllowed } from '../lib/url';
 import { generateSignature } from '../lib/signature';
-import { resolveSystemEventDeliveryPayload } from '../lib/payload';
+import { assertDeliveryUrlAllowed, DeliveryUrlNotAllowedError } from '../lib/url';
 
-export let DELIVERY_TIMEOUT_MS = 15_000;
+export let DELIVERY_TIMEOUT_MS = 20_000;
 export let MAX_STORED_RESPONSE_BODY_BYTES = 16_384;
 
 export let attemptDeliveryQueue = createQueue<{ intentId: string; attemptNumber: number }>({
@@ -20,7 +20,9 @@ export let attemptDeliveryQueue = createQueue<{ intentId: string; attemptNumber:
 
 let eventDeliveryIntentInclude = {
   systemEvent: true,
-  eventDestination: { include: { webhookDestination: true } }
+  eventDestination: { include: { webhookDestination: true } },
+  organization: true,
+  instance: true
 } as const;
 
 let buildEventBody = (
@@ -31,23 +33,32 @@ let buildEventBody = (
     callbackId: string | null;
     callbackTriggerKey: string | null;
     chatEventId: string | null;
-    chatIntegrationId: string | null;
+    chatConnectionId: string | null;
+    providerId: string | null;
     createdAt: Date;
   },
   d: { organizationId: string; instanceId: string | null; payload: Record<string, any> | null }
 ) => ({
   object: 'event',
+
   id: event.id,
-  organization_id: d.organizationId,
-  instance_id: d.instanceId,
   source: event.source,
   event_type: event.eventType,
+
+  organization_id: d.organizationId,
+  instance_id: d.instanceId,
+
   payload: d.payload,
+
   callback_id: event.callbackId,
   callback_trigger_key: event.callbackTriggerKey,
+
   chat_event_id: event.chatEventId,
-  chat_integration_id: event.chatIntegrationId,
-  created_at: event.createdAt.toISOString()
+  chat_connection_id: event.chatConnectionId,
+
+  provider_id: event.providerId,
+
+  occurred_at: event.createdAt.toISOString()
 });
 
 let readResponseBody = async (response: Response) => {
@@ -79,11 +90,8 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
     return;
   }
 
-  // A redelivered job for an attempt we already made must not produce a second attempt row.
   if (intent.attemptCount >= data.attemptNumber) return;
 
-  // The destination can be archived while a delivery is still backing off — stop rather than keep
-  // hammering a target the organization has taken out of service.
   if (intent.eventDestination.status != 'active') {
     await db.eventDeliveryIntent.update({
       where: { oid: intent.oid },
@@ -98,17 +106,8 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
     return;
   }
 
-  let organization = await db.organization.findUniqueOrThrow({
-    where: { oid: intent.organizationOid },
-    select: { id: true }
-  });
-  let instance = intent.instanceOid
-    ? await db.instance.findUnique({
-        where: { oid: intent.instanceOid },
-        select: { id: true }
-      })
-    : null;
-
+  let organization = intent.organization;
+  let instance = intent.instance;
   let webhook = intent.eventDestination.webhookDestination;
 
   let attemptNumber = data.attemptNumber;
@@ -143,6 +142,7 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
     let requestHeaders: Record<string, string> = {
       'content-type': 'application/json',
       'user-agent': 'Metorial (https://metorial.com)',
+      accept: '*/*',
       'metorial-event-id': intent.systemEvent.id,
       'metorial-event-type': intent.systemEvent.eventType,
       'metorial-delivery-id': intent.id,
@@ -163,8 +163,6 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
     };
 
     try {
-      // Re-checked on every attempt rather than trusting the check done when the URL was saved:
-      // the hostname's DNS records can be repointed at an internal address at any time.
       assertDeliveryUrlAllowed(webhook.url);
 
       let response = await safeFetch(webhook.url, {

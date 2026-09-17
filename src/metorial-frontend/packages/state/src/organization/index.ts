@@ -4,6 +4,7 @@ export * from './loaders/auditLogStream';
 export * from './loaders/auditLogRetention';
 export * from './loaders/boot';
 export * from './loaders/event';
+export * from './loaders/eventDelivery';
 export * from './loaders/eventDestination';
 export * from './loaders/eventDestinationListener';
 export * from './loaders/flags';

@@ -61,8 +61,11 @@ let webhookHeaders = (headers: Headers) =>
         !normalizedName.startsWith('cf-') &&
         !normalizedName.startsWith('cdn-') &&
         !normalizedName.startsWith('x-forwarded-') &&
+        !normalizedName.startsWith('sec-') &&
+        normalizedName !== 'cookie' &&
         normalizedName !== 'connection' &&
-        normalizedName !== 'accept-encoding'
+        normalizedName !== 'accept-encoding' &&
+        normalizedName !== 'upgrade-insecure-requests'
       );
     })
   );

@@ -44,6 +44,12 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   resolveMetorialFacing: vi.fn()
 }));
 
+vi.mock('@metorial-subspace/module-search', () => ({
+  voyager: { record: { search: vi.fn() } },
+  voyagerIndex: { chat: { id: 'chat-index' } },
+  voyagerSource: Promise.resolve({ id: 'source' })
+}));
+
 vi.mock('../queues/sync/workspaces', () => ({
   syncChatWorkspacesForProviderQueue: { addManyWithOps }
 }));

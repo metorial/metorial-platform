@@ -4,7 +4,7 @@ import { RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { ButtonSize, getButtonSize } from '../button/constants';
-import { useDialogContext } from '../dialog/state';
+import { useDialogContext, useZindex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { Spinner } from '../spinner';
@@ -124,7 +124,6 @@ let SpinnerSlot = styled('div')<{ $visible: boolean }>`
 
 let Positioner = styled(BaseCombobox.Positioner)`
   width: var(--anchor-width);
-  z-index: 9999;
 `;
 
 let Popup = styled(BaseCombobox.Popup)`
@@ -431,6 +430,7 @@ let ComboboxInner = <TData,>({
     valueLabel ??
     '';
   let [open, setOpen] = useState(false);
+  let zIndex = useZindex(open);
   let previousLoading = useRef(!!isLoading);
   let [animateArrowIn, setAnimateArrowIn] = useState(false);
   let dialog = useDialogContext();
@@ -586,7 +586,7 @@ let ComboboxInner = <TData,>({
         </InputGroup>
 
         <BaseCombobox.Portal container={dialog?.contentRef}>
-          <Positioner sideOffset={6}>
+          <Positioner sideOffset={6} style={{ zIndex }}>
             <Popup>
               <List>
                 {normalizedGroups.map((group, groupIndex) =>

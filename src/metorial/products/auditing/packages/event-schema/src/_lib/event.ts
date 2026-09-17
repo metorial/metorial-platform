@@ -7,6 +7,7 @@ export interface EventPresenter {
 
 export interface EventDefinition<Name extends string, Payload extends ValidationType<any>> {
   name: Name;
+  description: string;
   payload: Payload;
   presenter: EventPresenter;
 }

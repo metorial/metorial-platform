@@ -846,6 +846,11 @@ export interface FabricEvents {
   'organization.event_destination.archived:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; previousEventDestination: EventDestination };
   'organization.event_destination.webhook_secret_rotated:before': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null } };
   'organization.event_destination.webhook_secret_rotated:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination & { webhookDestination: WebhookDestination | null }; previousEventDestination: EventDestination & { webhookDestination: WebhookDestination | null } };
+  'organization.event_destination.pinged:before': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination };
+  'organization.event_destination.pinged:after': { organization: Organization; auditScope: AuditScope; eventDestination: EventDestination; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination } };
+
+  'organization.event_delivery.retried:before': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination } };
+  'organization.event_delivery.retried:after': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination }; previousEventDelivery: EventDeliveryIntent };
 
   'organization.event_delivery.retried:before': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination } };
   'organization.event_delivery.retried:after': { organization: Organization; auditScope: AuditScope; eventDelivery: EventDeliveryIntent & { systemEvent: SystemEvent; eventDestination: EventDestination }; previousEventDelivery: EventDeliveryIntent };

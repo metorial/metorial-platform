@@ -21,6 +21,7 @@ export type CallbackEventsGetOutput = {
     } | null;
     webhook: {
       object: 'callback_event.details.webhook';
+      id: string;
       status: string;
       request: {
         object: 'callback_event.details.webhook.request';
@@ -70,6 +71,7 @@ export let mapCallbackEventsGetOutput = mtMap.object<CallbackEventsGetOutput>({
         'webhook',
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           request: mtMap.objectField(
             'request',

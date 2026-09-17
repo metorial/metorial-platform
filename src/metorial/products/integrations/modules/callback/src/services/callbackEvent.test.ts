@@ -103,6 +103,32 @@ describe('callbackEventService ownership scoping', () => {
     expect(event.details).toBeNull();
   });
 
+  it('includes the backend payload when reading a single event', async () => {
+    getBackend.mockResolvedValue({
+      callbacks: {
+        getManyEvents: vi.fn(async () => ({
+          events: [
+            {
+              status: 'succeeded',
+              payload: { action: 'opened' },
+              attemptCount: 1,
+              error: null
+            }
+          ]
+        })),
+        getManyWebhookEvents: vi.fn(async () => ({ webhookEvents: [] }))
+      }
+    });
+
+    let event = await callbackEventService.getCallbackEventByIdInternal({
+      tenant,
+      environment,
+      callbackEventId: 'cbe_1'
+    });
+
+    expect(event.details?.payload).toEqual({ action: 'opened' });
+  });
+
   it('reports a managed callback event as not found rather than returning it', async () => {
     db.callbackEvent.findFirst.mockResolvedValue(null);
 

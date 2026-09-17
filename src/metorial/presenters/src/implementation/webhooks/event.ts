@@ -3,7 +3,7 @@ import { resolveSystemEventPayload } from '@metorial/module-event-tracker';
 import { Presenter } from '@metorial/presenter';
 import { systemEventType } from '../../types';
 
-export let v1SystemEventPresenter = Presenter.create(systemEventType)
+export let v1SystemEventListPresenter = Presenter.create(systemEventType)
   .presenter(async ({ event, organization }) => ({
     object: 'event',
     id: event.id,
@@ -12,15 +12,15 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
 
     source: event.source,
     event_type: event.eventType,
-    payload: (event.source == 'chat'
-      ? (event.chatPayload ?? null)
-      : await resolveSystemEventPayload(event)) as any,
 
     callback_id: event.callbackId ?? null,
+    callback_event_id: event.callbackEventId ?? null,
     callback_trigger_key: event.callbackTriggerKey ?? null,
 
     chat_event_id: event.chatEventId ?? null,
-    chat_integration_id: event.chatIntegrationId ?? null,
+    chat_connection_id: event.chatConnectionId ?? null,
+
+    provider_id: event.providerId ?? null,
 
     created_at: event.createdAt
   }))
@@ -41,26 +41,27 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
           examples: ['ins_1aBcDeFgHjKlMnPq']
         })
       ),
-      source: v.enumOf(['resource', 'callback', 'chat'], {
+      source: v.enumOf(['resource', 'callback', 'chat', 'ping'], {
         description:
-          'Whether this event was produced by a normal resource action, a callback occurrence, or a chat integration'
+          'Whether this event was produced by a normal resource action, a callback occurrence, a chat connection, or a manual ping'
       }),
       event_type: v.string({
         description:
-          'The declared event type for `resource` events (e.g. "organization.created"), or a display-only "callback.<trigger_key>" label for `callback` events',
+          'The declared event type for `resource` events (e.g. "organization.created"), a display-only "callback.<trigger_key>" label for `callback` events, or "ping" for `ping` events',
         examples: ['organization.created']
       }),
-      payload: v.nullable(
-        v.record(v.any(), {
-          description:
-            'The presenter-shaped event payload for `resource` and `chat` events. Always `null` for `callback` events — fetch the linked callback event for its payload.'
-        })
-      ),
       callback_id: v.nullable(
         v.string({
           description:
             'The callback this event is linked to, present only for `callback` events',
           examples: ['cb_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      callback_event_id: v.nullable(
+        v.string({
+          description:
+            'The callback event this system event is linked to, present only for `callback` events',
+          examples: ['cbe_1aBcDeFgHjKlMnPq']
         })
       ),
       callback_trigger_key: v.nullable(
@@ -76,14 +77,43 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
           examples: ['chevt_1aBcDeFgHjKlMnPq']
         })
       ),
-      chat_integration_id: v.nullable(
+      chat_connection_id: v.nullable(
         v.string({
           description:
-            'The chat integration that produced this event, present only for `chat` events',
-          examples: ['chint_1aBcDeFgHjKlMnPq']
+            'The chat connection that produced this event, present only for `chat` events',
+          examples: ['chc_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      provider_id: v.nullable(
+        v.string({
+          description:
+            'The catalog provider this event is associated with, present for `callback` and `chat` events when resolvable',
+          examples: ['prv_1aBcDeFgHjKlMnPq']
         })
       ),
       created_at: v.date({ description: 'When the event was recorded' })
     })
+  )
+  .build();
+
+export let v1SystemEventPresenter = Presenter.create(systemEventType)
+  .presenter(async ({ event, organization }, opts) => ({
+    ...(await v1SystemEventListPresenter.present({ event, organization }, opts).run()),
+    payload: (event.source == 'callback'
+      ? (event.callbackPayload ?? null)
+      : event.source == 'chat'
+        ? (event.chatPayload ?? null)
+        : await resolveSystemEventPayload(event)) as any
+  }))
+  .schema(
+    v.object({
+      ...v1SystemEventListPresenter.schema.properties,
+      payload: v.nullable(
+        v.record(v.any(), {
+          description:
+            'The presenter-shaped event payload. Callback payloads are resolved through the linked callback event.'
+        })
+      )
+    }) as any
   )
   .build();

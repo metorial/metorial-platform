@@ -5,6 +5,7 @@ import { event } from '../../_lib/event';
 
 export let organizationCreatedEvent = event({
   name: 'organization.created',
+  description: 'An organization was created.',
   payload: v.typedAny<{ organization: Organization }>('organization'),
   presenter: organizationPresenter
 });

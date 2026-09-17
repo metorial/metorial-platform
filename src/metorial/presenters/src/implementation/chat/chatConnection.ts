@@ -1,7 +1,10 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { chatConnectionType } from '../../types';
-import { v1ChatConnectionProviderPresenter } from './chatConnectionProvider';
+import {
+  dashboardChatConnectionProviderPresenter,
+  v1ChatConnectionProviderPresenter
+} from './chatConnectionProvider';
 
 export let v1ChatConnectionPresenter = Presenter.create(chatConnectionType)
   .presenter(async ({ chatConnection }, opts) => ({
@@ -85,5 +88,32 @@ export let v1ChatConnectionPresenter = Presenter.create(chatConnectionType)
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
+  )
+  .build();
+
+export let dashboardChatConnectionPresenter = Presenter.create(chatConnectionType)
+  .presenter(async ({ chatConnection }, opts) => {
+    let inner = await v1ChatConnectionPresenter.present({ chatConnection }, opts).run();
+
+    return {
+      ...inner,
+      providers: await Promise.all(
+        chatConnection.providers.map(chatConnectionProvider =>
+          dashboardChatConnectionProviderPresenter
+            .present({ chatConnectionProvider }, opts)
+            .run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.object({
+      ...v1ChatConnectionPresenter.schema.properties,
+      providers: v.array(dashboardChatConnectionProviderPresenter.schema, {
+        name: 'providers',
+        description:
+          'The provider linked to this chat connection. Currently always zero or one items.'
+      })
+    }) as any
   )
   .build();

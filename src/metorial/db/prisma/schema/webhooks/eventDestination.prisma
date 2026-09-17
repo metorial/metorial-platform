@@ -18,7 +18,7 @@ model EventDestination {
   type   EventDestinationType
 
   retryStrategy         EventDeliveryRetryStrategy @default(exponential)
-  retryMaxAttempts      Int                        @default(8)
+  retryMaxAttempts      Int                        @default(25)
   retryBaseDelaySeconds Int                        @default(10)
   retryMaxDelaySeconds  Int                        @default(10800)
 
@@ -32,8 +32,8 @@ model EventDestination {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  listeners        EventDestinationListener[]
-  deliveryIntents  EventDeliveryIntent[]
+  listeners       EventDestinationListener[]
+  deliveryIntents EventDeliveryIntent[]
 
   @@index([organizationOid, status])
 }

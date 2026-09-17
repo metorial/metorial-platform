@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Events controller
- * @description Events are the record of everything Metorial delivers to your event destinations — normal resource events, callback occurrences, and chat integration events.
+ * @description Events are the record of everything Metorial delivers to your event destinations — normal resource events, callback occurrences, chat connection events, and manual pings.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

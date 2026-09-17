@@ -5,11 +5,11 @@ import {
 
 import {
   mapDashboardInstanceProvidersTriggersGetOutput,
-  mapDashboardInstanceProvidersTriggersListOutput,
-  mapDashboardInstanceProvidersTriggersListQuery,
+  mapManagementInstanceProvidersTriggersListOutput,
+  mapManagementInstanceProvidersTriggersListQuery,
   type DashboardInstanceProvidersTriggersGetOutput,
-  type DashboardInstanceProvidersTriggersListOutput,
-  type DashboardInstanceProvidersTriggersListQuery
+  type ManagementInstanceProvidersTriggersListOutput,
+  type ManagementInstanceProvidersTriggersListQuery
 } from '../resources';
 
 /**
@@ -44,30 +44,30 @@ export class MetorialManagementInstanceProvidersTriggersEndpoint {
    * @description Returns a paginated list of provider triggers for a specific provider version.
    *
    * @param `instanceId` - string
-   * @param `query` - DashboardInstanceProvidersTriggersListQuery
+   * @param `query` - ManagementInstanceProvidersTriggersListQuery
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceProvidersTriggersListOutput
+   * @returns ManagementInstanceProvidersTriggersListOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
-    query?: DashboardInstanceProvidersTriggersListQuery,
+    query?: ManagementInstanceProvidersTriggersListQuery,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceProvidersTriggersListOutput> {
+  ): Promise<ManagementInstanceProvidersTriggersListOutput> {
     let path = `instances/${instanceId}/provider-triggers`;
 
     let request = {
       path,
 
       query: query
-        ? mapDashboardInstanceProvidersTriggersListQuery.transformTo(query)
+        ? mapManagementInstanceProvidersTriggersListQuery.transformTo(query)
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._get(request).transform(
-      mapDashboardInstanceProvidersTriggersListOutput
+      mapManagementInstanceProvidersTriggersListOutput
     );
   }
 

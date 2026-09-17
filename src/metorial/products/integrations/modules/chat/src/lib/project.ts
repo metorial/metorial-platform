@@ -24,6 +24,9 @@ import {
   enqueueSyncChatInstanceProviderAuthorization,
   enqueueSyncChatWorkspacesForProvider
 } from '../queues/sync';
+import { enqueueIndexChatConnectionProvider } from '../queues/search/chatConnectionProvider';
+import { enqueueIndexChatInstanceProvider } from '../queues/search/chatInstanceProvider';
+import { enqueueIndexChatChildren } from '../queues/search/chat';
 import { archiveChatsWhere, restoreChatsWhere } from './chatLifecycle';
 
 let now = () => new Date();
@@ -134,6 +137,7 @@ export let upsertChatProviderProjection = async (
         where: { oid: existing.oid },
         data: { status: 'archived', archivedAt: now() }
       });
+      await enqueueIndexChatConnectionProvider(archived.id);
       await enqueueChatConnectionUpdated(chatConnection.id);
       return archived;
     }
@@ -149,6 +153,7 @@ export let upsertChatProviderProjection = async (
         where: { oid: existing.oid },
         data: { status: 'active', archivedAt: null, name }
       });
+      await enqueueIndexChatConnectionProvider(updated.id);
       await enqueueChatConnectionUpdated(chatConnection.id);
       return updated;
     }
@@ -170,6 +175,7 @@ export let upsertChatProviderProjection = async (
         solutionOid: adapterProvider.solutionOid
       }
     });
+    await enqueueIndexChatConnectionProvider(created.id);
     await enqueueChatConnectionUpdated(chatConnection.id);
     return created;
   });
@@ -283,6 +289,8 @@ export let upsertChatInstanceProviderProjection = async (
         { chatInstanceProviderOid: archived.oid },
         archived.archivedAt ?? now()
       );
+      await enqueueIndexChatInstanceProvider(archived.id);
+      await enqueueIndexChatChildren({ type: 'chatInstanceProvider', id: archived.id });
       await enqueueChatInstanceUpdated(chatInstance.id);
       return archived;
     }
@@ -297,6 +305,8 @@ export let upsertChatInstanceProviderProjection = async (
       });
 
       await restoreChatsWhere({ chatInstanceProviderOid: updated.oid });
+      await enqueueIndexChatInstanceProvider(updated.id);
+      await enqueueIndexChatChildren({ type: 'chatInstanceProvider', id: updated.id });
       await enqueueChatInstanceUpdated(chatInstance.id);
 
       if (shouldSync) {
@@ -327,6 +337,7 @@ export let upsertChatInstanceProviderProjection = async (
       }
     });
 
+    await enqueueIndexChatInstanceProvider(created.id);
     await enqueueChatInstanceUpdated(chatInstance.id);
     await enqueueSyncChatWorkspacesForProvider(created.id);
     await enqueueSyncChatInstanceProviderAuthorization(created.id);

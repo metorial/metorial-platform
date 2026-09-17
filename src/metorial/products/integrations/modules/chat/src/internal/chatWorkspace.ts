@@ -14,6 +14,8 @@ import {
 import { chatPresenter, chatWorkspacePresenter } from '@metorial/presenters';
 import { isUniqueConstraintError } from '../lib/unique';
 import { chatInclude } from '../services/chat';
+import { enqueueIndexChats } from '../queues/search/chat';
+import { enqueueIndexChatWorkspaces } from '../queues/search/chatWorkspace';
 import { chatEventInternalService } from './chatEvent';
 import { chatEventPresenterContext } from './chatEventPayload';
 
@@ -182,7 +184,12 @@ class chatWorkspaceInternalServiceImpl {
             results.set(workspace.id, { chat, workspace: localWorkspace });
           }
 
-          return d.workspaces.map(workspace => results.get(workspace.id)!);
+          let workspaces = d.workspaces.map(workspace => results.get(workspace.id)!);
+          await enqueueIndexChats(workspaces.map(workspace => workspace.chat.id));
+          await enqueueIndexChatWorkspaces(
+            workspaces.map(workspace => workspace.workspace.id)
+          );
+          return workspaces;
         },
         { ifExists: true }
       );
@@ -227,7 +234,9 @@ class chatWorkspaceInternalServiceImpl {
       ...scope,
       type: d.isNew ? 'chat.created' : 'chat.updated',
       payload: {
-        chat: await chatPresenter.present({ chat: hydratedChat })(chatEventPresenterContext).run()
+        chat: await chatPresenter
+          .present({ chat: hydratedChat })(chatEventPresenterContext)
+          .run()
       }
     });
 

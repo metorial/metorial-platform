@@ -107,7 +107,10 @@ let provider = {
   projectOid: BigInt(11),
   environmentOid: BigInt(2),
   instanceOid: BigInt(33),
-  solutionOid: 2
+  solutionOid: 2,
+  adapterIntegrationProvider: {
+    integrationProvider: { provider: { id: 'prov_1' } }
+  }
 };
 
 let callbackEvent = (overrides: Record<string, any> = {}) => ({
@@ -175,7 +178,11 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
       })
     });
     expect(recordChatEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ chatEventId: 'che_1', chatIntegrationId: 'chi_1' })
+      expect.objectContaining({
+        chatEventId: 'che_1',
+        chatConnectionId: 'chi_1',
+        providerId: 'prov_1'
+      })
     );
   });
 
@@ -311,5 +318,6 @@ describe('chatEventInternalService.recordInvocationFailedEvent', () => {
       })
     });
     expect(db.chatEvent.create.mock.calls[0]![0].data).not.toHaveProperty('invocationId');
+    expect(recordChatEvent).not.toHaveBeenCalled();
   });
 });

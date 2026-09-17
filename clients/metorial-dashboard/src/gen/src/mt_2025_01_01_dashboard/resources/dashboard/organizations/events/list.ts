@@ -6,13 +6,14 @@ export type DashboardOrganizationsEventsListOutput = {
     id: string;
     organizationId: string;
     instanceId: string | null;
-    source: 'resource' | 'callback' | 'chat';
+    source: 'resource' | 'callback' | 'chat' | 'ping';
     eventType: string;
-    payload: Record<string, any> | null;
     callbackId: string | null;
+    callbackEventId: string | null;
     callbackTriggerKey: string | null;
     chatEventId: string | null;
-    chatIntegrationId: string | null;
+    chatConnectionId: string | null;
+    providerId: string | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -33,17 +34,21 @@ export let mapDashboardOrganizationsEventsListOutput =
           instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
           source: mtMap.objectField('source', mtMap.passthrough()),
           eventType: mtMap.objectField('event_type', mtMap.passthrough()),
-          payload: mtMap.objectField('payload', mtMap.passthrough()),
           callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
+          callbackEventId: mtMap.objectField(
+            'callback_event_id',
+            mtMap.passthrough()
+          ),
           callbackTriggerKey: mtMap.objectField(
             'callback_trigger_key',
             mtMap.passthrough()
           ),
           chatEventId: mtMap.objectField('chat_event_id', mtMap.passthrough()),
-          chatIntegrationId: mtMap.objectField(
-            'chat_integration_id',
+          chatConnectionId: mtMap.objectField(
+            'chat_connection_id',
             mtMap.passthrough()
           ),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
@@ -73,11 +78,13 @@ export type DashboardOrganizationsEventsListQuery = {
     | 'resource'
     | 'callback'
     | 'chat'
-    | ('resource' | 'callback' | 'chat')[]
+    | 'ping'
+    | ('resource' | 'callback' | 'chat' | 'ping')[]
     | undefined;
   callbackId?: string | string[] | undefined;
   callbackTriggerKey?: string | string[] | undefined;
-  chatIntegrationId?: string | string[] | undefined;
+  chatConnectionId?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
 };
 
 export let mapDashboardOrganizationsEventsListQuery = mtMap.union([
@@ -124,8 +131,18 @@ export let mapDashboardOrganizationsEventsListQuery = mtMap.union([
           )
         ])
       ),
-      chatIntegrationId: mtMap.objectField(
-        'chat_integration_id',
+      chatConnectionId: mtMap.objectField(
+        'chat_connection_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      providerId: mtMap.objectField(
+        'provider_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

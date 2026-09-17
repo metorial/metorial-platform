@@ -6,6 +6,7 @@ let {
   dbNull,
   enqueueChatMessageAttachmentCleanup,
   enqueueChatMessageAttachmentSync,
+  createChatMessageAttachment,
   upsertChatAuthors,
   attachInboundMessageToGroup
 } = vi.hoisted(() => {
@@ -29,6 +30,7 @@ let {
     dbNull: { __prismaDbNull: true },
     enqueueChatMessageAttachmentCleanup: vi.fn(),
     enqueueChatMessageAttachmentSync: vi.fn(),
+    createChatMessageAttachment: vi.fn(),
     upsertChatAuthors: vi.fn(),
     attachInboundMessageToGroup: vi.fn()
   };
@@ -68,6 +70,10 @@ vi.mock('./chatAuthor', () => ({
 
 vi.mock('./chatChannel', () => ({
   chatChannelServiceInternal: { upsertChatChannels: vi.fn() }
+}));
+
+vi.mock('./chatMessageAttachment', () => ({
+  chatMessageAttachmentInternalService: { createChatMessageAttachment }
 }));
 
 vi.mock('./chatMessageGroup', () => ({
@@ -245,6 +251,7 @@ describe('chatMessageServiceInternal.upsertChatMessages', () => {
       oid: BigInt(500),
       ...data
     }));
+    createChatMessageAttachment.mockResolvedValue({ id: 'cma_1' });
   });
 
   it('creates a message the channel has not seen before', async () => {
@@ -342,6 +349,50 @@ describe('chatMessageServiceInternal.upsertChatMessages', () => {
 
     expect(tx.chatMessage.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { oid: BigInt(500) } })
+    );
+  });
+
+  it('persists attachment metadata before queueing its content sync', async () => {
+    db.chatMessageAttachment.findMany.mockResolvedValue([]);
+
+    await chatMessageServiceInternal.upsertChatMessages({
+      tenant,
+      environment,
+      chat,
+      channel,
+      messages: [
+        inboundMessage({
+          body: {
+            parts: [],
+            attachments: [
+              { id: 'att_1', name: 'a.png' },
+              { id: 'att_2', name: 'b.png' }
+            ]
+          }
+        })
+      ] as any
+    });
+
+    expect(createChatMessageAttachment).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        message: expect.objectContaining({ oid: BigInt(700) }),
+        attachment: expect.objectContaining({ id: 'att_1' }),
+        position: 0
+      })
+    );
+    expect(createChatMessageAttachment).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        attachment: expect.objectContaining({ id: 'att_2' }),
+        position: 1
+      })
+    );
+    expect(createChatMessageAttachment.mock.invocationCallOrder[0]).toBeLessThan(
+      enqueueChatMessageAttachmentSync.mock.invocationCallOrder[0]!
+    );
+    expect(enqueueChatMessageAttachmentSync).toHaveBeenCalledWith(
+      expect.objectContaining({ chatMessageAttachmentId: 'cma_1' })
     );
   });
 

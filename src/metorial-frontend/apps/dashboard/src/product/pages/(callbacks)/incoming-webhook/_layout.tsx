@@ -32,8 +32,8 @@ export let IncomingWebhookLayout = () => {
       entity={webhook.data ? { ...webhook.data, name: 'Incoming Webhook' } : webhook.data}
       breadcrumbs={[
         {
-          label: 'Webhook Receivers',
-          to: Paths.instance.webhookRegistrations(
+          label: 'Callbacks',
+          to: Paths.instance.callbacks(
             organization.data,
             project.data,
             instance.data

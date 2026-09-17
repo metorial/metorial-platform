@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import type { SpecificationTriggerGroup } from '@metorial-subspace/provider-utils';
 import { Presenter } from '@metorial/presenter';
 import { chatConnectionProviderType } from '../../types';
 import { v1ProviderConfigPreviewPresenter } from '../provider/config/configPreview';
@@ -107,5 +108,78 @@ export let v1ChatConnectionProviderPresenter = Presenter.create(chatConnectionPr
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
+  )
+  .build();
+
+export let dashboardChatConnectionProviderPresenter = Presenter.create(
+  chatConnectionProviderType
+)
+  .presenter(async ({ chatConnectionProvider }, opts) => {
+    let integrationProvider =
+      chatConnectionProvider.adapterIntegrationProvider.integrationProvider;
+
+    let inner = await v1ChatConnectionProviderPresenter
+      .present({ chatConnectionProvider }, opts)
+      .run();
+    let triggerGroups = (integrationProvider.provider.defaultVariant?.currentVersion
+      ?.specification?.providerTriggerGroups ?? []) as {
+      key: string;
+      name: string;
+      description: string | null;
+      value: SpecificationTriggerGroup;
+    }[];
+
+    return {
+      ...inner,
+      auth_credentials_is_managed: integrationProvider.currentVersion?.authCredentials
+        ? integrationProvider.currentVersion.authCredentials.origin !== 'tenant_created'
+        : false,
+      manual_webhook_trigger_groups: triggerGroups
+        .filter(
+          triggerGroup =>
+            triggerGroup.value.invocation.type === 'webhook' &&
+            triggerGroup.value.invocation.registration.mode === 'manual'
+        )
+        .map(triggerGroup => ({
+          key: triggerGroup.key,
+          name: triggerGroup.name,
+          description: triggerGroup.description
+        }))
+    };
+  })
+  .schema(
+    v.object({
+      ...v1ChatConnectionProviderPresenter.schema.properties,
+      auth_credentials_is_managed: v.boolean({
+        name: 'auth_credentials_is_managed',
+        description: 'Whether the selected auth credentials are managed by Metorial',
+        examples: [true, false]
+      }),
+      manual_webhook_trigger_groups: v.array(
+        v.object({
+          key: v.string({
+            name: 'key',
+            description: 'Provider-defined key for the trigger group',
+            examples: ['events']
+          }),
+          name: v.string({
+            name: 'name',
+            description: 'Display name of the trigger group',
+            examples: ['Events']
+          }),
+          description: v.nullable(
+            v.string({
+              name: 'description',
+              description: 'Description of the events delivered through the trigger group'
+            })
+          )
+        }),
+        {
+          name: 'manual_webhook_trigger_groups',
+          description:
+            'Trigger groups that require the user to register a Metorial webhook receiver with the provider'
+        }
+      )
+    }) as any
   )
   .build();

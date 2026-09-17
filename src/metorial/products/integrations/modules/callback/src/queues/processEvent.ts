@@ -15,7 +15,7 @@ export let callbackEventProcessQueueProcessor = callbackEventProcessQueue.proces
     let callbackEvent = await db.callbackEvent.findUnique({
       where: { id: data.callbackEventId },
       include: {
-        callback: { include: { managedAdapterGlobal: true } },
+        callback: { include: { managedAdapterGlobal: true, provider: true } },
         environment: true,
         providerTrigger: true
       }
@@ -50,7 +50,8 @@ export let callbackEventProcessQueueProcessor = callbackEventProcessQueue.proces
       instanceOid: instance.oid,
       callbackEventId: callbackEvent.id,
       callbackId: callbackEvent.callback.id,
-      callbackTriggerKey: callbackEvent.providerTrigger?.key ?? null
+      callbackTriggerKey: callbackEvent.providerTrigger?.key ?? null,
+      providerId: callbackEvent.callback.provider.id
     });
   }
 );

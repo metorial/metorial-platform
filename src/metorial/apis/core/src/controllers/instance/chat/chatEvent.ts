@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { chatEventService } from '@metorial-subspace/module-chat';
-import { chatEventPresenter } from '@metorial/presenters';
+import { chatEventListPresenter, chatEventPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -22,7 +22,7 @@ export let chatEventController = Controller.create(
         description: 'Returns a paginated list of chat events.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
-      .outputList(chatEventPresenter)
+      .outputList(chatEventListPresenter)
       .query(
         'default',
         Paginator.validate(
@@ -57,8 +57,8 @@ export let chatEventController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, ({ chatEvent, payload }) =>
-          chatEventPresenter.present({ chatEvent, payload })
+        return Paginator.present(list, chatEvent =>
+          chatEventListPresenter.present({ chatEvent })
         );
       }),
 

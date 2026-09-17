@@ -5,7 +5,8 @@ import { webhookEventType } from '../../types';
 export let v1WebhookEventPresenter = Presenter.create(webhookEventType)
   .presenter(async ({ webhookEvent }) => ({
     object: 'event.type',
-    name: webhookEvent.name
+    name: webhookEvent.name,
+    description: webhookEvent.description
   }))
   .schema(
     v.object({
@@ -15,6 +16,10 @@ export let v1WebhookEventPresenter = Presenter.create(webhookEventType)
       name: v.string({
         description: 'Event type used when configuring an event destination listener',
         examples: ['organization.created']
+      }),
+      description: v.string({
+        description: 'Human-readable description of when the event occurs',
+        examples: ['An organization was created.']
       })
     })
   )

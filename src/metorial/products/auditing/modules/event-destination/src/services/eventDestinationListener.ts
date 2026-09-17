@@ -2,7 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { callbackService } from '@metorial-subspace/module-callback';
-import { providerTriggerService } from '@metorial-subspace/module-catalog';
+import { providerService, providerTriggerService } from '@metorial-subspace/module-catalog';
 import { chatConnectionService } from '@metorial-subspace/module-chat';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
@@ -16,7 +16,12 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import {
+  MAX_ACTIVE_LISTENERS_PER_DESTINATION,
+  MAX_ACTIVE_LISTENERS_PER_ORGANIZATION
+} from '@metorial/module-event-delivery';
 import { chatEventNames, webhookEvents } from '@metorial/webhook-event-schema';
+import { buildListenerTargetOrBlocks } from '../lib/listenerTargetMatch';
 
 export let eventDestinationListenerInclude = {
   eventDestination: true,
@@ -66,17 +71,32 @@ class EventDestinationListenerServiceImpl {
     }
   }
 
-  private async assertValidCallbackAndTriggers(d: {
+  private assertValidChatEventTypes(eventTypes: string[]) {
+    let invalid = eventTypes.filter(
+      eventType => !(chatEventNames as readonly string[]).includes(eventType)
+    );
+    if (invalid.length > 0) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Unknown chat event type(s): ${invalid.join(', ')}`,
+          description:
+            'Every entry in `event_types` must be a Metorial-declared chat event type.'
+        })
+      );
+    }
+  }
+
+  private async assertValidCallbackTriggers(d: {
     instance: Instance;
     callbackId: string;
     triggers: string[];
   }) {
+    if (d.triggers.length === 0) return;
+
     let callback = await callbackService.getCallbackById({
       instance: d.instance,
       callbackId: d.callbackId
     });
-
-    if (d.triggers.length === 0) return;
 
     let validKeys = await providerTriggerService.getValidTriggerKeysForProviderVariant({
       providerVariantOid: callback.providerVariantOid,
@@ -94,28 +114,81 @@ class EventDestinationListenerServiceImpl {
     }
   }
 
-  private async assertValidChatIntegrationAndEvents(d: {
+  private async assertValidCallbackTarget(d: {
     instance: Instance;
-    chatIntegrationId: string;
-    eventTypes: string[];
-  }) {
-    await chatConnectionService.getChatConnectionById({
-      instance: d.instance,
-      chatConnectionId: d.chatIntegrationId
-    });
-
-    let invalid = d.eventTypes.filter(
-      eventType => !(chatEventNames as readonly string[]).includes(eventType)
-    );
-    if (invalid.length > 0) {
+    callbackId?: string;
+    providerId?: string;
+    triggers: string[];
+  }): Promise<{ callbackId: string | null; providerId: string | null }> {
+    if (d.callbackId && d.providerId) {
       throw new ServiceError(
         badRequestError({
-          message: `Unknown chat event type(s): ${invalid.join(', ')}`,
+          message: 'Only one of `callback_id` or `provider_id` may be set',
           description:
-            'Every entry in `event_types` must be a Metorial-declared chat event type.'
+            'A callback listener targets a specific callback, all callbacks of one provider, or (with neither set) all callbacks.'
         })
       );
     }
+
+    if (d.callbackId) {
+      let callback = await callbackService.getCallbackById({
+        instance: d.instance,
+        callbackId: d.callbackId
+      });
+      await this.assertValidCallbackTriggers({
+        instance: d.instance,
+        callbackId: d.callbackId,
+        triggers: d.triggers
+      });
+      return { callbackId: callback.id, providerId: null };
+    }
+
+    if (d.providerId) {
+      let provider = await providerService.getProviderById({
+        instance: d.instance,
+        providerId: d.providerId
+      });
+      return { callbackId: null, providerId: provider.id };
+    }
+
+    return { callbackId: null, providerId: null };
+  }
+
+  private async assertValidChatTarget(d: {
+    instance: Instance;
+    chatConnectionId?: string;
+    providerId?: string;
+    eventTypes: string[];
+  }): Promise<{ chatConnectionId: string | null; providerId: string | null }> {
+    if (d.chatConnectionId && d.providerId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only one of `chat_connection_id` or `provider_id` may be set',
+          description:
+            'A chat listener targets a specific chat connection, all connections of one provider, or (with neither set) all chat connections.'
+        })
+      );
+    }
+
+    this.assertValidChatEventTypes(d.eventTypes);
+
+    if (d.chatConnectionId) {
+      let chatConnection = await chatConnectionService.getChatConnectionById({
+        instance: d.instance,
+        chatConnectionId: d.chatConnectionId
+      });
+      return { chatConnectionId: chatConnection.id, providerId: null };
+    }
+
+    if (d.providerId) {
+      let provider = await providerService.getProviderById({
+        instance: d.instance,
+        providerId: d.providerId
+      });
+      return { chatConnectionId: null, providerId: provider.id };
+    }
+
+    return { chatConnectionId: null, providerId: null };
   }
 
   async listEventDestinationListeners(d: {
@@ -123,9 +196,15 @@ class EventDestinationListenerServiceImpl {
     instanceIds?: string[];
     eventDestinationIds?: string[];
     callbackIds?: string[];
-    chatIntegrationIds?: string[];
+    chatConnectionIds?: string[];
+    providerIds?: string[];
     types?: EventDestinationListenerType[];
   }) {
+    let andConditions = await buildListenerTargetOrBlocks({
+      callbackIds: d.callbackIds,
+      chatConnectionIds: d.chatConnectionIds
+    });
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
         db.eventDestinationListener.findMany({
@@ -135,12 +214,13 @@ class EventDestinationListenerServiceImpl {
               organizationOid: d.organization.oid,
               id: d.instanceIds ? { in: d.instanceIds } : undefined
             },
-            eventDestination: d.eventDestinationIds
-              ? { id: { in: d.eventDestinationIds } }
-              : undefined,
-            callbackId: d.callbackIds ? { in: d.callbackIds } : undefined,
-            chatIntegrationId: d.chatIntegrationIds ? { in: d.chatIntegrationIds } : undefined,
-            type: d.types ? { in: d.types } : undefined
+            eventDestination: {
+              status: 'active',
+              ...(d.eventDestinationIds ? { id: { in: d.eventDestinationIds } } : {})
+            },
+            type: d.types ? { in: d.types } : undefined,
+            providerId: d.providerIds ? { in: d.providerIds } : undefined,
+            AND: andConditions.length ? andConditions : undefined
           },
           include: eventDestinationListenerInclude
         })
@@ -177,13 +257,15 @@ class EventDestinationListenerServiceImpl {
       | {
           eventDestinationId: string;
           type: 'callback';
-          callbackId: string;
+          callbackId?: string;
+          providerId?: string;
           triggers: string[];
         }
       | {
           eventDestinationId: string;
           type: 'chat';
-          chatIntegrationId: string;
+          chatConnectionId?: string;
+          providerId?: string;
           eventTypes: string[];
         };
   }) {
@@ -192,18 +274,51 @@ class EventDestinationListenerServiceImpl {
       eventDestinationId: d.input.eventDestinationId
     });
 
+    let [destinationListenerCount, organizationListenerCount] = await Promise.all([
+      db.eventDestinationListener.count({
+        where: { eventDestinationOid: eventDestination.oid }
+      }),
+      db.eventDestinationListener.count({
+        where: { instance: { organizationOid: d.instance.organizationOid } }
+      })
+    ]);
+
+    if (destinationListenerCount >= MAX_ACTIVE_LISTENERS_PER_DESTINATION) {
+      throw new ServiceError(
+        badRequestError({
+          message: `An event destination may have at most ${MAX_ACTIVE_LISTENERS_PER_DESTINATION} listeners`,
+          description: 'Delete an existing listener on this destination before adding another.'
+        })
+      );
+    }
+
+    if (organizationListenerCount >= MAX_ACTIVE_LISTENERS_PER_ORGANIZATION) {
+      throw new ServiceError(
+        badRequestError({
+          message: `An organization may have at most ${MAX_ACTIVE_LISTENERS_PER_ORGANIZATION} event destination listeners in total`,
+          description: 'Delete an existing event destination listener before adding another.'
+        })
+      );
+    }
+
+    let callbackTarget: { callbackId: string | null; providerId: string | null } | null = null;
+    let chatTarget: { chatConnectionId: string | null; providerId: string | null } | null =
+      null;
+
     if (d.input.type == 'event') {
       this.assertValidEventTypes(d.input.eventTypes);
     } else if (d.input.type == 'chat') {
-      await this.assertValidChatIntegrationAndEvents({
+      chatTarget = await this.assertValidChatTarget({
         instance: d.instance,
-        chatIntegrationId: d.input.chatIntegrationId,
+        chatConnectionId: d.input.chatConnectionId,
+        providerId: d.input.providerId,
         eventTypes: d.input.eventTypes
       });
     } else {
-      await this.assertValidCallbackAndTriggers({
+      callbackTarget = await this.assertValidCallbackTarget({
         instance: d.instance,
         callbackId: d.input.callbackId,
+        providerId: d.input.providerId,
         triggers: d.input.triggers
       });
     }
@@ -222,9 +337,15 @@ class EventDestinationListenerServiceImpl {
           instanceOid: d.instance.oid,
           eventDestinationOid: eventDestination.oid,
           eventTypes: d.input.type == 'callback' ? [] : d.input.eventTypes,
-          callbackId: d.input.type == 'callback' ? d.input.callbackId : null,
+          callbackId: d.input.type == 'callback' ? callbackTarget!.callbackId : null,
           triggers: d.input.type == 'callback' ? d.input.triggers : [],
-          chatIntegrationId: d.input.type == 'chat' ? d.input.chatIntegrationId : null
+          chatConnectionId: d.input.type == 'chat' ? chatTarget!.chatConnectionId : null,
+          providerId:
+            d.input.type == 'callback'
+              ? callbackTarget!.providerId
+              : d.input.type == 'chat'
+                ? chatTarget!.providerId
+                : null
         },
         include: eventDestinationListenerInclude
       });
@@ -250,16 +371,12 @@ class EventDestinationListenerServiceImpl {
       this.assertValidEventTypes(d.input.eventTypes);
     }
 
-    if (d.listener.type == 'chat' && d.input.eventTypes && d.listener.chatIntegrationId) {
-      await this.assertValidChatIntegrationAndEvents({
-        instance: d.instance,
-        chatIntegrationId: d.listener.chatIntegrationId,
-        eventTypes: d.input.eventTypes
-      });
+    if (d.listener.type == 'chat' && d.input.eventTypes) {
+      this.assertValidChatEventTypes(d.input.eventTypes);
     }
 
     if (d.listener.type == 'callback' && d.input.triggers && d.listener.callbackId) {
-      await this.assertValidCallbackAndTriggers({
+      await this.assertValidCallbackTriggers({
         instance: d.instance,
         callbackId: d.listener.callbackId,
         triggers: d.input.triggers

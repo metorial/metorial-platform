@@ -17,6 +17,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatChannelServiceInternal } from '../internal/chatChannel';
 import { requireLocalChatEntity, withChatCapabilityFallback } from '../lib/chatCapability';
@@ -124,8 +125,16 @@ class chatChannelServiceImpl {
     );
   }
 
-  private listChatChannelsFromDb(d: ListChatChannelsParams) {
+  private async listChatChannelsFromDb(d: { tenant: Tenant } & ListChatChannelsParams) {
     let search = d.search?.trim() || undefined;
+    let results = search
+      ? await voyager.record.search({
+          tenantId: d.tenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.chatChannel.id,
+          query: search
+        })
+      : null;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -149,15 +158,7 @@ class chatChannelServiceImpl {
             hasAccess: d.hasAccess ?? true,
             ...(workspaceOid !== undefined ? { workspaceOid } : {}),
             ...(d.type ? { type: d.type as ChatChannelType } : {}),
-            ...(search
-              ? {
-                  OR: [
-                    { name: { contains: search, mode: 'insensitive' as const } },
-                    { topic: { contains: search, mode: 'insensitive' as const } },
-                    { subject: { contains: search, mode: 'insensitive' as const } }
-                  ]
-                }
-              : {})
+            ...(results ? { id: { in: results.map(result => result.documentId) } } : {})
           },
           include: { chat: true, workspace: true, recipient: true }
         });

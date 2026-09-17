@@ -6,6 +6,9 @@ import {
   consumerMagicMcpTokenPresenter,
   dashboardApiKeyPresenter,
   dashboardAuditLogStreamPresenter,
+  dashboardChatConnectionPresenter,
+  dashboardChatConnectionProviderPresenter,
+  dashboardChatEventListPresenter,
   dashboardChatEventPresenter,
   dashboardConsumerGroupPresenter,
   dashboardConsumerPresenter,
@@ -50,6 +53,7 @@ import {
   v1ChatChannelPresenter,
   v1ChatConnectionPresenter,
   v1ChatConnectionProviderPresenter,
+  v1ChatEventListPresenter,
   v1ChatEventPresenter,
   v1ChatInstancePresenter,
   v1ChatInstanceProviderPresenter,
@@ -95,6 +99,7 @@ import {
   v1EventDeliveryPresenter,
   v1EventDestinationListenerPresenter,
   v1EventDestinationPresenter,
+  v1SystemEventListPresenter,
   v1SystemEventPresenter,
   v1FileLinkPresenter,
   v1FilePresenter,
@@ -261,6 +266,7 @@ import {
   v1TeamPresenter,
   dashboardCallbackInstancePresenter,
   dashboardCallbackPresenter,
+  v1CallbackEventListPresenter,
   v1CallbackEventPresenter,
   v1CallbackInstancePresenter,
   v1CallbackPresenter,
@@ -711,6 +717,11 @@ export let eventPresenter = declarePresenter(systemEventType, {
   mt_2026_01_01_magnetar: v1SystemEventPresenter
 });
 
+export let eventListPresenter = declarePresenter(systemEventType, {
+  mt_2025_01_01_dashboard: v1SystemEventListPresenter,
+  mt_2026_01_01_magnetar: v1SystemEventListPresenter
+});
+
 export let eventDeliveryPresenter = declarePresenter(eventDeliveryType, {
   mt_2025_01_01_dashboard: v1EventDeliveryPresenter,
   mt_2026_01_01_magnetar: v1EventDeliveryPresenter
@@ -1047,6 +1058,11 @@ export let callbackEventPresenter = declarePresenter(callbackEventType, {
   mt_2026_01_01_magnetar: v1CallbackEventPresenter
 });
 
+export let callbackEventListPresenter = declarePresenter(callbackEventType, {
+  mt_2025_01_01_dashboard: v1CallbackEventListPresenter,
+  mt_2026_01_01_magnetar: v1CallbackEventListPresenter
+});
+
 export let chatWorkspacePresenter = declarePresenter(chatWorkspaceType, {
   mt_2025_01_01_dashboard: v1ChatWorkspacePresenter,
   mt_2026_01_01_magnetar: v1ChatWorkspacePresenter
@@ -1082,18 +1098,23 @@ export let chatEventPresenter = declarePresenter(chatEventType, {
   mt_2026_01_01_magnetar: v1ChatEventPresenter
 });
 
+export let chatEventListPresenter = declarePresenter(chatEventType, {
+  mt_2025_01_01_dashboard: dashboardChatEventListPresenter,
+  mt_2026_01_01_magnetar: v1ChatEventListPresenter
+});
+
 export let chatPresenter = declarePresenter(chatType, {
   mt_2025_01_01_dashboard: v1ChatPresenter,
   mt_2026_01_01_magnetar: v1ChatPresenter
 });
 
 export let chatConnectionPresenter = declarePresenter(chatConnectionType, {
-  mt_2025_01_01_dashboard: v1ChatConnectionPresenter,
+  mt_2025_01_01_dashboard: dashboardChatConnectionPresenter,
   mt_2026_01_01_magnetar: v1ChatConnectionPresenter
 });
 
 export let chatConnectionProviderPresenter = declarePresenter(chatConnectionProviderType, {
-  mt_2025_01_01_dashboard: v1ChatConnectionProviderPresenter,
+  mt_2025_01_01_dashboard: dashboardChatConnectionProviderPresenter,
   mt_2026_01_01_magnetar: v1ChatConnectionProviderPresenter
 });
 
@@ -1129,6 +1150,11 @@ export let webhookRegistrationPresenter = declarePresenter(webhookRegistrationTy
 
 export let incomingWebhookPresenter = declarePresenter(incomingWebhookType, {
   mt_2025_01_01_dashboard: dashboardIncomingWebhookPresenter,
+  mt_2026_01_01_magnetar: v1IncomingWebhookPresenter
+});
+
+export let incomingWebhookListPresenter = declarePresenter(incomingWebhookType, {
+  mt_2025_01_01_dashboard: v1IncomingWebhookPresenter,
   mt_2026_01_01_magnetar: v1IncomingWebhookPresenter
 });
 

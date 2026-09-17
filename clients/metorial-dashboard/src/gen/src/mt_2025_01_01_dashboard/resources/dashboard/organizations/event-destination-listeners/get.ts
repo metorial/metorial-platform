@@ -9,7 +9,8 @@ export type DashboardOrganizationsEventDestinationListenersGetOutput = {
   eventTypes: string[] | null;
   callbackId: string | null;
   triggers: string[] | null;
-  chatIntegrationId: string | null;
+  chatConnectionId: string | null;
+  providerId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -30,10 +31,11 @@ export let mapDashboardOrganizationsEventDestinationListenersGetOutput =
     ),
     callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
     triggers: mtMap.objectField('triggers', mtMap.array(mtMap.passthrough())),
-    chatIntegrationId: mtMap.objectField(
-      'chat_integration_id',
+    chatConnectionId: mtMap.objectField(
+      'chat_connection_id',
       mtMap.passthrough()
     ),
+    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });

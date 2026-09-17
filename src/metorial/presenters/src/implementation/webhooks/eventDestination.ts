@@ -12,21 +12,14 @@ export let v1EventDestinationPresenter = Presenter.create(eventDestinationType)
     description: eventDestination.description ?? null,
     status: eventDestination.status,
     type: eventDestination.type,
+
     webhook: eventDestination.webhookDestination
       ? {
           url: eventDestination.webhookDestination.url,
           method: eventDestination.webhookDestination.method,
-          // Never read from the DB row here — only ever the explicit `revealSecret` the caller
-          // passes in, so list/get/update/archive can never leak it.
           signing_secret: revealSecret ?? null
         }
       : null,
-    retry: {
-      strategy: eventDestination.retryStrategy,
-      max_attempts: eventDestination.retryMaxAttempts,
-      base_delay_seconds: eventDestination.retryBaseDelaySeconds,
-      max_delay_seconds: eventDestination.retryMaxDelaySeconds
-    },
     listeners: await Promise.all(
       eventDestination.listeners.map(listener =>
         v1EventDestinationListenerPresenter
@@ -40,6 +33,7 @@ export let v1EventDestinationPresenter = Presenter.create(eventDestinationType)
           .run()
       )
     ),
+
     created_at: eventDestination.createdAt,
     updated_at: eventDestination.updatedAt,
     archived_at: eventDestination.archivedAt ?? null

@@ -9,46 +9,38 @@ import {
 } from '@metorial/state';
 import { Badge, Callout, Spacer, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
-import { useNavigate } from 'react-router-dom';
-import {
-  getWebhookRegistrationStatusColor,
-  WEBHOOK_REGISTRATION_STATUS_LABELS
-} from './shared';
+import { truncateReceiverUrl } from './shared';
 import { CreateWebhookRegistrationButton } from './webhookRegistrationsTable';
 
-let CallbackWebhookRegistrationsTable = ({
+export let ProviderWebhookRegistrationsBox = ({
   instanceId,
-  providerId
+  provider
 }: {
   instanceId: string;
-  providerId: string;
+  provider: { id: string; name: string };
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
-  let navigate = useNavigate();
-  let registrations = useWebhookRegistrations(instanceId, { order: 'desc', providerId });
+  let registrations = useWebhookRegistrations(instanceId, {
+    order: 'desc',
+    providerId: provider.id
+  });
 
-  let onCreate = (created: { id: string }) => {
-    registrations.refetch();
-    navigate(
-      Paths.instance.webhookRegistration(
-        organization.data,
-        project.data,
-        instance.data,
-        created.id
-      )
-    );
-  };
+  let onCreate = () => void registrations.refetch();
 
   return (
     <>
       <Box
-        title="Webhook Receivers"
-        description="This provider needs a receiver registered in its own dashboard before it can deliver events."
+        title="Inbound Event Setup"
+        description={`Tool calls to ${provider.name} work without this, but inbound events require a webhook receiver registered with the provider.`}
         rightActions={
-          registrations.data?.items.length ? (
-            <CreateWebhookRegistrationButton instanceId={instanceId} onCreate={onCreate} />
+          registrations.data && !registrations.data.items.length ? (
+            <CreateWebhookRegistrationButton
+              instanceId={instanceId}
+              provider={provider}
+              onCreate={onCreate}
+            />
           ) : undefined
         }
       >
@@ -57,18 +49,29 @@ let CallbackWebhookRegistrationsTable = ({
           emptyState: (
             <>
               <Callout color="orange">
-                <span>
-                  This provider needs a webhook receiver before it can deliver events. Set one
-                  up to get a receive URL for the provider's dashboard.
-                </span>
+                <div>
+                  <Text size="2" weight="strong">
+                    Action Required to Receive Events
+                  </Text>
+                  <Spacer size={4} />
+                  <Text size="2">
+                    Create a receiver, add its secure URL in {provider.name}, then enter any
+                    verification values requested by the provider. Metorial will guide you
+                    through each step.
+                  </Text>
+                </div>
               </Callout>
               <Spacer size={12} />
-              <CreateWebhookRegistrationButton instanceId={instanceId} onCreate={onCreate} />
+              <CreateWebhookRegistrationButton
+                instanceId={instanceId}
+                provider={provider}
+                onCreate={onCreate}
+              />
             </>
           )
         })(registrations => (
           <Table
-            headers={['Receiver', 'Status', 'Receive URL']}
+            headers={['Receiver', 'Receive URL']}
             data={registrations.data.items.map(registration => ({
               href: Paths.instance.webhookRegistration(
                 organization.data,
@@ -77,14 +80,19 @@ let CallbackWebhookRegistrationsTable = ({
                 registration.id
               ),
               data: [
-                registration.name,
-                <Badge color={getWebhookRegistrationStatusColor(registration.status)}>
-                  {WEBHOOK_REGISTRATION_STATUS_LABELS[registration.status] ??
-                    registration.status}
-                </Badge>,
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>{registration.name}</span>
+
+                  {registration.status === 'awaiting_setup' && (
+                    <Badge color="orange" size="1">
+                      Awaiting Setup
+                    </Badge>
+                  )}
+                </div>,
+
                 registration.receiveUrl ? (
                   <Text size="1" style={{ fontFamily: 'jetbrains mono, monospace' }}>
-                    {registration.receiveUrl}
+                    {truncateReceiverUrl(registration.receiveUrl)}
                   </Text>
                 ) : (
                   <Text size="2" color="gray600">
@@ -119,7 +127,10 @@ export let CallbackWebhookRegistrationsBox = ({
     if (!needsManualRegistration) return null;
 
     return (
-      <CallbackWebhookRegistrationsTable instanceId={instanceId} providerId={providerId} />
+      <ProviderWebhookRegistrationsBox
+        instanceId={instanceId}
+        provider={{ id: providerId, name: provider.data.name }}
+      />
     );
   });
 };

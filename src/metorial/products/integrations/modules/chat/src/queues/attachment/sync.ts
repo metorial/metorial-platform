@@ -10,6 +10,7 @@ export type ChatMessageAttachmentSyncJob = {
   environmentId: string;
   chatId: string;
   messageId: string;
+  chatMessageAttachmentId?: string;
   attachment: AttachmentRef;
   position: number;
 };
@@ -40,6 +41,24 @@ export let chatMessageAttachmentSyncQueueProcessor = chatMessageAttachmentSyncQu
     if (!chat) return;
 
     try {
+      if (data.chatMessageAttachmentId) {
+        let attachment = await db.chatMessageAttachment.findUnique({
+          where: { id: data.chatMessageAttachmentId }
+        });
+        if (!attachment) return;
+
+        await chatMessageAttachmentInternalService.downloadChatMessageAttachment({
+          tenant,
+          environment,
+          chat,
+          message,
+          attachment: data.attachment,
+          chatMessageAttachment: attachment,
+          position: data.position
+        });
+        return;
+      }
+
       await chatMessageAttachmentInternalService.downloadChatMessageAttachment({
         tenant,
         environment,

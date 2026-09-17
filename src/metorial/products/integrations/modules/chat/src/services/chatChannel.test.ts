@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, getChatAdapterClientInternal, upsertChatChannels } = vi.hoisted(() => ({
-  db: {
-    chatChannel: { findFirst: vi.fn(), findMany: vi.fn() },
-    chatWorkspace: { findFirst: vi.fn() }
-  },
-  getChatAdapterClientInternal: vi.fn(),
-  upsertChatChannels: vi.fn()
-}));
+let { db, getChatAdapterClientInternal, upsertChatChannels, searchRecords } = vi.hoisted(
+  () => ({
+    db: {
+      chatChannel: { findFirst: vi.fn(), findMany: vi.fn() },
+      chatWorkspace: { findFirst: vi.fn() }
+    },
+    getChatAdapterClientInternal: vi.fn(),
+    upsertChatChannels: vi.fn(),
+    searchRecords: vi.fn()
+  })
+);
 
 vi.mock('@lowerdeck/service', () => ({
   Service: {
@@ -24,6 +27,12 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   resolveMetorialFacing: vi.fn()
 }));
 
+vi.mock('@metorial-subspace/module-search', () => ({
+  voyager: { record: { search: searchRecords } },
+  voyagerIndex: { chatChannel: { id: 'channel-index' } },
+  voyagerSource: Promise.resolve({ id: 'source' })
+}));
+
 vi.mock('../internal/chatAdapter', () => ({
   chatAdapterService: { getChatAdapterClientInternal }
 }));
@@ -34,7 +43,7 @@ vi.mock('../internal/chatChannel', () => ({
 
 import { chatChannelService } from './chatChannel';
 
-let tenant = { oid: 1n } as any;
+let tenant = { oid: 1n, id: 'tenant_1' } as any;
 let environment = { oid: 2n } as any;
 let chat = {
   oid: 3n,
@@ -86,6 +95,32 @@ describe('chatChannelService', () => {
     expect(db.chatChannel.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ hasAccess: false })
+      })
+    );
+  });
+
+  it('uses Voyager ids for database-backed channel search', async () => {
+    getChatAdapterClientInternal.mockResolvedValue({
+      isCapabilityAvailable: () => false,
+      call: vi.fn()
+    });
+    searchRecords.mockResolvedValue([{ documentId: 'cch_1' }]);
+    db.chatChannel.findMany.mockResolvedValue([]);
+
+    let paginator = await chatChannelService.listChatChannelsInternal({
+      tenant,
+      environment,
+      chat,
+      search: '  support  '
+    });
+    await paginator.run({});
+
+    expect(searchRecords).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: tenant.id, query: 'support' })
+    );
+    expect(db.chatChannel.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: { in: ['cch_1'] } })
       })
     );
   });

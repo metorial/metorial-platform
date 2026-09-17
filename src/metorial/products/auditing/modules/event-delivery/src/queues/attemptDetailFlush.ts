@@ -5,7 +5,7 @@ import { deliveryStorageKey } from '../lib/storageKey';
 import { getDeliveryPayloadsBucketName, getStorage } from '../storage';
 
 let batchSize = 100;
-let flushAfterMs = 30 * 60_000;
+let flushAfterMs = 5 * 60_000;
 
 export let eventDeliveryAttemptFlushManyQueue = createQueue<{
   dueBefore: string;

@@ -26,6 +26,7 @@ import { enqueueChatMessageAttachmentCleanup } from '../queues/attachment/cleanu
 import { enqueueChatMessageAttachmentSync } from '../queues/attachment/sync';
 import { chatAuthorServiceInternal } from './chatAuthor';
 import { chatChannelServiceInternal } from './chatChannel';
+import { chatMessageAttachmentInternalService } from './chatMessageAttachment';
 import { chatMessageGroupServiceInternal } from './chatMessageGroup';
 import { chatThreadServiceInternal } from './chatThread';
 
@@ -82,9 +83,11 @@ class chatMessageServiceInternalImpl {
     persistedByRemoteId: Map<string, ChatMessage>;
   }) {
     let candidates: Array<{
+      message: ChatMessage;
       messageOid: bigint;
       messageId: string;
       attachment: AttachmentRef;
+      position: number;
     }> = [];
 
     for (let message of d.messages) {
@@ -93,8 +96,14 @@ class chatMessageServiceInternalImpl {
         ?.attachments;
       if (!persisted || !attachments?.length) continue;
 
-      for (let attachment of attachments) {
-        candidates.push({ messageOid: persisted.oid, messageId: persisted.id, attachment });
+      for (let [position, attachment] of attachments.entries()) {
+        candidates.push({
+          message: persisted,
+          messageOid: persisted.oid,
+          messageId: persisted.id,
+          attachment,
+          position
+        });
       }
     }
     if (candidates.length === 0) return;
@@ -110,7 +119,7 @@ class chatMessageServiceInternalImpl {
     });
     let existingKeys = new Set(existing.map(row => `${row.messageOid}:${row.attachmentId}`));
 
-    for (let [index, candidate] of candidates.entries()) {
+    for (let candidate of candidates) {
       if (
         candidate.attachment.id &&
         existingKeys.has(`${candidate.messageOid}:${candidate.attachment.id}`)
@@ -118,13 +127,23 @@ class chatMessageServiceInternalImpl {
         continue;
       }
 
+      let chatMessageAttachment =
+        await chatMessageAttachmentInternalService.createChatMessageAttachment({
+          tenant: d.tenant,
+          environment: d.environment,
+          message: candidate.message,
+          attachment: candidate.attachment,
+          position: candidate.position
+        });
+
       await enqueueChatMessageAttachmentSync({
         tenantId: d.tenant.id,
         environmentId: d.environment.id,
         chatId: d.chat.id,
         messageId: candidate.messageId,
+        chatMessageAttachmentId: chatMessageAttachment.id,
         attachment: candidate.attachment,
-        position: index
+        position: candidate.position
       });
     }
   }

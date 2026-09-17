@@ -4,8 +4,6 @@ import { isIP } from 'net';
 
 export class DeliveryUrlNotAllowedError extends Error {}
 
-// Checked both when a destination URL is configured and again on every attempt, since DNS can be
-// repointed at a private address long after the URL passed validation.
 export let assertDeliveryUrlAllowed = (url: string) => {
   let parsed: URL;
   try {

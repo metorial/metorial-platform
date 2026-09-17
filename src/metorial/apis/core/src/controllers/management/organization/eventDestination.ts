@@ -1,8 +1,9 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { eventDeliveryService } from '@metorial/module-event-delivery';
 import { eventDestinationService } from '@metorial/module-event-destination';
-import { eventDestinationPresenter } from '@metorial/presenters';
+import { eventDeliveryPresenter, eventDestinationPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -55,14 +56,26 @@ export let eventDestinationManagementController = Controller.create(
                 v.array(v.enumOf(['active', 'archived']))
               ]),
               { description: 'Filter by event destination lifecycle status' }
-            )
+            ),
+            callback_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter to destinations with a listener for this callback (specific, provider-wide, or catch-all)',
+              examples: ['clb_1aBcDeFgHjKlMnPq']
+            }),
+            chat_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter to destinations with a listener for this chat connection (specific, provider-wide, or catch-all)',
+              examples: ['chc_1aBcDeFgHjKlMnPq']
+            })
           })
         )
       )
       .do(async ctx => {
         let paginator = await eventDestinationService.listEventDestinations({
           organization: ctx.organization,
-          statuses: normalizeArrayParam(ctx.query.status)
+          statuses: normalizeArrayParam(ctx.query.status),
+          callbackIds: normalizeArrayParam(ctx.query.callback_id),
+          chatConnectionIds: normalizeArrayParam(ctx.query.chat_connection_id)
         });
         let list = await paginator.run(ctx.query);
 
@@ -341,6 +354,34 @@ export let eventDestinationManagementController = Controller.create(
         return eventDestinationPresenter.present({
           eventDestination: { ...eventDestination, organization: ctx.organization },
           revealSecret: signingSecret
+        });
+      }),
+
+    ping: eventDestinationManagementGroup
+      .post(
+        organizationManagementPath(
+          'event-destinations/:eventDestinationId/ping',
+          'event_destinations.ping'
+        ),
+        {
+          name: 'Ping event destination',
+          description:
+            'Sends a test delivery to this event destination immediately, regardless of its listeners. The ping goes through the normal delivery/retry pipeline and shows up in delivery history.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.event_destination:write'] }))
+      .use(hasFlags(['webhooks-enabled']))
+      .output(eventDeliveryPresenter)
+      .do(async ctx => {
+        let eventDelivery = await eventDeliveryService.pingEventDestination({
+          organization: ctx.organization,
+          eventDestination: ctx.eventDestination,
+          auditScope: ctx.auditScope
+        });
+
+        return eventDeliveryPresenter.present({
+          eventDelivery,
+          organization: ctx.organization
         });
       })
   }

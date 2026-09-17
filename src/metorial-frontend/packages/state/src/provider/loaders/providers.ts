@@ -1,5 +1,6 @@
 import { DashboardInstanceProvidersListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { mutation } from '../../lib/mutation';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -44,3 +45,35 @@ export let useProvider = (
 
 export let getProvider = async (instanceId: string, providerId: string) =>
   mutation(() => withAuth(sdk => sdk.providers.get(instanceId, providerId)));
+
+export let providersByIdsLoader = createLoader({
+  name: 'providersByIds',
+  parents: [providersLoader],
+  fetch: async (i: { instanceId: string; ids: string[] }) => {
+    if (i.ids.length === 0) return [];
+
+    return await withAuth(sdk =>
+      autoPaginate(
+        cursor =>
+          sdk.providers.list(i.instanceId, {
+            ...cursor,
+            id: i.ids
+          }),
+        undefined,
+        1000
+      )
+    );
+  },
+  mutators: {}
+});
+
+export let useProvidersByIds = (
+  instanceId: string | null | undefined,
+  ids: string[] | null | undefined
+) => {
+  let uniqueIds = ids?.length ? [...new Set(ids)].sort() : null;
+
+  return providersByIdsLoader.use(
+    instanceId && uniqueIds ? { instanceId, ids: uniqueIds } : null
+  );
+};

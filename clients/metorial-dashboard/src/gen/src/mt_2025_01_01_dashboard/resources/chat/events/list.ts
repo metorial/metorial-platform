@@ -17,7 +17,6 @@ export type ChatEventsListOutput = {
     providerThreadId: string | null;
     providerMessageId: string | null;
     providerAuthorId: string | null;
-    payload: Record<string, any> | null;
     occurredAt: Date;
     createdAt: Date;
     error: {
@@ -71,7 +70,6 @@ export let mapChatEventsListOutput = mtMap.object<ChatEventsListOutput>({
           'provider_author_id',
           mtMap.passthrough()
         ),
-        payload: mtMap.objectField('payload', mtMap.passthrough()),
         occurredAt: mtMap.objectField('occurred_at', mtMap.date()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         error: mtMap.objectField(

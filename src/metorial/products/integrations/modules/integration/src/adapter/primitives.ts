@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import {
+  addAfterTransactionHook,
   getId,
   withTransaction,
   type AdapterIntegration,
@@ -148,9 +149,11 @@ let reconcileAdapterProviderCallbacks = async (d: {
       }
     }
 
-    for (let integrationProvider of integrationProviders) {
-      await enqueueCallbackReconcile({ integrationProviderId: integrationProvider.id });
-    }
+    await addAfterTransactionHook(async () => {
+      for (let integrationProvider of integrationProviders) {
+        await enqueueCallbackReconcile({ integrationProviderId: integrationProvider.id });
+      }
+    });
   });
 
 export let syncAdapterProviders = async (d: {

@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   type ChatConnection,
   type ChatConnectionStatus,
   db,
@@ -59,7 +60,21 @@ export let chatConnectionInclude = {
         include: {
           integrationProvider: {
             include: {
-              provider: true,
+              provider: {
+                include: {
+                  defaultVariant: {
+                    include: {
+                      currentVersion: {
+                        include: {
+                          specification: {
+                            include: { providerTriggerGroups: true }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
               currentVersion: { include: integrationProviderVersionInclude }
             }
           }
@@ -334,10 +349,13 @@ class chatConnectionServiceImpl {
       if (existing) await enqueueChatConnectionUpdated(chatConnection.id);
       else await enqueueChatConnectionCreated(chatConnection.id);
 
-      await this.recordConnectionEvent(
-        chatConnection,
-        existing ? 'chat.connection.updated' : 'chat.connection.created'
-      );
+      if (existing) {
+        await this.recordConnectionEvent(chatConnection, 'chat.connection.updated');
+      } else {
+        await addAfterTransactionHook(async () =>
+          this.recordConnectionEvent(chatConnection, 'chat.connection.created')
+        );
+      }
 
       return chatConnection;
     });

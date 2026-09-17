@@ -14,6 +14,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatWorkspaceInternalService } from '../internal/chatWorkspace';
 import { requireLocalChatEntity, withChatCapabilityFallback } from '../lib/chatCapability';
@@ -99,8 +100,16 @@ class chatWorkspaceServiceImpl {
     );
   }
 
-  private listChatWorkspacesFromDb(d: ListChatWorkspacesParams) {
+  private async listChatWorkspacesFromDb(d: { tenant: Tenant } & ListChatWorkspacesParams) {
     let search = d.search?.trim() || undefined;
+    let results = search
+      ? await voyager.record.search({
+          tenantId: d.tenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.chatWorkspace.id,
+          query: search
+        })
+      : null;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -108,7 +117,7 @@ class chatWorkspaceServiceImpl {
           ...opts,
           where: {
             chatInstanceProviderOid: d.chatInstanceProvider.oid,
-            ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {})
+            ...(results ? { id: { in: results.map(result => result.documentId) } } : {})
           },
           include: chatWorkspaceInclude
         })

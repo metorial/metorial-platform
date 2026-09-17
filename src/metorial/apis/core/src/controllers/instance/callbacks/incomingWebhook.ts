@@ -1,16 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { webhookEventService } from '@metorial-subspace/module-callback';
-import { incomingWebhookPresenter } from '@metorial/presenters';
+import { incomingWebhookListPresenter, incomingWebhookPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import {
-  getRequiredParam,
-  incomingWebhookStatusValidator,
-  stringOrArray
-} from './_shared';
+import { getRequiredParam, incomingWebhookStatusValidator, stringOrArray } from './_shared';
 
 export let incomingWebhookController = Controller.create(
   {
@@ -25,7 +21,7 @@ export let incomingWebhookController = Controller.create(
         description: 'Returns a paginated list of incoming webhooks you can see.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
-      .outputList(incomingWebhookPresenter)
+      .outputList(incomingWebhookListPresenter)
       .query(
         'default',
         Paginator.validate(
@@ -55,7 +51,7 @@ export let incomingWebhookController = Controller.create(
         });
 
         return Paginator.present(await paginator.run(ctx.query), incomingWebhook =>
-          incomingWebhookPresenter.present({ incomingWebhook })
+          incomingWebhookListPresenter.present({ incomingWebhook })
         );
       }),
 

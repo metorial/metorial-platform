@@ -40,6 +40,7 @@ import {
   callbackInstanceReconcileManyQueue,
   callbackInstanceReconcileQueue
 } from '../queues/reconcile/callbackInstance';
+import { indexCallbackQueue } from '../queues/search/callback';
 
 type SyncError = { code: string; message: string };
 
@@ -172,10 +173,11 @@ class callbackInternalServiceImpl {
   private async getDesiredCallbackOwners(integrationProvider: ReconcileIntegrationProvider) {
     if (!this.areCallbacksAllowed(integrationProvider)) return [];
 
-    return [
-      userCallbackOwner,
-      ...(await listManagedCallbackOwners({ integrationProviderOid: integrationProvider.oid }))
-    ];
+    let managedOwners = await listManagedCallbackOwners({
+      integrationProviderOid: integrationProvider.oid
+    });
+
+    return managedOwners.length ? managedOwners : [userCallbackOwner];
   }
 
   private areCallbacksAllowed(integrationProvider: ReconcileIntegrationProvider) {
@@ -234,8 +236,22 @@ class callbackInternalServiceImpl {
     });
 
     await enqueueCallbackPush({ callbackId: callback.id });
+    await indexCallbackQueue.add({ callbackId: callback.id });
 
     return callback;
+  }
+
+  async getProviderIdsForCallbackIdsInternal(
+    callbackIds: string[]
+  ): Promise<Map<string, string>> {
+    if (callbackIds.length === 0) return new Map();
+
+    let callbacks = await db.callback.findMany({
+      where: { id: { in: callbackIds } },
+      select: { id: true, provider: { select: { id: true } } }
+    });
+
+    return new Map(callbacks.map(callback => [callback.id, callback.provider.id]));
   }
 
   async pushCallbackById(d: { callbackId: string }) {
@@ -355,6 +371,8 @@ class callbackInternalServiceImpl {
       where: { callbackOid: d.callback.oid, status: { not: 'deleted' } },
       data: { isParentDeleted: true }
     });
+
+    await indexCallbackQueue.add({ callbackId: d.callback.id });
 
     return true;
   }

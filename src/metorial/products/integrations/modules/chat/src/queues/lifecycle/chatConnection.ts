@@ -2,8 +2,11 @@ import { createQueue } from '@lowerdeck/queue';
 import { addAfterTransactionHook, db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { archiveChatsWhere } from '../../lib/chatLifecycle';
+import { indexChatChildrenManyQueue } from '../search/chat';
 import { indexChatConnectionQueue } from '../search/chatConnection';
+import { indexChatConnectionProviderQueue } from '../search/chatConnectionProvider';
 import { indexChatInstanceQueue } from '../search/chatInstance';
+import { indexChatInstanceProvidersManyQueue } from '../search/chatInstanceProvider';
 
 export let chatConnectionCreatedQueue = createQueue<{ chatConnectionId: string }>({
   name: 'sub/cht/lc/integration/created',
@@ -18,6 +21,9 @@ export let enqueueChatConnectionCreated = (chatConnectionId: string) =>
 export let chatConnectionCreatedQueueProcessor = chatConnectionCreatedQueue.process(
   async data => {
     await indexChatConnectionQueue.add({ chatConnectionId: data.chatConnectionId });
+    await indexChatChildrenManyQueue.add({
+      parent: { type: 'chatConnection', id: data.chatConnectionId }
+    });
   }
 );
 
@@ -34,6 +40,9 @@ export let enqueueChatConnectionUpdated = (chatConnectionId: string) =>
 export let chatConnectionUpdatedQueueProcessor = chatConnectionUpdatedQueue.process(
   async data => {
     await indexChatConnectionQueue.add({ chatConnectionId: data.chatConnectionId });
+    await indexChatConnectionProviderQueue.addMany(
+      providers.map(provider => ({ chatConnectionProviderId: provider.id }))
+    );
   }
 );
 
@@ -260,6 +269,12 @@ export let chatInstanceArchivedQueueProcessor = chatInstanceArchivedQueue.proces
 
     await indexChatInstanceQueue.add({
       chatInstanceId: data.chatInstanceId
+    });
+    await indexChatInstanceProvidersManyQueue.add({
+      chatInstanceId: data.chatInstanceId
+    });
+    await indexChatChildrenManyQueue.add({
+      parent: { type: 'chatInstance', id: data.chatInstanceId }
     });
   }
 );

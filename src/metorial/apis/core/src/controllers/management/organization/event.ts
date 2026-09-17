@@ -1,7 +1,11 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { eventLogService } from '@metorial/module-event-log';
-import { eventPresenter, webhookEventPresenter } from '@metorial/presenters';
+import {
+  eventListPresenter,
+  eventPresenter,
+  webhookEventPresenter
+} from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -15,7 +19,7 @@ export let eventManagementController = Controller.create(
   {
     name: 'Events',
     description:
-      'Events are the record of everything Metorial delivers to your event destinations — normal resource events, callback occurrences, and chat integration events.'
+      'Events are the record of everything Metorial delivers to your event destinations — normal resource events, callback occurrences, chat connection events, and manual pings.'
   },
   {
     listWebhookEvents: organizationGroup
@@ -48,7 +52,7 @@ export let eventManagementController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['organization.event:read'] }))
       .use(hasFlags(['webhooks-enabled']))
-      .outputList(eventPresenter)
+      .outputList(eventListPresenter)
       .query(
         'default',
         Paginator.validate(
@@ -62,8 +66,8 @@ export let eventManagementController = Controller.create(
             source: v.optional(
               v.union(
                 [
-                  v.enumOf(['resource', 'callback', 'chat']),
-                  v.array(v.enumOf(['resource', 'callback', 'chat']))
+                  v.enumOf(['resource', 'callback', 'chat', 'ping']),
+                  v.array(v.enumOf(['resource', 'callback', 'chat', 'ping']))
                 ],
                 {
                   description: 'Filter by event source'
@@ -81,10 +85,15 @@ export let eventManagementController = Controller.create(
                   'Filter by callback trigger key(s), for events whose source is `callback`'
               })
             ),
-            chat_integration_id: v.optional(
+            chat_connection_id: v.optional(
               v.union([v.string(), v.array(v.string())], {
                 description:
-                  'Filter by chat integration ID(s), for events whose source is `chat`'
+                  'Filter by chat connection ID(s), for events whose source is `chat`'
+              })
+            ),
+            provider_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Filter by catalog provider ID(s)'
               })
             )
           })
@@ -98,12 +107,13 @@ export let eventManagementController = Controller.create(
           sources: normalizeArrayParam(ctx.query.source),
           callbackIds: normalizeArrayParam(ctx.query.callback_id),
           callbackTriggerKeys: normalizeArrayParam(ctx.query.callback_trigger_key),
-          chatIntegrationIds: normalizeArrayParam(ctx.query.chat_integration_id)
+          chatConnectionIds: normalizeArrayParam(ctx.query.chat_connection_id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id)
         });
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, event =>
-          eventPresenter.present({ event, organization: ctx.organization })
+          eventListPresenter.present({ event, organization: ctx.organization })
         );
       }),
 

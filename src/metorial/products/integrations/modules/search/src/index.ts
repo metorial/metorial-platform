@@ -95,6 +95,12 @@ export let voyagerIndex = {
     name: 'Integration Instances'
   }),
 
+  callback: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('callback'),
+    name: 'Callbacks'
+  }),
+
   identityActor: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('identity_actor'),
@@ -135,5 +141,35 @@ export let voyagerIndex = {
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('chat_instance'),
     name: 'Chat Instances'
+  }),
+
+  chatConnectionProvider: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('chat_connection_provider'),
+    name: 'Chat Connection Providers'
+  }),
+
+  chatInstanceProvider: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('chat_instance_provider'),
+    name: 'Chat Instance Providers'
+  }),
+
+  chat: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('chat'),
+    name: 'Chats'
+  }),
+
+  chatWorkspace: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('chat_workspace'),
+    name: 'Chat Workspaces'
+  }),
+
+  chatChannel: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('chat_channel'),
+    name: 'Chat Channels'
   })
 };

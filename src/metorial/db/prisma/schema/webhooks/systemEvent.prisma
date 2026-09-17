@@ -2,14 +2,20 @@ enum SystemEventSource {
   resource
   callback
   chat
+  ping
 }
 
 model SystemEvent {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  source    SystemEventSource
-  eventType String // "<resource>.<action>" for source = resource, "callback.<triggerKey>", "chat.<event>"
+  source SystemEventSource
+
+  // source = resource -> "<resource>.<action>"
+  // source = callback -> "callback.<triggerKey>"
+  // source = chat -> "chat.<event>"
+  // source = ping -> "ping"
+  eventType String
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
@@ -25,8 +31,9 @@ model SystemEvent {
   callbackId         String?
   callbackTriggerKey String?
 
-  chatEventId       String? @unique
-  chatIntegrationId String?
+  chatEventId      String? @unique
+  chatConnectionId String?
+  providerId       String? // Denormalized for event delivery matching
 
   createdAt DateTime @default(now())
 
@@ -37,6 +44,7 @@ model SystemEvent {
   @@index([createdAt, id])
   @@index([eventType])
   @@index([callbackId, callbackTriggerKey])
-  @@index([chatIntegrationId, eventType])
+  @@index([chatConnectionId, eventType])
+  @@index([providerId, eventType])
   @@index([payloadStorageKey])
 }

@@ -3,22 +3,28 @@ import { Cursor } from '@lowerdeck/pagination';
 import { ServiceError } from '@lowerdeck/error';
 import { chatError } from '@slates/adapter-chat';
 
-let { db, getChatAdapterClientInternal, upsertChatWorkspaces, upsertChatWorkspace } =
-  vi.hoisted(() => {
-    let createModel = () => ({
-      findFirst: vi.fn(),
-      findMany: vi.fn()
-    });
-
-    return {
-      db: {
-        chatWorkspace: createModel()
-      },
-      getChatAdapterClientInternal: vi.fn(),
-      upsertChatWorkspaces: vi.fn(),
-      upsertChatWorkspace: vi.fn()
-    };
+let {
+  db,
+  getChatAdapterClientInternal,
+  upsertChatWorkspaces,
+  upsertChatWorkspace,
+  searchRecords
+} = vi.hoisted(() => {
+  let createModel = () => ({
+    findFirst: vi.fn(),
+    findMany: vi.fn()
   });
+
+  return {
+    db: {
+      chatWorkspace: createModel()
+    },
+    getChatAdapterClientInternal: vi.fn(),
+    upsertChatWorkspaces: vi.fn(),
+    upsertChatWorkspace: vi.fn(),
+    searchRecords: vi.fn()
+  };
+});
 
 vi.mock('@lowerdeck/service', () => ({
   Service: {
@@ -37,6 +43,12 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   resolveMetorialFacing: vi.fn()
 }));
 
+vi.mock('@metorial-subspace/module-search', () => ({
+  voyager: { record: { search: searchRecords } },
+  voyagerIndex: { chatWorkspace: { id: 'workspace-index' } },
+  voyagerSource: Promise.resolve({ id: 'source' })
+}));
+
 vi.mock('../internal/chatAdapter', () => ({
   chatAdapterService: {
     getChatAdapterClientInternal
@@ -53,7 +65,7 @@ vi.mock('../internal/chatWorkspace', () => ({
 
 import { chatWorkspaceService } from './chatWorkspace';
 
-let tenant = { oid: 1n } as any;
+let tenant = { oid: 1n, id: 'tenant_1' } as any;
 let environment = { oid: 3n } as any;
 let provider = { oid: 80n, id: 'ciip_1', status: 'active' } as any;
 
@@ -90,6 +102,32 @@ describe('chatWorkspaceService', () => {
       })
     );
     expect(list.items).toEqual([localWorkspace]);
+  });
+
+  it('uses Voyager ids for database-backed workspace search', async () => {
+    getChatAdapterClientInternal.mockResolvedValue({
+      isCapabilityAvailable: () => false,
+      call: vi.fn()
+    });
+    searchRecords.mockResolvedValue([{ documentId: 'cws_1' }]);
+    db.chatWorkspace.findMany.mockResolvedValue([]);
+
+    let paginator = await chatWorkspaceService.listChatWorkspacesInternal({
+      tenant,
+      environment,
+      chatInstanceProvider: provider,
+      search: '  acme  '
+    });
+    await paginator.run({});
+
+    expect(searchRecords).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: tenant.id, query: 'acme' })
+    );
+    expect(db.chatWorkspace.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: { in: ['cws_1'] } })
+      })
+    );
   });
 
   it('lists from the adapter, upserts, and encodes adapter cursors', async () => {

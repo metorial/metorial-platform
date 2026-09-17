@@ -40,12 +40,7 @@ export let WebhookRegistrationLayout = () => {
       icon={<RiWebhookLine />}
       breadcrumbs={[
         {
-          label: 'Webhook Receivers',
-          to: Paths.instance.webhookRegistrations(
-            organization.data,
-            project.data,
-            instance.data
-          )
+          label: 'Webhook Registrations'
         },
         {
           label: registration.data?.name,

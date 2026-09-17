@@ -54,6 +54,7 @@ export let callbackController = Controller.create(
             provider_id: v.optional(stringOrArray(), {
               description: 'Filter by provider ID(s)'
             }),
+            search: v.optional(v.string(), { description: 'Search callbacks by name' }),
             status: v.optional(
               v.union([callbackStatusValidator, v.array(callbackStatusValidator)]),
               { description: 'Filter by callback lifecycle status' }
@@ -71,6 +72,7 @@ export let callbackController = Controller.create(
           integrationIds: normalizeArrayParam(ctx.query.integration_id),
           integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
+          search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at

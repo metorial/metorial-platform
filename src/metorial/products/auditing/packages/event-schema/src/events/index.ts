@@ -1,9 +1,7 @@
-import { combineEventSets } from '../_lib/event';
-import { chatEvents } from './chat';
 import { coreEvents } from './core';
 
-export { type ChatEventName, chatEventNames } from './chat';
+export { type ChatEventName, chatEventNames, chatEvents } from './chat';
 
-export let webhookEvents = combineEventSets(coreEvents, chatEvents);
+export let webhookEvents = coreEvents;
 export type WebhookEvents = typeof webhookEvents;
 export type WebhookEventName = keyof WebhookEvents;

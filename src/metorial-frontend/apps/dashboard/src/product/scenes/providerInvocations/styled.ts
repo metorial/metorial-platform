@@ -4,7 +4,7 @@ import styled from 'styled-components';
 export let SectionList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 `;
 
 export let Section = styled.section`

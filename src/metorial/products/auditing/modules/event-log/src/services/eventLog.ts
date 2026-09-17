@@ -1,24 +1,14 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { callbackEventService } from '@metorial-subspace/module-callback';
 import { chatEventService } from '@metorial-subspace/module-chat';
-import { db, Organization, SystemEvent, SystemEventSource } from '@metorial/db';
+import { db, Organization, SystemEventSource } from '@metorial/db';
 import { webhookEvents } from '@metorial/webhook-event-schema';
 
 export let systemEventInclude = {
   instance: true
 } as const;
-
-let attachChatPayloads = async <T extends SystemEvent>(events: T[]) => {
-  let chatEventIds = events.map(event => event.chatEventId).filter((id): id is string => !!id);
-
-  let payloads = await chatEventService.getManyChatEventPayloads({ chatEventIds });
-
-  return events.map(event => ({
-    ...event,
-    chatPayload: event.chatEventId ? (payloads.get(event.chatEventId) ?? null) : null
-  }));
-};
 
 class EventLogServiceImpl {
   async getWebhookEvents() {
@@ -32,7 +22,8 @@ class EventLogServiceImpl {
     sources?: SystemEventSource[];
     callbackIds?: string[];
     callbackTriggerKeys?: string[];
-    chatIntegrationIds?: string[];
+    chatConnectionIds?: string[];
+    providerIds?: string[];
   }) {
     let instanceOid: bigint | undefined;
     if (d.instanceId) {
@@ -48,25 +39,24 @@ class EventLogServiceImpl {
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
-        db.systemEvent
-          .findMany({
-            ...opts,
-            where: {
-              organizationOid: d.organization.oid,
-              instanceOid,
-              eventType: d.eventTypes?.length ? { in: d.eventTypes } : undefined,
-              source: d.sources?.length ? { in: d.sources } : undefined,
-              callbackId: d.callbackIds?.length ? { in: d.callbackIds } : undefined,
-              callbackTriggerKey: d.callbackTriggerKeys?.length
-                ? { in: d.callbackTriggerKeys }
-                : undefined,
-              chatIntegrationId: d.chatIntegrationIds?.length
-                ? { in: d.chatIntegrationIds }
-                : undefined
-            },
-            include: systemEventInclude
-          })
-          .then(attachChatPayloads)
+        db.systemEvent.findMany({
+          ...opts,
+          where: {
+            organizationOid: d.organization.oid,
+            OR: instanceOid ? [{ instanceOid: null }, { instanceOid }] : undefined,
+            eventType: d.eventTypes?.length ? { in: d.eventTypes } : undefined,
+            source: d.sources?.length ? { in: d.sources } : undefined,
+            callbackId: d.callbackIds?.length ? { in: d.callbackIds } : undefined,
+            callbackTriggerKey: d.callbackTriggerKeys?.length
+              ? { in: d.callbackTriggerKeys }
+              : undefined,
+            chatConnectionId: d.chatConnectionIds?.length
+              ? { in: d.chatConnectionIds }
+              : undefined,
+            providerId: d.providerIds?.length ? { in: d.providerIds } : undefined
+          },
+          include: systemEventInclude
+        })
       )
     );
   }
@@ -81,9 +71,25 @@ class EventLogServiceImpl {
       throw new ServiceError(notFoundError('organization.event', d.eventId));
     }
 
-    let [withPayload] = await attachChatPayloads([event]);
+    let chatPayload = event.chatEventId
+      ? ((
+          await chatEventService.getManyChatEventPayloads({
+            chatEventIds: [event.chatEventId]
+          })
+        ).get(event.chatEventId) ?? null)
+      : null;
 
-    return withPayload!;
+    let callbackPayload =
+      event.source == 'callback' && event.callbackEventId && event.instance
+        ? ((
+            await callbackEventService.getCallbackEventById({
+              instance: event.instance,
+              callbackEventId: event.callbackEventId
+            })
+          ).details?.payload ?? null)
+        : null;
+
+    return { ...event, chatPayload, callbackPayload };
   }
 }
 
