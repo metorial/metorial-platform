@@ -2765,9 +2765,12 @@
         "@metorial-subspace/module-catalog": "^1.0.0",
         "@metorial-subspace/module-chat": "^1.0.0",
         "@metorial/audit-scope": "workspace:*",
+        "@metorial/audit-search": "workspace:*",
+        "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-event-delivery": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
         "@metorial/webhook-event-schema": "workspace:*",
       },
       "devDependencies": {
@@ -2786,6 +2789,7 @@
         "@metorial-subspace/module-callback": "^1.0.0",
         "@metorial-subspace/module-chat": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/list-utils": "^1.0.0",
         "@metorial/webhook-event-schema": "workspace:*",
       },
       "devDependencies": {
@@ -2885,6 +2889,22 @@
       "version": "1.0.0",
       "dependencies": {
         "@metorial/context": "1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/auditing/packages/audit-search": {
+      "name": "@metorial/audit-search",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial-platform-systems/voyager-client": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -4828,6 +4848,7 @@
         "@metorial/module-documents": "1.0.0",
         "@metorial/module-email": "1.0.0",
         "@metorial/module-event-delivery": "1.0.0",
+        "@metorial/module-event-destination": "1.0.0",
         "@metorial/module-event-tracker": "1.0.0",
         "@metorial/module-file": "1.0.0",
         "@metorial/module-machine-access": "1.0.0",
@@ -7255,6 +7276,8 @@
     "@metorial/audit-schema": ["@metorial/audit-schema@workspace:src/metorial/products/auditing/packages/audit-schema"],
 
     "@metorial/audit-scope": ["@metorial/audit-scope@workspace:src/metorial/products/auditing/packages/audit-scope"],
+
+    "@metorial/audit-search": ["@metorial/audit-search@workspace:src/metorial/products/auditing/packages/audit-search"],
 
     "@metorial/audit-stash": ["@metorial/audit-stash@workspace:src/metorial/products/auditing/packages/audit-stash"],
 
@@ -11505,6 +11528,8 @@
     "@metorial/audit-schema/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/audit-scope/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/audit-search/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/audit-stash/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

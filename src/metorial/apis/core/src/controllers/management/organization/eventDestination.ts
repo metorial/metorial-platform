@@ -66,7 +66,13 @@ export let eventDestinationManagementController = Controller.create(
               description:
                 'Filter to destinations with a listener for this chat connection (specific, provider-wide, or catch-all)',
               examples: ['chc_1aBcDeFgHjKlMnPq']
-            })
+            }),
+            search: v.optional(
+              v.string({
+                description: 'Filter destinations by name or description',
+                examples: ['production']
+              })
+            )
           })
         )
       )
@@ -75,7 +81,8 @@ export let eventDestinationManagementController = Controller.create(
           organization: ctx.organization,
           statuses: normalizeArrayParam(ctx.query.status),
           callbackIds: normalizeArrayParam(ctx.query.callback_id),
-          chatConnectionIds: normalizeArrayParam(ctx.query.chat_connection_id)
+          chatConnectionIds: normalizeArrayParam(ctx.query.chat_connection_id),
+          search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
 
