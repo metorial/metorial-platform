@@ -3,7 +3,7 @@ import { resolveSystemEventPayload } from '@metorial/module-event-tracker';
 import { Presenter } from '@metorial/presenter';
 import { systemEventType } from '../../types';
 
-export let v1SystemEventPresenter = Presenter.create(systemEventType)
+export let v1SystemEventListPresenter = Presenter.create(systemEventType)
   .presenter(async ({ event, organization }) => ({
     object: 'event',
     id: event.id,
@@ -12,11 +12,9 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
 
     source: event.source,
     event_type: event.eventType,
-    payload: (event.source == 'chat'
-      ? (event.chatPayload ?? null)
-      : await resolveSystemEventPayload(event)) as any,
 
     callback_id: event.callbackId ?? null,
+    callback_event_id: event.callbackEventId ?? null,
     callback_trigger_key: event.callbackTriggerKey ?? null,
 
     chat_event_id: event.chatEventId ?? null,
@@ -52,17 +50,18 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
           'The declared event type for `resource` events (e.g. "organization.created"), a display-only "callback.<trigger_key>" label for `callback` events, or "ping" for `ping` events',
         examples: ['organization.created']
       }),
-      payload: v.nullable(
-        v.record(v.any(), {
-          description:
-            'The presenter-shaped event payload for `resource` and `chat` events. Always `null` for `callback` events — fetch the linked callback event for its payload.'
-        })
-      ),
       callback_id: v.nullable(
         v.string({
           description:
             'The callback this event is linked to, present only for `callback` events',
           examples: ['cb_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      callback_event_id: v.nullable(
+        v.string({
+          description:
+            'The callback event this system event is linked to, present only for `callback` events',
+          examples: ['cbe_1aBcDeFgHjKlMnPq']
         })
       ),
       callback_trigger_key: v.nullable(
@@ -94,5 +93,27 @@ export let v1SystemEventPresenter = Presenter.create(systemEventType)
       ),
       created_at: v.date({ description: 'When the event was recorded' })
     })
+  )
+  .build();
+
+export let v1SystemEventPresenter = Presenter.create(systemEventType)
+  .presenter(async ({ event, organization }, opts) => ({
+    ...(await v1SystemEventListPresenter.present({ event, organization }, opts).run()),
+    payload: (event.source == 'callback'
+      ? (event.callbackPayload ?? null)
+      : event.source == 'chat'
+        ? (event.chatPayload ?? null)
+        : await resolveSystemEventPayload(event)) as any
+  }))
+  .schema(
+    v.object({
+      ...v1SystemEventListPresenter.schema.properties,
+      payload: v.nullable(
+        v.record(v.any(), {
+          description:
+            'The presenter-shaped event payload. Callback payloads are resolved through the linked callback event.'
+        })
+      )
+    }) as any
   )
   .build();

@@ -36,6 +36,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
             ? {
                 object: 'callback_event.details.webhook' as const,
 
+                id: details.webhook.id,
                 status: details.webhook.status,
 
                 request: details.webhook.request
@@ -168,6 +169,12 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
                     description: "String representing the object's type"
                   }),
 
+                  id: v.string({
+                    name: 'id',
+                    description: 'Incoming webhook identifier',
+                    examples: ['whke_7dEfGhJkLmNpQrSt']
+                  }),
+
                   status: v.string({
                     name: 'status',
                     description:
@@ -262,4 +269,18 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
       })
     })
   )
+  .build();
+
+let callbackEventListProperties = { ...v1CallbackEventPresenter.schema.properties };
+delete callbackEventListProperties.details;
+
+export let v1CallbackEventListPresenter = Presenter.create(callbackEventType)
+  .presenter(async ({ callbackEvent }, opts) => {
+    let { details: _details, ...event } = await v1CallbackEventPresenter
+      .present({ callbackEvent }, opts)
+      .run();
+
+    return event;
+  })
+  .schema(v.object(callbackEventListProperties) as any)
   .build();

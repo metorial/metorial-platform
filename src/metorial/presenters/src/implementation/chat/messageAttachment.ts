@@ -4,7 +4,7 @@ import { Presenter } from '@metorial/presenter';
 import { chatMessageAttachmentType } from '../../types';
 
 export let v1ChatMessageAttachmentPresenter = Presenter.create(chatMessageAttachmentType)
-  .presenter(async ({ chatMessageAttachment }) => ({
+  .presenter(async ({ chatMessageAttachment }, opts) => ({
     object: 'chat.message_attachment' as const,
 
     id: chatMessageAttachment.id,
@@ -21,7 +21,8 @@ export let v1ChatMessageAttachmentPresenter = Presenter.create(chatMessageAttach
 
     file_id: chatMessageAttachment.uploadedFileId ?? chatMessageAttachment.fileId,
     download_url:
-      chatMessageAttachment.uploadedFile || chatMessageAttachment.file
+      opts.accessType !== 'event_system' &&
+      (chatMessageAttachment.uploadedFile || chatMessageAttachment.file)
         ? ((await getSignedFileDownloadUrl(
             chatMessageAttachment.uploadedFile ?? chatMessageAttachment.file!
           )) ?? null)

@@ -171,6 +171,20 @@ export let v1ChatEventPresenter = Presenter.create(chatEventType)
   )
   .build();
 
+let chatEventListProperties = { ...v1ChatEventPresenter.schema.properties };
+delete chatEventListProperties.payload;
+
+export let v1ChatEventListPresenter = Presenter.create(chatEventType)
+  .presenter(async ({ chatEvent }, opts) => {
+    let { payload: _payload, ...event } = await v1ChatEventPresenter
+      .present({ chatEvent }, opts)
+      .run();
+
+    return event;
+  })
+  .schema(v.object(chatEventListProperties) as any)
+  .build();
+
 let CHAT_INVOCATION_FAILED_EVENT_TYPE = 'chat.invocation.failed';
 
 export let dashboardChatEventPresenter = Presenter.create(chatEventType)
@@ -234,4 +248,20 @@ export let dashboardChatEventPresenter = Presenter.create(chatEventType)
       )
     }) as any
   )
+  .build();
+
+let dashboardChatEventListProperties = {
+  ...dashboardChatEventPresenter.schema.properties
+};
+delete dashboardChatEventListProperties.payload;
+
+export let dashboardChatEventListPresenter = Presenter.create(chatEventType)
+  .presenter(async ({ chatEvent }, opts) => {
+    let { payload: _payload, ...event } = await dashboardChatEventPresenter
+      .present({ chatEvent }, opts)
+      .run();
+
+    return event;
+  })
+  .schema(v.object(dashboardChatEventListProperties) as any)
   .build();

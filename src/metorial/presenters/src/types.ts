@@ -1144,6 +1144,7 @@ export let systemEventType = PresentableType.create<{
   event: SystemEvent & {
     instance: Instance | null;
     chatPayload?: Record<string, any> | null;
+    callbackPayload?: Record<string, any> | null;
   };
   organization: Organization;
 }>()('event');
@@ -1172,7 +1173,7 @@ export let eventDeliveryAttemptType = PresentableType.create<{
 }>()('eventDeliveryAttempt');
 
 export let webhookEventType = PresentableType.create<{
-  webhookEvent: { name: string };
+  webhookEvent: { name: string; description: string };
 }>()('webhookEvent');
 
 export let organizationConfigType = PresentableType.create<{
