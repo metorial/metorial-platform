@@ -16,6 +16,15 @@ export let triggerPollWorkerOpts = {
 
 export let TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS = 5;
 
+export let TRIGGER_WEBHOOK_UNREGISTER_MAX_ATTEMPTS = 10;
+
+export let TRIGGER_WEBHOOK_FAILED_RETRY_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+// Targets stuck in a transitional status this long are re-queued for unregister by the sweep.
+export let TRIGGER_WEBHOOK_TARGET_STALE_AFTER_MS = 60 * 60 * 1000;
+
+export let TRIGGER_WEBHOOK_TARGET_PRUNE_AFTER_MS = 24 * 60 * 60 * 1000;
+
 export let TRIGGER_EVENT_MAP_MAX_ATTEMPTS = 25;
 
 export let TRIGGER_EVENT_DELIVER_MAX_ATTEMPTS = 25;
