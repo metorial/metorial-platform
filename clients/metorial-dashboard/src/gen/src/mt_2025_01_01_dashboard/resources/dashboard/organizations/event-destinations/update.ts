@@ -106,6 +106,14 @@ export type DashboardOrganizationsEventDestinationsUpdateBody = {
   name?: string | undefined;
   description?: string | null | undefined;
   webhook?: { url?: string | undefined } | undefined;
+  retry?:
+    | {
+        strategy?: 'exponential' | 'linear' | 'fixed' | undefined;
+        maxAttempts?: number | undefined;
+        baseDelaySeconds?: number | undefined;
+        maxDelaySeconds?: number | undefined;
+      }
+    | undefined;
 };
 
 export let mapDashboardOrganizationsEventDestinationsUpdateBody =
@@ -115,6 +123,21 @@ export let mapDashboardOrganizationsEventDestinationsUpdateBody =
     webhook: mtMap.objectField(
       'webhook',
       mtMap.object({ url: mtMap.objectField('url', mtMap.passthrough()) })
+    ),
+    retry: mtMap.objectField(
+      'retry',
+      mtMap.object({
+        strategy: mtMap.objectField('strategy', mtMap.passthrough()),
+        maxAttempts: mtMap.objectField('max_attempts', mtMap.passthrough()),
+        baseDelaySeconds: mtMap.objectField(
+          'base_delay_seconds',
+          mtMap.passthrough()
+        ),
+        maxDelaySeconds: mtMap.objectField(
+          'max_delay_seconds',
+          mtMap.passthrough()
+        )
+      })
     )
   });
 

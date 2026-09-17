@@ -154,6 +154,7 @@ export type DashboardOrganizationsEventDestinationsListQuery = {
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   callbackId?: string | string[] | undefined;
   chatConnectionId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapDashboardOrganizationsEventDestinationsListQuery = mtMap.union([
@@ -188,7 +189,8 @@ export let mapDashboardOrganizationsEventDestinationsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

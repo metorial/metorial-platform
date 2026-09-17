@@ -85,6 +85,7 @@ export type ManagementOrganizationEventsListQuery = {
   callbackTriggerKey?: string | string[] | undefined;
   chatConnectionId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
 export let mapManagementOrganizationEventsListQuery = mtMap.union([
@@ -150,6 +151,13 @@ export let mapManagementOrganizationEventsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
+      ),
+      createdAt: mtMap.objectField(
+        'created_at',
+        mtMap.object({
+          gt: mtMap.objectField('gt', mtMap.date()),
+          lt: mtMap.objectField('lt', mtMap.date())
+        })
       )
     })
   )
