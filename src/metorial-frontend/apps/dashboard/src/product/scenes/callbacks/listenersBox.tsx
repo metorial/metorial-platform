@@ -3,289 +3,195 @@ import { Paths } from '@metorial/frontend-config';
 import {
   useAllEventDestinationListeners,
   useAllEventDestinations,
+  useBoot,
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject,
-  useDeleteEventDestinationListener
+  useCurrentProject
 } from '@metorial/state';
-import { Badge, Button, Callout, confirm, Flex, Spacer, Text } from '@metorial/ui';
+import { Badge, Button, Callout, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { showCreateEventDestinationModal } from './eventDestinationsTable';
-import { showEventDestinationListenerModal } from './listenerEditor';
+import { ListenerSummary, showEventDestinationListenerModal } from './listenerEditor';
 
-export let CallbackDeliveryBox = ({
+export type EventDeliveryTarget =
+  | { type: 'callback'; callbackId: string }
+  | { type: 'chat'; chatConnectionId: string };
+
+export let EventDeliveryBox = ({
   organizationId,
   instanceId,
-  callbackIds,
-  defaultCallbackId,
+  target,
   title = 'Delivery',
-  description = 'Where Metorial sends the events these callbacks produce.'
+  description = 'Where Metorial sends these events.'
 }: {
   organizationId: string;
   instanceId: string;
-  callbackIds: string[];
-  defaultCallbackId?: string;
+  target: EventDeliveryTarget;
   title?: string;
   description?: string;
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
-  let destinations = useAllEventDestinations(organizationId, { status: 'active' });
-  let listeners = useAllEventDestinationListeners(callbackIds.length ? organizationId : null, {
-    type: 'callback',
-    callbackId: callbackIds
+  let allDestinations = useAllEventDestinations(organizationId, { status: 'active' });
+  let subscribedDestinations = useAllEventDestinations(organizationId, {
+    status: 'active',
+    ...(target.type === 'callback'
+      ? { callbackId: target.callbackId }
+      : { chatConnectionId: target.chatConnectionId })
   });
-  let deleteListener = useDeleteEventDestinationListener();
+  return renderWithLoader({ allDestinations, subscribedDestinations })(
+    ({ allDestinations, subscribedDestinations }) => {
+      let refetch = () =>
+        Promise.all([allDestinations.refetch(), subscribedDestinations.refetch()]);
 
-  return renderWithLoader({ destinations, listeners })(({ destinations, listeners }) => {
-    let destinationsById = new Map(
-      destinations.data.map(destination => [destination.id, destination] as const)
-    );
-
-    let rows = listeners.data.map(listener => {
-      let destination = destinationsById.get(listener.eventDestinationId);
-
-      return {
+      let rowData = subscribedDestinations.data.map(destination => ({
+        href: Paths.instance.eventDestination(
+          organization.data,
+          project.data,
+          instance.data,
+          destination.id
+        ),
         data: [
-          <Flex direction="column" gap={2} key="destination">
-            <Text size="2" weight="strong">
-              {destination?.name ?? listener.eventDestinationId}
-            </Text>
-            <Text size="1" color="gray600">
-              {destination?.webhook?.url ?? 'Endpoint unavailable'}
-            </Text>
-          </Flex>,
-          <Text size="2" key="triggers">
-            {listener.triggers?.length ? listener.triggers.join(', ') : 'No triggers selected'}
+          <Text size="2" weight="strong">
+            {destination.name}
           </Text>,
-          <Flex gap={8} key="actions">
-            <Button
-              size="1"
-              variant="outline"
-              onClick={() =>
-                showEventDestinationListenerModal({
-                  organizationId,
-                  instanceId,
-                  eventDestinationId: listener.eventDestinationId,
-                  listener,
-                  onComplete: () => void listeners.refetch()
-                })
-              }
-            >
-              Edit
-            </Button>
-            <Button
-              size="1"
-              variant="outline"
-              color="red"
-              loading={deleteListener.isLoading}
-              success={deleteListener.isSuccess}
-              onClick={() =>
-                confirm({
-                  title: 'Remove Subscription?',
-                  description: `${destination?.name ?? 'This destination'} will stop receiving these events.`,
-                  confirmText: 'Remove',
-                  onConfirm: async () => {
-                    await deleteListener.mutate({
-                      organizationId,
-                      eventDestinationListenerId: listener.id
-                    });
-                    await listeners.refetch();
-                  }
-                })
-              }
-            >
-              Remove
-            </Button>
-          </Flex>
-        ]
-      };
-    });
 
-    return (
-      <Box
-        title={title}
-        description={description}
-        rightActions={
-          destinations.data.length ? (
-            <Button
-              size="2"
-              disabled={!callbackIds.length}
-              onClick={() =>
-                showEventDestinationListenerModal({
-                  organizationId,
-                  instanceId,
-                  defaultCallbackId,
-                  onComplete: () => void listeners.refetch()
-                })
-              }
-            >
-              Add Subscription
-            </Button>
-          ) : (
-            <Button
-              size="2"
-              onClick={() =>
-                showCreateEventDestinationModal({
-                  organizationId,
-                  onCreate: () => void destinations.refetch()
-                })
-              }
-            >
-              Create Destination
-            </Button>
-          )
-        }
-      >
-        {!destinations.data.length ? (
-          <Callout color="orange">
-            <span>
-              You do not have an event destination yet. Create one to receive these events at
-              your own endpoint.
-            </span>
-          </Callout>
-        ) : !rows.length ? (
-          <>
+          destination.webhook?.url ?? 'Endpoint unavailable'
+        ]
+      }));
+
+      return (
+        <Box
+          title={title}
+          description={description}
+          rightActions={
+            allDestinations.data.length ? (
+              <Button
+                size="2"
+                onClick={() =>
+                  showEventDestinationListenerModal({
+                    organizationId,
+                    instanceId,
+                    fixedTarget:
+                      target.type === 'callback'
+                        ? { type: 'callback', targetId: target.callbackId }
+                        : { type: 'chat', targetId: target.chatConnectionId },
+                    excludeEventDestinationIds: subscribedDestinations.data.map(d => d.id),
+                    onComplete: refetch
+                  })
+                }
+              >
+                Add Subscription
+              </Button>
+            ) : (
+              <Button
+                size="2"
+                onClick={() =>
+                  showCreateEventDestinationModal({
+                    organizationId,
+                    onCreate: () => void allDestinations.refetch()
+                  })
+                }
+              >
+                Create Destination
+              </Button>
+            )
+          }
+        >
+          {!allDestinations.data.length ? (
             <Callout color="orange">
               <span>
-                Nothing subscribes to these callbacks yet, so their events are recorded but not
-                delivered anywhere.
+                You do not have an event destination yet. Create one to receive these events at
+                your own endpoint.
               </span>
             </Callout>
-            <Spacer size={12} />
-            <Text size="2" color="gray600">
-              Manage all destinations on the{' '}
-              <Link
-                to={Paths.instance.eventDestinations(
-                  organization.data,
-                  project.data,
-                  instance.data
-                )}
-              >
-                Event Destinations
-              </Link>{' '}
-              page.
-            </Text>
-          </>
-        ) : (
-          <Table
-            headers={['Destination', 'Triggers', '']}
-            data={rows}
-            padding={{ sides: '16px' }}
-          />
-        )}
-
-        <deleteListener.RenderError />
-      </Box>
-    );
-  });
+          ) : !rowData.length ? (
+            <>
+              <Text size="2" color="gray600">
+                There are no event destinations subscribed to this target yet. Add one to start
+                receiving events.
+              </Text>
+            </>
+          ) : (
+            <Table headers={['Destination', 'URL']} data={rowData} />
+          )}
+        </Box>
+      );
+    }
+  );
 };
 
 export let EventDestinationListenersBox = ({
   organizationId,
-  instanceId,
-  eventDestinationId,
-  onComplete
+  eventDestinationId
 }: {
   organizationId: string;
   instanceId: string;
   eventDestinationId: string;
-  onComplete?: () => void;
 }) => {
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let instance = useCurrentInstance();
   let listeners = useAllEventDestinationListeners(organizationId, { eventDestinationId });
-  let deleteListener = useDeleteEventDestinationListener();
+
+  let boot = useBoot();
+  let instanceMap = useMemo(
+    () => new Map(boot.data?.instances.map(i => [i.id, i]) ?? []),
+    [boot.data]
+  );
 
   return renderWithLoader({ listeners })(({ listeners }) => {
-    let refresh = () => {
-      void listeners.refetch();
-      onComplete?.();
-    };
-
     let rows = listeners.data.map(listener => ({
       data: [
-        <Badge key="type" color={listener.type === 'callback' ? 'blue' : 'gray'}>
-          {listener.type === 'callback' ? 'Callback' : 'Resource'}
-        </Badge>,
-        <Text size="2" key="subject">
+        <Badge
+          key="type"
+          color={
+            listener.type === 'callback'
+              ? 'blue'
+              : listener.type === 'chat'
+                ? 'purple'
+                : 'gray'
+          }
+        >
           {listener.type === 'callback'
-            ? listener.triggers?.join(', ') || 'No triggers selected'
-            : listener.eventTypes?.join(', ') || 'No event types selected'}
-        </Text>,
+            ? 'Callback'
+            : listener.type === 'chat'
+              ? 'Chat'
+              : 'System'}
+        </Badge>,
+        <ListenerSummary key="subject" listener={listener} />,
         <Text size="2" key="instance">
-          {listener.instanceId}
-        </Text>,
-        <Flex gap={8} key="actions">
-          <Button
-            size="1"
-            variant="outline"
-            onClick={() =>
-              showEventDestinationListenerModal({
-                organizationId,
-                instanceId: listener.instanceId,
-                eventDestinationId,
-                listener,
-                onComplete: refresh
-              })
-            }
-          >
-            Edit
-          </Button>
-          <Button
-            size="1"
-            variant="outline"
-            color="red"
-            loading={deleteListener.isLoading}
-            success={deleteListener.isSuccess}
-            onClick={() =>
-              confirm({
-                title: 'Remove Subscription?',
-                description:
-                  'This destination will stop receiving the events this subscription covers.',
-                confirmText: 'Remove',
-                onConfirm: async () => {
-                  await deleteListener.mutate({
-                    organizationId,
-                    eventDestinationListenerId: listener.id
-                  });
-                  refresh();
-                }
-              })
-            }
-          >
-            Remove
-          </Button>
-        </Flex>
+          {instanceMap.get(listener.instanceId)
+            ? `${instanceMap.get(listener.instanceId)?.project.name} - ${instanceMap.get(listener.instanceId)?.name}`
+            : listener.instanceId}
+        </Text>
       ]
     }));
 
     return (
       <Box
-        title="Subscriptions"
-        description="Which events this destination receives. Without a subscription nothing is delivered."
+        title="Listeners"
+        description="Configure which events this destination receives."
         rightActions={
-          <Button
-            size="2"
-            onClick={() =>
-              showEventDestinationListenerModal({
-                organizationId,
-                instanceId,
-                eventDestinationId,
-                onComplete: refresh
-              })
-            }
+          <Link
+            to={Paths.instance.eventDestinationListeners(
+              organization.data,
+              project.data,
+              instance.data,
+              eventDestinationId
+            )}
           >
-            Add Subscription
-          </Button>
+            <Button size="2" as="span" variant="outline">
+              Edit Listeners
+            </Button>
+          </Link>
         }
       >
         {rows.length ? (
-          <Table
-            headers={['Type', 'Subscribed To', 'Instance', '']}
-            data={rows}
-            padding={{ sides: '16px' }}
-          />
+          <Table headers={['Type', 'Subscribed To', 'Instance']} data={rows} />
         ) : (
           <Callout color="orange">
             <span>
@@ -294,8 +200,6 @@ export let EventDestinationListenersBox = ({
             </span>
           </Callout>
         )}
-
-        <deleteListener.RenderError />
       </Box>
     );
   });

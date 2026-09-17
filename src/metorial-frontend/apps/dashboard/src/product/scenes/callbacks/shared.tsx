@@ -83,12 +83,6 @@ export let CallbackPendingCallout = ({ sync }: { sync: CallbackSync }) => {
   );
 };
 
-export let getCallbackEventStatusColor = (status: 'pending' | 'processed' | 'failed') => {
-  if (status === 'processed') return 'blue';
-  if (status === 'failed') return 'red';
-  return 'orange';
-};
-
 export let getIncomingWebhookStatusColor = (status: string) => {
   if (status === 'succeeded') return 'blue';
   if (status === 'failed_final') return 'red';
@@ -126,6 +120,47 @@ export let getStatusColor = (status: 'active' | 'archived' | 'deleted') => {
   if (status === 'active') return 'blue';
   if (status === 'archived') return 'orange';
   return 'gray';
+};
+
+export type EventDeliveryStatus =
+  | 'pending'
+  | 'retrying'
+  | 'delivered'
+  | 'failed'
+  | 'cancelled';
+
+export let EVENT_DELIVERY_STATUS_LABELS: Record<EventDeliveryStatus, string> = {
+  pending: 'Pending',
+  retrying: 'Retrying',
+  delivered: 'Delivered',
+  failed: 'Failed',
+  cancelled: 'Cancelled'
+};
+
+export let getEventDeliveryStatusColor = (status: EventDeliveryStatus) => {
+  if (status === 'delivered') return 'blue';
+  if (status === 'failed') return 'red';
+  if (status === 'pending' || status === 'retrying') return 'orange';
+  return 'gray';
+};
+
+export let getEventDeliveryStatusLabel = (status: EventDeliveryStatus) =>
+  EVENT_DELIVERY_STATUS_LABELS[status];
+
+export let canRetryEventDelivery = (status: EventDeliveryStatus) =>
+  status === 'delivered' || status === 'failed' || status === 'cancelled';
+
+export let getEventDeliveryActionLabel = (status: EventDeliveryStatus) =>
+  status === 'delivered' ? 'Resend Webhook' : 'Retry Delivery';
+
+export let decodeDeliveryBody = (body: string | null | undefined) => {
+  if (!body) return null;
+
+  try {
+    return { json: JSON.stringify(JSON.parse(body), null, 2), text: body };
+  } catch {
+    return { json: null, text: body };
+  }
 };
 
 export let decodeWebhookBody = (

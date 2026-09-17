@@ -8,9 +8,9 @@ import {
   useEvents
 } from '@metorial/state';
 import {
+  Table as DashboardTable,
   getEnumListFilterValue,
   getStringFilterValue,
-  Table as DashboardTable,
   TableStateProvider,
   TableStateProviderResult
 } from '@metorial/table';
@@ -35,6 +35,7 @@ let useEventsTableState: TableStateProvider<
 > = (props, opts) => {
   let events = useEvents(props.organizationId, {
     order: 'desc',
+    instanceId: props.instance.data?.id,
     ...props.filters,
     source:
       getEnumListFilterValue(opts.filter.source, ['resource', 'callback']) ??
@@ -79,7 +80,7 @@ let eventsTable = new DashboardTable<EventsTableProps, EventPreview>('events')
     },
     {
       id: 'callbackId',
-      isDefault: true,
+      isDefault: false,
       header: 'Callback',
       render: event =>
         event.callbackId ? (

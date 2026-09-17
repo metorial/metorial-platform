@@ -33,7 +33,7 @@ export let ProviderWebhookRegistrationsBox = ({
     <>
       <Box
         title="Inbound Event Setup"
-        description={`API calls to ${provider.name} work without this, but inbound events require a webhook receiver registered with the provider.`}
+        description={`Tool calls to ${provider.name} work without this, but inbound events require a webhook receiver registered with the provider.`}
         rightActions={
           registrations.data && !registrations.data.items.length ? (
             <CreateWebhookRegistrationButton
