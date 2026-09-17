@@ -3,20 +3,19 @@ import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCallbackById,
-  useCallbackEvents,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useDashboardFlags
+  useDashboardFlags,
+  useEvents
 } from '@metorial/state';
-import { Badge, Button, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Button, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
-import { CallbackDeliveryBox } from '../../../scenes/callbacks/listenersBox';
+import { EventDeliveryBox } from '../../../scenes/callbacks/listenersBox';
 import {
   CallbackPendingCallout,
-  CallbackSyncErrorCallout,
-  getCallbackEventStatusColor
+  CallbackSyncErrorCallout
 } from '../../../scenes/callbacks/shared';
 import { CallbackWebhookRegistrationsBox } from '../../../scenes/callbacks/webhookRegistrationsBox';
 
@@ -27,14 +26,15 @@ export let CallbackOverviewPage = () => {
   let flags = useDashboardFlags();
   let { callbackId } = useParams();
   let callback = useCallbackById(instance.data?.id, callbackId);
-  let callbackEvents = useCallbackEvents(instance.data?.id, {
+  let events = useEvents(organization.data?.id, {
+    instanceId: instance.data?.id,
     callbackId,
     limit: 10,
     order: 'desc'
   });
 
-  return renderWithLoader({ callback, callbackEvents, instance, organization, project })(
-    ({ callback, callbackEvents, instance, organization, project }) => (
+  return renderWithLoader({ callback, events, instance, organization, project })(
+    ({ callback, events, instance, organization, project }) => (
       <DetailsOverviewLayout>
         <CallbackSyncErrorCallout sync={callback.data.sync} />
         <CallbackPendingCallout sync={callback.data.sync} />
@@ -47,11 +47,10 @@ export let CallbackOverviewPage = () => {
 
         {flags.data?.flags['webhooks-enabled'] ? (
           <>
-            <CallbackDeliveryBox
+            <EventDeliveryBox
               organizationId={organization.data.id}
               instanceId={instance.data.id}
-              callbackIds={[callback.data.id]}
-              defaultCallbackId={callback.data.id}
+              target={{ type: 'callback', callbackId: callback.data.id }}
               description="Event destinations subscribed to this callback's triggers."
             />
             <Spacer height={20} />
@@ -60,18 +59,9 @@ export let CallbackOverviewPage = () => {
 
         <Box
           title="Recent Events"
-          description="The latest provider events recorded for this callback."
           rightActions={
-            callbackEvents.data.items.length ? (
-              <Link
-                to={Paths.instance.callback(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  callback.data.id,
-                  'events'
-                )}
-              >
+            events.data.items.length ? (
+              <Link to={Paths.instance.events(organization.data, project.data, instance.data)}>
                 <Button size="2" as="span" variant="outline">
                   View All Events
                 </Button>
@@ -79,11 +69,11 @@ export let CallbackOverviewPage = () => {
             ) : undefined
           }
         >
-          {callbackEvents.data.items.length ? (
+          {events.data.items.length ? (
             <Table
-              headers={['Trigger', 'Status', 'Occurred', 'ID']}
-              data={callbackEvents.data.items.map(event => ({
-                href: Paths.instance.callbackEvent(
+              headers={['Event', 'Recorded', 'ID']}
+              data={events.data.items.map(event => ({
+                href: Paths.instance.event(
                   organization.data,
                   project.data,
                   instance.data,
@@ -91,12 +81,9 @@ export let CallbackOverviewPage = () => {
                 ),
                 data: [
                   <Text key="trigger" size="2" weight="strong">
-                    {event.providerTriggerKey}
+                    {event.eventType}
                   </Text>,
-                  <Badge key="status" color={getCallbackEventStatusColor(event.status)}>
-                    {event.status}
-                  </Badge>,
-                  <RenderDate key="occurred" date={event.occurredAt} />,
+                  <RenderDate key="recorded" date={event.createdAt} />,
                   <ID key="id" id={event.id} />
                 ]
               }))}
