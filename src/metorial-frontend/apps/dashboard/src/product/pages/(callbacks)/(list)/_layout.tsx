@@ -10,21 +10,6 @@ import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { showEventDestinationSetupModal } from '../../../scenes/callbacks/eventDestinationSetup';
 
-export let CallbacksListLayout = () => {
-  return (
-    <ContentLayout>
-      <PageHeader
-        title="Callbacks"
-        description="Callbacks let your providers push events into Metorial. Each callback records the events it receives."
-      />
-
-      <PaginationSearchParamsProvider enabled={true}>
-        <Outlet />
-      </PaginationSearchParamsProvider>
-    </ContentLayout>
-  );
-};
-
 export let WebhooksListLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();

@@ -61,12 +61,6 @@ export let ProviderWebhookRegistrationsBox = ({
                   </Text>
                 </div>
               </Callout>
-              <Spacer size={12} />
-              <CreateWebhookRegistrationButton
-                instanceId={instanceId}
-                provider={provider}
-                onCreate={onCreate}
-              />
             </>
           )
         })(registrations => (

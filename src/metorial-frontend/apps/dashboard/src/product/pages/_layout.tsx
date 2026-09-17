@@ -56,7 +56,6 @@ export let ProjectPageLayout = () => {
   ];
   let dashboardFlags = useDashboardFlags();
   let skillsEnabled = !!dashboardFlags.data?.flags['skills-enabled'];
-  let callbacksEnabled = !!dashboardFlags.data?.flags['callbacks-enabled'];
   let webhooksEnabled = !!dashboardFlags.data?.flags['webhooks-enabled'];
   let chatEnabled = !!dashboardFlags.data?.flags['chat-enabled'];
 
@@ -147,47 +146,27 @@ export let ProjectPageLayout = () => {
             ]
           : []),
 
-        ...(callbacksEnabled
+        ...(webhooksEnabled
           ? [
               {
-                label: 'Callbacks',
+                label: 'Webhooks',
                 collapsible: true,
                 items: [
                   {
-                    icon: <RiRssLine />,
-                    label: 'Callbacks',
-                    to: Paths.instance.callbacks(...params),
+                    icon: <RiWebhookLine />,
+                    label: 'Destinations',
+                    to: Paths.instance.eventDestinations(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
                       isActive: checkPath(i, { exact: true })
-                    }),
-
-                    children: [
-                      {
-                        label: 'Callbacks',
-                        to: Paths.instance.callbacks(...params),
-                        getProps: (i: { pathname: string; to: string }) => ({
-                          isActive: checkPath(i, { exact: true })
-                        })
-                      },
-                      ...(webhooksEnabled
-                        ? [
-                            {
-                              label: 'Destinations',
-                              to: Paths.instance.eventDestinations(...params),
-                              getProps: (i: { pathname: string; to: string }) => ({
-                                isActive: checkPath(i, { exact: true })
-                              })
-                            },
-                            {
-                              label: 'Events',
-                              to: Paths.instance.events(...params),
-                              getProps: (i: { pathname: string; to: string }) => ({
-                                isActive: checkPath(i, { exact: true })
-                              })
-                            }
-                          ]
-                        : [])
-                    ]
+                    })
+                  },
+                  {
+                    icon: <RiRssLine />,
+                    label: 'Events',
+                    to: Paths.instance.events(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
                   }
                 ]
               }

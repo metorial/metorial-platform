@@ -3,10 +3,10 @@ import {
   callbacksLoader,
   chatConnectionsLoader,
   providerListingsLoader,
-  useAllEventDestinations,
   useCallbackById,
   useChatConnection,
   useCreateEventDestinationListener,
+  useEventDestinations,
   useEventTypes,
   useProvider,
   useProviderTriggers,
@@ -22,9 +22,9 @@ import {
   Input,
   OptionToggle,
   Select,
-  showModal,
   Spacer,
   Text,
+  showModal,
   theme
 } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
@@ -149,7 +149,7 @@ let Empty = styled.div`
   text-align: center;
 `;
 
-let sentenceCase = (value: string) => {
+export let sentenceCase = (value: string) => {
   let sentence = value.replace(/[._-]+/g, ' ');
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 };
@@ -602,7 +602,7 @@ export let ListenerDraftEditor = ({
           emptyMessage={
             value.scope !== 'all' && !value.targetId
               ? `Choose a ${value.scope === 'provider' ? 'provider' : 'callback'} to view triggers.`
-              : 'No callback triggers are available for this scope.'
+              : 'No callback triggers are available. Enable callbacks for integrations to see triggers here.'
           }
         />
       ) : value.type === 'chat' ? (
@@ -827,13 +827,30 @@ export let showEventDestinationListenerModal = (
         });
     let [draft, setDraft] = useState(initialDraft);
     let [destinationId, setDestinationId] = useState(p.listener?.eventDestinationId ?? '');
-    let destinations = useAllEventDestinations(isUpdate ? null : p.organizationId, {
-      status: 'active'
-    });
-    let eligibleDestinations = (destinations.data ?? []).filter(
-      destination => !p.excludeEventDestinationIds?.includes(destination.id)
-    );
+    let [destinationName, setDestinationName] = useState<string | undefined>(undefined);
     let mutator = isUpdate ? updateListener : createListener;
+
+    let destinationProvider = ({ searchQuery }: { searchQuery?: string }) => {
+      let destinations = useEventDestinations(isUpdate ? null : p.organizationId, {
+        limit: 25,
+        search: searchQuery,
+        status: 'active'
+      });
+      let eligibleDestinations = (destinations.data?.items ?? []).filter(
+        destination => !p.excludeEventDestinationIds?.includes(destination.id)
+      );
+
+      return {
+        items: eligibleDestinations.map(destination => ({
+          id: destination.id,
+          label: destination.name
+        })),
+        isLoading: destinations.isLoading,
+        empty: searchQuery
+          ? 'No matching event destinations found.'
+          : 'No event destinations available.'
+      };
+    };
 
     let submit = async () => {
       if (p.listener) {
@@ -869,12 +886,12 @@ export let showEventDestinationListenerModal = (
               description="Where matching events are delivered."
               placeholder="Search event destinations..."
               value={destinationId || null}
-              valueLabel={eligibleDestinations.find(d => d.id === destinationId)?.name}
-              items={eligibleDestinations.map(destination => ({
-                id: destination.id,
-                label: destination.name
-              }))}
-              onChange={value => setDestinationId(value ?? '')}
+              valueLabel={destinationName}
+              provider={({ searchQuery }) => destinationProvider({ searchQuery })}
+              onChange={(value, item) => {
+                setDestinationId(value ?? '');
+                setDestinationName(item?.label);
+              }}
             />
             <Spacer size={16} />
           </>

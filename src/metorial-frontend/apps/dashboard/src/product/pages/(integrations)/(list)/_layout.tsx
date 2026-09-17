@@ -4,10 +4,12 @@ import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject
+  useCurrentProject,
+  useDashboardFlags,
+  useHasCallbacks
 } from '@metorial/state';
-import { Button } from '@metorial/ui';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Button, LinkTabs } from '@metorial/ui';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { showCreateIntegrationProviderFirstFlow } from '../../../scenes/integrations/providerPanelFlow';
 
 export let IntegrationsListLayout = () => {
@@ -15,6 +17,12 @@ export let IntegrationsListLayout = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let navigate = useNavigate();
+  let pathname = useLocation().pathname;
+  let params = [organization.data, project.data, instance.data] as const;
+
+  let flags = useDashboardFlags();
+  let callbacksEnabled = !!flags.data?.flags['callbacks-enabled'];
+  let { hasCallbacks } = useHasCallbacks(callbacksEnabled ? instance.data?.id : null);
 
   return (
     <ContentLayout>
@@ -44,6 +52,16 @@ export let IntegrationsListLayout = () => {
           </Button>
         }
       />
+
+      {hasCallbacks && (
+        <LinkTabs
+          current={pathname}
+          links={[
+            { label: 'Integrations', to: Paths.instance.integrations(...params) },
+            { label: 'Callbacks', to: Paths.instance.callbacks(...params) }
+          ]}
+        />
+      )}
 
       <PaginationSearchParamsProvider enabled={true}>
         <Outlet />

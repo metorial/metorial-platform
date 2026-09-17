@@ -310,9 +310,6 @@ let SkillItemDocumentPage = dynamicPage(() =>
 let IntegrationCallbacksPage = dynamicPage(() =>
   import('./pages/(integrations)/integration/callbacks').then(c => c.IntegrationCallbacksPage)
 );
-let CallbacksListLayout = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
-);
 let WebhooksListLayout = dynamicPage(() =>
   import('./pages/(callbacks)/(list)/_layout').then(c => c.WebhooksListLayout)
 );
@@ -847,6 +844,14 @@ export let productIntegrationsSlice = createSlice([
               {
                 path: '',
                 element: <IntegrationsPage />
+              },
+              {
+                path: 'callbacks',
+                element: (
+                  <FlaggedPage flag="callbacks-enabled">
+                    <CallbacksPage />
+                  </FlaggedPage>
+                )
               }
             ]
           },
@@ -1059,21 +1064,6 @@ export let productCallbacksSlice = createSlice([
         element: <InstanceLayout />,
 
         children: [
-          {
-            element: (
-              <FlaggedPage flag="callbacks-enabled">
-                <CallbacksListLayout />
-              </FlaggedPage>
-            ),
-
-            children: [
-              {
-                path: 'callbacks',
-                element: <CallbacksPage />
-              }
-            ]
-          },
-
           {
             path: 'callback/:callbackId',
             element: (

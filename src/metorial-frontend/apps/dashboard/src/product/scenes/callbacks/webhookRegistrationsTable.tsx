@@ -107,10 +107,10 @@ let showCreateWebhookRegistrationModal = (p: {
         <Panel.Content>
           {providerId ? (
             <form onSubmit={form.handleSubmit}>
-              <Text size="2" color="gray600">
+              <Callout color="gray">
                 Metorial will create a secure receive URL, then guide you through adding it to
                 the provider and saving any required verification values.
-              </Text>
+              </Callout>
 
               <Spacer size={16} />
 

@@ -1,4 +1,4 @@
-import { CenteredSpinner, Group, Title, theme } from '@metorial/ui';
+import { CenteredSpinner, Title, theme } from '@metorial/ui';
 import type React from 'react';
 import styled from 'styled-components';
 import { SecuredByFooter } from './stepLayout';
@@ -56,7 +56,7 @@ let Card = styled.div`
   }
 `;
 
-export let PublicSetupFooter = styled(Group.Footer)`
+export let PublicSetupFooter = styled.div`
   justify-content: center;
   border-top: none;
   display: flex;
@@ -68,7 +68,7 @@ export let PublicSetupFooter = styled(Group.Footer)`
   }
 `;
 
-export let PublicSetupStatusContent = styled(Group.Content)`
+export let PublicSetupStatusContent = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -114,14 +114,14 @@ interface PublicSetupCardProps {
 export let PublicSetupCard = ({ children, isWhitelabel }: PublicSetupCardProps) => {
   return (
     <PublicSetupFrame>
-      <Group.Wrapper>
+      <div>
         {children}
         {!isWhitelabel && (
           <PublicSetupFooter>
             <SecuredByFooter logoSize={16} isMetorialElement />
           </PublicSetupFooter>
         )}
-      </Group.Wrapper>
+      </div>
     </PublicSetupFrame>
   );
 };
