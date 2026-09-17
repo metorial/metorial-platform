@@ -36,7 +36,8 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
         schedule: true
       }
     });
-    if (!instance || instance.schedule) return;
+    if (!instance || instance.schedule || instance.triggerRegistration.status !== 'active')
+      return;
 
     let invocation = instance.triggerGroup.spec.invocation;
 

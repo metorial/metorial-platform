@@ -32,6 +32,7 @@ class triggerWebhookRegistrationServiceInternalImpl {
     metadata?: Record<string, any>;
     webhookRegistrationPayload: any;
     webhookRegistrationIdentifier?: string;
+    triggerRegistrationId?: string;
     authRouting: SlateWebhookRegistrationAuthRouting;
     authMethods?: { oid: bigint }[];
     oauthCredentials?: { oid: bigint }[];
@@ -39,7 +40,10 @@ class triggerWebhookRegistrationServiceInternalImpl {
     let secret = await secretService.createSecret({
       tenant: d.tenant,
       purpose: 'slate_webhook_registration_payload',
-      secretData: { payload: d.webhookRegistrationPayload }
+      secretData: {
+        payload: d.webhookRegistrationPayload,
+        triggerRegistrationId: d.triggerRegistrationId
+      }
     });
 
     return db.slateWebhookRegistration.create({

@@ -29,6 +29,8 @@ model TriggerRegistration {
 
   instances TriggerRegistrationInstance[]
 
+  registeredWebhookTargets TriggerWebhookTarget[]
+
   callbackInstance CallbackInstance?
 
   @@index([tenantOid, createdAt])
@@ -187,6 +189,12 @@ model TriggerWebhookTarget {
   webhookRegistrationOid BigInt?                   @unique
   webhookRegistration    SlateWebhookRegistration? @relation(fields: [webhookRegistrationOid], references: [oid])
 
+  // Preferred credentials for provider cleanup.
+  registeredByTriggerRegistrationOid BigInt?
+  registeredByTriggerRegistration    TriggerRegistration? @relation(fields: [registeredByTriggerRegistrationOid], references: [oid], onDelete: SetNull)
+
+  unregistrationStarted Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -208,6 +216,8 @@ model TriggerRegistrationWebhook {
 
   webhookRegistrationOid BigInt?
   webhookRegistration    SlateWebhookRegistration? @relation(fields: [webhookRegistrationOid], references: [oid])
+
+  lastDiscoveredAt DateTime?
 
   createdAt DateTime @default(now())
 

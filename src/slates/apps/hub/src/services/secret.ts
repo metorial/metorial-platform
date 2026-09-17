@@ -106,6 +106,7 @@ export type SecretSlateAuthConfig = {
 
 export type SecretSlateWebhookRegistrationPayload = {
   payload: any;
+  triggerRegistrationId?: string;
 };
 
 export type SecretTypes = {
