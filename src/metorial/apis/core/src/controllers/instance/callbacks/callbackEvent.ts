@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { callbackEventService } from '@metorial-subspace/module-callback';
-import { callbackEventPresenter } from '@metorial/presenters';
+import { callbackEventListPresenter, callbackEventPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -27,7 +27,7 @@ export let callbackEventController = Controller.create(
         description: 'Returns a paginated list of callback events.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
-      .outputList(callbackEventPresenter)
+      .outputList(callbackEventListPresenter)
       .query(
         'default',
         Paginator.validate(
@@ -79,7 +79,7 @@ export let callbackEventController = Controller.create(
         });
 
         return Paginator.present(await paginator.run(ctx.query), callbackEvent =>
-          callbackEventPresenter.present({ callbackEvent })
+          callbackEventListPresenter.present({ callbackEvent })
         );
       }),
 

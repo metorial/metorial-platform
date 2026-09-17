@@ -1,7 +1,11 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { eventLogService } from '@metorial/module-event-log';
-import { eventPresenter, webhookEventPresenter } from '@metorial/presenters';
+import {
+  eventListPresenter,
+  eventPresenter,
+  webhookEventPresenter
+} from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -48,7 +52,7 @@ export let eventManagementController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['organization.event:read'] }))
       .use(hasFlags(['webhooks-enabled']))
-      .outputList(eventPresenter)
+      .outputList(eventListPresenter)
       .query(
         'default',
         Paginator.validate(
@@ -109,7 +113,7 @@ export let eventManagementController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, event =>
-          eventPresenter.present({ event, organization: ctx.organization })
+          eventListPresenter.present({ event, organization: ctx.organization })
         );
       }),
 
