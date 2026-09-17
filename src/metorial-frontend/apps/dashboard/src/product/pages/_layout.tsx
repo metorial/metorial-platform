@@ -5,8 +5,7 @@ import {
   lastInstanceIdStore,
   useCurrentInstance,
   useCurrentOrganization,
-  useDashboardFlags,
-  useHasCallbacks
+  useDashboardFlags
 } from '@metorial/state';
 import {
   RiBriefcase4Line,
@@ -60,7 +59,6 @@ export let ProjectPageLayout = () => {
   let callbacksEnabled = !!dashboardFlags.data?.flags['callbacks-enabled'];
   let webhooksEnabled = !!dashboardFlags.data?.flags['webhooks-enabled'];
   let chatEnabled = !!dashboardFlags.data?.flags['chat-enabled'];
-  let hasCallbacks = useHasCallbacks(callbacksEnabled ? instance.data?.id : null).hasCallbacks;
 
   return (
     <AppLayout
@@ -190,30 +188,7 @@ export let ProjectPageLayout = () => {
                           ]
                         : [])
                     ]
-                  },
-
-                  ...(hasCallbacks
-                    ? [
-                        {
-                          icon: <RiListCheck2 />,
-                          label: 'Callback Logs',
-                          to: Paths.instance.callbackEvents(...params),
-                          getProps: (i: { pathname: string; to: string }) => ({
-                            isActive: checkPath(i, { exact: true })
-                          }),
-
-                          children: [
-                            {
-                              label: 'Events',
-                              to: Paths.instance.callbackEvents(...params),
-                              getProps: (i: { pathname: string; to: string }) => ({
-                                isActive: checkPath(i, { exact: true })
-                              })
-                            }
-                          ]
-                        }
-                      ]
-                    : [])
+                  }
                 ]
               }
             ]

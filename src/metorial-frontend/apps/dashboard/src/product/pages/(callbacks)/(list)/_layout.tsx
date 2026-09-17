@@ -48,9 +48,7 @@ export let WebhooksListLayout = () => {
                 organizationId: organization.data.id,
                 instanceId: instance.data.id,
                 onComplete: destinationId =>
-                  navigate(
-                    Paths.instance.eventDestination(...params, destinationId)
-                  )
+                  navigate(Paths.instance.eventDestination(...params, destinationId))
               })
             }
           >

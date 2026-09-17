@@ -308,8 +308,8 @@ let IntegrationCallbacksPage = dynamicPage(() =>
 let CallbacksListLayout = dynamicPage(() =>
   import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
 );
-let CallbackLogsListLayout = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbackLogsListLayout)
+let WebhooksListLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/_layout').then(c => c.WebhooksListLayout)
 );
 let CallbacksPage = dynamicPage(() =>
   import('./pages/(callbacks)/(list)/callbacks').then(c => c.CallbacksPage)
@@ -319,9 +319,6 @@ let EventDestinationsPage = dynamicPage(() =>
 );
 let EventsPage = dynamicPage(() =>
   import('./pages/(callbacks)/(list)/events').then(c => c.EventsPage)
-);
-let CallbackEventsPage = dynamicPage(() =>
-  import('./pages/(callbacks)/(list)/callback-events').then(c => c.CallbackEventsPage)
 );
 let WebhookRegistrationLayout = dynamicPage(() =>
   import('./pages/(callbacks)/webhook-registration/_layout').then(
@@ -349,20 +346,11 @@ let CallbackLayout = dynamicPage(() =>
 let CallbackOverviewPage = dynamicPage(() =>
   import('./pages/(callbacks)/callback').then(c => c.CallbackOverviewPage)
 );
-let CallbackEventsForCallbackPage = dynamicPage(() =>
-  import('./pages/(callbacks)/callback/events').then(c => c.CallbackEventsForCallbackPage)
-);
 let CallbackInstancesPage = dynamicPage(() =>
   import('./pages/(callbacks)/callback/instances').then(c => c.CallbackInstancesPage)
 );
 let CallbackSettingsPage = dynamicPage(() =>
   import('./pages/(callbacks)/callback/settings').then(c => c.CallbackSettingsPage)
-);
-let CallbackEventLayout = dynamicPage(() =>
-  import('./pages/(callbacks)/callback-event/_layout').then(c => c.CallbackEventLayout)
-);
-let CallbackEventPage = dynamicPage(() =>
-  import('./pages/(callbacks)/callback-event').then(c => c.CallbackEventPage)
 );
 let IncomingWebhookLayout = dynamicPage(() =>
   import('./pages/(callbacks)/incoming-webhook/_layout').then(c => c.IncomingWebhookLayout)
@@ -376,10 +364,36 @@ let EventDestinationLayout = dynamicPage(() =>
 let EventDestinationPage = dynamicPage(() =>
   import('./pages/(callbacks)/event-destination').then(c => c.EventDestinationPage)
 );
+let EventDestinationDeliveriesPage = dynamicPage(() =>
+  import('./pages/(callbacks)/event-destination/deliveries').then(
+    c => c.EventDestinationDeliveriesPage
+  )
+);
+let EventDestinationSettingsLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/event-destination/settings/_layout').then(
+    c => c.EventDestinationSettingsLayout
+  )
+);
+let EventDestinationGeneralSettingsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/event-destination/settings').then(
+    c => c.EventDestinationGeneralSettingsPage
+  )
+);
+let EventDestinationListenersSettingsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/event-destination/settings/listeners').then(
+    c => c.EventDestinationListenersSettingsPage
+  )
+);
 let EventLayout = dynamicPage(() =>
   import('./pages/(callbacks)/event/_layout').then(c => c.EventLayout)
 );
 let EventPage = dynamicPage(() => import('./pages/(callbacks)/event').then(c => c.EventPage));
+let EventDeliveryLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/event-delivery/_layout').then(c => c.EventDeliveryLayout)
+);
+let EventDeliveryPage = dynamicPage(() =>
+  import('./pages/(callbacks)/event-delivery').then(c => c.EventDeliveryPage)
+);
 // Chat pages
 let ChatListLayout = dynamicPage(() =>
   import('./pages/(chat)/(list)/_layout').then(c => c.ChatListLayout)
@@ -1044,37 +1058,6 @@ export let productCallbacksSlice = createSlice([
               {
                 path: 'callbacks',
                 element: <CallbacksPage />
-              },
-              {
-                path: 'event-destinations',
-                element: (
-                  <FlaggedPage flag="webhooks-enabled">
-                    <EventDestinationsPage />
-                  </FlaggedPage>
-                )
-              },
-              {
-                path: 'events',
-                element: (
-                  <FlaggedPage flag="webhooks-enabled">
-                    <EventsPage />
-                  </FlaggedPage>
-                )
-              }
-            ]
-          },
-
-          {
-            element: (
-              <FlaggedPage flag="callbacks-enabled">
-                <CallbackLogsListLayout />
-              </FlaggedPage>
-            ),
-
-            children: [
-              {
-                path: 'callback-events',
-                element: <CallbackEventsPage />
               }
             ]
           },
@@ -1092,31 +1075,12 @@ export let productCallbacksSlice = createSlice([
                 element: <CallbackOverviewPage />
               },
               {
-                path: 'events',
-                element: <CallbackEventsForCallbackPage />
-              },
-              {
                 path: 'instances',
                 element: <CallbackInstancesPage />
               },
               {
                 path: 'settings',
                 element: <CallbackSettingsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'callback-event/:callbackEventId',
-            element: (
-              <FlaggedPage flag="callbacks-enabled">
-                <CallbackEventLayout />
-              </FlaggedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <CallbackEventPage />
               }
             ]
           },
@@ -1157,8 +1121,37 @@ export let productCallbacksSlice = createSlice([
                 element: <IncomingWebhookPage />
               }
             ]
-          },
+          }
+        ]
+      }
+    ]
+  }
+]);
 
+export let productWebhooksSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+    children: [
+      {
+        element: <InstanceLayout />,
+        children: [
+          {
+            element: (
+              <FlaggedPage flag="webhooks-enabled">
+                <WebhooksListLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: 'event-destinations',
+                element: <EventDestinationsPage />
+              },
+              {
+                path: 'events',
+                element: <EventsPage />
+              }
+            ]
+          },
           {
             path: 'event-destination/:eventDestinationId',
             element: (
@@ -1170,10 +1163,27 @@ export let productCallbacksSlice = createSlice([
               {
                 path: '',
                 element: <EventDestinationPage />
+              },
+              {
+                path: 'deliveries',
+                element: <EventDestinationDeliveriesPage />
+              },
+              {
+                path: 'settings',
+                element: <EventDestinationSettingsLayout />,
+                children: [
+                  {
+                    path: '',
+                    element: <EventDestinationGeneralSettingsPage />
+                  },
+                  {
+                    path: 'listeners',
+                    element: <EventDestinationListenersSettingsPage />
+                  }
+                ]
               }
             ]
           },
-
           {
             path: 'event/:eventId',
             element: (
@@ -1185,6 +1195,20 @@ export let productCallbacksSlice = createSlice([
               {
                 path: '',
                 element: <EventPage />
+              }
+            ]
+          },
+          {
+            path: 'event-delivery/:eventDeliveryId',
+            element: (
+              <FlaggedPage flag="webhooks-enabled">
+                <EventDeliveryLayout />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <EventDeliveryPage />
               }
             ]
           }
@@ -1351,6 +1375,7 @@ export let productSlice = createSlice([
       ...productDocumentSlice.routes,
       ...productIntegrationsSlice.routes,
       ...productCallbacksSlice.routes,
+      ...productWebhooksSlice.routes,
       ...productChatSlice.routes,
       ...productSkillsSlice.routes,
       ...productHomeSlice.routes

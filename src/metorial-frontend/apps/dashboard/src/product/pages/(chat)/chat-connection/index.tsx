@@ -9,12 +9,14 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDashboardFlags,
   useProviderAuthMethod
 } from '@metorial/state';
 import { Button, Callout, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { EventDeliveryBox } from '../../../scenes/callbacks/listenersBox';
 import { ProviderWebhookRegistrationsBox } from '../../../scenes/callbacks/webhookRegistrationsBox';
 import { showChatInstanceCreateProviderPanelFlow } from '../../../scenes/chat/instanceConfigPanel';
 import { ChatProviderAvatar, useChatProviderListings } from '../../../scenes/chat/shared';
@@ -23,6 +25,7 @@ export let ChatConnectionOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let flags = useDashboardFlags();
   let { chatConnectionId } = useParams();
   let failedInvocationWindowStart = useMemo(
     () => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
@@ -158,6 +161,18 @@ export let ChatConnectionOverviewPage = () => {
               instanceId={instance.data!.id}
               provider={{ id: provider.provider.id, name: provider.provider.name }}
             />
+          ) : null}
+
+          {flags.data?.flags['webhooks-enabled'] ? (
+            <>
+              <EventDeliveryBox
+                organizationId={organization.data!.id}
+                instanceId={instance.data!.id}
+                target={{ type: 'chat', chatConnectionId: chatConnection.data.id }}
+                description="Event destinations subscribed to this chat connection's events."
+              />
+              <Spacer height={20} />
+            </>
           ) : null}
 
           <Box

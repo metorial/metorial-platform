@@ -16,7 +16,8 @@ export {
   productIntegrationsSlice,
   productLogsSlice,
   productSkillsSlice,
-  productTraceDetailSlice
+  productTraceDetailSlice,
+  productWebhooksSlice
 } from './product';
 
 export { ApiKeysScene } from './product/scenes/apiKeys';
