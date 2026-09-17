@@ -53,6 +53,7 @@ export type CallbackEventDetails = {
   attemptCount: number;
   error: { code: string; message: string } | null;
   webhook: {
+    id: string;
     status: string;
     attemptCount: number;
     request: ProviderWebhookEventRequest | null;
@@ -191,9 +192,10 @@ class callbackEventServiceImpl {
       error: event.error,
       webhook: webhookEvent
         ? {
+            id: webhookEvent.id,
             status: webhookEvent.status,
             attemptCount: webhookEvent.attemptCount,
-            request: webhookEvent.request,
+            request: webhookEvent.request ?? null,
             receivedAt: webhookEvent.receivedAt
           }
         : null

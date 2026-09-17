@@ -2,6 +2,7 @@ import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
+import { indexCallbackQueue } from '../search/callback';
 import { getCutoffDate } from './_config';
 
 export let callbackArchivedCleanupCron = createCron(
@@ -57,4 +58,6 @@ export let callbackDeleteQueueProcessor = callbackDeleteQueue.process(async data
     where: { oid: callback.oid },
     data: { status: 'deleted' }
   });
+
+  await indexCallbackQueue.add({ callbackId: data.callbackId });
 });

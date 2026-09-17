@@ -38,6 +38,7 @@ vi.mock('@metorial-subspace/provider', () => ({ getBackend }));
 vi.mock('../env', () => ({ env: { service: { REDIS_URL: 'redis://test' } } }));
 vi.mock('../queues/push/callback', () => ({ enqueueCallbackPush }));
 vi.mock('../queues/push/callbackInstance', () => ({ enqueueCallbackInstancePush: vi.fn() }));
+vi.mock('../queues/search/callback', () => ({ indexCallbackQueue: { add: vi.fn() } }));
 vi.mock('../queues/reconcile/callback', () => ({
   callbackReconcileForIntegrationManyQueue: { add: vi.fn() },
   callbackReconcileQueue: { add: vi.fn(), addMany: vi.fn() }

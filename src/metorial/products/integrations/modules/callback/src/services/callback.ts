@@ -17,6 +17,7 @@ import {
   resolveIntegrations,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -26,12 +27,14 @@ import {
 import { getBackend } from '@metorial-subspace/provider';
 import { type AuditSubspaceCallback, Fabric } from '@metorial/fabric';
 import { callbackInclude, type CallbackWithRelations } from '../lib/callbackIncludes';
+import { indexCallbackQueue } from '../queues/search/callback';
 
 export type ListCallbacksParams = {
   ids?: string[];
   integrationIds?: string[];
   integrationProviderIds?: string[];
   providerIds?: string[];
+  search?: string;
   status?: CallbackStatus[];
   allowDeleted?: boolean;
   createdAt?: DateFilter;
@@ -86,6 +89,16 @@ class callbackServiceImpl {
       resolveProviders(selector, d.providerIds)
     ]);
 
+    let search = d.search?.trim();
+    let searchResults = search
+      ? await voyager.record.search({
+          tenantId: d.tenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.callback.id,
+          query: search
+        })
+      : null;
+
     return Paginator.create<CallbackWithRelations>(({ prisma }) =>
       prisma(async opts =>
         db.callback.findMany({
@@ -103,6 +116,9 @@ class callbackServiceImpl {
                 ? { integrationProviderOid: integrationProviders.in }
                 : undefined!,
               providers ? { providerOid: providers.in } : undefined!,
+              searchResults
+                ? { id: { in: searchResults.map(record => record.documentId) } }
+                : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean) as Prisma.CallbackWhereInput[]
@@ -192,7 +208,7 @@ class callbackServiceImpl {
       });
     }
 
-    return await db.callback.update({
+    let callback = await db.callback.update({
       where: { oid: d.callback.oid },
       data: {
         name: d.input.name,
@@ -201,6 +217,10 @@ class callbackServiceImpl {
       },
       include: callbackInclude
     });
+
+    await indexCallbackQueue.add({ callbackId: callback.id });
+
+    return callback;
   }
 }
 

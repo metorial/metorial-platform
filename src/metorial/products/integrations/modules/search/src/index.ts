@@ -95,6 +95,12 @@ export let voyagerIndex = {
     name: 'Integration Instances'
   }),
 
+  callback: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('callback'),
+    name: 'Callbacks'
+  }),
+
   identityActor: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('identity_actor'),
