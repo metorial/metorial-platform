@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { chatAuthorType } from '../../types';
 
@@ -18,7 +19,14 @@ export let v1ChatAuthorPresenter = Presenter.create(chatAuthorType)
     user_name: chatAuthor.userName,
     full_name: chatAuthor.fullName,
     email: chatAuthor.email,
-    image_url: chatAuthor.imageUrl,
+    image_url: chatAuthor.imageUrl
+      ? await getImageUrl({
+          id: chatAuthor.id,
+          name: chatAuthor.fullName,
+          email: chatAuthor.email,
+          image: { type: 'url', url: chatAuthor.imageUrl }
+        })
+      : null,
 
     is_self: chatAuthor.isMe,
 

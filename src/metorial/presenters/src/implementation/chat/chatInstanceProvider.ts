@@ -52,7 +52,7 @@ export let v1ChatInstanceProviderPresenter = Presenter.create(chatInstanceProvid
       name: chatInstanceProvider.name,
       description: chatInstanceProvider.description,
 
-      identity: presentChatIdentity(chatInstanceProvider.author),
+      identity: await presentChatIdentity(chatInstanceProvider.author),
 
       created_at: chatInstanceProvider.createdAt,
       updated_at: chatInstanceProvider.updatedAt

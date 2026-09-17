@@ -16,7 +16,7 @@ export let v1ChatInstancePresenter = Presenter.create(chatInstanceType)
     description: chatInstance.description,
     metadata: (chatInstance.metadata as Record<string, any> | null) ?? {},
 
-    identity: presentChatIdentity(chatInstance.providers[0]?.author),
+    identity: await presentChatIdentity(chatInstance.providers[0]?.author),
 
     created_at: chatInstance.createdAt,
     updated_at: chatInstance.updatedAt

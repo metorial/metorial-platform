@@ -1,12 +1,12 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { chatReactionListType } from '../../types';
-import { reactionCountSchema } from './message';
+import { presentReactions, reactionCountSchema } from './message';
 
 export let v1ChatReactionListPresenter = Presenter.create(chatReactionListType)
   .presenter(async ({ reactions }) => ({
     object: 'chat.reaction_list' as const,
-    reactions
+    reactions: await presentReactions(reactions)
   }))
   .schema(
     v.object({

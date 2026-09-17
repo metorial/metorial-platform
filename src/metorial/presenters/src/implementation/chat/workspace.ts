@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { chatWorkspaceType } from '../../types';
 
@@ -13,7 +14,13 @@ export let v1ChatWorkspacePresenter = Presenter.create(chatWorkspaceType)
 
     name: chatWorkspace.name,
     domain: chatWorkspace.domain,
-    image_url: chatWorkspace.imageUrl,
+    image_url: chatWorkspace.imageUrl
+      ? await getImageUrl({
+          id: chatWorkspace.id,
+          name: chatWorkspace.name,
+          image: { type: 'url', url: chatWorkspace.imageUrl }
+        })
+      : null,
 
     created_at: chatWorkspace.createdAt,
     updated_at: chatWorkspace.updatedAt

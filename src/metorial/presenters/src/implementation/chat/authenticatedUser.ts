@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { chatAuthenticatedUserType } from '../../types';
 
@@ -25,7 +26,14 @@ export let v1ChatAuthenticatedUserPresenter = Presenter.create(chatAuthenticated
     user_name: author.userName,
     full_name: author.fullName,
     email: author.email ?? null,
-    image_url: author.imageUrl ?? null,
+    image_url: author.imageUrl
+      ? await getImageUrl({
+          id: isPersistedAuthor(author) ? author.id : author.userId,
+          name: author.fullName,
+          email: author.email,
+          image: { type: 'url', url: author.imageUrl }
+        })
+      : null,
 
     is_self: author.isMe,
 
@@ -36,6 +44,12 @@ export let v1ChatAuthenticatedUserPresenter = Presenter.create(chatAuthenticated
           name: workspace.name,
           domain: workspace.domain,
           image_url: workspace.imageUrl
+            ? await getImageUrl({
+                id: workspace.id,
+                name: workspace.name,
+                image: { type: 'url', url: workspace.imageUrl }
+              })
+            : null
         }
       : null
   }))

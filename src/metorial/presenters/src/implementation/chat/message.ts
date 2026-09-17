@@ -1,4 +1,6 @@
 import { v } from '@lowerdeck/validation';
+import { type LinkUnfurl, type ReactionCount } from '@slates/adapter-chat';
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { chatMessageType } from '../../types';
 import { v1ChatAuthorPresenter } from './author';
@@ -62,6 +64,57 @@ let linkUnfurlSchema = v.object({
   )
 });
 
+export let presentReactions = async (reactions: ReactionCount[]): Promise<ReactionCount[]> =>
+  Promise.all(
+    reactions.map(async reaction => ({
+      ...reaction,
+      emoji:
+        reaction.emoji.type == 'custom' && reaction.emoji.url
+          ? {
+              ...reaction.emoji,
+              url: await getImageUrl({
+                id: reaction.emoji.id ?? reaction.emoji.name,
+                name: reaction.emoji.name,
+                image: { type: 'url', url: reaction.emoji.url }
+              })
+            }
+          : reaction.emoji,
+      authors: reaction.authors
+        ? await Promise.all(
+            reaction.authors.map(async author =>
+              author.imageUrl
+                ? {
+                    ...author,
+                    imageUrl: await getImageUrl({
+                      id: author.userId,
+                      name: author.fullName,
+                      email: author.email,
+                      image: { type: 'url', url: author.imageUrl }
+                    })
+                  }
+                : author
+            )
+          )
+        : reaction.authors
+    }))
+  );
+
+export let presentUnfurls = async (unfurls: LinkUnfurl[]): Promise<LinkUnfurl[]> =>
+  Promise.all(
+    unfurls.map(async unfurl =>
+      unfurl.imageUrl
+        ? {
+            ...unfurl,
+            imageUrl: await getImageUrl({
+              id: unfurl.messageId ?? unfurl.url,
+              name: unfurl.title,
+              image: { type: 'url', url: unfurl.imageUrl }
+            })
+          }
+        : unfurl
+    )
+  );
+
 export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
   .presenter(async ({ chatMessage }, opts) => ({
     object: 'chat.message' as const,
@@ -82,8 +135,8 @@ export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
       : null,
 
     body: (chatMessage.body as Record<string, any> | null) ?? null,
-    reactions: chatMessage.reactions ?? null,
-    unfurls: chatMessage.unfurls ?? null,
+    reactions: chatMessage.reactions ? await presentReactions(chatMessage.reactions) : null,
+    unfurls: chatMessage.unfurls ? await presentUnfurls(chatMessage.unfurls) : null,
 
     attachments: await Promise.all(
       chatMessage.attachments.map(chatMessageAttachment =>

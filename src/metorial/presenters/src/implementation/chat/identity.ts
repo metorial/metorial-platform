@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { type ChatAuthor } from '@metorial-subspace/db';
+import { getImageUrl } from '@metorial/db';
 
 export let chatIdentitySchema = v.nullable(
   v.object(
@@ -53,7 +54,7 @@ export let chatIdentitySchema = v.nullable(
   )
 );
 
-export let presentChatIdentity = (author: ChatAuthor | null | undefined) =>
+export let presentChatIdentity = async (author: ChatAuthor | null | undefined) =>
   author
     ? {
         id: author.id,
@@ -63,5 +64,12 @@ export let presentChatIdentity = (author: ChatAuthor | null | undefined) =>
         provider_type: author.providerType,
         email: author.email,
         image_url: author.imageUrl
+          ? await getImageUrl({
+              id: author.id,
+              name: author.fullName,
+              email: author.email,
+              image: { type: 'url', url: author.imageUrl }
+            })
+          : null
       }
     : null;
