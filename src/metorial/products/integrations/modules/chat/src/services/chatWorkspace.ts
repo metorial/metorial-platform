@@ -64,7 +64,7 @@ class chatWorkspaceServiceImpl {
     });
   }
 
-  private listChatWorkspacesFromProvider(
+  private async listChatWorkspacesFromProvider(
     d: ListChatWorkspacesParams & { client: ChatAdapterInstance }
   ) {
     let search = d.search?.trim() || undefined;

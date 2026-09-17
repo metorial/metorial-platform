@@ -40,6 +40,17 @@ export let enqueueChatConnectionUpdated = (chatConnectionId: string) =>
 export let chatConnectionUpdatedQueueProcessor = chatConnectionUpdatedQueue.process(
   async data => {
     await indexChatConnectionQueue.add({ chatConnectionId: data.chatConnectionId });
+
+    let chatConnection = await db.chatConnection.findUnique({
+      where: { id: data.chatConnectionId }
+    });
+    if (!chatConnection) return;
+
+    let providers = await db.chatConnectionProvider.findMany({
+      where: { chatConnectionOid: chatConnection.oid, status: 'active' },
+      select: { id: true }
+    });
+
     await indexChatConnectionProviderQueue.addMany(
       providers.map(provider => ({ chatConnectionProviderId: provider.id }))
     );

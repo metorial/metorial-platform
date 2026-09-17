@@ -9,14 +9,14 @@ import {
 } from './paginatedProvider';
 import type { PaginatedList } from './types';
 
-let presentPagination = (
+let presentPagination = <NextKey extends string, PreviousKey extends string>(
   list: PaginatedList<unknown>,
-  keys: { hasNextPage: string; hasPreviousPage: string }
-) => {
-  let pagination: Record<string, unknown> = {
+  keys: { hasNextPage: NextKey; hasPreviousPage: PreviousKey }
+): Record<NextKey, boolean> & Record<PreviousKey, boolean> & { after?: string; before?: string } => {
+  let pagination = {
     [keys.hasNextPage]: list.pagination.hasNextPage,
     [keys.hasPreviousPage]: list.pagination.hasPreviousPage
-  };
+  } as Record<NextKey, boolean> & Record<PreviousKey, boolean> & { after?: string; before?: string };
 
   if (list.pagination.after) pagination.after = list.pagination.after;
   if (list.pagination.before) pagination.before = list.pagination.before;

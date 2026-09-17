@@ -10,8 +10,7 @@ import {
   ID,
   Organization,
   WebhookDestination,
-  withTransaction,
-  type EventDeliveryRetryStrategy
+  withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {

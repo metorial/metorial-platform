@@ -62,11 +62,6 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
       webhookRegistrationPayload: webhookRegistrationPayload.payload
     });
 
-    console.log(
-      data,
-      result.status === 'success' ? JSON.stringify(result.data, null, 2) : result.error
-    );
-
     if (result.status === 'error') {
       let defaults =
         SLATES_WEBHOOK_ERROR_DEFAULTS[result.error.code as SlatesWebhookErrorCode];

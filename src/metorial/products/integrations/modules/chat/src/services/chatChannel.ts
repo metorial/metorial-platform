@@ -74,7 +74,7 @@ class chatChannelServiceImpl {
     });
   }
 
-  private listChatChannelsFromProvider(
+  private async listChatChannelsFromProvider(
     d: ListChatChannelsParams & { client: ChatAdapterInstance }
   ) {
     let search = d.search?.trim() || undefined;

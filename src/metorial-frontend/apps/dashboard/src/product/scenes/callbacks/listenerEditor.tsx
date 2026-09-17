@@ -465,7 +465,7 @@ export let ListenerDraftEditor = ({
     value.type !== 'callback'
       ? null
       : value.scope === 'all'
-        ? { userManagedCallbacks: 'true' }
+        ? { userManagedCallbacks: true }
         : providerVersionId
           ? { providerVersionId }
           : null
@@ -802,7 +802,11 @@ export let showEventDestinationListenerModal = (
     instanceId: string;
     onComplete: () => void;
   } & (
-    | { listener: EventDestinationListenerPreview; fixedTarget?: undefined }
+    | {
+        listener: EventDestinationListenerPreview;
+        fixedTarget?: undefined;
+        excludeEventDestinationIds?: undefined;
+      }
     | {
         listener?: undefined;
         fixedTarget: { type: 'callback' | 'chat'; targetId: string };

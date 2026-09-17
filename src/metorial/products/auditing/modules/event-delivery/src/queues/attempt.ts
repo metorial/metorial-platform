@@ -45,10 +45,18 @@ let buildEventBody = (
   source: event.source,
   event_type: event.eventType,
 
-  organization_id: d.organizationId,
-  instance_id: d.instanceId,
-
-  payload: d.payload,
+  compartments: [
+    d.instanceId
+      ? {
+          type: 'instance',
+          organization_id: d.organizationId,
+          instance_id: d.instanceId
+        }
+      : {
+          type: 'organization',
+          organization_id: d.organizationId
+        }
+  ],
 
   callback_id: event.callbackId,
   callback_trigger_key: event.callbackTriggerKey,
@@ -56,9 +64,9 @@ let buildEventBody = (
   chat_event_id: event.chatEventId,
   chat_connection_id: event.chatConnectionId,
 
-  provider_id: event.providerId,
+  occurred_at: event.createdAt.toISOString(),
 
-  occurred_at: event.createdAt.toISOString()
+  payload: d.payload
 });
 
 let readResponseBody = async (response: Response) => {
