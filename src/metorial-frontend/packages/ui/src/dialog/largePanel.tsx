@@ -12,12 +12,24 @@ import { Close, Content, Overlay } from './styles';
 export { useDialog, useDialogContext, useIsInDialog } from './state';
 
 let PanelContent = styled(Content)`
+  display: flex;
+  flex-direction: column;
   max-width: 90vw;
   width: min(max(400px, 80vw), 1100px);
-  min-height: min(70vh, 850px);
+  height: min(90vh, 850px);
   max-height: 90vh;
+  box-sizing: border-box;
   padding: 0;
-  overflow: auto;
+  overflow: hidden;
+`;
+
+let PanelBody = styled.div`
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
 `;
 
 export let LargePanelDialog = {
@@ -55,7 +67,7 @@ export let LargePanelDialog = {
                 zIndex: zIndex + 1
               }}
             >
-              {children}
+              <PanelBody>{children}</PanelBody>
 
               {closeButton && (
                 <RadixDialogDialog.Close asChild>
