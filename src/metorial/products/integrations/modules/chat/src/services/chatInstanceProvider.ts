@@ -27,6 +27,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { upsertChatInstanceProviderProjection } from '../lib/project';
 import { enqueueChatInstanceUpdated } from '../queues/lifecycle';
 
@@ -72,9 +73,7 @@ export type SetChatInstanceProviderParams = {
 };
 
 class chatInstanceProviderServiceImpl {
-  async listChatInstanceProviders(
-    d: MetorialFacing<ListChatInstanceProvidersParams>
-  ) {
+  async listChatInstanceProviders(d: MetorialFacing<ListChatInstanceProvidersParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.listChatInstanceProvidersInternal({
@@ -92,6 +91,18 @@ class chatInstanceProviderServiceImpl {
   ) {
     let solution = await getMetorialSolution();
 
+    d.search = d.search?.trim();
+    if (!d.search?.length) d.search = undefined;
+
+    let search = d.search
+      ? await voyager.record.search({
+          tenantId: d.tenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.chatInstanceProvider.id,
+          query: d.search
+        })
+      : null;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -107,9 +118,7 @@ class chatInstanceProviderServiceImpl {
                 d.chatInstanceIds
                   ? { chatInstance: { id: { in: d.chatInstanceIds } } }
                   : undefined!,
-                d.search
-                  ? { name: { contains: d.search, mode: 'insensitive' as const } }
-                  : undefined!,
+                search ? { id: { in: search.map(result => result.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -120,9 +129,7 @@ class chatInstanceProviderServiceImpl {
     );
   }
 
-  async getChatInstanceProviderById(
-    d: MetorialFacing<GetChatInstanceProviderByIdParams>
-  ) {
+  async getChatInstanceProviderById(d: MetorialFacing<GetChatInstanceProviderByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.getChatInstanceProviderByIdInternal({
@@ -151,19 +158,14 @@ class chatInstanceProviderServiceImpl {
     });
     if (!chatInstanceProvider) {
       throw new ServiceError(
-        notFoundError(
-          'chat.integration.instance.provider',
-          d.chatInstanceProviderId
-        )
+        notFoundError('chat.integration.instance.provider', d.chatInstanceProviderId)
       );
     }
 
     return chatInstanceProvider;
   }
 
-  async setChatInstanceProvider(
-    d: MetorialFacing<SetChatInstanceProviderParams>
-  ) {
+  async setChatInstanceProvider(d: MetorialFacing<SetChatInstanceProviderParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.setChatInstanceProviderInternal({

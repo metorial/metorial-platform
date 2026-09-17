@@ -48,7 +48,7 @@ class chatEventServiceImpl {
   ) {
     let solution = await getMetorialSolution();
 
-    let paginator = Paginator.create(({ prisma }) =>
+    return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.chatEvent.findMany({
@@ -75,8 +75,6 @@ class chatEventServiceImpl {
           })
       )
     );
-
-    return paginator.mapAll(chatEvents => this.hydrateChatEvents(chatEvents));
   }
 
   async getChatEventById(d: MetorialFacing<GetChatEventByIdParams>) {
@@ -124,19 +122,6 @@ class chatEventServiceImpl {
     }
 
     return payloads;
-  }
-
-  private async hydrateChatEvents<T extends { id: string }>(chatEvents: T[]) {
-    if (!chatEvents.length) return [];
-
-    let payloads = await this.getManyChatEventPayloads({
-      chatEventIds: chatEvents.map(chatEvent => chatEvent.id)
-    });
-
-    return chatEvents.map(chatEvent => ({
-      chatEvent,
-      payload: payloads.get(chatEvent.id) ?? null
-    }));
   }
 }
 

@@ -32,6 +32,7 @@ export type DownloadChatMessageAttachmentParams = {
   chat: ChatWithProvider;
   message: ChatMessage;
   attachment: AttachmentRef;
+  chatMessageAttachment?: ChatMessageAttachment;
   position?: number;
 };
 
@@ -120,6 +121,32 @@ class chatMessageAttachmentInternalServiceImpl {
     };
   }
 
+  async createChatMessageAttachment(d: {
+    tenant: Tenant;
+    environment: Environment;
+    message: ChatMessage;
+    attachment: AttachmentRef;
+    position?: number;
+  }): Promise<ChatMessageAttachment> {
+    let ids = getId('chatMessageAttachment');
+    let fileId = await this.createDelegatedFileForAttachment({
+      tenant: d.tenant,
+      environment: d.environment,
+      chatMessageAttachmentId: ids.id,
+      ref: d.attachment
+    });
+
+    return db.chatMessageAttachment.create({
+      data: {
+        ...ids,
+        messageOid: d.message.oid,
+        fileId,
+        position: d.position ?? 0,
+        ...this.attachmentPayload(d.attachment)
+      }
+    });
+  }
+
   private async createDelegatedFileForAttachment(d: {
     tenant: Tenant;
     environment: Environment;
@@ -195,6 +222,16 @@ class chatMessageAttachmentInternalServiceImpl {
 
     let toolCallAttachmentOid = await this.resolveToolCallAttachmentOid(result);
     if (!toolCallAttachmentOid) throw attachmentDownloadFailedError();
+
+    if (d.chatMessageAttachment) {
+      return db.chatMessageAttachment.update({
+        where: { oid: d.chatMessageAttachment.oid },
+        data: {
+          toolCallAttachmentOid,
+          ...this.attachmentPayload(result.attachment)
+        }
+      });
+    }
 
     let ids = getId('chatMessageAttachment');
     let fileId = await this.createDelegatedFileForAttachment({

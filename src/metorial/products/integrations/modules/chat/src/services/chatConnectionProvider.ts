@@ -30,8 +30,10 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { upsertChatProviderProjection } from '../lib/project';
 import { enqueueChatConnectionUpdated } from '../queues/lifecycle';
+import { enqueueIndexChatConnectionProvider } from '../queues/search/chatConnectionProvider';
 
 export let chatConnectionProviderInclude = {
   chatConnection: true,
@@ -123,6 +125,18 @@ class chatConnectionProviderServiceImpl {
   ) {
     let solution = await getMetorialSolution();
 
+    d.search = d.search?.trim();
+    if (!d.search?.length) d.search = undefined;
+
+    let search = d.search
+      ? await voyager.record.search({
+          tenantId: d.tenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.chatConnectionProvider.id,
+          query: d.search
+        })
+      : null;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -138,9 +152,7 @@ class chatConnectionProviderServiceImpl {
                 d.chatConnectionIds
                   ? { chatConnection: { id: { in: d.chatConnectionIds } } }
                   : undefined!,
-                d.search
-                  ? { name: { contains: d.search, mode: 'insensitive' as const } }
-                  : undefined!,
+                search ? { id: { in: search.map(result => result.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -249,6 +261,7 @@ class chatConnectionProviderServiceImpl {
 
       await upsertChatProviderProjection(adapterProvider);
 
+      await enqueueIndexChatConnectionProvider(chatConnectionProvider.id);
       await enqueueChatConnectionUpdated(d.chatConnection.id);
 
       return chatConnectionProvider;
@@ -299,6 +312,7 @@ class chatConnectionProviderServiceImpl {
         include: chatConnectionProviderInclude
       });
 
+      await enqueueIndexChatConnectionProvider(updated.id);
       await enqueueChatConnectionUpdated(updated.chatConnection.id);
 
       return updated;
@@ -369,6 +383,7 @@ class chatConnectionProviderServiceImpl {
         where: { oid: d.chatConnectionProvider.oid },
         include: chatConnectionProviderInclude
       });
+      await enqueueIndexChatConnectionProvider(archived.id);
       await enqueueChatConnectionUpdated(archived.chatConnection.id);
       return archived;
     });

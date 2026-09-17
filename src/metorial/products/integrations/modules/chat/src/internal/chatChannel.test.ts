@@ -29,6 +29,10 @@ vi.mock('./chatAuthor', () => ({
   chatAuthorServiceInternal: { upsertChatAuthors }
 }));
 
+vi.mock('../queues/search/chatChannel', () => ({
+  enqueueIndexChatChannels: vi.fn()
+}));
+
 import { chatChannelServiceInternal } from './chatChannel';
 
 let chat = { oid: 20n, chatInstanceProviderOid: 80n } as any;

@@ -47,6 +47,17 @@ vi.mock('@metorial-subspace/db', () => ({
   withTransaction: async (cb: (db: any) => Promise<any>) => await cb(tx)
 }));
 
+vi.mock('@metorial-subspace/module-search', () => ({
+  voyager: { record: { search: vi.fn() } },
+  voyagerIndex: { chat: { id: 'chat-index' } },
+  voyagerSource: Promise.resolve({ id: 'source' })
+}));
+
+vi.mock('../queues/search/chat', () => ({ enqueueIndexChats: vi.fn() }));
+vi.mock('../queues/search/chatWorkspace', () => ({
+  enqueueIndexChatWorkspaces: vi.fn()
+}));
+
 import { chatWorkspaceInternalService } from './chatWorkspace';
 
 let workspaceSyncHash = (payload: Record<string, unknown>) =>
