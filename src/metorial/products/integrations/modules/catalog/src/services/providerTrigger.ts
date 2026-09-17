@@ -14,6 +14,7 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
+import { providerVersionService } from './providerVersion';
 
 type ListProviderTriggersParams = {
   providerVersion: ProviderVersion;
@@ -22,6 +23,10 @@ type ListProviderTriggersParams = {
 type GetProviderTriggerByIdParams = {
   providerTriggerId: string;
 };
+
+type ListDashboardProviderTriggersParams =
+  | { providerVersionId: string }
+  | { userManagedCallbacks: true };
 
 class providerTriggerServiceImpl {
   async listProviderTriggers(d: MetorialFacing<ListProviderTriggersParams>) {
@@ -133,6 +138,108 @@ class providerTriggerServiceImpl {
           });
       })
     );
+  }
+
+  async listProviderTriggersForUserManagedCallbacks(d: MetorialFacing<{}>) {
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listProviderTriggersForUserManagedCallbacksInternal({
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProviderTriggersForUserManagedCallbacksInternal(d: {
+    tenant: Tenant;
+    environment: Environment;
+  }) {
+    let solution = await getMetorialSolution();
+
+    return Paginator.create(() => async input => {
+      let triggers = await db.providerTrigger.findMany({
+        where: {
+          adapterOid: null,
+          provider: getProviderTenantFilter({
+            ...d,
+            solution,
+            includeDeprecated: true
+          }),
+          specification: {
+            providerVersions: {
+              some: {
+                isCurrent: true,
+                providerVariant: {
+                  callbacks: {
+                    some: {
+                      tenantOid: d.tenant.oid,
+                      environmentOid: d.environment.oid,
+                      solutionOid: solution.oid,
+                      ownership: 'user',
+                      status: 'active'
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        include: {
+          global: true,
+          provider: true,
+          specification: { omit: { value: true } }
+        },
+        orderBy: { id: 'asc' }
+      });
+
+      let triggersByKey = new Map<string, (typeof triggers)[number]>();
+      for (let trigger of triggers) {
+        if (!triggersByKey.has(trigger.key)) triggersByKey.set(trigger.key, trigger);
+      }
+
+      let ordered = [...triggersByKey.values()];
+      if (input.order == 'desc') ordered.reverse();
+
+      let cursorId = input.after ?? input.before;
+      let cursorIndex = cursorId ? ordered.findIndex(trigger => trigger.id == cursorId) : -1;
+
+      if (input.before) {
+        let end = cursorIndex >= 0 ? cursorIndex : ordered.length;
+        let start = Math.max(0, end - input.limit);
+
+        return {
+          items: ordered.slice(start, end),
+          pagination: {
+            hasNextPage: end < ordered.length,
+            hasPreviousPage: start > 0
+          }
+        };
+      }
+
+      let start = cursorIndex >= 0 ? cursorIndex + 1 : 0;
+      return {
+        items: ordered.slice(start, start + input.limit),
+        pagination: {
+          hasNextPage: start + input.limit < ordered.length,
+          hasPreviousPage: start > 0
+        }
+      };
+    });
+  }
+
+  async listDashboardProviderTriggers(d: MetorialFacing<ListDashboardProviderTriggersParams>) {
+    if ('providerVersionId' in d && typeof d.providerVersionId == 'string') {
+      let providerVersion = await providerVersionService.getProviderVersionById({
+        ...d,
+        providerVersionId: d.providerVersionId
+      });
+
+      return this.listProviderTriggers({
+        ...d,
+        providerVersion
+      });
+    }
+
+    return this.listProviderTriggersForUserManagedCallbacks(d);
   }
 
   async getProviderTriggerById(d: MetorialFacing<GetProviderTriggerByIdParams>) {
