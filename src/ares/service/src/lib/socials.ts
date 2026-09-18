@@ -40,15 +40,12 @@ export let socials = {
         throw new Error('No access token; ' + JSON.stringify(tokenData));
       }
 
-      let accountData = (await fetch(
-        'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
-        {
-          headers: {
-            Authorization: `Bearer ${tokenData.access_token}`
-          }
+      let accountData = (await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`
         }
-      ).then(res => res.json())) as {
-        id: string;
+      }).then(res => res.json())) as {
+        sub: string;
         email: string;
         email_verified: boolean;
         name: string;
@@ -59,8 +56,9 @@ export let socials = {
 
       return {
         email: accountData.email,
+        emailVerified: accountData.email_verified === true,
         name: accountData.name || 'Anonymous',
-        id: accountData.id + '@google.com',
+        id: accountData.sub + '@google.com',
         token: tokenData.refresh_token,
         photoUrl: accountData.picture
       };
@@ -115,24 +113,26 @@ export let socials = {
         login: string;
       };
 
-      if (!accountData.email) {
-        let emailDataString = await fetch('https://api.github.com/user/emails', {
-          headers: {
-            Authorization: `Bearer ${tokenData.access_token}`,
-            'User-Agent': 'Ares Auth Service'
-          }
-        }).then(res => res.text());
+      let emailDataString = await fetch('https://api.github.com/user/emails', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'Ares Auth Service'
+        }
+      }).then(res => res.text());
 
-        let emailData = JSON.parse(emailDataString) as { email: string; primary: boolean }[];
+      let emailData = JSON.parse(emailDataString) as {
+        email: string;
+        primary: boolean;
+        verified: boolean;
+      }[];
+      let selectedEmail = emailData.find(email => email.primary);
 
-        accountData.email =
-          emailData.find(email => email.primary)?.email || emailData[0]?.email;
-      }
-
-      if (!accountData.email) throw new Error('No email');
+      if (!selectedEmail) throw new Error('No primary email');
 
       return {
-        email: accountData.email,
+        email: selectedEmail.email,
+        emailVerified: selectedEmail.verified === true,
         name: accountData.name || accountData.login,
         id: accountData.id + '@github.com',
         token: tokenData.access_token,
