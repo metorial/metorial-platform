@@ -5,7 +5,8 @@ import { AccountDomain } from '../../db';
 export let syncAccountDomainToDeploymentQueue = createQueue<{
   accountDomain: AccountDomain;
 }>({
-  name: 'global/sync/to-deployment/account-domain'
+  name: 'global/sync/to-deployment/account-domain',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncAccountDomainToDeploymentQueueProcessor =

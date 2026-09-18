@@ -5,7 +5,8 @@ import { User } from '../../db';
 export let syncUserToDeploymentQueue = createQueue<{
   user: User;
 }>({
-  name: 'global/sync/to-deployment/user'
+  name: 'global/sync/to-deployment/user',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncUserToDeploymentQueueProcessor = syncUserToDeploymentQueue.process(

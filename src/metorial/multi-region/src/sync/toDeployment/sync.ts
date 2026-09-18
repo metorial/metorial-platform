@@ -13,7 +13,8 @@ import { syncSkillPluginToDeploymentQueue } from './skillPlugin';
 import { syncUserToDeploymentQueue } from './user';
 
 let syncToDeploymentQueue = createQueue({
-  name: 'global/sync/to-deployment'
+  name: 'global/sync/to-deployment',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async () => {

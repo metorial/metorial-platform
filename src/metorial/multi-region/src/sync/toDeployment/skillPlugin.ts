@@ -6,7 +6,8 @@ import { SkillPlugin } from '../../db';
 export let syncSkillPluginToDeploymentQueue = createQueue<{
   skillPlugin: SkillPlugin;
 }>({
-  name: 'global/sync/to-deployment/skill-plugin'
+  name: 'global/sync/to-deployment/skill-plugin',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncSkillPluginToDeploymentQueueProcessor =

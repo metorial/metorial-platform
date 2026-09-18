@@ -1,9 +1,11 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let upsertWorkspaceGroupAssignment = async (workspaceGroupAssignmentId: string) => {
   let workspaceGroupAssignment = await db.workspaceGroupAssignment.findUnique({
@@ -53,7 +55,8 @@ export let syncWorkspaceGroupAssignmentsCron = createCron(
 );
 
 let syncWorkspaceGroupAssignmentsManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/wga-many'
+  name: 'global/sync/from-deployment/wga-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncWorkspaceGroupAssignmentsManyQueueProcessor =
@@ -63,7 +66,7 @@ export let syncWorkspaceGroupAssignmentsManyQueueProcessor =
         id: { gt: data.cursor }
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: SYNC_PAGE_SIZE,
       select: { id: true }
     });
     if (workspaceGroupAssignments.length === 0) return;
@@ -74,15 +77,19 @@ export let syncWorkspaceGroupAssignmentsManyQueueProcessor =
       }))
     );
 
-    await syncWorkspaceGroupAssignmentsManyQueue.add({
-      cursor: workspaceGroupAssignments[workspaceGroupAssignments.length - 1].id
-    });
+    if (workspaceGroupAssignments.length === SYNC_PAGE_SIZE) {
+      await syncWorkspaceGroupAssignmentsManyQueue.add(
+        { cursor: workspaceGroupAssignments[workspaceGroupAssignments.length - 1].id },
+        hourlyPacedDelay()
+      );
+    }
   });
 
 let syncWorkspaceGroupAssignmentsSingleQueue = createQueue<{
   workspaceGroupAssignmentId: string;
 }>({
-  name: 'global/sync/from-deployment/wga-single'
+  name: 'global/sync/from-deployment/wga-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncWorkspaceGroupAssignmentsSingleQueueProcessor =

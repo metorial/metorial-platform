@@ -7,7 +7,8 @@ export let syncOAuthAppToDeploymentQueue = createQueue<{
     clientSecrets: OAuthApplicationClientSecret[];
   };
 }>({
-  name: 'global/sync/to-deployment/oauth-app'
+  name: 'global/sync/to-deployment/oauth-app',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncOAuthAppToDeploymentQueueProcessor = syncOAuthAppToDeploymentQueue.process(

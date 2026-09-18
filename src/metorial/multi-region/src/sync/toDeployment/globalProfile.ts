@@ -20,7 +20,8 @@ let getLatestTimestamp = (globalProfile: GlobalProfileWithEmails) => {
 export let syncGlobalProfileToDeploymentQueue = createQueue<{
   globalProfile: GlobalProfileWithEmails;
 }>({
-  name: 'global/sync/to-deployment/global-profile'
+  name: 'global/sync/to-deployment/global-profile',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncGlobalProfileToDeploymentQueueProcessor =

@@ -1,9 +1,11 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let upsertWorkspacePolicyAssignment = async (workspacePolicyAssignmentId: string) => {
   let workspacePolicyAssignment = await db.workspacePolicyAssignment.findUnique({
@@ -55,7 +57,8 @@ export let syncWorkspacePolicyAssignmentsCron = createCron(
 );
 
 let syncWorkspacePolicyAssignmentsManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/wpa-many'
+  name: 'global/sync/from-deployment/wpa-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncWorkspacePolicyAssignmentsManyQueueProcessor =
@@ -65,7 +68,7 @@ export let syncWorkspacePolicyAssignmentsManyQueueProcessor =
         id: { gt: data.cursor }
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: SYNC_PAGE_SIZE,
       select: { id: true }
     });
     if (workspacePolicyAssignments.length === 0) return;
@@ -76,15 +79,19 @@ export let syncWorkspacePolicyAssignmentsManyQueueProcessor =
       }))
     );
 
-    await syncWorkspacePolicyAssignmentsManyQueue.add({
-      cursor: workspacePolicyAssignments[workspacePolicyAssignments.length - 1].id
-    });
+    if (workspacePolicyAssignments.length === SYNC_PAGE_SIZE) {
+      await syncWorkspacePolicyAssignmentsManyQueue.add(
+        { cursor: workspacePolicyAssignments[workspacePolicyAssignments.length - 1].id },
+        hourlyPacedDelay()
+      );
+    }
   });
 
 let syncWorkspacePolicyAssignmentsSingleQueue = createQueue<{
   workspacePolicyAssignmentId: string;
 }>({
-  name: 'global/sync/from-deployment/wpa-single'
+  name: 'global/sync/from-deployment/wpa-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncWorkspacePolicyAssignmentsSingleQueueProcessor =

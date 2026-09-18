@@ -6,7 +6,8 @@ import { ConsumerSurface } from '../../db';
 export let syncConsumerSurfaceToDeploymentQueue = createQueue<{
   consumerSurface: ConsumerSurface;
 }>({
-  name: 'global/sync/to-deployment/consumer-surface'
+  name: 'global/sync/to-deployment/consumer-surface',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncConsumerSurfaceToDeploymentQueueProcessor =

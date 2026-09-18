@@ -1,10 +1,12 @@
 import { createCron } from '@metorial/cron';
 import { addAfterTransactionHook, db, OAuthToken } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 import { upsertOrganization } from './organization';
+
+let SYNC_PAGE_SIZE = 500;
 
 let syncOAuthApp = async (_app: { id: string }) => {
   let app = await db.oAuthApplication.findUnique({
@@ -165,7 +167,8 @@ export let syncAppsCron = createCron(
 );
 
 let syncAppsManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/oauth-app-many'
+  name: 'global/sync/from-deployment/oauth-app-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncAppsManyQueueProcessor = syncAppsManyQueue.process(async data => {
@@ -174,18 +177,21 @@ export let syncAppsManyQueueProcessor = syncAppsManyQueue.process(async data => 
       id: { gt: data.cursor }
     },
     orderBy: { id: 'asc' },
-    take: 100,
+    take: SYNC_PAGE_SIZE,
     select: { id: true }
   });
   if (apps.length === 0) return;
 
   await syncOAuthAppSingleQueue.addMany(apps.map(app => ({ appId: app.id })));
 
-  await syncAppsManyQueue.add({ cursor: apps[apps.length - 1].id });
+  if (apps.length === SYNC_PAGE_SIZE) {
+    await syncAppsManyQueue.add({ cursor: apps[apps.length - 1].id }, hourlyPacedDelay());
+  }
 });
 
 let syncOAuthAppSingleQueue = createQueue<{ appId: string }>({
-  name: 'global/sync/from-deployment/oauth-app-single'
+  name: 'global/sync/from-deployment/oauth-app-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncOAuthAppSingleQueueProcessor = syncOAuthAppSingleQueue.process(async data => {

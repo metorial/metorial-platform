@@ -1,9 +1,11 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let upsertWorkspace = async (workspaceId: string) => {
   let workspace = await db.workspace.findUnique({
@@ -46,7 +48,8 @@ export let syncWorkspacesCron = createCron(
 );
 
 let syncWorkspacesManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/wsp-many'
+  name: 'global/sync/from-deployment/wsp-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncWorkspacesManyQueueProcessor = syncWorkspacesManyQueue.process(async data => {
@@ -55,7 +58,7 @@ export let syncWorkspacesManyQueueProcessor = syncWorkspacesManyQueue.process(as
       id: { gt: data.cursor }
     },
     orderBy: { id: 'asc' },
-    take: 100,
+    take: SYNC_PAGE_SIZE,
     select: { id: true }
   });
   if (workspaces.length === 0) return;
@@ -64,11 +67,17 @@ export let syncWorkspacesManyQueueProcessor = syncWorkspacesManyQueue.process(as
     workspaces.map(workspace => ({ workspaceId: workspace.id }))
   );
 
-  await syncWorkspacesManyQueue.add({ cursor: workspaces[workspaces.length - 1].id });
+  if (workspaces.length === SYNC_PAGE_SIZE) {
+    await syncWorkspacesManyQueue.add(
+      { cursor: workspaces[workspaces.length - 1].id },
+      hourlyPacedDelay()
+    );
+  }
 });
 
 let syncWorkspacesSingleQueue = createQueue<{ workspaceId: string }>({
-  name: 'global/sync/from-deployment/wsp-single'
+  name: 'global/sync/from-deployment/wsp-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncWorkspacesSingleQueueProcessor = syncWorkspacesSingleQueue.process(

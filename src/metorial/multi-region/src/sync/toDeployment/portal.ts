@@ -6,7 +6,8 @@ import { Portal } from '../../db';
 export let syncPortalToDeploymentQueue = createQueue<{
   portal: Portal;
 }>({
-  name: 'global/sync/to-deployment/portal'
+  name: 'global/sync/to-deployment/portal',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncPortalToDeploymentQueueProcessor = syncPortalToDeploymentQueue.process(

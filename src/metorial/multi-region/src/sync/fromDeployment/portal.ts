@@ -1,10 +1,12 @@
 import { createCron } from '@metorial/cron';
 import { addAfterTransactionHook, db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 import { upsertOrganization } from './organization';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let syncPortalsCron = createCron(
   {
@@ -17,7 +19,8 @@ export let syncPortalsCron = createCron(
 );
 
 let syncPortalsManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/portal-many'
+  name: 'global/sync/from-deployment/portal-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncPortalsManyQueueProcessor = syncPortalsManyQueue.process(async data => {
@@ -26,18 +29,24 @@ export let syncPortalsManyQueueProcessor = syncPortalsManyQueue.process(async da
       id: { gt: data.cursor }
     },
     orderBy: { id: 'asc' },
-    take: 100,
+    take: SYNC_PAGE_SIZE,
     select: { id: true }
   });
   if (portals.length === 0) return;
 
   await syncPortalSingleQueue.addMany(portals.map(portal => ({ portalId: portal.id })));
 
-  await syncPortalsManyQueue.add({ cursor: portals[portals.length - 1].id });
+  if (portals.length === SYNC_PAGE_SIZE) {
+    await syncPortalsManyQueue.add(
+      { cursor: portals[portals.length - 1].id },
+      hourlyPacedDelay()
+    );
+  }
 });
 
 let syncPortalSingleQueue = createQueue<{ portalId: string }>({
-  name: 'global/sync/from-deployment/portal-single'
+  name: 'global/sync/from-deployment/portal-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncPortalSingleQueueProcessor = syncPortalSingleQueue.process(async data => {

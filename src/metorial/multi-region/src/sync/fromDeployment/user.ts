@@ -1,10 +1,12 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 import { upsertUser } from '../../lib/upsertUser';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let syncUsersCron = createCron(
   {
@@ -17,7 +19,8 @@ export let syncUsersCron = createCron(
 );
 
 let syncUsersManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/user-many'
+  name: 'global/sync/from-deployment/user-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncUsersManyQueueProcessor = syncUsersManyQueue.process(async data => {
@@ -27,18 +30,21 @@ export let syncUsersManyQueueProcessor = syncUsersManyQueue.process(async data =
       type: 'user'
     },
     orderBy: { id: 'asc' },
-    take: 100,
+    take: SYNC_PAGE_SIZE,
     select: { id: true }
   });
   if (users.length === 0) return;
 
   await syncUserSingleQueue.addMany(users.map(user => ({ userId: user.id })));
 
-  await syncUsersManyQueue.add({ cursor: users[users.length - 1].id });
+  if (users.length === SYNC_PAGE_SIZE) {
+    await syncUsersManyQueue.add({ cursor: users[users.length - 1].id }, hourlyPacedDelay());
+  }
 });
 
 let syncUserSingleQueue = createQueue<{ userId: string; force?: boolean }>({
-  name: 'global/sync/from-deployment/user-single'
+  name: 'global/sync/from-deployment/user-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncUserSingleQueueProcessor = syncUserSingleQueue.process(async data => {

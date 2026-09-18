@@ -1,9 +1,11 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let upsertOrganization = async (organizationId: string) => {
   let organization = await db.organization.findUnique({
@@ -62,7 +64,8 @@ export let syncOrgsCron = createCron(
 );
 
 let syncOrgsManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/org-many'
+  name: 'global/sync/from-deployment/org-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncOrgsManyQueueProcessor = syncOrgsManyQueue.process(async data => {
@@ -71,18 +74,21 @@ export let syncOrgsManyQueueProcessor = syncOrgsManyQueue.process(async data => 
       id: { gt: data.cursor }
     },
     orderBy: { id: 'asc' },
-    take: 100,
+    take: SYNC_PAGE_SIZE,
     select: { id: true }
   });
   if (orgs.length === 0) return;
 
   await syncOrgSingleQueue.addMany(orgs.map(org => ({ orgId: org.id })));
 
-  await syncOrgsManyQueue.add({ cursor: orgs[orgs.length - 1].id });
+  if (orgs.length === SYNC_PAGE_SIZE) {
+    await syncOrgsManyQueue.add({ cursor: orgs[orgs.length - 1].id }, hourlyPacedDelay());
+  }
 });
 
 let syncOrgSingleQueue = createQueue<{ orgId: string }>({
-  name: 'global/sync/from-deployment/org-single'
+  name: 'global/sync/from-deployment/org-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncOrgSingleQueueProcessor = syncOrgSingleQueue.process(async data => {

@@ -7,7 +7,8 @@ import { Instance } from '../../db';
 export let syncInstanceToDeploymentQueue = createQueue<{
   instance: Instance;
 }>({
-  name: 'global/sync/to-deployment/instance'
+  name: 'global/sync/to-deployment/instance',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncInstanceToDeploymentQueueProcessor = syncInstanceToDeploymentQueue.process(

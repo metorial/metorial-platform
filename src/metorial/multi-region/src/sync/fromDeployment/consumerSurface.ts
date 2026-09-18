@@ -1,9 +1,11 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 import { upsertOrganization } from './organization';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let syncConsumerSurfacesCron = createCron(
   {
@@ -16,7 +18,8 @@ export let syncConsumerSurfacesCron = createCron(
 );
 
 let syncConsumerSurfacesManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/consumer-surface-many'
+  name: 'global/sync/from-deployment/consumer-surface-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncConsumerSurfacesManyQueueProcessor = syncConsumerSurfacesManyQueue.process(
@@ -26,7 +29,7 @@ export let syncConsumerSurfacesManyQueueProcessor = syncConsumerSurfacesManyQueu
         id: { gt: data.cursor }
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: SYNC_PAGE_SIZE,
       select: { id: true }
     });
     if (surfaces.length === 0) return;
@@ -35,12 +38,18 @@ export let syncConsumerSurfacesManyQueueProcessor = syncConsumerSurfacesManyQueu
       surfaces.map(s => ({ consumerSurfaceId: s.id }))
     );
 
-    await syncConsumerSurfacesManyQueue.add({ cursor: surfaces[surfaces.length - 1].id });
+    if (surfaces.length === SYNC_PAGE_SIZE) {
+      await syncConsumerSurfacesManyQueue.add(
+        { cursor: surfaces[surfaces.length - 1].id },
+        hourlyPacedDelay()
+      );
+    }
   }
 );
 
 let syncConsumerSurfaceSingleQueue = createQueue<{ consumerSurfaceId: string }>({
-  name: 'global/sync/from-deployment/consumer-surface-single'
+  name: 'global/sync/from-deployment/consumer-surface-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncConsumerSurfaceSingleQueueProcessor = syncConsumerSurfaceSingleQueue.process(

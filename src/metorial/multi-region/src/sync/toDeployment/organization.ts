@@ -6,7 +6,8 @@ import { Organization } from '../../db';
 export let syncOrganizationToDeploymentQueue = createQueue<{
   organization: Organization;
 }>({
-  name: 'global/sync/to-deployment/organization'
+  name: 'global/sync/to-deployment/organization',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncOrganizationToDeploymentQueueProcessor =

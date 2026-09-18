@@ -1,10 +1,12 @@
 import { createCron } from '@metorial/cron';
 import { addAfterTransactionHook, db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 import { upsertOrganization } from './organization';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let syncSkillPluginsCron = createCron(
   {
@@ -17,7 +19,8 @@ export let syncSkillPluginsCron = createCron(
 );
 
 let syncSkillPluginsManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/skill-plugin-many'
+  name: 'global/sync/from-deployment/skill-plugin-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncSkillPluginsManyQueueProcessor = syncSkillPluginsManyQueue.process(
@@ -27,7 +30,7 @@ export let syncSkillPluginsManyQueueProcessor = syncSkillPluginsManyQueue.proces
         id: { gt: data.cursor }
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: SYNC_PAGE_SIZE,
       select: { id: true }
     });
     if (skillPlugins.length == 0) return;
@@ -36,14 +39,18 @@ export let syncSkillPluginsManyQueueProcessor = syncSkillPluginsManyQueue.proces
       skillPlugins.map(skillPlugin => ({ skillPluginId: skillPlugin.id }))
     );
 
-    await syncSkillPluginsManyQueue.add({
-      cursor: skillPlugins[skillPlugins.length - 1].id
-    });
+    if (skillPlugins.length === SYNC_PAGE_SIZE) {
+      await syncSkillPluginsManyQueue.add(
+        { cursor: skillPlugins[skillPlugins.length - 1].id },
+        hourlyPacedDelay()
+      );
+    }
   }
 );
 
 let syncSkillPluginSingleQueue = createQueue<{ skillPluginId: string }>({
-  name: 'global/sync/from-deployment/skill-plugin-single'
+  name: 'global/sync/from-deployment/skill-plugin-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncSkillPluginSingleQueueProcessor = syncSkillPluginSingleQueue.process(

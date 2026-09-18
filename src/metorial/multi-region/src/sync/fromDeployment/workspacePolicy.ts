@@ -1,9 +1,11 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let upsertWorkspacePolicy = async (workspacePolicyId: string) => {
   let workspacePolicy = await db.workspacePolicy.findUnique({
@@ -46,7 +48,8 @@ export let syncWorkspacePoliciesCron = createCron(
 );
 
 let syncWorkspacePoliciesManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/wpo-many'
+  name: 'global/sync/from-deployment/wpo-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncWorkspacePoliciesManyQueueProcessor = syncWorkspacePoliciesManyQueue.process(
@@ -56,7 +59,7 @@ export let syncWorkspacePoliciesManyQueueProcessor = syncWorkspacePoliciesManyQu
         id: { gt: data.cursor }
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: SYNC_PAGE_SIZE,
       select: { id: true }
     });
     if (workspacePolicies.length === 0) return;
@@ -67,14 +70,18 @@ export let syncWorkspacePoliciesManyQueueProcessor = syncWorkspacePoliciesManyQu
       }))
     );
 
-    await syncWorkspacePoliciesManyQueue.add({
-      cursor: workspacePolicies[workspacePolicies.length - 1].id
-    });
+    if (workspacePolicies.length === SYNC_PAGE_SIZE) {
+      await syncWorkspacePoliciesManyQueue.add(
+        { cursor: workspacePolicies[workspacePolicies.length - 1].id },
+        hourlyPacedDelay()
+      );
+    }
   }
 );
 
 let syncWorkspacePoliciesSingleQueue = createQueue<{ workspacePolicyId: string }>({
-  name: 'global/sync/from-deployment/wpo-single'
+  name: 'global/sync/from-deployment/wpo-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncWorkspacePoliciesSingleQueueProcessor =

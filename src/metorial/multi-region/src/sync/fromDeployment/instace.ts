@@ -1,9 +1,11 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+
+let SYNC_PAGE_SIZE = 500;
 
 export let upsertInstance = async (instanceId: string) => {
   let instance = await db.instance.findUnique({
@@ -38,7 +40,8 @@ export let syncInstancesCron = createCron(
 );
 
 let syncInstancesManyQueue = createQueue<{ cursor?: string }>({
-  name: 'global/sync/from-deployment/inst-many'
+  name: 'global/sync/from-deployment/inst-many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncInstancesManyQueueProcessor = syncInstancesManyQueue.process(async data => {
@@ -47,18 +50,24 @@ export let syncInstancesManyQueueProcessor = syncInstancesManyQueue.process(asyn
       id: { gt: data.cursor }
     },
     orderBy: { id: 'asc' },
-    take: 100,
+    take: SYNC_PAGE_SIZE,
     select: { id: true }
   });
   if (instances.length === 0) return;
 
   await syncInstanceSingleQueue.addMany(instances.map(inst => ({ instanceId: inst.id })));
 
-  await syncInstancesManyQueue.add({ cursor: instances[instances.length - 1].id });
+  if (instances.length === SYNC_PAGE_SIZE) {
+    await syncInstancesManyQueue.add(
+      { cursor: instances[instances.length - 1].id },
+      hourlyPacedDelay()
+    );
+  }
 });
 
 let syncInstanceSingleQueue = createQueue<{ instanceId: string }>({
-  name: 'global/sync/from-deployment/inst-single'
+  name: 'global/sync/from-deployment/inst-single',
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let syncInstanceSingleQueueProcessor = syncInstanceSingleQueue.process(async data => {
