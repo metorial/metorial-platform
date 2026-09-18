@@ -20,7 +20,8 @@ export let syncTagsCron = createCron(
 
 let syncTagsQueue = createQueue<{ cursor?: string }>({
   name: 'shut/rep-tag/sync/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncTagsQueueProcessor = syncTagsQueue.process(async data => {

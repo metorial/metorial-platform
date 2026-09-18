@@ -24,6 +24,7 @@ export let deployContainerServerStartQueue = createQueue<{
       };
 }>({
   name: 'shut/con-ser/deploy/start',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

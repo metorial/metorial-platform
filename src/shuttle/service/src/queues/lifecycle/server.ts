@@ -3,6 +3,7 @@ import { env } from '../../env';
 
 export let serverCreatedQueue = createQueue<{ serverId: string }>({
   name: 'shut/l/server/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -16,6 +17,7 @@ export let serverCreatedQueueProcessor = serverCreatedQueue.process(async data =
 
 export let serverUpdatedQueue = createQueue<{ serverId: string }>({
   name: 'shut/l/server/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

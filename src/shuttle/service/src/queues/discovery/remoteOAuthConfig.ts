@@ -6,6 +6,7 @@ import { remoteOAuthDiscoveryService } from '../../services';
 
 export let discoverRemoteOAuthConfigQueue = createQueue<{ oauthConfigId: string }>({
   name: 'shut/rem-oaconf/discover',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

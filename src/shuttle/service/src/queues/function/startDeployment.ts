@@ -18,6 +18,7 @@ export let deployFunctionServerStartQueue = createQueue<{
   serverDeploymentId: string;
 }>({
   name: 'shut/func-ser/deploy/start',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

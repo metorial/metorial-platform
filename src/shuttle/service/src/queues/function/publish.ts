@@ -16,6 +16,7 @@ export let deployFunctionServerPublishQueue = createQueue<{
   functionServerId: string;
 }>({
   name: 'shut/func-ser/deploy/publish',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

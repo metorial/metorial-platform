@@ -37,6 +37,7 @@ export let deployRemoteServerStartQueue = createQueue<{
   preflightOAuthRegistration?: boolean;
 }>({
   name: 'shut/rem-ser/deploy/start',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

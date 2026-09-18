@@ -5,6 +5,7 @@ import { enqueuePromotion } from '../oauth/rotateRemoteCredentials';
 
 export let discoverRemoteOAuthConnectionQueue = createQueue<{ oauthConnectionId: string }>({
   name: 'shut/rem-oaconn/discover',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -8,6 +8,7 @@ export let repositoryTagCreatedQueue = createQueue<{
   serverDeploymentId: string | undefined;
 }>({
   name: 'shut/l/rep-tag/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -23,6 +23,7 @@ export let rotateStaleCredentialsSearchQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'shut/rem-oaconn/rotate/search',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 

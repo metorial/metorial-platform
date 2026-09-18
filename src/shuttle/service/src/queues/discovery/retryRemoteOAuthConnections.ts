@@ -27,7 +27,8 @@ export let retryFailedRegistrationsSearchQueue = createQueue<{
   serverId?: string;
 }>({
   name: 'shut/rem-oaconn/retry/search',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let retryFailedRegistrationsSearchQueueProcessor =

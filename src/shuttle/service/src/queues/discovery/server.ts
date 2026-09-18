@@ -80,6 +80,7 @@ export let discoverServerQueue = createQueue<{
   };
 }>({
   name: 'shut/server/discover',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -6,6 +6,7 @@ export let deployServerSucceededQueue = createQueue<{
   serverDeploymentId: string;
 }>({
   name: 'shut/deploy/succeeded',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

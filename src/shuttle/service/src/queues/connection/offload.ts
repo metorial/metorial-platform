@@ -1,10 +1,12 @@
 import { createCron } from '@lowerdeck/cron';
 import { delay } from '@lowerdeck/delay';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, hourlyPacedDelay, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { offload } from '../../lib/offload';
 import { connectionLogsBucketRecord } from '../../storage';
+
+let OFFLOAD_BATCH_SIZE = 500;
 
 export let offloadConnectionLogsCron = createCron(
   {
@@ -19,7 +21,8 @@ export let offloadConnectionLogsCron = createCron(
 
 export let offloadConnectionLogsQueue = createQueue<{ cursor?: string }>({
   name: 'shut/con-log/offload/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let offloadConnectionLogsQueueProcessor = offloadConnectionLogsQueue.process(
@@ -30,7 +33,7 @@ export let offloadConnectionLogsQueueProcessor = offloadConnectionLogsQueue.proc
         isLogsInStorage: false,
         id: data.cursor ? { gt: data.cursor } : undefined
       },
-      take: 100,
+      take: OFFLOAD_BATCH_SIZE,
       orderBy: { id: 'asc' },
       select: { id: true }
     });
@@ -43,13 +46,22 @@ export let offloadConnectionLogsQueueProcessor = offloadConnectionLogsQueue.proc
       }))
     );
 
-    await offloadConnectionLogsQueue.add({ cursor: connections[connections.length - 1]!.id });
+    if (connections.length === OFFLOAD_BATCH_SIZE) {
+      await offloadConnectionLogsQueue.add(
+        { cursor: connections[connections.length - 1]!.id },
+        hourlyPacedDelay()
+      );
+    }
   }
 );
 
 export let offloadConnectionLogQueue = createQueue<{ serverConnectionId: string }>({
   name: 'shut/con-log/offload',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: {
+    concurrency: 5,
+    limiter: { max: 5, duration: 1000 }
+  }
 });
 
 export let offloadConnectionLogQueueProcessor = offloadConnectionLogQueue.process(

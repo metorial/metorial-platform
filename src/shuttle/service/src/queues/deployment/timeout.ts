@@ -28,7 +28,8 @@ export let deployServerTimeoutCron = createCron(
 
 export let deployServerTimeoutManyQueue = createQueue<{ cursor?: string }>({
   name: 'shut/deploy/timeout/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let deployServerTimeoutManyQueueProcessor =

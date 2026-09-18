@@ -6,6 +6,7 @@ export let deployServerFailedQueue = createQueue<{
   serverDeploymentId: string;
 }>({
   name: 'shut/deploy/failed',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
