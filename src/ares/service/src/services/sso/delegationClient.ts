@@ -1,18 +1,25 @@
+import { delay } from '@lowerdeck/delay';
 import type {
   SsoImportedDelegation,
   SsoExportedDelegation,
   RemoteAresInstance
 } from '../../../prisma/generated/client';
-import { getEffectiveDelegationTokenUrl, createDelegationMetadataTokenBody, getDelegationCallbackUri } from '../../lib/ssoDelegationProtocol';
+import {
+  createDelegationMetadataTokenBody,
+  getDelegationCallbackUri,
+  getEffectiveDelegationTokenUrl
+} from '../../lib/ssoDelegationProtocol';
 import { aresPorts } from '../../ports';
 import { env } from '../../env';
-import type {
-  DelegationDescriptor,
-  DelegationSnapshot
-} from './delegation';
+import type { DelegationDescriptor, DelegationSnapshot } from './delegation';
 
 export class DelegationNotFoundError extends Error {}
 export class DelegationRemoteError extends Error {}
+
+class RetryableDelegationRemoteError extends DelegationRemoteError {}
+
+let DELEGATION_REQUEST_MAX_ATTEMPTS = 3;
+let DELEGATION_REQUEST_RETRY_DELAY_MS = 250;
 
 type ImportedWithRemote = SsoImportedDelegation & {
   remoteInstance: RemoteAresInstance;
@@ -20,11 +27,13 @@ type ImportedWithRemote = SsoImportedDelegation & {
 };
 
 let localSsoUrl = `http://localhost:${aresPorts.sso}`;
-let localDelegationCallbackUri = () =>
-  getDelegationCallbackUri(env.service.ARES_AUTH_URL);
+let localDelegationCallbackUri = () => getDelegationCallbackUri(env.service.ARES_AUTH_URL);
 
 let isRecord = (value: unknown): value is Record<string, any> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
+
+let isTransientDelegationResponse = (status: number) =>
+  status === 408 || status === 425 || status === 429 || status >= 500;
 
 export let assertDelegationSnapshot = (value: unknown): DelegationSnapshot => {
   if (
@@ -90,32 +99,60 @@ let requestToken = async (d: {
   clientId: string;
   clientSecret: string;
   body: URLSearchParams;
+  isIdempotent: boolean;
 }) => {
-  let response = await fetch(d.tokenUrl, {
-    method: 'POST',
-    headers: {
-      authorization: `Basic ${Buffer.from(`${d.clientId}:${d.clientSecret}`).toString('base64')}`,
-      'content-type': 'application/x-www-form-urlencoded',
-      accept: 'application/json'
-    },
-    body: d.body,
-    signal: AbortSignal.timeout(15_000)
-  });
-  if (response.status === 410) {
-    throw new DelegationNotFoundError('Delegation no longer exists');
+  let maxAttempts = d.isIdempotent ? DELEGATION_REQUEST_MAX_ATTEMPTS : 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      let response = await fetch(d.tokenUrl, {
+        method: 'POST',
+        headers: {
+          authorization: `Basic ${Buffer.from(`${d.clientId}:${d.clientSecret}`).toString('base64')}`,
+          'content-type': 'application/x-www-form-urlencoded',
+          accept: 'application/json'
+        },
+        body: d.body,
+        signal: AbortSignal.timeout(15_000)
+      });
+      if (response.status === 410) {
+        throw new DelegationNotFoundError('Delegation no longer exists');
+      }
+      if (!response.ok) {
+        let details = (await response.text()).slice(0, 500);
+        let message = `Delegation endpoint returned ${response.status}: ${details}`;
+        if (isTransientDelegationResponse(response.status)) {
+          throw new RetryableDelegationRemoteError(message);
+        }
+        throw new DelegationRemoteError(message);
+      }
+      let payload = await response.text();
+      try {
+        return JSON.parse(payload);
+      } catch {
+        throw new RetryableDelegationRemoteError('Delegation returned invalid JSON');
+      }
+    } catch (error) {
+      let retryable =
+        error instanceof RetryableDelegationRemoteError ||
+        (!(error instanceof DelegationRemoteError) &&
+          !(error instanceof DelegationNotFoundError));
+      if (!retryable || attempt === maxAttempts) {
+        if (
+          error instanceof DelegationRemoteError ||
+          error instanceof DelegationNotFoundError
+        ) {
+          throw error;
+        }
+        throw new DelegationRemoteError(
+          `Delegation request failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+      await delay(DELEGATION_REQUEST_RETRY_DELAY_MS * attempt);
+    }
   }
-  if (!response.ok) {
-    let details = (await response.text()).slice(0, 500);
-    throw new DelegationRemoteError(
-      `Delegation endpoint returned ${response.status}: ${details}`
-    );
-  }
-  let payload = await response.text();
-  try {
-    return JSON.parse(payload);
-  } catch {
-    throw new DelegationRemoteError('Delegation returned invalid JSON');
-  }
+
+  throw new DelegationRemoteError('Delegation request failed');
 };
 
 let introspect = async (d: {
@@ -126,7 +163,8 @@ let introspect = async (d: {
 }) => {
   let result = await requestToken({
     ...d,
-    body: new URLSearchParams({ token: d.token })
+    body: new URLSearchParams({ token: d.token }),
+    isIdempotent: true
   });
   if (!result?.active) {
     throw new DelegationNotFoundError('Delegation token is inactive');
@@ -157,7 +195,8 @@ export let ssoDelegationClient = {
       clientSecret: descriptor.clientSecret,
       body: createDelegationMetadataTokenBody({
         redirectUri: localDelegationCallbackUri()
-      })
+      }),
+      isIdempotent: true
     });
     return await introspect({
       tokenUrl,
@@ -175,7 +214,8 @@ export let ssoDelegationClient = {
       clientSecret: imported.clientSecret,
       body: createDelegationMetadataTokenBody({
         redirectUri: localDelegationCallbackUri()
-      })
+      }),
+      isIdempotent: true
     });
     return await introspect({
       tokenUrl,
@@ -202,7 +242,8 @@ export let ssoDelegationClient = {
       tokenUrl,
       clientId: d.imported.clientId,
       clientSecret: d.imported.clientSecret,
-      body
+      body,
+      isIdempotent: false
     });
     return await introspect({
       tokenUrl,

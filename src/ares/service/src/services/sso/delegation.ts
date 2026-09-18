@@ -1,7 +1,6 @@
 import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { randomBytes, timingSafeEqual } from 'crypto';
-import { Prisma } from '../../../prisma/generated/client';
 import type {
   App,
   AresInstance,
@@ -11,6 +10,7 @@ import type {
   SsoTenant,
   SsoUserProfile
 } from '../../../prisma/generated/client';
+import { Prisma } from '../../../prisma/generated/client';
 import { db, type TransactionDB, withTransaction } from '../../db';
 import { env } from '../../env';
 import { getId, ID } from '../../id';
@@ -215,24 +215,28 @@ class SsoDelegationServiceImpl {
     userProfileOid?: bigint;
   }) {
     let token = createOpaqueSecret();
-    await db.ssoDelegationToken.create({
-      data: {
-        ...getId('ssoDelegationToken'),
-        type: d.type,
-        tokenHash: hashDelegationSecret(token),
-        exportedDelegationOid: d.delegation.oid,
-        connectionOid: d.connectionOid,
-        userProfileOid: d.userProfileOid,
-        expiresAt: new Date(Date.now() + DELEGATION_TOKEN_TTL_SECONDS * 1000)
-      }
-    });
-    return token;
+
+    return withTransaction(
+      async db => {
+        await db.ssoDelegationToken.create({
+          data: {
+            ...getId('ssoDelegationToken'),
+            type: d.type,
+            tokenHash: hashDelegationSecret(token),
+            exportedDelegationOid: d.delegation.oid,
+            connectionOid: d.connectionOid,
+            userProfileOid: d.userProfileOid,
+            expiresAt: new Date(Date.now() + DELEGATION_TOKEN_TTL_SECONDS * 1000)
+          }
+        });
+
+        return token;
+      },
+      { ifExists: true }
+    );
   }
 
-  async storeExportRedirectUri(d: {
-    delegation: SsoExportedDelegation;
-    redirectUri: string;
-  }) {
+  async storeExportRedirectUri(d: { delegation: SsoExportedDelegation; redirectUri: string }) {
     if (d.delegation.redirectUri === d.redirectUri) return;
     await db.ssoExportedDelegation.update({
       where: { oid: d.delegation.oid },
@@ -276,19 +280,23 @@ class SsoDelegationServiceImpl {
       );
     }
 
-    let consumed = await db.ssoDelegationAuthorizationCode.updateMany({
-      where: { oid: code.oid, consumedAt: null, expiresAt: { gt: new Date() } },
-      data: { consumedAt: new Date() }
-    });
-    if (consumed.count !== 1) {
-      throw new ServiceError(badRequestError({ message: 'Authorization code was consumed' }));
-    }
+    return await withTransaction(async tdb => {
+      let consumed = await tdb.ssoDelegationAuthorizationCode.updateMany({
+        where: { oid: code.oid, consumedAt: null, expiresAt: { gt: new Date() } },
+        data: { consumedAt: new Date() }
+      });
+      if (consumed.count !== 1) {
+        throw new ServiceError(
+          badRequestError({ message: 'Authorization code was consumed' })
+        );
+      }
 
-    return await this.createToken({
-      delegation: d.delegation,
-      type: 'identity',
-      connectionOid: code.connectionOid,
-      userProfileOid: code.userProfileOid
+      return await this.createToken({
+        delegation: d.delegation,
+        type: 'identity',
+        connectionOid: code.connectionOid,
+        userProfileOid: code.userProfileOid
+      });
     });
   }
 
@@ -446,12 +454,8 @@ class SsoDelegationServiceImpl {
       d.snapshot.delegation.clientId !== d.descriptor.clientId ||
       d.snapshot.tenant.id !== d.descriptor.tenantId ||
       d.snapshot.instance.id !== d.descriptor.instance.id ||
-      normalizeDelegationAuthorizationEndpoint(
-        d.snapshot.instance.authorizationUrl
-      ) !==
-        normalizeDelegationAuthorizationEndpoint(
-          d.descriptor.instance.authorizationUrl
-        ) ||
+      normalizeDelegationAuthorizationEndpoint(d.snapshot.instance.authorizationUrl) !==
+        normalizeDelegationAuthorizationEndpoint(d.descriptor.instance.authorizationUrl) ||
       new URL(d.snapshot.instance.tokenUrl).toString() !==
         new URL(d.descriptor.instance.tokenUrl).toString()
     ) {
@@ -699,8 +703,7 @@ class SsoDelegationServiceImpl {
     statuses?: ('active' | 'disabled')[];
   }) {
     let includeImported =
-      (!d.directions?.length || d.directions.includes('imported')) &&
-      !d.identifier;
+      (!d.directions?.length || d.directions.includes('imported')) && !d.identifier;
     let includeExported =
       (!d.directions?.length || d.directions.includes('exported')) &&
       (!d.statuses?.length || d.statuses.includes('active'));
