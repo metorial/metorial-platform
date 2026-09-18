@@ -28,6 +28,27 @@ let createDb = (initial?: QueueCheckpointRow[]) => {
             ? { ...existing, processedThrough: args.update.processedThrough }
             : args.create
         );
+      },
+      create: async (args: { data: QueueCheckpointRow }) => {
+        if (rows.has(args.data.queue)) throw new Error('unique');
+        rows.set(args.data.queue, args.data);
+      },
+      updateMany: async (args: {
+        where: { queue: string; processedThrough: { lt: Date } };
+        data: { processedThrough: Date };
+      }) => {
+        let existing = rows.get(args.where.queue);
+        if (
+          !existing ||
+          existing.processedThrough.getTime() >= args.where.processedThrough.lt.getTime()
+        ) {
+          return { count: 0 };
+        }
+        rows.set(args.where.queue, {
+          ...existing,
+          processedThrough: args.data.processedThrough
+        });
+        return { count: 1 };
       }
     }
   };
@@ -92,6 +113,22 @@ describe('startWatermarkScan', () => {
     await commitWatermarkScan({ checkpoint, job: {} });
 
     expect(await checkpoint.since()).toBeUndefined();
+  });
+
+  it('keeps a later watermark when an older overlapping scan drains second', async () => {
+    let db = createDb([{ queue: 'q#full-pass', processedThrough: new Date() }]);
+    let checkpoint = createQueueCheckpoint({ db, queue: 'q', overlapMs: 0 });
+
+    await commitWatermarkScan({
+      checkpoint,
+      job: { startedAt: '2026-01-01T13:00:00.000Z' }
+    });
+    await commitWatermarkScan({
+      checkpoint,
+      job: { startedAt: '2026-01-01T12:00:00.000Z' }
+    });
+
+    expect((await checkpoint.since())?.toISOString()).toBe('2026-01-01T13:00:00.000Z');
   });
 });
 

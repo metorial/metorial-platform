@@ -5,6 +5,11 @@ export interface QueueCheckpointRow {
 
 export interface QueueCheckpointDelegate {
   findUnique(args: { where: { queue: string } }): Promise<QueueCheckpointRow | null>;
+  create(args: { data: QueueCheckpointRow }): Promise<unknown>;
+  updateMany(args: {
+    where: { queue: string; processedThrough: { lt: Date } };
+    data: { processedThrough: Date };
+  }): Promise<{ count: number }>;
   upsert(args: {
     where: { queue: string };
     create: QueueCheckpointRow;
@@ -54,11 +59,25 @@ export let createQueueCheckpoint = (d: {
     },
 
     commit: async (processedThrough: Date) => {
-      await d.db.queueCheckpoint.upsert({
-        where: { queue: d.queue },
-        create: { queue: d.queue, processedThrough },
-        update: { processedThrough }
+      let updated = await d.db.queueCheckpoint.updateMany({
+        where: { queue: d.queue, processedThrough: { lt: processedThrough } },
+        data: { processedThrough }
       });
+      if (updated.count > 0) return;
+
+      let row = await d.db.queueCheckpoint.findUnique({ where: { queue: d.queue } });
+      if (row) return;
+
+      try {
+        await d.db.queueCheckpoint.create({
+          data: { queue: d.queue, processedThrough }
+        });
+      } catch {
+        await d.db.queueCheckpoint.updateMany({
+          where: { queue: d.queue, processedThrough: { lt: processedThrough } },
+          data: { processedThrough }
+        });
+      }
     },
 
     isFullPassDue,
