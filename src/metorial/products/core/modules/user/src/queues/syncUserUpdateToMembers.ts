@@ -5,7 +5,8 @@ import { createQueue, QueueRetryError } from '@metorial/queue';
 import { metorialResourceService } from '@metorial-subspace/module-tenant';
 
 export let syncUserUpdateMemberManyQueue = createQueue<{ userId: string; cursor?: string }>({
-  name: 'usr/syncUserUpdateMember/many'
+  name: 'usr/syncUserUpdateMember/many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncUserUpdateMemberManyQueueProcessor = syncUserUpdateMemberManyQueue.process(
@@ -39,7 +40,8 @@ export let syncUserUpdateMemberManyQueueProcessor = syncUserUpdateMemberManyQueu
 );
 
 export let syncUserUpdateMemberQueue = createQueue<{ userId: string; memberId: string }>({
-  name: 'usr/syncUserUpdateMember'
+  name: 'usr/syncUserUpdateMember',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncUserUpdateMemberQueueProcessor = syncUserUpdateMemberQueue.process(

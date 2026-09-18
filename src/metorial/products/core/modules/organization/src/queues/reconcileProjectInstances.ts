@@ -1,30 +1,21 @@
-import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
+import {
+  combineQueueProcessors,
+  createQueue,
+  dailyPacedDelay,
+  QueueRetryError
+} from '@metorial/queue';
 import { instanceService } from '../services';
 
 export let RECONCILE_PROJECT_INSTANCES_BATCH_SIZE = 500;
 
-export let reconcileProjectInstancesCron = createCron(
-  {
-    name: 'org/instances/reconcile/cron',
-    cron: '0 5 * * *'
-  },
-  async () => {
-    await reconcileProjectInstancesSearchQueue.add(
-      {},
-      { id: 'org-instances-reconcile-search' }
-    );
-  }
-);
+export let startProjectInstanceReconciliation = async () => {
+  await reconcileProjectInstancesSearchQueue.add({}, { id: 'org-instances-reconcile-search' });
+};
 
 export let reconcileProjectInstancesSearchQueue = createQueue<{ cursor?: string }>({
   name: 'org/instances/reconcile/search'
 });
-
-setTimeout(() => {
-  reconcileProjectInstancesSearchQueue.add({});
-}, 10000);
 
 export let reconcileProjectInstancesSearchQueueProcessor =
   reconcileProjectInstancesSearchQueue.process(async data => {
@@ -48,17 +39,17 @@ export let reconcileProjectInstancesSearchQueueProcessor =
       }))
     );
 
-    let lastInstance = instances[instances.length - 1];
-    if (!lastInstance) return;
-
-    await reconcileProjectInstancesSearchQueue.add({
-      cursor: lastInstance.id
-    });
+    if (instances.length === RECONCILE_PROJECT_INSTANCES_BATCH_SIZE) {
+      await reconcileProjectInstancesSearchQueue.add(
+        { cursor: instances[instances.length - 1]!.id },
+        dailyPacedDelay()
+      );
+    }
   });
 
 export let reconcileProjectInstancesQueue = createQueue<{ instanceId: string }>({
   name: 'org/instances/reconcile/instance',
-  workerOpts: { concurrency: 5 }
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let reconcileProjectInstancesQueueProcessor = reconcileProjectInstancesQueue.process(
@@ -95,7 +86,6 @@ export let reconcileProjectInstancesQueueProcessor = reconcileProjectInstancesQu
 );
 
 export let reconcileProjectInstancesProcessors = combineQueueProcessors([
-  reconcileProjectInstancesCron,
   reconcileProjectInstancesSearchQueueProcessor,
   reconcileProjectInstancesQueueProcessor
 ]);

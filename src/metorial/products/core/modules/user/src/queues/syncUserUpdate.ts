@@ -3,7 +3,8 @@ import { syncUserUpdateConsumerManyQueue } from './syncUserUpdateToConsumers';
 import { syncUserUpdateMemberManyQueue } from './syncUserUpdateToMembers';
 
 export let syncUserUpdateQueue = createQueue<{ userId: string }>({
-  name: 'usr/syncUserUpdate'
+  name: 'usr/syncUserUpdate',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncUserUpdateQueueProcessor = syncUserUpdateQueue.process(async data => {

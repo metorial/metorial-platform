@@ -2,7 +2,8 @@ import { syncUserToConsumers } from '@metorial/module-consumer-core';
 import { createQueue } from '@metorial/queue';
 
 export let syncUserUpdateConsumerManyQueue = createQueue<{ userId: string; cursor?: string }>({
-  name: 'usr/syncUserUpdateConsumer/many'
+  name: 'usr/syncUserUpdateConsumer/many',
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncUserUpdateConsumerManyQueueProcessor = syncUserUpdateConsumerManyQueue.process(
