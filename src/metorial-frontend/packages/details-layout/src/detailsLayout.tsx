@@ -21,6 +21,7 @@ import {
 export type DetailsLayoutProps = {
   entity: DetailsLayoutEntity;
   icon?: React.ReactNode;
+  avatar?: (size: number) => React.ReactNode;
   breadcrumbs: DetailsBreadcrumb[];
   tabs?: DetailsTab[];
   actions?: DetailsLayoutAction[];
@@ -170,6 +171,33 @@ let BreadcrumbBackButtonEntityIcon = styled(BreadcrumbBackButtonIcon)`
   }
 `;
 
+let CompactAvatarSlot = styled.div<{ $visible: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: ${p => (p.$visible ? '24px' : '0')};
+  margin-right: ${p => (p.$visible ? '8px' : '0')};
+  overflow: hidden;
+  opacity: ${p => (p.$visible ? 1 : 0)};
+  transform: translateX(${p => (p.$visible ? '0' : '-8px')});
+  transition:
+    width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    margin-right 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
+    transition: none;
+  }
+`;
+
+let ExpandedAvatarSlot = styled.div`
+  display: flex;
+  flex-shrink: 0;
+`;
+
 let HeaderControls = styled.div`
   display: flex;
   align-items: center;
@@ -204,14 +232,15 @@ let ExpandedIdentity = styled(Container)<{
 
 let ExpandedIdentityContent = styled.div`
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
   padding-top: 10px;
   padding-bottom: 16px;
   box-sizing: border-box;
 
   @media (max-width: 720px) {
-    gap: 12px;
+    gap: 10px;
     padding-top: 10px;
     padding-bottom: 14px;
   }
@@ -279,6 +308,7 @@ let getScrollTop = (container: HTMLElement | Window) =>
 export let DetailsLayout = ({
   entity,
   icon,
+  avatar,
   breadcrumbs,
   tabs,
   actions,
@@ -360,7 +390,7 @@ export let DetailsLayout = ({
 
   return (
     <DetailsLayoutContext.Provider
-      value={{ entity, icon, breadcrumbs, tabs, actions, attributes }}
+      value={{ entity, icon, avatar, breadcrumbs, tabs, actions, attributes }}
     >
       <Header ref={headerRef} $showBorder={showHeaderBorder}>
         <EntityHeader>
@@ -399,6 +429,13 @@ export let DetailsLayout = ({
                 </BreadcrumbBackButton>
               </Skeleton>
             </CompactBackButtonSlot>
+            {avatar && (
+              <CompactAvatarSlot $visible={!isExpanded} aria-hidden={isExpanded}>
+                <Skeleton active={skeleton} borderRadius={6}>
+                  {avatar(24)}
+                </Skeleton>
+              </CompactAvatarSlot>
+            )}
             <DetailsBreadcrumbs
               breadcrumbs={visibleBreadcrumbs}
               currentLabel={entityLabel}
@@ -422,6 +459,13 @@ export let DetailsLayout = ({
           aria-hidden={!isExpanded}
         >
           <ExpandedIdentityContent ref={expandedIdentityRef}>
+            {avatar && (
+              <ExpandedAvatarSlot>
+                <Skeleton active={skeleton} borderRadius={10}>
+                  {avatar(56)}
+                </Skeleton>
+              </ExpandedAvatarSlot>
+            )}
             <ExpandedEntityCopy>
               <Skeleton active={skeleton} borderRadius={6}>
                 <ExpandedEntityTitle>

@@ -6,9 +6,10 @@ import {
   timeoutError
 } from '@lowerdeck/error';
 import { createRpcSignatureHeader, rpcSignatureHeader } from '@lowerdeck/rpc-signature';
+import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
-import { generateRequestId } from './shared/requester';
 import type { Call, Requester } from './shared/requester';
+import { generateRequestId } from './shared/requester';
 
 // @ts-ignore
 let isServer = typeof (globalThis as any).window === 'undefined';
@@ -20,6 +21,11 @@ let verbose =
 let log = (...args: any[]) => {
   if (!isServer) console.log(...args);
 };
+
+let Sentry = getSentry();
+
+let serverRetryTimeoutMs = 2 * 60 * 1000;
+let serverRetryDelayMaxMs = 1000;
 
 let calls: {
   [key: string]: {
@@ -55,6 +61,23 @@ class InvalidRpcResponseError extends Error {
   }
 }
 
+let rpcRequestDiagnostics = new WeakMap<object, Error>();
+
+class RpcRequestError extends ServiceError<any> {
+  constructor(
+    error: ReturnType<typeof internalServerError> | ReturnType<typeof timeoutError>,
+    diagnostic: Error
+  ) {
+    super(error);
+    this.name = 'RpcRequestError';
+    rpcRequestDiagnostics.set(this, diagnostic);
+  }
+}
+
+class RpcTransportError extends RpcRequestError {}
+
+class RpcResponseError extends RpcRequestError {}
+
 let decodeRpcResponse = (body: string) => {
   try {
     return decodeResponseBody(body);
@@ -64,29 +87,24 @@ let decodeRpcResponse = (body: string) => {
 };
 
 let toRequestError = (call: Call, error: unknown) => {
+  let invalidResponse = error instanceof InvalidRpcResponseError;
+  let diagnosticMessage = invalidResponse
+    ? `Invalid response from server ${call.endpoint} for ${call.name}`
+    : `Unable to reach server ${call.endpoint} for ${call.name}`;
+  let diagnostic = new Error(diagnosticMessage, {
+    cause: error instanceof Error ? error : undefined
+  });
+
   if (
     (error instanceof Error && error.name === 'AbortError') ||
     (call.signal && call.signal.aborted)
   ) {
-    return new ServiceError(
-      timeoutError({ message: `Request timed out: ${call.name} on ${call.endpoint}` })
-    );
+    return new RpcTransportError(timeoutError(), diagnostic);
   }
 
-  let message =
-    error instanceof InvalidRpcResponseError
-      ? `Invalid response from server ${call.endpoint} for ${call.name}`
-      : `Unable to reach server ${call.endpoint} for ${call.name}`;
-
-  return new ServiceError(
-    internalServerError({
-      message,
-      inner:
-        verbose && error instanceof Error
-          ? { name: error.name, message: error.message, stack: error.stack }
-          : undefined
-    })
-  );
+  return invalidResponse
+    ? new RpcResponseError(internalServerError(), diagnostic)
+    : new RpcTransportError(internalServerError(), diagnostic);
 };
 
 let createBatchUrl = (call: Call) => {
@@ -248,15 +266,7 @@ let performRequest = (call: Call) => {
   return promise;
 };
 
-let abortedError = (call: { name: string; endpoint: string }) =>
-  new ServiceError(
-    timeoutError({
-      message:
-        typeof (globalThis as any).window != 'undefined'
-          ? `Request timed out: ${call.name}`
-          : `Request timed out: ${call.name} on ${call.endpoint}`
-    })
-  );
+let abortedError = () => new ServiceError(timeoutError());
 
 let abortableDelay = (ms: number, signal: AbortSignal) =>
   new Promise<void>(resolve => {
@@ -275,12 +285,12 @@ let abortableDelay = (ms: number, signal: AbortSignal) =>
   });
 
 let createDeadlineSignal = (call: { timeoutMs?: number; signal?: AbortSignal }) => {
-  if (call.timeoutMs == null && !call.signal) return { signal: undefined, release: () => {} };
+  let timeoutMs = call.timeoutMs ?? (isServer ? serverRetryTimeoutMs : undefined);
+  if (timeoutMs == null && !call.signal) return { signal: undefined, release: () => {} };
 
   let controller = new AbortController();
   let onExternalAbort = () => controller.abort();
-  let timer =
-    call.timeoutMs == null ? null : setTimeout(() => controller.abort(), call.timeoutMs);
+  let timer = timeoutMs == null ? null : setTimeout(() => controller.abort(), timeoutMs);
 
   if (call.signal) {
     if (call.signal.aborted) controller.abort();
@@ -301,6 +311,7 @@ let requesterInternal: Requester = async call => {
   log(`[call:${call.name.replace(':', '-')}:${id}] Queued`, call);
 
   let tries = 0;
+  let boundedRetryFailures = 0;
   let error: Error | null = null;
 
   for (let header in call.headers) {
@@ -313,14 +324,14 @@ let requesterInternal: Requester = async call => {
     }
   }
 
-  let maxTries = typeof (globalThis as any).window === 'undefined' ? 6 : 3;
+  let maxBoundedTries = typeof (globalThis as any).window === 'undefined' ? 6 : 3;
   let retryDelay = typeof (globalThis as any).window === 'undefined' ? 20 : 1000;
 
   let deadline = createDeadlineSignal(call);
 
   try {
-    while (tries < maxTries) {
-      if (deadline.signal?.aborted) throw error ?? abortedError(call);
+    while (true) {
+      if (deadline.signal?.aborted) throw error ?? abortedError();
 
       try {
         return (await performRequest({
@@ -348,20 +359,26 @@ let requesterInternal: Requester = async call => {
       } catch (e: any) {
         error = e;
 
-        if (deadline.signal?.aborted) throw abortedError(call);
+        if (deadline.signal?.aborted) throw error ?? abortedError();
 
         if (isServiceError(e)) {
           // 400 errors are not retried
           if (e.data.status < 500) throw e;
         }
+
+        if (!isServer || !(e instanceof RpcTransportError)) {
+          boundedRetryFailures += 1;
+          if (boundedRetryFailures >= maxBoundedTries) throw e;
+        }
       }
 
       tries += 1;
+      let delay = Math.min(tries * retryDelay, serverRetryDelayMaxMs);
       if (deadline.signal) {
-        await abortableDelay(tries * retryDelay, deadline.signal);
-        if (deadline.signal.aborted) throw abortedError(call);
+        await abortableDelay(delay, deadline.signal);
+        if (deadline.signal.aborted) throw error ?? abortedError();
       } else {
-        await new Promise(r => setTimeout(r, tries * retryDelay));
+        await new Promise(r => setTimeout(r, delay));
       }
     }
   } finally {
@@ -370,21 +387,22 @@ let requesterInternal: Requester = async call => {
 
   if (error) throw error;
 
-  throw new ServiceError(
-    internalServerError({
-      message:
-        typeof (globalThis as any).window != 'undefined'
-          ? 'Unable to reach server'
-          : `Unable to reach server ${call.endpoint}`
-    })
-  );
+  throw new ServiceError(internalServerError());
 };
 
 export let request: Requester = async call => {
-  // try {
-  return await requesterInternal(call);
-  // } catch (e: any) {
-  //   Sentry.captureException(e);
-  //   throw e;
-  // }
+  try {
+    return await requesterInternal(call);
+  } catch (error) {
+    if (!(error instanceof RpcRequestError)) throw error;
+
+    if (!call.signal?.aborted) {
+      Sentry.captureException(rpcRequestDiagnostics.get(error)!, {
+        tags: { rpcMethod: call.name },
+        extra: { endpoint: call.endpoint }
+      });
+    }
+
+    throw new ServiceError(error.data.status == 504 ? timeoutError() : internalServerError());
+  }
 };

@@ -1,4 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { DetailsTableLayout } from '@metorial/details-layout';
 import { useCurrentInstance, useCustomProvider } from '@metorial/state';
 import { Panel } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
@@ -13,7 +14,7 @@ export let CustomProviderVersionsPage = () => {
   let customProvider = useCustomProvider(instance.data?.id, customProviderId);
 
   return renderWithLoader({ customProvider })(({ customProvider }) => (
-    <>
+    <DetailsTableLayout title="Versions" description="Every published version of this provider.">
       <CustomProviderVersionsTable customProvider={customProvider.data} />
 
       <RouterPanel param="version_id" width={1000}>
@@ -34,6 +35,6 @@ export let CustomProviderVersionsPage = () => {
           </>
         )}
       </RouterPanel>
-    </>
+    </DetailsTableLayout>
   ));
 };

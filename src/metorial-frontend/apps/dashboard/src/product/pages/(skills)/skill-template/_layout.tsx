@@ -1,6 +1,6 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
+import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCreateSkill,
   useCurrentInstance,
@@ -8,8 +8,10 @@ import {
   useCurrentProject,
   useSkillTemplate
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Badge, RenderDate } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiFileCopyLine } from '@remixicon/react';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
 
 export let SkillTemplateLayout = () => {
@@ -20,7 +22,6 @@ export let SkillTemplateLayout = () => {
   let skillTemplate = useSkillTemplate(instance.data?.id, skillTemplateId);
   let createSkill = useCreateSkill();
   let navigate = useNavigate();
-  let pathname = useLocation().pathname;
 
   let skillTemplatePathParams = [
     organization.data,
@@ -56,52 +57,56 @@ export let SkillTemplateLayout = () => {
   };
 
   return (
-    <ContentLayout>
-      <PageHeader
-        title={skillTemplate.data?.name ?? '...'}
-        description={skillTemplate.data?.description ?? undefined}
-        pagination={[
-          {
-            label: 'Skill Templates',
-            href: Paths.instance.skillTemplates(organization.data, project.data, instance.data)
-          },
-          {
-            label: skillTemplate.data?.name ?? '...',
-            href: Paths.instance.skillTemplate(...skillTemplatePathParams)
-          }
-        ]}
-        actions={
-          <Button
-            size="2"
-            disabled={!instance.data || !skillTemplate.data}
-            onClick={cloneAsSkill}
-          >
-            Clone as Skill
-          </Button>
+    <DetailsLayout
+      entity={skillTemplate.data}
+      icon={<RiFileCopyLine />}
+      breadcrumbs={[
+        {
+          label: 'Skill Templates',
+          to: Paths.instance.skillTemplates(organization.data, project.data, instance.data)
+        },
+        {
+          label: skillTemplate.data?.name,
+          to: Paths.instance.skillTemplate(...skillTemplatePathParams)
         }
-      />
-
+      ]}
+      tabs={[
+        {
+          label: 'Overview',
+          to: Paths.instance.skillTemplate(...skillTemplatePathParams)
+        },
+        {
+          label: 'Settings',
+          to: Paths.instance.skillTemplate(...skillTemplatePathParams, 'settings')
+        }
+      ]}
+      actions={[
+        {
+          label: 'Clone as Skill',
+          disabled: !instance.data || !skillTemplate.data,
+          onClick: cloneAsSkill
+        }
+      ]}
+      attributes={
+        skillTemplate.data
+          ? [
+              { label: 'ID', value: <ID id={skillTemplate.data.id} /> },
+              {
+                label: 'Status',
+                value: <Badge color="gray">{skillTemplate.data.status}</Badge>
+              },
+              { label: 'Slug', value: skillTemplate.data.slug },
+              { label: 'Owner', value: skillTemplate.data.owner },
+              { label: 'Created', value: <RenderDate date={skillTemplate.data.createdAt} /> }
+            ]
+          : []
+      }
+    >
       <InitialLoadBoundary>
         {renderWithLoader({ skillTemplate })(() => (
-          <>
-            <LinkTabs
-              current={pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.skillTemplate(...skillTemplatePathParams)
-                },
-                {
-                  label: 'Settings',
-                  to: Paths.instance.skillTemplate(...skillTemplatePathParams, 'settings')
-                }
-              ]}
-            />
-
-            <Outlet />
-          </>
+          <Outlet />
         ))}
       </InitialLoadBoundary>
-    </ContentLayout>
+    </DetailsLayout>
   );
 };

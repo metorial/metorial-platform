@@ -1,6 +1,5 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import {
-  CallbackInstancePreview,
   IntegrationInstance,
   IntegrationInstanceProvider,
   IntegrationPreview,
@@ -11,17 +10,12 @@ import {
   useIntegrationProviders,
   useProviderListings
 } from '@metorial/state';
-import {
-  Table as DashboardTable,
-  FilterPayload,
-  getEnumListFilterValue,
-  getStringFilterValue
-} from '@metorial/table';
-import { Avatar, Badge, Flex, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine, RiSettings3Line } from '@remixicon/react';
-import { useMemo, useState } from 'react';
-import { CallbackSyncBadge } from '../callbacks/shared';
+import { Table as DashboardTable } from '@metorial/table';
+import { Badge, Button, Flex, Menu, Spacer, Text, confirm } from '@metorial/ui';
+import { ID, ProviderImage, Table } from '@metorial/ui-product';
+import { RiMore2Line, RiSettings3Line } from '@remixicon/react';
+import { Fragment, useMemo, useState } from 'react';
+import { CallbackSyncBadge, CallbackSyncErrorCallout } from '../callbacks/shared';
 import {
   showIntegrationInstanceProviderPanelFlow,
   showIntegrationProviderPanelFlow
@@ -42,265 +36,19 @@ let getAuthLabel = (
   integrationProvider.authCredentials?.id ??
   'None';
 
-let getProviderStatusColor = (status: IntegrationProvider['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
-
 type ProviderListingLookup = Record<string, { name: string; imageUrl: string }>;
-
-type IntegrationProvidersManagerProps = {
-  instanceId: string;
-  integration: IntegrationPreview;
-  onComplete?: () => void;
-  listingLookup?: ProviderListingLookup;
-};
-
-let getProviderStatusFilterValue = (value: FilterPayload | undefined) =>
-  getEnumListFilterValue(value, ['active', 'archived', 'deleted']);
-
-let useIntegrationProvidersTableState = (
-  props: IntegrationProvidersManagerProps,
-  opts: { filter: Record<string, FilterPayload>; search?: string }
-) => {
-  let providers = useIntegrationProviders(props.instanceId, {
-    integrationId: props.integration.id,
-    order: 'desc',
-    status: getProviderStatusFilterValue(opts.filter.status),
-    id: getStringFilterValue(opts.filter.id),
-    providerId: getStringFilterValue(opts.filter.providerId),
-    search: opts.search
-  });
-
-  return {
-    isLoading: providers.isLoading,
-    error: providers.error,
-    hasMoreAfter: providers.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: providers.data?.pagination.hasMoreBefore ?? false,
-    items: providers.data?.items ?? [],
-    loadNext: providers.next,
-    loadPrevious: providers.previous,
-    providers
-  };
-};
-
-let useIntegrationProvidersTableHookState = (
-  tableState: ReturnType<typeof useIntegrationProvidersTableState>,
-  props: IntegrationProvidersManagerProps
-) => {
-  let deleteProvider = useDeleteIntegrationProvider();
-  let [loadingIds, setLoadingIds] = useState<string[]>([]);
-
-  return {
-    deleteProvider,
-    providers: tableState.providers,
-    instanceId: props.instanceId,
-    integration: props.integration,
-    onComplete: props.onComplete,
-    loadingIds,
-    setLoadingIds
-  };
-};
-
-let deleteIntegrationProviderImmediately = async (
-  provider: IntegrationProvider,
-  state: ReturnType<typeof useIntegrationProvidersTableHookState>
-) => {
-  state.setLoadingIds(current => [...new Set([...current, provider.id])]);
-
-  try {
-    await state.deleteProvider.mutate({
-      instanceId: state.instanceId,
-      integrationProviderId: provider.id
-    });
-    await state.providers.refetch();
-    state.onComplete?.();
-  } finally {
-    state.setLoadingIds(current => current.filter(id => id !== provider.id));
-  }
-};
-
-let integrationProvidersTable = new DashboardTable<
-  IntegrationProvidersManagerProps,
-  IntegrationProvider
->('integration-providers', { hasPagination: false })
-  .state(useIntegrationProvidersTableState)
-  .hookState(useIntegrationProvidersTableHookState)
-  .columns([
-    {
-      id: 'provider',
-      isDefault: true,
-      header: 'Provider',
-      render: (provider: IntegrationProvider, props: IntegrationProvidersManagerProps) => {
-        let listing = props.listingLookup?.[provider.provider.id];
-        let providerName = listing?.name ?? getProviderLabel(provider);
-
-        return (
-          <Flex gap={10} style={{ alignItems: 'center' }}>
-            <Avatar
-              entity={{ name: providerName, photoUrl: listing?.imageUrl }}
-              size={24}
-              radius={6}
-              noTooltip
-              imageFit="contain"
-            />
-            <Text size="2" weight="strong">
-              {providerName}
-            </Text>
-          </Flex>
-        );
-      }
-    },
-    {
-      id: 'config',
-      isDefault: true,
-      header: 'Config',
-      render: (provider: IntegrationProvider) => (
-        <Text size="2">{getConfigLabel(provider.config)}</Text>
-      )
-    },
-    {
-      id: 'auth',
-      isDefault: true,
-      header: 'Auth',
-      render: (provider: IntegrationProvider) => (
-        <Text size="2">
-          {provider.authMethod?.name ?? provider.authCredentials?.id ?? 'None'}
-        </Text>
-      )
-    },
-    {
-      id: 'callbacks',
-      isDefault: true,
-      header: 'Callbacks',
-      render: (provider: IntegrationProvider) => {
-        if (provider.callbacks.status !== 'enabled') {
-          return (
-            <Text size="2" color="gray600">
-              Off
-            </Text>
-          );
-        }
-
-        if (!provider.callbacks.callback) {
-          return <Badge color="orange">Registering</Badge>;
-        }
-
-        return <CallbackSyncBadge sync={provider.callbacks.callback.sync} />;
-      }
-    },
-    {
-      id: 'status',
-      isDefault: false,
-      header: 'Status',
-      render: (provider: IntegrationProvider) => (
-        <Badge color={getProviderStatusColor(provider.status)}>{provider.status}</Badge>
-      )
-    },
-    {
-      id: 'createdAt',
-      isDefault: false,
-      header: 'Created',
-      render: (provider: IntegrationProvider) => <RenderDate date={provider.createdAt} />
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: (provider: IntegrationProvider) => <RenderDate date={provider.updatedAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'ID',
-      render: (provider: IntegrationProvider) => <ID id={provider.id} />
-    }
-  ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' },
-        { id: 'deleted', label: 'Deleted' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Source Provider ID',
-      description: 'Filter by source provider ID',
-      type: 'string'
-    }
-  ])
-  .search('Search integration providers...')
-  .clickable(((provider: IntegrationProvider, props: IntegrationProvidersManagerProps) => {
-    showIntegrationProviderPanelFlow({
-      integration: props.integration,
-      integrationProvider: provider,
-      onComplete: props.onComplete ?? (() => {})
-    });
-  }) as any)
-  .actions({
-    deleteImmediate: async (providers, state) => {
-      let provider = providers[0];
-      if (!provider) return;
-
-      await deleteIntegrationProviderImmediately(provider, state);
-    },
-    delete: async (providers, state) => {
-      let provider = providers[0];
-      if (!provider) return;
-
-      confirm({
-        title: `Remove ${getProviderLabel(provider)}?`,
-        description: `Remove the ${getProviderLabel(provider)} provider from this integration?`,
-        confirmText: 'Remove',
-        onConfirm: async () => {
-          await deleteIntegrationProviderImmediately(provider, state);
-        }
-      });
-    }
-  })
-  .rowActions([
-    {
-      id: 'delete',
-      label: 'Remove',
-      icon: <RiDeleteBinLine />,
-      action: 'delete'
-    }
-  ])
-  .bulkActions([
-    {
-      id: 'delete-selected',
-      label: 'Remove',
-      icon: <RiDeleteBinLine />,
-      action: 'deleteImmediate',
-      bulkExecution: {
-        mode: 'per-row',
-        batchSize: 5
-      }
-    }
-  ])
-  .build();
 
 export let IntegrationProvidersManager = (p: {
   instanceId: string;
   integration: IntegrationPreview;
   onComplete?: () => void;
 }) => {
+  let providers = useIntegrationProviders(p.instanceId, {
+    integrationId: p.integration.id,
+    order: 'desc'
+  });
+  let deleteProvider = useDeleteIntegrationProvider();
+
   let providerIds = useMemo(
     () => [...new Set((p.integration.providers ?? []).map(item => item.provider.id))],
     [p.integration.providers]
@@ -310,18 +58,23 @@ export let IntegrationProvidersManager = (p: {
     providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
   );
 
-  let renderTable = (listingLookup: ProviderListingLookup) =>
-    integrationProvidersTable({
-      instanceId: p.instanceId,
-      integration: p.integration,
-      onComplete: p.onComplete,
-      listingLookup,
-      emptyState: 'No providers are attached to this integration yet.'
-    });
+  let removeProvider = (provider: IntegrationProvider) => {
+    confirm({
+      title: `Remove ${getProviderLabel(provider)}?`,
+      description: `Remove the ${getProviderLabel(provider)} provider from this integration?`,
+      confirmText: 'Remove',
+      onConfirm: async () => {
+        let [result, error] = await deleteProvider.mutate({
+          instanceId: p.instanceId,
+          integrationProviderId: provider.id
+        });
+        if (!result || error) return;
 
-  if (providerIds.length === 0) {
-    return renderTable({});
-  }
+        await providers.refetch();
+        p.onComplete?.();
+      }
+    });
+  };
 
   return renderWithLoader({ listings })(() => {
     let listingLookup: ProviderListingLookup = {};
@@ -333,17 +86,106 @@ export let IntegrationProvidersManager = (p: {
       };
     }
 
-    return renderTable(listingLookup);
+    return (
+      <IntegrationProvidersTable
+        providers={providers}
+        integration={p.integration}
+        listingLookup={listingLookup}
+        onComplete={p.onComplete}
+        removeProvider={removeProvider}
+      />
+    );
   });
 };
+
+let IntegrationProvidersTable = (p: {
+  providers: ReturnType<typeof useIntegrationProviders>;
+  integration: IntegrationPreview;
+  listingLookup: ProviderListingLookup;
+  onComplete?: () => void;
+  removeProvider: (provider: IntegrationProvider) => void;
+}) =>
+  renderWithPagination(p.providers, { hidePaginationWhenUnavailable: true })(providers => (
+    <>
+      <Table
+        headers={['Provider', 'Callbacks', '']}
+        data={providers.data.items.map(provider => {
+          let listing = p.listingLookup[provider.provider.id];
+          let providerName = listing?.name ?? getProviderLabel(provider);
+          let openConfigure = () =>
+            showIntegrationProviderPanelFlow({
+              integration: p.integration,
+              integrationProvider: provider,
+              onComplete: p.onComplete ?? (() => {})
+            });
+
+          return {
+            onClick: openConfigure,
+            data: [
+              <Flex gap={10} style={{ alignItems: 'center' }}>
+                <ProviderImage
+                  imageUrl={listing?.imageUrl}
+                  alt={providerName}
+                  size={24}
+                  radius={6}
+                />
+                <Text size="2" weight="strong">
+                  {providerName}
+                </Text>
+              </Flex>,
+              provider.callbacks.status !== 'enabled' ? (
+                <Text size="2" color="gray600">
+                  Off
+                </Text>
+              ) : !provider.callbacks.callback ? (
+                <Badge color="orange">Registering</Badge>
+              ) : (
+                <CallbackSyncBadge sync={provider.callbacks.callback.sync} />
+              ),
+              <Flex style={{ width: '100%' }} justify="end">
+                <Menu
+                  items={[
+                    { id: 'configure', label: 'Configure' },
+                    { id: 'remove', label: 'Remove' }
+                  ]}
+                  onItemClick={id => {
+                    if (id === 'configure') openConfigure();
+                    if (id === 'remove') p.removeProvider(provider);
+                  }}
+                >
+                  <Button
+                    size="1"
+                    variant="outline"
+                    iconRight={<RiMore2Line />}
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  />
+                </Menu>
+              </Flex>
+            ]
+          };
+        })}
+      />
+
+      {providers.data.items.length === 0 ? (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No providers are attached to this integration yet.
+        </Text>
+      ) : null}
+    </>
+  ));
 
 type InstanceProviderRow = {
   id: string;
   integrationProvider: IntegrationProvider;
   instanceProvider: IntegrationInstanceProvider | undefined;
   integrationInstanceStatus: IntegrationInstance['status'];
-  callbackInstance: CallbackInstancePreview | undefined;
 };
+
+let isInstanceProviderPending = (row: InstanceProviderRow) =>
+  !row.instanceProvider && row.integrationInstanceStatus === 'draft';
 
 type IntegrationInstanceProvidersManagerProps = {
   instanceId: string;
@@ -397,13 +239,6 @@ let useIntegrationInstanceProvidersTableState = (
 
   let integrationProviders = props.integration.providers ?? [];
   let providerItems = providers.data?.items;
-  let hasCallbacks = integrationProviders.some(
-    provider => provider.callbacks.status === 'enabled'
-  );
-  let callbackInstances = useAllCallbackInstances(hasCallbacks ? props.instanceId : null, {
-    integrationInstanceId: props.integrationInstance.id
-  });
-  let callbackInstanceItems = callbackInstances.data;
 
   let items = useMemo<InstanceProviderRow[]>(() => {
     let instanceProviderByIntegrationProviderId = new Map(
@@ -412,31 +247,17 @@ let useIntegrationInstanceProvidersTableState = (
           [provider.integrationProvider.id, provider] as const
       )
     );
-    let callbackInstanceByCallbackId = new Map(
-      (callbackInstanceItems ?? []).map(
-        (callbackInstance: CallbackInstancePreview) =>
-          [callbackInstance.callbackId, callbackInstance] as const
-      )
-    );
 
     return integrationProviders.map(integrationProvider => ({
       id: integrationProvider.id,
       integrationProvider: integrationProvider as IntegrationProvider,
       instanceProvider: instanceProviderByIntegrationProviderId.get(integrationProvider.id),
-      integrationInstanceStatus: props.integrationInstance.status,
-      callbackInstance: integrationProvider.callbacks.callbackId
-        ? callbackInstanceByCallbackId.get(integrationProvider.callbacks.callbackId)
-        : undefined
+      integrationInstanceStatus: props.integrationInstance.status
     }));
-  }, [
-    integrationProviders,
-    providerItems,
-    callbackInstanceItems,
-    props.integrationInstance.status
-  ]);
+  }, [integrationProviders, providerItems, props.integrationInstance.status]);
 
   return {
-    isLoading: providers.isLoading || (hasCallbacks && callbackInstances.isLoading),
+    isLoading: providers.isLoading,
     error: providers.error,
     hasMoreAfter: false,
     hasMoreBefore: false,
@@ -478,13 +299,17 @@ let integrationInstanceProvidersTable = new DashboardTable<
         let providerName = listing?.name ?? getProviderLabel(row.integrationProvider);
 
         return (
-          <Flex gap={10} style={{ alignItems: 'center' }}>
-            <Avatar
-              entity={{ name: providerName, photoUrl: listing?.imageUrl }}
+          <Flex gap={10} align="center">
+            {isInstanceProviderPending(row) ? (
+              <Badge size="1" color="orange">
+                Pending
+              </Badge>
+            ) : null}
+            <ProviderImage
+              imageUrl={listing?.imageUrl}
+              alt={providerName}
               size={24}
               radius={6}
-              noTooltip
-              imageFit="contain"
             />
             <Text size="2" weight="strong">
               {providerName}
@@ -510,55 +335,6 @@ let integrationInstanceProvidersTable = new DashboardTable<
       render: (row: InstanceProviderRow) => (
         <Text size="2">{getAuthLabel(row.integrationProvider, row.instanceProvider)}</Text>
       )
-    },
-    {
-      id: 'callbacks',
-      isDefault: true,
-      header: 'Callbacks',
-      render: (row: InstanceProviderRow) => {
-        if (row.integrationProvider.callbacks.status !== 'enabled') {
-          return (
-            <Text size="2" color="gray600">
-              Off
-            </Text>
-          );
-        }
-
-        if (!row.callbackInstance) {
-          return <Badge color="orange">Registering</Badge>;
-        }
-
-        return <CallbackSyncBadge sync={row.callbackInstance.sync} />;
-      }
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: (row: InstanceProviderRow) => {
-        if (row.instanceProvider) {
-          return <Badge color="green">Configured</Badge>;
-        }
-
-        if (row.integrationInstanceStatus === 'draft') {
-          return <Badge color="orange">Pending</Badge>;
-        }
-
-        return <Badge color="gray">Inherited</Badge>;
-      }
-    },
-    {
-      id: 'updatedAt',
-      isDefault: true,
-      header: 'Updated',
-      render: (row: InstanceProviderRow) =>
-        row.instanceProvider?.updatedAt ? (
-          <RenderDate date={row.instanceProvider.updatedAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            Not set
-          </Text>
-        )
     },
     {
       id: 'id',
@@ -603,30 +379,76 @@ export let IntegrationInstanceProvidersManager = (p: {
   integrationInstance: IntegrationInstance;
   onComplete?: () => void;
 }) => {
+  let integrationProviders = p.integration.providers ?? [];
   let providerIds = useMemo(
-    () => [...new Set((p.integration.providers ?? []).map(item => item.provider.id))],
+    () => [...new Set(integrationProviders.map(item => item.provider.id))],
     [p.integration.providers]
   );
   let listings = useProviderListings(
     p.instanceId,
     providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
   );
+  let hasCallbacks = integrationProviders.some(
+    provider => provider.callbacks.status === 'enabled'
+  );
+  let callbackInstances = useAllCallbackInstances(hasCallbacks ? p.instanceId : null, {
+    integrationInstanceId: p.integrationInstance.id
+  });
 
-  let renderTable = (listingLookup: ProviderListingLookup) =>
-    integrationInstanceProvidersTable({
-      instanceId: p.instanceId,
-      integration: p.integration,
-      integrationInstance: p.integrationInstance,
-      onComplete: p.onComplete,
-      listingLookup,
-      emptyState: 'This integration does not have any providers yet.'
+  let renderContent = (listingLookup: ProviderListingLookup) => {
+    let callbackInstanceByCallbackId = new Map(
+      (callbackInstances.data ?? []).map(
+        callbackInstance => [callbackInstance.callbackId, callbackInstance] as const
+      )
+    );
+    let failedCallbacks = integrationProviders.flatMap(integrationProvider => {
+      if (integrationProvider.callbacks.status !== 'enabled') return [];
+
+      let callbackInstance = integrationProvider.callbacks.callbackId
+        ? callbackInstanceByCallbackId.get(integrationProvider.callbacks.callbackId)
+        : undefined;
+      if (callbackInstance?.sync.status !== 'failed') return [];
+
+      return [
+        {
+          id: integrationProvider.id,
+          name:
+            listingLookup[integrationProvider.provider.id]?.name ??
+            getProviderLabel(integrationProvider),
+          sync: callbackInstance.sync
+        }
+      ];
     });
 
-  if (providerIds.length === 0) {
-    return renderTable({});
+    return (
+      <>
+        {failedCallbacks.map((failed, index) => (
+          <Fragment key={failed.id}>
+            {index > 0 ? <Spacer height={10} /> : null}
+            <CallbackSyncErrorCallout sync={failed.sync} providerName={failed.name} />
+          </Fragment>
+        ))}
+        {failedCallbacks.length > 0 ? <Spacer height={15} /> : null}
+        {integrationInstanceProvidersTable({
+          instanceId: p.instanceId,
+          integration: p.integration,
+          integrationInstance: p.integrationInstance,
+          onComplete: p.onComplete,
+          listingLookup,
+          emptyState: 'This integration does not have any providers yet.'
+        })}
+      </>
+    );
+  };
+
+  if (providerIds.length === 0 && !hasCallbacks) {
+    return renderContent({});
   }
 
-  return renderWithLoader({ listings })(() => {
+  return renderWithLoader({
+    ...(providerIds.length > 0 ? { listings } : {}),
+    ...(hasCallbacks ? { callbackInstances } : {})
+  })(() => {
     let listingLookup: ProviderListingLookup = {};
 
     for (let listing of listings.data?.items ?? []) {
@@ -636,6 +458,6 @@ export let IntegrationInstanceProvidersManager = (p: {
       };
     }
 
-    return renderTable(listingLookup);
+    return renderContent(listingLookup);
   });
 };

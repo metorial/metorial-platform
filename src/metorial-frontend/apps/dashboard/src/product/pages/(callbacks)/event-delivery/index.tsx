@@ -121,6 +121,8 @@ let AttemptDetails = ({
 
         <Spacer height={20} />
 
+        <PageHeader size="3" title="Request Details" />
+
         <Box title="Request URL">
           {attempt.data.request ? (
             <Flex align="center" gap={10} style={{ minWidth: 0 }}>
@@ -177,6 +179,8 @@ let AttemptDetails = ({
         </Box>
 
         <Spacer height={20} />
+
+        <PageHeader size="3" title="Response Details" />
 
         <Box title="Response">
           {attempt.data.response ? (

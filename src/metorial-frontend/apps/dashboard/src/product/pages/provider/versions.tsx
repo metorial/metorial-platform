@@ -1,4 +1,5 @@
-import { Badge, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
+import { DetailsTableLayout } from '@metorial/details-layout';
+import { Badge, Entity, Flex, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useProviderVersionContext } from './providerVersionContext';
 
@@ -10,19 +11,16 @@ export let ProviderVersionsPage = () => {
 
   if (!hasVersions) {
     return (
-      <>
-        <Spacer size={10} />
+      <DetailsTableLayout title="Versions" description="Every published version of this provider.">
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
           No versions found for this provider.
         </Text>
-      </>
+      </DetailsTableLayout>
     );
   }
 
   return (
-    <>
-      <Spacer size={10} />
-
+    <DetailsTableLayout title="Versions" description="Every published version of this provider.">
       <Flex direction="column" gap={10}>
         {allVersions.map(version => {
           let isSelected = selectedVersionId === version.id;
@@ -53,6 +51,6 @@ export let ProviderVersionsPage = () => {
           );
         })}
       </Flex>
-    </>
+    </DetailsTableLayout>
   );
 };

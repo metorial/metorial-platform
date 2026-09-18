@@ -9,8 +9,8 @@ import {
   useEventDestinations
 } from '@metorial/state';
 import {
-  getEnumListFilterValue,
   Table as DashboardTable,
+  getEnumListFilterValue,
   TableStateProvider,
   TableStateProviderResult
 } from '@metorial/table';
@@ -217,7 +217,7 @@ let eventDestinationsTable = new DashboardTable<
     },
     {
       id: 'status',
-      isDefault: true,
+      isDefault: false,
       header: 'Status',
       render: destination => (
         <Badge color={getStatusColor(destination.status)}>{destination.status}</Badge>
@@ -241,7 +241,7 @@ let eventDestinationsTable = new DashboardTable<
     },
     {
       id: 'createdAt',
-      isDefault: true,
+      isDefault: false,
       header: 'Created',
       render: destination => <RenderDate date={destination.createdAt} />
     },

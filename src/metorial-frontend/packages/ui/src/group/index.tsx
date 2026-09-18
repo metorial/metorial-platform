@@ -72,6 +72,7 @@ export let Group = {
   Row: styled('main')`
     display: flex;
     flex-direction: column;
+    border-top: 1px solid ${theme.colors.gray400};
   `,
   Content: styled('div')`
     padding: 12px 17px;

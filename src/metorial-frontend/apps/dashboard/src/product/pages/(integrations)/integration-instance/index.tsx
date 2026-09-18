@@ -1,4 +1,5 @@
 import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-hooks';
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateMagicMcpServer,
@@ -7,34 +8,18 @@ import {
   useCurrentProject,
   useIntegration,
   useIntegrationInstance,
+  useIntegrationInstanceProviders,
   useMagicMcpServers,
   useProjectAuthConfigConfiguration,
-  type IntegrationInstance
+  type IntegrationInstance,
+  type IntegrationProvider
 } from '@metorial/state';
-import {
-  Attributes,
-  Badge,
-  Button,
-  Callout,
-  Input,
-  Panel,
-  RenderDate,
-  showModal,
-  Spacer,
-  Text
-} from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Badge, Button, Callout, Input, Panel, showModal, Spacer, Text } from '@metorial/ui';
+import { Box, Table } from '@metorial/ui-product';
+import { useEffect, useRef } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { showIntegrationInstanceProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationInstanceProvidersManager } from '../../../scenes/integrations/providersManager';
-
-let getIntegrationInstanceStatusColor = (status: string) => {
-  if (status === 'active') return 'green';
-  if (status === 'draft') return 'orange';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
-
-let capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
 let getProviderManagementMode = (mode: string) => {
   if (mode === 'inherited_from_provider_template') {
@@ -164,7 +149,7 @@ let LinkedMagicMcpServersBox = (p: {
   return (
     <Box
       title="Magic MCP Servers"
-      description="Magic MCP servers using this integration instance, including servers created from provider templates."
+      description="Magic MCP servers using this integration instance."
       rightActions={
         <Button size="2" onClick={openCreate} disabled={!canCreate || isBlockedByOAuthPolicy}>
           Create Magic MCP Server
@@ -181,7 +166,7 @@ let LinkedMagicMcpServersBox = (p: {
       {renderWithPagination(servers)(servers => (
         <>
           <Table
-            headers={['Name', 'Type', 'Created']}
+            headers={['Name', 'Type']}
             data={servers.data.items.map(server => {
               let providerManagementMode = getProviderManagementMode(
                 server.providerManagementMode
@@ -194,8 +179,7 @@ let LinkedMagicMcpServersBox = (p: {
                   </Text>,
                   <Badge color={providerManagementMode.color}>
                     {providerManagementMode.label}
-                  </Badge>,
-                  <RenderDate date={server.createdAt} />
+                  </Badge>
                 ],
                 href: Paths.instance.magicMcp.server(
                   organization.data,
@@ -223,53 +207,87 @@ export let IntegrationInstanceOverviewPage = () => {
   let { integrationInstanceId } = useParams();
   let integrationInstance = useIntegrationInstance(instance.data?.id, integrationInstanceId);
   let integration = useIntegration(instance.data?.id, integrationInstance.data?.integrationId);
+  let instanceProviders = useIntegrationInstanceProviders(
+    instance.data?.id && integrationInstanceId ? instance.data.id : null,
+    integrationInstanceId
+      ? { integrationInstanceId, status: ['active', 'archived'] }
+      : undefined
+  );
+  let location = useLocation();
+  let navigate = useNavigate();
+  let autoConfigureHandledRef = useRef(false);
+  let shouldAutoConfigure = Boolean(
+    (location.state as { configurePendingIntegrationProvider?: boolean } | null)
+      ?.configurePendingIntegrationProvider
+  );
 
-  return renderWithLoader({ integrationInstance, integration })(
+  useEffect(() => {
+    if (!shouldAutoConfigure || autoConfigureHandledRef.current) return;
+    if (!integrationInstance.data || !integration.data || !instanceProviders.data) return;
+
+    autoConfigureHandledRef.current = true;
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: null
+    });
+
+    let integrationProviders = integration.data.providers ?? [];
+    let integrationProvider = integrationProviders[0];
+    let hasConfiguredProvider = instanceProviders.data.items.some(
+      provider => provider.integrationProvider.id === integrationProvider?.id
+    );
+
+    if (
+      integrationInstance.data.status !== 'draft' ||
+      integrationProviders.length !== 1 ||
+      !integrationProvider ||
+      hasConfiguredProvider
+    ) {
+      return;
+    }
+
+    showIntegrationInstanceProviderPanelFlow({
+      integration: integration.data,
+      integrationInstance: integrationInstance.data,
+      integrationProvider: integrationProvider as IntegrationProvider,
+      onComplete: () => {
+        void integrationInstance.refetch();
+        void instanceProviders.refetch();
+      }
+    });
+  }, [
+    shouldAutoConfigure,
+    integrationInstance.data,
+    integration.data,
+    instanceProviders.data,
+    location.pathname,
+    location.search,
+    location.hash,
+    navigate
+  ]);
+
+  return renderWithLoader({ integrationInstance, integration, instanceProviders })(
     ({ integrationInstance, integration }) => {
-      let onComplete = () => integrationInstance.refetch();
+      let onComplete = () => {
+        void integrationInstance.refetch();
+        void instanceProviders.refetch();
+      };
 
       return (
-        <>
-          <Attributes
-            itemWidth="360px"
-            attributes={[
-              { label: 'ID', content: <ID id={integrationInstance.data.id} /> },
-              {
-                label: 'Status',
-                content: (
-                  <Badge
-                    color={getIntegrationInstanceStatusColor(integrationInstance.data.status)}
-                  >
-                    {capitalize(integrationInstance.data.status)}
-                  </Badge>
-                )
-              },
-              {
-                label: 'Identity',
-                content: integrationInstance.data.identityId ? (
-                  <ID id={integrationInstance.data.identityId} />
-                ) : (
-                  '-'
-                )
-              }
-            ]}
-          />
-
+        <DetailsOverviewLayout>
           {integrationInstance.data.status === 'draft' ? (
             <>
-              <Spacer height={20} />
               <Callout color="orange">
                 This integration instance is still a draft and cannot be used yet. It first
                 needs to be configured.
               </Callout>
+              <Spacer height={20} />
             </>
           ) : null}
 
-          <Spacer height={20} />
-
           <Box
             title="Providers"
-            description="Review the providers attached to this integration and configure per-instance overrides where needed."
+            description="Manage the configuration of the providers attached to this integration."
           >
             <IntegrationInstanceProvidersManager
               instanceId={instance.data!.id}
@@ -285,7 +303,7 @@ export let IntegrationInstanceOverviewPage = () => {
             instanceId={instance.data!.id}
             integrationInstance={integrationInstance.data}
           />
-        </>
+        </DetailsOverviewLayout>
       );
     }
   );

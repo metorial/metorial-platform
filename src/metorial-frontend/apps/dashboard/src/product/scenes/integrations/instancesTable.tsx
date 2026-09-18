@@ -1,9 +1,7 @@
-import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   IntegrationInstance,
   IntegrationPreview,
-  useCreateIntegrationInstance,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -11,80 +9,16 @@ import {
   useIntegrationInstances
 } from '@metorial/state';
 import {
-  Badge,
-  Button,
-  Dialog,
-  Input,
-  RenderDate,
-  Spacer,
-  Text,
-  confirm,
-  showModal
-} from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
-import { Table as DashboardTable } from '@metorial/table';
-import {
+  Table as DashboardTable,
   FilterPayload,
   getDateRangeFilterValue,
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
-
-export let showIntegrationInstanceFormModal = (p: {
-  instanceId: string;
-  integration: IntegrationPreview;
-  onCreate?: (integrationInstance: IntegrationInstance) => void;
-}) =>
-  showModal(({ dialogProps, close }) => {
-    let createInstance = useCreateIntegrationInstance();
-    let form = useForm({
-      initialValues: {
-        name: '',
-        description: ''
-      },
-      onSubmit: async values => {
-        let [created] = await createInstance.mutate({
-          instanceId: p.instanceId,
-          integrationId: p.integration.id,
-          name: values.name.trim(),
-          description: values.description.trim() || undefined
-        });
-        if (!created) return;
-        p.onCreate?.(created);
-        close();
-      },
-      schema: yup =>
-        yup.object({
-          name: yup.string().trim().required('Name is required'),
-          description: yup.string()
-        })
-    });
-
-    return (
-      <Dialog.Wrapper {...dialogProps} width={650}>
-        <Dialog.Title>Create Instance</Dialog.Title>
-        <Dialog.Description>Create an instance of {p.integration.name}.</Dialog.Description>
-        <form onSubmit={form.handleSubmit}>
-          <Input label="Name" required {...form.getFieldProps('name')} />
-          <form.RenderError field="name" />
-          <Spacer size={10} />
-          <Input label="Description" {...form.getFieldProps('description')} />
-          <Spacer size={15} />
-          <Dialog.Actions>
-            <Button type="button" variant="outline" onClick={close}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={createInstance.isPending}>
-              Create Instance
-            </Button>
-          </Dialog.Actions>
-          <createInstance.RenderError />
-        </form>
-      </Dialog.Wrapper>
-    );
-  });
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 
 type IntegrationInstancesTableProps = {
   instanceId: string;
@@ -196,7 +130,7 @@ let integrationInstancesTable = new DashboardTable<
     },
     {
       id: 'status',
-      isDefault: true,
+      isDefault: false,
       header: 'Status',
       render: (integrationInstance: IntegrationInstance) => (
         <Badge color={getInstanceStatusColor(integrationInstance.status)}>

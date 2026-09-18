@@ -1,8 +1,9 @@
 import { InitialLoadBoundary, renderWithLoader, useForm } from '@metorial/data-hooks';
+import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   IntegrationPreview,
+  useCreateIntegrationInstance,
   useCreateIntegrationSetupSession,
   useCurrentInstance,
   useCurrentOrganization,
@@ -15,17 +16,18 @@ import {
   Checkbox,
   Copy,
   Dialog,
-  Flex,
   Input,
-  LinkTabs,
+  RenderDate,
   Spacer,
   Text,
   showModal
 } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiFlowChart } from '@remixicon/react';
 import { useState } from 'react';
-import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import { generatePlaceholderInstanceName } from '../../../lib/instanceName';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
-import { showIntegrationInstanceFormModal } from '../../../scenes/integrations/instancesTable';
 
 let showIntegrationSetupSessionModal = (p: {
   instanceId: string;
@@ -130,8 +132,8 @@ export let IntegrationLayout = () => {
   let { integrationId } = useParams();
   let integration = useIntegration(instance.data?.id, integrationId);
   let flags = useDashboardFlags();
-  let pathname = useLocation().pathname;
   let navigate = useNavigate();
+  let createInstance = useCreateIntegrationInstance();
 
   let params = [
     organization.data,
@@ -140,116 +142,76 @@ export let IntegrationLayout = () => {
     integration.data?.id ?? integrationId
   ] as const;
 
+  let hasCallbacks =
+    flags.data?.flags['callbacks-enabled'] &&
+    integration.data?.providers?.some(provider => provider.callbacks.status === 'enabled');
+
   return (
-    <ContentLayout>
-      <PageHeader
-        title={integration.data?.name ?? '...'}
-        description={integration.data?.description ?? undefined}
-        pagination={[
-          {
-            label: 'Integrations',
-            href: Paths.instance.integrations(organization.data, project.data, instance.data)
-          },
-          {
-            label: integration.data?.name,
-            href: Paths.instance.integration(...params)
+    <DetailsLayout
+      entity={integration.data}
+      icon={<RiFlowChart />}
+      breadcrumbs={[
+        {
+          label: 'Integrations',
+          to: Paths.instance.integrations(organization.data, project.data, instance.data)
+        },
+        { label: integration.data?.name, to: Paths.instance.integration(...params) }
+      ]}
+      tabs={[
+        { label: 'Overview', to: Paths.instance.integration(...params) },
+        { label: 'Instances', to: Paths.instance.integration(...params, 'instances') },
+        ...(hasCallbacks
+          ? [{ label: 'Callbacks', to: Paths.instance.integration(...params, 'callbacks') }]
+          : []),
+        { label: 'Settings', to: Paths.instance.integration(...params, 'settings') }
+      ]}
+      actions={[
+        {
+          label: 'Create Instance',
+          disabled: !instance.data || !integration.data || createInstance.isLoading,
+          loading: createInstance.isLoading,
+          success: createInstance.isSuccess,
+          onClick: async () => {
+            if (!instance.data || !integration.data) return;
+
+            let [created] = await createInstance.mutate({
+              instanceId: instance.data.id,
+              integrationId: integration.data.id,
+              name: generatePlaceholderInstanceName()
+            });
+            if (!created) return;
+
+            navigate(
+              Paths.instance.integrationInstance(
+                organization.data,
+                project.data,
+                instance.data,
+                created.id
+              ),
+              { state: { configurePendingIntegrationProvider: true } }
+            );
           }
-        ]}
-        actions={
-          instance.data && integration.data ? (
-            <Flex gap={8}>
-              {/* <Button
-                size="2"
-                variant="outline"
-                onClick={() =>
-                  showIntegrationFormModal({
-                    type: 'update',
-                    instanceId: instance.data!.id,
-                    integrationId: integration.data!.id,
-                    onUpdate: () => integration.refetch()
-                  })
-                }
-              >
-                Edit
-              </Button> */}
-
-              {/* <Button
-                size="2"
-                variant="outline"
-                onClick={() =>
-                  instance.data &&
-                  showIntegrationSetupSessionModal({
-                    instanceId: instance.data.id,
-                    integration: integration.data!
-                  })
-                }
-              >
-                Create Setup Link
-              </Button> */}
-
-              <Button
-                size="2"
-                onClick={() =>
-                  instance.data &&
-                  showIntegrationInstanceFormModal({
-                    instanceId: instance.data.id,
-                    integration: integration.data!,
-                    onCreate: created => {
-                      navigate(
-                        Paths.instance.integrationInstance(
-                          organization.data,
-                          project.data,
-                          instance.data,
-                          created.id
-                        )
-                      );
-                    }
-                  })
-                }
-              >
-                Create Instance
-              </Button>
-            </Flex>
-          ) : undefined
         }
-      />
-
+      ]}
+      attributes={
+        integration.data
+          ? [
+              { label: 'ID', value: <ID id={integration.data.id} /> },
+              { label: 'Slug', value: integration.data.slug ?? '-' },
+              { label: 'Created', value: <RenderDate date={integration.data.createdAt} /> }
+            ]
+          : []
+      }
+    >
       <InitialLoadBoundary>
         {renderWithLoader({ integration })(({ integration }) => (
           <>
             <DeletedRecordCallout status={integration.data.status} />
-            <LinkTabs
-              current={pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.integration(...params)
-                },
-                {
-                  label: 'Instances',
-                  to: Paths.instance.integration(...params, 'instances')
-                },
-                ...(flags.data?.flags['callbacks-enabled'] &&
-                integration.data.providers?.some(
-                  provider => provider.callbacks.status === 'enabled'
-                )
-                  ? [
-                      {
-                        label: 'Callbacks',
-                        to: Paths.instance.integration(...params, 'callbacks')
-                      }
-                    ]
-                  : []),
-                {
-                  label: 'Settings',
-                  to: Paths.instance.integration(...params, 'settings')
-                }
-              ]}
-            />
+            <createInstance.RenderError />
             <Outlet />
           </>
         ))}
       </InitialLoadBoundary>
-    </ContentLayout>
+    </DetailsLayout>
   );
 };

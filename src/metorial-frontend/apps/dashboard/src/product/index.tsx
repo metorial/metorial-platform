@@ -135,13 +135,20 @@ let SkillMarketplaceEditorPage = dynamicPage(() =>
 let SkillMarketplaceSyncsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace/syncs').then(c => c.SkillMarketplaceSyncsPage)
 );
+let SkillMarketplaceSettingsLayout = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/settings/_layout').then(
+    c => c.SkillMarketplaceSettingsLayout
+  )
+);
 let SkillMarketplaceSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace/settings').then(
     c => c.SkillMarketplaceSettingsPage
   )
 );
 let SkillMarketplaceAccessPage = dynamicPage(() =>
-  import('./pages/(skills)/skill-marketplace/access').then(c => c.SkillMarketplaceAccessPage)
+  import('./pages/(skills)/skill-marketplace/settings/access').then(
+    c => c.SkillMarketplaceAccessPage
+  )
 );
 let IntegrationLayout = dynamicPage(() =>
   import('./pages/(integrations)/integration/_layout').then(c => c.IntegrationLayout)
@@ -186,12 +193,6 @@ let MagicMcpServerLayout = dynamicPage(() =>
 );
 let MagicMcpServerOverviewPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/overview').then(c => c.MagicMcpServerOverviewPage)
-);
-let MagicMcpServerProvidersPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/providers').then(c => c.MagicMcpServerProvidersPage)
-);
-let MagicMcpServerTokensPage = dynamicPage(() =>
-  import('./pages/magic-mcp/server/tokens').then(c => c.MagicMcpServerTokensPage)
 );
 let MagicMcpServerConfigPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
@@ -809,11 +810,17 @@ export let productSkillsSlice = createSlice([
               },
               {
                 path: 'settings',
-                element: <SkillMarketplaceSettingsPage />
-              },
-              {
-                path: 'access',
-                element: <SkillMarketplaceAccessPage />
+                element: <SkillMarketplaceSettingsLayout />,
+                children: [
+                  {
+                    path: '',
+                    element: <SkillMarketplaceSettingsPage />
+                  },
+                  {
+                    path: 'access',
+                    element: <SkillMarketplaceAccessPage />
+                  }
+                ]
               }
             ]
           }
@@ -969,14 +976,6 @@ export let productIntegrationsSlice = createSlice([
                   {
                     path: '',
                     element: <MagicMcpServerOverviewPage />
-                  },
-                  {
-                    path: 'providers',
-                    element: <MagicMcpServerProvidersPage />
-                  },
-                  {
-                    path: 'tokens',
-                    element: <MagicMcpServerTokensPage />
                   },
                   {
                     path: 'config',

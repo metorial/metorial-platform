@@ -1,5 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { PageHeaderSection } from '@metorial/layout';
+import { DetailsTableLayout } from '@metorial/details-layout';
 import { useCurrentInstance, useIntegration } from '@metorial/state';
 import { useParams } from 'react-router-dom';
 import { IntegrationInstancesTable } from '../../../scenes/integrations/instancesTable';
@@ -10,7 +10,7 @@ export let IntegrationInstancesPage = () => {
   let integration = useIntegration(instance.data?.id, integrationId);
 
   return renderWithLoader({ integration })(({ integration }) => (
-    <PageHeaderSection
+    <DetailsTableLayout
       title="Instances"
       description="Instances are individual deployments of this integration. Each instance has its own configuration and authentication settings."
     >
@@ -18,6 +18,6 @@ export let IntegrationInstancesPage = () => {
         instanceId={instance.data!.id}
         integration={integration.data}
       />
-    </PageHeaderSection>
+    </DetailsTableLayout>
   ));
 };

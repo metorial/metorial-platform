@@ -42,13 +42,13 @@ import {
   getStringFilterValue
 } from '@metorial/table';
 
-type TokenRow = DashboardInstanceMagicMcpTokensListOutput['items'][number];
+export type TokenRow = DashboardInstanceMagicMcpTokensListOutput['items'][number];
 type MagicMcpGroupRow = DashboardInstanceMagicMcpGroupsListOutput['items'][number];
 type MagicMcpTokensTableProps = DashboardInstanceMagicMcpTokensListQuery & {
   instanceId: string;
 };
 
-let formatGroupRestrictions = (token: Pick<TokenRow, 'groups'>) => {
+export let formatGroupRestrictions = (token: Pick<TokenRow, 'groups'>) => {
   if (!token.groups.length) {
     return (
       <Text size="1" color="gray600">
@@ -168,7 +168,7 @@ let showCreatedTokenModal = (secret: string) =>
     </Dialog.Wrapper>
   ));
 
-let showManageRestrictionsModal = (p: { token: TokenRow }) =>
+export let showManageRestrictionsModal = (p: { token: TokenRow }) =>
   showModal(({ dialogProps, close }) => {
     let instance = useCurrentInstance();
     let tokens = useMagicMcpTokens(instance.data?.id);
@@ -255,7 +255,13 @@ let getTokenStatusFilterValue = (
 ): DashboardInstanceMagicMcpTokensListQuery['status'] =>
   getEnumListFilterValue(value, ['active', 'deleted']);
 
-let updateTokenModal = ({ tokenId, instanceId }: { tokenId: string; instanceId: string }) =>
+export let updateTokenModal = ({
+  tokenId,
+  instanceId
+}: {
+  tokenId: string;
+  instanceId: string;
+}) =>
   showModal(({ dialogProps, close }) => {
     let tokens = useMagicMcpTokens(instanceId);
     let token = tokens.data?.items?.find(item => item.id === tokenId);

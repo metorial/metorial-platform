@@ -21,6 +21,7 @@ export type DetailsLayoutAttribute = {
 export type DetailsLayoutContextValue = {
   entity: DetailsLayoutEntity;
   icon?: React.ReactNode;
+  avatar?: (size: number) => React.ReactNode;
   breadcrumbs: DetailsBreadcrumb[];
   tabs?: DetailsTab[];
   actions?: DetailsLayoutAction[];

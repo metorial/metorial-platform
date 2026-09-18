@@ -20,7 +20,15 @@ export type DetailsLayoutMenuAction = {
   onItemClick?: MenuProps['onItemClick'];
 } & Omit<ButtonProps, 'children' | 'menu' | 'skeleton' | 'type'>;
 
-export type DetailsLayoutAction = DetailsLayoutButtonAction | DetailsLayoutMenuAction;
+export type DetailsLayoutCustomAction = {
+  type: 'custom';
+  render: () => React.ReactNode;
+};
+
+export type DetailsLayoutAction =
+  | DetailsLayoutButtonAction
+  | DetailsLayoutMenuAction
+  | DetailsLayoutCustomAction;
 
 let Actions = styled.div`
   display: flex;
@@ -38,6 +46,14 @@ export let DetailsActions = ({
 }) => (
   <Actions>
     {actions.map((action, index) => {
+      if (action.type == 'custom') {
+        return (
+          <Skeleton key={index} active={skeleton}>
+            {action.render()}
+          </Skeleton>
+        );
+      }
+
       if (action.type == 'menu') {
         let { type, items, label, menuLabel, menuTitle, onItemClick, ...buttonProps } = action;
 
