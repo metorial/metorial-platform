@@ -14,6 +14,7 @@ export let exportBitbucketQueue = createQueue<{
   commitMessage?: string;
 }>({
   name: 'ori/exp/bb',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

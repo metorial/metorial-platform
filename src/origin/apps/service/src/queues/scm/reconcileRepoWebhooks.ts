@@ -4,7 +4,9 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { createRepoWebhookQueue } from './createRepoWebhook';
 
-export let reconcileRepoWebhooksPageSize = 250;
+export let reconcileRepoWebhooksPageSize = 500;
+
+export let reconcileRepoWebhooksSuccessBackoffMs = 6 * 60 * 60_000;
 
 export let reconcileRepoWebhooksManyQueue = createQueue<{
   cursor?: string;
@@ -43,6 +45,18 @@ export let enqueueRepositoryWebhookReconcilePage = async (data: {
       OR: [
         { webhookReconcileBlockedUntil: null },
         { webhookReconcileBlockedUntil: { lte: now } }
+      ],
+      AND: [
+        {
+          OR: [
+            { webhookReconciledAt: null },
+            {
+              webhookReconciledAt: {
+                lte: new Date(now.getTime() - reconcileRepoWebhooksSuccessBackoffMs)
+              }
+            }
+          ]
+        }
       ]
     },
     select: { oid: true, id: true },

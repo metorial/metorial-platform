@@ -14,6 +14,7 @@ export let importGithubQueue = createQueue<{
   repoId: string;
 }>({
   name: 'ori/imp/gh',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -71,10 +71,19 @@ describe('repository webhook reconciliation fan-out', () => {
           OR: [
             { webhookReconcileBlockedUntil: null },
             { webhookReconcileBlockedUntil: { lte: expect.any(Date) } }
+          ],
+          AND: [
+            {
+              OR: [
+                { webhookReconciledAt: null },
+                { webhookReconciledAt: { lte: expect.any(Date) } }
+              ]
+            }
           ]
         },
         orderBy: { oid: 'asc' },
-        take: reconcileRepoWebhooksPageSize
+        take: reconcileRepoWebhooksPageSize,
+        select: { oid: true, id: true }
       })
     );
     expect(mocks.singleQueue.addManyWithOps).toHaveBeenCalledWith([

@@ -117,17 +117,18 @@ let blockRepositoryWebhookReconcile = async (repoOid: bigint, error: unknown) =>
   );
 };
 
-let clearRepositoryWebhookReconcileBlock = async (repo: {
+let recordRepositoryWebhookReconciled = async (repo: {
   oid: bigint;
   webhookReconcileBlockedUntil: Date | null;
   webhookReconcileBlockedReason: string | null;
 }) => {
-  if (!repo.webhookReconcileBlockedUntil && !repo.webhookReconcileBlockedReason) return;
   await db.scmRepository.update({
     where: { oid: repo.oid },
     data: {
-      webhookReconcileBlockedUntil: null,
-      webhookReconcileBlockedReason: null
+      webhookReconciledAt: new Date(),
+      ...(repo.webhookReconcileBlockedUntil || repo.webhookReconcileBlockedReason
+        ? { webhookReconcileBlockedUntil: null, webhookReconcileBlockedReason: null }
+        : {})
     }
   });
 };
@@ -202,7 +203,7 @@ export let reconcileRepositoryWebhook = async (repoId: string) => {
           type: 'push'
         }
       });
-      await clearRepositoryWebhookReconcileBlock(repo);
+      await recordRepositoryWebhookReconciled(repo);
       return;
     }
 
@@ -219,7 +220,7 @@ export let reconcileRepositoryWebhook = async (repoId: string) => {
           registeredEvents: state.registeredEvents
         }
       });
-      await clearRepositoryWebhookReconcileBlock(repo);
+      await recordRepositoryWebhookReconciled(repo);
       return;
     }
 
@@ -254,9 +255,12 @@ export let reconcileRepositoryWebhook = async (repoId: string) => {
         state.callbackUrl !== callbackUrl ||
         !equalRepositoryWebhookEvents(state.registeredEvents, desiredEvents)
       ) {
-        throw Object.assign(new Error('Provider did not register the requested webhook events'), {
-          status: 422
-        });
+        throw Object.assign(
+          new Error('Provider did not register the requested webhook events'),
+          {
+            status: 422
+          }
+        );
       }
     }
 
@@ -272,7 +276,7 @@ export let reconcileRepositoryWebhook = async (repoId: string) => {
         }
       });
     }
-    await clearRepositoryWebhookReconcileBlock(repo);
+    await recordRepositoryWebhookReconciled(repo);
   } catch (error) {
     if (shouldBlockRepositoryWebhookReconcile(error)) {
       await blockRepositoryWebhookReconcile(repo.oid, error);

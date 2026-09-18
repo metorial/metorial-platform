@@ -9,6 +9,7 @@ export let copyFromToBucketQueue = createQueue<{
   targetBucketId: string;
 }>({
   name: 'ori/cpy/tf-buk',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

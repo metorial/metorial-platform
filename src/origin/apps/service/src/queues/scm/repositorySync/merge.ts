@@ -24,6 +24,7 @@ import {
 
 export let mergeRepositorySyncQueue = createQueue<{ syncId: string }>({
   name: 'ori/rep-sync/merge',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

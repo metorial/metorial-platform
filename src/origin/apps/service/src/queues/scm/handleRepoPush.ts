@@ -6,6 +6,7 @@ import { codeBucketService } from '../../services';
 
 export let createHandleRepoPushQueue = createQueue<{ pushId: string }>({
   name: 'ori/rep/hndl-push',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

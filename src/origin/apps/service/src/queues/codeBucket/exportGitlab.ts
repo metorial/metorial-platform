@@ -14,6 +14,7 @@ export let exportGitlabQueue = createQueue<{
   commitMessage?: string;
 }>({
   name: 'ori/exp/gl',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

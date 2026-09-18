@@ -16,6 +16,7 @@ import { waitForCiRepositorySyncQueue } from './waitForCi';
 
 export let createPrRepositorySyncQueue = createQueue<{ syncId: string }>({
   name: 'ori/rep-sync/pr',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

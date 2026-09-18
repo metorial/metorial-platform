@@ -106,13 +106,21 @@ describe('repository webhook single reconciliation', () => {
     mocks.provider.update.mockResolvedValue(true);
   });
 
-  it('does not mutate provider or database state when the hook already matches', async () => {
+  it('does not mutate provider or webhook state when the hook already matches', async () => {
     await reconcileRepositoryWebhook('osr_repo');
 
     expect(mocks.provider.update).not.toHaveBeenCalled();
     expect(mocks.provider.create).not.toHaveBeenCalled();
     expect(mocks.db.scmRepositoryWebhook.update).not.toHaveBeenCalled();
-    expect(mocks.db.scmRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('stamps the reconciled timestamp so the hourly sweep can skip the repo', async () => {
+    await reconcileRepositoryWebhook('osr_repo');
+
+    expect(mocks.db.scmRepository.update).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      data: { webhookReconciledAt: expect.any(Date) }
+    });
   });
 
   it('updates only a drifted provider hook and persists confirmed events', async () => {
@@ -255,6 +263,7 @@ describe('repository webhook single reconciliation', () => {
     expect(mocks.db.scmRepository.update).toHaveBeenCalledWith({
       where: { oid: 1n },
       data: {
+        webhookReconciledAt: expect.any(Date),
         webhookReconcileBlockedUntil: null,
         webhookReconcileBlockedReason: null
       }

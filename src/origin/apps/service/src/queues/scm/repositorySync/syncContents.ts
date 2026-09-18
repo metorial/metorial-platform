@@ -19,6 +19,7 @@ import { createPrRepositorySyncQueue } from './createPr';
 
 export let syncContentsRepositorySyncQueue = createQueue<{ syncId: string }>({
   name: 'ori/rep-sync/contents',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

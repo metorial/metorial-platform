@@ -15,6 +15,7 @@ export let exportGithubQueue = createQueue<{
   gitLfsThresholdBytes?: number;
 }>({
   name: 'ori/exp/gh',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

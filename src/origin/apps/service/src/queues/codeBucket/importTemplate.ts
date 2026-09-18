@@ -8,6 +8,7 @@ export let importTemplateQueue = createQueue<{
   templateId: string;
 }>({
   name: 'ori/tmp/imp',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

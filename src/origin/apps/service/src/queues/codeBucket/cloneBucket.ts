@@ -8,6 +8,7 @@ export let cloneBucketQueue = createQueue<{
   bucketId: string;
 }>({
   name: 'ori/cln/buk',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

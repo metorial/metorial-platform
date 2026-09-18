@@ -7,7 +7,8 @@ export let cleanupProcessor = createCron(
   {
     name: 'ori/cleanup',
     cron: '0 0 * * *',
-    redisUrl: env.service.REDIS_URL
+    redisUrl: env.service.REDIS_URL,
+    startupJitterMs: 30_000
   },
   async () => {
     let now = new Date();

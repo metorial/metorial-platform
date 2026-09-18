@@ -16,6 +16,7 @@ import { mergeRepositorySyncQueue } from './merge';
 
 export let waitForCiRepositorySyncQueue = createQueue<{ syncId: string; index?: number }>({
   name: 'ori/rep-sync/wait-ci',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

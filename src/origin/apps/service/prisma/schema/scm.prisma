@@ -75,6 +75,7 @@ model ScmRepository {
 
   webhookReconcileBlockedUntil  DateTime?
   webhookReconcileBlockedReason String?
+  webhookReconciledAt           DateTime?
 
   backendOid BigInt
   backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
@@ -99,6 +100,7 @@ model ScmRepository {
 
   @@unique([tenantOid, backendOid, externalId])
   @@index([webhookReconcileBlockedUntil, oid])
+  @@index([webhookReconciledAt, oid])
 }
 
 model ScmRepositorySync {

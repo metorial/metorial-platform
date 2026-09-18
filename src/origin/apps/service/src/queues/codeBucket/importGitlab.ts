@@ -15,6 +15,7 @@ export let importGitlabQueue = createQueue<{
   repoId: string;
 }>({
   name: 'ori/imp/gl',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

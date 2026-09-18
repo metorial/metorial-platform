@@ -12,6 +12,7 @@ import { createBranchRepositorySyncQueue } from './createBranch';
 
 export let startRepositorySyncQueue = createQueue<{ syncId: string }>({
   name: 'ori/rep-sync/start',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

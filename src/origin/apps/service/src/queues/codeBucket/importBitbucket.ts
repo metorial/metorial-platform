@@ -13,6 +13,7 @@ export let importBitbucketQueue = createQueue<{
   repoId: string;
 }>({
   name: 'ori/imp/bb',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
