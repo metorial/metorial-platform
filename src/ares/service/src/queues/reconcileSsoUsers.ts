@@ -33,7 +33,13 @@ export let reconcileSingleSsoUserQueue = createQueue<{
 }>({
   name: 'ares/sso/user/reconcileSingle',
   redisUrl,
-  workerOpts: { concurrency: 10 }
+  workerOpts: {
+    concurrency: 1,
+    limiter: {
+      max: 5,
+      duration: 1000
+    }
+  }
 });
 
 export let reconcileSsoUsersQueueProcessor = reconcileSsoUsersQueue.process(async data => {
