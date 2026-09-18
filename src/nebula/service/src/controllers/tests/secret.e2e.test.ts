@@ -138,7 +138,7 @@ describe('secret E2E', () => {
     ).rejects.toThrow();
   });
 
-  it('registers lowercased consumer instances and refreshes by rotating the nonce', async () => {
+  it('registers lowercased consumer instances and refreshes without invalidating in-flight tokens', async () => {
     let first = await registerWorker('worker-secret', 'WORKER-RUNTIME-A');
     let instance = await testDb.consumerInstance.findUniqueOrThrow({
       where: { id: first.consumerInstanceId },
@@ -158,14 +158,14 @@ describe('secret E2E', () => {
     });
 
     expect(refreshed.consumerInstanceId).toBe(first.consumerInstanceId);
-    expect(updated.tokenNonce).not.toBe(originalNonce);
+    expect(updated.tokenNonce).toBe(originalNonce);
 
     await expect(
       nebulaClient.consumer.refresh({
         secret: 'worker-secret',
         token: first.token
       })
-    ).rejects.toThrow('Consumer token has been rotated or revoked');
+    ).resolves.toMatchObject({ consumerInstanceId: first.consumerInstanceId });
   });
 
   it('keeps metadata and key provider operations open without consumer tokens', async () => {
