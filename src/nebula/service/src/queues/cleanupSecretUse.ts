@@ -1,5 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@lowerdeck/queue';
+
+let CLEANUP_SECRET_USE_BATCH_SIZE = 500;
 import { subDays } from 'date-fns';
 import { db } from '../db';
 import { env } from '../env';
@@ -19,7 +21,8 @@ let cleanupSecretUseCron = createCron(
 
 let cleanupSecretUseSearchQueue = createQueue<{ before: Date; cursor?: bigint }>({
   name: 'neb/suse/cleanup/search',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let cleanupSecretUseSearchQueueProcessor = cleanupSecretUseSearchQueue.process(async data => {
@@ -29,7 +32,8 @@ let cleanupSecretUseSearchQueueProcessor = cleanupSecretUseSearchQueue.process(a
       oid: data.cursor ? { lt: data.cursor } : undefined
     },
     orderBy: { oid: 'desc' },
-    take: 500
+    take: CLEANUP_SECRET_USE_BATCH_SIZE,
+    select: { oid: true }
   });
   if (!uses.length) return;
 
@@ -37,15 +41,18 @@ let cleanupSecretUseSearchQueueProcessor = cleanupSecretUseSearchQueue.process(a
     oids: uses.map(use => use.oid)
   });
 
-  await cleanupSecretUseSearchQueue.add({
-    before: data.before,
-    cursor: uses[uses.length - 1]!.oid
-  });
+  if (uses.length === CLEANUP_SECRET_USE_BATCH_SIZE) {
+    await cleanupSecretUseSearchQueue.add(
+      { before: data.before, cursor: uses[uses.length - 1]!.oid },
+      dailyPacedDelay()
+    );
+  }
 });
 
 let cleanupSecretUseDeleteQueue = createQueue<{ oids: bigint[] }>({
   name: 'neb/suse/cleanup/delete',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 2 }
 });
 
 let cleanupSecretUseDeleteQueueProcessor = cleanupSecretUseDeleteQueue.process(async data => {

@@ -1,5 +1,9 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue, QueueRetryError } from '@lowerdeck/queue';
+import {
+  combineQueueProcessors,
+  createQueue,
+  hourlyPacedDelay,
+  QueueRetryError
+} from '@lowerdeck/queue';
 import { db } from '../db';
 import { env } from '../env';
 import { secretPurposeService } from '../services/secretPurpose';
@@ -27,16 +31,7 @@ export let reconcileSecretPurpose = async (secretOid: bigint) => {
   });
 };
 
-let reconcileSecretPurposeCron = createCron(
-  {
-    name: 'neb/sec/purpose/reconcile',
-    cron: '0 * * * *',
-    redisUrl: env.service.REDIS_URL
-  },
-  async () => {
-    await reconcileSecretPurposeSearchQueue.add({});
-  }
-);
+let RECONCILE_SECRET_PURPOSE_BATCH_SIZE = 500;
 
 let reconcileSecretPurposeSearchQueue = createQueue<{ cursor?: bigint }>({
   name: 'neb/sec/purpose/reconcile/search',
@@ -52,7 +47,8 @@ let reconcileSecretPurposeSearchQueueProcessor = reconcileSecretPurposeSearchQue
         oid: data.cursor ? { lt: data.cursor } : undefined
       },
       orderBy: { oid: 'desc' },
-      take: 500
+      take: RECONCILE_SECRET_PURPOSE_BATCH_SIZE,
+      select: { oid: true }
     });
     if (!secrets.length) return;
 
@@ -62,9 +58,12 @@ let reconcileSecretPurposeSearchQueueProcessor = reconcileSecretPurposeSearchQue
       }))
     );
 
-    await reconcileSecretPurposeSearchQueue.add({
-      cursor: secrets[secrets.length - 1]!.oid
-    });
+    if (secrets.length === RECONCILE_SECRET_PURPOSE_BATCH_SIZE) {
+      await reconcileSecretPurposeSearchQueue.add(
+        { cursor: secrets[secrets.length - 1]!.oid },
+        hourlyPacedDelay()
+      );
+    }
   }
 );
 
@@ -72,7 +71,8 @@ let reconcileSecretPurposeSingleQueue = createQueue<{ secretOid: bigint }>({
   name: 'neb/sec/purpose/reconcile/single',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 5
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 
@@ -83,7 +83,6 @@ let reconcileSecretPurposeSingleQueueProcessor = reconcileSecretPurposeSingleQue
 );
 
 export let reconcileSecretPurposeProcessors = combineQueueProcessors([
-  reconcileSecretPurposeCron,
   reconcileSecretPurposeSearchQueueProcessor,
   reconcileSecretPurposeSingleQueueProcessor
 ]);

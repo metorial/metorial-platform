@@ -1,10 +1,16 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue, QueueRetryError } from '@lowerdeck/queue';
+import {
+  combineQueueProcessors,
+  createQueue,
+  dailyPacedDelay,
+  QueueRetryError
+} from '@lowerdeck/queue';
 import { subDays } from 'date-fns';
 import { db } from '../db';
 import { env } from '../env';
 
 let disabledSecretRetentionDays = 14;
+let PURGE_DISABLED_SECRETS_BATCH_SIZE = 500;
 
 export let purgeDisabledSecret = async (secretOid: bigint) => {
   let secret = await db.secret.findUnique({
@@ -37,7 +43,8 @@ let purgeDisabledSecretsCron = createCron(
 
 let purgeDisabledSecretsSearchQueue = createQueue<{ before: Date; cursor?: bigint }>({
   name: 'neb/sec/disabled/purge/search',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let purgeDisabledSecretsSearchQueueProcessor = purgeDisabledSecretsSearchQueue.process(
@@ -49,7 +56,8 @@ let purgeDisabledSecretsSearchQueueProcessor = purgeDisabledSecretsSearchQueue.p
         oid: data.cursor ? { lt: data.cursor } : undefined
       },
       orderBy: { oid: 'desc' },
-      take: 500
+      take: PURGE_DISABLED_SECRETS_BATCH_SIZE,
+      select: { oid: true }
     });
     if (!secrets.length) return;
 
@@ -59,10 +67,12 @@ let purgeDisabledSecretsSearchQueueProcessor = purgeDisabledSecretsSearchQueue.p
       }))
     );
 
-    await purgeDisabledSecretsSearchQueue.add({
-      before: data.before,
-      cursor: secrets[secrets.length - 1]!.oid
-    });
+    if (secrets.length === PURGE_DISABLED_SECRETS_BATCH_SIZE) {
+      await purgeDisabledSecretsSearchQueue.add(
+        { before: data.before, cursor: secrets[secrets.length - 1]!.oid },
+        dailyPacedDelay()
+      );
+    }
   }
 );
 
@@ -70,7 +80,8 @@ let purgeDisabledSecretSingleQueue = createQueue<{ secretOid: bigint }>({
   name: 'neb/sec/disabled/purge/single',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 5
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 
