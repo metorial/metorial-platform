@@ -262,12 +262,14 @@ class ConsumerServiceImpl {
     let expiresAt = getTokenExpiresAt();
     try {
       let updated = await db.consumerInstance.update({
-        where: { oid: consumerInstance.oid },
-        data: {
-          tokenNonce: randomTokenNonce(),
-          expiresAt,
-          status: 'active'
-        }
+        where: {
+          oid: consumerInstance.oid,
+          tokenNonce: consumerInstance.tokenNonce,
+          status: 'active',
+          revokedAt: null,
+          expiresAt: { gt: new Date() }
+        },
+        data: { expiresAt }
       });
 
       await clearConsumerInstanceAuthCache(updated.id);

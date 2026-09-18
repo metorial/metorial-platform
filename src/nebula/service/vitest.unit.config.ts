@@ -7,7 +7,11 @@ export default defineConfig(({ mode }) => {
   return createVitestConfig({
     test: {
       // Other Nebula suites import src/test/setup and require a live Postgres database.
-      include: ['src/presenters/**/*.test.ts', 'src/adapters/**/*.test.ts'],
+      include: [
+        'src/presenters/**/*.test.ts',
+        'src/adapters/**/*.test.ts',
+        'src/services/consumer.test.ts'
+      ],
       exclude: ['src/**/*.e2e.test.ts'],
       pool: 'forks',
       env: {
