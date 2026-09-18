@@ -385,6 +385,41 @@ describe('request', () => {
     expect(mocks.captureException).not.toHaveBeenCalled();
   });
 
+  test('keeps application 5xx responses on the bounded retry policy', async () => {
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            object: 'error',
+            ok: false,
+            status: 500,
+            code: 'internal_server_error',
+            message: 'Application failure'
+          }),
+          { status: 500, headers: { 'content-type': 'application/json' } }
+        )
+    );
+
+    let request = await importRequest('bounded-application-error');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        timeoutMs: 2000,
+        context: {}
+      })
+    ).rejects.toMatchObject({
+      data: { status: 500, message: 'Application failure' }
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(6);
+    expect(mocks.captureException).not.toHaveBeenCalled();
+  });
+
   test('batches browser requests and keeps the batch envelope for multi-call flushes', async () => {
     (globalThis as any).window = {};
 

@@ -61,18 +61,22 @@ class InvalidRpcResponseError extends Error {
   }
 }
 
-let rpcTransportDiagnostics = new WeakMap<object, Error>();
+let rpcRequestDiagnostics = new WeakMap<object, Error>();
 
-class RpcTransportError extends ServiceError<any> {
+class RpcRequestError extends ServiceError<any> {
   constructor(
     error: ReturnType<typeof internalServerError> | ReturnType<typeof timeoutError>,
     diagnostic: Error
   ) {
     super(error);
-    this.name = 'RpcTransportError';
-    rpcTransportDiagnostics.set(this, diagnostic);
+    this.name = 'RpcRequestError';
+    rpcRequestDiagnostics.set(this, diagnostic);
   }
 }
+
+class RpcTransportError extends RpcRequestError {}
+
+class RpcResponseError extends RpcRequestError {}
 
 let decodeRpcResponse = (body: string) => {
   try {
@@ -83,10 +87,10 @@ let decodeRpcResponse = (body: string) => {
 };
 
 let toRequestError = (call: Call, error: unknown) => {
-  let diagnosticMessage =
-    error instanceof InvalidRpcResponseError
-      ? `Invalid response from server ${call.endpoint} for ${call.name}`
-      : `Unable to reach server ${call.endpoint} for ${call.name}`;
+  let invalidResponse = error instanceof InvalidRpcResponseError;
+  let diagnosticMessage = invalidResponse
+    ? `Invalid response from server ${call.endpoint} for ${call.name}`
+    : `Unable to reach server ${call.endpoint} for ${call.name}`;
   let diagnostic = new Error(diagnosticMessage, {
     cause: error instanceof Error ? error : undefined
   });
@@ -98,7 +102,9 @@ let toRequestError = (call: Call, error: unknown) => {
     return new RpcTransportError(timeoutError(), diagnostic);
   }
 
-  return new RpcTransportError(internalServerError(), diagnostic);
+  return invalidResponse
+    ? new RpcResponseError(internalServerError(), diagnostic)
+    : new RpcTransportError(internalServerError(), diagnostic);
 };
 
 let createBatchUrl = (call: Call) => {
@@ -305,6 +311,7 @@ let requesterInternal: Requester = async call => {
   log(`[call:${call.name.replace(':', '-')}:${id}] Queued`, call);
 
   let tries = 0;
+  let boundedRetryFailures = 0;
   let error: Error | null = null;
 
   for (let header in call.headers) {
@@ -317,13 +324,13 @@ let requesterInternal: Requester = async call => {
     }
   }
 
-  let maxTries = typeof (globalThis as any).window === 'undefined' ? Infinity : 3;
+  let maxBoundedTries = typeof (globalThis as any).window === 'undefined' ? 6 : 3;
   let retryDelay = typeof (globalThis as any).window === 'undefined' ? 20 : 1000;
 
   let deadline = createDeadlineSignal(call);
 
   try {
-    while (tries < maxTries) {
+    while (true) {
       if (deadline.signal?.aborted) throw error ?? abortedError();
 
       try {
@@ -358,6 +365,11 @@ let requesterInternal: Requester = async call => {
           // 400 errors are not retried
           if (e.data.status < 500) throw e;
         }
+
+        if (!isServer || !(e instanceof RpcTransportError)) {
+          boundedRetryFailures += 1;
+          if (boundedRetryFailures >= maxBoundedTries) throw e;
+        }
       }
 
       tries += 1;
@@ -382,10 +394,10 @@ export let request: Requester = async call => {
   try {
     return await requesterInternal(call);
   } catch (error) {
-    if (!(error instanceof RpcTransportError)) throw error;
+    if (!(error instanceof RpcRequestError)) throw error;
 
     if (!call.signal?.aborted) {
-      Sentry.captureException(rpcTransportDiagnostics.get(error)!, {
+      Sentry.captureException(rpcRequestDiagnostics.get(error)!, {
         tags: { rpcMethod: call.name },
         extra: { endpoint: call.endpoint }
       });
