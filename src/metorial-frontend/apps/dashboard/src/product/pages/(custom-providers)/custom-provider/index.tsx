@@ -1,12 +1,83 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useCustomProvider } from '@metorial/state';
-import { Attributes, RenderDate, Spacer } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import {
+  DashboardInstanceCustomProvidersGetOutput,
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
+  useCustomProvider,
+  useCustomProviderVersions
+} from '@metorial/state';
+import { Button, Entity, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Box, Table } from '@metorial/ui-product';
+import { Link, useParams } from 'react-router-dom';
 import { OpenExplorerBox } from '../../../components/openExplorer';
-import { CustomProviderEventsTable } from '../../../scenes/customProvider/events';
 import { getCustomProviderScmLink } from '../../../scenes/customProvider/utils';
+import { CustomProviderVersionStatus } from '../../../scenes/customProvider/version';
+
+let RecentVersionsBox = (p: { customProvider: DashboardInstanceCustomProvidersGetOutput }) => {
+  let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let versions = useCustomProviderVersions(instance.data?.id, p.customProvider.id, {
+    order: 'desc',
+    limit: 5
+  });
+
+  return (
+    <Box
+      title="Versions"
+      description="The most recently published versions of this provider."
+      rightActions={
+        <Link
+          to={Paths.instance.customProvider(
+            organization.data,
+            project.data,
+            instance.data,
+            p.customProvider.id,
+            'versions'
+          )}
+        >
+          <Button as="span" size="1" variant="outline">
+            View All
+          </Button>
+        </Link>
+      }
+    >
+      {renderWithPagination(versions, { hidePaginationWhenUnavailable: true })(versions => (
+        <>
+          <Table
+            headers={['Version', 'Status', 'Created']}
+            data={versions.data.items.map(version => ({
+              href: Paths.instance.customProvider(
+                organization.data,
+                project.data,
+                instance.data,
+                p.customProvider.id,
+                'versions',
+                { version_id: version.id }
+              ),
+              data: [
+                <Text size="2" weight="strong">
+                  {version.index}
+                </Text>,
+                <CustomProviderVersionStatus version={version} />,
+                <RenderDate date={version.createdAt} />
+              ]
+            }))}
+          />
+
+          {versions.data.items.length === 0 ? (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No versions found for this provider.
+            </Text>
+          ) : null}
+        </>
+      ))}
+    </Box>
+  );
+};
 
 export let CustomProviderOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -19,52 +90,7 @@ export let CustomProviderOverviewPage = () => {
     let remoteMcpServer = customProvider.data.draft.remoteMcpServer;
 
     return (
-      <>
-        <Attributes
-          columns={3}
-          attributes={[
-            {
-              label: 'Provider ID',
-              content: customProvider.data.provider ? (
-                <ID id={customProvider.data.provider.id} />
-              ) : (
-                'N/A'
-              )
-            },
-            {
-              label: 'Custom Provider ID',
-              content: <ID id={customProvider.data.id} />
-            },
-
-            ...(scmLink
-              ? [
-                  {
-                    label: 'Repository URL',
-                    content: (
-                      <a href={scmLink.repositoryUrl} target="_blank" rel="noreferrer">
-                        {scmLink.repositoryUrl}
-                      </a>
-                    )
-                  }
-                ]
-              : remoteMcpServer
-                ? [
-                    {
-                      label: 'Remote MCP Server',
-                      content: remoteMcpServer.url
-                    }
-                  ]
-                : [
-                    {
-                      label: 'Created At',
-                      content: <RenderDate date={customProvider.data.provider?.createdAt} />
-                    }
-                  ])
-          ]}
-        />
-
-        <Spacer height={15} />
-
+      <DetailsOverviewLayout>
         <OpenExplorerBox
           title="Test Provider"
           description="Use the Metorial Explorer to test your custom provider."
@@ -78,6 +104,38 @@ export let CustomProviderOverviewPage = () => {
           )}
         />
 
+        <Spacer height={15} />
+
+        {remoteMcpServer?.url && (
+          <>
+            <Entity.Wrapper header="Remote MCP Server">
+              <Entity.Content>
+                <Entity.Field title={remoteMcpServer.url} />
+              </Entity.Content>
+            </Entity.Wrapper>
+
+            <Spacer height={15} />
+          </>
+        )}
+
+        {scmLink?.repositoryUrl && (
+          <>
+            <Entity.Wrapper header="Repository URL">
+              <Entity.Content>
+                <Entity.Field
+                  title={
+                    <a href={scmLink.repositoryUrl} target="_blank" rel="noreferrer">
+                      {scmLink.repositoryUrl}
+                    </a>
+                  }
+                />
+              </Entity.Content>
+            </Entity.Wrapper>
+
+            <Spacer height={15} />
+          </>
+        )}
+
         {/* <Spacer height={15} />
 
         <UsageScene
@@ -89,15 +147,8 @@ export let CustomProviderOverviewPage = () => {
           }}
         /> */}
 
-        <Spacer height={15} />
-
-        <Box
-          title="Provider Commits"
-          description="Recent commit/apply history for this provider."
-        >
-          <CustomProviderEventsTable customProvider={customProvider.data} />
-        </Box>
-      </>
+        <RecentVersionsBox customProvider={customProvider.data} />
+      </DetailsOverviewLayout>
     );
   });
 };
