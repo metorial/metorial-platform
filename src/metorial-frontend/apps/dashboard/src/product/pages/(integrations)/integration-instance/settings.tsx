@@ -1,4 +1,5 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { DetailsSettingsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -41,7 +42,7 @@ export let IntegrationInstanceSettingsPage = () => {
 
   return renderWithLoader({ integrationInstance })(({ integrationInstance }) => {
     return (
-      <>
+      <DetailsSettingsLayout>
         <Box
           title="Instance Settings"
           description="Modify the saved details for this integration instance."
@@ -107,7 +108,7 @@ export let IntegrationInstanceSettingsPage = () => {
           </Button>
           <deleteMutator.RenderError />
         </Box>
-      </>
+      </DetailsSettingsLayout>
     );
   });
 };

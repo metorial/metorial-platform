@@ -1580,24 +1580,7 @@ let IntegrationInstanceProviderPanel = (p: {
     isUpdate
   });
   let inheritedAuthMethodId = p.integrationProvider.authMethod?.id;
-  let inheritedAuthMethods = useProviderAuthMethods(
-    instance.data?.id,
-    inheritedAuthMethodId && visibility.provider.data?.currentVersion?.id
-      ? { providerVersionId: visibility.provider.data.currentVersion.id }
-      : null
-  );
-  let fixedAuthMethodId =
-    inheritedAuthMethodId &&
-    (inheritedAuthMethods.data?.items ?? []).some(
-      method => method.id === inheritedAuthMethodId
-    )
-      ? inheritedAuthMethodId
-      : undefined;
-  let isInheritedAuthMethodLoading = Boolean(
-    inheritedAuthMethodId &&
-    visibility.provider.data?.currentVersion?.id &&
-    inheritedAuthMethods.isLoading
-  );
+  let fixedAuthMethodId = inheritedAuthMethodId;
 
   let submitProviderSetup = async (values: IntegrationInstanceProviderFormValues) => {
     if (!instance.data || !providerId) return false;
@@ -1708,12 +1691,7 @@ let IntegrationInstanceProviderPanel = (p: {
     void submitProviderSetup(form.values);
   }, [isUpdate, visibility.isLoading, hasVisibleInputs, isSaving, form.values]);
 
-  if (
-    !providerId ||
-    visibility.isLoading ||
-    isInheritedAuthMethodLoading ||
-    (!hasVisibleInputs && isSaving)
-  ) {
+  if (!providerId || visibility.isLoading || (!hasVisibleInputs && isSaving)) {
     return <CenteredSpinner />;
   }
   // In create mode with nothing to configure, the auto-submit useEffect above

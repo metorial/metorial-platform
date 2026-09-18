@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { DetailsTableLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { PageHeaderSection } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
@@ -8,9 +8,9 @@ import {
   useDashboardFlags,
   useIntegration
 } from '@metorial/state';
-import { Badge, Button, Callout, Flex, Text } from '@metorial/ui';
+import { Badge, Callout, Flex, Text } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { CallbackSyncBadge } from '../../../scenes/callbacks/shared';
 
 export let IntegrationCallbacksPage = () => {
@@ -64,7 +64,10 @@ export let IntegrationCallbacksPage = () => {
       });
 
       return (
-        <>
+        <DetailsTableLayout
+          title="Callbacks"
+          description="When you enable callbacks for a provider, Metorial registers with the provider to receive events. You can view the configuration of each provider's callback below."
+        >
           {providers.length === 0 ? (
             <Callout color="orange">
               <span>
@@ -73,23 +76,11 @@ export let IntegrationCallbacksPage = () => {
               </span>
             </Callout>
           ) : (
-            <PageHeaderSection
-              title="Callbacks"
-              description="When you enable callbacks for a provider, Metorial registers with the provider to receive events. You can view the configuration of each provider's callback below."
-              actions={
-                <Link
-                  to={Paths.instance.callbacks(organization.data, project.data, instance.data)}
-                >
-                  <Button size="2" as="span" variant="outline">
-                    All Callbacks
-                  </Button>
-                </Link>
-              }
-            >
+            <>
               <Table headers={['Provider', 'Delivery', 'Callback ID']} data={rows} />
-            </PageHeaderSection>
+            </>
           )}
-        </>
+        </DetailsTableLayout>
       );
     }
   );

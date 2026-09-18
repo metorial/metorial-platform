@@ -1,6 +1,6 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
+import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCreateIntegrationInstanceSession,
   useCurrentInstance,
@@ -9,14 +9,25 @@ import {
   useIntegration,
   useIntegrationInstance
 } from '@metorial/state';
-import { Flex, LinkTabs } from '@metorial/ui';
+import { Badge, RenderDate } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiPuzzleLine } from '@remixicon/react';
 import { useState } from 'react';
-import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import {
   OpenExplorerButton,
   type OpenExplorerMode
 } from '../../../components/openExplorer';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
+
+let getIntegrationInstanceStatusColor = (status: string) => {
+  if (status === 'active') return 'green';
+  if (status === 'draft') return 'orange';
+  if (status === 'archived') return 'orange';
+  return 'gray';
+};
+
+let capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
 export let IntegrationInstanceLayout = () => {
   let instance = useCurrentInstance();
@@ -28,7 +39,6 @@ export let IntegrationInstanceLayout = () => {
   let integration = useIntegration(instance.data?.id, integrationInstance.data?.integrationId);
   let createSession = useCreateIntegrationInstanceSession();
   let [isCreatingSession, setIsCreatingSession] = useState(false);
-  let pathname = useLocation().pathname;
 
   let handleOpenExplorer = async (mode: OpenExplorerMode) => {
     let activeIntegrationInstanceId = integrationInstance.data?.id ?? integrationInstanceId;
@@ -69,66 +79,82 @@ export let IntegrationInstanceLayout = () => {
   ] as const;
 
   return (
-    <ContentLayout>
-      <PageHeader
-        title={integrationInstance.data?.name ?? '...'}
-        description={integrationInstance.data?.description ?? undefined}
-        pagination={[
-          {
-            label: 'Integrations',
-            href: Paths.instance.integrations(organization.data, project.data, instance.data)
-          },
-          {
-            label: integration.data?.name ?? 'Integration',
-            href: Paths.instance.integration(
-              organization.data,
-              project.data,
-              instance.data,
-              integrationInstance.data?.integrationId
-            )
-          },
-          {
-            label: integrationInstance.data?.name,
-            href: Paths.instance.integrationInstance(...instancePathParams)
-          }
-        ]}
-        actions={
-          instance.data ? (
-            <Flex gap={8}>
-              <OpenExplorerButton
-                size="2"
-                variant="outline"
-                onOpen={handleOpenExplorer}
-                disabled={isCreatingSession || integrationInstance.data?.status !== 'active'}
-                loading={isCreatingSession}
-              />
-            </Flex>
-          ) : undefined
+    <DetailsLayout
+      entity={integrationInstance.data}
+      icon={<RiPuzzleLine />}
+      breadcrumbs={[
+        {
+          label: 'Integrations',
+          to: Paths.instance.integrations(organization.data, project.data, instance.data)
+        },
+        {
+          label: integration.data?.name ?? 'Integration',
+          to: Paths.instance.integration(
+            organization.data,
+            project.data,
+            instance.data,
+            integrationInstance.data?.integrationId
+          )
+        },
+        {
+          label: integrationInstance.data?.name,
+          to: Paths.instance.integrationInstance(...instancePathParams)
         }
-      />
-
+      ]}
+      tabs={[
+        { label: 'Overview', to: Paths.instance.integrationInstance(...instancePathParams) },
+        {
+          label: 'Settings',
+          to: Paths.instance.integrationInstance(...instancePathParams, 'settings')
+        }
+      ]}
+      actions={[
+        {
+          type: 'custom',
+          render: () => (
+            <OpenExplorerButton
+              size="2"
+              variant="outline"
+              onOpen={handleOpenExplorer}
+              disabled={isCreatingSession || integrationInstance.data?.status !== 'active'}
+              loading={isCreatingSession}
+            />
+          )
+        }
+      ]}
+      attributes={
+        integrationInstance.data
+          ? [
+              { label: 'ID', value: <ID id={integrationInstance.data.id} /> },
+              {
+                label: 'Status',
+                value: (
+                  <Badge color={getIntegrationInstanceStatusColor(integrationInstance.data.status)}>
+                    {capitalize(integrationInstance.data.status)}
+                  </Badge>
+                )
+              },
+              {
+                label: 'Identity',
+                value: integrationInstance.data.identityId ? (
+                  <ID id={integrationInstance.data.identityId} />
+                ) : (
+                  '-'
+                )
+              },
+              { label: 'Created', value: <RenderDate date={integrationInstance.data.createdAt} /> }
+            ]
+          : []
+      }
+    >
       <InitialLoadBoundary>
         {renderWithLoader({ integrationInstance })(({ integrationInstance }) => (
           <>
             <DeletedRecordCallout status={integrationInstance.data.status} />
-
-            <LinkTabs
-              current={pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.integrationInstance(...instancePathParams)
-                },
-                {
-                  label: 'Settings',
-                  to: Paths.instance.integrationInstance(...instancePathParams, 'settings')
-                }
-              ]}
-            />
             <Outlet />
           </>
         ))}
       </InitialLoadBoundary>
-    </ContentLayout>
+    </DetailsLayout>
   );
 };
