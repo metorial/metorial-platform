@@ -240,4 +240,42 @@ describe('integrationInstanceGroupProviderService.setIntegrationInstanceGroupPro
     expect(providerUpdate).not.toHaveProperty('projectOid');
     expect(providerUpdate).not.toHaveProperty('instanceOid');
   });
+
+  it('upserts by integration provider and replaces its source provider', async () => {
+    db.integrationInstanceGroupProvider.findMany.mockResolvedValue([
+      {
+        integrationProviderOid: sourceProvider.integrationProviderOid,
+        integrationInstanceProviderOid: 69n,
+        toolFilter: existingFilter,
+        isOverrideToolFilter: true
+      }
+    ]);
+
+    await runSetProviders({
+      tenant: { oid: 1n, projectOid: 11n },
+      environment: { oid: 3n, instanceOid: 33n }
+    });
+
+    expect(db.integrationInstanceGroupProvider.findMany).toHaveBeenCalledWith({
+      where: {
+        integrationInstanceGroupOid: integrationInstanceGroup.oid,
+        integrationProviderOid: { in: [sourceProvider.integrationProviderOid] }
+      }
+    });
+    expect(tx.integrationInstanceGroupProvider.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          integrationInstanceGroupOid_integrationProviderOid: {
+            integrationInstanceGroupOid: integrationInstanceGroup.oid,
+            integrationProviderOid: sourceProvider.integrationProviderOid
+          }
+        },
+        update: expect.objectContaining({
+          integrationInstanceProviderOid: sourceProvider.oid,
+          toolFilter: existingFilter,
+          isOverrideToolFilter: true
+        })
+      })
+    );
+  });
 });
