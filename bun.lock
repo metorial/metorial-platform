@@ -926,6 +926,7 @@
         "@lowerdeck/memo": "workspace:2.0.0",
         "@lowerdeck/proxy": "workspace:2.0.0",
         "@lowerdeck/rpc-signature": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/serialize": "workspace:2.0.0",
         "@opentelemetry/api": "^1.9.0",
       },

@@ -2,6 +2,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { rpcSignatureHeader, verifyRpcSignature } from '@lowerdeck/rpc-signature';
 import { serialize } from '@lowerdeck/serialize';
 
+let mocks = vi.hoisted(() => ({
+  captureException: vi.fn()
+}));
+
+vi.mock('@lowerdeck/sentry', () => ({
+  getSentry: () => ({ captureException: mocks.captureException })
+}));
+
 let originalWindow = (globalThis as any).window;
 let sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -33,6 +41,7 @@ let createBatchResponse = (calls: { id: string; result?: any; status?: number }[
 describe('request', () => {
   beforeEach(() => {
     delete (globalThis as any).window;
+    mocks.captureException.mockReset();
   });
 
   afterEach(() => {
@@ -308,7 +317,7 @@ describe('request', () => {
     });
   });
 
-  test('distinguishes malformed RPC responses from connection failures', async () => {
+  test('reports malformed RPC responses without exposing diagnostics to the caller', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response('not-json', {
@@ -326,13 +335,54 @@ describe('request', () => {
         payload: {},
         headers: {},
         useDirectMethodRoute: true,
+        timeoutMs: 45,
         context: {}
       })
     ).rejects.toMatchObject({
       data: {
-        message: 'Invalid response from server http://localhost/rpc for health:check'
+        message: 'An internal server error occurred.'
       }
     });
+
+    expect(mocks.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Invalid response from server http://localhost/rpc for health:check'
+      }),
+      expect.objectContaining({
+        tags: { rpcMethod: 'health:check' },
+        extra: { endpoint: 'http://localhost/rpc' }
+      })
+    );
+  });
+
+  test('keeps retrying server transport errors beyond the old six-attempt limit', async () => {
+    let attempts = 0;
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      attempts += 1;
+      if (attempts <= 7) throw new Error('connection refused');
+
+      return new Response(serialize.encode({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    });
+
+    let request = await importRequest('long-server-retry');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        timeoutMs: 2000,
+        context: {}
+      })
+    ).resolves.toMatchObject({ data: { ok: true }, status: 200 });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(8);
+    expect(mocks.captureException).not.toHaveBeenCalled();
   });
 
   test('batches browser requests and keeps the batch envelope for multi-call flushes', async () => {
@@ -616,19 +666,27 @@ describe('request', () => {
 
     let request = await importRequest('timeout-retry-cap');
 
-    await expect(
-      request({
-        endpoint: 'http://localhost/rpc',
-        name: 'health:check',
-        payload: {},
-        headers: {},
-        useDirectMethodRoute: true,
-        timeoutMs: 45,
-        context: {}
-      })
-    ).rejects.toMatchObject({ data: { status: 504 } });
+    let clientError = await request({
+      endpoint: 'http://localhost/rpc',
+      name: 'health:check',
+      payload: {},
+      headers: {},
+      useDirectMethodRoute: true,
+      timeoutMs: 45,
+      context: {}
+    }).catch(error => error);
+
+    expect(clientError).toMatchObject({
+      data: { status: 500, message: 'An internal server error occurred.' }
+    });
+    expect(JSON.stringify(clientError)).not.toContain('http://localhost/rpc');
+    expect(JSON.stringify(clientError)).not.toContain('health:check');
 
     expect(fetchSpy.mock.calls.length).toBeLessThan(6);
+    expect(mocks.captureException).toHaveBeenCalledTimes(1);
+    expect(mocks.captureException.mock.calls[0]![0]).toMatchObject({
+      message: 'Unable to reach server http://localhost/rpc for health:check'
+    });
   });
 
   test('rejects immediately when the caller signal is already aborted', async () => {
@@ -701,7 +759,7 @@ describe('request', () => {
     await expect(single).resolves.toMatchObject({ data: 'unbatched', status: 200 });
   });
 
-  test('does not abort a call that has no timeout or signal', async () => {
+  test('applies the long server deadline when no timeout or signal is provided', async () => {
     let observedSignal: AbortSignal | undefined | null = null;
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
       observedSignal = init?.signal;
@@ -725,7 +783,8 @@ describe('request', () => {
       })
     ).resolves.toMatchObject({ status: 200 });
 
-    expect(observedSignal).toBeUndefined();
+    expect(observedSignal).toBeInstanceOf(AbortSignal);
+    expect((observedSignal as AbortSignal | null)?.aborted).toBe(false);
   });
 
   test('threads client and per-call timeouts through to the requester', async () => {
