@@ -1,11 +1,25 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@lowerdeck/queue';
+import {
+  commitWatermarkScan,
+  createQueueCheckpoint,
+  isFullPassDue,
+  startWatermarkScan,
+  type WatermarkScanJob
+} from '@lowerdeck/queue-checkpoint';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import { ssoGroupRoleService } from '../services/sso/groupRole';
 import { enqueueSsoUserChange, type SsoUserChangeSource } from './recordSsoUserChanges';
 
 let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+
+let RECONCILE_SSO_USERS_BATCH_SIZE = 500;
+
+let checkpoint = createQueueCheckpoint({
+  db,
+  queue: 'ares/sso/user/reconcile'
+});
 
 export let reconcileSsoUsersCron = createCron(
   {
@@ -14,13 +28,13 @@ export let reconcileSsoUsersCron = createCron(
     redisUrl
   },
   async () => {
-    await reconcileSsoUsersQueue.add({});
+    await reconcileSsoUsersQueue.add(
+      await startWatermarkScan({ checkpoint, full: isFullPassDue() })
+    );
   }
 );
 
-export let reconcileSsoUsersQueue = createQueue<{
-  cursor?: string;
-}>({
+export let reconcileSsoUsersQueue = createQueue<WatermarkScanJob>({
   name: 'ares/sso/user/reconcileMany',
   redisUrl,
   workerOpts: { concurrency: 1 }
@@ -33,32 +47,39 @@ export let reconcileSingleSsoUserQueue = createQueue<{
 }>({
   name: 'ares/sso/user/reconcileSingle',
   redisUrl,
-  workerOpts: { concurrency: 10 }
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
-export let reconcileSsoUsersQueueProcessor = reconcileSsoUsersQueue.process(async data => {
+export let reconcileSsoUsersQueueProcessor = reconcileSsoUsersQueue.process(async job => {
   let users = await db.ssoUser.findMany({
     where: {
       ownerProfileOid: { not: null },
-      id: data.cursor ? { gt: data.cursor } : undefined
+      ...(job.since ? { ownerProfile: { updatedAt: { gte: new Date(job.since) } } } : {}),
+      id: job.cursor ? { gt: job.cursor } : undefined
     },
     select: { id: true },
     orderBy: { id: 'asc' },
-    take: 500
+    take: RECONCILE_SSO_USERS_BATCH_SIZE
   });
 
-  if (users.length === 0) return;
+  if (users.length) {
+    await reconcileSingleSsoUserQueue.addManyWithOps(
+      users.map(user => ({
+        data: { ssoUserId: user.id, source: 'user_reconciled' as const },
+        opts: { id: user.id }
+      }))
+    );
+  }
 
-  await reconcileSingleSsoUserQueue.addManyWithOps(
-    users.map(user => ({
-      data: { ssoUserId: user.id, source: 'user_reconciled' },
-      opts: { id: user.id }
-    }))
-  );
+  if (users.length === RECONCILE_SSO_USERS_BATCH_SIZE) {
+    await reconcileSsoUsersQueue.add(
+      { ...job, cursor: users[users.length - 1]!.id },
+      hourlyPacedDelay()
+    );
+    return;
+  }
 
-  await reconcileSsoUsersQueue.add({
-    cursor: users[users.length - 1]!.id
-  });
+  await commitWatermarkScan({ checkpoint, job });
 });
 
 export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.process(

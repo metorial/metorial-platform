@@ -1,0 +1,8 @@
+model QueueCheckpoint {
+  queue String @id
+
+  processedThrough DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
