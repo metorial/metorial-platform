@@ -10,6 +10,7 @@ export let sendEmailQueue = createQueue<{ emailId: string }>({
     attempts: 10
   },
   workerOpts: {
+    concurrency: 50,
     limiter: {
       duration: 60 * 1000,
       max: 50

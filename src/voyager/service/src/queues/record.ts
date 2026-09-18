@@ -5,6 +5,7 @@ import { env } from '../env';
 
 export let indexRecordQueue = createQueue<{ recordId: string }>({
   name: 'voy/idx',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -20,6 +21,7 @@ export let indexRecordQueueProcessor = indexRecordQueue.process(async data => {
 
 export let deleteRecordQueue = createQueue<{ recordId: string }>({
   name: 'voy/del',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -22,6 +22,7 @@ export let sendEmailSingleQueue = createQueue<{ destinationId: bigint }>({
     }
   },
   workerOpts: {
+    concurrency: 50,
     limiter: {
       duration: 60 * 1000,
       max: 50
