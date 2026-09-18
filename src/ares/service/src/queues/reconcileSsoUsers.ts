@@ -47,7 +47,13 @@ export let reconcileSingleSsoUserQueue = createQueue<{
 }>({
   name: 'ares/sso/user/reconcileSingle',
   redisUrl,
-  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
+  workerOpts: {
+    concurrency: 1,
+    limiter: {
+      max: 5,
+      duration: 1000
+    }
+  }
 });
 
 export let reconcileSsoUsersQueueProcessor = reconcileSsoUsersQueue.process(async job => {
