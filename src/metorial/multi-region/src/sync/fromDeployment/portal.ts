@@ -73,13 +73,47 @@ export let syncPortalSingleQueueProcessor = syncPortalSingleQueue.process(async 
     ownerOid: (await cell).oid
   };
 
-  await globalDB.portal.upsert({
-    where: { id: portal.id },
-    update: inner,
-    create: {
+  await globalDB.portal.createMany({
+    data: {
       id: portal.id,
       ...inner
+    },
+    skipDuplicates: true
+  });
+
+  let globalPortals = await globalDB.portal.findMany({
+    where: {
+      OR: [{ id: portal.id }, { slug: portal.slug }]
+    },
+    select: {
+      id: true,
+      slug: true,
+      ownerOid: true
     }
+  });
+  let globalPortalById = globalPortals.find(globalPortal => globalPortal.id === portal.id);
+  let globalPortalBySlug = globalPortals.find(
+    globalPortal => globalPortal.slug === portal.slug
+  );
+
+  if (globalPortalBySlug && globalPortalBySlug.id !== portal.id) {
+    console.warn('global_portal_sync.slug_conflict', {
+      portalId: portal.id,
+      slug: portal.slug,
+      ownerOid: inner.ownerOid,
+      conflictingPortalId: globalPortalBySlug.id,
+      conflictingOwnerOid: globalPortalBySlug.ownerOid
+    });
+    return;
+  }
+
+  if (!globalPortalById) {
+    throw new Error(`Global portal disappeared while syncing ${portal.id}`);
+  }
+
+  await globalDB.portal.update({
+    where: { id: portal.id },
+    data: inner
   });
 });
 
