@@ -16,6 +16,7 @@ export let providerDeploymentConfigPairSyncSpecificationQueue = createQueue<{
   versionId: string;
 }>({
   name: 'sub/pint/pdep/spec/sync',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

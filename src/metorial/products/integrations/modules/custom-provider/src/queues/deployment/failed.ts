@@ -6,6 +6,7 @@ export let customDeploymentFailedQueue = createQueue<{
   customProviderDeploymentId: string;
 }>({
   name: 'sub/cpr/deployment/failed',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

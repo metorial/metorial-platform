@@ -5,6 +5,7 @@ import { indexProviderListingQueue } from '../search/providerListing';
 
 export let listingCreatedQueue = createQueue<{ providerListingId: string }>({
   name: 'sub/pint/lc/listing/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -16,6 +17,7 @@ export let listingCreatedQueueProcessor = listingCreatedQueue.process(async data
 
 export let listingUpdatedQueue = createQueue<{ providerListingId: string }>({
   name: 'sub/pint/lc/listing/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -27,6 +29,7 @@ export let listingUpdatedQueueProcessor = listingUpdatedQueue.process(async data
 
 let listingChangedQueue = createQueue<{ providerListingId: string }>({
   name: 'sub/pint/lc/listing/changed',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

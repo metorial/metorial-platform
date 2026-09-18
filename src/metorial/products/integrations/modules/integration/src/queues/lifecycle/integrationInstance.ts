@@ -113,6 +113,7 @@ export let integrationInstanceArchiveGroupSourcesManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/int/lc/integrationInstance/archiveGroupSourcesMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -174,6 +175,7 @@ export let integrationInstanceArchiveGroupSourcesManyQueueProcessor =
 
 export let integrationInstanceCreatedQueue = createQueue<{ integrationInstanceId: string }>({
   name: 'sub/int/lc/integrationInstance/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -225,6 +227,7 @@ export let integrationInstanceCreatedQueueProcessor = integrationInstanceCreated
 
 export let integrationInstanceUpdatedQueue = createQueue<{ integrationInstanceId: string }>({
   name: 'sub/int/lc/integrationInstance/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -257,6 +260,7 @@ export let integrationInstanceUpdatedQueueProcessor = integrationInstanceUpdated
 
 export let integrationInstanceArchivedQueue = createQueue<{ integrationInstanceId: string }>({
   name: 'sub/int/lc/integrationInstance/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -276,6 +280,7 @@ export let integrationInstanceArchivedQueueProcessor =
 
 export let integrationInstanceDeletedQueue = createQueue<{ integrationInstanceId: string }>({
   name: 'sub/int/lc/integrationInstance/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

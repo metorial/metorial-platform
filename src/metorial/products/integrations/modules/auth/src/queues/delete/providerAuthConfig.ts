@@ -1,56 +1,36 @@
-import { createCron } from '@lowerdeck/cron';
+import {
+  archivedCleanupFindArgs,
+  archivedCleanupWhere,
+  archivedCleanupWorkerOpts,
+  createArchivedCleanupScan
+} from '@metorial-subspace/archived-cleanup';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../../env';
 import { providerAuthConfigDeletedQueue } from '../lifecycle/providerAuthConfig';
-import { getCutoffDate } from './_config';
 
-export let providerAuthConfigArchivedCleanupCron = createCron(
-  {
-    name: 'sub/auth/cron/providerAuthConfigArchivedCleanup',
-    cron: '0 0 * * *',
-    redisUrl: env.service.REDIS_URL
-  },
-  async () => {
-    await providerAuthConfigDeleteManyQueue.add({}, { id: 'many' });
-  }
-);
-
-export let providerAuthConfigDeleteManyQueue = createQueue<{ cursor?: string }>({
-  name: 'sub/auth/delete/providerAuthConfig/many',
-  redisUrl: env.service.REDIS_URL
+let providerAuthConfigArchivedCleanup = createArchivedCleanupScan({
+  cronName: 'sub/auth/cron/providerAuthConfigArchivedCleanup',
+  cron: '0 0 * * *',
+  manyQueueName: 'sub/auth/delete/providerAuthConfig/many',
+  redisUrl: env.service.REDIS_URL,
+  findArchived: ({ cursor, take }) =>
+    db.providerAuthConfig.findMany({
+      where: archivedCleanupWhere({ cursor }),
+      ...archivedCleanupFindArgs({ cursor, take })
+    }),
+  enqueue: ids => providerAuthConfigDeleteQueue.addMany(ids.map(id => ({ providerAuthConfigId: id })))
 });
 
-export let providerAuthConfigDeleteManyQueueProcessor =
-  providerAuthConfigDeleteManyQueue.process(async data => {
-    let authConfigs = await db.providerAuthConfig.findMany({
-      where: {
-        status: 'archived',
-        archivedAt: { lt: getCutoffDate() },
-        id: data.cursor ? { gt: data.cursor } : undefined
-      },
-      orderBy: { id: 'asc' },
-      take: 100,
-      select: { id: true }
-    });
-    if (authConfigs.length === 0) return;
-
-    await providerAuthConfigDeleteQueue.addMany(
-      authConfigs.map(authConfig => ({ providerAuthConfigId: authConfig.id }))
-    );
-
-    let lastAuthConfig = authConfigs[authConfigs.length - 1];
-    if (!lastAuthConfig) return;
-
-    await providerAuthConfigDeleteManyQueue.add({
-      cursor: lastAuthConfig.id
-    });
-  });
+export let providerAuthConfigArchivedCleanupCron = providerAuthConfigArchivedCleanup.cron;
+export let providerAuthConfigDeleteManyQueue = providerAuthConfigArchivedCleanup.manyQueue;
+export let providerAuthConfigDeleteManyQueueProcessor = providerAuthConfigArchivedCleanup.manyProcessor;
 
 export let providerAuthConfigDeleteQueue = createQueue<{ providerAuthConfigId: string }>({
   name: 'sub/auth/delete/providerAuthConfig',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: archivedCleanupWorkerOpts()
 });
 
 export let providerAuthConfigBackendDeleteQueue = createQueue<{

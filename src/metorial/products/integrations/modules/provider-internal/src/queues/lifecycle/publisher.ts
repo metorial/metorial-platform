@@ -4,6 +4,7 @@ import { indexPublisherQueue } from '../search/publisher';
 
 export let publisherCreatedQueue = createQueue<{ publisherId: string }>({
   name: 'sub/pint/lc/publisher/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -13,6 +14,7 @@ export let publisherCreatedQueueProcessor = publisherCreatedQueue.process(async 
 
 export let publisherUpdatedQueue = createQueue<{ publisherId: string }>({
   name: 'sub/pint/lc/publisher/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

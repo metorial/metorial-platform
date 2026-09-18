@@ -12,6 +12,7 @@ export let customDeploymentSucceededQueue = createQueue<{
   customProviderDeploymentId: string;
 }>({
   name: 'sub/cpr/deployment/succeeded',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

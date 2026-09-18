@@ -7,6 +7,7 @@ import { getCallbackEventDelegate } from '../lib/eventDelegation';
 
 export let callbackEventProcessQueue = createQueue<{ callbackEventId: string }>({
   name: 'sub/cb/event/process',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

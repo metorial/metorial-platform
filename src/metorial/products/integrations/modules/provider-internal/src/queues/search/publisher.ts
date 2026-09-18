@@ -5,6 +5,7 @@ import { env } from '../../env';
 
 export let indexPublisherQueue = createQueue<{ publisherId: string }>({
   name: 'sub/dep/sidx/publisher',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

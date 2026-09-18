@@ -1,5 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@lowerdeck/queue';
+
+let RANK_BATCH_SIZE = 500;
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 
@@ -23,7 +25,7 @@ export let processSingleRankQueue = createQueue<{ providerListingId: string }>({
 let rankCron = createCron(
   {
     name: 'sub/pint/rank/cron',
-    cron: '0 * * * *',
+    cron: '0 */4 * * *',
     redisUrl: env.service.REDIS_URL
   },
   async () => {
@@ -39,7 +41,7 @@ let startRankQueueProcessor = startRankQueue.process(async data => {
       id: data.cursor ? { gt: data.cursor } : undefined
     },
     select: { id: true },
-    take: 100,
+    take: RANK_BATCH_SIZE,
     orderBy: { id: 'asc' }
   });
   if (providers.length === 0) return;
@@ -51,7 +53,12 @@ let startRankQueueProcessor = startRankQueue.process(async data => {
     }))
   );
 
-  await startRankQueue.add({ cursor: providers[providers.length - 1]!.id });
+  if (providers.length === RANK_BATCH_SIZE) {
+    await startRankQueue.add(
+      { cursor: providers[providers.length - 1]!.id },
+      hourlyPacedDelay()
+    );
+  }
 });
 
 let processSingleRankQueueProcessor = processSingleRankQueue.process(async data => {

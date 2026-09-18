@@ -1,61 +1,38 @@
-import { createCron } from '@lowerdeck/cron';
+import {
+  archivedCleanupFindArgs,
+  archivedCleanupWhere,
+  archivedCleanupWorkerOpts,
+  createArchivedCleanupScan
+} from '@metorial-subspace/archived-cleanup';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { deleteChatsWhere } from '../../lib/chatLifecycle';
 import { chatInstanceDeletedQueue } from '../lifecycle/chatConnection';
-import { getCutoffDate } from './_config';
 
-export let chatInstanceArchivedCleanupCron = createCron(
-  {
-    name: 'sub/cht/cron/integrationInstanceArchivedCleanup',
-    cron: '0 0 * * *',
-    redisUrl: env.service.REDIS_URL
-  },
-  async () => {
-    await chatInstanceDeleteManyQueue.add({}, { id: 'many' });
-  }
-);
-
-export let chatInstanceDeleteManyQueue = createQueue<{ cursor?: string }>({
-  name: 'sub/cht/delete/integrationInstance/many',
-  redisUrl: env.service.REDIS_URL
+let chatInstanceArchivedCleanup = createArchivedCleanupScan({
+  cronName: 'sub/cht/cron/integrationInstanceArchivedCleanup',
+  cron: '0 0 * * *',
+  manyQueueName: 'sub/cht/delete/integrationInstance/many',
+  redisUrl: env.service.REDIS_URL,
+  findArchived: ({ cursor, take }) =>
+    db.chatInstance.findMany({
+      where: archivedCleanupWhere({ cursor }),
+      ...archivedCleanupFindArgs({ cursor, take })
+    }),
+  enqueue: ids => chatInstanceDeleteQueue.addMany(ids.map(id => ({ chatInstanceId: id })))
 });
 
-export let chatInstanceDeleteManyQueueProcessor = chatInstanceDeleteManyQueue.process(
-  async data => {
-    let instances = await db.chatInstance.findMany({
-      where: {
-        status: 'archived',
-        archivedAt: { lt: getCutoffDate() },
-        id: data.cursor ? { gt: data.cursor } : undefined
-      },
-      orderBy: { id: 'asc' },
-      take: 100,
-      select: { id: true }
-    });
-    if (instances.length === 0) return;
-
-    await chatInstanceDeleteQueue.addMany(
-      instances.map(instance => ({
-        chatInstanceId: instance.id
-      }))
-    );
-
-    let lastInstance = instances[instances.length - 1];
-    if (!lastInstance) return;
-
-    await chatInstanceDeleteManyQueue.add({
-      cursor: lastInstance.id
-    });
-  }
-);
+export let chatInstanceArchivedCleanupCron = chatInstanceArchivedCleanup.cron;
+export let chatInstanceDeleteManyQueue = chatInstanceArchivedCleanup.manyQueue;
+export let chatInstanceDeleteManyQueueProcessor = chatInstanceArchivedCleanup.manyProcessor;
 
 export let chatInstanceDeleteQueue = createQueue<{
   chatInstanceId: string;
 }>({
   name: 'sub/cht/delete/integrationInstance',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: archivedCleanupWorkerOpts({ max: 5, duration: 1000 })
 });
 
 export let chatInstanceDeleteQueueProcessor = chatInstanceDeleteQueue.process(async data => {

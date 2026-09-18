@@ -1,4 +1,8 @@
-import { createCron } from '@lowerdeck/cron';
+import {
+  archivedCleanupFindArgs,
+  archivedCleanupWorkerOpts,
+  createArchivedCleanupScan
+} from '@metorial-subspace/archived-cleanup';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { subDays } from 'date-fns';
@@ -6,47 +10,30 @@ import { env } from '../../env';
 
 let getDeletedMessageCutoffDate = () => subDays(new Date(), 5);
 
-export let chatMessageDeletedCleanupCron = createCron(
-  {
-    name: 'sub/cht/cron/deletedMessageCleanup',
-    cron: '0 1 * * *',
-    redisUrl: env.service.REDIS_URL
-  },
-  async () => {
-    await chatMessageDeleteManyQueue.add({}, { id: 'many' });
-  }
-);
-
-export let chatMessageDeleteManyQueue = createQueue<{ cursor?: string }>({
-  name: 'sub/cht/delete/chatMessage/many',
-  redisUrl: env.service.REDIS_URL
-});
-
-export let chatMessageDeleteManyQueueProcessor = chatMessageDeleteManyQueue.process(
-  async data => {
-    let messages = await db.chatMessage.findMany({
+let chatMessageDeletedCleanup = createArchivedCleanupScan({
+  cronName: 'sub/cht/cron/deletedMessageCleanup',
+  cron: '0 1 * * *',
+  manyQueueName: 'sub/cht/delete/chatMessage/many',
+  redisUrl: env.service.REDIS_URL,
+  findArchived: ({ cursor, take }) =>
+    db.chatMessage.findMany({
       where: {
         deletedAt: { lt: getDeletedMessageCutoffDate() },
-        id: data.cursor ? { gt: data.cursor } : undefined
+        ...(cursor ? { id: { gt: cursor } } : {})
       },
-      orderBy: { id: 'asc' },
-      take: 100,
-      select: { id: true }
-    });
-    if (messages.length === 0) return;
+      ...archivedCleanupFindArgs({ cursor, take })
+    }),
+  enqueue: ids => chatMessageDeleteQueue.addMany(ids.map(id => ({ messageId: id })))
+});
 
-    await chatMessageDeleteQueue.addMany(messages.map(message => ({ messageId: message.id })));
-
-    let lastMessage = messages[messages.length - 1];
-    if (!lastMessage) return;
-
-    await chatMessageDeleteManyQueue.add({ cursor: lastMessage.id });
-  }
-);
+export let chatMessageDeletedCleanupCron = chatMessageDeletedCleanup.cron;
+export let chatMessageDeleteManyQueue = chatMessageDeletedCleanup.manyQueue;
+export let chatMessageDeleteManyQueueProcessor = chatMessageDeletedCleanup.manyProcessor;
 
 export let chatMessageDeleteQueue = createQueue<{ messageId: string }>({
   name: 'sub/cht/delete/chatMessage',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: archivedCleanupWorkerOpts({ max: 20, duration: 1000 })
 });
 
 export let chatMessageDeleteQueueProcessor = chatMessageDeleteQueue.process(async data => {

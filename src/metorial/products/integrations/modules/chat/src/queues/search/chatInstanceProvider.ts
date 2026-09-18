@@ -7,6 +7,7 @@ export let indexChatInstanceProviderQueue = createQueue<{
   chatInstanceProviderId: string;
 }>({
   name: 'sub/cht/sidx/chatInstanceProvider',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -14,6 +14,7 @@ export let syncIntegrationInstanceSessionTemplatesQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/ses/lc/linkedSessionTemplate/syncMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -86,6 +87,7 @@ export let syncIntegrationInstanceSessionTemplateQueue = createQueue<{
   sessionTemplateId: string;
 }>({
   name: 'sub/ses/lc/linkedSessionTemplate/sync',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -260,6 +262,7 @@ export let archiveIntegrationInstanceSessionTemplatesQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/ses/lc/linkedSessionTemplate/archiveMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -308,6 +311,7 @@ export let archiveIntegrationInstanceSessionTemplateQueue = createQueue<{
   sessionTemplateId: string;
 }>({
   name: 'sub/ses/lc/linkedSessionTemplate/archive',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

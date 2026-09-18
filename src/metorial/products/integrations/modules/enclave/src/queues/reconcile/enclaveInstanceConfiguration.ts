@@ -70,7 +70,8 @@ let reconcileEnclaveInstanceConfigurationCron = createCron(
 
 export let reconcileEnclaveInstanceConfigurationManyQueue = createQueue<{ cursor?: string }>({
   name: 'sub/enc/rec/instanceConfig/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let reconcileEnclaveInstanceConfigurationManyQueueProcessor =

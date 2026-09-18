@@ -1,59 +1,36 @@
-import { createCron } from '@lowerdeck/cron';
+import {
+  archivedCleanupFindArgs,
+  archivedCleanupWhere,
+  archivedCleanupWorkerOpts,
+  createArchivedCleanupScan
+} from '@metorial-subspace/archived-cleanup';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { enqueueCallbackReconcileForIntegration } from '@metorial-subspace/module-callback/src/queues/reconcile/callback';
 import { env } from '../../env';
 import { integrationDeletedQueue } from '../lifecycle/integration';
-import { getCutoffDate } from './_config';
 
-export let integrationArchivedCleanupCron = createCron(
-  {
-    name: 'sub/int/cron/integrationArchivedCleanup',
-    cron: '0 0 * * *',
-    redisUrl: env.service.REDIS_URL
-  },
-  async () => {
-    await integrationDeleteManyQueue.add({}, { id: 'many' });
-  }
-);
-
-export let integrationDeleteManyQueue = createQueue<{ cursor?: string }>({
-  name: 'sub/int/delete/integration/many',
-  redisUrl: env.service.REDIS_URL
+let integrationArchivedCleanup = createArchivedCleanupScan({
+  cronName: 'sub/int/cron/integrationArchivedCleanup',
+  cron: '0 0 * * *',
+  manyQueueName: 'sub/int/delete/integration/many',
+  redisUrl: env.service.REDIS_URL,
+  findArchived: ({ cursor, take }) =>
+    db.integration.findMany({
+      where: archivedCleanupWhere({ cursor }),
+      ...archivedCleanupFindArgs({ cursor, take })
+    }),
+  enqueue: ids => integrationDeleteQueue.addMany(ids.map(id => ({ integrationId: id })))
 });
 
-export let integrationDeleteManyQueueProcessor = integrationDeleteManyQueue.process(
-  async data => {
-    let integrations = await db.integration.findMany({
-      where: {
-        status: 'archived',
-        archivedAt: { lt: getCutoffDate() },
-        id: data.cursor ? { gt: data.cursor } : undefined
-      },
-      orderBy: { id: 'asc' },
-      take: 100,
-      select: { id: true }
-    });
-    if (integrations.length === 0) return;
-
-    await integrationDeleteQueue.addMany(
-      integrations.map(integration => ({
-        integrationId: integration.id
-      }))
-    );
-
-    let lastIntegration = integrations[integrations.length - 1];
-    if (!lastIntegration) return;
-
-    await integrationDeleteManyQueue.add({
-      cursor: lastIntegration.id
-    });
-  }
-);
+export let integrationArchivedCleanupCron = integrationArchivedCleanup.cron;
+export let integrationDeleteManyQueue = integrationArchivedCleanup.manyQueue;
+export let integrationDeleteManyQueueProcessor = integrationArchivedCleanup.manyProcessor;
 
 export let integrationDeleteQueue = createQueue<{ integrationId: string }>({
   name: 'sub/int/delete/integration',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: archivedCleanupWorkerOpts()
 });
 
 export let integrationDeleteQueueProcessor = integrationDeleteQueue.process(async data => {

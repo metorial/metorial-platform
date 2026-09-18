@@ -5,6 +5,7 @@ import { env } from '../../env';
 
 export let indexChatChannelQueue = createQueue<{ chatChannelId: string }>({
   name: 'sub/cht/sidx/chatChannel',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

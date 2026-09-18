@@ -8,6 +8,7 @@ let SCM_SYNC_MANY_JOB_ID = 'scm-sync-many';
 
 export let scmSyncManyQueue = createQueue<{}>({
   name: 'sub/cpr/scm/sync/many',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 

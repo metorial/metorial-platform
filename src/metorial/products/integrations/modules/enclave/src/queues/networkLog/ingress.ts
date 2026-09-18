@@ -85,7 +85,8 @@ let ingressNetworkLogPersistCron = createCron(
 
 export let ingressNetworkLogPersistManyQueue = createQueue<{}>({
   name: 'sub/enc/netLog/ingress/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let ingressNetworkLogPersistManyQueueProcessor =

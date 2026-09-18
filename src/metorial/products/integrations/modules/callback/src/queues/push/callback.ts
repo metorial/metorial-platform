@@ -4,6 +4,7 @@ import { callbackInternalService } from '../../services/callbackInternal';
 
 export let callbackPushQueue = createQueue<{ callbackId: string }>({
   name: 'sub/cb/push/callback',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

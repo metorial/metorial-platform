@@ -1,12 +1,13 @@
 import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, dailyPacedDelay } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { RETENTION_BATCH_SIZE, retentionSyncWorkerOpts } from './_config';
 
 export let tenantLogRetentionSyncSearchQueue = createQueue<{ cursor?: string }>({
   name: 'sub/ten/ret/sync/search',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let tenantLogRetentionSyncQueue = createQueue<{ tenantId: string }>({
@@ -45,9 +46,12 @@ export let tenantLogRetentionSyncSearchQueueProcessor =
       }))
     );
 
-    await tenantLogRetentionSyncSearchQueue.add({
-      cursor: tenants[tenants.length - 1]?.id
-    });
+    if (tenants.length === RETENTION_BATCH_SIZE) {
+      await tenantLogRetentionSyncSearchQueue.add(
+        { cursor: tenants[tenants.length - 1]!.id },
+        dailyPacedDelay()
+      );
+    }
   });
 
 export let tenantLogRetentionSyncQueueProcessor = tenantLogRetentionSyncQueue.process(

@@ -5,6 +5,7 @@ import { env } from '../../env';
 
 export let indexProviderConfigVaultQueue = createQueue<{ providerConfigVaultId: string }>({
   name: 'sub/dep/sidx/providerConfigVault',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

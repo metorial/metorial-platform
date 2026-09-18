@@ -28,6 +28,7 @@ export let integrationInstanceProviderSetQueue = createQueue<{
   integrationInstanceProviderId: string;
 }>({
   name: 'sub/int/lc/integrationInstanceProvider/set',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -133,6 +134,7 @@ export let integrationInstanceProviderSyncGroupProvidersManyQueue = createQueue<
   cursor?: string;
 }>({
   name: 'sub/int/lc/integrationInstanceProvider/syncGroupProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 

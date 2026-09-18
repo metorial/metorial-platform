@@ -31,6 +31,7 @@ let resetCompiledNetworkRulesForNetworkPolicyId = async (networkPolicyId: string
 
 export let networkPolicyCreatedQueue = createQueue<{ networkPolicyId: string }>({
   name: 'sub/enc/lc/networkPolicy/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -42,6 +43,7 @@ export let networkPolicyCreatedQueueProcessor = networkPolicyCreatedQueue.proces
 
 export let networkPolicyUpdatedQueue = createQueue<{ networkPolicyId: string }>({
   name: 'sub/enc/lc/networkPolicy/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -53,6 +55,7 @@ export let networkPolicyUpdatedQueueProcessor = networkPolicyUpdatedQueue.proces
 
 export let networkPolicyDeletedQueue = createQueue<{ networkPolicyId: string }>({
   name: 'sub/enc/lc/networkPolicy/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -1,60 +1,40 @@
-import { createCron } from '@lowerdeck/cron';
+import {
+  archivedCleanupFindArgs,
+  archivedCleanupWhere,
+  archivedCleanupWorkerOpts,
+  createArchivedCleanupScan
+} from '@metorial-subspace/archived-cleanup';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../../env';
 import { providerConfigDeletedQueue } from '../lifecycle/providerConfig';
-import { getCutoffDate } from './_config';
 
-export let providerConfigArchivedCleanupCron = createCron(
-  {
-    name: 'sub/dep/cron/providerConfigArchivedCleanup',
-    cron: '0 0 * * *',
-    redisUrl: env.service.REDIS_URL
-  },
-  async () => {
-    await providerConfigDeleteManyQueue.add({}, { id: 'many' });
-  }
-);
-
-export let providerConfigDeleteManyQueue = createQueue<{ cursor?: string }>({
-  name: 'sub/dep/delete/providerConfig/many',
-  redisUrl: env.service.REDIS_URL
+let providerConfigArchivedCleanup = createArchivedCleanupScan({
+  cronName: 'sub/dep/cron/providerConfigArchivedCleanup',
+  cron: '0 0 * * *',
+  manyQueueName: 'sub/dep/delete/providerConfig/many',
+  redisUrl: env.service.REDIS_URL,
+  findArchived: ({ cursor, take }) =>
+    db.providerConfig.findMany({
+      where: archivedCleanupWhere({ cursor }),
+      ...archivedCleanupFindArgs({ cursor, take })
+    }),
+  enqueue: ids => providerConfigDeleteQueue.addMany(ids.map(id => ({ providerConfigId: id })))
 });
 
-export let providerConfigDeleteManyQueueProcessor = providerConfigDeleteManyQueue.process(
-  async data => {
-    let providerConfigs = await db.providerConfig.findMany({
-      where: {
-        status: 'archived',
-        archivedAt: { lt: getCutoffDate() },
-        id: data.cursor ? { gt: data.cursor } : undefined
-      },
-      orderBy: { id: 'asc' },
-      take: 100,
-      select: { id: true }
-    });
-    if (providerConfigs.length === 0) return;
-
-    await providerConfigDeleteQueue.addMany(
-      providerConfigs.map(providerConfig => ({ providerConfigId: providerConfig.id }))
-    );
-
-    let lastProviderConfig = providerConfigs[providerConfigs.length - 1];
-    if (!lastProviderConfig) return;
-
-    await providerConfigDeleteManyQueue.add({
-      cursor: lastProviderConfig.id
-    });
-  }
-);
+export let providerConfigArchivedCleanupCron = providerConfigArchivedCleanup.cron;
+export let providerConfigDeleteManyQueue = providerConfigArchivedCleanup.manyQueue;
+export let providerConfigDeleteManyQueueProcessor =
+  providerConfigArchivedCleanup.manyProcessor;
 
 export let providerConfigDeleteQueue = createQueue<{
   providerConfigId: string;
   skipVaultCleanup?: boolean;
 }>({
   name: 'sub/dep/delete/providerConfig',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: archivedCleanupWorkerOpts()
 });
 
 export let providerConfigBackendDeleteQueue = createQueue<{
@@ -67,8 +47,8 @@ export let providerConfigBackendDeleteQueue = createQueue<{
   redisUrl: env.service.REDIS_URL
 });
 
-export let providerConfigBackendDeleteQueueProcessor = providerConfigBackendDeleteQueue.process(
-  async data => {
+export let providerConfigBackendDeleteQueueProcessor =
+  providerConfigBackendDeleteQueue.process(async data => {
     let tenant = await db.tenant.findUnique({
       where: { oid: BigInt(data.tenantOid) }
     });
@@ -85,8 +65,7 @@ export let providerConfigBackendDeleteQueueProcessor = providerConfigBackendDele
         shuttleConfigOid: data.shuttleConfigOid ? BigInt(data.shuttleConfigOid) : null
       }
     });
-  }
-);
+  });
 
 export let providerConfigDeleteQueueProcessor = providerConfigDeleteQueue.process(
   async data => {

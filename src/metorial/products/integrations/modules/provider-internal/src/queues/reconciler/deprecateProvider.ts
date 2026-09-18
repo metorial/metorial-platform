@@ -1,19 +1,13 @@
-import { createCron } from '@lowerdeck/cron';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, dailyPacedDelay, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { providerInternalService } from '../../services/provider';
 
-export let deprecateDockerProviderReconcilerCron = createCron(
-  {
-    name: 'sub/pint/reconcile/provider/deprecate/cron',
-    redisUrl: env.service.REDIS_URL,
-    cron: '0 0 * * *'
-  },
-  async () => {
-    await deprecateDockerProviderManyQueue.add({});
-  }
-);
+let DEPRECATE_PROVIDER_BATCH_SIZE = 500;
+
+export let startDockerProviderDeprecation = async () => {
+  await deprecateDockerProviderManyQueue.add({});
+};
 
 let deprecateDockerProviderManyQueue = createQueue<{ cursor?: string }>({
   name: 'sub/pint/reconcile/provider/deprecate/many',
@@ -35,7 +29,7 @@ export let deprecateDockerProviderManyQueueProcessor =
         }
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: DEPRECATE_PROVIDER_BATCH_SIZE,
       select: { id: true }
     });
     if (providers.length === 0) return;
@@ -46,9 +40,12 @@ export let deprecateDockerProviderManyQueueProcessor =
       }))
     );
 
-    await deprecateDockerProviderManyQueue.add({
-      cursor: providers[providers.length - 1]!.id
-    });
+    if (providers.length === DEPRECATE_PROVIDER_BATCH_SIZE) {
+      await deprecateDockerProviderManyQueue.add(
+        { cursor: providers[providers.length - 1]!.id },
+        dailyPacedDelay()
+      );
+    }
   });
 
 let deprecateDockerProviderSingleQueue = createQueue<{ providerId: string }>({

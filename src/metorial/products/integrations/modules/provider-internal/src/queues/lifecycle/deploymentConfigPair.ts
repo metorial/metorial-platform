@@ -7,6 +7,7 @@ export let providerDeploymentConfigPairCreatedQueue = createQueue<{
   providerDeploymentConfigPairId: string;
 }>({
   name: 'sub/pint/lc/providerDeploymentConfigPair/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -23,6 +24,7 @@ export let providerDeploymentConfigPairVersionCreatedQueue = createQueue<{
   providerDeploymentConfigPairVersionId: string;
 }>({
   name: 'sub/pint/lc/providerDeploymentConfigPair/ver/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

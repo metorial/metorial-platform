@@ -8,6 +8,7 @@ export let customDeploymentPropagateToOtherEnvironmentsQueue = createQueue<{
   customProviderDeploymentId: string;
 }>({
   name: 'sub/cpr/deployment/prop-other-envs',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

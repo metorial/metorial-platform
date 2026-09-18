@@ -19,6 +19,7 @@ import { indexCustomProviderQueue } from '../search/customProvider';
 
 export let customProviderCreatedQueue = createQueue<{ customProviderId: string }>({
   name: 'sub/cpr/lc/customProvider/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -30,6 +31,7 @@ export let customProviderCreatedQueueProcessor = customProviderCreatedQueue.proc
 
 export let customProviderUpdatedQueue = createQueue<{ customProviderId: string }>({
   name: 'sub/cpr/lc/customProvider/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -41,6 +43,7 @@ export let customProviderUpdatedQueueProcessor = customProviderUpdatedQueue.proc
 
 export let customProviderArchivedQueue = createQueue<{ customProviderId: string }>({
   name: 'sub/cpr/lc/customProvider/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -124,6 +127,7 @@ export let customProviderArchiveIntegrationProvidersManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveIntegrationProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -184,6 +188,7 @@ export let customProviderArchiveMagicMcpServerProvidersManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveMagicMcpServerProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -242,6 +247,7 @@ export let customProviderArchiveDeploymentsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveDeploymentsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -322,6 +328,7 @@ export let customProviderArchiveConfigsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveConfigsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -381,6 +388,7 @@ export let customProviderArchiveAuthConfigsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveAuthConfigsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -440,6 +448,7 @@ export let customProviderArchiveAuthCredentialsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveAuthCredentialsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -499,6 +508,7 @@ export let customProviderArchiveConfigVaultsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveConfigVaultsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -558,6 +568,7 @@ export let customProviderArchiveProviderSetupSessionsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveProviderSetupSessionsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -610,6 +621,7 @@ export let customProviderArchiveIdentityCredentialsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveIdentityCredentialsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -671,6 +683,7 @@ export let customProviderArchiveSessionProvidersManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveSessionProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -723,6 +736,7 @@ export let customProviderArchiveSessionTemplateProvidersManyQueue = createQueue<
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveSessionTemplateProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -780,6 +794,7 @@ export let customProviderDeleteFirewallBindingsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/deleteFirewallBindingsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -842,6 +857,7 @@ export let customProviderArchiveSkillResourcesManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveSkillResourcesMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -922,6 +938,7 @@ export let customProviderArchiveMonitorsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cpr/lc/customProvider/archiveMonitorsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 

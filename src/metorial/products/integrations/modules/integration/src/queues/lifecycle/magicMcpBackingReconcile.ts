@@ -23,6 +23,7 @@ export type MagicMcpBackingReconcileInput = {
 
 export let magicMcpBackingReconcileQueue = createQueue<MagicMcpBackingReconcileInput>({
   name: 'sub/int/magicMcpBacking/reconcile',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

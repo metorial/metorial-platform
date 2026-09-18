@@ -56,6 +56,7 @@ let resetCompiledNetworkRulesForBindingId = async (firewallBindingId: string) =>
 
 export let firewallBindingCreatedQueue = createQueue<{ firewallBindingId: string }>({
   name: 'sub/enc/lc/firewallBinding/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -67,6 +68,7 @@ export let firewallBindingCreatedQueueProcessor = firewallBindingCreatedQueue.pr
 
 export let firewallBindingDeletedQueue = createQueue<FirewallBindingLifecycleTarget>({
   name: 'sub/enc/lc/firewallBinding/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -7,6 +7,7 @@ export let archiveIntegrationInstanceQueue = createQueue<{
   integrationInstanceId: string;
 }>({
   name: 'sub/int/lc/integrationInstance/archive',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

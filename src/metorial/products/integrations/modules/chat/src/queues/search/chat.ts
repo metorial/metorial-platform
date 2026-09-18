@@ -7,6 +7,7 @@ import { indexChatWorkspaceQueue } from './chatWorkspace';
 
 export let indexChatQueue = createQueue<{ chatId: string }>({
   name: 'sub/cht/sidx/chat',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

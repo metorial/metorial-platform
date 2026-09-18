@@ -5,6 +5,7 @@ import { env } from '../../env';
 
 export let indexCallbackQueue = createQueue<{ callbackId: string }>({
   name: 'sub/cb/sidx/callback',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

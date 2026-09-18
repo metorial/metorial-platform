@@ -7,6 +7,7 @@ export let indexIdentityDelegationConfigQueue = createQueue<{
   identityDelegationConfigId: string;
 }>({
   name: 'sub/idn/sidx/identityDelegationConfig',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

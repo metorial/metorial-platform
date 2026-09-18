@@ -9,6 +9,7 @@ export let integrationInstanceGroupProviderSetQueue = createQueue<{
   integrationInstanceGroupProviderId: string;
 }>({
   name: 'sub/int/lc/integrationInstanceGroupProvider/set',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

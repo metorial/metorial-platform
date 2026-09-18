@@ -5,6 +5,7 @@ import { env } from '../../env';
 
 export let indexChatConnectionQueue = createQueue<{ chatConnectionId: string }>({
   name: 'sub/cht/sidx/integration',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

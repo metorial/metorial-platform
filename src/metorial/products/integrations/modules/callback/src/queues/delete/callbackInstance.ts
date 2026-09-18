@@ -1,55 +1,36 @@
-import { createCron } from '@lowerdeck/cron';
+import {
+  archivedCleanupFindArgs,
+  archivedCleanupWhere,
+  archivedCleanupWorkerOpts,
+  createArchivedCleanupScan
+} from '@metorial-subspace/archived-cleanup';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
-import { getCutoffDate } from './_config';
 
-export let callbackInstanceArchivedCleanupCron = createCron(
-  {
-    name: 'sub/cb/cron/callbackInstanceArchivedCleanup',
-    cron: '30 1 * * *',
-    redisUrl: env.service.REDIS_URL
-  },
-  async () => {
-    await callbackInstanceDeleteManyQueue.add({}, { id: 'many' });
-  }
-);
-
-export let callbackInstanceDeleteManyQueue = createQueue<{ cursor?: string }>({
-  name: 'sub/cb/delete/callbackInstance/many',
-  redisUrl: env.service.REDIS_URL
+let callbackInstanceArchivedCleanup = createArchivedCleanupScan({
+  cronName: 'sub/cb/cron/callbackInstanceArchivedCleanup',
+  cron: '30 1 * * *',
+  manyQueueName: 'sub/cb/delete/callbackInstance/many',
+  redisUrl: env.service.REDIS_URL,
+  findArchived: ({ cursor, take }) =>
+    db.callbackInstance.findMany({
+      where: archivedCleanupWhere({ cursor }),
+      ...archivedCleanupFindArgs({ cursor, take })
+    }),
+  enqueue: ids =>
+    callbackInstanceDeleteQueue.addMany(ids.map(id => ({ callbackInstanceId: id })))
 });
 
-export let callbackInstanceDeleteManyQueueProcessor = callbackInstanceDeleteManyQueue.process(
-  async data => {
-    let callbackInstances = await db.callbackInstance.findMany({
-      where: {
-        status: 'archived',
-        archivedAt: { lt: getCutoffDate() },
-        id: data.cursor ? { gt: data.cursor } : undefined
-      },
-      orderBy: { id: 'asc' },
-      take: 100,
-      select: { id: true }
-    });
-    if (callbackInstances.length === 0) return;
-
-    await callbackInstanceDeleteQueue.addMany(
-      callbackInstances.map(callbackInstance => ({
-        callbackInstanceId: callbackInstance.id
-      }))
-    );
-
-    let last = callbackInstances[callbackInstances.length - 1];
-    if (!last) return;
-
-    await callbackInstanceDeleteManyQueue.add({ cursor: last.id });
-  }
-);
+export let callbackInstanceArchivedCleanupCron = callbackInstanceArchivedCleanup.cron;
+export let callbackInstanceDeleteManyQueue = callbackInstanceArchivedCleanup.manyQueue;
+export let callbackInstanceDeleteManyQueueProcessor =
+  callbackInstanceArchivedCleanup.manyProcessor;
 
 export let callbackInstanceDeleteQueue = createQueue<{ callbackInstanceId: string }>({
   name: 'sub/cb/delete/callbackInstance',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: archivedCleanupWorkerOpts()
 });
 
 export let callbackInstanceDeleteQueueProcessor = callbackInstanceDeleteQueue.process(

@@ -27,6 +27,7 @@ export let providerAuthConfigCreatedQueue = createQueue<{
   providerAuthConfigId: string;
 }>({
   name: 'sub/auth/lc/providerAuthConfig/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -78,6 +79,7 @@ export let providerAuthConfigUpdatedQueue = createQueue<{
   providerAuthConfigId: string;
 }>({
   name: 'sub/auth/lc/providerAuthConfig/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -96,6 +98,7 @@ export let providerAuthConfigArchivedQueue = createQueue<{
   providerAuthConfigId: string;
 }>({
   name: 'sub/auth/lc/providerAuthConfig/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -166,6 +169,7 @@ export let providerAuthConfigDeletedQueue = createQueue<{
   providerAuthConfigId: string;
 }>({
   name: 'sub/auth/lc/providerAuthConfig/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

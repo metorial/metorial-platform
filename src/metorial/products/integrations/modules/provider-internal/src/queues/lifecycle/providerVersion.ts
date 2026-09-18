@@ -4,6 +4,7 @@ import { providerVersionSyncSpecificationQueue } from '../version/syncSpec';
 
 export let providerVersionCreatedQueue = createQueue<{ providerVersionId: string }>({
   name: 'sub/pint/lc/providerVersion/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -17,6 +18,7 @@ export let providerVersionCreatedQueueProcessor = providerVersionCreatedQueue.pr
 
 export let providerVersionUpdatedQueue = createQueue<{ providerVersionId: string }>({
   name: 'sub/pint/lc/providerVersion/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

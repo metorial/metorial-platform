@@ -38,7 +38,8 @@ let syncCollectionsReg = createQueue<{
   registryUrl: string;
 }>({
   name: 'sub/slt/sync/collections/reg',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncCollectionsRegProcessor = syncCollectionsReg.process(async data => {
@@ -77,7 +78,8 @@ let syncCollectionsMany = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/slt/sync/collections/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncCollectionsManyProcessor = syncCollectionsMany.process(async data => {

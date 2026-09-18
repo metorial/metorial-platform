@@ -6,6 +6,7 @@ import { providerConfigArchivedQueue } from './providerConfig';
 
 export let providerConfigVaultCreatedQueue = createQueue<{ providerConfigVaultId: string }>({
   name: 'sub/dep/lc/providerConfigVault/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -19,6 +20,7 @@ export let providerConfigVaultCreatedQueueProcessor = providerConfigVaultCreated
 
 export let providerConfigVaultUpdatedQueue = createQueue<{ providerConfigVaultId: string }>({
   name: 'sub/dep/lc/providerConfigVault/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -32,6 +34,7 @@ export let providerConfigVaultUpdatedQueueProcessor = providerConfigVaultUpdated
 
 export let providerConfigVaultArchivedQueue = createQueue<{ providerConfigVaultId: string }>({
   name: 'sub/dep/lc/providerConfigVault/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -58,6 +61,7 @@ export let providerConfigVaultArchiveConfigsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/dep/lc/providerConfigVault/archiveConfigsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -101,6 +105,7 @@ export let providerConfigVaultArchiveConfigsManyQueueProcessor =
 
 export let providerConfigVaultDeletedQueue = createQueue<{ providerConfigVaultId: string }>({
   name: 'sub/dep/lc/providerConfigVault/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

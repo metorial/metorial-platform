@@ -7,6 +7,7 @@ export let commitApplyQueue = createQueue<{
   customProviderCommitId: string;
 }>({
   name: 'sub/cpr/commit/apply',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

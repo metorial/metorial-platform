@@ -6,6 +6,7 @@ import { indexProviderConfigQueue } from '../search/providerConfig';
 
 export let providerConfigCreatedQueue = createQueue<{ providerConfigId: string }>({
   name: 'sub/dep/lc/providerConfig/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -50,6 +51,7 @@ export let providerConfigCreatedQueueProcessor = providerConfigCreatedQueue.proc
 
 export let providerConfigUpdatedQueue = createQueue<{ providerConfigId: string }>({
   name: 'sub/dep/lc/providerConfig/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -61,6 +63,7 @@ export let providerConfigUpdatedQueueProcessor = providerConfigUpdatedQueue.proc
 
 export let providerConfigArchivedQueue = createQueue<{ providerConfigId: string }>({
   name: 'sub/dep/lc/providerConfig/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -145,6 +148,7 @@ export let providerConfigArchivedQueueProcessor = providerConfigArchivedQueue.pr
 
 export let providerConfigDeletedQueue = createQueue<{ providerConfigId: string }>({
   name: 'sub/dep/lc/providerConfig/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

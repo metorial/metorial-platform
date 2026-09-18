@@ -4,6 +4,7 @@ import { env } from '../../env';
 
 export let sessionProviderCreatedQueue = createQueue<{ sessionProviderId: string }>({
   name: 'sub/ses/lc/sessionProvider/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

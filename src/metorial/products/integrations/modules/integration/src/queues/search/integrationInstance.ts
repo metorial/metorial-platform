@@ -5,6 +5,7 @@ import { env } from '../../env';
 
 export let indexIntegrationInstanceQueue = createQueue<{ integrationInstanceId: string }>({
   name: 'sub/int/sidx/integrationInstance',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

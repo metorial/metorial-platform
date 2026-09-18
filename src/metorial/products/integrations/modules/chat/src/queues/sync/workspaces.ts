@@ -1,10 +1,12 @@
 import { createCron } from '@lowerdeck/cron';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, dailyPacedDelay, QueueRetryError } from '@lowerdeck/queue';
 import { addAfterTransactionHook, db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { chatAdapterService } from '../../internal/chatAdapter';
 import { chatWorkspaceInternalService } from '../../internal/chatWorkspace';
 import { describeChatFailure, shouldRetryChatCall } from '../../lib/chatError';
+
+let SYNC_WORKSPACES_BATCH_SIZE = 500;
 
 export let syncChatWorkspacesCron = createCron(
   {
@@ -19,36 +21,39 @@ export let syncChatWorkspacesCron = createCron(
 
 export let syncChatWorkspacesManyQueue = createQueue<{ cursor?: string }>({
   name: 'sub/cht/sync/workspaces/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncChatWorkspacesManyQueueProcessor = syncChatWorkspacesManyQueue.process(
-  async data => {
+  async job => {
     let providers = await db.chatInstanceProvider.findMany({
       where: {
         status: 'active',
         isParentDeleted: false,
         chatInstance: { status: 'active' },
-        id: data.cursor ? { gt: data.cursor } : undefined
+        id: job.cursor ? { gt: job.cursor } : undefined
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: SYNC_WORKSPACES_BATCH_SIZE,
       select: { id: true }
     });
-    if (providers.length === 0) return;
 
-    await syncChatWorkspacesForProviderQueue.addMany(
-      providers.map(provider => ({
-        chatInstanceProviderId: provider.id
-      }))
-    );
+    if (providers.length) {
+      await syncChatWorkspacesForProviderQueue.addManyWithOps(
+        providers.map(provider => ({
+          data: { chatInstanceProviderId: provider.id },
+          opts: { id: `ws-sync-${provider.id}` }
+        }))
+      );
+    }
 
-    let lastProvider = providers[providers.length - 1];
-    if (!lastProvider) return;
-
-    await syncChatWorkspacesManyQueue.add({
-      cursor: lastProvider.id
-    });
+    if (providers.length === SYNC_WORKSPACES_BATCH_SIZE) {
+      await syncChatWorkspacesManyQueue.add(
+        { cursor: providers[providers.length - 1]!.id },
+        dailyPacedDelay()
+      );
+    }
   }
 );
 
@@ -58,7 +63,7 @@ export let syncChatWorkspacesForProviderQueue = createQueue<{
 }>({
   name: 'sub/cht/sync/workspaces/provider',
   redisUrl: env.service.REDIS_URL,
-  workerOpts: { concurrency: 5 }
+  workerOpts: { concurrency: 5, limiter: { max: 5, duration: 1000 } }
 });
 
 export let enqueueSyncChatWorkspacesForProvider = (chatInstanceProviderId: string) =>

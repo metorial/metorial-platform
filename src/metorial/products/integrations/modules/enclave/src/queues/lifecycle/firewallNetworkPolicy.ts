@@ -4,6 +4,7 @@ import { env } from '../../env';
 
 export let firewallNetworkPolicyLinksUpdatedQueue = createQueue<{ firewallId: string }>({
   name: 'sub/enc/lc/firewall/networkPolicyLinks/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

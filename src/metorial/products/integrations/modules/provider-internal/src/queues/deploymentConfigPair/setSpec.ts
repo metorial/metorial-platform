@@ -26,6 +26,7 @@ export let providerDeploymentConfigPairSetSpecificationQueue = createQueue<{
       };
 }>({
   name: 'sub/pint/pdep/spec/set',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

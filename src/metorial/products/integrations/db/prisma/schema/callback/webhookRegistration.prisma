@@ -49,6 +49,7 @@ model WebhookRegistration {
 
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([providerOid, status])
+  @@index([status, archivedAt])
   @@index([providerVariantOid])
   @@index([projectOid])
   @@index([instanceOid])

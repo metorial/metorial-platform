@@ -15,6 +15,7 @@ import { integrationProviderArchivedQueue } from './integrationProvider';
 
 export let integrationCreatedQueue = createQueue<{ integrationId: string }>({
   name: 'sub/int/lc/integration/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -25,6 +26,7 @@ export let integrationCreatedQueueProcessor = integrationCreatedQueue.process(as
 
 export let integrationUpdatedQueue = createQueue<{ integrationId: string }>({
   name: 'sub/int/lc/integration/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -35,6 +37,7 @@ export let integrationUpdatedQueueProcessor = integrationUpdatedQueue.process(as
 
 export let integrationArchivedQueue = createQueue<{ integrationId: string }>({
   name: 'sub/int/lc/integration/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -84,6 +87,7 @@ export let integrationArchiveInstancesManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/int/lc/integration/archiveInstancesMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -155,6 +159,7 @@ export let integrationArchiveProvidersManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/int/lc/integration/archiveProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -222,6 +227,7 @@ export let integrationArchiveProvidersManyQueueProcessor =
 
 export let integrationDeletedQueue = createQueue<{ integrationId: string }>({
   name: 'sub/int/lc/integration/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

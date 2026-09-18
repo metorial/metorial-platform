@@ -8,6 +8,7 @@ export let providerAuthCredentialsCreatedQueue = createQueue<{
   providerAuthCredentialsId: string;
 }>({
   name: 'sub/auth/lc/providerAuthCredentials/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -71,6 +72,7 @@ export let providerAuthCredentialsUpdatedQueue = createQueue<{
   providerAuthCredentialsId: string;
 }>({
   name: 'sub/auth/lc/providerAuthCredentials/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -85,6 +87,7 @@ export let providerAuthCredentialsArchivedQueue = createQueue<{
   providerAuthCredentialsId: string;
 }>({
   name: 'sub/auth/lc/providerAuthCredentials/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -111,6 +114,7 @@ export let providerAuthCredentialsArchiveAuthConfigsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/auth/lc/providerAuthCredentials/archiveAuthConfigsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -157,6 +161,7 @@ export let providerAuthCredentialsDeletedQueue = createQueue<{
   providerAuthCredentialsId: string;
 }>({
   name: 'sub/auth/lc/providerAuthCredentials/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

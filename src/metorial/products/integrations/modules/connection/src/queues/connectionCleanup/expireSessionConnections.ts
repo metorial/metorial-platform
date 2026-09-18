@@ -15,9 +15,12 @@ let expireSessionConnectionsCron = createCron(
   }
 );
 
+let EXPIRE_CONNECTIONS_BATCH_SIZE = 500;
+
 let expireSessionConnectionsQueue = createQueue<{ cursor?: string }>({
   name: 'sub/con/conn/expire/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let expireSessionConnectionsQueueProcessor = expireSessionConnectionsQueue.process(
@@ -31,7 +34,7 @@ let expireSessionConnectionsQueueProcessor = expireSessionConnectionsQueue.proce
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: EXPIRE_CONNECTIONS_BATCH_SIZE,
       select: { id: true }
     });
     if (connections.length === 0) return;
@@ -40,14 +43,18 @@ let expireSessionConnectionsQueueProcessor = expireSessionConnectionsQueue.proce
       connections.map(conn => ({ connectionId: conn.id }))
     );
 
-    let lastConnection = connections[connections.length - 1];
-    await expireSessionConnectionsQueue.add({ cursor: lastConnection!.id });
+    if (connections.length === EXPIRE_CONNECTIONS_BATCH_SIZE) {
+      await expireSessionConnectionsQueue.add({
+        cursor: connections[connections.length - 1]!.id
+      });
+    }
   }
 );
 
 let expireSessionConnectionQueue = createQueue<{ connectionId: string }>({
   name: 'sub/con/conn/expire/single',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 50 }
 });
 
 let expireSessionConnectionQueueProcessor = expireSessionConnectionQueue.process(

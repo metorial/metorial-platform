@@ -5,6 +5,7 @@ export let providerSetupSessionCreatedQueue = createQueue<{
   providerSetupSessionId: string;
 }>({
   name: 'sub/auth/lc/providerSetupSession/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -15,6 +16,7 @@ export let providerSetupSessionUpdatedQueue = createQueue<{
   providerSetupSessionId: string;
 }>({
   name: 'sub/auth/lc/providerSetupSession/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

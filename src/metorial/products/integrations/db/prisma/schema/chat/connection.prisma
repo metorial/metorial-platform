@@ -47,6 +47,7 @@ model ChatConnection {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
+  @@index([status, archivedAt])
   @@index([projectOid])
   @@index([instanceOid])
 }

@@ -10,6 +10,7 @@ export let sessionTemplateProviderCreatedQueue = createQueue<{
   sessionTemplateProviderId: string;
 }>({
   name: 'sub/ses/lc/sessionTemplateProvider/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -75,6 +76,7 @@ export let sessionTemplateSyncHashQueue = createQueue<{
   sessionTemplateId: string;
 }>({
   name: 'sub/ses/lc/sessionTemplate/syncHash',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

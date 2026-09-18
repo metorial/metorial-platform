@@ -19,7 +19,8 @@ export let callbackRetrySyncCron = createCron(
 
 export let callbackRetrySyncManyQueue = createQueue<{ cursor?: string }>({
   name: 'sub/cb/rec/retrySync/callback/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let callbackRetrySyncManyQueueProcessor = callbackRetrySyncManyQueue.process(
@@ -51,7 +52,8 @@ export let callbackRetrySyncManyQueueProcessor = callbackRetrySyncManyQueue.proc
 
 export let callbackInstanceRetrySyncManyQueue = createQueue<{ cursor?: string }>({
   name: 'sub/cb/rec/retrySync/callbackInstance/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let callbackInstanceRetrySyncManyQueueProcessor =

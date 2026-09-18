@@ -6,6 +6,7 @@ import { functionBay, getTenantForFunctionBay } from '../../functionBay';
 
 export let enclaveCreatedQueue = createQueue<{ enclaveId: string }>({
   name: 'sub/enc/lc/enclave/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -39,6 +40,7 @@ export let enclaveCreatedQueueProcessor = enclaveCreatedQueue.process(async data
 
 export let enclaveUpdatedQueue = createQueue<{ enclaveId: string }>({
   name: 'sub/enc/lc/enclave/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

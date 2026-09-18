@@ -1,3 +1,1 @@
-import { subDays } from 'date-fns';
-
-export let getCutoffDate = () => subDays(new Date(), 14);
+export { getCutoffDate } from '@metorial-subspace/archived-cleanup';

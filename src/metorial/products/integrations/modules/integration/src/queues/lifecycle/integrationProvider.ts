@@ -33,6 +33,7 @@ let syncIntegrationInstanceGroupSessionTemplates = async (
 
 export let integrationProviderCreatedQueue = createQueue<{ integrationProviderId: string }>({
   name: 'sub/int/lc/integrationProvider/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -60,6 +61,7 @@ export let integrationProviderCreatedQueueProcessor = integrationProviderCreated
 
 export let integrationProviderUpdatedQueue = createQueue<{ integrationProviderId: string }>({
   name: 'sub/int/lc/integrationProvider/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -92,6 +94,7 @@ export let integrationProviderUpdatedSyncIntegrationInstanceSessionsQueue = crea
   cursor?: string;
 }>({
   name: 'sub/int/lc/integrationProvider/updated/instance',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -157,6 +160,7 @@ export let integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueue =
   cursor?: string;
 }>({
   name: 'sub/int/lc/integrationProvider/updated/group',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -231,6 +235,7 @@ export let integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueuePr
 
 export let integrationProviderArchivedQueue = createQueue<{ integrationProviderId: string }>({
   name: 'sub/int/lc/integrationProvider/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -262,6 +267,7 @@ export let integrationProviderArchiveInstanceProvidersManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/int/lc/integrationProvider/archiveInstanceProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -339,6 +345,7 @@ export let integrationProviderArchiveGroupProvidersManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/int/lc/integrationProvider/archiveGroupProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 

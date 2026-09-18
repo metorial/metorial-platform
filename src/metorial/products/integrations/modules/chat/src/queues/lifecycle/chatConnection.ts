@@ -10,6 +10,7 @@ import { indexChatInstanceProvidersManyQueue } from '../search/chatInstanceProvi
 
 export let chatConnectionCreatedQueue = createQueue<{ chatConnectionId: string }>({
   name: 'sub/cht/lc/integration/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -29,6 +30,7 @@ export let chatConnectionCreatedQueueProcessor = chatConnectionCreatedQueue.proc
 
 export let chatConnectionUpdatedQueue = createQueue<{ chatConnectionId: string }>({
   name: 'sub/cht/lc/integration/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -59,6 +61,7 @@ export let chatConnectionUpdatedQueueProcessor = chatConnectionUpdatedQueue.proc
 
 export let chatConnectionArchivedQueue = createQueue<{ chatConnectionId: string }>({
   name: 'sub/cht/lc/integration/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -89,6 +92,7 @@ export let chatConnectionArchiveInstancesManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cht/lc/integration/archiveInstancesMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -153,6 +157,7 @@ export let chatConnectionArchiveProvidersManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/cht/lc/integration/archiveProvidersMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -195,6 +200,7 @@ export let chatConnectionArchiveProvidersManyQueueProcessor =
 
 export let chatConnectionDeletedQueue = createQueue<{ chatConnectionId: string }>({
   name: 'sub/cht/lc/integration/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -213,6 +219,7 @@ export let chatInstanceCreatedQueue = createQueue<{
   chatInstanceId: string;
 }>({
   name: 'sub/cht/lc/integrationInstance/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -231,6 +238,7 @@ export let chatInstanceUpdatedQueue = createQueue<{
   chatInstanceId: string;
 }>({
   name: 'sub/cht/lc/integrationInstance/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -249,6 +257,7 @@ export let chatInstanceArchivedQueue = createQueue<{
   chatInstanceId: string;
 }>({
   name: 'sub/cht/lc/integrationInstance/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -294,6 +303,7 @@ export let chatInstanceDeletedQueue = createQueue<{
   chatInstanceId: string;
 }>({
   name: 'sub/cht/lc/integrationInstance/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

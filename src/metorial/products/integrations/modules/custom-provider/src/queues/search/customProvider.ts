@@ -5,6 +5,7 @@ import { env } from '../../env';
 
 export let indexCustomProviderQueue = createQueue<{ customProviderId: string }>({
   name: 'sub/cpr/sidx/customProvider',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -4,6 +4,7 @@ import { env } from '../../env';
 
 export let specificationCreatedQueue = createQueue<{ specificationId: string }>({
   name: 'sub/pint/lc/specification/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -52,6 +53,7 @@ let specificationCreatedAssocToolQueue = createQueue<{
   globalOid: bigint;
 }>({
   name: 'sub/pint/lc/specification/created/assoc-tool',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -68,6 +70,7 @@ let specificationCreatedAssocAuthMethodQueue = createQueue<{
   globalOid: bigint;
 }>({
   name: 'sub/pint/lc/specification/created/assoc-auth-method',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -84,6 +87,7 @@ let specificationCreatedAssocTriggerQueue = createQueue<{
   globalOid: bigint;
 }>({
   name: 'sub/pint/lc/specification/created/assoc-trigger',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -100,6 +104,7 @@ let specificationCreatedAssocTriggerGroupQueue = createQueue<{
   globalOid: bigint;
 }>({
   name: 'sub/pint/lc/specification/created/assoc-trigger-group',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

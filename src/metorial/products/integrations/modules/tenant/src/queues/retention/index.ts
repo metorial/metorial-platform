@@ -1,8 +1,6 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
-  tenantLogRetentionCleanupCron,
-  tenantLogRetentionCleanupQueueProcessor,
-  tenantLogRetentionCleanupSearchQueueProcessor,
+  tenantLogRetentionProcessors,
   tenantLogRetentionStorageCleanupQueueProcessor
 } from './cleanup';
 import { tenantSessionRetentionDowngradeSyncQueueProcessor } from './downgradeSync';
@@ -13,9 +11,7 @@ import {
 } from './sync';
 
 export let retentionQueues = combineQueueProcessors([
-  tenantLogRetentionCleanupCron,
-  tenantLogRetentionCleanupSearchQueueProcessor,
-  tenantLogRetentionCleanupQueueProcessor,
+  tenantLogRetentionProcessors,
   tenantLogRetentionStorageCleanupQueueProcessor,
   tenantLogRetentionSyncCron,
   tenantLogRetentionSyncSearchQueueProcessor,

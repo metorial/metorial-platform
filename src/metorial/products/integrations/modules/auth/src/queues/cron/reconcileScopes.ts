@@ -1,11 +1,11 @@
 import { createCron } from '@lowerdeck/cron';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, hourlyPacedDelay, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { providerAuthConfigInternalService } from '../../services/providerAuthConfigInternal';
 import { providerAuthCredentialsService } from '../../services/providerAuthCredentials';
 
-let RECONCILE_BATCH_SIZE = 100;
+let RECONCILE_BATCH_SIZE = 500;
 
 export let reconcileProviderAuthCredentialsScopesCron = createCron(
   {
@@ -36,7 +36,8 @@ let reconcileProviderAuthConfigScopesManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/auth/scopes/reconcile/config/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let reconcileProviderAuthConfigScopesManyQueueProcessor =
@@ -48,7 +49,8 @@ export let reconcileProviderAuthConfigScopesManyQueueProcessor =
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },
-      take: RECONCILE_BATCH_SIZE
+      take: RECONCILE_BATCH_SIZE,
+      select: { id: true }
     });
     if (!providerAuthConfigs.length) return;
 
@@ -63,16 +65,20 @@ export let reconcileProviderAuthConfigScopesManyQueueProcessor =
       }))
     );
 
-    await reconcileProviderAuthConfigScopesManyQueue.add({
-      cursor: providerAuthConfigs[providerAuthConfigs.length - 1]!.id
-    });
+    if (providerAuthConfigs.length === RECONCILE_BATCH_SIZE) {
+      await reconcileProviderAuthConfigScopesManyQueue.add(
+        { cursor: providerAuthConfigs[providerAuthConfigs.length - 1]!.id },
+        hourlyPacedDelay()
+      );
+    }
   });
 
 let reconcileProviderAuthCredentialsScopesManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/auth/scopes/reconcile/credentials/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let reconcileProviderAuthCredentialsScopesManyQueueProcessor =
@@ -84,7 +90,8 @@ export let reconcileProviderAuthCredentialsScopesManyQueueProcessor =
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },
-      take: RECONCILE_BATCH_SIZE
+      take: RECONCILE_BATCH_SIZE,
+      select: { id: true }
     });
     if (!providerAuthCredentials.length) return;
 
@@ -99,9 +106,12 @@ export let reconcileProviderAuthCredentialsScopesManyQueueProcessor =
       }))
     );
 
-    await reconcileProviderAuthCredentialsScopesManyQueue.add({
-      cursor: providerAuthCredentials[providerAuthCredentials.length - 1]!.id
-    });
+    if (providerAuthCredentials.length === RECONCILE_BATCH_SIZE) {
+      await reconcileProviderAuthCredentialsScopesManyQueue.add(
+        { cursor: providerAuthCredentials[providerAuthCredentials.length - 1]!.id },
+        hourlyPacedDelay()
+      );
+    }
   });
 
 let reconcileProviderAuthConfigScopesQueue = createQueue<{
@@ -110,7 +120,8 @@ let reconcileProviderAuthConfigScopesQueue = createQueue<{
   name: 'sub/auth/scopes/reconcile/config',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 5
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 
@@ -142,7 +153,8 @@ let reconcileProviderAuthCredentialsScopesQueue = createQueue<{
   name: 'sub/auth/scopes/reconcile/credentials',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
-    concurrency: 5
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 

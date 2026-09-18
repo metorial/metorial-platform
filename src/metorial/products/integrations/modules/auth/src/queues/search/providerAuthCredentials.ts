@@ -7,6 +7,7 @@ export let indexProviderAuthCredentialsQueue = createQueue<{
   providerAuthCredentialsId: string;
 }>({
   name: 'sub/auth/sidx/providerAuthCredentials',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

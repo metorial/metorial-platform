@@ -10,14 +10,6 @@ export let retentionCleanupWorkerOpts = {
   }
 };
 
-export let retentionStorageCleanupWorkerOpts = {
-  concurrency: 5,
-  limiter: {
-    max: 5,
-    duration: 1000
-  }
-};
-
 export let retentionSyncWorkerOpts = {
   concurrency: 5,
   limiter: {

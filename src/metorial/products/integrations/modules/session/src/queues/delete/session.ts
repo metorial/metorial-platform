@@ -1,5 +1,5 @@
 import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, dailyPacedDelay } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { getRetentionCutoffDate } from '@metorial-subspace/list-utils';
 import { env } from '../../env';
@@ -23,7 +23,8 @@ export let sessionRetentionCleanupCron = createCron(
 
 export let sessionRetentionTenantSearchQueue = createQueue<{ cursor?: string }>({
   name: 'sub/ses/ret/cleanup/search',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let sessionRetentionTenantSearchQueueProcessor =
@@ -42,17 +43,18 @@ export let sessionRetentionTenantSearchQueueProcessor =
       tenants.map(tenant => ({ tenantId: tenant.id }))
     );
 
-    let lastTenant = tenants[tenants.length - 1];
-    if (!lastTenant) return;
-
-    await sessionRetentionTenantSearchQueue.add({
-      cursor: lastTenant.id
-    });
+    if (tenants.length === RETENTION_BATCH_SIZE) {
+      await sessionRetentionTenantSearchQueue.add(
+        { cursor: tenants[tenants.length - 1]!.id },
+        dailyPacedDelay()
+      );
+    }
   });
 
 export let sessionRetentionTenantQueue = createQueue<{ tenantId: string }>({
   name: 'sub/ses/ret/cleanup/tenant',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 2, limiter: { max: 2, duration: 1000 } }
 });
 
 export let sessionRetentionTenantQueueProcessor = sessionRetentionTenantQueue.process(
@@ -82,7 +84,8 @@ export let sessionDeleteManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/ses/delete/session/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let enqueueArchivedSessionDeletes = async (d: {
@@ -110,15 +113,17 @@ export let enqueueArchivedSessionDeletes = async (d: {
 
   await sessionDeleteQueue.addMany(sessions.map(session => ({ sessionId: session.id })));
 
-  let lastSession = sessions[sessions.length - 1];
-  if (!lastSession) return;
-
-  await sessionDeleteManyQueue.add({
-    tenantOid: d.tenantOid,
-    logRetentionInDays: d.logRetentionInDays,
-    enforceSessionExpiry: d.enforceSessionExpiry,
-    cursor: lastSession.id
-  });
+  if (sessions.length === RETENTION_BATCH_SIZE) {
+    await sessionDeleteManyQueue.add(
+      {
+        tenantOid: d.tenantOid,
+        logRetentionInDays: d.logRetentionInDays,
+        enforceSessionExpiry: d.enforceSessionExpiry,
+        cursor: sessions[sessions.length - 1]!.id
+      },
+      dailyPacedDelay()
+    );
+  }
 };
 
 export let sessionDeleteManyQueueProcessor = sessionDeleteManyQueue.process(async data => {
@@ -127,7 +132,8 @@ export let sessionDeleteManyQueueProcessor = sessionDeleteManyQueue.process(asyn
 
 export let sessionDeleteQueue = createQueue<{ sessionId: string }>({
   name: 'sub/ses/delete/session',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 5, limiter: { max: 25, duration: 1000 } }
 });
 
 export let sessionDeleteQueueProcessor = sessionDeleteQueue.process(async data => {

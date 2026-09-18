@@ -8,6 +8,7 @@ export let sessionTemplateArchivedQueue = createQueue<{
   sessionTemplateId: string;
 }>({
   name: 'sub/ses/lc/sessionTemplate/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -29,6 +30,7 @@ export let sessionTemplateArchiveSessionsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/ses/lc/sessionTemplate/archiveSessionsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -99,6 +101,7 @@ export let sessionTemplateInvalidateRuntimeQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/ses/lc/sessionTemplate/invalidateRuntime',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -170,6 +173,7 @@ export let sessionTemplateDeletedQueue = createQueue<{
   sessionTemplateId: string;
 }>({
   name: 'sub/ses/lc/sessionTemplate/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

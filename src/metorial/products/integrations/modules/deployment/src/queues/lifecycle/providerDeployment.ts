@@ -9,6 +9,7 @@ import { providerConfigVaultArchivedQueue } from './providerConfigVault';
 
 export let providerDeploymentCreatedQueue = createQueue<{ providerDeploymentId: string }>({
   name: 'sub/dep/lc/providerDeployment/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -58,6 +59,7 @@ export let providerDeploymentCreatedQueueProcessor = providerDeploymentCreatedQu
 
 export let providerDeploymentUpdatedQueue = createQueue<{ providerDeploymentId: string }>({
   name: 'sub/dep/lc/providerDeployment/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -71,6 +73,7 @@ export let providerDeploymentUpdatedQueueProcessor = providerDeploymentUpdatedQu
 
 export let providerDeploymentArchivedQueue = createQueue<{ providerDeploymentId: string }>({
   name: 'sub/dep/lc/providerDeployment/archived',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -123,6 +126,7 @@ export let providerDeploymentArchiveConfigsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/dep/lc/providerDeployment/archiveConfigsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -175,6 +179,7 @@ export let providerDeploymentArchiveConfigVaultsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/dep/lc/providerDeployment/archiveConfigVaultsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -227,6 +232,7 @@ export let providerDeploymentArchiveAuthConfigsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/dep/lc/providerDeployment/archiveAuthConfigsMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -276,6 +282,7 @@ export let providerDeploymentArchiveAuthConfigsManyQueueProcessor =
 
 export let providerDeploymentDeletedQueue = createQueue<{ providerDeploymentId: string }>({
   name: 'sub/dep/lc/providerDeployment/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

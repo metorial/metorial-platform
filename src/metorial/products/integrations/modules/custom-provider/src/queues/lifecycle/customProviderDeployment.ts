@@ -8,6 +8,7 @@ export let customProviderDeploymentCreatedQueue = createQueue<{
   customProviderDeploymentId: string;
 }>({
   name: 'sub/cpr/lc/customProviderDeployment/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -207,6 +207,7 @@ export let schemaChangeNotificationAlertIngestQueue = createQueue<{
   notificationId: string;
 }>({
   name: 'sub/mon/schema/notif/ingest',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

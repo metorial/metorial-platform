@@ -7,6 +7,7 @@ import { handleUpcomingCustomProviderQueue } from '../upcoming/handle';
 
 export let handlePushQueue = createQueue<{ scmRepoPushId: string; cursor?: string }>({
   name: 'sub/cpr/scm/push',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

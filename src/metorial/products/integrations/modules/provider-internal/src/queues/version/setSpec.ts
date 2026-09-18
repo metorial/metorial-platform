@@ -23,6 +23,7 @@ export let providerVersionSetSpecificationQueue = createQueue<{
       };
 }>({
   name: 'sub/pint/pver/spec/set',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

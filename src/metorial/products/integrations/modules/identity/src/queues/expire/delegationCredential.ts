@@ -19,7 +19,8 @@ export let expireIdentityDelegationCredentialsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/idn/exp/identityDelegationCredentials/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let expireIdentityDelegationCredentialsManyQueueProcessor =

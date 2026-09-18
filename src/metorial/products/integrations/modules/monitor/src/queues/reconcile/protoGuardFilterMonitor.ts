@@ -1,8 +1,15 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue, QueueRetryError } from '@lowerdeck/queue';
+import {
+  combineQueueProcessors,
+  createQueue,
+  dailyPacedDelay,
+  QueueRetryError
+} from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { monitorInternalService } from '../../services';
+
+let RECONCILE_BATCH_SIZE = 500;
 
 export let reconcileProtoGuardFilterMonitorsForTenant = async (tenantId: string) => {
   let tenant = await db.tenant.findUnique({
@@ -44,37 +51,39 @@ let reconcileProtoGuardFilterMonitorsCron = createCron(
     redisUrl: env.service.REDIS_URL
   },
   async () => {
-    await reconcileProtoGuardFilterMonitorsManyQueue.add({});
+    await reconcileProtoGuardFilterMonitorsManyQueue.add({}, { id: 'many' });
   }
 );
 
 export let reconcileProtoGuardFilterMonitorsManyQueue = createQueue<{ cursor?: string }>({
   name: 'sub/mon/rec/protoGuardFilter/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let reconcileProtoGuardFilterMonitorsManyQueueProcessor =
-  reconcileProtoGuardFilterMonitorsManyQueue.process(async data => {
+  reconcileProtoGuardFilterMonitorsManyQueue.process(async job => {
     let tenants = await db.tenant.findMany({
       where: {
-        id: data.cursor ? { gt: data.cursor } : undefined
+        id: job.cursor ? { gt: job.cursor } : undefined
       },
       orderBy: { id: 'asc' },
-      take: 100,
+      take: RECONCILE_BATCH_SIZE,
       select: { id: true }
     });
-    if (tenants.length === 0) return;
 
-    await reconcileProtoGuardFilterMonitorsSingleQueue.addMany(
-      tenants.map(tenant => ({ tenantId: tenant.id }))
-    );
+    if (tenants.length) {
+      await reconcileProtoGuardFilterMonitorsSingleQueue.addManyWithOps(
+        tenants.map(tenant => ({ data: { tenantId: tenant.id }, opts: { id: tenant.id } }))
+      );
+    }
 
-    let lastTenant = tenants[tenants.length - 1];
-    if (!lastTenant) return;
-
-    await reconcileProtoGuardFilterMonitorsManyQueue.add({
-      cursor: lastTenant.id
-    });
+    if (tenants.length === RECONCILE_BATCH_SIZE) {
+      await reconcileProtoGuardFilterMonitorsManyQueue.add(
+        { cursor: tenants[tenants.length - 1]!.id },
+        dailyPacedDelay()
+      );
+    }
   });
 
 export let reconcileProtoGuardFilterMonitorsSingleQueue = createQueue<{
@@ -82,7 +91,7 @@ export let reconcileProtoGuardFilterMonitorsSingleQueue = createQueue<{
 }>({
   name: 'sub/mon/rec/protoGuardFilter/single',
   redisUrl: env.service.REDIS_URL,
-  workerOpts: { concurrency: 5 }
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 let reconcileProtoGuardFilterMonitorsSingleQueueProcessor =

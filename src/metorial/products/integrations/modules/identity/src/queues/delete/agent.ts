@@ -7,7 +7,8 @@ export let agentArchivedCleanupCron = createCron(
   {
     name: 'sub/idn/cron/agentArchivedCleanup',
     cron: '0 0 * * *',
-    redisUrl: env.service.REDIS_URL
+    redisUrl: env.service.REDIS_URL,
+    startupJitterMs: 30_000
   },
   async () => {
     await db.agent.updateMany({

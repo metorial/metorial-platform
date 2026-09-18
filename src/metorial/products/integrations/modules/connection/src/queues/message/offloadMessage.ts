@@ -1,9 +1,11 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@lowerdeck/queue';
 import { offload } from '@metorial-subspace/connection-utils';
 import { db, Prisma } from '@metorial-subspace/db';
 import { subDays } from 'date-fns';
 import { env } from '../../env';
+
+let OFFLOAD_MESSAGES_BATCH_SIZE = 500;
 
 let offloadCron = createCron(
   {
@@ -18,7 +20,8 @@ let offloadCron = createCron(
 
 let offloadMessagesQueue = createQueue<{ cursor?: string }>({
   name: 'sub/con/ofl/msg/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let offloadMessagesQueueProcessor = offloadMessagesQueue.process(async data => {
@@ -34,15 +37,19 @@ let offloadMessagesQueueProcessor = offloadMessagesQueue.process(async data => {
       id: data.cursor ? { gt: data.cursor } : undefined
     },
     orderBy: { id: 'asc' },
-    take: 100,
+    take: OFFLOAD_MESSAGES_BATCH_SIZE,
     select: { id: true }
   });
   if (messages.length === 0) return;
 
   await offloadMessageQueue.addMany(messages.map(msg => ({ messageId: msg.id })));
 
-  let lastMessage = messages[messages.length - 1];
-  await offloadMessagesQueue.add({ cursor: lastMessage!.id });
+  if (messages.length === OFFLOAD_MESSAGES_BATCH_SIZE) {
+    await offloadMessagesQueue.add(
+      { cursor: messages[messages.length - 1]!.id },
+      dailyPacedDelay()
+    );
+  }
 });
 
 let offloadMessageQueue = createQueue<{ messageId: string }>({

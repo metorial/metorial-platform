@@ -5,6 +5,7 @@ import { env } from '../../../../agent/src/env';
 
 export let indexAgentQueue = createQueue<{ agentId: string }>({
   name: 'sub/idn/sidx/agent',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

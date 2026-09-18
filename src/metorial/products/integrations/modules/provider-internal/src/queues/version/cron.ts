@@ -1,8 +1,23 @@
 import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, dailyPacedDelay } from '@lowerdeck/queue';
+import {
+  commitWatermarkScan,
+  createQueueCheckpoint,
+  isFullPassDue,
+  startWatermarkScan,
+  watermarkScanWhere,
+  type WatermarkScanJob
+} from '@lowerdeck/queue-checkpoint';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { providerVersionSyncSpecificationQueue } from './syncSpec';
+
+let SYNC_VERSION_BATCH_SIZE = 500;
+
+let checkpoint = createQueueCheckpoint({
+  db,
+  queue: 'sub/pint/pver/sync'
+});
 
 export let syncVersionCron = createCron(
   {
@@ -11,36 +26,48 @@ export let syncVersionCron = createCron(
     cron: '0 0 * * *'
   },
   async () => {
-    await syncVersionManyCron.add({});
+    await syncVersionManyCron.add(
+      await startWatermarkScan({ checkpoint, full: isFullPassDue() })
+    );
   }
 );
 
-let syncVersionManyCron = createQueue<{ cursor?: string }>({
+let syncVersionManyCron = createQueue<WatermarkScanJob>({
   name: 'sub/pint/pver/sync/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
-export let syncVersionManyCronProcessor = syncVersionManyCron.process(async data => {
+export let syncVersionManyCronProcessor = syncVersionManyCron.process(async job => {
   let versions = await db.providerVersion.findMany({
     where: {
-      id: data.cursor ? { gt: data.cursor } : undefined,
+      ...watermarkScanWhere(job),
+      id: job.cursor ? { gt: job.cursor } : undefined,
       isCurrent: true
     },
     orderBy: { id: 'asc' },
-    take: 100,
+    take: SYNC_VERSION_BATCH_SIZE,
     select: { id: true }
   });
-  if (!versions.length) return;
 
-  await syncVersionSingleCron.addMany(
-    versions.map(v => ({
-      providerVersionId: v.id
-    }))
-  );
+  if (versions.length) {
+    await syncVersionSingleCron.addManyWithOps(
+      versions.map(v => ({
+        data: { providerVersionId: v.id },
+        opts: { id: v.id }
+      }))
+    );
+  }
 
-  await syncVersionManyCron.add({
-    cursor: versions[versions.length - 1]!.id
-  });
+  if (versions.length === SYNC_VERSION_BATCH_SIZE) {
+    await syncVersionManyCron.add(
+      { ...job, cursor: versions[versions.length - 1]!.id },
+      dailyPacedDelay()
+    );
+    return;
+  }
+
+  await commitWatermarkScan({ checkpoint, job });
 });
 
 let syncVersionSingleCron = createQueue<{ providerVersionId: string }>({

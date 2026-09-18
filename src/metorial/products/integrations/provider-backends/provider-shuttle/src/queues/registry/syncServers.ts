@@ -44,7 +44,8 @@ let syncServersReg = createQueue<{
   registryId?: string;
 }>({
   name: 'sub/sht/sync/server/reg',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let syncServersRegProcessor = syncServersReg.process(async data => {

@@ -4,6 +4,7 @@ import { env } from '../../env';
 
 export let networkCreatedQueue = createQueue<{ networkId: string }>({
   name: 'sub/enc/lc/network/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

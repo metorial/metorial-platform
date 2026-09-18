@@ -4,6 +4,7 @@ import { env } from '../../env';
 
 export let firewallCreatedQueue = createQueue<{ firewallId: string }>({
   name: 'sub/enc/lc/firewall/created',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -13,6 +14,7 @@ export let firewallCreatedQueueProcessor = firewallCreatedQueue.process(async da
 
 export let firewallUpdatedQueue = createQueue<{ firewallId: string }>({
   name: 'sub/enc/lc/firewall/updated',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -22,6 +24,7 @@ export let firewallUpdatedQueueProcessor = firewallUpdatedQueue.process(async da
 
 export let firewallDeletedQueue = createQueue<{ firewallId: string }>({
   name: 'sub/enc/lc/firewall/deleted',
+  workerOpts: { concurrency: 10 },
   redisUrl: env.service.REDIS_URL
 });
 

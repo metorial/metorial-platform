@@ -1,61 +1,44 @@
-import { createCron } from '@lowerdeck/cron';
+import {
+  archivedCleanupFindArgs,
+  archivedCleanupWhere,
+  archivedCleanupWorkerOpts,
+  createArchivedCleanupScan
+} from '@metorial-subspace/archived-cleanup';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../../env';
 import { providerAuthCredentialsDeletedQueue } from '../lifecycle/providerAuthCredentials';
-import { getCutoffDate } from './_config';
 
-export let providerAuthCredentialsArchivedCleanupCron = createCron(
-  {
-    name: 'sub/auth/cron/providerAuthCredentialsArchivedCleanup',
-    cron: '0 0 * * *',
-    redisUrl: env.service.REDIS_URL
-  },
-  async () => {
-    await providerAuthCredentialsDeleteManyQueue.add({}, { id: 'many' });
-  }
-);
-
-export let providerAuthCredentialsDeleteManyQueue = createQueue<{ cursor?: string }>({
-  name: 'sub/auth/delete/providerAuthCredentials/many',
-  redisUrl: env.service.REDIS_URL
+let providerAuthCredentialsArchivedCleanup = createArchivedCleanupScan({
+  cronName: 'sub/auth/cron/providerAuthCredentialsArchivedCleanup',
+  cron: '0 0 * * *',
+  manyQueueName: 'sub/auth/delete/providerAuthCredentials/many',
+  redisUrl: env.service.REDIS_URL,
+  findArchived: ({ cursor, take }) =>
+    db.providerAuthCredentials.findMany({
+      where: { origin: 'tenant_created', ...archivedCleanupWhere({ cursor }) },
+      ...archivedCleanupFindArgs({ cursor, take })
+    }),
+  enqueue: ids =>
+    providerAuthCredentialsDeleteQueue.addMany(
+      ids.map(id => ({ providerAuthCredentialsId: id }))
+    )
 });
 
+export let providerAuthCredentialsArchivedCleanupCron =
+  providerAuthCredentialsArchivedCleanup.cron;
+export let providerAuthCredentialsDeleteManyQueue =
+  providerAuthCredentialsArchivedCleanup.manyQueue;
 export let providerAuthCredentialsDeleteManyQueueProcessor =
-  providerAuthCredentialsDeleteManyQueue.process(async data => {
-    let creds = await db.providerAuthCredentials.findMany({
-      where: {
-        origin: 'tenant_created',
-        status: 'archived',
-        archivedAt: { lt: getCutoffDate() },
-        id: data.cursor ? { gt: data.cursor } : undefined
-      },
-      orderBy: { id: 'asc' },
-      take: 100,
-      select: { id: true }
-    });
-    if (creds.length === 0) return;
-
-    await providerAuthCredentialsDeleteQueue.addMany(
-      creds.map(providerAuthCredentials => ({
-        providerAuthCredentialsId: providerAuthCredentials.id
-      }))
-    );
-
-    let lastProviderAuthCredentials = creds[creds.length - 1];
-    if (!lastProviderAuthCredentials) return;
-
-    await providerAuthCredentialsDeleteManyQueue.add({
-      cursor: lastProviderAuthCredentials.id
-    });
-  });
+  providerAuthCredentialsArchivedCleanup.manyProcessor;
 
 export let providerAuthCredentialsDeleteQueue = createQueue<{
   providerAuthCredentialsId: string;
 }>({
   name: 'sub/auth/delete/providerAuthCredentials',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: archivedCleanupWorkerOpts()
 });
 
 export let providerAuthCredentialsBackendDeleteQueue = createQueue<{
@@ -82,7 +65,9 @@ export let providerAuthCredentialsBackendDeleteQueueProcessor =
     await backend.auth.deleteProviderAuthCredentials({
       tenant,
       backing: {
-        slateCredentialsOid: data.slateCredentialsOid ? BigInt(data.slateCredentialsOid) : null,
+        slateCredentialsOid: data.slateCredentialsOid
+          ? BigInt(data.slateCredentialsOid)
+          : null,
         shuttleCredentialsOid: data.shuttleCredentialsOid
           ? BigInt(data.shuttleCredentialsOid)
           : null

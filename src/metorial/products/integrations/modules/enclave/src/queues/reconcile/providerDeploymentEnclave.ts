@@ -53,7 +53,8 @@ let reconcileProviderDeploymentEnclaveCron = createCron(
 
 export let reconcileProviderDeploymentEnclaveManyQueue = createQueue<{ cursor?: string }>({
   name: 'sub/enc/rec/providerDeployment/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let reconcileProviderDeploymentEnclaveManyQueueProcessor =
