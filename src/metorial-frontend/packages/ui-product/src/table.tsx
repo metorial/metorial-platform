@@ -9,8 +9,6 @@ let TableWrapper = styled.table`
 `;
 
 let TableHead = styled.thead`
-  font-size: 14px;
-  font-weight: 500;
   text-align: left;
 `;
 
@@ -49,7 +47,7 @@ let TableCell = styled.td`
 `;
 
 let TableHeader = styled.th`
-  border-bottom: 1px solid ${theme.colors.gray300};
+  border-bottom: 2px solid ${theme.colors.gray300};
   text-align: left;
 `;
 
@@ -62,6 +60,12 @@ let CellInner = styled.div`
   min-height: 30px;
   display: flex;
   align-items: center;
+`;
+
+let HeaderText = styled.span`
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
 `;
 
 export type TableProps = {
@@ -96,7 +100,7 @@ export let Table = ({ padding, headers, data }: TableProps) => {
                       paddingRight: isLast ? padding?.sides : 10
                     }}
                   >
-                    {header}
+                    <HeaderText>{header}</HeaderText>
                   </CellInner>
                 </TableHeader>
               );

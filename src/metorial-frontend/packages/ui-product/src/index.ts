@@ -4,6 +4,7 @@ export * from './filterUtils';
 export * from './hint';
 export * from './id';
 export * from './itemGrid';
+export * from './providerImage';
 export * from './searchFiltersToolbar';
 export * from './sideBox';
 export * from './table';
