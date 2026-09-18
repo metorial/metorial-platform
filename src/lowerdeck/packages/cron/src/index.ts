@@ -1,9 +1,13 @@
+import { delay } from '@lowerdeck/delay';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { generateCustomId } from '@lowerdeck/id';
 import type { IQueueProcessor } from '@lowerdeck/queue';
 import { parseRedisUrl } from '@lowerdeck/redis';
 import { getSentry } from '@lowerdeck/sentry';
 import { Queue, Worker } from 'bullmq';
+import { spreadCronPattern, spreadCronStartupJitterMs } from './spread';
+
+export * from './spread';
 
 let Sentry = getSentry();
 
@@ -16,6 +20,8 @@ export let createCron = (
     name: string;
     cron: string;
     redisUrl: string;
+    spread?: boolean;
+    startupJitterMs?: number;
   },
   handler: () => Promise<void>
 ): IQueueProcessor => {
@@ -23,13 +29,18 @@ export let createCron = (
     throw new Error(`Cron with name ${opts.name} already exists`);
   }
 
+  let pattern = opts.spread === false ? opts.cron : spreadCronPattern(opts.name, opts.cron);
+
   let connection = parseRedisUrl(opts.redisUrl);
   if (process.env.QUEUE_DEBUG_LOGGING)
     console.log('Creating cron with connection', opts.redisUrl, connection);
 
   return {
     start: async () => {
-      log(`Starting cron job ${opts.name} to run every ${opts.cron} using bullmq`);
+      log(
+        `Starting cron job ${opts.name} to run every ${pattern} using bullmq` +
+          (pattern === opts.cron ? '' : ` (declared ${opts.cron}, spread by name)`)
+      );
 
       // Delay Redis connection creation until startup reaches this processor.
       let queue = new Queue(`Cr0N_${opts.name}`, {
@@ -46,7 +57,7 @@ export let createCron = (
         await queue.upsertJobScheduler(
           'cron',
           {
-            pattern: opts.cron
+            pattern
           },
           {
             opts: {
@@ -69,13 +80,16 @@ export let createCron = (
             createExecutionContext({
               type: 'scheduled',
               contextId: generateCustomId('cron_'),
-              cron: opts.cron,
+              cron: pattern,
               name: opts.name
             }),
             async () => {
               log(`Running cron job ${opts.name}`);
 
               try {
+                if (opts.startupJitterMs)
+                  await delay(spreadCronStartupJitterMs(opts.startupJitterMs));
+
                 await handler();
               } catch (err) {
                 Sentry.captureException(err, {

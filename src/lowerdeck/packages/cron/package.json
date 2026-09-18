@@ -28,8 +28,10 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/execution-context": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/murmur3": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
