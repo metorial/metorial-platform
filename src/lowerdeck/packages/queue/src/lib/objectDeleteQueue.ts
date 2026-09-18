@@ -8,14 +8,21 @@ let chunk = <T>(items: T[], size: number) => {
   return chunks;
 };
 
+let isAlreadyDeleted = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  (error as { statusCode?: unknown }).statusCode === 404;
+
 export let createObjectDeleteQueue = (d: {
   name: string;
   redisUrl: string;
   deleteObject: (bucket: string, key: string) => Promise<unknown>;
   concurrency?: number;
   parallelism?: number;
+  ignoreError?: (error: unknown) => boolean;
 }) => {
   let parallelism = d.parallelism ?? 25;
+  let ignoreError = d.ignoreError ?? isAlreadyDeleted;
 
   let queue = createQueue<{ bucket: string; keys: string[] }>({
     name: d.name,
@@ -28,7 +35,7 @@ export let createObjectDeleteQueue = (d: {
       await Promise.all(
         keys.map(key =>
           d.deleteObject(data.bucket, key).catch(error => {
-            console.error(`Failed to delete object ${data.bucket}/${key}`, error);
+            if (!ignoreError(error)) throw error;
           })
         )
       );

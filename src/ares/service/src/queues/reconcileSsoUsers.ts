@@ -3,7 +3,6 @@ import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@lowerdec
 import {
   commitWatermarkScan,
   createQueueCheckpoint,
-  isFullPassDue,
   startWatermarkScan,
   type WatermarkScanJob
 } from '@lowerdeck/queue-checkpoint';
@@ -28,9 +27,7 @@ export let reconcileSsoUsersCron = createCron(
     redisUrl
   },
   async () => {
-    await reconcileSsoUsersQueue.add(
-      await startWatermarkScan({ checkpoint, full: isFullPassDue() })
-    );
+    await reconcileSsoUsersQueue.add(await startWatermarkScan({ checkpoint }));
   }
 );
 

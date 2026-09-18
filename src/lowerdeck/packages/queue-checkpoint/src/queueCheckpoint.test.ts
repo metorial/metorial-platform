@@ -80,3 +80,45 @@ describe('createQueueCheckpoint', () => {
     expect((await checkpoint.since())?.getTime()).toBe(0);
   });
 });
+
+describe('claimFullPass', () => {
+  it('grants the first claim and then refuses until the interval elapses', async () => {
+    let checkpoint = createQueueCheckpoint({ db: createDb(), queue: 'q' });
+
+    expect(await checkpoint.claimFullPass(60_000)).toBe(true);
+    expect(await checkpoint.claimFullPass(60_000)).toBe(false);
+  });
+
+  it('grants exactly one full pass across 24 hourly ticks', async () => {
+    let checkpoint = createQueueCheckpoint({ db: createDb(), queue: 'q' });
+    let weekMs = 7 * 24 * 60 * 60_000;
+
+    let granted = 0;
+    for (let tick = 0; tick < 24; tick++) {
+      if (await checkpoint.claimFullPass(weekMs)) granted++;
+    }
+
+    expect(granted).toBe(1);
+  });
+
+  it('grants again once the interval has passed', async () => {
+    let db = createDb({
+      queue: 'q#full-pass',
+      processedThrough: new Date(Date.now() - 8 * 24 * 60 * 60_000)
+    });
+    let checkpoint = createQueueCheckpoint({ db, queue: 'q' });
+
+    expect(await checkpoint.claimFullPass()).toBe(true);
+  });
+
+  it('tracks the full pass separately from the scan watermark', async () => {
+    let db = createDb();
+    let checkpoint = createQueueCheckpoint({ db, queue: 'q', overlapMs: 0 });
+
+    await checkpoint.claimFullPass(60_000);
+
+    // claiming must not move the scan watermark, or the next scan would skip everything
+    expect(await checkpoint.since()).toBeUndefined();
+    expect(db.rows.has('q#full-pass')).toBe(true);
+  });
+});

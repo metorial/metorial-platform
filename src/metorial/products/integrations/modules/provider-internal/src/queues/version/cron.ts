@@ -3,7 +3,6 @@ import { createQueue, dailyPacedDelay } from '@lowerdeck/queue';
 import {
   commitWatermarkScan,
   createQueueCheckpoint,
-  isFullPassDue,
   startWatermarkScan,
   watermarkScanWhere,
   type WatermarkScanJob
@@ -27,7 +26,7 @@ export let syncVersionCron = createCron(
   },
   async () => {
     await syncVersionManyCron.add(
-      await startWatermarkScan({ checkpoint, full: isFullPassDue() })
+      await startWatermarkScan({ checkpoint })
     );
   }
 );

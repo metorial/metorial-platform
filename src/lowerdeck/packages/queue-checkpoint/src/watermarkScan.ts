@@ -6,17 +6,14 @@ export interface WatermarkScanJob {
   startedAt?: string;
 }
 
-export let DEFAULT_FULL_PASS_DAY = 0;
-
-export let isFullPassDue = (d?: { dayOfWeek?: number; now?: Date }) =>
-  (d?.now ?? new Date()).getUTCDay() === (d?.dayOfWeek ?? DEFAULT_FULL_PASS_DAY);
-
 export let startWatermarkScan = async (d: {
   checkpoint: QueueCheckpoint;
   full?: boolean;
+  fullPassIntervalMs?: number;
 }): Promise<WatermarkScanJob> => {
   let startedAt = new Date().toISOString();
-  if (d.full) return { startedAt };
+
+  if (d.full ?? (await d.checkpoint.claimFullPass(d.fullPassIntervalMs))) return { startedAt };
 
   let since = await d.checkpoint.since();
 

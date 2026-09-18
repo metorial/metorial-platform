@@ -17,6 +17,7 @@ export interface QueueCheckpointDb {
 }
 
 export let DEFAULT_CHECKPOINT_OVERLAP_MS = 5 * 60_000;
+export let DEFAULT_FULL_PASS_INTERVAL_MS = 7 * 24 * 60 * 60_000;
 
 export let createQueueCheckpoint = (d: {
   db: QueueCheckpointDb;
@@ -50,6 +51,22 @@ export let createQueueCheckpoint = (d: {
         create: { queue: d.queue, processedThrough },
         update: { processedThrough }
       });
+    },
+
+    claimFullPass: async (intervalMs = DEFAULT_FULL_PASS_INTERVAL_MS): Promise<boolean> => {
+      let marker = `${d.queue}#full-pass`;
+      let now = new Date();
+      let row = await d.db.queueCheckpoint.findUnique({ where: { queue: marker } });
+
+      if (row && row.processedThrough.getTime() > now.getTime() - intervalMs) return false;
+
+      await d.db.queueCheckpoint.upsert({
+        where: { queue: marker },
+        create: { queue: marker, processedThrough: now },
+        update: { processedThrough: now }
+      });
+
+      return true;
     },
 
     reset: async () => {
