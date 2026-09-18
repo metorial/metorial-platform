@@ -368,7 +368,7 @@ export let createBullMqQueue = <JobData>(
                 return await runJob(job);
               }),
             {
-              concurrency: 50,
+              concurrency: 5,
               ...opts.workerOpts,
               connection: redisOpts,
               autorun: false,
