@@ -3,8 +3,8 @@ import type {
   DashboardInstanceProvidersGetOutput
 } from '@metorial/dashboard-sdk';
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
+import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
@@ -14,7 +14,8 @@ import {
   useProviderListing,
   useProviderVersions
 } from '@metorial/state';
-import { Avatar, Callout, Flex, LinkTabs, Spacer } from '@metorial/ui';
+import { Callout, RenderDate, Spacer } from '@metorial/ui';
+import { ID, ProviderImage } from '@metorial/ui-product';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { OpenExplorerButton } from '../../components/openExplorer';
@@ -150,20 +151,46 @@ export let ProviderLayout = () => {
     providerData?.slug ?? providerId
   ] as const;
 
+  let entity = providerData
+    ? {
+        id: providerData.id,
+        slug: providerData.slug,
+        name: listing?.name ?? providerData.name,
+        description: listing?.description ?? providerData.description
+      }
+    : null;
+
   return (
     <ProviderVersionContext.Provider value={versionContext}>
-      <ContentLayout>
-        <PageHeader
-          // top={<Avatar entity={listing ?? null} size={50} radius={5} />}
-          title={
-            <Flex align="center" gap={10}>
-              <Avatar entity={listing ?? null} size={50} radius={5} />
-              {listing?.name ?? providerData?.name ?? '...'}
-            </Flex>
-          }
-          description={listing?.description ?? providerData?.description ?? undefined}
-          actions={
-            <>
+      <DetailsLayout
+        entity={entity}
+        avatar={size => (
+          <ProviderImage
+            imageUrl={listing?.imageUrl}
+            alt={entity?.name ?? 'Provider'}
+            size={size}
+            radius={Math.round(size / 4)}
+          />
+        )}
+        breadcrumbs={[
+          {
+            label: 'Providers',
+            to: Paths.instance.providers(organization.data, project.data, instance.data)
+          },
+          { label: entity?.name, to: Paths.instance.provider(...providerPathParams) }
+        ]}
+        tabs={[
+          { label: 'Overview', to: Paths.instance.provider(...providerPathParams) },
+          {
+            label: 'Tools & Capabilities',
+            to: Paths.instance.provider(...providerPathParams, 'capabilities')
+          },
+          { label: 'Versions', to: Paths.instance.provider(...providerPathParams, 'versions') }
+        ]}
+        actions={[
+          {
+            type: 'custom',
+            render: () => (
               <OpenExplorerButton
                 variant="outline"
                 disabled={!providerData?.id}
@@ -171,16 +198,30 @@ export let ProviderLayout = () => {
                   provider_id: providerData?.id
                 })}
               />
-
+            )
+          },
+          {
+            type: 'custom',
+            render: () => (
               <UseProviderButton
                 providerId={providerData?.id}
                 providerName={listing?.name ?? providerData?.name}
                 providerDescription={listing?.description ?? providerData?.description}
               />
-            </>
+            )
           }
-        />
-
+        ]}
+        attributes={
+          providerData
+            ? [
+                { label: 'ID', value: <ID id={providerData.id} /> },
+                { label: 'Slug', value: <ID id={providerData.slug} /> },
+                { label: 'Publisher', value: providerData.publisher.name },
+                { label: 'Created', value: <RenderDate date={providerData.createdAt} /> }
+              ]
+            : []
+        }
+      >
         <InitialLoadBoundary>
           {renderWithLoader({ provider })(({ provider }) => (
             <>
@@ -253,29 +294,11 @@ export let ProviderLayout = () => {
                 </>
               )}
 
-              <LinkTabs
-                current={pathname}
-                links={[
-                  {
-                    label: 'Overview',
-                    to: Paths.instance.provider(...providerPathParams)
-                  },
-                  {
-                    label: 'Tools & Capabilities',
-                    to: Paths.instance.provider(...providerPathParams, 'capabilities')
-                  },
-                  {
-                    label: 'Versions',
-                    to: Paths.instance.provider(...providerPathParams, 'versions')
-                  }
-                ]}
-              />
-
               <Outlet />
             </>
           ))}
         </InitialLoadBoundary>
-      </ContentLayout>
+      </DetailsLayout>
     </ProviderVersionContext.Provider>
   );
 };

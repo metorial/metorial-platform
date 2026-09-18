@@ -1,4 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -7,20 +8,13 @@ import {
   useProvider,
   useProviderListing
 } from '@metorial/state';
-import { Attributes, Button, Spacer, Text } from '@metorial/ui';
+import { Button, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import { OpenExplorerBox } from '../../components/openExplorer';
 import { showCreateIntegrationProviderFirstFlow } from '../../scenes/integrations/providerPanelFlow';
 import { showMagicMcpServerCreateFlow } from '../../scenes/providerDeployments/magicMcpForm';
 import { Skills } from './components/skills';
-
-let Header = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 20px;
-`;
 
 export let ProviderOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -53,33 +47,17 @@ export let ProviderOverviewPage = () => {
   );
 
   return renderWithLoader({ provider })(({ provider }) => (
-    <>
-      <Header>
-        <Attributes
-          itemWidth="200px"
-          attributes={[
-            {
-              label: 'Identifier',
-              content: <ID id={listing.data?.slug ?? provider.data.slug} />
-            },
-            {
-              label: 'Publisher',
-              content: provider.data.publisher.name
-            }
-          ]}
-        />
-
-        <OpenExplorerBox
-          title="Test this provider"
-          description="Use the Metorial Explorer to test this provider."
-          to={Paths.instance.explorer(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            { provider_id: provider.data?.id }
-          )}
-        />
-      </Header>
+    <DetailsOverviewLayout>
+      <OpenExplorerBox
+        title="Test this provider"
+        description="Use the Metorial Explorer to test this provider."
+        to={Paths.instance.explorer(
+          instance.data?.organization,
+          instance.data?.project,
+          instance.data,
+          { provider_id: provider.data?.id }
+        )}
+      />
 
       <Spacer height={15} />
 
@@ -228,6 +206,6 @@ export let ProviderOverviewPage = () => {
           </Text>
         )}
       </Box>
-    </>
+    </DetailsOverviewLayout>
   ));
 };
