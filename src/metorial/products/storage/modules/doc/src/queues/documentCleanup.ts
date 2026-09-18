@@ -1,8 +1,9 @@
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { subDays } from 'date-fns';
-let batchSize = 100;
+
+let batchSize = 500;
 
 export let documentCleanupManyQueue = createQueue<{ cursor?: string }>({
   name: 'cargo/doc/cleanup/many',
@@ -14,7 +15,8 @@ export let documentCleanupManyQueue = createQueue<{ cursor?: string }>({
 export let documentCleanupSingleQueue = createQueue<{ documentVersionId: string }>({
   name: 'cargo/doc/cleanup/single',
   workerOpts: {
-    concurrency: 5
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 
@@ -52,9 +54,10 @@ export let documentCleanupManyProcessor = documentCleanupManyQueue.process(async
   );
 
   if (versions.length === batchSize) {
-    await documentCleanupManyQueue.add({
-      cursor: versions[versions.length - 1]!.id
-    });
+    await documentCleanupManyQueue.add(
+      { cursor: versions[versions.length - 1]!.id },
+      hourlyPacedDelay()
+    );
   }
 });
 

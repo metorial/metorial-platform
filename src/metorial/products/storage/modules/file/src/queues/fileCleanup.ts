@@ -1,8 +1,10 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { getCargoFilesBucketName, getStorage } from '../storage';
-let batchSize = 100;
+import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@metorial/queue';
+import { getCargoFilesBucketName } from '../storage';
+import { cargoObjectDelete } from './objectDelete';
+
+let batchSize = 500;
 
 export let fileCleanupManyQueue = createQueue<{ cursor?: string }>({
   name: 'cargo/file/cleanup/many',
@@ -14,7 +16,8 @@ export let fileCleanupManyQueue = createQueue<{ cursor?: string }>({
 export let fileCleanupSingleQueue = createQueue<{ fileId: string }>({
   name: 'cargo/file/cleanup/single',
   workerOpts: {
-    concurrency: 1
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 
@@ -56,7 +59,7 @@ export let cleanupDeletedFileStorage = async (d: { fileId: string; storeId?: str
   });
   if (activeFileCount > 0) return false;
 
-  await getStorage().deleteObject(getCargoFilesBucketName(), storeId);
+  await cargoObjectDelete.enqueue(getCargoFilesBucketName(), [storeId]);
 
   return true;
 };
@@ -76,9 +79,10 @@ export let fileCleanupManyProcessor = fileCleanupManyQueue.process(async data =>
   );
 
   if (files.length === batchSize) {
-    await fileCleanupManyQueue.add({
-      cursor: files[files.length - 1]!.id
-    });
+    await fileCleanupManyQueue.add(
+      { cursor: files[files.length - 1]!.id },
+      dailyPacedDelay()
+    );
   }
 });
 
@@ -101,5 +105,6 @@ export let fileCleanupCron = createCron(
 export let fileCleanupProcessors = combineQueueProcessors([
   fileCleanupManyProcessor,
   fileCleanupSingleProcessor,
-  fileCleanupCron
+  fileCleanupCron,
+  cargoObjectDelete.processor
 ]);

@@ -1,26 +1,19 @@
-import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { indexSkillGroupQueue } from '@metorial/module-skill-groups';
 import { indexSkillTemplateQueue } from '@metorial/module-skill-templates';
+import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { indexSkillQueue } from './skill';
 
-let batchSize = 100;
+let batchSize = 500;
 type SkillResourceType = 'skill' | 'skillGroup' | 'skillTemplate';
 
-export let reindexSkillResourcesCron = createCron(
-  {
-    name: 'cargo/skill/search/reindex/cron',
-    cron: '0 * * * *'
-  },
-  async () => {
-    await reindexSkillResourcesManyQueue.addMany([
-      { resourceType: 'skill' },
-      { resourceType: 'skillGroup' },
-      { resourceType: 'skillTemplate' }
-    ]);
-  }
-);
+export let startFullSkillResourceReindex = async () => {
+  await reindexSkillResourcesManyQueue.addMany([
+    { resourceType: 'skill' },
+    { resourceType: 'skillGroup' },
+    { resourceType: 'skillTemplate' }
+  ]);
+};
 
 export let reindexSkillResourcesManyQueue = createQueue<{
   resourceType: SkillResourceType;
@@ -28,14 +21,6 @@ export let reindexSkillResourcesManyQueue = createQueue<{
 }>({
   name: 'cargo/skill/search/reindex/many',
   workerOpts: { concurrency: 1 }
-});
-
-export let reindexSkillResourcesSingleQueue = createQueue<{
-  resourceType: SkillResourceType;
-  resourceId: string;
-}>({
-  name: 'cargo/skill/search/reindex/single',
-  workerOpts: { concurrency: 10 }
 });
 
 export let reindexSkillResourcesManyQueueProcessor = reindexSkillResourcesManyQueue.process(
@@ -46,34 +31,29 @@ export let reindexSkillResourcesManyQueueProcessor = reindexSkillResourcesManyQu
     });
     if (resources.length === 0) return;
 
-    await reindexSkillResourcesSingleQueue.addMany(
-      resources.map(resource => ({
-        resourceType: data.resourceType,
-        resourceId: resource.id
-      }))
-    );
+    if (data.resourceType === 'skill') {
+      await indexSkillQueue.addMany(resources.map(resource => ({ skillId: resource.id })));
+    } else if (data.resourceType === 'skillGroup') {
+      await indexSkillGroupQueue.addMany(
+        resources.map(resource => ({ skillGroupId: resource.id }))
+      );
+    } else {
+      await indexSkillTemplateQueue.addMany(
+        resources.map(resource => ({ skillTemplateId: resource.id }))
+      );
+    }
 
     if (resources.length === batchSize) {
-      await reindexSkillResourcesManyQueue.add({
-        resourceType: data.resourceType,
-        cursor: resources[resources.length - 1]!.id
-      });
+      await reindexSkillResourcesManyQueue.add(
+        {
+          resourceType: data.resourceType,
+          cursor: resources[resources.length - 1]!.id
+        },
+        hourlyPacedDelay()
+      );
     }
   }
 );
-
-export let reindexSkillResourcesSingleQueueProcessor =
-  reindexSkillResourcesSingleQueue.process(async data => {
-    if (data.resourceType === 'skill') {
-      await indexSkillQueue.add({ skillId: data.resourceId });
-      return;
-    }
-    if (data.resourceType === 'skillGroup') {
-      await indexSkillGroupQueue.add({ skillGroupId: data.resourceId });
-      return;
-    }
-    await indexSkillTemplateQueue.add({ skillTemplateId: data.resourceId });
-  });
 
 let listSkillResources = async (d: { resourceType: SkillResourceType; cursor?: string }) => {
   let args = {
@@ -91,7 +71,5 @@ let listSkillResources = async (d: { resourceType: SkillResourceType; cursor?: s
 };
 
 export let reindexSkillResourcesQueueProcessor = combineQueueProcessors([
-  reindexSkillResourcesCron,
-  reindexSkillResourcesManyQueueProcessor,
-  reindexSkillResourcesSingleQueueProcessor
+  reindexSkillResourcesManyQueueProcessor
 ]);

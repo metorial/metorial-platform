@@ -1,11 +1,17 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { ObjectStorageError } from 'object-storage-client';
+import {
+  combineQueueProcessors,
+  createQueue,
+  deleteInChunks,
+  hourlyPacedDelay
+} from '@metorial/queue';
 import { pendingUploadTtlMs } from '../lib/uploadPolicy';
-import { getCargoFilesBucketName, getStorage } from '../storage';
+import { getCargoFilesBucketName } from '../storage';
+import { cargoObjectDelete } from './objectDelete';
 
-let batchSize = 100;
+let batchSize = 500;
+let purgeChunkSize = 10_000;
 
 export let fileUploadCleanupManyQueue = createQueue<{ cursor?: string }>({
   name: 'cargo/fileUpload/cleanup/many',
@@ -17,7 +23,8 @@ export let fileUploadCleanupManyQueue = createQueue<{ cursor?: string }>({
 export let fileUploadCleanupSingleQueue = createQueue<{ fileUploadId: string }>({
   name: 'cargo/fileUpload/cleanup/single',
   workerOpts: {
-    concurrency: 5
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 
@@ -84,22 +91,26 @@ export let cleanupFileUpload = async (d: { fileUploadId: string }) => {
   });
   if (filesUsingObject > 0) return false;
 
-  try {
-    await getStorage().deleteObject(getCargoFilesBucketName(), upload.storeId);
-  } catch (error) {
-    if (!(error instanceof ObjectStorageError && error.statusCode === 404)) throw error;
-  }
+  await cargoObjectDelete.enqueue(getCargoFilesBucketName(), [upload.storeId]);
 
   return true;
 };
 
-export let purgeTerminalFileUploads = async () =>
-  await db.fileUpload.deleteMany({
-    where: {
-      status: { in: ['completed', 'canceled', 'expired'] },
-      updatedAt: { lte: new Date(Date.now() - pendingUploadTtlMs) }
-    }
+export let purgeTerminalFileUploads = async () => {
+  let where = {
+    status: { in: ['completed', 'canceled', 'expired'] as const },
+    updatedAt: { lte: new Date(Date.now() - pendingUploadTtlMs) }
+  };
+
+  return await deleteInChunks({
+    chunkSize: purgeChunkSize,
+    selectKeys: take =>
+      db.fileUpload
+        .findMany({ where, take, select: { oid: true } })
+        .then(r => r.map(u => u.oid)),
+    deleteKeys: oids => db.fileUpload.deleteMany({ where: { oid: { in: oids } } })
   });
+};
 
 export let fileUploadCleanupManyProcessor = fileUploadCleanupManyQueue.process(async data => {
   let uploads = await listAbandonedFileUploads({
@@ -116,9 +127,10 @@ export let fileUploadCleanupManyProcessor = fileUploadCleanupManyQueue.process(a
   );
 
   if (uploads.length === batchSize) {
-    await fileUploadCleanupManyQueue.add({
-      cursor: uploads[uploads.length - 1]!.id
-    });
+    await fileUploadCleanupManyQueue.add(
+      { cursor: uploads[uploads.length - 1]!.id },
+      hourlyPacedDelay()
+    );
   }
 });
 
@@ -129,7 +141,8 @@ export let fileUploadCleanupSingleProcessor = fileUploadCleanupSingleQueue.proce
 );
 
 export let fileUploadPurgeProcessor = fileUploadPurgeQueue.process(async () => {
-  await purgeTerminalFileUploads();
+  let { hasMore } = await purgeTerminalFileUploads();
+  if (hasMore) await fileUploadPurgeQueue.add({}, hourlyPacedDelay());
 });
 
 export let fileUploadCleanupCron = createCron(

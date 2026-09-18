@@ -23,7 +23,8 @@ export let skillDestinationSyncCleanupCron = createCron(
 export let skillDestinationDeletedFileCleanupCron = createCron(
   {
     name: 'cargo/skill/sync/deletedFiles/cleanup/cron',
-    cron: '0 0 * * *'
+    cron: '0 0 * * *',
+    startupJitterMs: 30_000
   },
   async () => {
     await db.skillDestinationDeletedFile.deleteMany({

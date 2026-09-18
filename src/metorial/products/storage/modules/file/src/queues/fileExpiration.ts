@@ -1,8 +1,9 @@
 import { internalDocumentDraftService } from '@metorial/module-documents';
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
-let batchSize = 100;
+import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@metorial/queue';
+
+let batchSize = 500;
 
 export let fileExpirationManyQueue = createQueue<{
   cursor?: string;
@@ -18,7 +19,8 @@ export let fileExpirationSingleQueue = createQueue<{
 }>({
   name: 'cargo/file/expiration/single',
   workerOpts: {
-    concurrency: 1
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 
@@ -55,9 +57,10 @@ export let fileExpirationManyProcessor = fileExpirationManyQueue.process(async d
   );
 
   if (files.length === batchSize) {
-    await fileExpirationManyQueue.add({
-      cursor: files[files.length - 1]!.id
-    });
+    await fileExpirationManyQueue.add(
+      { cursor: files[files.length - 1]!.id },
+      hourlyPacedDelay()
+    );
   }
 });
 
