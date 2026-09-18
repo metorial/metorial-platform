@@ -393,16 +393,13 @@ class integrationInstanceGroupProviderServiceImpl {
     let existingGroupProviders = await db.integrationInstanceGroupProvider.findMany({
       where: {
         integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
-        integrationInstanceProviderOid: {
-          in: orderedSourceProviders.map(provider => provider.oid)
+        integrationProviderOid: {
+          in: orderedSourceProviders.map(provider => provider.integrationProviderOid)
         }
       }
     });
-    let existingBySourceProviderOid = new Map(
-      existingGroupProviders.map(provider => [
-        provider.integrationInstanceProviderOid,
-        provider
-      ])
+    let existingByIntegrationProviderOid = new Map(
+      existingGroupProviders.map(provider => [provider.integrationProviderOid, provider])
     );
 
     return await withTransaction(async db => {
@@ -439,7 +436,9 @@ class integrationInstanceGroupProviderServiceImpl {
         );
 
         let input = d.input[idx]!;
-        let existing = existingBySourceProviderOid.get(sourceProvider.oid);
+        let existing = existingByIntegrationProviderOid.get(
+          sourceProvider.integrationProviderOid
+        );
         let { toolFilter, isOverrideToolFilter } =
           resolveIntegrationInstanceGroupProviderToolFilterInput({
             inputToolFilters: input.toolFilters,
@@ -449,9 +448,9 @@ class integrationInstanceGroupProviderServiceImpl {
 
         let groupProvider = await db.integrationInstanceGroupProvider.upsert({
           where: {
-            integrationInstanceGroupOid_integrationInstanceProviderOid: {
+            integrationInstanceGroupOid_integrationProviderOid: {
               integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
-              integrationInstanceProviderOid: sourceProvider.oid
+              integrationProviderOid: sourceProvider.integrationProviderOid
             }
           },
           create: {
@@ -486,6 +485,7 @@ class integrationInstanceGroupProviderServiceImpl {
             integrationInstanceGroupSourceOid: source.oid,
             integrationOid: sourceProvider.integrationOid,
             integrationInstanceOid: sourceProvider.integrationInstanceOid,
+            integrationInstanceProviderOid: sourceProvider.oid,
             integrationProviderOid: sourceProvider.integrationProviderOid,
             toolFilter: toolFilter ?? Prisma.JsonNull,
             isOverrideToolFilter
