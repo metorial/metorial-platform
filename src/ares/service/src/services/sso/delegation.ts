@@ -276,19 +276,23 @@ class SsoDelegationServiceImpl {
       );
     }
 
-    let consumed = await db.ssoDelegationAuthorizationCode.updateMany({
-      where: { oid: code.oid, consumedAt: null, expiresAt: { gt: new Date() } },
-      data: { consumedAt: new Date() }
-    });
-    if (consumed.count !== 1) {
-      throw new ServiceError(badRequestError({ message: 'Authorization code was consumed' }));
-    }
+    return await withTransaction(async tdb => {
+      let consumed = await tdb.ssoDelegationAuthorizationCode.updateMany({
+        where: { oid: code.oid, consumedAt: null, expiresAt: { gt: new Date() } },
+        data: { consumedAt: new Date() }
+      });
+      if (consumed.count !== 1) {
+        throw new ServiceError(
+          badRequestError({ message: 'Authorization code was consumed' })
+        );
+      }
 
-    return await this.createToken({
-      delegation: d.delegation,
-      type: 'identity',
-      connectionOid: code.connectionOid,
-      userProfileOid: code.userProfileOid
+      return await this.createToken({
+        delegation: d.delegation,
+        type: 'identity',
+        connectionOid: code.connectionOid,
+        userProfileOid: code.userProfileOid
+      });
     });
   }
 
