@@ -22,7 +22,8 @@ export let triggerWebhookUnregisterQueue = createQueue<{
 }>({
   name: 'shub/trg/whk/unregister/1',
   redisUrl: env.service.REDIS_URL,
-  jobOpts: { attempts: TRIGGER_WEBHOOK_UNREGISTER_MAX_ATTEMPTS, removeOnFail: true }
+  jobOpts: { attempts: TRIGGER_WEBHOOK_UNREGISTER_MAX_ATTEMPTS, removeOnFail: true },
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueue.process(

@@ -973,6 +973,7 @@ let discoverSlateErrorQueue = createQueue<{
   error: InvocationError;
 }>({
   name: 'shub/dis/err',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

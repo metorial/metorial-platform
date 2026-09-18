@@ -18,7 +18,8 @@ export let rediscoverSlatesCron = createCron(
 
 let rediscoverSlatesQueue = createQueue<{ cursor?: string }>({
   name: 'shub/rds/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let rediscoverSlatesQueueProcessor = rediscoverSlatesQueue.process(async data => {

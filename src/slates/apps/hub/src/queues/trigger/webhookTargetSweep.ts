@@ -1,5 +1,5 @@
 import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, hourlyPacedDelay } from '@lowerdeck/queue';
 import type { Prisma } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { env } from '../../env';
@@ -19,7 +19,8 @@ export let triggerWebhookTargetPruneQueue = createQueue<{
 }>({
   name: 'shub/trg/whk/prune/1',
   redisUrl: env.service.REDIS_URL,
-  jobOpts: { removeOnFail: true }
+  jobOpts: { removeOnFail: true },
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let triggerWebhookTargetPruneQueueProcessor = triggerWebhookTargetPruneQueue.process(
@@ -44,7 +45,8 @@ export let triggerWebhookTargetPruneQueueProcessor = triggerWebhookTargetPruneQu
     let staleLinks = await db.triggerRegistrationWebhook.findMany({
       where: { ...where, oid: data.cursor ? { gt: data.cursor } : undefined },
       orderBy: { oid: 'asc' },
-      take: BATCH_SIZE
+      take: BATCH_SIZE,
+      select: { oid: true, triggerWebhookTargetOid: true }
     });
     if (staleLinks.length > 0) {
       await db.triggerRegistrationWebhook.deleteMany({
@@ -60,10 +62,10 @@ export let triggerWebhookTargetPruneQueueProcessor = triggerWebhookTargetPruneQu
     }
 
     if (staleLinks.length === BATCH_SIZE) {
-      await triggerWebhookTargetPruneQueue.add({
-        ...data,
-        cursor: staleLinks[staleLinks.length - 1]!.oid
-      });
+      await triggerWebhookTargetPruneQueue.add(
+        { ...data, cursor: staleLinks[staleLinks.length - 1]!.oid },
+        hourlyPacedDelay()
+      );
     }
   }
 );
@@ -71,7 +73,8 @@ export let triggerWebhookTargetPruneQueueProcessor = triggerWebhookTargetPruneQu
 export let triggerWebhookTargetSweepQueue = createQueue<{ cursor?: string }>({
   name: 'shub/trg/whk/sweep/1',
   redisUrl: env.service.REDIS_URL,
-  jobOpts: { removeOnFail: true }
+  jobOpts: { removeOnFail: true },
+  workerOpts: { concurrency: 1 }
 });
 
 export let triggerWebhookTargetSweepQueueProcessor = triggerWebhookTargetSweepQueue.process(
@@ -106,9 +109,10 @@ export let triggerWebhookTargetSweepQueueProcessor = triggerWebhookTargetSweepQu
       );
     }
     if (stuckTargets.length === BATCH_SIZE) {
-      await triggerWebhookTargetSweepQueue.add({
-        cursor: stuckTargets[stuckTargets.length - 1]!.id
-      });
+      await triggerWebhookTargetSweepQueue.add(
+        { cursor: stuckTargets[stuckTargets.length - 1]!.id },
+        hourlyPacedDelay()
+      );
     }
   }
 );

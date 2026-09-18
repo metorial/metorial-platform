@@ -1,14 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
-  slatesRetentionCron,
-  slatesRetentionStorageCleanupQueueProcessor,
-  slatesTenantRetentionCleanupQueueProcessor,
-  slatesTenantRetentionSearchQueueProcessor
+  slatesRetentionProcessors,
+  slatesRetentionStorageCleanupQueueProcessor
 } from './cleanup';
 
 export let retentionQueues = combineQueueProcessors([
-  slatesRetentionCron,
-  slatesTenantRetentionSearchQueueProcessor,
-  slatesTenantRetentionCleanupQueueProcessor,
+  slatesRetentionProcessors,
   slatesRetentionStorageCleanupQueueProcessor
 ]);

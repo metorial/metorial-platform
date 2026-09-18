@@ -9,6 +9,7 @@ export let getWebhookEventRequestStorageKey = (webhookEventId: string) =>
 
 export let webhookEventPayloadOffloadQueue = createQueue<{ webhookEventId: string }>({
   name: 'shub/whk/payloadOffload',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

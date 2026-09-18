@@ -12,6 +12,7 @@ export let getTriggerEventPayloadStorageKey = (triggerEventId: string) =>
 
 export let triggerRawEventPayloadOffloadQueue = createQueue<{ rawEventId: string }>({
   name: 'shub/trg/evt/rawPayloadOffload/1',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -40,6 +41,7 @@ export let triggerRawEventPayloadOffloadQueueProcessor =
 
 export let triggerEventPayloadOffloadQueue = createQueue<{ triggerEventId: string }>({
   name: 'shub/trg/evt/payloadOffload/1',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

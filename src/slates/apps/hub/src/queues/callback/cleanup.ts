@@ -10,6 +10,7 @@ export let callbackInstanceCleanupManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'shub/cb/instance/cleanupMany',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -48,6 +49,7 @@ export let callbackInstanceCleanupManyQueueProcessor = callbackInstanceCleanupMa
 
 export let callbackInstanceCleanupSingleQueue = createQueue<{ callbackInstanceId: string }>({
   name: 'shub/cb/instance/cleanupSingle',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

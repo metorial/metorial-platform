@@ -21,6 +21,7 @@ let include = {
 
 export let triggerEventProcessQueue = createQueue<{ eventId: string }>({
   name: 'shub/trg/evt/process/1',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL,
   jobOpts: { attempts: TRIGGER_EVENT_DELIVER_MAX_ATTEMPTS }
 });

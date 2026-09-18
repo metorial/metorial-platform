@@ -1,7 +1,7 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { attachmentQueues } from './queues/attachment';
 import { callbackQueues } from './queues/callback';
-import { cleanupCron } from './queues/cron/cleanup';
+import { cleanupProcessors } from './queues/cron/cleanup';
 import { deploymentQueues } from './queues/deployment';
 import { discoveryQueues } from './queues/discovery';
 import { errorQueues } from './queues/error';
@@ -21,7 +21,7 @@ await runQueueProcessors([
   deploymentQueues,
   discoveryQueues,
   instanceQueues,
-  cleanupCron,
+  cleanupProcessors,
   retentionQueues,
   webhookQueues,
   triggerQueues,

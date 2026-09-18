@@ -1,5 +1,5 @@
 import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, dailyPacedDelay } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { storage } from '../../storage';
@@ -19,7 +19,7 @@ export let slateAttachmentCleanupCron = createCron(
   },
   async () => {
     await slateAttachmentCleanupManyQueue.add({});
-    await slateAttachmentUploadCleanupManyQueue.add({});
+    await slateAttachmentUploadCleanupManyQueue.add({}, { delay: 30_000 });
   }
 );
 
@@ -27,7 +27,8 @@ export let slateAttachmentUploadCleanupManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'shub/att/upload/cleanup/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let slateAttachmentUploadCleanupManyQueueProcessor =
@@ -52,9 +53,12 @@ export let slateAttachmentUploadCleanupManyQueueProcessor =
       }))
     );
 
-    await slateAttachmentUploadCleanupManyQueue.add({
-      cursor: uploads[uploads.length - 1]!.id
-    });
+    if (uploads.length === RETENTION_BATCH_SIZE) {
+      await slateAttachmentUploadCleanupManyQueue.add(
+        { cursor: uploads[uploads.length - 1]!.id },
+        dailyPacedDelay()
+      );
+    }
   });
 
 export let slateAttachmentUploadCleanupSingleQueue = createQueue<{
@@ -81,7 +85,8 @@ export let slateAttachmentCleanupManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'shub/att/cleanup/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 export let slateAttachmentCleanupManyQueueProcessor = slateAttachmentCleanupManyQueue.process(
@@ -122,9 +127,12 @@ export let slateAttachmentCleanupManyQueueProcessor = slateAttachmentCleanupMany
       );
     }
 
-    await slateAttachmentCleanupManyQueue.add({
-      cursor: attachments[attachments.length - 1]!.id
-    });
+    if (attachments.length === RETENTION_BATCH_SIZE) {
+      await slateAttachmentCleanupManyQueue.add(
+        { cursor: attachments[attachments.length - 1]!.id },
+        dailyPacedDelay()
+      );
+    }
   }
 );
 

@@ -5,6 +5,7 @@ import { triggerMapQueue } from './map';
 
 export let triggerRawEventMappingQueue = createQueue<{ rawEventId: string }>({
   name: 'shub/trg/evt/map/1',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

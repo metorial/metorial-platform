@@ -7,7 +7,8 @@ import { triggerWebhookTargetSearchQueue } from './webhookTargetSearch';
 export let triggerWebhookRediscoverQueue = createQueue<{ cursor?: string }>({
   name: 'shub/trg/whk/rediscover/1',
   redisUrl: env.service.REDIS_URL,
-  jobOpts: { removeOnFail: true }
+  jobOpts: { removeOnFail: true },
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let triggerWebhookRediscoverQueueProcessor = triggerWebhookRediscoverQueue.process(

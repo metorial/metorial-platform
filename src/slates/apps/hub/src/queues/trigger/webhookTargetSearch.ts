@@ -28,6 +28,7 @@ export let triggerWebhookTargetSearchQueue = createQueue<{
   isPartial?: boolean;
 }>({
   name: 'shub/trg/whk/search/1',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL,
   jobOpts: { removeOnFail: true }
 });

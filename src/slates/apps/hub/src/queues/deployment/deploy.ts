@@ -1,7 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { generateCode } from '@lowerdeck/id';
 import { createLock } from '@lowerdeck/lock';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue, dailyPacedDelay, QueueRetryError } from '@lowerdeck/queue';
 import { subDays } from 'date-fns';
 import SuperJSON from 'superjson';
 import unzipper from 'unzipper';
@@ -455,6 +455,46 @@ export let deploySlateVersionCompletedQueueProcessor =
     })
   );
 
+let FAIL_OLD_DEPLOYMENTS_BATCH_SIZE = 500;
+
+export let failOldDeploymentsQueue = createQueue<{ cursor?: string }>({
+  name: 'shub/slv/dep/fail-old/many',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
+});
+
+export let failOldDeploymentsQueueProcessor = failOldDeploymentsQueue.process(async data => {
+  let oldDeployments = await db.slateDeployment.findMany({
+    where: {
+      status: 'pending',
+      createdAt: { lt: subDays(new Date(), 5) },
+      id: data.cursor ? { gt: data.cursor } : undefined
+    },
+    orderBy: { id: 'asc' },
+    take: FAIL_OLD_DEPLOYMENTS_BATCH_SIZE,
+    select: { id: true }
+  });
+  if (oldDeployments.length === 0) return;
+
+  await deploySlateVersionFailedQueue.addManyWithOps(
+    oldDeployments.map(d => ({
+      data: {
+        deploymentId: d.id,
+        errorCode: 'deployment_timeout',
+        errorMessage: 'Deployment did not complete within 1 hour'
+      },
+      opts: { id: d.id }
+    }))
+  );
+
+  if (oldDeployments.length === FAIL_OLD_DEPLOYMENTS_BATCH_SIZE) {
+    await failOldDeploymentsQueue.add(
+      { cursor: oldDeployments[oldDeployments.length - 1]!.id },
+      dailyPacedDelay()
+    );
+  }
+});
+
 export let failOldDeploymentsCron = createCron(
   {
     name: 'shub/slv/dep/fail-old',
@@ -462,21 +502,6 @@ export let failOldDeploymentsCron = createCron(
     cron: '0 0 * * *'
   },
   async () => {
-    let fiveDaysAgo = subDays(new Date(), 5);
-
-    let oldDeployments = await db.slateDeployment.findMany({
-      where: {
-        status: 'pending',
-        createdAt: { lt: fiveDaysAgo }
-      }
-    });
-
-    await deploySlateVersionFailedQueue.addMany(
-      oldDeployments.map(d => ({
-        deploymentId: d.id,
-        errorCode: 'deployment_timeout',
-        errorMessage: 'Deployment did not complete within 1 hour'
-      }))
-    );
+    await failOldDeploymentsQueue.add({}, { id: 'many' });
   }
 );

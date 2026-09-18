@@ -9,6 +9,7 @@ export let processAuthQueue = createQueue<{
   configId: string;
 }>({
   name: 'shub/soat/procAuth',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -24,6 +24,7 @@ export let triggerWebhookTargetLinkQueue = createQueue<{
   discoveredAt?: Date;
 }>({
   name: 'shub/trg/whk/link/1',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL,
   jobOpts: { removeOnFail: true }
 });

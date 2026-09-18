@@ -36,7 +36,8 @@ export let triggerScheduleReleaseStaleClaimsCron = createCron(
 
 export let triggerScheduleSearchQueue = createQueue<{ cutoff: string; cursor?: string }>({
   name: 'shub/trg/sched/search/1',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 export let triggerScheduleSearchQueueProcessor = triggerScheduleSearchQueue.process(

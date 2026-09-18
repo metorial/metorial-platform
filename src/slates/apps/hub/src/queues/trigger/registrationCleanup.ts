@@ -5,6 +5,7 @@ import { scheduleOrphanedTargetCleanup } from './_orphanedTargets';
 
 export let triggerRegistrationCleanupQueue = createQueue<{ triggerRegistrationId: string }>({
   name: 'shub/trg/cleanup/1',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL,
   jobOpts: { removeOnFail: true }
 });

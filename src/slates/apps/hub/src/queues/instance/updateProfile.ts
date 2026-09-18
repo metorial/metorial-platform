@@ -10,6 +10,7 @@ export let updateProfileQueue = createQueue<{
   configId: string;
 }>({
   name: 'shub/soat/upprof',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

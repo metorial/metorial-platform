@@ -8,6 +8,7 @@ export let createCredentialsUpdateEventsQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'shub/soat/credUpdEvt/many',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 

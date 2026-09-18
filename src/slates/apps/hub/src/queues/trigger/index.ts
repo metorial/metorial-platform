@@ -1,7 +1,8 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
   triggerRawEventCleanupQueueProcessor,
-  triggerRawEventFailedSweepCron
+  triggerRawEventFailedSweepCron,
+  triggerRawEventFailedSweepQueueProcessor
 } from './cleanup';
 import { triggerEventProcessQueueProcessor } from './eventProcess';
 import { triggerRawEventIdempotencyKeyClearCron } from './idempotencyKeyClear';
@@ -57,6 +58,7 @@ export let triggerQueues = combineQueueProcessors([
   triggerMapQueueProcessor,
   triggerRawEventCleanupQueueProcessor,
   triggerRawEventFailedSweepCron,
+  triggerRawEventFailedSweepQueueProcessor,
   triggerRawEventIdempotencyKeyClearCron,
   triggerEventProcessQueueProcessor,
   triggerRawEventPayloadOffloadQueueProcessor,

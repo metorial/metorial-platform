@@ -6,7 +6,8 @@ import {
   deploySlateVersionProviderCompletedQueueProcessor,
   deploySlateVersionQueueProcessor,
   deploySlateVersionStartQueueProcessor,
-  failOldDeploymentsCron
+  failOldDeploymentsCron,
+  failOldDeploymentsQueueProcessor
 } from './deploy';
 
 export let deploymentQueues = combineQueueProcessors([
@@ -16,5 +17,6 @@ export let deploymentQueues = combineQueueProcessors([
   deploySlateVersionProviderCompletedQueueProcessor,
   deploySlateVersionCompletedQueueProcessor,
   deploySlateVersionFailedQueueProcessor,
-  failOldDeploymentsCron
+  failOldDeploymentsCron,
+  failOldDeploymentsQueueProcessor
 ]);

@@ -7,6 +7,7 @@ let BATCH_SIZE = 100;
 
 export let reconcileEventIdsQueue = createQueue<{}>({
   name: 'shub/sin/reconcileEvtIds',
+  workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 

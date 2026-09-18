@@ -16,6 +16,7 @@ import { webhookEventPayloadOffloadQueue } from './payloadOffload';
 
 export let processWebhookEventQueue = createQueue<{ webhookEventId: string }>({
   name: 'shub/whk/process',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

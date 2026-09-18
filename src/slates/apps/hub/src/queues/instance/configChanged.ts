@@ -9,6 +9,7 @@ export let slateInstanceConfigChangedQueue = createQueue<{
   versionId: string;
 }>({
   name: 'shub/sin/cfg/chgd',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

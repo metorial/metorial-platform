@@ -15,6 +15,7 @@ export let triggerRegistrationInstanceSetupQueue = createQueue<{
   triggerRegistrationInstanceId: string;
 }>({
   name: 'shub/trg/inst/setup/1',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

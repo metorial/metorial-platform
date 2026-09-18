@@ -42,6 +42,7 @@ export let triggerWebhookRegisterQueue = createQueue<{
   triggerRegistrationInstanceId?: string;
 }>({
   name: 'shub/trg/whk/register/1',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL,
   jobOpts: { attempts: TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS, removeOnFail: true }
 });

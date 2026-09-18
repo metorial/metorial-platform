@@ -20,6 +20,7 @@ export let recordSlateErrorQueue = createQueue<{
   oauthSetupOid: string | null;
 }>({
   name: 'shub/err/record',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

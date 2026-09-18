@@ -72,7 +72,8 @@ let syncNpmPackagesQueue = createQueue<{
   cursor: number;
 }>({
   name: 'sreg/slate/npm/many',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 if (process.env.NODE_ENV === 'development') {
