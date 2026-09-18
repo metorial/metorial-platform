@@ -1,9 +1,17 @@
 import { deleteAuditEventsBefore } from '@metorial/audit-models';
 import { createCron } from '@metorial/cron';
-import { db, withTransaction } from '@metorial/db';
-import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
+import { db } from '@metorial/db';
+import {
+  combineQueueProcessors,
+  createQueue,
+  dailyPacedDelay,
+  deleteInChunks,
+  QueueRetryError
+} from '@metorial/queue';
 
-export let AUDIT_LOG_CLEANUP_BATCH_SIZE = 100;
+export let AUDIT_LOG_CLEANUP_BATCH_SIZE = 500;
+
+let AUDIT_LOG_DELETE_CHUNK_SIZE = 10_000;
 
 export let cleanupAuditLogsCron = createCron(
   {
@@ -16,7 +24,8 @@ export let cleanupAuditLogsCron = createCron(
 );
 
 export let cleanupAuditLogOrganizationsQueue = createQueue<{ cursor?: string }>({
-  name: 'audit/log/cleanup/organizations'
+  name: 'audit/log/cleanup/organizations',
+  workerOpts: { concurrency: 1 }
 });
 
 export let cleanupAuditLogOrganizationsQueueProcessor =
@@ -37,15 +46,17 @@ export let cleanupAuditLogOrganizationsQueueProcessor =
       organizations.map(organization => ({ organizationId: organization.id }))
     );
 
-    let lastOrganization = organizations.at(-1);
-    if (lastOrganization) {
-      await cleanupAuditLogOrganizationsQueue.add({ cursor: lastOrganization.id });
+    if (organizations.length === AUDIT_LOG_CLEANUP_BATCH_SIZE) {
+      await cleanupAuditLogOrganizationsQueue.add(
+        { cursor: organizations[organizations.length - 1]!.id },
+        dailyPacedDelay()
+      );
     }
   });
 
 export let cleanupOrganizationAuditLogsQueue = createQueue<{ organizationId: string }>({
   name: 'audit/log/cleanup/organization',
-  workerOpts: { concurrency: 5 }
+  workerOpts: { concurrency: 5, limiter: { max: 5, duration: 1000 } }
 });
 
 export let cleanupOrganizationAuditLogsQueueProcessor =
@@ -61,15 +72,33 @@ export let cleanupOrganizationAuditLogsQueueProcessor =
     if (!Number.isFinite(cutoffMs) || cutoffMs <= 0) return;
 
     let recordedAt = new Date(cutoffMs);
+    let where = { organizationOid: organization.oid, recordedAt: { lt: recordedAt } };
 
-    await withTransaction(async tx => {
-      await tx.auditLog.deleteMany({
-        where: { organizationOid: organization.oid, recordedAt: { lt: recordedAt } }
-      });
-      await tx.auditLogEvent.deleteMany({
-        where: { organizationOid: organization.oid, recordedAt: { lt: recordedAt } }
-      });
+    let logs = await deleteInChunks({
+      chunkSize: AUDIT_LOG_DELETE_CHUNK_SIZE,
+      selectKeys: take =>
+        db.auditLog
+          .findMany({ where, take, select: { oid: true } })
+          .then(r => r.map(l => l.oid)),
+      deleteKeys: oids => db.auditLog.deleteMany({ where: { oid: { in: oids } } })
     });
+
+    let events = await deleteInChunks({
+      chunkSize: AUDIT_LOG_DELETE_CHUNK_SIZE,
+      selectKeys: take =>
+        db.auditLogEvent
+          .findMany({ where, take, select: { oid: true } })
+          .then(r => r.map(e => e.oid)),
+      deleteKeys: oids => db.auditLogEvent.deleteMany({ where: { oid: { in: oids } } })
+    });
+
+    if (logs.hasMore || events.hasMore) {
+      await cleanupOrganizationAuditLogsQueue.add(
+        { organizationId: data.organizationId },
+        dailyPacedDelay()
+      );
+      return;
+    }
 
     await deleteAuditEventsBefore({ organizationOid: organization.oid, recordedAt });
   });

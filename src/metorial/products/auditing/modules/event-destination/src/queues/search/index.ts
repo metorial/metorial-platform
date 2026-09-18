@@ -1,14 +1,11 @@
 import { combineQueueProcessors } from '@metorial/queue';
 import { indexEventDestinationQueueProcessor } from './eventDestination';
-import {
-  reindexEventDestinationsCron,
-  reindexEventDestinationsManyQueueProcessor
-} from './reindex';
+import { reindexEventDestinationsManyQueueProcessor } from './reindex';
 
 export { indexEventDestinationQueue } from './eventDestination';
+export { startFullEventDestinationReindex } from './reindex';
 
 export let eventDestinationSearchQueueProcessor = combineQueueProcessors([
   indexEventDestinationQueueProcessor,
-  reindexEventDestinationsCron,
   reindexEventDestinationsManyQueueProcessor
 ]);

@@ -2,16 +2,13 @@ import { db as integrationsDb } from '@metorial-subspace/db';
 import { createCron } from '@metorial/cron';
 import { db as metorialDb } from '@metorial/db';
 import { purgeEventDeliveriesForSystemEvent } from '@metorial/module-event-delivery';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import {
-  getChatEventPayloadsBucketName,
-  getEventPayloadsBucketName,
-  getStorage
-} from '../storage';
+import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@metorial/queue';
+import { getChatEventPayloadsBucketName, getEventPayloadsBucketName } from '../storage';
+import { auditingObjectDelete } from './objectDelete';
 
 export let SYSTEM_EVENT_RETENTION_DAYS = 14;
 
-let batchSize = 100;
+let batchSize = 500;
 
 type SystemEventCleanupResource = 'systemEvent' | 'callbackEvent' | 'chatEvent';
 
@@ -33,7 +30,7 @@ export let systemEventCleanupSingleQueue = createQueue<{
   dueBefore: string;
 }>({
   name: 'auditing/systemEvent/cleanup/single',
-  workerOpts: { concurrency: 5 }
+  workerOpts: { concurrency: 5, limiter: { max: 20, duration: 1000 } }
 });
 
 export let systemEventCleanupManyProcessor = systemEventCleanupManyQueue.process(
@@ -84,11 +81,14 @@ export let systemEventCleanupManyProcessor = systemEventCleanupManyQueue.process
     );
 
     if (events.length === batchSize) {
-      await systemEventCleanupManyQueue.add({
-        resource: data.resource,
-        dueBefore: data.dueBefore,
-        cursor: events[events.length - 1]!.id
-      });
+      await systemEventCleanupManyQueue.add(
+        {
+          resource: data.resource,
+          dueBefore: data.dueBefore,
+          cursor: events[events.length - 1]!.id
+        },
+        hourlyPacedDelay()
+      );
     }
   }
 );
@@ -106,11 +106,13 @@ export let systemEventCleanupSingleProcessor = systemEventCleanupSingleQueue.pro
 
       await purgeEventDeliveriesForSystemEvent({ systemEventOid: event.oid });
 
-      if (event.payloadStorageKey) {
-        await getStorage().deleteObject(getEventPayloadsBucketName(), event.payloadStorageKey);
-      }
-
       await metorialDb.systemEvent.delete({ where: { id: event.id } });
+
+      if (event.payloadStorageKey) {
+        await auditingObjectDelete.enqueue(getEventPayloadsBucketName(), [
+          event.payloadStorageKey
+        ]);
+      }
       return;
     }
 
@@ -121,14 +123,13 @@ export let systemEventCleanupSingleProcessor = systemEventCleanupSingleQueue.pro
       });
       if (!event) return;
 
-      if (event.payloadStorageKey) {
-        await getStorage().deleteObject(
-          getChatEventPayloadsBucketName(),
-          event.payloadStorageKey
-        );
-      }
-
       await integrationsDb.chatEvent.delete({ where: { id: event.id } });
+
+      if (event.payloadStorageKey) {
+        await auditingObjectDelete.enqueue(getChatEventPayloadsBucketName(), [
+          event.payloadStorageKey
+        ]);
+      }
       return;
     }
 
@@ -145,20 +146,13 @@ export let systemEventCleanupSingleProcessor = systemEventCleanupSingleQueue.pro
     });
     if (!event) return;
 
-    await Promise.all(
-      event.chatEvents.flatMap(chatEvent =>
-        chatEvent.payloadStorageKey
-          ? [
-              getStorage().deleteObject(
-                getChatEventPayloadsBucketName(),
-                chatEvent.payloadStorageKey
-              )
-            ]
-          : []
-      )
+    let payloadKeys = event.chatEvents.flatMap(chatEvent =>
+      chatEvent.payloadStorageKey ? [chatEvent.payloadStorageKey] : []
     );
 
     await integrationsDb.callbackEvent.delete({ where: { id: event.id } });
+
+    await auditingObjectDelete.enqueue(getChatEventPayloadsBucketName(), payloadKeys);
   }
 );
 
@@ -167,9 +161,12 @@ export let systemEventCleanupCron = createCron(
   async () => {
     let dueBefore = getRetentionCutoff().toISOString();
 
-    await systemEventCleanupManyQueue.addMany(
+    await systemEventCleanupManyQueue.addManyWithOps(
       (['systemEvent', 'callbackEvent', 'chatEvent'] as SystemEventCleanupResource[]).map(
-        resource => ({ resource, dueBefore })
+        (resource, index) => ({
+          data: { resource, dueBefore },
+          opts: { delay: index * 20_000 }
+        })
       )
     );
   }
@@ -178,5 +175,6 @@ export let systemEventCleanupCron = createCron(
 export let systemEventCleanupProcessors = combineQueueProcessors([
   systemEventCleanupManyProcessor,
   systemEventCleanupSingleProcessor,
-  systemEventCleanupCron
+  systemEventCleanupCron,
+  auditingObjectDelete.processor
 ]);

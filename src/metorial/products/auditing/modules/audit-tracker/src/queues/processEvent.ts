@@ -29,7 +29,8 @@ export let processAuditEventQueue = createQueue<ProcessAuditEventJob>({
     removeOnComplete: {
       age: 5 * 60
     }
-  }
+  },
+  workerOpts: { concurrency: 10 }
 });
 
 let getBatchJobId = (items: ProcessAuditEventItem[]) =>

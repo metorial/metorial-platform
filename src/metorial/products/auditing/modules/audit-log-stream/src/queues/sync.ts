@@ -64,7 +64,8 @@ export let syncAuditLogStreamQueueProcessor = syncAuditLogStreamQueue.process(as
 export let scavengeDirtyAuditLogOrganizationsQueue = createQueue<{
   cursor?: string;
 }>({
-  name: 'audit/stream/scavenge'
+  name: 'audit/stream/scavenge',
+  workerOpts: { concurrency: 1 }
 });
 
 export let scavengeDirtyAuditLogOrganizationsQueueProcessor =

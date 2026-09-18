@@ -20,7 +20,8 @@ export interface SystemEventIngestJob {
 }
 
 export let systemEventIngestQueue = createQueue<SystemEventIngestJob>({
-  name: 'auditing/event/ingest'
+  name: 'auditing/event/ingest',
+  workerOpts: { concurrency: 50 }
 });
 
 export let enqueueSystemEvent = async (d: {
