@@ -1,16 +1,362 @@
-import { renderWithLoader } from '@metorial/data-hooks';
+import { DashboardInstanceMagicMcpServersProvidersListOutput } from '@metorial/dashboard-sdk';
+import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import {
+  useCreateMagicMcpServerProvider,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDeleteMagicMcpServerProvider,
   useMagicMcpServer,
-  useMagicMcpTokens
+  useMagicMcpServerProviders,
+  useMagicMcpTokens,
+  useProviderDeployments,
+  useProviderListings,
+  useUpdateMagicMcpServerProvider
 } from '@metorial/state';
-import { Attributes, Flex, RenderDate, Text } from '@metorial/ui';
+import { Button, confirm, Flex, Menu, Spacer, Text, toast } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
-import { useEffect, useRef, useState } from 'react';
+import { RiMore2Line } from '@remixicon/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+  createMagicMcpTokenModal,
+  showManageRestrictionsModal,
+  TokenSecret,
+  updateTokenModal,
+  type TokenRow
+} from '../../../scenes/magicMcp/tokensTable';
 import { McpConnectionInstructionsScene } from '../../../scenes/mcpConnectionInstructions';
+import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
+
+type MagicMcpServerProviderRow =
+  DashboardInstanceMagicMcpServersProvidersListOutput['items'][number];
+type MagicMcpServer = NonNullable<ReturnType<typeof useMagicMcpServer>['data']>;
+
+let getToolFilterSummary = (toolFilter: MagicMcpServerProviderRow['toolFilter']) => {
+  if (!toolFilter || toolFilter.type === 'allow_all') return 'All tools';
+
+  let selectedToolKeys = toolFilter.filters
+    .filter(filter => filter.type === 'tool_keys')
+    .flatMap(filter => filter.keys ?? []);
+
+  if (selectedToolKeys.length === 0) return 'No tools';
+  if (selectedToolKeys.length === 1) return '1 selected';
+  return `${selectedToolKeys.length} selected`;
+};
+
+let MagicMcpServerProvidersBox = (p: { instanceId: string; server: MagicMcpServer }) => {
+  let providers = useMagicMcpServerProviders(p.instanceId, p.server.id, {
+    status: ['active']
+  });
+  let deployments = useProviderDeployments(p.instanceId);
+  let listings = useProviderListings(p.instanceId, { limit: 100 });
+  let createProvider = useCreateMagicMcpServerProvider();
+  let updateProvider = useUpdateMagicMcpServerProvider();
+  let deleteProvider = useDeleteMagicMcpServerProvider();
+
+  let listingLookup = useMemo(
+    () =>
+      Object.fromEntries(
+        (listings.data?.items ?? []).map(listing => [
+          listing.provider.id,
+          { name: listing.name, imageUrl: listing.imageUrl }
+        ])
+      ),
+    [listings.data?.items]
+  );
+  let deploymentLookup = useMemo(
+    () =>
+      Object.fromEntries(
+        (deployments.data?.items ?? []).map(deployment => [deployment.id, deployment])
+      ),
+    [deployments.data?.items]
+  );
+  let linkedProviderIds = useMemo(
+    () =>
+      Array.from(new Set((providers.data?.items ?? []).map(provider => provider.provider.id))),
+    [providers.data?.items]
+  );
+
+  let canAddProviders = p.server.providerManagementMode === 'manual';
+  let addProviderDisabledReason =
+    p.server.providerManagementMode === 'inherited_from_integration'
+      ? 'Providers are inherited from the integration and cannot be changed here.'
+      : p.server.providerManagementMode === 'inherited_from_provider_template'
+        ? 'Providers are inherited from the provider template and cannot be changed here.'
+        : undefined;
+
+  let openProviderPanel = (row?: MagicMcpServerProviderRow) => {
+    showAddProviderSidePanel({
+      instanceId: p.instanceId,
+      excludeProviderIds: row
+        ? linkedProviderIds.filter(providerId => providerId !== row.provider.id)
+        : linkedProviderIds,
+      providerId: row?.provider.id,
+      hideProviderStep: !!row,
+      sessionTemplateProviderId: row?.id,
+      initialDeploymentId: row?.deployment?.id,
+      initialConfigId: row?.config?.id ?? undefined,
+      initialAuthConfigId: row?.authConfig?.id ?? undefined,
+      initialToolFilter: row?.toolFilter ?? null,
+      title: row ? 'Edit Provider' : 'Add Provider',
+      description: row
+        ? 'Update the configuration for this magic MCP server provider.'
+        : 'Select a provider and configure how it should be attached to this magic MCP server.',
+      action: row ? 'Save Changes' : 'Add Provider',
+      onSubmitProvider: async (input, currentProviderId) => {
+        if (currentProviderId) {
+          let [, error] = await updateProvider.mutate({
+            instanceId: p.instanceId,
+            magicMcpServerId: p.server.id,
+            magicMcpServerProviderId: currentProviderId,
+            providerDeploymentId: input.providerDeploymentId,
+            providerConfigId: input.providerConfigId,
+            providerAuthConfigId: input.providerAuthConfigId,
+            toolFilters: input.toolFilters
+          });
+
+          return error ? { error } : { success: true };
+        }
+
+        let [, error] = await createProvider.mutate({
+          instanceId: p.instanceId,
+          magicMcpServerId: p.server.id,
+          providerId: input.providerId,
+          providerDeploymentId: input.providerDeploymentId!,
+          providerConfigId: input.providerConfigId,
+          providerAuthConfigId: input.providerAuthConfigId,
+          toolFilters: input.toolFilters
+        });
+
+        return error ? { error } : { success: true };
+      },
+      onComplete: () => providers.refetch()
+    });
+  };
+
+  let removeProvider = (row: MagicMcpServerProviderRow) => {
+    confirm({
+      title: 'Remove Provider',
+      description: `Are you sure you want to remove ${row.provider.name} from this magic MCP server?`,
+      onConfirm: async () => {
+        let [result, error] = await deleteProvider.mutate({
+          instanceId: p.instanceId,
+          magicMcpServerId: p.server.id,
+          magicMcpServerProviderId: row.id
+        });
+        if (!result || error) return;
+
+        toast.success('Provider removed');
+        void providers.refetch();
+      }
+    });
+  };
+
+  return (
+    <Box
+      title="Providers"
+      description="Providers attached to this magic MCP server."
+      rightActions={
+        <Button
+          size="1"
+          disabled={!canAddProviders}
+          title={addProviderDisabledReason}
+          onClick={() => canAddProviders && openProviderPanel()}
+        >
+          Add Provider
+        </Button>
+      }
+    >
+      {renderWithLoader({ providers, deployments, listings })(() => (
+        <MagicMcpServerProvidersTable
+          providers={providers}
+          listingLookup={listingLookup}
+          openProviderPanel={openProviderPanel}
+          removeProvider={removeProvider}
+        />
+      ))}
+    </Box>
+  );
+};
+
+let MagicMcpServerProvidersTable = (p: {
+  providers: ReturnType<typeof useMagicMcpServerProviders>;
+  listingLookup: Record<string, { name: string; imageUrl: string }>;
+  openProviderPanel: (row?: MagicMcpServerProviderRow) => void;
+  removeProvider: (row: MagicMcpServerProviderRow) => void;
+}) =>
+  renderWithPagination(p.providers, { hidePaginationWhenUnavailable: true })(providers => (
+    <>
+      <Table
+        headers={['Provider', 'Tools', '']}
+        data={providers.data.items.map(provider => {
+          let listing = p.listingLookup[provider.provider.id];
+          let canEdit = provider.canUpdate;
+
+          return {
+            onClick: canEdit ? () => p.openProviderPanel(provider) : undefined,
+            data: [
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Text size="2" weight="strong">
+                  {listing?.name ?? provider.provider.name}
+                </Text>
+                <Text size="1" color="gray600">
+                  {provider.provider.slug ?? provider.provider.id}
+                </Text>
+              </div>,
+              <Text size="2">{getToolFilterSummary(provider.toolFilter)}</Text>,
+              <Flex style={{ width: '100%' }} justify="end">
+                <Menu
+                  items={[
+                    ...(provider.canUpdate
+                      ? [
+                          {
+                            id: 'edit',
+                            label: 'Edit',
+                            disabled: provider.providerManagementMode !== 'manual'
+                          }
+                        ]
+                      : []),
+                    ...(provider.canDelete
+                      ? [
+                          {
+                            id: 'delete',
+                            label: 'Delete',
+                            disabled: provider.providerManagementMode !== 'manual'
+                          }
+                        ]
+                      : [])
+                  ]}
+                  onItemClick={id => {
+                    if (id === 'edit') p.openProviderPanel(provider);
+                    if (id === 'delete') p.removeProvider(provider);
+                  }}
+                >
+                  <Button
+                    size="1"
+                    variant="outline"
+                    iconRight={<RiMore2Line />}
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  />
+                </Menu>
+              </Flex>
+            ]
+          };
+        })}
+      />
+
+      {providers.data.items.length === 0 ? (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No providers configured for this magic MCP server.
+        </Text>
+      ) : null}
+    </>
+  ));
+
+let MagicMcpServerTokensBox = (p: { instanceId: string; server: MagicMcpServer }) => {
+  let tokens = useMagicMcpTokens(p.instanceId, {
+    order: 'asc',
+    status: ['active'],
+    magicMcpServerId: p.server.id
+  });
+  let revokeMutator = tokens.revokeMutator();
+
+  let deleteToken = async (tokenId: string) => {
+    let [res] = await revokeMutator.mutate({ magicMcpTokenId: tokenId });
+    if (res) toast.success('Magic MCP token deleted');
+  };
+
+  return (
+    <Box
+      title="Tokens"
+      description="Tokens that can be used to connect to this Magic MCP server."
+      rightActions={
+        <Button size="1" onClick={() => createMagicMcpTokenModal()}>
+          Create Token
+        </Button>
+      }
+    >
+      {renderWithPagination(tokens, { hidePaginationWhenUnavailable: true })(tokens => (
+        <>
+          <Table
+            headers={['Name', 'Secret', '']}
+            data={tokens.data.items.map((token: TokenRow) => ({
+              data: [
+                <div>
+                  <Text size="2" weight="strong">
+                    {token.name ?? 'Unnamed Token'}
+                  </Text>
+                  {token.description && (
+                    <Text size="1" color="gray600">
+                      {token.description}
+                    </Text>
+                  )}
+                </div>,
+                <TokenSecret token={token} />,
+                <Flex style={{ width: '100%' }} justify="end">
+                  <Menu
+                    items={[
+                      {
+                        id: 'update',
+                        label: 'Update Details',
+                        disabled: token.status !== 'active'
+                      },
+                      {
+                        id: 'restrictions',
+                        label: 'Edit Restrictions',
+                        disabled: token.status !== 'active'
+                      },
+                      {
+                        id: 'delete',
+                        label: 'Delete',
+                        disabled: token.status !== 'active'
+                      }
+                    ]}
+                    onItemClick={id => {
+                      if (id === 'update') {
+                        updateTokenModal({ tokenId: token.id, instanceId: p.instanceId });
+                      }
+                      if (id === 'restrictions') {
+                        showManageRestrictionsModal({ token });
+                      }
+                      if (id === 'delete') {
+                        confirm({
+                          title: 'Delete Magic MCP token',
+                          description: 'Are you sure you want to delete this Magic MCP token?',
+                          confirmText: 'Delete',
+                          onConfirm: async () => {
+                            await deleteToken(token.id);
+                          }
+                        });
+                      }
+                    }}
+                  >
+                    <Button
+                      size="1"
+                      variant="outline"
+                      iconRight={<RiMore2Line />}
+                      onClick={e => e.preventDefault()}
+                    />
+                  </Menu>
+                </Flex>
+              ]
+            }))}
+          />
+
+          {tokens.data.items.length === 0 ? (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No Magic MCP tokens found.
+            </Text>
+          ) : null}
+        </>
+      ))}
+    </Box>
+  );
+};
 
 export let MagicMcpServerOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -111,115 +457,7 @@ export let MagicMcpServerOverviewPage = () => {
           : null;
 
       return (
-        <Flex direction="column" gap={16}>
-          <Attributes
-            itemWidth="300px"
-            attributes={[
-              {
-                label: 'ID',
-                content: <ID id={server.data.id} />
-              },
-              {
-                label: 'Server Identifier',
-                content: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
-              },
-              {
-                label: 'Created At',
-                content: <RenderDate date={server.data.createdAt} />
-              }
-            ]}
-          />
-
-          {consumerOwners.length > 0 && (
-            <Box
-              title="User Access"
-              description="Accounts that have access this Magic MCP server."
-            >
-              <Table
-                headers={['Name', 'Email', 'Consumer ID']}
-                data={consumerOwners.map(consumerOwner => ({
-                  data: [
-                    consumerOwner.consumerProfileName || consumerOwner.consumerName,
-                    consumerOwner.consumerProfileEmail || consumerOwner.consumerEmail,
-                    <ID id={consumerOwner.consumerId} />
-                  ]
-                }))}
-              />
-            </Box>
-          )}
-
-          {/* <Spacer height={16} />
-
-            <Copy
-              label="Primary Endpoint"
-              value={streamableHttpUrl ?? '...'}
-              copyValue={streamableHttpUrl ?? ''}
-            /> */}
-
-          {/* <Box
-            title="Providers"
-            description="Sessions created through this server inherit providers from its session template."
-            rightActions={
-              <Link to={Paths.instance.magicMcp.server(...detailsPathParams, 'providers')}>
-                <Button as="span" size="1" variant="outline">
-                  Manage Providers
-                </Button>
-              </Link>
-            }
-          >
-            <Flex direction="column" gap={12}>
-              {providerPreviewItems.length > 0 ? (
-                <Flex direction="column" gap={10}>
-                  {providerPreviewItems.map(provider => {
-                    let providerId =
-                      provider.providerId ?? provider.deployment.providerId ?? provider.id;
-                    let providerName = providerNameMap.get(providerId) ?? providerId;
-                    let providerDeploymentLabel =
-                      provider.deployment.name ?? provider.deployment.id;
-
-                    return (
-                      <Entity.Wrapper key={provider.id}>
-                        <Entity.Content>
-                          <Entity.Field
-                            title={providerName}
-                            description={providerDeploymentLabel}
-                            prefix={
-                              <Avatar
-                                entity={{
-                                  name: providerName
-                                }}
-                                size={28}
-                                radius={8}
-                                noTooltip
-                                imageFit="contain"
-                              />
-                            }
-                          />
-                        </Entity.Content>
-                      </Entity.Wrapper>
-                    );
-                  })}
-
-                  {remainingProviderCount > 0 ? (
-                    <Text size="2" color="gray600">
-                      And {remainingProviderCount} more provider
-                      {remainingProviderCount === 1 ? '' : 's'}.
-                    </Text>
-                  ) : null}
-                </Flex>
-              ) : (
-                <Flex direction="column" gap={6}>
-                  <Text size="2" color="gray600">
-                    No providers have been added to this server yet.
-                  </Text>
-                  <Text size="2" color="gray600">
-                    Use <strong>Manage Providers</strong> to attach providers to this server.
-                  </Text>
-                </Flex>
-              )}
-            </Flex>
-          </Box> */}
-
+        <DetailsOverviewLayout>
           <Box
             title={`Connect to ${server.data.name ?? 'Magic MCP Server'}`}
             description="Use this Magic MCP endpoint to connect to your server."
@@ -239,13 +477,43 @@ export let MagicMcpServerOverviewPage = () => {
                   <Text size="2">
                     {creatingInitialToken
                       ? 'Creating a Magic MCP token for this server...'
-                      : 'No active Magic MCP token found for this server. Create one from the Tokens tab to connect clients.'}
+                      : 'No active Magic MCP token found for this server. Create one above to connect clients.'}
                   </Text>
                 </Flex>
               }
             />
           </Box>
-        </Flex>
+
+          <Spacer height={20} />
+
+          <MagicMcpServerProvidersBox instanceId={instance.data.id} server={server.data} />
+
+          <Spacer height={20} />
+
+          <MagicMcpServerTokensBox instanceId={instance.data.id} server={server.data} />
+
+          {consumerOwners.length > 0 && (
+            <>
+              <Spacer height={20} />
+
+              <Box
+                title="User Access"
+                description="Accounts that have access this Magic MCP server."
+              >
+                <Table
+                  headers={['Name', 'Email', 'Consumer ID']}
+                  data={consumerOwners.map(consumerOwner => ({
+                    data: [
+                      consumerOwner.consumerProfileName || consumerOwner.consumerName,
+                      consumerOwner.consumerProfileEmail || consumerOwner.consumerEmail,
+                      <ID id={consumerOwner.consumerId} />
+                    ]
+                  }))}
+                />
+              </Box>
+            </>
+          )}
+        </DetailsOverviewLayout>
       );
     }
   );
