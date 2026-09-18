@@ -7,7 +7,8 @@ import { syncIdentityConsumerQueue } from '../syncIdentityConsumer';
 import { syncPendingStatusForInstanceConsumer } from './pendingStatus';
 
 export let consumerCreatedQueue = createQueue<{ instanceConsumerId: string }>({
-  name: 'cons/lc/consumer/created'
+  name: 'cons/lc/consumer/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerCreatedQueueProcessor = consumerCreatedQueue.process(async data => {
@@ -37,7 +38,8 @@ export let consumerUpdatedQueue = createQueue<
   | { instanceConsumerId: string; consumerId?: never }
   | { instanceConsumerId?: never; consumerId: string }
 >({
-  name: 'cons/lc/consumer/updated'
+  name: 'cons/lc/consumer/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerUpdatedQueueProcessor = consumerUpdatedQueue.process(async data => {

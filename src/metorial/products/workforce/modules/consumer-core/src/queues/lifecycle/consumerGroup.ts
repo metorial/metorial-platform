@@ -5,7 +5,8 @@ import { createQueue } from '@metorial/queue';
 import { indexConsumerGroupSearchQueue } from '../search/consumerGroup';
 
 export let consumerGroupCreatedQueue = createQueue<{ consumerGroupId: string }>({
-  name: 'cons/lc/group/created'
+  name: 'cons/lc/group/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerGroupCreatedQueueProcessor = consumerGroupCreatedQueue.process(
@@ -17,7 +18,8 @@ export let consumerGroupCreatedQueueProcessor = consumerGroupCreatedQueue.proces
 );
 
 export let consumerGroupUpdatedQueue = createQueue<{ consumerGroupId: string }>({
-  name: 'cons/lc/group/updated'
+  name: 'cons/lc/group/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerGroupUpdatedQueueProcessor = consumerGroupUpdatedQueue.process(
@@ -29,7 +31,8 @@ export let consumerGroupUpdatedQueueProcessor = consumerGroupUpdatedQueue.proces
 );
 
 export let consumerGroupArchivedQueue = createQueue<{ consumerGroupId: string }>({
-  name: 'cons/lc/group/archived'
+  name: 'cons/lc/group/archived',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerGroupArchivedQueueProcessor = consumerGroupArchivedQueue.process(

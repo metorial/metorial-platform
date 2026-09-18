@@ -13,7 +13,8 @@ export let generateAssistantConversationTitleQueue: IQueue<
   GenerateAssistantConversationTitleJob,
   any
 > = createQueue<GenerateAssistantConversationTitleJob>({
-  name: 'pa/conversation/title'
+  name: 'pa/conversation/title',
+  workerOpts: { concurrency: 50 }
 });
 
 let getFirstUserMessageText = (state: unknown) => {

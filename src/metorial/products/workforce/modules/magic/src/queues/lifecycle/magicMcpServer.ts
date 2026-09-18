@@ -82,7 +82,8 @@ let ensureQueuedMagicMcpServerBacking = async (data: MagicMcpServerLifecycleQueu
 };
 
 export let magicMcpServerCreatedQueue = createQueue<MagicMcpServerLifecycleQueueInput>({
-  name: 'mgc/lc/server/created'
+  name: 'mgc/lc/server/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let magicMcpServerCreatedQueueProcessor = magicMcpServerCreatedQueue.process(
@@ -93,7 +94,8 @@ export let magicMcpServerCreatedQueueProcessor = magicMcpServerCreatedQueue.proc
 );
 
 export let magicMcpServerUpdatedQueue = createQueue<MagicMcpServerLifecycleQueueInput>({
-  name: 'mgc/lc/server/updated'
+  name: 'mgc/lc/server/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let magicMcpServerUpdatedQueueProcessor = magicMcpServerUpdatedQueue.process(
@@ -104,7 +106,8 @@ export let magicMcpServerUpdatedQueueProcessor = magicMcpServerUpdatedQueue.proc
 );
 
 export let magicMcpServerDeletedQueue = createQueue<{ magicMcpServerId: string }>({
-  name: 'mgc/lc/server/deleted'
+  name: 'mgc/lc/server/deleted',
+  workerOpts: { concurrency: 10 }
 });
 
 export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.process(

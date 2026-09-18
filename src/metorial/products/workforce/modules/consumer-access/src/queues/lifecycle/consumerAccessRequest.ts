@@ -9,7 +9,8 @@ import { indexConsumerAccessRequestSearchQueue } from '../search/consumerAccessR
 export let consumerAccessRequestCreatedQueue = createQueue<{
   consumerAccessRequestId: string;
 }>({
-  name: 'cons/lc/access-request/created'
+  name: 'cons/lc/access-request/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerAccessRequestCreatedQueueProcessor =
@@ -23,7 +24,8 @@ export let consumerAccessRequestUpdatedQueue = createQueue<{
   consumerAccessRequestId: string;
   consumerGroupId?: string;
 }>({
-  name: 'cons/lc/access-request/updated'
+  name: 'cons/lc/access-request/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerAccessRequestUpdatedQueueProcessor =

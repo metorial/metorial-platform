@@ -91,7 +91,8 @@ let resolveTarget = async (d: ConsumerTargetAccessCleanupManyInput) => {
 
 export let consumerTargetAccessCleanupManyQueue =
   createQueue<ConsumerTargetAccessCleanupManyInput>({
-    name: 'cons/lc/access/cleanupTargetMany'
+    name: 'cons/lc/access/cleanupTargetMany',
+    workerOpts: { concurrency: 1 }
   });
 
 export let enqueueConsumerTargetAccessCleanup = async (
@@ -105,14 +106,16 @@ export let consumerAccessListingDeleteQueue = createQueue<{
   organizationId: string;
   consumerAccessListingId: string;
 }>({
-  name: 'cons/lc/access/deleteListing'
+  name: 'cons/lc/access/deleteListing',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerAccessDeleteQueue = createQueue<{
   organizationId: string;
   consumerAccessId: string;
 }>({
-  name: 'cons/lc/access/deleteAccess'
+  name: 'cons/lc/access/deleteAccess',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerTargetAccessCleanupManyQueueProcessor =

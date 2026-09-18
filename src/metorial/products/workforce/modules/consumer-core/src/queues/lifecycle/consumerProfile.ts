@@ -37,7 +37,8 @@ let queueConsumerProfileSync = async (consumerProfileId: string) => {
 };
 
 export let consumerProfileCreatedQueue = createQueue<{ consumerProfileId: string }>({
-  name: 'cons/lc/profile/created'
+  name: 'cons/lc/profile/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerProfileCreatedQueueProcessor = consumerProfileCreatedQueue.process(
@@ -47,7 +48,8 @@ export let consumerProfileCreatedQueueProcessor = consumerProfileCreatedQueue.pr
 );
 
 export let consumerProfileUpdatedQueue = createQueue<{ consumerProfileId: string }>({
-  name: 'cons/lc/profile/updated'
+  name: 'cons/lc/profile/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerProfileUpdatedQueueProcessor = consumerProfileUpdatedQueue.process(

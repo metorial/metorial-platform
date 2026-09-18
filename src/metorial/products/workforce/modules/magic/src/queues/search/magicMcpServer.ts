@@ -6,7 +6,8 @@ import {
 import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let indexMagicMcpServerSearchQueue = createQueue<{ magicMcpServerId: string }>({
-  name: 'mgc/sidx/server'
+  name: 'mgc/sidx/server',
+  workerOpts: { concurrency: 50 }
 });
 
 export let indexMagicMcpServerSearchQueueProcessor = indexMagicMcpServerSearchQueue.process(

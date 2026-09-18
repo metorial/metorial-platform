@@ -21,7 +21,8 @@ let toBigInt = (value: string) => BigInt(value);
 
 export let materializeMagicMcpSessionOwnershipQueue =
   createQueue<MaterializeMagicMcpSessionOwnershipInput>({
-    name: 'cons/magic/sessionOwn'
+    name: 'cons/magic/sessionOwn',
+    workerOpts: { concurrency: 50 }
   });
 
 export let enqueueMaterializeMagicMcpSessionOwnership = async (

@@ -6,7 +6,8 @@ let queueMagicMcpGroupIndex = async (magicMcpGroupId: string) => {
 };
 
 export let magicMcpGroupCreatedQueue = createQueue<{ magicMcpGroupId: string }>({
-  name: 'mgc/lc/group/created'
+  name: 'mgc/lc/group/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let magicMcpGroupCreatedQueueProcessor = magicMcpGroupCreatedQueue.process(async data => {
@@ -14,7 +15,8 @@ export let magicMcpGroupCreatedQueueProcessor = magicMcpGroupCreatedQueue.proces
 });
 
 export let magicMcpGroupUpdatedQueue = createQueue<{ magicMcpGroupId: string }>({
-  name: 'mgc/lc/group/updated'
+  name: 'mgc/lc/group/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let magicMcpGroupUpdatedQueueProcessor = magicMcpGroupUpdatedQueue.process(async data => {
@@ -22,7 +24,8 @@ export let magicMcpGroupUpdatedQueueProcessor = magicMcpGroupUpdatedQueue.proces
 });
 
 export let magicMcpGroupDeletedQueue = createQueue<{ magicMcpGroupId: string }>({
-  name: 'mgc/lc/group/deleted'
+  name: 'mgc/lc/group/deleted',
+  workerOpts: { concurrency: 10 }
 });
 
 export let magicMcpGroupDeletedQueueProcessor = magicMcpGroupDeletedQueue.process(async data => {

@@ -6,7 +6,8 @@ import { consumerActorService } from '@metorial/module-consumer-entities';
 export let syncIdentityConsumerQueue = createQueue<{
   identityConsumerId: string;
 }>({
-  name: 'cons/ident/sync'
+  name: 'cons/ident/sync',
+  workerOpts: { concurrency: 50 }
 });
 
 export let syncIdentityConsumerQueueProcessor = syncIdentityConsumerQueue.process(
@@ -43,7 +44,8 @@ export let syncIdentityConsumerQueueProcessor = syncIdentityConsumerQueue.proces
 export let reconcileConsumerActorQueue = createQueue<{
   profileId: string;
 }>({
-  name: 'cons/ident/recon-actor'
+  name: 'cons/ident/recon-actor',
+  workerOpts: { concurrency: 50 }
 });
 
 export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.process(

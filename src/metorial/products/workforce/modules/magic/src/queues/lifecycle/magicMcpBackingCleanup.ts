@@ -96,12 +96,14 @@ let archiveProviderTemplate = async (d: ProviderTemplateCleanupSingleInput) => {
 
 export let magicMcpBackingCleanupProviderTemplatesManyQueue =
   createQueue<ProviderTemplateCleanupManyInput>({
-    name: 'mgc/lc/magicMcpBacking/cleanupProviderTemplatesMany'
+    name: 'mgc/lc/magicMcpBacking/cleanupProviderTemplatesMany',
+    workerOpts: { concurrency: 1 }
   });
 
 export let magicMcpBackingCleanupProviderTemplateQueue =
   createQueue<ProviderTemplateCleanupSingleInput>({
-    name: 'mgc/lc/magicMcpBacking/cleanupProviderTemplate'
+    name: 'mgc/lc/magicMcpBacking/cleanupProviderTemplate',
+    workerOpts: { concurrency: 10 }
   });
 
 export let magicMcpBackingCleanupProviderTemplatesManyQueueProcessor =
@@ -251,21 +253,25 @@ let archiveLinkedMagicMcpServer = async (d: ServerCleanupSingleInput) => {
 };
 
 export let magicMcpBackingCleanupManyQueue = createQueue<MagicMcpBackingCleanupQueueInput>({
-  name: 'mgc/lc/magicMcpBacking/cleanupMany'
+  name: 'mgc/lc/magicMcpBacking/cleanupMany',
+  workerOpts: { concurrency: 1 }
 });
 
 export let magicMcpBackingCleanupBackingsManyQueue =
   createQueue<MagicMcpBackingCleanupBackingsManyInput>({
-    name: 'mgc/lc/magicMcpBacking/cleanupBackingsMany'
+    name: 'mgc/lc/magicMcpBacking/cleanupBackingsMany',
+    workerOpts: { concurrency: 1 }
   });
 
 export let magicMcpBackingCleanupIntegrationInstancesManyQueue =
   createQueue<MagicMcpBackingCleanupIntegrationInstancesManyInput>({
-    name: 'mgc/lc/magicMcpBacking/cleanupInstancesMany'
+    name: 'mgc/lc/magicMcpBacking/cleanupInstancesMany',
+    workerOpts: { concurrency: 1 }
   });
 
 export let magicMcpBackingCleanupServerQueue = createQueue<ServerCleanupSingleInput>({
-  name: 'mgc/lc/magicMcpBacking/cleanupServer'
+  name: 'mgc/lc/magicMcpBacking/cleanupServer',
+  workerOpts: { concurrency: 10 }
 });
 
 export let enqueueMagicMcpBackingCleanup = async (d: MagicMcpBackingCleanupQueueInput) => {

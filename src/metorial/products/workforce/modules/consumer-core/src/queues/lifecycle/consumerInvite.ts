@@ -43,7 +43,8 @@ let processInviteLifecycle = async (consumerInviteId: string) => {
 };
 
 export let consumerInviteCreatedQueue = createQueue<{ consumerInviteId: string }>({
-  name: 'cons/lc/invite/created'
+  name: 'cons/lc/invite/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerInviteCreatedQueueProcessor = consumerInviteCreatedQueue.process(
@@ -53,7 +54,8 @@ export let consumerInviteCreatedQueueProcessor = consumerInviteCreatedQueue.proc
 );
 
 export let consumerInviteUpdatedQueue = createQueue<{ consumerInviteId: string }>({
-  name: 'cons/lc/invite/updated'
+  name: 'cons/lc/invite/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerInviteUpdatedQueueProcessor = consumerInviteUpdatedQueue.process(

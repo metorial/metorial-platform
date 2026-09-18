@@ -20,6 +20,10 @@ export let createQueue = <JobData>(opts: {
 
 export {
   combineQueueProcessors,
+  dailyPacedDelay,
+  deleteInChunks,
+  hourlyPacedDelay,
+  pacedDelay,
   QueueRetryError,
   runQueueProcessors,
   type IQueue,

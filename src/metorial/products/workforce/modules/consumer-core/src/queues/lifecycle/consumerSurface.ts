@@ -56,7 +56,8 @@ let deactivateConsumerSurfaceResources = async (d: {
 };
 
 export let consumerSurfaceCreatedQueue = createQueue<{ consumerSurfaceId: string }>({
-  name: 'cons/lc/surface/created'
+  name: 'cons/lc/surface/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerSurfaceCreatedQueueProcessor = consumerSurfaceCreatedQueue.process(
@@ -64,7 +65,8 @@ export let consumerSurfaceCreatedQueueProcessor = consumerSurfaceCreatedQueue.pr
 );
 
 export let consumerSurfaceUpdatedQueue = createQueue<{ consumerSurfaceId: string }>({
-  name: 'cons/lc/surface/updated'
+  name: 'cons/lc/surface/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerSurfaceUpdatedQueueProcessor = consumerSurfaceUpdatedQueue.process(
@@ -72,7 +74,8 @@ export let consumerSurfaceUpdatedQueueProcessor = consumerSurfaceUpdatedQueue.pr
 );
 
 export let consumerSurfaceArchivedQueue = createQueue<{ consumerSurfaceId: string }>({
-  name: 'cons/lc/surface/archived'
+  name: 'cons/lc/surface/archived',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerSurfaceArchivedQueueProcessor = consumerSurfaceArchivedQueue.process(
@@ -98,7 +101,8 @@ export let consumerSurfaceArchivedQueueProcessor = consumerSurfaceArchivedQueue.
 );
 
 export let consumerSurfaceDeletedQueue = createQueue<{ consumerSurfaceId: string }>({
-  name: 'cons/lc/surface/deleted'
+  name: 'cons/lc/surface/deleted',
+  workerOpts: { concurrency: 10 }
 });
 
 export let consumerSurfaceDeletedQueueProcessor = consumerSurfaceDeletedQueue.process(

@@ -20,7 +20,8 @@ type ProcessAssistantRequestJob = {
 
 export let processAssistantRequestQueue: IQueue<ProcessAssistantRequestJob, any> =
   createQueue<ProcessAssistantRequestJob>({
-    name: 'pa/request/process'
+    name: 'pa/request/process',
+    workerOpts: { concurrency: 50 }
   });
 
 let isRecord = (value: unknown): value is Record<string, unknown> =>

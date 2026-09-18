@@ -6,7 +6,8 @@ import {
 import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let indexConsumerGroupSearchQueue = createQueue<{ consumerGroupId: string }>({
-  name: 'cons/sidx/group'
+  name: 'cons/sidx/group',
+  workerOpts: { concurrency: 50 }
 });
 
 export let indexConsumerGroupSearchQueueProcessor = indexConsumerGroupSearchQueue.process(

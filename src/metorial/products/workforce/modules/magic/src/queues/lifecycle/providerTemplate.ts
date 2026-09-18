@@ -4,7 +4,8 @@ import { createQueue } from '@metorial/queue';
 import { indexProviderTemplateSearchQueue } from '../search/providerTemplate';
 
 export let providerTemplateCreatedQueue = createQueue<{ providerTemplateId: string }>({
-  name: 'magic/lc/provider-template/created'
+  name: 'magic/lc/provider-template/created',
+  workerOpts: { concurrency: 10 }
 });
 
 export let providerTemplateCreatedQueueProcessor = providerTemplateCreatedQueue.process(
@@ -16,7 +17,8 @@ export let providerTemplateCreatedQueueProcessor = providerTemplateCreatedQueue.
 );
 
 export let providerTemplateUpdatedQueue = createQueue<{ providerTemplateId: string }>({
-  name: 'magic/lc/provider-template/updated'
+  name: 'magic/lc/provider-template/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let providerTemplateUpdatedQueueProcessor = providerTemplateUpdatedQueue.process(
@@ -28,7 +30,8 @@ export let providerTemplateUpdatedQueueProcessor = providerTemplateUpdatedQueue.
 );
 
 export let providerTemplateArchivedQueue = createQueue<{ providerTemplateId: string }>({
-  name: 'magic/lc/provider-template/archived'
+  name: 'magic/lc/provider-template/archived',
+  workerOpts: { concurrency: 10 }
 });
 
 export let providerTemplateArchivedQueueProcessor = providerTemplateArchivedQueue.process(

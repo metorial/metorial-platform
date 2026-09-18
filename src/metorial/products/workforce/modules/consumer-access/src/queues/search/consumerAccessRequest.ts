@@ -8,7 +8,8 @@ import { createQueue } from '@metorial/queue';
 export let indexConsumerAccessRequestSearchQueue = createQueue<{
   consumerAccessRequestId: string;
 }>({
-  name: 'cons/sidx/access-request'
+  name: 'cons/sidx/access-request',
+  workerOpts: { concurrency: 50 }
 });
 
 export let indexConsumerAccessRequestSearchQueueProcessor =

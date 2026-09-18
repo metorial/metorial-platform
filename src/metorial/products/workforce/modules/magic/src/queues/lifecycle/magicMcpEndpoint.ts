@@ -8,7 +8,8 @@ import {
 } from '../../lib/backing';
 
 export let magicMcpEndpointCreatedQueue = createQueue<{ magicMcpEndpointId: string }>({
-  name: 'mgc/lc/endpoint/created'
+  name: 'mgc/lc/endpoint/created',
+  workerOpts: { concurrency: 10 }
 });
 
 let ensureQueuedMagicMcpEndpointBacking = async (magicMcpEndpointId: string) => {
@@ -66,7 +67,8 @@ export let magicMcpEndpointCreatedQueueProcessor = magicMcpEndpointCreatedQueue.
 );
 
 export let magicMcpEndpointUpdatedQueue = createQueue<{ magicMcpEndpointId: string }>({
-  name: 'mgc/lc/endpoint/updated'
+  name: 'mgc/lc/endpoint/updated',
+  workerOpts: { concurrency: 10 }
 });
 
 export let magicMcpEndpointUpdatedQueueProcessor = magicMcpEndpointUpdatedQueue.process(
@@ -76,7 +78,8 @@ export let magicMcpEndpointUpdatedQueueProcessor = magicMcpEndpointUpdatedQueue.
 );
 
 export let magicMcpEndpointDeletedQueue = createQueue<{ magicMcpEndpointId: string }>({
-  name: 'mgc/lc/endpoint/deleted'
+  name: 'mgc/lc/endpoint/deleted',
+  workerOpts: { concurrency: 10 }
 });
 
 export let magicMcpEndpointDeletedQueueProcessor = magicMcpEndpointDeletedQueue.process(

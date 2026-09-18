@@ -6,7 +6,8 @@ import {
 import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let indexMagicMcpGroupSearchQueue = createQueue<{ magicMcpGroupId: string }>({
-  name: 'mgc/sidx/group'
+  name: 'mgc/sidx/group',
+  workerOpts: { concurrency: 50 }
 });
 
 export let indexMagicMcpGroupSearchQueueProcessor = indexMagicMcpGroupSearchQueue.process(

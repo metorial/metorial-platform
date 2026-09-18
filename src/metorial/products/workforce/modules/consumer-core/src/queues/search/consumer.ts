@@ -3,7 +3,8 @@ import { indexConsumerDocument } from '@metorial/module-search';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let indexConsumerSearchQueue = createQueue<{ instanceConsumerId: string }>({
-  name: 'cons/sidx/consumer'
+  name: 'cons/sidx/consumer',
+  workerOpts: { concurrency: 50 }
 });
 
 export let indexConsumerSearchQueueProcessor = indexConsumerSearchQueue.process(async data => {

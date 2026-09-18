@@ -6,7 +6,8 @@ import {
 import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let indexProviderTemplateSearchQueue = createQueue<{ providerTemplateId: string }>({
-  name: 'magic/sidx/provider-template'
+  name: 'magic/sidx/provider-template',
+  workerOpts: { concurrency: 50 }
 });
 
 export let indexProviderTemplateSearchQueueProcessor =
