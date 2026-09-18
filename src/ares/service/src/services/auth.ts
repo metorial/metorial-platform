@@ -638,19 +638,21 @@ class AuthServiceImpl {
       });
     }
 
-    if (!userIdentity.userOid) {
-      let user = await userService.findByEmailSafe({
-        email: socialRes.email,
-        app: d.app
-      });
-
-      if (user) {
-        userIdentity = await db.userIdentity.update({
-          where: { oid: userIdentity.oid },
-          data: { userOid: user.oid }
+    let matchedUser = userIdentity.userOid
+      ? null
+      : await userService.findByEmailSafe({
+          email: socialRes.email,
+          app: d.app
         });
-      }
+
+    if (!userIdentity.userOid && socialRes.emailVerified === true && matchedUser) {
+      userIdentity = await db.userIdentity.update({
+        where: { oid: userIdentity.oid },
+        data: { userOid: matchedUser.oid }
+      });
     }
+
+    let requiresEmailVerification = !userIdentity.userOid && socialRes.emailVerified !== true;
 
     let user = userIdentity.userOid
       ? await db.user.findUnique({ where: { oid: userIdentity.userOid } })
@@ -679,6 +681,10 @@ class AuthServiceImpl {
       };
     }
 
+    if (requiresEmailVerification) {
+      await authBlockService.registerBlock({ email: socialRes.email, context: d.context });
+    }
+
     let authIntent = await db.authIntent.create({
       data: {
         ...getId('authIntent'),
@@ -686,7 +692,7 @@ class AuthServiceImpl {
 
         type: 'oauth',
         userIdentityOid: userIdentity.oid,
-        userOid: userIdentity.userOid,
+        userOid: user?.oid ?? matchedUser?.oid ?? null,
         deviceOid: d.device.oid,
         appOid: d.app.oid,
         accountOid: account?.oid ?? null,
@@ -699,11 +705,20 @@ class AuthServiceImpl {
         ip: d.context.ip,
         ua: d.context.ua,
 
-        verifiedAt: new Date(),
+        verifiedAt: requiresEmailVerification ? null : new Date(),
         captchaVerifiedAt: new Date(),
         expiresAt: addMinutes(new Date(), 30)
       }
     });
+
+    if (requiresEmailVerification) {
+      await this.createAuthIntentStep({
+        type: 'email_code',
+        email: socialRes.email,
+        authIntent,
+        index: 0
+      });
+    }
 
     return {
       type: 'auth_intent' as const,
@@ -1211,6 +1226,32 @@ class AuthServiceImpl {
     });
 
     return withTransaction(async tdb => {
+      if (d.authIntent.userIdentityOid) {
+        let identity = await tdb.userIdentity.findUnique({
+          where: { oid: d.authIntent.userIdentityOid }
+        });
+        if (!identity || (identity.userOid && identity.userOid != user.oid)) {
+          throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
+        }
+
+        if (!identity.userOid) {
+          let linked = await tdb.userIdentity.updateMany({
+            where: { oid: identity.oid, userOid: null },
+            data: { userOid: user.oid }
+          });
+          if (linked.count == 0) {
+            let racedIdentity = await tdb.userIdentity.findUnique({
+              where: { oid: identity.oid }
+            });
+            if (racedIdentity?.userOid != user.oid) {
+              throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
+            }
+          }
+
+          await markAresUserChanged({ userId: user.id, db: tdb });
+        }
+      }
+
       await tdb.authIntent.update({
         where: { oid: d.authIntent.oid },
         data: { consumedAt: new Date(), expiresAt: new Date() }
