@@ -1,10 +1,23 @@
 import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
+import {
+  combineQueueProcessors,
+  createObjectDeleteQueue,
+  createQueue,
+  dailyPacedDelay
+} from '@lowerdeck/queue';
 import { subDays } from 'date-fns';
 import { db } from '../db';
 import { env } from '../env';
 import { storageKey } from '../lib/storageKey';
 import { storage } from '../storage';
+
+let CLEANUP_BATCH_SIZE = 500;
+
+let objectDelete = createObjectDeleteQueue({
+  name: 'sgnl/storage/object/delete',
+  redisUrl: env.service.REDIS_URL,
+  deleteObject: (bucket, key) => storage.deleteObject(bucket, key)
+});
 
 let cleanupProcessor = createCron(
   {
@@ -21,7 +34,8 @@ let cleanupProcessor = createCron(
 
 let cleanupSearchQueue = createQueue<{ cursor?: string; time: Date }>({
   name: 'sgnl/cleanup/search',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });
 
 let cleanupSearchQueueProcessor = cleanupSearchQueue.process(async data => {
@@ -31,21 +45,28 @@ let cleanupSearchQueueProcessor = cleanupSearchQueue.process(async data => {
       id: data.cursor ? { lt: data.cursor } : undefined
     },
     orderBy: { id: 'desc' },
-    take: 100
+    take: CLEANUP_BATCH_SIZE,
+    select: { id: true }
   });
   if (!oldEvents.length) return;
 
   await cleanupEventQueue.addMany(oldEvents.map(e => ({ eventId: e.id })));
 
-  await cleanupSearchQueue.add({
-    time: data.time,
-    cursor: oldEvents[oldEvents.length - 1]!.id
-  });
+  if (oldEvents.length === CLEANUP_BATCH_SIZE) {
+    await cleanupSearchQueue.add(
+      { time: data.time, cursor: oldEvents[oldEvents.length - 1]!.id },
+      dailyPacedDelay()
+    );
+  }
 });
 
 let cleanupEventQueue = createQueue<{ eventId: string }>({
   name: 'sgnl/cleanup/event',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: {
+    concurrency: 5,
+    limiter: { max: 20, duration: 1000 }
+  }
 });
 
 let cleanupEventQueueProcessor = cleanupEventQueue.process(async data => {
@@ -55,28 +76,17 @@ let cleanupEventQueueProcessor = cleanupEventQueue.process(async data => {
   });
   if (!event) return;
 
-  await cleanupStorageKeyQueue.addMany([
-    { storageKey: storageKey.event(event) },
+  await objectDelete.enqueue(env.storage.LOGS_BUCKET_NAME, [
+    storageKey.event(event),
     ...event.intents.flatMap(intent =>
-      intent.attempts.map(attempt => ({
-        storageKey: storageKey.attempt(attempt)
-      }))
+      intent.attempts.map(attempt => storageKey.attempt(attempt))
     )
   ]);
-});
-
-let cleanupStorageKeyQueue = createQueue<{ storageKey: string }>({
-  name: 'sgnl/cleanup/storageKey',
-  redisUrl: env.service.REDIS_URL
-});
-
-let cleanupStorageKeyQueueProcessor = cleanupStorageKeyQueue.process(async data => {
-  await storage.deleteObject(env.storage.LOGS_BUCKET_NAME, data.storageKey);
 });
 
 export let cleanupQueues = combineQueueProcessors([
   cleanupProcessor,
   cleanupSearchQueueProcessor,
   cleanupEventQueueProcessor,
-  cleanupStorageKeyQueueProcessor
+  objectDelete.processor
 ]);

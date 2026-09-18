@@ -8,6 +8,7 @@ export let newEventQueue = createQueue<{
   eventId: string;
 }>({
   name: 'sgnl/event/new',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

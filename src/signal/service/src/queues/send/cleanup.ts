@@ -8,6 +8,7 @@ export let eventCleanupQueue = createQueue<{
   eventId: string;
 }>({
   name: 'sgnl/event/cleanup',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

@@ -16,6 +16,7 @@ export let createDeliveryQueue = createQueue<{
   destinationId: string;
 }>({
   name: 'sgnl/event/del',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -51,6 +52,7 @@ let attemptDeliveryQueue = createQueue<{
   intentId: string;
 }>({
   name: 'sgnl/event/att',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

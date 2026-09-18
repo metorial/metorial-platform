@@ -9,6 +9,7 @@ export let intentSucceededQueue = createQueue<{
   errorMessage: string;
 }>({
   name: 'sgnl/event/intent_succeeded',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -41,6 +42,7 @@ export let intentFailedQueue = createQueue<{
   errorMessage: string;
 }>({
   name: 'sgnl/event/intent_failed',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -73,6 +75,7 @@ let intentEndedQueue = createQueue<{
   intentId: string;
 }>({
   name: 'sgnl/event/intent_ended',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

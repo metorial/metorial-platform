@@ -7,6 +7,7 @@ export let eventFailedQueue = createQueue<{
   eventId: string;
 }>({
   name: 'sgnl/event/failed',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -30,6 +31,7 @@ export let eventSucceededQueue = createQueue<{
   eventId: string;
 }>({
   name: 'sgnl/event/succeeded',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

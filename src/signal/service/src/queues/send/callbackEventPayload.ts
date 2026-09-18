@@ -11,6 +11,7 @@ export let offloadCallbackEventPayloadQueue = createQueue<{
   payloadHash: string;
 }>({
   name: 'sgnl/cbe/offload',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
