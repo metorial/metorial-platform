@@ -1,3 +1,4 @@
+import { DetailsSettingsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import { SkillGroupSettingsScene } from '@metorial/scene-skills';
 import {
@@ -15,12 +16,14 @@ export let SkillGroupSettingsPage = () => {
   let { skillGroupId } = useParams();
 
   return (
-    <SkillGroupSettingsScene
-      instanceId={instance.data?.id}
-      onDeleteSuccess={() =>
-        navigate(Paths.instance.skillGroups(organization.data, project.data, instance.data))
-      }
-      skillGroupId={skillGroupId}
-    />
+    <DetailsSettingsLayout>
+      <SkillGroupSettingsScene
+        instanceId={instance.data?.id}
+        onDeleteSuccess={() =>
+          navigate(Paths.instance.skillGroups(organization.data, project.data, instance.data))
+        }
+        skillGroupId={skillGroupId}
+      />
+    </DetailsSettingsLayout>
   );
 };

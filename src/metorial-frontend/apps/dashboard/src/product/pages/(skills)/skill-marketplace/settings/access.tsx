@@ -1,6 +1,6 @@
 import { useCurrentInstance } from '@metorial/state';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { MarketplaceManagersList } from '../../../scenes/skills/marketplaceManagers';
+import { MarketplaceManagersList } from '../../../../scenes/skills/marketplaceManagers';
 
 export let SkillMarketplaceAccessPage = () => {
   let instance = useCurrentInstance();

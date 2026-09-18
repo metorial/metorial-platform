@@ -5,6 +5,7 @@ import {
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
+import { Box } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { SkillMarketplaceRepositorySyncBox } from './repositorySync';
@@ -24,25 +25,31 @@ export let SkillMarketplacePage = () => {
   return (
     <PageStack>
       <SkillMarketplaceRepositorySyncBox skillMarketplaceId={skillMarketplaceId} />
-      <SkillMarketplacePluginsScene
-        instanceId={instance.data?.id}
-        skillMarketplaceId={skillMarketplaceId}
-        getSkillPluginPath={skillPluginId =>
-          Paths.organization.settings(
-            organization.data,
-            'project',
-            project.data?.slug,
-            'instance',
-            instance.data?.slug,
-            'skills',
-            'plugins',
-            skillPluginId
-          )
-        }
-        getSkillPath={skillId =>
-          Paths.instance.skill(organization.data, project.data, instance.data, skillId)
-        }
-      />
+      <Box
+        title="Plugins and Skills"
+        description="Manage plugins and skills for this marketplace. Use plugins to group related skills or add individual skills directly."
+      >
+        <SkillMarketplacePluginsScene
+          instanceId={instance.data?.id}
+          skillMarketplaceId={skillMarketplaceId}
+          showHeader={false}
+          getSkillPluginPath={skillPluginId =>
+            Paths.organization.settings(
+              organization.data,
+              'project',
+              project.data?.slug,
+              'instance',
+              instance.data?.slug,
+              'skills',
+              'plugins',
+              skillPluginId
+            )
+          }
+          getSkillPath={skillId =>
+            Paths.instance.skill(organization.data, project.data, instance.data, skillId)
+          }
+        />
+      </Box>
     </PageStack>
   );
 };

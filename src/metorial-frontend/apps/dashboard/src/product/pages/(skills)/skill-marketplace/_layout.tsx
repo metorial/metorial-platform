@@ -1,6 +1,6 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
+import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCreateSkillExport,
   useCurrentInstance,
@@ -8,8 +8,10 @@ import {
   useCurrentProject,
   useSkillMarketplace
 } from '@metorial/state';
-import { Button, Flex, LinkTabs, toast } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Badge, RenderDate, toast } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiStore2Line } from '@remixicon/react';
+import { Outlet, useParams } from 'react-router-dom';
 import { useInterval } from 'react-use';
 
 let downloadExport = (url: string, fileName: string) => {
@@ -29,7 +31,6 @@ export let SkillMarketplaceLayout = () => {
   let { skillMarketplaceId } = useParams();
   let marketplace = useSkillMarketplace(instance.data?.id, skillMarketplaceId);
   let createSkillExport = useCreateSkillExport();
-  let pathname = useLocation().pathname;
 
   let marketplacePathParams = [
     organization.data,
@@ -77,64 +78,57 @@ export let SkillMarketplaceLayout = () => {
   // );
 
   return (
-    <ContentLayout>
-      <PageHeader
-        title={marketplace.data?.name ?? '...'}
-        description={marketplace.data?.description ?? undefined}
-        pagination={[
-          {
-            label: 'Skill Marketplaces',
-            href: Paths.instance.skillMarketplaces(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          },
-          {
-            label: marketplace.data?.name ?? '...',
-            href: Paths.instance.skillMarketplace(...marketplacePathParams)
-          }
-        ]}
-        actions={
-          <Flex gap="8px">
-            <Button
-              size="2"
-              disabled={!instance.data || !marketplace.data}
-              loading={createSkillExport.isLoading}
-              success={createSkillExport.isSuccess}
-              onClick={exportMarketplace}
-            >
-              Export Marketplace
-            </Button>
-          </Flex>
+    <DetailsLayout
+      entity={marketplace.data}
+      icon={<RiStore2Line />}
+      breadcrumbs={[
+        {
+          label: 'Skill Marketplaces',
+          to: Paths.instance.skillMarketplaces(organization.data, project.data, instance.data)
+        },
+        {
+          label: marketplace.data?.name,
+          to: Paths.instance.skillMarketplace(...marketplacePathParams)
         }
-      />
-
+      ]}
+      tabs={[
+        {
+          label: 'Overview',
+          to: Paths.instance.skillMarketplace(...marketplacePathParams)
+        },
+        {
+          label: 'Settings',
+          to: Paths.instance.skillMarketplace(...marketplacePathParams, 'settings')
+        }
+      ]}
+      actions={[
+        {
+          label: 'Export Marketplace',
+          disabled: !instance.data || !marketplace.data,
+          loading: createSkillExport.isLoading,
+          success: createSkillExport.isSuccess,
+          onClick: exportMarketplace
+        }
+      ]}
+      attributes={
+        marketplace.data
+          ? [
+              { label: 'ID', value: <ID id={marketplace.data.id} /> },
+              {
+                label: 'Status',
+                value: <Badge color="gray">{marketplace.data.status}</Badge>
+              },
+              { label: 'Slug', value: marketplace.data.slug },
+              { label: 'Created', value: <RenderDate date={marketplace.data.createdAt} /> }
+            ]
+          : []
+      }
+    >
       <InitialLoadBoundary>
         {renderWithLoader({ marketplace })(() => (
-          <>
-            <LinkTabs
-              current={pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: Paths.instance.skillMarketplace(...marketplacePathParams)
-                },
-                {
-                  label: 'Managers & Access',
-                  to: Paths.instance.skillMarketplace(...marketplacePathParams, 'access')
-                },
-                {
-                  label: 'Settings',
-                  to: Paths.instance.skillMarketplace(...marketplacePathParams, 'settings')
-                }
-              ]}
-            />
-
-            <Outlet />
-          </>
+          <Outlet />
         ))}
       </InitialLoadBoundary>
-    </ContentLayout>
+    </DetailsLayout>
   );
 };
