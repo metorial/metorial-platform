@@ -56,15 +56,25 @@ export let CallbackSyncBadge = ({
   </Badge>
 );
 
-export let CallbackSyncErrorCallout = ({ sync }: { sync: CallbackSync }) => {
-  if (sync.status !== 'failed' || !sync.error) return null;
+export let CallbackSyncErrorCallout = ({
+  sync,
+  providerName
+}: {
+  sync: CallbackSync;
+  providerName?: string;
+}) => {
+  if (sync.status !== 'failed') return null;
+
+  let subject = providerName ? `the ${providerName} callback` : 'this callback';
+  let errorDetail = sync.error?.message ?? sync.error?.code;
 
   return (
     <Callout color="red">
       <span>
-        <strong>Metorial could not register this callback with the provider.</strong>{' '}
-        {sync.error.message ?? sync.error.code} — no events will be delivered until this is
-        resolved.
+        <strong>Metorial could not register {subject} with the provider.</strong>{' '}
+        {errorDetail
+          ? `${errorDetail} — no events will be delivered until this is resolved.`
+          : 'No events will be delivered until this is resolved.'}
       </span>
     </Callout>
   );

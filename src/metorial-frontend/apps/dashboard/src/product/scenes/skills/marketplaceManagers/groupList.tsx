@@ -13,6 +13,7 @@ export let GroupMarketplaceManagersList = (props: {
   portalId: string;
   consumerGroupId: string;
   asBox?: boolean;
+  hideHeader?: boolean;
 }) => {
   let marketplaces = useSkillMarketplaces(props.instanceId, {
     order: 'desc',
@@ -93,6 +94,8 @@ export let GroupMarketplaceManagersList = (props: {
       </Box>
     );
   }
+
+  if (props.hideHeader) return inner;
 
   return (
     <PageHeaderSection
