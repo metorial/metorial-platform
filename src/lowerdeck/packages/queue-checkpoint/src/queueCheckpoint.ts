@@ -26,6 +26,14 @@ export let createQueueCheckpoint = (d: {
   maxLookbackMs?: number;
 }) => {
   let overlapMs = d.overlapMs ?? DEFAULT_CHECKPOINT_OVERLAP_MS;
+  let fullPassMarker = `${d.queue}#full-pass`;
+
+  let isFullPassDue = async (intervalMs = DEFAULT_FULL_PASS_INTERVAL_MS) => {
+    let row = await d.db.queueCheckpoint.findUnique({ where: { queue: fullPassMarker } });
+    if (!row) return true;
+
+    return row.processedThrough.getTime() <= Date.now() - intervalMs;
+  };
 
   return {
     queue: d.queue,
@@ -53,16 +61,15 @@ export let createQueueCheckpoint = (d: {
       });
     },
 
+    isFullPassDue,
+
     claimFullPass: async (intervalMs = DEFAULT_FULL_PASS_INTERVAL_MS): Promise<boolean> => {
-      let marker = `${d.queue}#full-pass`;
+      if (!(await isFullPassDue(intervalMs))) return false;
+
       let now = new Date();
-      let row = await d.db.queueCheckpoint.findUnique({ where: { queue: marker } });
-
-      if (row && row.processedThrough.getTime() > now.getTime() - intervalMs) return false;
-
       await d.db.queueCheckpoint.upsert({
-        where: { queue: marker },
-        create: { queue: marker, processedThrough: now },
+        where: { queue: fullPassMarker },
+        create: { queue: fullPassMarker, processedThrough: now },
         update: { processedThrough: now }
       });
 

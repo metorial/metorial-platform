@@ -3,7 +3,7 @@ import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@lowerdec
 import {
   commitWatermarkScan,
   createQueueCheckpoint,
-  startWatermarkScan,
+  enqueueWatermarkScan,
   type WatermarkScanJob
 } from '@lowerdeck/queue-checkpoint';
 import { db, withTransaction } from '../db';
@@ -27,7 +27,10 @@ export let reconcileSsoUsersCron = createCron(
     redisUrl
   },
   async () => {
-    await reconcileSsoUsersQueue.add(await startWatermarkScan({ checkpoint }));
+    await enqueueWatermarkScan({
+      checkpoint,
+      queue: reconcileSsoUsersQueue
+    });
   }
 );
 

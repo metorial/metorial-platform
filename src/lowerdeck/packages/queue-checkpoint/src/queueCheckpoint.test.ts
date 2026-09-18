@@ -85,7 +85,9 @@ describe('claimFullPass', () => {
   it('grants the first claim and then refuses until the interval elapses', async () => {
     let checkpoint = createQueueCheckpoint({ db: createDb(), queue: 'q' });
 
+    expect(await checkpoint.isFullPassDue(60_000)).toBe(true);
     expect(await checkpoint.claimFullPass(60_000)).toBe(true);
+    expect(await checkpoint.isFullPassDue(60_000)).toBe(false);
     expect(await checkpoint.claimFullPass(60_000)).toBe(false);
   });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createQueueCheckpoint, QueueCheckpointRow } from './queueCheckpoint';
 import {
   commitWatermarkScan,
+  enqueueWatermarkScan,
   startWatermarkScan,
   watermarkScanWhere
 } from './watermarkScan';
@@ -33,19 +34,16 @@ let createDb = (initial?: QueueCheckpointRow[]) => {
 };
 
 describe('startWatermarkScan', () => {
-  it('promotes to a full pass only once across repeated hourly ticks', async () => {
-    let db = createDb([
-      { queue: 'q', processedThrough: new Date('2026-01-01T00:00:00Z') }
-    ]);
+  it('peeks at a full pass without consuming the interval', async () => {
+    let db = createDb([{ queue: 'q', processedThrough: new Date('2026-01-01T00:00:00Z') }]);
     let checkpoint = createQueueCheckpoint({ db, queue: 'q' });
 
-    let full = 0;
-    for (let tick = 0; tick < 24; tick++) {
-      let job = await startWatermarkScan({ checkpoint });
-      if (job.since === undefined) full++;
-    }
+    let first = await startWatermarkScan({ checkpoint });
+    let second = await startWatermarkScan({ checkpoint });
 
-    expect(full).toBe(1);
+    expect(first.fullPass).toBe(true);
+    expect(second.fullPass).toBe(true);
+    expect(db.rows.has('q#full-pass')).toBe(false);
   });
 
   it('carries the watermark on a non-full pass', async () => {
@@ -59,6 +57,7 @@ describe('startWatermarkScan', () => {
     let job = await startWatermarkScan({ checkpoint });
 
     expect(job.since).toBe(processedThrough.toISOString());
+    expect(job.fullPass).toBeUndefined();
     expect(watermarkScanWhere(job)).toEqual({ updatedAt: { gte: processedThrough } });
   });
 
@@ -72,6 +71,7 @@ describe('startWatermarkScan', () => {
     let job = await startWatermarkScan({ checkpoint, full: true });
 
     expect(job.since).toBeUndefined();
+    expect(job.fullPass).toBeUndefined();
     expect(watermarkScanWhere(job)).toEqual({});
   });
 
@@ -92,5 +92,81 @@ describe('startWatermarkScan', () => {
     await commitWatermarkScan({ checkpoint, job: {} });
 
     expect(await checkpoint.since()).toBeUndefined();
+  });
+});
+
+describe('enqueueWatermarkScan', () => {
+  it('claims a full pass only after the scan head is queued', async () => {
+    let db = createDb([{ queue: 'q', processedThrough: new Date('2026-01-01T00:00:00Z') }]);
+    let checkpoint = createQueueCheckpoint({ db, queue: 'q' });
+    let added: unknown[] = [];
+
+    await enqueueWatermarkScan({
+      checkpoint,
+      queue: {
+        add: async (job, opts) => {
+          added.push({ job, opts });
+        }
+      }
+    });
+
+    expect(added).toEqual([
+      {
+        job: expect.objectContaining({ fullPass: true, startedAt: expect.any(String) }),
+        opts: { id: 'scan' }
+      }
+    ]);
+    expect(db.rows.has('q#full-pass')).toBe(true);
+  });
+
+  it('does not claim when enqueue fails', async () => {
+    let db = createDb([{ queue: 'q', processedThrough: new Date('2026-01-01T00:00:00Z') }]);
+    let checkpoint = createQueueCheckpoint({ db, queue: 'q' });
+
+    await expect(
+      enqueueWatermarkScan({
+        checkpoint,
+        queue: {
+          add: async () => {
+            throw new Error('redis down');
+          }
+        }
+      })
+    ).rejects.toThrow('redis down');
+
+    expect(db.rows.has('q#full-pass')).toBe(false);
+  });
+
+  it('promotes to a full pass only once across repeated hourly ticks', async () => {
+    let db = createDb([{ queue: 'q', processedThrough: new Date('2026-01-01T00:00:00Z') }]);
+    let checkpoint = createQueueCheckpoint({ db, queue: 'q' });
+    let jobs: { fullPass?: true }[] = [];
+
+    for (let tick = 0; tick < 24; tick++) {
+      await enqueueWatermarkScan({
+        checkpoint,
+        queue: {
+          add: async job => {
+            jobs.push(job);
+          }
+        }
+      });
+    }
+
+    expect(jobs.filter(job => job.fullPass).length).toBe(1);
+    expect(jobs.filter(job => job.since).length).toBe(23);
+  });
+
+  it('does not claim an explicit full override', async () => {
+    let db = createDb([{ queue: 'q', processedThrough: new Date('2026-01-01T12:00:00Z') }]);
+    let checkpoint = createQueueCheckpoint({ db, queue: 'q' });
+
+    await enqueueWatermarkScan({
+      checkpoint,
+      queue: { add: async () => {} },
+      full: true
+    });
+
+    expect(db.rows.has('q#full-pass')).toBe(false);
   });
 });

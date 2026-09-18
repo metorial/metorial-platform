@@ -3,7 +3,7 @@ import { createQueue, dailyPacedDelay } from '@lowerdeck/queue';
 import {
   commitWatermarkScan,
   createQueueCheckpoint,
-  startWatermarkScan,
+  enqueueWatermarkScan,
   watermarkScanWhere,
   type WatermarkScanJob
 } from '@lowerdeck/queue-checkpoint';
@@ -25,9 +25,10 @@ export let syncVersionCron = createCron(
     cron: '0 0 * * *'
   },
   async () => {
-    await syncVersionManyCron.add(
-      await startWatermarkScan({ checkpoint })
-    );
+    await enqueueWatermarkScan({
+      checkpoint,
+      queue: syncVersionManyCron
+    });
   }
 );
 
