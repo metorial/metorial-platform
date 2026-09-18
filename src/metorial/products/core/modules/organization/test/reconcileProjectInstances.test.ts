@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let reconcileProjectInstancesCronHandler: (() => Promise<void>) | undefined;
-
 process.env.REDIS_URL = 'redis://localhost:6379';
 
 vi.mock('@metorial/db', () => ({
@@ -12,13 +10,6 @@ vi.mock('@metorial/db', () => ({
       updateMany: vi.fn()
     }
   }
-}));
-
-vi.mock('@metorial/cron', () => ({
-  createCron: vi.fn((_config, handler) => {
-    reconcileProjectInstancesCronHandler = handler;
-    return { handler };
-  })
 }));
 
 vi.mock('@metorial/config', () => ({
@@ -37,6 +28,7 @@ vi.mock('@metorial/queue', () => ({
     process: vi.fn(handler => ({ handler }))
   })),
   combineQueueProcessors: vi.fn(processors => processors),
+  dailyPacedDelay: vi.fn(() => ({ delay: 1_000 })),
   QueueRetryError: class QueueRetryError extends Error {
     constructor(message?: string) {
       super(message);
@@ -68,13 +60,11 @@ describe('reconcileProjectInstances queues', () => {
     vi.clearAllMocks();
   });
 
-  it('creates a daily cron that enqueues the search queue', async () => {
-    let { reconcileProjectInstancesCron, reconcileProjectInstancesSearchQueue } =
+  it('exposes a manual entrypoint that enqueues the search queue', async () => {
+    let { startProjectInstanceReconciliation, reconcileProjectInstancesSearchQueue } =
       await getModule();
 
-    expect(reconcileProjectInstancesCron).toBeDefined();
-
-    await reconcileProjectInstancesCronHandler!();
+    await startProjectInstanceReconciliation();
 
     expect(reconcileProjectInstancesSearchQueue.add).toHaveBeenCalledWith(
       {},
@@ -110,9 +100,28 @@ describe('reconcileProjectInstances queues', () => {
       { instanceId: 'instance-1' },
       { instanceId: 'instance-2' }
     ]);
-    expect(reconcileProjectInstancesSearchQueue.add).toHaveBeenCalledWith({
-      cursor: 'instance-2'
-    });
+    expect(reconcileProjectInstancesSearchQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('paces the next page when the page is full', async () => {
+    let {
+      RECONCILE_PROJECT_INSTANCES_BATCH_SIZE,
+      reconcileProjectInstancesSearchQueue,
+      reconcileProjectInstancesSearchQueueProcessor
+    } = await getModule();
+
+    (db.instance.findMany as any).mockResolvedValue(
+      Array.from({ length: RECONCILE_PROJECT_INSTANCES_BATCH_SIZE }, (_, index) => ({
+        id: `instance-${index}`
+      })) as any
+    );
+
+    await (reconcileProjectInstancesSearchQueueProcessor as any).handler({});
+
+    expect(reconcileProjectInstancesSearchQueue.add).toHaveBeenCalledWith(
+      { cursor: `instance-${RECONCILE_PROJECT_INSTANCES_BATCH_SIZE - 1}` },
+      expect.objectContaining({ delay: expect.any(Number) })
+    );
   });
 
   it('reconciles a single instance by generating a slug and updating it', async () => {

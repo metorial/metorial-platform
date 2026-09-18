@@ -3,8 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   handlers: new Map<string, (data?: any) => Promise<void>>(),
   manyAdd: vi.fn(),
+  manyAddManyWithOps: vi.fn(),
   singleAddManyWithOps: vi.fn(),
-  deleteObject: vi.fn(),
+  enqueue: vi.fn(),
   systemEventFindFirst: vi.fn(),
   systemEventFindMany: vi.fn(),
   systemEventDelete: vi.fn(),
@@ -30,17 +31,19 @@ vi.mock('@metorial/cron', () => ({
 
 vi.mock('@metorial/queue', () => ({
   combineQueueProcessors: vi.fn(processors => processors),
+  hourlyPacedDelay: vi.fn(() => ({ delay: 250 })),
   createQueue: vi.fn(config => {
-    let add = config.name.endsWith('/many') ? mocks.manyAdd : vi.fn();
-    let addMany = config.name.endsWith('/many') ? mocks.manyAdd : vi.fn();
-    let addManyWithOps = config.name.endsWith('/single')
-      ? mocks.singleAddManyWithOps
-      : vi.fn();
+    let isMany = config.name.endsWith('/many');
+    let isSingle = config.name.endsWith('/single');
 
     return {
-      add,
-      addMany,
-      addManyWithOps,
+      add: isMany ? mocks.manyAdd : vi.fn(),
+      addMany: isMany ? mocks.manyAdd : vi.fn(),
+      addManyWithOps: isSingle
+        ? mocks.singleAddManyWithOps
+        : isMany
+          ? mocks.manyAddManyWithOps
+          : vi.fn(),
       process: vi.fn(handler => {
         mocks.handlers.set(config.name, handler);
         return { handler };
@@ -75,9 +78,16 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 vi.mock('../storage', () => ({
-  getStorage: () => ({ deleteObject: mocks.deleteObject }),
+  getStorage: () => ({ deleteObject: vi.fn() }),
   getEventPayloadsBucketName: () => 'event-payloads',
   getChatEventPayloadsBucketName: () => 'chat-event-payloads'
+}));
+
+vi.mock('./objectDelete', () => ({
+  auditingObjectDelete: {
+    enqueue: mocks.enqueue,
+    processor: { start: async () => {} }
+  }
 }));
 
 import './systemEventCleanup';
@@ -102,15 +112,25 @@ describe('system event cleanup', () => {
   it('starts all event cleanup scans with the same fourteen-day cutoff', async () => {
     await run('auditing/systemEvent/cleanup/cron');
 
-    expect(mocks.manyAdd).toHaveBeenCalledWith([
-      { resource: 'systemEvent', dueBefore: '2026-08-01T00:00:00.000Z' },
-      { resource: 'callbackEvent', dueBefore: '2026-08-01T00:00:00.000Z' },
-      { resource: 'chatEvent', dueBefore: '2026-08-01T00:00:00.000Z' }
+    expect(mocks.manyAddManyWithOps).toHaveBeenCalledWith([
+      {
+        data: { resource: 'systemEvent', dueBefore: '2026-08-01T00:00:00.000Z' },
+        opts: { delay: 0 }
+      },
+      {
+        data: { resource: 'callbackEvent', dueBefore: '2026-08-01T00:00:00.000Z' },
+        opts: { delay: 20_000 }
+      },
+      {
+        data: { resource: 'chatEvent', dueBefore: '2026-08-01T00:00:00.000Z' },
+        opts: { delay: 40_000 }
+      }
     ]);
   });
 
-  it('cleans an offloaded system event payload before deleting the event', async () => {
+  it('deletes a system event before enqueueing its offloaded payload', async () => {
     mocks.systemEventFindFirst.mockResolvedValue({
+      oid: 1n,
       id: 'evt_1',
       payloadStorageKey: 'payload_1'
     });
@@ -121,14 +141,14 @@ describe('system event cleanup', () => {
       dueBefore: '2026-08-01T00:00:00.000Z'
     });
 
-    expect(mocks.deleteObject).toHaveBeenCalledWith('event-payloads', 'payload_1');
     expect(mocks.systemEventDelete).toHaveBeenCalledWith({ where: { id: 'evt_1' } });
-    expect(mocks.deleteObject.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.systemEventDelete.mock.invocationCallOrder[0]!
+    expect(mocks.enqueue).toHaveBeenCalledWith('event-payloads', ['payload_1']);
+    expect(mocks.systemEventDelete.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.enqueue.mock.invocationCallOrder[0]!
     );
   });
 
-  it('cleans callback-owned chat payloads before cascading the callback event', async () => {
+  it('cascades a callback event before enqueueing owned chat payloads', async () => {
     mocks.callbackEventFindFirst.mockResolvedValue({
       id: 'cb_evt_1',
       chatEvents: [{ payloadStorageKey: 'chat_payload_1' }, { payloadStorageKey: null }]
@@ -140,16 +160,16 @@ describe('system event cleanup', () => {
       dueBefore: '2026-08-01T00:00:00.000Z'
     });
 
-    expect(mocks.deleteObject).toHaveBeenCalledWith('chat-event-payloads', 'chat_payload_1');
     expect(mocks.callbackEventDelete).toHaveBeenCalledWith({
       where: { id: 'cb_evt_1' }
     });
-    expect(mocks.deleteObject.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.callbackEventDelete.mock.invocationCallOrder[0]!
+    expect(mocks.enqueue).toHaveBeenCalledWith('chat-event-payloads', ['chat_payload_1']);
+    expect(mocks.callbackEventDelete.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.enqueue.mock.invocationCallOrder[0]!
     );
   });
 
-  it('cleans an offloaded chat payload before deleting the chat event', async () => {
+  it('deletes a chat event before enqueueing its offloaded payload', async () => {
     mocks.chatEventFindFirst.mockResolvedValue({
       id: 'chat_evt_1',
       payloadStorageKey: 'chat_payload_1'
@@ -161,10 +181,10 @@ describe('system event cleanup', () => {
       dueBefore: '2026-08-01T00:00:00.000Z'
     });
 
-    expect(mocks.deleteObject).toHaveBeenCalledWith('chat-event-payloads', 'chat_payload_1');
     expect(mocks.chatEventDelete).toHaveBeenCalledWith({ where: { id: 'chat_evt_1' } });
-    expect(mocks.deleteObject.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.chatEventDelete.mock.invocationCallOrder[0]!
+    expect(mocks.enqueue).toHaveBeenCalledWith('chat-event-payloads', ['chat_payload_1']);
+    expect(mocks.chatEventDelete.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.enqueue.mock.invocationCallOrder[0]!
     );
   });
 
@@ -186,7 +206,7 @@ describe('system event cleanup', () => {
       },
       orderBy: { id: 'asc' },
       select: { id: true },
-      take: 100
+      take: 500
     });
   });
 });

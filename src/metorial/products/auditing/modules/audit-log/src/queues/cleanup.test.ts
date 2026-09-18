@@ -11,8 +11,8 @@ vi.mock('@metorial/cron', () => ({
 vi.mock('@metorial/db', () => {
   let db = {
     organization: { findMany: vi.fn(), findUnique: vi.fn() },
-    auditLog: { deleteMany: vi.fn() },
-    auditLogEvent: { deleteMany: vi.fn() }
+    auditLog: { findMany: vi.fn(), deleteMany: vi.fn() },
+    auditLogEvent: { findMany: vi.fn(), deleteMany: vi.fn() }
   };
   return {
     db,
@@ -28,12 +28,19 @@ vi.mock('@metorial/queue', () => ({
     process: vi.fn(handler => ({ handler }))
   })),
   combineQueueProcessors: vi.fn(processors => processors),
+  dailyPacedDelay: vi.fn(() => ({ delay: 1_000 })),
+  deleteInChunks: vi.fn(async d => {
+    let keys = await d.selectKeys(d.chunkSize);
+    if (keys.length) await d.deleteKeys(keys);
+    return { deleted: keys.length, hasMore: keys.length === d.chunkSize };
+  }),
   QueueRetryError: class QueueRetryError extends Error {}
 }));
 
 import { deleteAuditEventsBefore } from '@metorial/audit-models';
 import { db } from '@metorial/db';
 import {
+  AUDIT_LOG_CLEANUP_BATCH_SIZE,
   cleanupAuditLogOrganizationsQueue,
   cleanupAuditLogOrganizationsQueueProcessor,
   cleanupOrganizationAuditLogsQueue,
@@ -66,9 +73,22 @@ describe('audit log cleanup', () => {
       { organizationId: 'org-1' },
       { organizationId: 'org-2' }
     ]);
-    expect(cleanupAuditLogOrganizationsQueue.add).toHaveBeenCalledWith({
-      cursor: 'org-2'
-    });
+    expect(cleanupAuditLogOrganizationsQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('paces the next organization page when the page is full', async () => {
+    vi.mocked(db.organization.findMany).mockResolvedValue(
+      Array.from({ length: AUDIT_LOG_CLEANUP_BATCH_SIZE }, (_, index) => ({
+        id: `org-${index}`
+      })) as any
+    );
+
+    await (cleanupAuditLogOrganizationsQueueProcessor as any).handler({});
+
+    expect(cleanupAuditLogOrganizationsQueue.add).toHaveBeenCalledWith(
+      { cursor: `org-${AUDIT_LOG_CLEANUP_BATCH_SIZE - 1}` },
+      expect.objectContaining({ delay: expect.any(Number) })
+    );
   });
 
   it('deletes expired Postgres indexes and Mongo payloads for one organization', async () => {
@@ -76,6 +96,8 @@ describe('audit log cleanup', () => {
       oid: 10n,
       auditLogRetentionInDays: 30
     } as any);
+    vi.mocked(db.auditLog.findMany).mockResolvedValue([{ oid: 1n }] as any);
+    vi.mocked(db.auditLogEvent.findMany).mockResolvedValue([{ oid: 2n }] as any);
 
     await (cleanupOrganizationAuditLogsQueueProcessor as any).handler({
       organizationId: 'org-1'
@@ -83,8 +105,17 @@ describe('audit log cleanup', () => {
 
     let recordedAt = new Date('2026-07-29T00:00:00.000Z');
     let where = { organizationOid: 10n, recordedAt: { lt: recordedAt } };
-    expect(db.auditLog.deleteMany).toHaveBeenCalledWith({ where });
-    expect(db.auditLogEvent.deleteMany).toHaveBeenCalledWith({ where });
+    expect(db.auditLog.findMany).toHaveBeenCalledWith({
+      where,
+      take: 10_000,
+      select: { oid: true }
+    });
+    expect(db.auditLog.deleteMany).toHaveBeenCalledWith({
+      where: { oid: { in: [1n] } }
+    });
+    expect(db.auditLogEvent.deleteMany).toHaveBeenCalledWith({
+      where: { oid: { in: [2n] } }
+    });
     expect(deleteAuditEventsBefore).toHaveBeenCalledWith({
       organizationOid: 10n,
       recordedAt

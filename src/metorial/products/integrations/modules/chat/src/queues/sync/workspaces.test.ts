@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let { db, queues, getChatAdapterClientInternal, upsertChatWorkspaces } = vi.hoisted(() => {
   let queues: Record<
     string,
-    { add: ReturnType<typeof vi.fn>; addMany: ReturnType<typeof vi.fn> }
+    {
+      add: ReturnType<typeof vi.fn>;
+      addMany: ReturnType<typeof vi.fn>;
+      addManyWithOps: ReturnType<typeof vi.fn>;
+    }
   > = {};
 
   return {
@@ -28,7 +32,8 @@ vi.mock('@lowerdeck/queue', () => ({
   createQueue: vi.fn((opts: { name: string }) => {
     let q = queues[opts.name] ?? {
       add: vi.fn(),
-      addMany: vi.fn()
+      addMany: vi.fn(),
+      addManyWithOps: vi.fn()
     };
     queues[opts.name] = q;
     return {
@@ -36,6 +41,7 @@ vi.mock('@lowerdeck/queue', () => ({
       process: (fn: any) => fn
     };
   }),
+  dailyPacedDelay: vi.fn(() => ({ delay: 1_000 })),
   QueueRetryError: class QueueRetryError extends Error {}
 }));
 
@@ -107,16 +113,22 @@ describe('sync chat workspace queues', () => {
     vi.clearAllMocks();
   });
 
-  it('fans out active instance providers and self-enqueues with a cursor', async () => {
+  it('fans out active instance providers and stops paging on a partial page', async () => {
     db.chatInstanceProvider.findMany.mockResolvedValue([{ id: 'ciip_1' }, { id: 'ciip_2' }]);
 
     await processSyncChatWorkspacesMany({});
 
-    expect(queues[providerQueue]!.addMany).toHaveBeenCalledWith([
-      { chatInstanceProviderId: 'ciip_1' },
-      { chatInstanceProviderId: 'ciip_2' }
+    expect(queues[providerQueue]!.addManyWithOps).toHaveBeenCalledWith([
+      {
+        data: { chatInstanceProviderId: 'ciip_1' },
+        opts: { id: 'ws-sync-ciip_1' }
+      },
+      {
+        data: { chatInstanceProviderId: 'ciip_2' },
+        opts: { id: 'ws-sync-ciip_2' }
+      }
     ]);
-    expect(queues[manyQueue]!.add).toHaveBeenCalledWith({ cursor: 'ciip_2' });
+    expect(queues[manyQueue]!.add).not.toHaveBeenCalled();
   });
 
   it('lists workspaces from the adapter and upserts the page', async () => {

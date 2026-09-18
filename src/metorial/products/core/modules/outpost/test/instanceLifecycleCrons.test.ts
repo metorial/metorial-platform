@@ -25,6 +25,7 @@ vi.mock('@metorial/queue', () => {
 
   return {
     QueueRetryError,
+    hourlyPacedDelay: vi.fn(() => ({ delay: 250 })),
     combineQueueProcessors: (processors: any[]) => processors,
     createQueue: (opts: { name: string }) => {
       let queue = { added: [] as any[] } as any;
@@ -32,6 +33,8 @@ vi.mock('@metorial/queue', () => {
 
       return {
         addMany: async (items: any[]) => queue.added.push(...items),
+        addManyWithOps: async (items: any[]) =>
+          queue.added.push(...items.map((item: any) => item.data ?? item)),
         add: async (item: any) => queue.added.push(item),
         process: (handler: any) => {
           queue.process = handler;
@@ -127,12 +130,14 @@ describe('instance retention cron', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queue('outp/instance/cleanupSingle').added = [];
+    queue('outp/instance/cleanupMany').added = [];
   });
 
   it('sweeps instances that have been inactive past the retention window', async () => {
     (db.outpostInstance.findMany as any).mockResolvedValue([{ id: 'otn_1' }]);
 
     await crons.get('outp/instance/cleanup')!();
+    await queue('outp/instance/cleanupMany').process!({});
 
     let where = (db.outpostInstance.findMany as any).mock.calls[0][0].where;
     expect(where.status).toBe('inactive');
@@ -186,25 +191,22 @@ describe('instance log retention cron', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queue('outp/instance/cleanupLogsSingle').added = [];
+    queue('outp/instance/cleanupLogsMany').added = [];
   });
 
   it('fans out once per instance with expired events or key rotations', async () => {
-    (db.outpostInstanceEvent.findMany as any).mockResolvedValue([{ instanceOid: 700n }]);
-    (db.outpostInstanceKeyRotation.findMany as any).mockResolvedValue([
-      { instanceOid: 700n },
-      { instanceOid: 701n }
-    ]);
     (db.outpostInstance.findMany as any).mockResolvedValue([{ id: 'otn_1' }, { id: 'otn_2' }]);
 
     await crons.get('outp/instance/cleanupLogs')!();
+    await queue('outp/instance/cleanupLogsMany').process!({});
 
     expect(queue('outp/instance/cleanupLogsSingle').added).toEqual([
       { outpostInstanceId: 'otn_1' },
       { outpostInstanceId: 'otn_2' }
     ]);
-    expect((db.outpostInstance.findMany as any).mock.calls[0][0].where.oid.in).toEqual([
-      700n,
-      701n
+    expect((db.outpostInstance.findMany as any).mock.calls[0][0].where.OR).toEqual([
+      { events: { some: { createdAt: { lte: expect.any(Date) } } } },
+      { keyRotations: { some: { createdAt: { lte: expect.any(Date) } } } }
     ]);
   });
 

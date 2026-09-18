@@ -98,7 +98,7 @@ export let cleanupFileUpload = async (d: { fileUploadId: string }) => {
 
 export let purgeTerminalFileUploads = async () => {
   let where = {
-    status: { in: ['completed', 'canceled', 'expired'] as const },
+    status: { in: ['completed', 'canceled', 'expired'] as Array<'completed' | 'canceled' | 'expired'> },
     updatedAt: { lte: new Date(Date.now() - pendingUploadTtlMs) }
   };
 
