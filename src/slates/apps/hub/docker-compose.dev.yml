@@ -228,6 +228,7 @@ services:
       NEBULA_CONSUMER_IDENTIFIER: ${NEBULA_CONSUMER_IDENTIFIER}
       NEBULA_CONSUMER_TOKEN: ${NEBULA_CONSUMER_TOKEN}
       SLATES_DELEGATE_SECRETS_TO_NEBULA: ${SLATES_DELEGATE_SECRETS_TO_NEBULA:-false}
+      SLATE_ATTACHMENT_SIGNING_SECRET: ${SLATE_ATTACHMENT_SIGNING_SECRET}
     volumes:
       - ./src:/app/src/slates/apps/hub/src:ro
       - ./admin:/app/src/slates/apps/hub/admin:ro
