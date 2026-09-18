@@ -22,7 +22,8 @@ export let buildEndedQueue: IQueue<{
   stepArtifacts: { stepId: string; bucket: string; storageKey: string }[];
 }>({
   redisUrl: env.service.REDIS_URL,
-  name: 'frg/bctx/end'
+  name: 'frg/bctx/end',
+  workerOpts: { concurrency: 50 }
 });
 
 let buildEndedQueueProcessor = buildEndedQueue.process(async data => {
@@ -59,7 +60,8 @@ let createArtifactsQueue = createQueue<{
   stepArtifacts: { stepId: string; bucket: string; storageKey: string }[];
 }>({
   redisUrl: env.service.REDIS_URL,
-  name: 'frg/bctx/patar/many'
+  name: 'frg/bctx/patar/many',
+  workerOpts: { concurrency: 1 }
 });
 
 let createArtifactsQueueProcessor = createArtifactsQueue.process(async data => {
@@ -80,7 +82,8 @@ let createArtifactQueue = createQueue<{
   storageKey: string;
 }>({
   redisUrl: env.service.REDIS_URL,
-  name: 'frg/bctx/patar/single'
+  name: 'frg/bctx/patar/single',
+  workerOpts: { concurrency: 50 }
 });
 
 let createArtifactQueueProcessor = createArtifactQueue.process(async data => {
@@ -116,7 +119,8 @@ let createArtifactQueueProcessor = createArtifactQueue.process(async data => {
 
 let storeOutputQueue = createQueue<{ runId: string }>({
   redisUrl: env.service.REDIS_URL,
-  name: 'frg/bctx/storou'
+  name: 'frg/bctx/storou',
+  workerOpts: { concurrency: 50 }
 });
 
 let storeOutputQueueProcessor = storeOutputQueue.process(async data => {
@@ -154,7 +158,8 @@ let storeOutputQueueProcessor = storeOutputQueue.process(async data => {
 
 let storeOutputCleanupQueue = createQueue<{ runOid: bigint }>({
   redisUrl: env.service.REDIS_URL,
-  name: 'frg/bctx/stoclu'
+  name: 'frg/bctx/stoclu',
+  workerOpts: { concurrency: 50 }
 });
 
 let storeOutputCleanupQueueProcessor = storeOutputCleanupQueue.process(async data => {

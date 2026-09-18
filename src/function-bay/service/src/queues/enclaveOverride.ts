@@ -20,6 +20,7 @@ export let enclaveOverrideCloneQueue = createQueue<{
   sourceFunctionVersionId: string;
 }>({
   name: 'fbay/enclave/override/clone',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 

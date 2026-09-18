@@ -22,6 +22,7 @@ export let startBuildQueue = createQueue<{
   files: { filename: string; content: string; encoding?: 'utf-8' | 'base64' }[];
 }>({
   name: 'fbay/build/start',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -89,6 +90,7 @@ let monitorBuildQueue = createQueue<{
   tenantId: string;
 }>({
   name: 'fbay/build/mon',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -121,6 +123,7 @@ let workflowFinishedBuildQueue = createQueue<{
   tenantId: string;
 }>({
   name: 'fbay/build/wfin',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -191,6 +194,7 @@ let deployToRuntimeQueue = createQueue<{
   outputUrl: string;
 }>({
   name: 'fbay/build/drun',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -269,6 +273,7 @@ let deployToFunctionBayQueue = createQueue<{
   functionVersionId: string;
 }>({
   name: 'fbay/build/dfun',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -327,6 +332,7 @@ let succeededQueue = createQueue<{
   deploymentId: string;
 }>({
   name: 'fbay/build/suc',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -354,6 +360,7 @@ let errorQueue = createQueue<{
   message: string;
 }>({
   name: 'fbay/build/err',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -405,6 +412,7 @@ let uploadBundleQueue = createQueue<{
   outputUrl: string;
 }>({
   name: 'fbay/build/upbndl',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
@@ -445,6 +453,7 @@ let cleanupQueue = createQueue<{
   deploymentId: string;
 }>({
   name: 'fbay/build/cleanup',
+  workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
 
