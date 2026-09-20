@@ -109,43 +109,56 @@
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/function-bay-client#build": {
-      "dependsOn": ["@metorial/function-bay#prisma:generate"]
+      "dependsOn": ["@metorial/function-bay#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/ares-client#build": {
-      "dependsOn": ["@metorial/ares#prisma:generate"]
+      "dependsOn": ["@metorial/ares#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/forge-client#build": {
-      "dependsOn": ["@metorial/forge#prisma:generate"]
+      "dependsOn": ["@metorial/forge#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/nebula-client#build": {
-      "dependsOn": ["@metorial/nebula#prisma:generate"]
+      "dependsOn": ["@metorial/nebula#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/origin-client#build": {
-      "dependsOn": ["@metorial/origin#prisma:generate"]
+      "dependsOn": ["@metorial/origin#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/relay-client#build": {
-      "dependsOn": ["@metorial/relay#prisma:generate"]
+      "dependsOn": ["@metorial/relay#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/shuttle-client#build": {
-      "dependsOn": ["@metorial/shuttle#prisma:generate"]
+      "dependsOn": ["@metorial/shuttle#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/signal-client#build": {
-      "dependsOn": ["@metorial/signal#prisma:generate"]
+      "dependsOn": ["@metorial/signal#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/slates-client#build": {
-      "dependsOn": ["@metorial/slates#prisma:generate"]
+      "dependsOn": ["@metorial/slates#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/synthesis-client#build": {
-      "dependsOn": ["@metorial/synthesis#prisma:generate"]
+      "dependsOn": ["@metorial/synthesis#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/voyager-client#build": {
-      "dependsOn": ["@metorial/voyager#prisma:generate"]
+      "dependsOn": ["@metorial/voyager#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-services/slates-registry-client#build": {
-      "dependsOn": ["@metorial/slates-registry#prisma:generate"]
+      "dependsOn": ["@metorial/slates-registry#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "@metorial-services/slates-registry-internal-client#build": {
-      "dependsOn": ["@metorial/slates-registry#prisma:generate"]
+      "dependsOn": ["@metorial/slates-registry#prisma:generate"],
+      "outputs": ["dist/**"]
     },
     "test": {
       "dependsOn": ["^test"]
