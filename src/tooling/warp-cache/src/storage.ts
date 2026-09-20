@@ -11,6 +11,7 @@ export type Artifact = {
 
 export interface Storage {
   get(key: string): Promise<Artifact | null>;
+  exists(key: string): Promise<boolean>;
   metadata(key: string): Promise<ArtifactMetadata | null>;
   put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void>;
 }
@@ -29,6 +30,10 @@ export class MemoryStorage implements Storage {
 
   async metadata(key: string): Promise<ArtifactMetadata | null> {
     return this.entries.get(key)?.metadata || null;
+  }
+
+  async exists(key: string): Promise<boolean> {
+    return this.entries.has(key);
   }
 
   async put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void> {
@@ -59,6 +64,10 @@ export class FileStorage implements Storage {
     let metadata = Bun.file(this.metadataPath(key));
     if (!(await metadata.exists())) return null;
     return (await metadata.json()) as ArtifactMetadata;
+  }
+
+  async exists(key: string): Promise<boolean> {
+    return Bun.file(this.artifactPath(key)).exists();
   }
 
   async put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void> {
@@ -94,6 +103,10 @@ export class S3Storage implements Storage {
     let metadata = this.client.file(`${key}.json`);
     if (!(await metadata.exists())) return null;
     return (await metadata.json()) as ArtifactMetadata;
+  }
+
+  async exists(key: string): Promise<boolean> {
+    return this.client.file(`${key}.artifact`).exists();
   }
 
   async put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void> {

@@ -62,9 +62,10 @@ export function createApp(config: Config) {
       for (let offset = 0; offset < body.hashes.length; offset += 16) {
         await Promise.all(body.hashes.slice(offset, offset + 16).map(async hash => {
           if (!hashPattern.test(hash)) return;
-          let metadata = await config.storage.metadata(`v8/${config.team}/${hash}`);
-          entries[hash] = metadata ? { size: metadata.size, taskDurationMs: metadata.duration || 0, tag: metadata.tag } : null;
-          if (metadata) stats.hits += 1;
+          let key = `v8/${config.team}/${hash}`;
+          let [exists, metadata] = await Promise.all([config.storage.exists(key), config.storage.metadata(key)]);
+          entries[hash] = exists && metadata ? { size: metadata.size, taskDurationMs: metadata.duration || 0, tag: metadata.tag } : null;
+          if (exists && metadata) stats.hits += 1;
           else stats.misses += 1;
         }));
       }
