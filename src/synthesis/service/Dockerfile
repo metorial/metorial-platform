@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN sh ./src/synthesis/scripts/prepare-docker-build.sh
 
 # Generate Prisma client and build the service from the monorepo path
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@metorial/synthesis
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@metorial/synthesis
 
 # Production stage
 FROM oven/bun:1-alpine AS runner

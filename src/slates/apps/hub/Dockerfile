@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN sh ./src/slates/scripts/prepare-docker-build.sh
 
 # Build the hub app from the monorepo path.
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate admin:build server:build --filter=@metorial/slates
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate admin:build server:build --filter=@metorial/slates
 
 # Production stage
 FROM oven/bun:1-alpine AS runner

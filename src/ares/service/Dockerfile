@@ -21,10 +21,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN bun install --linker=hoisted
 
 # Build the relay client so its dist/ exports exist in the runtime image.
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh build --filter=@metorial-platform-systems/relay-client
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh build --filter=@metorial-platform-systems/relay-client
 
 # Generate Prisma client and build the service from the monorepo path
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build frontend:build --filter=@metorial/ares
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build frontend:build --filter=@metorial/ares
 
 # Production stage
 FROM oven/bun:1-alpine AS runner
