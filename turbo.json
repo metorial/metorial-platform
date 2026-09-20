@@ -108,6 +108,12 @@
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**"]
     },
+    "@metorial-platform-systems/function-bay-client#build": {
+      "dependsOn": ["@metorial/function-bay#prisma:generate"]
+    },
+    "@metorial-platform-systems/slates-client#build": {
+      "dependsOn": ["@metorial/slates#prisma:generate"]
+    },
     "test": {
       "dependsOn": ["^test"]
     },
