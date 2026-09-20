@@ -20,7 +20,8 @@ ENV TURBO_TEAM=${TURBO_TEAM}
 
 # Build the application using ncc
 # This bundles all dependencies into a single file
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@metorial-subspace/app-worker
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate --filter=@metorial/db --filter=@metorial/multi-region --filter=@metorial-subspace/db --filter=@metorial-subspace/app-worker
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh server:build --filter=@metorial-subspace/app-worker
 
 # Production stage
 FROM oven/bun:1-alpine AS production
