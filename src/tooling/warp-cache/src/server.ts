@@ -6,6 +6,14 @@ type Config = {
   team: string;
 };
 
+type Stats = {
+  hits: number;
+  misses: number;
+  uploads: number;
+  uploadBytes: number;
+  errors: number;
+};
+
 let hashPattern = /^[a-fA-F0-9]+$/;
 
 function response(code: string, message: string, status: number) {
@@ -20,10 +28,16 @@ function metadataHeaders(metadata: ArtifactMetadata) {
 }
 
 export function createApp(config: Config) {
+  let stats: Stats = { hits: 0, misses: 0, uploads: 0, uploadBytes: 0, errors: 0 };
+
   async function artifact(request: Request, hash: string) {
     if (!hashPattern.test(hash)) return response('invalid_hash', 'Artifact hash is invalid', 400);
     let entry = await config.storage.get(`v8/${config.team}/${hash}`);
-    if (!entry) return response('artifact_not_found', 'Artifact was not found', 404);
+    if (!entry) {
+      stats.misses += 1;
+      return response('artifact_not_found', 'Artifact was not found', 404);
+    }
+    stats.hits += 1;
     let headers = metadataHeaders(entry.metadata);
     if (request.method === 'HEAD') return new Response(null, { headers });
     return new Response(entry.body, { headers });
@@ -39,15 +53,20 @@ export function createApp(config: Config) {
     let team = url.searchParams.get('teamId') || url.searchParams.get('slug');
     if (team && team !== config.team) return response('forbidden', 'Team is not authorized', 403);
     if (request.method === 'GET' && pathname === '/artifacts/status') return Response.json({ status: 'enabled' });
+    if (request.method === 'GET' && pathname === '/artifacts/stats') return Response.json(stats);
     if (request.method === 'POST' && pathname === '/artifacts/events') return new Response(null, { status: 200 });
     if (request.method === 'POST' && pathname === '/artifacts') {
       let body = (await request.json()) as { hashes?: string[] };
       if (!Array.isArray(body.hashes)) return response('invalid_request', 'hashes must be an array', 400);
       let entries: Record<string, unknown> = {};
-      for (let hash of body.hashes) {
-        if (!hashPattern.test(hash)) continue;
-        let entry = await config.storage.get(`v8/${config.team}/${hash}`);
-        entries[hash] = entry ? { size: entry.metadata.size, taskDurationMs: entry.metadata.duration || 0, tag: entry.metadata.tag } : null;
+      for (let offset = 0; offset < body.hashes.length; offset += 16) {
+        await Promise.all(body.hashes.slice(offset, offset + 16).map(async hash => {
+          if (!hashPattern.test(hash)) return;
+          let metadata = await config.storage.metadata(`v8/${config.team}/${hash}`);
+          entries[hash] = metadata ? { size: metadata.size, taskDurationMs: metadata.duration || 0, tag: metadata.tag } : null;
+          if (metadata) stats.hits += 1;
+          else stats.misses += 1;
+        }));
       }
       return Response.json(entries);
     }
@@ -59,11 +78,18 @@ export function createApp(config: Config) {
     if (!Number.isSafeInteger(size) || size < 0) return response('invalid_request', 'Content-Length is required', 400);
     let duration = request.headers.get('x-artifact-duration');
     let tag = request.headers.get('x-artifact-tag');
-    await config.storage.put(`v8/${config.team}/${match[1]}`, request.body, {
-      size,
-      duration: duration ? Number(duration) : undefined,
-      tag: tag || undefined
-    });
+    try {
+      await config.storage.put(`v8/${config.team}/${match[1]}`, request.body, {
+        size,
+        duration: duration ? Number(duration) : undefined,
+        tag: tag || undefined
+      });
+      stats.uploads += 1;
+      stats.uploadBytes += size;
+    } catch (error) {
+      stats.errors += 1;
+      throw error;
+    }
     return Response.json({ urls: [] }, { status: 200 });
   };
 }

@@ -8,13 +8,16 @@
     },
     "build": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["dist/**"]
     },
     "build:client": {
       "dependsOn": ["^build", "^build:client"],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["dist/**"]
     },
     "prisma:generate": {
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["prisma/generated/**"]
     },
     "prisma:push": {
@@ -38,21 +41,25 @@
     },
     "frontend:build": {
       "dependsOn": ["^build", "^frontend:build"],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["dist/**", "frontend/*/dist/**"],
       "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
     },
     "_frontend:build": {
       "dependsOn": ["^build", "^_frontend:build"],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["dist/**"],
       "env": ["METORIAL_ENV", "VITE_*"]
     },
     "admin:build": {
       "dependsOn": ["^build", "^admin:build"],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["dist/admin/**"],
       "env": ["METORIAL_ENV", "VITE_*"]
     },
     "worker:build": {
       "dependsOn": ["prisma:generate", "^prisma:generate", "^build", "^worker:build"],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["dist-worker/**"],
       "env": ["METORIAL_ENV"]
     },
@@ -85,6 +92,7 @@
         "^build",
         "^server:build"
       ],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**", "!dist/admin/**"]
     },
@@ -96,6 +104,7 @@
         "^server:build",
         "^oss:server:build"
       ],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**"]
     },

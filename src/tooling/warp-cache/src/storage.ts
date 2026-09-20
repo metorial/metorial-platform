@@ -11,6 +11,7 @@ export type Artifact = {
 
 export interface Storage {
   get(key: string): Promise<Artifact | null>;
+  metadata(key: string): Promise<ArtifactMetadata | null>;
   put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void>;
 }
 
@@ -24,6 +25,10 @@ export class MemoryStorage implements Storage {
       body: new Blob([entry.body]).stream(),
       metadata: entry.metadata
     };
+  }
+
+  async metadata(key: string): Promise<ArtifactMetadata | null> {
+    return this.entries.get(key)?.metadata || null;
   }
 
   async put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void> {
@@ -45,14 +50,21 @@ export class FileStorage implements Storage {
   async get(key: string): Promise<Artifact | null> {
     let artifact = Bun.file(this.artifactPath(key));
     if (!(await artifact.exists())) return null;
-    let metadata = (await Bun.file(this.metadataPath(key)).json()) as ArtifactMetadata;
+    let metadata = await this.metadata(key);
+    if (!metadata) return null;
     return { body: artifact.stream(), metadata };
+  }
+
+  async metadata(key: string): Promise<ArtifactMetadata | null> {
+    let metadata = Bun.file(this.metadataPath(key));
+    if (!(await metadata.exists())) return null;
+    return (await metadata.json()) as ArtifactMetadata;
   }
 
   async put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void> {
     await mkdir(dirname(this.artifactPath(key)), { recursive: true });
-    await Bun.write(this.artifactPath(key), await new Response(body).arrayBuffer());
     await Bun.write(this.metadataPath(key), JSON.stringify(metadata));
+    await Bun.write(this.artifactPath(key), await new Response(body).arrayBuffer());
   }
 }
 
@@ -73,13 +85,20 @@ export class S3Storage implements Storage {
   async get(key: string): Promise<Artifact | null> {
     let artifact = this.client.file(`${key}.artifact`);
     if (!(await artifact.exists())) return null;
-    let metadata = (await this.client.file(`${key}.json`).json()) as ArtifactMetadata;
+    let metadata = await this.metadata(key);
+    if (!metadata) return null;
     return { body: artifact.stream(), metadata };
   }
 
+  async metadata(key: string): Promise<ArtifactMetadata | null> {
+    let metadata = this.client.file(`${key}.json`);
+    if (!(await metadata.exists())) return null;
+    return (await metadata.json()) as ArtifactMetadata;
+  }
+
   async put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void> {
-    await this.client.file(`${key}.artifact`).write(await new Response(body).arrayBuffer());
     await this.client.file(`${key}.json`).write(JSON.stringify(metadata));
+    await this.client.file(`${key}.artifact`).write(await new Response(body).arrayBuffer());
   }
 }
 import { dirname } from 'node:path';

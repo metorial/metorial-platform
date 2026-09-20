@@ -10,7 +10,7 @@
   "devDependencies": {
     "@lowerdeck/slugify": "workspace:2.0.0",
     "@lowerdeck/testing-tools": "workspace:2.0.0",
-    "@metorial-platform-systems/shuttle-client": "^1.0.0",
+    "@metorial-platform-systems/shuttle-client": "workspace:*",
     "@metorial-subspace/connection-utils": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/provider": "^1.0.0",

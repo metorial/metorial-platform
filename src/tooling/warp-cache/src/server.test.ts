@@ -29,9 +29,23 @@ test('rejects an unauthorized request', async () => {
   expect(result.status).toBe(401);
 });
 
+test('reports aggregate cache activity without artifact details', async () => {
+  let hash = 'd4e5f6';
+  await app(new Request(`http://cache/artifacts/${hash}`, { headers }));
+  let stats = await app(new Request('http://cache/artifacts/stats', { headers }));
+  expect(await stats.json()).toMatchObject({ hits: expect.any(Number), misses: expect.any(Number), uploads: expect.any(Number), uploadBytes: expect.any(Number), errors: expect.any(Number) });
+});
+
 test('filesystem storage preserves streamed artifact bodies', async () => {
   let storage = new FileStorage(`/tmp/warp-cache-test-${crypto.randomUUID()}`);
   await storage.put('v8/metorial/abc123', new Blob(['artifact']).stream(), { size: 8 });
   let artifact = await storage.get('v8/metorial/abc123');
   expect(await new Response(artifact?.body).text()).toBe('artifact');
+});
+
+test('treats an artifact without committed metadata as a cache miss', async () => {
+  let storage = new FileStorage(`/tmp/warp-cache-test-${crypto.randomUUID()}`);
+  let key = 'v8/metorial/abc123';
+  await Bun.write(storage.artifactPath(key), 'partial');
+  expect(await storage.get(key)).toBeNull();
 });

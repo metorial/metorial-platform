@@ -52,9 +52,6 @@ runs:
         done
         curl --fail --silent http://127.0.0.1:8787/health > /dev/null
         {
-          echo "AWS_ACCESS_KEY_ID=$assumed_key"
-          echo "AWS_SECRET_ACCESS_KEY=$assumed_secret"
-          echo "AWS_SESSION_TOKEN=$assumed_token"
           echo "TURBO_API=http://127.0.0.1:8787"
           echo "TURBO_TEAM=$INPUT_TEAM"
           echo "TURBO_TOKEN=$token"

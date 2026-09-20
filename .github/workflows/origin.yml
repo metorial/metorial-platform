@@ -3,6 +3,7 @@ name: 'Origin'
 on:
   workflow_dispatch:
   push:
+    branches: [dev]
   pull_request:
 
 permissions:
@@ -24,9 +25,14 @@ jobs:
           - name: origin
             image: ghcr.io/metorial/mte-origin
             dockerfile: ./src/origin/apps/service/Dockerfile
+            package: '@metorial/origin'
+            tasks: 'prisma:generate server:build'
           - name: code-bucket
             image: ghcr.io/metorial/mte-code-bucket
             dockerfile: ./src/origin/apps/code-bucket/Dockerfile
+            package: '@metorial/code-bucket-service-generated'
+            tasks: build
+            paths: '^src/origin/apps/(code-bucket|code-workspace)/'
 
     steps:
       - name: Checkout repository
@@ -34,11 +40,18 @@ jobs:
         with:
           submodules: recursive
           token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - uses: oven-sh/setup-bun@v2
+      - id: affected
+        uses: ./.github/actions/affected-image
+        with:
+          package: ${{ matrix.service.package }}
+          tasks: ${{ matrix.service.tasks }}
+          paths: ${{ matrix.service.paths }}
       - uses: ./.github/actions/setup-warp-cache
         with:
           aws-access-key-id: ${{ secrets.WARP_CACHE_AWS_ACCESS_KEY_ID }}
@@ -72,6 +85,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
+        if: steps.affected.outputs.should-build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -87,3 +101,9 @@ jobs:
           secrets: |
             turbo_token=${{ env.TURBO_TOKEN }}
             turbo_signature=${{ env.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}-linux-amd64
+          cache-to: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' && format('type=gha,mode=max,scope={0}-linux-amd64', matrix.service.name) || '' }}
+
+      - name: Report Warp Cache
+        if: always()
+        run: sh ./src/tooling/warp-cache/report.sh
