@@ -6,18 +6,16 @@ import type {
   ProviderSpecificationType,
   ProviderVariant,
   ProviderVersion,
-  Tenant
-} from '@metorial-subspace/db';
-import { IProviderFunctionality } from '../providerFunctionality';
-import type { ConnectionSpecificationBehavior } from '../types/connection';
-import type {
   Specification,
   SpecificationAuthMethod,
   SpecificationFeatures,
   SpecificationTool,
   SpecificationTrigger,
-  SpecificationTriggerGroup
-} from '../types/specification';
+  SpecificationTriggerGroup,
+  Tenant
+} from '@metorial-subspace/db';
+import { IProviderFunctionality } from '../providerFunctionality';
+import type { ConnectionSpecificationBehavior } from '../types/connection';
 
 export abstract class IProviderCapabilities extends IProviderFunctionality {
   abstract getSpecificationForProviderVersion(

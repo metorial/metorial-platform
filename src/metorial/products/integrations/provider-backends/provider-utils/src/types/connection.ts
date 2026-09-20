@@ -1,13 +1,13 @@
-import type { ProviderSpecificationType } from '@metorial-subspace/db';
-import type { NormalizedProviderError } from '../lib/normalizeProviderError';
 import type {
+  ProviderSpecificationType,
   Specification,
   SpecificationAuthMethod,
   SpecificationFeatures,
   SpecificationTool,
   SpecificationTrigger,
   SpecificationTriggerGroup
-} from './specification';
+} from '@metorial-subspace/db';
+import type { NormalizedProviderError } from '../lib/normalizeProviderError';
 
 export interface ConnectionSpecificationBehavior {
   discoverPerConnection: boolean;
