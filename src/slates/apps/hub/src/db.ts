@@ -65,6 +65,7 @@ declare global {
       name: string;
       version: string;
       description?: string;
+      networkIsolation?: boolean;
       timeout?: number;
     }
 

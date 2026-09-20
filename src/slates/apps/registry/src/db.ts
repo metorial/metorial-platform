@@ -21,6 +21,7 @@ declare global {
       categories?: string[];
       skills?: string[];
       logoUrl?: string;
+      networkIsolation?: boolean;
       timeout?: number;
     }
 

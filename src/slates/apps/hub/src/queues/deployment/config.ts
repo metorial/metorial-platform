@@ -5,5 +5,5 @@ export let resolveSlateDeploymentConfig = (d: {
 }) => ({
   memorySizeMb: d.defaultMemorySizeMb,
   timeoutSeconds: d.manifest.timeout ?? d.defaultTimeoutSeconds,
-  disableNetworkIsolation: true
+  disableNetworkIsolation: d.manifest.networkIsolation !== true
 });

@@ -37,6 +37,7 @@ let rawSlateJsonValidation = v.object({
   categories: v.optional(v.array(v.string())),
   skills: v.optional(v.array(v.string())),
   logoUrl: v.optional(v.string()),
+  networkIsolation: v.optional(v.boolean()),
   timeout: timeoutValidation
 });
 
@@ -83,6 +84,7 @@ export let slateJsonValidation = v.object({
   categories: v.optional(v.array(v.string())),
   skills: v.optional(v.array(v.string())),
   logoUrl: v.optional(v.string()),
+  networkIsolation: v.optional(v.boolean()),
   timeout: timeoutValidation
 });
 
@@ -211,6 +213,7 @@ export let normalizeSlatePackage = (d: {
     categories: rawSlateJson.categories,
     skills: rawSlateJson.skills,
     logoUrl: rawSlateJson.logoUrl,
+    networkIsolation: rawSlateJson.networkIsolation,
     timeout: rawSlateJson.timeout
   } satisfies ValidationTypeValue<typeof slateJsonValidation>;
 

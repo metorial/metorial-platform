@@ -55,3 +55,39 @@ describe('slate.json timeout validation', () => {
     expect(() => normalizeWithTimeout(12.5)).toThrow();
   });
 });
+
+describe('slate.json network isolation validation', () => {
+  it('preserves the network isolation setting', () => {
+    let slatePackage = normalizeSlatePackage({
+      entries: createEntries({
+        name: '@demo/weather',
+        networkIsolation: true
+      }),
+      identifier: {
+        scopeIdentifier: 'demo',
+        slateIdentifier: 'weather'
+      }
+    });
+
+    expect(slatePackage.manifest.networkIsolation).toBe(true);
+  });
+
+  it('accepts a manifest without a network isolation setting', () => {
+    expect(normalizeWithTimeout().manifest.networkIsolation).toBeUndefined();
+  });
+
+  it('rejects non-boolean network isolation settings', () => {
+    expect(() =>
+      normalizeSlatePackage({
+        entries: createEntries({
+          name: '@demo/weather',
+          networkIsolation: 'enabled'
+        }),
+        identifier: {
+          scopeIdentifier: 'demo',
+          slateIdentifier: 'weather'
+        }
+      })
+    ).toThrow();
+  });
+});

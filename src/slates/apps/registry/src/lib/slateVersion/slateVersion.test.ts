@@ -54,6 +54,7 @@ describe('registry slate version helpers', () => {
         categories: ['utilities'],
         skills: ['forecast'],
         logoUrl: 'https://example.com/logo.png',
+        networkIsolation: true,
         timeout: 60
       }),
       'docs/guide.md': '# Guide',
@@ -76,6 +77,7 @@ describe('registry slate version helpers', () => {
       categories: ['utilities'],
       skills: ['forecast'],
       logoUrl: 'https://example.com/logo.png',
+      networkIsolation: true,
       timeout: 60
     });
     expect(slatePackage.npmPackageName).toBe('@npm/weather-package');
