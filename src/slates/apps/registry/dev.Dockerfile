@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
 
 RUN sh ./src/slates/scripts/prepare-docker-build.sh
 
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate admin:build server:build --filter=@metorial/slates-registry
+
 # Build admin frontend
 RUN cd /app/src/slates/apps/registry && bun run admin:build
 
