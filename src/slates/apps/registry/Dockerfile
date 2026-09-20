@@ -1,10 +1,15 @@
+# syntax=docker/dockerfile:1.7
 # Build stage
 FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
 ARG SENTRY_AUTH_TOKEN
+ARG TURBO_API
+ARG TURBO_TEAM
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+ENV TURBO_API=${TURBO_API}
+ENV TURBO_TEAM=${TURBO_TEAM}
 
 # Copy repository contents from the OSS root context
 COPY . .
@@ -14,10 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN sh ./src/slates/scripts/prepare-docker-build.sh
 
 # Build the registry app from the monorepo path.
-WORKDIR /app/src/slates/apps/registry
-RUN bun prisma generate
-RUN bun run admin:build
-RUN bun run server:build
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate admin:build server:build --filter=@metorial/slates-registry
 
 # Production stage
 FROM oven/bun:1-alpine AS runner
