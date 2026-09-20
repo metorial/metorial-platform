@@ -6197,6 +6197,9 @@
         "typescript": "^5",
       },
     },
+    "src/tooling/warp-cache": {
+      "name": "@metorial/warp-cache",
+    },
     "src/voyager/clients/voyager": {
       "name": "@metorial-platform-systems/voyager-client",
       "version": "1.0.0",
@@ -7622,6 +7625,8 @@
     "@metorial/util-websocket": ["@metorial/util-websocket@1.0.0", "", { "dependencies": { "mitt": "^3.0.1", "ws": "^8.18.2" } }, "sha512-o0qRqbrjlmpjuKGyND4WDDCKBBRPztV8VkaX1HFSnbbKl/Jftz8CPtKnKmLQ38O4XPWPwl7Y7+9OPW7nqDg7UA=="],
 
     "@metorial/voyager": ["@metorial/voyager@workspace:src/voyager/service"],
+
+    "@metorial/warp-cache": ["@metorial/warp-cache@workspace:src/tooling/warp-cache"],
 
     "@metorial/webhook-event-schema": ["@metorial/webhook-event-schema@workspace:src/metorial/products/auditing/packages/event-schema"],
 

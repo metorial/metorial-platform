@@ -24,6 +24,15 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Set up Warp Cache
+        uses: ./.github/actions/setup-warp-cache
+        with:
+          aws-access-key-id: ${{ secrets.WARP_CACHE_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WARP_CACHE_AWS_SECRET_ACCESS_KEY }}
+          signature-key: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+          role-arn: ${{ vars.WARP_CACHE_ROLE_ARN }}
+          bucket: ${{ vars.WARP_CACHE_BUCKET }}
+
       # - name: Patch bun
       #   run: mv _package.json package.json
 
