@@ -78,6 +78,8 @@ export let adminWebhookEventPresenter = async (
   let inner = await slateWebhookEventPresenter(event);
   return {
     ...inner,
-    responseOverride: event.responseOverride ?? null
+    responseOverride: event.responseOverride ?? null,
+    skipped: event.skipped,
+    skipReason: event.skipReason
   };
 };

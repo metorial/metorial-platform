@@ -85,6 +85,13 @@ class slateWebhookEventServiceInternalImpl {
     });
   }
 
+  async markSkipped(d: { eventOid: bigint; reason: string }) {
+    await db.slateWebhookEvent.update({
+      where: { oid: d.eventOid },
+      data: { skipped: true, skipReason: d.reason }
+    });
+  }
+
   async resolveSuccess(d: { eventOid: bigint }) {
     await db.slateWebhookEvent.update({
       where: { oid: d.eventOid },

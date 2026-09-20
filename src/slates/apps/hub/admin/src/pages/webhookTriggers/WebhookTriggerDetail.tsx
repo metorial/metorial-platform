@@ -105,8 +105,16 @@ let WebhookEventDetail = ({ event }: { event: WebhookTriggerEvent }) => (
         },
         {
           label: 'Status',
-          value: <Badge color={statusColors[event.status] || 'gray'}>{event.status}</Badge>
+          value: (
+            <Flex align="center" gap={6}>
+              <Badge color={statusColors[event.status] || 'gray'}>{event.status}</Badge>
+              {event.skipped ? <Badge color="gray">skipped</Badge> : null}
+            </Flex>
+          )
         },
+        ...(event.skipped
+          ? [{ label: 'Skip reason', value: <MonoCode>{event.skipReason ?? '-'}</MonoCode> }]
+          : []),
         { label: 'Attempts', value: String(event.attemptCount) },
         { label: 'Method', value: event.request?.method ?? '-' },
         {
@@ -447,7 +455,10 @@ let WebhookTriggerEventsSection = ({
               data={items.map(event => ({
                 onClick: () => showWebhookEventPanel(event),
                 data: [
-                  <Badge color={statusColors[event.status] || 'gray'}>{event.status}</Badge>,
+                  <Flex align="center" gap={6}>
+                    <Badge color={statusColors[event.status] || 'gray'}>{event.status}</Badge>
+                    {event.skipped ? <Badge color="gray">skipped</Badge> : null}
+                  </Flex>,
                   <MonoCode>{event.request?.method ?? '-'}</MonoCode>,
                   <Text size="2">{event.attemptCount}</Text>,
                   <RenderDate date={event.createdAt} />

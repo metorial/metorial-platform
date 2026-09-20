@@ -18,6 +18,7 @@ import { getLocalhostWebhookUrl, getWebhookUrl } from '../lib/webhookUrl';
 let include = { webhookRegistration: { include: { slate: true, triggerGroup: true } } };
 
 let visibleTo = (tenant: Tenant): Prisma.SlateWebhookEventWhereInput => ({
+  skipped: false,
   OR: [
     { webhookRegistration: { tenantOid: tenant.oid } },
     {
@@ -92,6 +93,7 @@ class slateWebhookEventServiceImpl {
   async listWebhookEventsForAdmin(d: {
     webhookRegistration: { oid: bigint };
     statuses?: SlateWebhookEventStatus[];
+    skipped?: boolean;
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -100,7 +102,8 @@ class slateWebhookEventServiceImpl {
             ...opts,
             where: {
               webhookRegistrationOid: d.webhookRegistration.oid,
-              status: d.statuses?.length ? { in: d.statuses } : undefined
+              status: d.statuses?.length ? { in: d.statuses } : undefined,
+              skipped: d.skipped
             },
             include,
             orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }]

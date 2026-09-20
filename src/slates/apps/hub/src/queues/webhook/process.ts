@@ -9,6 +9,7 @@ import {
 } from '../../internal';
 import { getLatestSlateVersionSupportingTriggerGroup } from '../../lib/slateVersion';
 import { publishWebhookEventResolved } from '../../lib/webhookEventBus';
+import { resolveWebhookSkip } from '../../lib/webhookSkip';
 import { secretService, slateInvocationService } from '../../services';
 import { globalTenant } from '../../services/tenant';
 import { createTriggerRawEvents } from '../trigger/_rawEvent';
@@ -133,6 +134,22 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
       eventOid: event.oid,
       response: result.data.response ?? null
     });
+
+    let skip = resolveWebhookSkip(result.data);
+    if (skip) {
+      await slateWebhookEventServiceInternal.markSkipped({
+        eventOid: event.oid,
+        reason: skip.reason
+      });
+      await slateWebhookEventServiceInternal.trySetResponseOverride({
+        eventOid: event.oid,
+        override: { webhookEventId: event.id }
+      });
+      await slateWebhookEventServiceInternal.resolveSuccess({ eventOid: event.oid });
+      await publishWebhookEventResolved(event.id);
+      await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
+      return;
+    }
 
     if (!result.data.response) {
       await slateWebhookEventServiceInternal.trySetResponseOverride({
