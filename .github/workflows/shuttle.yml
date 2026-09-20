@@ -39,6 +39,8 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -69,11 +71,9 @@ jobs:
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          add-hosts: |
-            host.docker.internal=host-gateway
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
-            TURBO_API=http://host.docker.internal:8787
+            TURBO_API=http://127.0.0.1:8787
             TURBO_TEAM=metorial
           secrets: |
             turbo_token=${{ env.TURBO_TOKEN }}
