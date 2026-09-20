@@ -37,7 +37,7 @@
       "env": ["API_URL"]
     },
     "frontend:build": {
-      "dependsOn": ["^frontend:build"],
+      "dependsOn": ["^build", "^frontend:build"],
       "outputs": ["dist/**", "frontend/*/dist/**"],
       "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
     },
@@ -52,7 +52,7 @@
       "env": ["METORIAL_ENV", "VITE_*"]
     },
     "worker:build": {
-      "dependsOn": ["^build", "^worker:build"],
+      "dependsOn": ["prisma:generate", "^prisma:generate", "^build", "^worker:build"],
       "outputs": ["dist-worker/**"],
       "env": ["METORIAL_ENV"]
     },
@@ -78,12 +78,18 @@
       ]
     },
     "server:build": {
-      "dependsOn": ["^build", "^server:build"],
+      "dependsOn": ["prisma:generate", "^prisma:generate", "^build", "^server:build"],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**", "!dist/admin/**"]
     },
     "oss:server:build": {
-      "dependsOn": ["^build", "^server:build", "^oss:server:build"],
+      "dependsOn": [
+        "prisma:generate",
+        "^prisma:generate",
+        "^build",
+        "^server:build",
+        "^oss:server:build"
+      ],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**"]
     },
