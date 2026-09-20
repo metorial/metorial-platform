@@ -78,7 +78,13 @@
       ]
     },
     "server:build": {
-      "dependsOn": ["prisma:generate", "^prisma:generate", "^build", "^server:build"],
+      "dependsOn": [
+        "admin:build",
+        "prisma:generate",
+        "^prisma:generate",
+        "^build",
+        "^server:build"
+      ],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**", "!dist/admin/**"]
     },
