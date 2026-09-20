@@ -43,7 +43,7 @@
     "@aws-sdk/client-cloudwatch-logs": "^3.957.0",
     "@aws-sdk/client-iam": "^3.957.0",
     "@aws-sdk/client-lambda": "^3.958.0",
-    "@function-bay/types": "^1.0.0",
+    "@function-bay/types": "workspace:*",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
