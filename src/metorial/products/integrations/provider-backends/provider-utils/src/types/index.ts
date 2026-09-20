@@ -1,2 +1,11 @@
 export * from './connection';
-export * from './specification';
+export type {
+  Specification,
+  SpecificationActionScopes,
+  SpecificationAuthMethod,
+  SpecificationAuthMethodType,
+  SpecificationFeatures,
+  SpecificationTool,
+  SpecificationTrigger,
+  SpecificationTriggerGroup
+} from '@metorial-subspace/db';

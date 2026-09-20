@@ -1,13 +1,5 @@
 import type { ErrorData } from '@lowerdeck/error';
 import { withExecutionContextTraceFallback } from '@lowerdeck/telemetry';
-import type {
-  Specification,
-  SpecificationAuthMethod,
-  SpecificationFeatures,
-  SpecificationTool,
-  SpecificationTrigger,
-  SpecificationTriggerGroup
-} from '@metorial-subspace/provider-utils';
 import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
@@ -16,7 +8,13 @@ import { PrismaClient } from '../prisma/generated/client';
 import type {
   CustomProviderConfig,
   CustomProviderFrom,
-  CustomProviderFromUpdate
+  CustomProviderFromUpdate,
+  Specification,
+  SpecificationAuthMethod,
+  SpecificationFeatures,
+  SpecificationTool,
+  SpecificationTrigger,
+  SpecificationTriggerGroup
 } from './types';
 
 export type EntityImage =

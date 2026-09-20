@@ -9,7 +9,7 @@
       },
       "devDependencies": {
         "prettier": "^3.5.3",
-        "turbo": "^2.5.4",
+        "turbo": "2.9.18",
         "typescript": "5.8.2",
       },
     },
@@ -20,6 +20,7 @@
         "@metorial/fetch": "^1.0.0-rc.5",
         "@metorial/generated": "^1.0.0-rc.5",
         "@metorial/util-endpoint": "^1.0.0-rc.5",
+        "@metorial/util-resource-mapper": "^3.0.0",
         "@types/cookie": "^1.0.0",
       },
       "devDependencies": {
@@ -38,6 +39,7 @@
         "@metorial/fetch": "^1.0.0-rc.5",
         "@metorial/generated": "^1.0.0-rc.5",
         "@metorial/util-endpoint": "^1.0.0-rc.5",
+        "@metorial/util-resource-mapper": "^3.0.0",
       },
       "devDependencies": {
         "@types/isomorphic-fetch": "^0.0.39",
@@ -154,6 +156,7 @@
         "@lowerdeck/hono": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
         "@lowerdeck/ip-info": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
         "@lowerdeck/once": "workspace:2.0.0",
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
@@ -1197,6 +1200,7 @@
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/chart": "^1.0.0",
+        "@metorial/code": "^1.0.0",
         "@metorial/code-editor": "^1.0.0",
         "@metorial/dashboard-sdk": "1.0.0-internal",
         "@metorial/data-hooks": "^1.0.0",
@@ -1208,6 +1212,9 @@
         "@metorial/frontend-config": "^1.0.0",
         "@metorial/json-viewer": "^1.0.0",
         "@metorial/layout": "^1.0.0",
+        "@metorial/markdown": "^1.0.0",
+        "@metorial/mcp": "^1.0.0-rc.2",
+        "@metorial/mcp-server": "^1.0.0-rc.12",
         "@metorial/microfrontend": "^1.0.0",
         "@metorial/open-switcher": "^1.0.0",
         "@metorial/open-window": "^1.0.0",
@@ -1216,6 +1223,7 @@
         "@metorial/scene-assistant": "^1.0.0",
         "@metorial/scene-docs": "^1.0.0",
         "@metorial/scene-scm": "^1.0.0",
+        "@metorial/scene-skills": "^1.0.0",
         "@metorial/split-pane": "^1.0.0",
         "@metorial/state": "^1.0.0",
         "@metorial/storage": "^1.0.0",
@@ -2268,7 +2276,10 @@
         "@metorial/cache": "^1.0.0",
         "@metorial/context": "^1.0.0",
         "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
         "@prisma/adapter-pg": "6.19.0",
         "@prisma/client": "^7.4.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -3396,17 +3407,24 @@
         "@lowerdeck/queue": "workspace:2.0.0",
         "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial-subspace/module-agent": "^1.0.0",
         "@metorial-subspace/module-auth": "^1.0.0",
         "@metorial-subspace/module-callback": "^1.0.0",
         "@metorial-subspace/module-catalog": "^1.0.0",
         "@metorial-subspace/module-chat": "^1.0.0",
         "@metorial-subspace/module-connection": "^1.0.0",
+        "@metorial-subspace/module-custom-provider": "^1.0.0",
         "@metorial-subspace/module-deployment": "^1.0.0",
+        "@metorial-subspace/module-enclave": "^1.0.0",
+        "@metorial-subspace/module-identity": "^1.0.0",
         "@metorial-subspace/module-integration": "^1.0.0",
         "@metorial-subspace/module-monitor": "^1.0.0",
         "@metorial-subspace/module-provider-internal": "^1.0.0",
+        "@metorial-subspace/module-session": "^1.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial-subspace/provider-native": "^1.0.0",
+        "@metorial-subspace/provider-shuttle": "^1.0.0",
         "@metorial-subspace/provider-slates": "^1.0.0",
         "@metorial/service-init": "^1.0.0",
         "@sentry/bun": "^10.34.0",
@@ -4893,6 +4911,7 @@
         "@metorial/module-audit-log": "1.0.0",
         "@metorial/module-audit-log-stream": "1.0.0",
         "@metorial/module-audit-tracker": "1.0.0",
+        "@metorial/module-community": "1.0.0",
         "@metorial/module-consumer-access": "1.0.0",
         "@metorial/module-consumer-core": "1.0.0",
         "@metorial/module-consumer-entities": "1.0.0",
@@ -4904,7 +4923,9 @@
         "@metorial/module-event-tracker": "1.0.0",
         "@metorial/module-file": "1.0.0",
         "@metorial/module-machine-access": "1.0.0",
+        "@metorial/module-magic": "1.0.0",
         "@metorial/module-organization": "1.0.0",
+        "@metorial/module-outpost": "1.0.0",
         "@metorial/module-portal": "1.0.0",
         "@metorial/module-product-assistant": "1.0.0",
         "@metorial/module-skill": "1.0.0",
@@ -4917,6 +4938,7 @@
         "@metorial/module-store": "1.0.0",
         "@metorial/module-usage": "1.0.0",
         "@metorial/module-user": "1.0.0",
+        "@metorial/multi-region": "1.0.0",
         "@metorial/queue": "1.0.0",
         "@metorial/webhook-listeners": "1.0.0",
         "@vercel/ncc": "^0.38.4",
@@ -7595,7 +7617,7 @@
 
     "@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.1", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-LqRt1EX5lx+/zYiDwlOHBg9NXqkARl+XQWquaJihbGc8+TPVCxw8yWEh/n6mwPU7ydG3QiAqlEM1cfPMRFpTbQ=="],
 
-    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@1.0.0", "", {}, "sha512-CUPXTqEJXyYBYIDaUXvMQywimC43Q5DTycXcXEpT+cxSVngKswqe3F1Zih0CLFyaLHeSGqXRRaSOBsZebSv+iw=="],
+    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.0.0", "", {}, "sha512-CiEVSUL9ncLQuIrZniE0lMkDdAJ9XUzd/rqwpxf0OV3yDZtdbTDP1Wo36b8tRndC1J5hyd1LVayxULQOXBCs4g=="],
 
     "@metorial/util-websocket": ["@metorial/util-websocket@1.0.0", "", { "dependencies": { "mitt": "^3.0.1", "ws": "^8.18.2" } }, "sha512-o0qRqbrjlmpjuKGyND4WDDCKBBRPztV8VkaX1HFSnbbKl/Jftz8CPtKnKmLQ38O4XPWPwl7Y7+9OPW7nqDg7UA=="],
 
@@ -11529,7 +11551,7 @@
 
     "@metorial-subspace/adapter-chat/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
-    "@metorial-subspace/app-worker/@types/bun": ["@types/bun@1.4.0", "", { "dependencies": { "bun-types": "1.4.0" } }, "sha512-K+lZULY23vRgK/CfTjFIV+tyifaNdSMlPh9j+6mQ/cLfpOznLyAuzgV/JQysyECpkBQLVMSyvjlr2fBUSA9wFQ=="],
+    "@metorial-subspace/app-worker/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
     "@metorial-subspace/archived-cleanup/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
@@ -11648,6 +11670,8 @@
     "@metorial/function-bay/lodash": ["lodash@4.17.21", "", {}, "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg=="],
 
     "@metorial/function-bay/vitest": ["vitest@4.0.17", "", { "dependencies": { "@vitest/expect": "4.0.17", "@vitest/mocker": "4.0.17", "@vitest/pretty-format": "4.0.17", "@vitest/runner": "4.0.17", "@vitest/snapshot": "4.0.17", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "es-module-lexer": "^1.7.0", "expect-type": "^1.2.2", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^3.10.0", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.0.3", "vite": "^6.0.0 || ^7.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.0.17", "@vitest/browser-preview": "4.0.17", "@vitest/browser-webdriverio": "4.0.17", "@vitest/ui": "4.0.17", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "vitest.mjs" } }, "sha512-FQMeF0DJdWY0iOnbv466n/0BudNdKj1l5jYgl5JVTwjSsZSlqyXFt/9+1sEyhR6CLowbZpV7O1sCHrzBhucKKg=="],
+
+    "@metorial/generated/@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@1.0.0", "", {}, "sha512-CUPXTqEJXyYBYIDaUXvMQywimC43Q5DTycXcXEpT+cxSVngKswqe3F1Zih0CLFyaLHeSGqXRRaSOBsZebSv+iw=="],
 
     "@metorial/id/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
@@ -11787,7 +11811,7 @@
 
     "@metorial/slates-registry/@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 
-    "@metorial/state/@metorial/generated": ["@metorial/generated@3.0.2", "", { "dependencies": { "@metorial/util-endpoint": "^3.0.0", "@metorial/util-resource-mapper": "^3.0.0", "jose": "^5.9.6" } }, "sha512-Z+wvSmgtUyQY2RVMfYgxdul7ZZCdCGvryE1+2nM0cMwB7bZ/57SgRbL6RsNQ8iEenUj48/oH7tkl3EU0To1KFQ=="],
+    "@metorial/state/@metorial/generated": ["@metorial/generated@3.1.0", "", { "dependencies": { "@metorial/util-endpoint": "^3.0.0", "@metorial/util-resource-mapper": "^3.0.0", "jose": "^5.9.6" } }, "sha512-NgsrXPRfKYkn1cofDNdGDMlBIdKZ5ayAYEkTkgqoi4eYHx8uqws6ea+Jn6UI28jmnt5wKqN1EK5RkADGe1uPJw=="],
 
     "@metorial/subspace-dev/@types/bun": ["@types/bun@1.4.0", "", { "dependencies": { "bun-types": "1.4.0" } }, "sha512-K+lZULY23vRgK/CfTjFIV+tyifaNdSMlPh9j+6mQ/cLfpOznLyAuzgV/JQysyECpkBQLVMSyvjlr2fBUSA9wFQ=="],
 
@@ -12789,7 +12813,7 @@
 
     "@metorial-subspace/adapter/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
-    "@metorial-subspace/app-worker/@types/bun/bun-types": ["bun-types@1.4.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-iIKw23BspnQQYd3prITOBxeUsxBHnwzX6YJfGMuNOZzeNcMmVqzIIVGRm1l69ogaPQmb4wB6BN8mA5bE9YuC5Q=="],
+    "@metorial-subspace/app-worker/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
     "@metorial-subspace/archived-cleanup/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
@@ -13304,8 +13328,6 @@
     "@metorial/slates/vitest/vite": ["vite@7.3.5", "", { "dependencies": { "esbuild": "^0.27.0", "fdir": "^6.5.0", "picomatch": "^4.0.3", "postcss": "^8.5.6", "rollup": "^4.43.0", "tinyglobby": "^0.2.15" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "jiti": ">=1.21.0", "less": "^4.0.0", "lightningcss": "^1.21.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-KuOaNhcnGFN2zIPGA7wRmzF+lJA1sea7rHq17aiJ++9lzY1WWG6Jpwqwe1KNbRVPIqHmr8GLYx7jbrQcN/7/ww=="],
 
     "@metorial/state/@metorial/generated/@metorial/util-endpoint": ["@metorial/util-endpoint@3.0.0", "", { "dependencies": { "@metorial/util-async-iterator": "^3.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-uw+yw1xwa56jzG0H6iERK/FcuHhhz4n3sEWqyCG9bXhCGeMZSygls39mZB4qU+/Kb69N8deYnP0wSqoqvsO98Q=="],
-
-    "@metorial/state/@metorial/generated/@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.0.0", "", {}, "sha512-CiEVSUL9ncLQuIrZniE0lMkDdAJ9XUzd/rqwpxf0OV3yDZtdbTDP1Wo36b8tRndC1J5hyd1LVayxULQOXBCs4g=="],
 
     "@metorial/subspace-dev/@types/bun/bun-types": ["bun-types@1.4.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-iIKw23BspnQQYd3prITOBxeUsxBHnwzX6YJfGMuNOZzeNcMmVqzIIVGRm1l69ogaPQmb4wB6BN8mA5bE9YuC5Q=="],
 

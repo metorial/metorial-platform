@@ -19,6 +19,7 @@
     "@metorial/fetch": "^1.0.0-rc.5",
     "@metorial/generated": "^1.0.0-rc.5",
     "@metorial/util-endpoint": "^1.0.0-rc.5",
+    "@metorial/util-resource-mapper": "^3.0.0",
     "@types/cookie": "^1.0.0"
   },
   "devDependencies": {

@@ -7,61 +7,54 @@
       "persistent": true
     },
     "build": {
-      "dependsOn": [
-        "^build"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
     },
-    "prisma:generate": {},
+    "build:client": {
+      "dependsOn": ["^build", "^build:client"],
+      "outputs": ["dist/**"]
+    },
+    "prisma:generate": {
+      "outputs": ["prisma/generated/**"]
+    },
     "prisma:push": {
       "cache": false,
-      "env": [
-        "DATABASE_URL",
-        "PAYMENT_DATABASE_URL",
-        "FEDERATION_CORE_DATABASE_URL"
-      ]
+      "env": ["DATABASE_URL", "PAYMENT_DATABASE_URL", "FEDERATION_CORE_DATABASE_URL"]
     },
     "generate:client": {
-      "dependsOn": [
-        "^generate:client"
-      ],
+      "dependsOn": ["^generate:client"],
       "cache": false,
-      "env": [
-        "API_URL"
-      ]
+      "env": ["API_URL"]
     },
     "generate:client:dashboard": {
-      "dependsOn": [
-        "^generate:client:dashboard"
-      ],
+      "dependsOn": ["^generate:client:dashboard"],
       "cache": false,
-      "env": [
-        "API_URL"
-      ]
+      "env": ["API_URL"]
     },
     "generate:client:consumer": {
-      "dependsOn": [
-        "^generate:client:consumer"
-      ],
+      "dependsOn": ["^generate:client:consumer"],
       "cache": false,
-      "env": [
-        "API_URL"
-      ]
+      "env": ["API_URL"]
     },
     "frontend:build": {
-      "dependsOn": [
-        "^frontend:build"
-      ],
-      "env": [
-        "SENTRY_AUTH_TOKEN",
-        "METORIAL_ENV",
-        "VITE_*"
-      ]
+      "dependsOn": ["^frontend:build"],
+      "outputs": ["dist/**", "frontend/*/dist/**"],
+      "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
+    },
+    "_frontend:build": {
+      "dependsOn": ["^build", "^_frontend:build"],
+      "outputs": ["dist/**"],
+      "env": ["METORIAL_ENV", "VITE_*"]
     },
     "admin:build": {
-      "dependsOn": [
-        "^build",
-        "^admin:build"
-      ]
+      "dependsOn": ["^build", "^admin:build"],
+      "outputs": ["dist/admin/**"],
+      "env": ["METORIAL_ENV", "VITE_*"]
+    },
+    "worker:build": {
+      "dependsOn": ["^build", "^worker:build"],
+      "outputs": ["dist-worker/**"],
+      "env": ["METORIAL_ENV"]
     },
     "setup_vscode": {
       "cache": false
@@ -85,34 +78,20 @@
       ]
     },
     "server:build": {
-      "dependsOn": [
-        "^build",
-        "^server:build"
-      ],
-      "env": [
-        "SENTRY_AUTH_TOKEN",
-        "METORIAL_ENV"
-      ]
+      "dependsOn": ["^build", "^server:build"],
+      "env": ["METORIAL_ENV"],
+      "outputs": ["dist/**", "!dist/admin/**"]
     },
     "oss:server:build": {
-      "dependsOn": [
-        "^build",
-        "^server:build",
-        "^oss:server:build"
-      ],
-      "env": [
-        "METORIAL_ENV"
-      ]
+      "dependsOn": ["^build", "^server:build", "^oss:server:build"],
+      "env": ["METORIAL_ENV"],
+      "outputs": ["dist/**"]
     },
     "test": {
-      "dependsOn": [
-        "^test"
-      ]
+      "dependsOn": ["^test"]
     },
     "check-types": {
-      "dependsOn": [
-        "^check-types"
-      ]
+      "dependsOn": ["^check-types"]
     },
     "dev": {
       "cache": false,
