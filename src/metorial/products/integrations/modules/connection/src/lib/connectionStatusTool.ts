@@ -384,7 +384,7 @@ export let buildConnectionStatusReport = async (d: {
   };
 };
 
-let sessionAsToolOwner = (session: Session) =>
+export let sessionAsToolOwner = (session: Session) =>
   ({ id: session.id, nameTemplate: null }) as unknown as SessionProvider;
 
 export let buildConnectionStatusTool = (session: Session): SyntheticProviderTool =>

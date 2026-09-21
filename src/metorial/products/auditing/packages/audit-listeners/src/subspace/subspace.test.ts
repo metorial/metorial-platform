@@ -224,6 +224,7 @@ describe('subspace audit listeners', () => {
       canAttachCustomToolFilters: true,
       canAttachCustomProviderConfig: true,
       canOverrideToolFilters: false,
+      enableCallbackTools: false,
       currentVersion: { id: 'inv_1' },
       currentVersionIndex: 2,
       archivedAt: null

@@ -22,6 +22,7 @@ vi.mock('@metorial-subspace/db', () => ({
   withTransaction: vi.fn()
 }));
 vi.mock('@metorial-subspace/module-agent', () => ({}));
+vi.mock('@metorial-subspace/module-callback', () => ({ callbackEventService: {} }));
 vi.mock('@metorial-subspace/module-enclave', () => ({}));
 vi.mock('@metorial-subspace/module-provider-internal', () => ({}));
 vi.mock('@metorial-subspace/module-session', () => ({

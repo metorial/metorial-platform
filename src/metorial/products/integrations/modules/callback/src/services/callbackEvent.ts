@@ -39,12 +39,19 @@ export type ListCallbackEventsParams = {
   providerTriggerKeys?: string[];
   status?: CallbackEventStatus[];
   source?: CallbackEventSource[];
+  unread?: boolean;
   occurredAt?: DateFilter;
   createdAt?: DateFilter;
 };
 
 export type GetCallbackEventByIdParams = {
   callbackEventId: string;
+  integrationProviderIds?: string[];
+};
+
+export type MarkCallbackEventsReadParams = {
+  callbackEventIds: string[];
+  integrationProviderIds?: string[];
 };
 
 export type CallbackEventDetails = {
@@ -116,6 +123,7 @@ class callbackEventServiceImpl {
                 : undefined!,
               d.status?.length ? { status: { in: d.status } } : undefined!,
               d.source?.length ? { source: { in: d.source } } : undefined!,
+              d.unread ? { readAt: null } : undefined!,
               d.occurredAt ? { occurredAt: normalizeDateFilter(d.occurredAt) } : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
             ].filter(Boolean) as Prisma.CallbackEventWhereInput[]
@@ -143,6 +151,10 @@ class callbackEventServiceImpl {
     d: { tenant: Tenant; environment: Environment } & GetCallbackEventByIdParams
   ): Promise<CallbackEventWithDetails> {
     let solution = await getMetorialSolution();
+    let integrationProviders = await resolveIntegrationProviders(
+      { tenant: d.tenant, environment: d.environment, solution },
+      d.integrationProviderIds
+    );
 
     let callbackEvent = await db.callbackEvent.findFirst({
       where: {
@@ -150,7 +162,10 @@ class callbackEventServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
-        callback: { ownership: 'user' }
+        callback: {
+          ownership: 'user',
+          ...(integrationProviders ? { integrationProviderOid: integrationProviders.in } : {})
+        }
       },
       include: callbackEventInclude
     });
@@ -162,6 +177,41 @@ class callbackEventServiceImpl {
       ...callbackEvent,
       details: await this.hydrate(d.tenant, callbackEvent)
     };
+  }
+
+  async markCallbackEventsReadInternal(
+    d: { tenant: Tenant; environment: Environment } & MarkCallbackEventsReadParams
+  ) {
+    let solution = await getMetorialSolution();
+    let integrationProviders = await resolveIntegrationProviders(
+      { tenant: d.tenant, environment: d.environment, solution },
+      d.integrationProviderIds
+    );
+
+    let unreadEvents = await db.callbackEvent.findMany({
+      where: {
+        id: { in: d.callbackEventIds },
+        tenantOid: d.tenant.oid,
+        solutionOid: solution.oid,
+        environmentOid: d.environment.oid,
+        callback: {
+          ownership: 'user',
+          ...(integrationProviders ? { integrationProviderOid: integrationProviders.in } : {})
+        },
+        readAt: null
+      },
+      select: { id: true }
+    });
+    let markedIds = unreadEvents.map(event => event.id);
+
+    if (markedIds.length) {
+      await db.callbackEvent.updateMany({
+        where: { id: { in: markedIds } },
+        data: { readAt: new Date() }
+      });
+    }
+
+    return { markedIds };
   }
 
   private async hydrate(

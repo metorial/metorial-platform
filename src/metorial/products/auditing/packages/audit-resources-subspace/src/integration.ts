@@ -13,6 +13,7 @@ export let integrationAuditResource = resource({
     canAttachCustomToolFilters: boolean;
     canAttachCustomProviderConfig: boolean;
     canOverrideToolFilters: boolean;
+    enableCallbackTools: boolean;
     currentVersionId: string | null;
     currentVersionIndex: number;
     archivedAt: Date | null;
