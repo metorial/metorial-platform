@@ -182,14 +182,24 @@ describe('callback event tools', () => {
     expect(callbackEventService.markCallbackEventsReadInternal).not.toHaveBeenCalled();
   });
 
-  it('returns the payload for a single event', async () => {
+  it('returns the provider payload without exposing the inbound webhook', async () => {
     callbackEventService.getCallbackEventByIdInternal.mockResolvedValue({
       ...event,
       details: {
         status: 'succeeded',
         payload: { action: 'opened' },
         error: null,
-        webhook: null
+        webhook: {
+          id: 'whe_1',
+          status: 'succeeded',
+          receivedAt: new Date(),
+          request: {
+            method: 'POST',
+            url: 'https://example.com/webhook?token=private-token',
+            headers: { authorization: 'Bearer private-token' },
+            body: { secret: 'private-token' }
+          }
+        }
       }
     });
 
@@ -205,6 +215,8 @@ describe('callback event tools', () => {
       expect.objectContaining({ callbackEventId: 'cbe_1', integrationProviderIds: ['inp_1'] })
     );
     expect(output.event).toMatchObject({ id: 'cbe_1', payload: { action: 'opened' } });
+    expect(output.event).not.toHaveProperty('webhook');
+    expect(JSON.stringify(output)).not.toContain('private-token');
   });
 
   it('reports which ids were marked read and which were skipped', async () => {

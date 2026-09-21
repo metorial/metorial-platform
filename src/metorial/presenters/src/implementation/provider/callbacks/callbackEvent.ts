@@ -56,7 +56,6 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
       : null,
 
     occurred_at: callbackEvent.occurredAt,
-    read_at: callbackEvent.readAt,
     created_at: callbackEvent.createdAt
   }))
   .schema(
@@ -262,15 +261,6 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
         description: 'Timestamp when the underlying provider event occurred',
         examples: [new Date('2026-01-10T14:45:00Z')]
       }),
-
-      read_at: v.nullable(
-        v.date({
-          name: 'read_at',
-          description:
-            'Timestamp when this event was marked as read by a consumer, or null while it is still unread',
-          examples: [new Date('2026-01-10T15:00:00Z')]
-        })
-      ),
 
       created_at: v.date({
         name: 'created_at',

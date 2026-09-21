@@ -62,14 +62,6 @@ let presentCallbackEventWithDetails = (event: CallbackEventWithDetails) => ({
   payload: event.details?.payload ?? null,
   processing: event.details
     ? { status: event.details.status, error: event.details.error }
-    : null,
-  webhook: event.details?.webhook
-    ? {
-        id: event.details.webhook.id,
-        status: event.details.webhook.status,
-        received_at: event.details.webhook.receivedAt,
-        request: event.details.webhook.request
-      }
     : null
 });
 
@@ -184,7 +176,7 @@ export let buildCallbackEventTools = (session: Session): SyntheticProviderTool[]
       key: GET_CALLBACK_EVENT_TOOL_KEY,
       name: 'Metorial: get callback event',
       description: [
-        'Returns a single callback event including the payload the provider produced for it and, if it came in via webhook, the inbound HTTP request.',
+        'Returns a single callback event including the payload the provider produced for it.',
         `Use this after ${LIST_CALLBACK_EVENTS_TOOL_KEY} to inspect an event before acting on it.`
       ].join('\n\n'),
       inputJsonSchema: {
