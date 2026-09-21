@@ -67,6 +67,7 @@ type IntegrationProviderFormValues = ToolFilterFormValues & {
   selectedAuthCredentialsId: string;
   selectedAuthConfigId: string;
   callbacksStatus: 'enabled' | 'disabled';
+  enableCallbackTools: boolean;
 };
 
 export type IntegrationProviderAuthConfigMode = 'not_provided' | 'provided';
@@ -83,6 +84,7 @@ export type IntegrationProviderPanelSubmitInput = {
   authConfigMode?: IntegrationProviderAuthConfigMode;
   toolFilters?: ReturnType<typeof getToolFilters>;
   callbacks?: { status: 'enabled' | 'disabled' };
+  enableCallbackTools?: boolean;
 };
 
 type IntegrationInstanceProviderFormValues = ToolFilterFormValues & {
@@ -547,6 +549,7 @@ let IntegrationProviderSetupStep = (p: {
   providerId: string;
   integrationProvider?: IntegrationProvider;
   hideCallbacks?: boolean;
+  showCallbackToolsOption?: boolean;
   hideToolFilters?: boolean;
   authMethodAdapter?: string;
   close: () => void;
@@ -602,6 +605,7 @@ let IntegrationProviderSetupStep = (p: {
     !p.hideCallbacks &&
     !!flags.data?.flags['callbacks-enabled'] &&
     providerTriggers?.status === 'enabled';
+  let showCallbackToolsOption = showCallbacks && !!p.showCallbackToolsOption;
   let existingCallback = p.integrationProvider?.callbacks.callback ?? null;
   let authMethods = useProviderAuthMethods(
     instance.data?.id,
@@ -696,7 +700,11 @@ let IntegrationProviderSetupStep = (p: {
           : null,
         authConfigMode: showConnectionMode ? (authConfigMode ?? undefined) : undefined,
         toolFilters,
-        callbacks: showCallbacks ? { status: values.callbacksStatus } : undefined
+        callbacks: showCallbacks ? { status: values.callbacksStatus } : undefined,
+        enableCallbackTools:
+          showCallbackToolsOption && values.callbacksStatus === 'enabled'
+            ? values.enableCallbackTools
+            : undefined
       });
 
       if (result.error || !result.success) return false;
@@ -735,6 +743,7 @@ let IntegrationProviderSetupStep = (p: {
       selectedAuthCredentialsId: p.integrationProvider?.authCredentials?.id ?? '',
       selectedAuthConfigId: '',
       callbacksStatus: p.integrationProvider?.callbacks.status ?? 'disabled',
+      enableCallbackTools: false,
       toolFilterMode: p.integrationProvider?.toolFilter?.type === 'filter' ? 'select' : 'all',
       selectedToolKeys:
         p.integrationProvider?.toolFilter?.type === 'filter'
@@ -793,7 +802,8 @@ let IntegrationProviderSetupStep = (p: {
         callbacksStatus: yup
           .mixed<'enabled' | 'disabled'>()
           .oneOf(['enabled', 'disabled'])
-          .required()
+          .required(),
+        enableCallbackTools: yup.boolean().defined()
       })
   });
   let previousAuthMethodIdRef = useRef(form.values.selectedAuthMethodId);
@@ -1207,6 +1217,14 @@ let IntegrationProviderSetupStep = (p: {
           callback={existingCallback}
           value={form.values.callbacksStatus}
           onChange={value => form.setFieldValue('callbacksStatus', value)}
+          callbackTools={
+            showCallbackToolsOption
+              ? {
+                  value: form.values.enableCallbackTools,
+                  onChange: value => form.setFieldValue('enableCallbackTools', value)
+                }
+              : undefined
+          }
         />
       ) : null}
 
@@ -1288,6 +1306,7 @@ export let AddIntegrationProviderPanel = (p: {
   providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
   providerSelectionEmptyText?: string;
   hideCallbacks?: boolean;
+  showCallbackToolsOption?: boolean;
   hideToolFilters?: boolean;
   authMethodAdapter?: string;
   close: () => void;
@@ -1359,6 +1378,7 @@ export let AddIntegrationProviderPanel = (p: {
               integrationProvider={p.integrationProvider}
               providerId={providerId}
               hideCallbacks={p.hideCallbacks}
+              showCallbackToolsOption={p.showCallbackToolsOption}
               hideToolFilters={p.hideToolFilters}
               authMethodAdapter={p.authMethodAdapter}
               close={p.close}
@@ -1391,6 +1411,7 @@ export let AddIntegrationProviderPanel = (p: {
       p.providerListingsFilter,
       p.providerSelectionEmptyText,
       p.hideCallbacks,
+      p.showCallbackToolsOption,
       p.hideToolFilters,
       p.authMethodAdapter,
       p.close,
@@ -1505,13 +1526,15 @@ let CreateIntegrationProviderFirstPanel = (p: {
           : 'Select and configure a provider to create an integration.'
       }
       submitLabel="Create Integration"
+      showCallbackToolsOption
       onSubmitProvider={async input => {
         if (!instance.data) return { success: false };
 
         let [integration] = await createIntegration.mutate({
           instanceId: instance.data.id,
           name: input.providerName?.trim() || 'Integration',
-          description: undefined
+          description: undefined,
+          enableCallbackTools: input.enableCallbackTools
         });
         if (!integration) return { success: false, error: createIntegration.error };
 

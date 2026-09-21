@@ -21,6 +21,7 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
       can_attach_custom_tool_filters: integration.canAttachCustomToolFilters,
       can_attach_custom_provider_config: integration.canAttachCustomProviderConfig,
       can_override_tool_filters: integration.canOverrideToolFilters,
+      enable_callback_tools: integration.enableCallbackTools,
       use_integration_name_in_tool_names:
         integration.useIntegrationNameForSessionProviderNameTemplatesOverride
     },
@@ -61,6 +62,7 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
         can_attach_custom_tool_filters: v.boolean(),
         can_attach_custom_provider_config: v.boolean(),
         can_override_tool_filters: v.boolean(),
+        enable_callback_tools: v.boolean(),
         use_integration_name_in_tool_names: v.nullable(v.boolean())
       }),
       implementation: v.nullable(
@@ -95,6 +97,7 @@ export let v1IntegrationPreviewPresenter = Object.assign(
       | 'canAttachCustomToolFilters'
       | 'canAttachCustomProviderConfig'
       | 'canOverrideToolFilters'
+      | 'enableCallbackTools'
       | 'useIntegrationNameForSessionProviderNameTemplatesOverride'
       | 'createdAt'
       | 'updatedAt'
@@ -111,6 +114,7 @@ export let v1IntegrationPreviewPresenter = Object.assign(
       can_attach_custom_tool_filters: integration.canAttachCustomToolFilters,
       can_attach_custom_provider_config: integration.canAttachCustomProviderConfig,
       can_override_tool_filters: integration.canOverrideToolFilters,
+      enable_callback_tools: integration.enableCallbackTools,
       use_integration_name_in_tool_names:
         integration.useIntegrationNameForSessionProviderNameTemplatesOverride
     },
@@ -130,6 +134,7 @@ export let v1IntegrationPreviewPresenter = Object.assign(
         can_attach_custom_tool_filters: v.boolean(),
         can_attach_custom_provider_config: v.boolean(),
         can_override_tool_filters: v.boolean(),
+        enable_callback_tools: v.boolean(),
         use_integration_name_in_tool_names: v.nullable(v.boolean())
       }),
       created_at: v.date(),

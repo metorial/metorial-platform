@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { getId } from '../../../id';
+import { slateWebhookEventService } from '../../../services/slateWebhookEvent';
 import { slatesHubClient } from '../../../test/client';
 import { fixtures } from '../../../test/fixtures';
 import { cleanDatabase, testDb } from '../../../test/setup';
@@ -51,12 +52,18 @@ let scenario = async () => {
     });
   };
 
-  let makeEvent = async (d: { registrationOid: bigint }) =>
+  let makeEvent = async (d: {
+    registrationOid: bigint;
+    skipped?: boolean;
+    status?: 'pending' | 'failed_retrying' | 'failed_final' | 'succeeded';
+  }) =>
     testDb.slateWebhookEvent.create({
       data: {
         ...getId('slateWebhookEvent'),
-        status: 'succeeded',
+        status: d.status ?? 'succeeded',
         attemptCount: 1,
+        skipped: d.skipped ?? false,
+        skipReason: d.skipped ? 'invalid_signature' : null,
         webhookRegistrationOid: d.registrationOid,
         request: {
           method: 'POST',
@@ -293,5 +300,133 @@ describe('slateWebhookEvent:getMany E2E', () => {
     });
 
     expect(result.map(e => e.id).sort()).toEqual([first.id, second.id].sort());
+  });
+});
+
+describe('slateWebhookEvent skipped visibility E2E', () => {
+  beforeEach(async () => {
+    await cleanDatabase();
+  });
+
+  it.each(['pending', 'failed_retrying'] as const)(
+    'hides %s events until they reach a non-skipped terminal outcome',
+    async status => {
+      let s = await scenario();
+      let registration = await s.makeRegistration();
+      let event = await s.makeEvent({ registrationOid: registration.oid, status });
+
+      for (let statuses of [undefined, [status]]) {
+        let list = await slatesHubClient.slateWebhookEvent.list({
+          tenantId: s.tenant.id,
+          statuses,
+          limit: 10
+        });
+        expect(list.items).toEqual([]);
+      }
+      await expect(
+        slatesHubClient.slateWebhookEvent.get({
+          tenantId: s.tenant.id,
+          webhookEventId: event.id
+        })
+      ).rejects.toThrow();
+      expect(
+        await slatesHubClient.slateWebhookEvent.getMany({
+          tenantId: s.tenant.id,
+          webhookEventIds: [event.id]
+        })
+      ).toEqual([]);
+
+      let adminList = await (
+        await slateWebhookEventService.listWebhookEventsForAdmin({
+          webhookRegistration: registration
+        })
+      ).run({ limit: 10 });
+      expect(adminList.items.map(item => item.id)).toEqual([event.id]);
+
+      await testDb.slateWebhookEvent.update({
+        where: { oid: event.oid },
+        data: { status: 'succeeded', skipped: true, skipReason: 'invalid_signature' }
+      });
+      let skippedList = await slatesHubClient.slateWebhookEvent.list({
+        tenantId: s.tenant.id,
+        limit: 10
+      });
+      expect(skippedList.items).toEqual([]);
+    }
+  );
+
+  it('preserves terminal status filters while excluding unresolved and skipped events', async () => {
+    let s = await scenario();
+    let registration = await s.makeRegistration();
+    let succeeded = await s.makeEvent({ registrationOid: registration.oid });
+    let failed = await s.makeEvent({
+      registrationOid: registration.oid,
+      status: 'failed_final'
+    });
+    await s.makeEvent({ registrationOid: registration.oid, status: 'pending' });
+    await s.makeEvent({ registrationOid: registration.oid, skipped: true });
+
+    for (let event of [succeeded, failed]) {
+      let list = await slatesHubClient.slateWebhookEvent.list({
+        tenantId: s.tenant.id,
+        statuses: [event.status],
+        limit: 10
+      });
+      expect(list.items.map(item => item.id)).toEqual([event.id]);
+    }
+  });
+
+  it('hides skipped events from tenant-facing list, get and getMany', async () => {
+    let s = await scenario();
+    let registration = await s.makeRegistration();
+
+    let visible = await s.makeEvent({ registrationOid: registration.oid });
+    let skipped = await s.makeEvent({ registrationOid: registration.oid, skipped: true });
+
+    let list = await slatesHubClient.slateWebhookEvent.list({
+      tenantId: s.tenant.id,
+      limit: 10
+    });
+    expect(list.items.map(e => e.id)).toEqual([visible.id]);
+
+    await expect(
+      slatesHubClient.slateWebhookEvent.get({
+        tenantId: s.tenant.id,
+        webhookEventId: skipped.id
+      })
+    ).rejects.toThrow();
+
+    let many = await slatesHubClient.slateWebhookEvent.getMany({
+      tenantId: s.tenant.id,
+      webhookEventIds: [visible.id, skipped.id]
+    });
+    expect(many.map(e => e.id)).toEqual([visible.id]);
+  });
+
+  it('keeps skipped events available to the admin listing', async () => {
+    let s = await scenario();
+    let registration = await s.makeRegistration();
+
+    let visible = await s.makeEvent({ registrationOid: registration.oid });
+    let skipped = await s.makeEvent({ registrationOid: registration.oid, skipped: true });
+
+    let all = await (
+      await slateWebhookEventService.listWebhookEventsForAdmin({
+        webhookRegistration: registration
+      })
+    ).run({ limit: 10 });
+    expect(all.items.map(e => e.id).sort()).toEqual([visible.id, skipped.id].sort());
+
+    let onlySkipped = await (
+      await slateWebhookEventService.listWebhookEventsForAdmin({
+        webhookRegistration: registration,
+        skipped: true
+      })
+    ).run({ limit: 10 });
+    expect(onlySkipped.items.map(e => e.id)).toEqual([skipped.id]);
+    expect(onlySkipped.items[0]).toMatchObject({
+      skipped: true,
+      skipReason: 'invalid_signature'
+    });
   });
 });

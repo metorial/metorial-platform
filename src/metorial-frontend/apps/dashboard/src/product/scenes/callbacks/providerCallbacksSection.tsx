@@ -5,7 +5,7 @@ import {
   useCurrentProject,
   useProviderTriggers
 } from '@metorial/state';
-import { Button, Callout, Flex, Text } from '@metorial/ui';
+import { Button, Callout, Checkbox, Flex, Text } from '@metorial/ui';
 import { Link } from 'react-router-dom';
 import { ConfigureSectionCard } from '../integrations/providerPanelFlow';
 import { AuthMethodPicker } from '../providerAuthConfigs/authMethodPicker';
@@ -20,7 +20,8 @@ export let IntegrationProviderCallbacksSection = ({
   webhookRegistrationSupported,
   callback,
   value,
-  onChange
+  onChange,
+  callbackTools
 }: {
   instanceId: string;
   providerVersionId: string | null | undefined;
@@ -29,6 +30,7 @@ export let IntegrationProviderCallbacksSection = ({
   callback: { id: string; sync: CallbackSync } | null;
   value: ProviderCallbacksStatus;
   onChange: (value: ProviderCallbacksStatus) => void;
+  callbackTools?: { value: boolean; onChange: (value: boolean) => void };
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
@@ -93,6 +95,15 @@ export let IntegrationProviderCallbacksSection = ({
 
             <CallbackSyncErrorCallout sync={callback.sync} />
           </>
+        ) : null}
+
+        {value === 'enabled' && callbackTools ? (
+          <Checkbox
+            label="Enable callback tools"
+            description="Expose tools in sessions of this integration that let agents list, inspect, and mark as read the events Metorial receives."
+            checked={callbackTools.value}
+            onCheckedChange={checked => callbackTools.onChange(checked === true)}
+          />
         ) : null}
 
         {value === 'enabled' && webhookRegistrationSupported ? (

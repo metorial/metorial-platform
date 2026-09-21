@@ -23,6 +23,7 @@ model Integration {
   canAttachCustomToolFilters    Boolean
   canAttachCustomProviderConfig Boolean
   canOverrideToolFilters        Boolean
+  enableCallbackTools           Boolean @default(false)
 
   useIntegrationNameForSessionProviderNameTemplatesOverride Boolean?
 

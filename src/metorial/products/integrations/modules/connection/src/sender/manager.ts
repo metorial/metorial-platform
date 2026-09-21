@@ -69,6 +69,13 @@ import {
 import { env } from '../env';
 import { conduit } from '../lib/conduit';
 import {
+  buildCallbackEventTools,
+  type CallbackEventToolScope,
+  isCallbackEventTool,
+  resolveCallbackEventToolScope,
+  runCallbackEventTool
+} from '../lib/callbackEventTools';
+import {
   buildConnectionFailedDetail,
   buildConnectionFailedTool,
   CONNECTION_FAILED_TOOL_KEY,
@@ -91,7 +98,7 @@ import { completeMessage } from '../shared/completeMessage';
 import { createError } from '../shared/createError';
 import { createMessage, type CreateMessageProps } from '../shared/createMessage';
 import { createWarning } from '../shared/createWarning';
-import { extractToolCallOperation } from '../shared/toolCallOperation';
+import { extractToolCallOperation, getToolCallArguments } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
 import { recordConnectionAuditEvent } from '../audit/recordMessage';
 import {
@@ -1040,6 +1047,12 @@ export class SenderManager {
 
     if (!this.session.isInternal) {
       tools.push(buildConnectionStatusTool(this.session) as unknown as (typeof tools)[number]);
+
+      if (await resolveCallbackEventToolScope(providers)) {
+        tools.push(
+          ...(buildCallbackEventTools(this.session) as unknown as (typeof tools)[number][])
+        );
+      }
     }
 
     if (!this.session.isInternal && failedRes.length > 0) {
@@ -1255,6 +1268,23 @@ export class SenderManager {
         instance: null,
         connectionStatus: true as const,
         tool: buildConnectionStatusTool(this.session)
+      };
+    }
+
+    if (isCallbackEventTool(d.toolId)) {
+      let tool = buildCallbackEventTools(this.session).find(t => t.key === d.toolId);
+      let scope = this.session.isInternal
+        ? null
+        : await resolveCallbackEventToolScope(await this.listProviders());
+      if (!tool || !scope) {
+        throw new ServiceError(notFoundError('tool', d.toolId));
+      }
+      return {
+        provider: null,
+        instance: null,
+        callbackEventTool: true as const,
+        tool,
+        scope
       };
     }
 
@@ -1481,6 +1511,72 @@ export class SenderManager {
     } satisfies ConduitResult;
   }
 
+  private async completeCallbackEventToolCall(d: {
+    tool: { key: string };
+    scope: CallbackEventToolScope;
+    participant: SessionParticipant;
+    callProps: CallToolProps;
+  }) {
+    let extractedToolCall = extractToolCallOperation({
+      input: d.callProps.input,
+      rationale: d.callProps.rationale,
+      operation: d.callProps.operation
+    });
+
+    let system = await upsertParticipant({
+      session: this.session,
+      from: { type: 'system' }
+    });
+
+    let result: PrismaJson.SessionMessageOutput;
+    let status: 'succeeded' | 'failed' = 'succeeded';
+
+    try {
+      let data = await runCallbackEventTool({
+        toolKey: d.tool.key,
+        arguments: getToolCallArguments(extractedToolCall.input),
+        tenant: this.tenant,
+        session: this.session,
+        scope: d.scope
+      });
+      result = { type: 'tool.result', data };
+    } catch (error) {
+      status = 'failed';
+      result = {
+        type: 'error',
+        data:
+          error instanceof ServiceError
+            ? error.data
+            : { code: 'system_error', message: 'Failed to execute tool' }
+      };
+    }
+
+    let message = await this.createMessage({
+      status,
+      type: d.callProps.transport === 'mcp' ? 'mcp_message' : 'tool_call',
+      source: 'client',
+      input: extractedToolCall.input,
+      rationale: extractedToolCall.rationale,
+      operation: extractedToolCall.operation,
+      senderParticipant: d.participant,
+      responderParticipant: system,
+      ...(status === 'failed' ? { failureReason: 'system_error' as const } : {}),
+      clientMcpId: d.callProps.clientMcpId,
+      transport: d.callProps.transport,
+      methodOrToolKey: d.tool.key,
+      isProductive: true,
+      parentMessage: d.callProps.parentMessage,
+      output: result
+    });
+
+    return {
+      message,
+      output: message.output,
+      status: message.status,
+      completedAt: message.completedAt
+    } satisfies ConduitResult;
+  }
+
   async callTool(d: CallToolProps): Promise<CallToolResult> {
     let connection = this.connection;
     if (!connection) {
@@ -1503,6 +1599,15 @@ export class SenderManager {
     if ('connectionStatus' in resolved) {
       return await this.completeConnectionStatusCall({
         tool: resolved.tool,
+        participant,
+        callProps: d
+      });
+    }
+
+    if ('callbackEventTool' in resolved) {
+      return await this.completeCallbackEventToolCall({
+        tool: resolved.tool,
+        scope: resolved.scope,
         participant,
         callProps: d
       });
