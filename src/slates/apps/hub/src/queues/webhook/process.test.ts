@@ -59,10 +59,14 @@ vi.mock('../trigger/_rawEvent', () => ({ createTriggerRawEvents: createRawEvents
 vi.mock('./payloadOffload', () => ({ webhookEventPayloadOffloadQueue: offloadQueue }));
 
 let event: any;
-let run = () => queues.get('shub/whk/process').handler({ webhookEventId: event.id }, {
-  attemptsMade: 0,
-  opts: { attempts: 25 }
-});
+let run = () =>
+  queues.get('shub/whk/process').handler(
+    { webhookEventId: event.id },
+    {
+      attemptsMade: 0,
+      opts: { attempts: 25 }
+    }
+  );
 let succeed = (data: any) =>
   invocation.processWebhookRequest.mockResolvedValue({
     status: 'success',
@@ -78,7 +82,12 @@ beforeEach(async () => {
   event = {
     id: 'evt',
     oid: 1n,
-    request: { method: 'POST', url: 'https://hub.invalid/receive/key', headers: {}, body: null },
+    request: {
+      method: 'POST',
+      url: 'https://hub.invalid/receive/key',
+      headers: {},
+      body: null
+    },
     webhookRegistration: {
       oid: 2n,
       secretOid: 3n,
@@ -151,6 +160,38 @@ describe('processWebhookEventQueue - skipped events', () => {
     expect(webhookEvents.markSkipped).not.toHaveBeenCalled();
     expect(webhookEvents.trySetResponseOverride).not.toHaveBeenCalled();
     expect(webhookEvents.resolveSuccess).toHaveBeenCalledWith({ eventOid: 1n });
+  });
+
+  it.each([408, 425, 429])('preserves a retryable HTTP %s response', async status => {
+    let response = { status, headers: { 'retry-after': '30' }, body: null };
+    succeed({ events: [], response });
+
+    await run();
+
+    expect(webhookEvents.setSlateResponse).toHaveBeenCalledWith({ eventOid: 1n, response });
+    expect(webhookEvents.markSkipped).not.toHaveBeenCalled();
+    expect(webhookEvents.trySetResponseOverride).not.toHaveBeenCalled();
+    expect(webhookEvents.resolveSuccess).toHaveBeenCalledWith({ eventOid: 1n });
+  });
+
+  it('honors an explicit skip even with a retryable HTTP status', async () => {
+    succeed({
+      events: [],
+      response: { status: 429, headers: {}, body: null },
+      skipped: { reason: 'duplicate_delivery' }
+    });
+
+    await run();
+
+    expect(webhookEvents.markSkipped).toHaveBeenCalledWith({
+      eventOid: 1n,
+      reason: 'duplicate_delivery'
+    });
+    expect(webhookEvents.trySetResponseOverride).toHaveBeenCalledWith({
+      eventOid: 1n,
+      override: { webhookEventId: 'evt' }
+    });
+    expect(createRawEvents).not.toHaveBeenCalled();
   });
 
   it('does not skip a 2xx response without events', async () => {

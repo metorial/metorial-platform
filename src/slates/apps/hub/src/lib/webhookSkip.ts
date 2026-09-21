@@ -2,7 +2,7 @@ export let WEBHOOK_SKIP_REASON_INTEGRATION_REJECTED = 'integration_rejected_requ
 
 export type WebhookSkip = { reason: string };
 
-// Pre-`skipped` SDKs can only reject via "no events + 4xx"; 5xx is an integration failure and must reach the provider.
+// Older SDKs reject via "no events + 4xx"; retryable responses must still reach the provider.
 export let resolveWebhookSkip = (result: {
   events: unknown[];
   response?: { status: number } | null;
@@ -11,7 +11,15 @@ export let resolveWebhookSkip = (result: {
   if (result.skipped) return result.skipped;
 
   let status = result.response?.status;
-  if (result.events.length === 0 && status !== undefined && status >= 400 && status < 500) {
+  if (
+    result.events.length === 0 &&
+    status !== undefined &&
+    status >= 400 &&
+    status < 500 &&
+    status !== 408 &&
+    status !== 425 &&
+    status !== 429
+  ) {
     return { reason: WEBHOOK_SKIP_REASON_INTEGRATION_REJECTED };
   }
 

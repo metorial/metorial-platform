@@ -141,17 +141,9 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
         eventOid: event.oid,
         reason: skip.reason
       });
-      await slateWebhookEventServiceInternal.trySetResponseOverride({
-        eventOid: event.oid,
-        override: { webhookEventId: event.id }
-      });
-      await slateWebhookEventServiceInternal.resolveSuccess({ eventOid: event.oid });
-      await publishWebhookEventResolved(event.id);
-      await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
-      return;
     }
 
-    if (!result.data.response) {
+    if (skip || !result.data.response) {
       await slateWebhookEventServiceInternal.trySetResponseOverride({
         eventOid: event.oid,
         override: { webhookEventId: event.id }
@@ -161,6 +153,8 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
     await slateWebhookEventServiceInternal.resolveSuccess({ eventOid: event.oid });
     await publishWebhookEventResolved(event.id);
     await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
+
+    if (skip) return;
 
     if (result.data.events.length > 0) {
       let target = registration.triggerWebhookTarget;

@@ -19,6 +19,7 @@ let include = { webhookRegistration: { include: { slate: true, triggerGroup: tru
 
 let visibleTo = (tenant: Tenant): Prisma.SlateWebhookEventWhereInput => ({
   skipped: false,
+  status: { in: ['succeeded', 'failed_final'] },
   OR: [
     { webhookRegistration: { tenantOid: tenant.oid } },
     {
@@ -75,7 +76,7 @@ class slateWebhookEventServiceImpl {
               // Visibility is per-event not per-registration,
               // that also means that above webhook id filter is fine because
               // the user will still only ever see their events
-              ...visibleTo(d.tenant)
+              AND: visibleTo(d.tenant)
             },
             include
           })
