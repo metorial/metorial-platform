@@ -67,8 +67,6 @@ jobs:
           secrets: |
             turbo_token=${{ env.TURBO_TOKEN }}
             turbo_signature=${{ env.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
-          cache-from: type=gha,scope=${{ matrix.service.name }}-linux-amd64
-          cache-to: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' && format('type=gha,mode=max,scope={0}-linux-amd64', matrix.service.name) || '' }}
 
       - name: Report Warp Cache
         if: always()
