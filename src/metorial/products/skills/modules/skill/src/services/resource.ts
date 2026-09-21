@@ -25,6 +25,7 @@ let subspaceIntegrationPreviewSelect = {
   canAttachCustomToolFilters: true,
   canAttachCustomProviderConfig: true,
   canOverrideToolFilters: true,
+  enableCallbackTools: true,
   useIntegrationNameForSessionProviderNameTemplatesOverride: true,
   createdAt: true,
   updatedAt: true,

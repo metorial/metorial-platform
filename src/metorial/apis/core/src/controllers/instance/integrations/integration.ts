@@ -105,7 +105,8 @@ export let integrationController = Controller.create(
           use_integration_name_in_tool_names: v.optional(v.nullable(v.boolean())),
           can_attach_custom_tool_filters: v.optional(v.boolean()),
           can_attach_custom_provider_config: v.optional(v.boolean()),
-          can_override_tool_filters: v.optional(v.boolean())
+          can_override_tool_filters: v.optional(v.boolean()),
+          enable_callback_tools: v.optional(v.boolean())
         })
       )
       .output(integrationPresenter)
@@ -121,7 +122,8 @@ export let integrationController = Controller.create(
               ctx.body.use_integration_name_in_tool_names,
             canAttachCustomToolFilters: ctx.body.can_attach_custom_tool_filters,
             canAttachCustomProviderConfig: ctx.body.can_attach_custom_provider_config,
-            canOverrideToolFilters: ctx.body.can_override_tool_filters
+            canOverrideToolFilters: ctx.body.can_override_tool_filters,
+            enableCallbackTools: ctx.body.enable_callback_tools
           }
         });
 
@@ -143,7 +145,8 @@ export let integrationController = Controller.create(
           use_integration_name_in_tool_names: v.optional(v.nullable(v.boolean())),
           can_attach_custom_tool_filters: v.optional(v.boolean()),
           can_attach_custom_provider_config: v.optional(v.boolean()),
-          can_override_tool_filters: v.optional(v.boolean())
+          can_override_tool_filters: v.optional(v.boolean()),
+          enable_callback_tools: v.optional(v.boolean())
         })
       )
       .output(integrationPresenter)
@@ -160,7 +163,8 @@ export let integrationController = Controller.create(
               ctx.body.use_integration_name_in_tool_names,
             canAttachCustomToolFilters: ctx.body.can_attach_custom_tool_filters,
             canAttachCustomProviderConfig: ctx.body.can_attach_custom_provider_config,
-            canOverrideToolFilters: ctx.body.can_override_tool_filters
+            canOverrideToolFilters: ctx.body.can_override_tool_filters,
+            enableCallbackTools: ctx.body.enable_callback_tools
           }
         });
 

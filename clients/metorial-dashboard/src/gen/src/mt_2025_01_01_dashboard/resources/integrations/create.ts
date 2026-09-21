@@ -12,6 +12,7 @@ export type IntegrationsCreateOutput = {
     canAttachCustomToolFilters: boolean;
     canAttachCustomProviderConfig: boolean;
     canOverrideToolFilters: boolean;
+    enableCallbackTools: boolean;
     useIntegrationNameInToolNames: boolean | null;
   };
   implementation:
@@ -184,6 +185,10 @@ export let mapIntegrationsCreateOutput = mtMap.object<IntegrationsCreateOutput>(
         ),
         canOverrideToolFilters: mtMap.objectField(
           'can_override_tool_filters',
+          mtMap.passthrough()
+        ),
+        enableCallbackTools: mtMap.objectField(
+          'enable_callback_tools',
           mtMap.passthrough()
         ),
         useIntegrationNameInToolNames: mtMap.objectField(
@@ -502,6 +507,7 @@ export type IntegrationsCreateBody = {
   canAttachCustomToolFilters?: boolean | undefined;
   canAttachCustomProviderConfig?: boolean | undefined;
   canOverrideToolFilters?: boolean | undefined;
+  enableCallbackTools?: boolean | undefined;
 };
 
 export let mapIntegrationsCreateBody = mtMap.object<IntegrationsCreateBody>({
@@ -522,6 +528,10 @@ export let mapIntegrationsCreateBody = mtMap.object<IntegrationsCreateBody>({
   ),
   canOverrideToolFilters: mtMap.objectField(
     'can_override_tool_filters',
+    mtMap.passthrough()
+  ),
+  enableCallbackTools: mtMap.objectField(
+    'enable_callback_tools',
     mtMap.passthrough()
   )
 });
