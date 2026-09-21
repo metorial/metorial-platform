@@ -16,6 +16,9 @@ model SlateWebhookEvent {
   status       SlateWebhookEventStatus @default(pending)
   attemptCount Int                     @default(0)
 
+  skipped    Boolean @default(false)
+  skipReason String?
+
   webhookRegistrationOid BigInt
   webhookRegistration    SlateWebhookRegistration @relation(fields: [webhookRegistrationOid], references: [oid], onDelete: Cascade)
 
@@ -38,6 +41,7 @@ model SlateWebhookEvent {
   triggerEvents    TriggerEvent[]
 
   @@index([webhookRegistrationOid, createdAt])
+  @@index([webhookRegistrationOid, skipped, createdAt])
 }
 
 model SlateWebhookEventInvocation {

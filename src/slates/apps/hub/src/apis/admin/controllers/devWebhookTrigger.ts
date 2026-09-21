@@ -71,14 +71,16 @@ export let devWebhookTriggerController = devOnlyApp.controller({
           webhookRegistrationId: v.string(),
           statuses: v.optional(
             v.array(v.enumOf(['pending', 'failed_retrying', 'failed_final', 'succeeded']))
-          )
+          ),
+          skipped: v.optional(v.boolean())
         })
       )
     )
     .do(async ctx => {
       let paginator = await slateWebhookEventService.listWebhookEventsForAdmin({
         webhookRegistration: ctx.webhookRegistration,
-        statuses: ctx.input.statuses
+        statuses: ctx.input.statuses,
+        skipped: ctx.input.skipped
       });
 
       let list = await paginator.run(ctx.input);
