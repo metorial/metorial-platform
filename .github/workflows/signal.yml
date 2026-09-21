@@ -90,7 +90,7 @@ jobs:
             turbo_token=${{ env.TURBO_TOKEN }}
             turbo_signature=${{ env.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
           cache-from: type=gha,scope=signal-linux-amd64
-          cache-to: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/dev') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)) && 'type=gha,mode=max,scope=signal-linux-amd64' || '' }}
+          cache-to: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' && 'type=gha,mode=max,scope=signal-linux-amd64' || '' }}
 
       - name: Report Warp Cache
         if: always()
