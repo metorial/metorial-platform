@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
       env: {
         ...env,
         NODE_ENV: 'test',
+        DATABASE_URL: env.DATABASE_URL ?? 'postgresql://nebula:nebula@127.0.0.1:5432/nebula-test',
+        REDIS_URL: env.REDIS_URL ?? 'redis://127.0.0.1:6379/0',
         DEFAULT_PROVIDER: env.DEFAULT_PROVIDER ?? 'local',
         LOCAL_MASTER_SECRET:
           env.LOCAL_MASTER_SECRET ?? 'nebula-test-local-master-secret-with-enough-entropy',
