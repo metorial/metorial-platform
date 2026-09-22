@@ -161,7 +161,7 @@
       "outputs": ["dist/**"]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": ["^test", "^prisma:generate"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]
