@@ -408,14 +408,8 @@ let getSkillTableRow = (p: {
           <Text size="2" weight="strong">
             {p.skill.name}
           </Text>
-          {p.skill.description && (
-            <Text size="2" color="gray600">
-              <Description>{p.skill.description}</Description>
-            </Text>
-          )}
         </SkillText>
       </SkillName>,
-      <Slug>{p.skill.slug}</Slug>,
       p.onRemove ? (
         <Actions>
           <Menu
@@ -516,7 +510,7 @@ export let SkillGroupSkillsScene = (p: {
         ) : (
           <>
             <Table
-              headers={['Name', 'Identifier', '']}
+              headers={['Name', '']}
               data={skillGroupItems.data.map(item =>
                 getSkillTableRow({
                   skill: item.skill,

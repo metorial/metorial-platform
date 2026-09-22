@@ -12,6 +12,7 @@ export type DashboardInstanceIntegrationsCreateOutput = {
     canAttachCustomToolFilters: boolean;
     canAttachCustomProviderConfig: boolean;
     canOverrideToolFilters: boolean;
+    enableCallbackTools: boolean;
     useIntegrationNameInToolNames: boolean | null;
   };
   implementation:
@@ -184,6 +185,10 @@ export let mapDashboardInstanceIntegrationsCreateOutput =
         ),
         canOverrideToolFilters: mtMap.objectField(
           'can_override_tool_filters',
+          mtMap.passthrough()
+        ),
+        enableCallbackTools: mtMap.objectField(
+          'enable_callback_tools',
           mtMap.passthrough()
         ),
         useIntegrationNameInToolNames: mtMap.objectField(
@@ -501,6 +506,7 @@ export type DashboardInstanceIntegrationsCreateBody = {
   canAttachCustomToolFilters?: boolean | undefined;
   canAttachCustomProviderConfig?: boolean | undefined;
   canOverrideToolFilters?: boolean | undefined;
+  enableCallbackTools?: boolean | undefined;
 };
 
 export let mapDashboardInstanceIntegrationsCreateBody =
@@ -522,6 +528,10 @@ export let mapDashboardInstanceIntegrationsCreateBody =
     ),
     canOverrideToolFilters: mtMap.objectField(
       'can_override_tool_filters',
+      mtMap.passthrough()
+    ),
+    enableCallbackTools: mtMap.objectField(
+      'enable_callback_tools',
       mtMap.passthrough()
     )
   });

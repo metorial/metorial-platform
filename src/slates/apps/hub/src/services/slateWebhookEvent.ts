@@ -18,6 +18,8 @@ import { getLocalhostWebhookUrl, getWebhookUrl } from '../lib/webhookUrl';
 let include = { webhookRegistration: { include: { slate: true, triggerGroup: true } } };
 
 let visibleTo = (tenant: Tenant): Prisma.SlateWebhookEventWhereInput => ({
+  skipped: false,
+  status: { in: ['succeeded', 'failed_final'] },
   OR: [
     { webhookRegistration: { tenantOid: tenant.oid } },
     {
@@ -74,7 +76,7 @@ class slateWebhookEventServiceImpl {
               // Visibility is per-event not per-registration,
               // that also means that above webhook id filter is fine because
               // the user will still only ever see their events
-              ...visibleTo(d.tenant)
+              AND: visibleTo(d.tenant)
             },
             include
           })
@@ -92,6 +94,7 @@ class slateWebhookEventServiceImpl {
   async listWebhookEventsForAdmin(d: {
     webhookRegistration: { oid: bigint };
     statuses?: SlateWebhookEventStatus[];
+    skipped?: boolean;
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -100,7 +103,8 @@ class slateWebhookEventServiceImpl {
             ...opts,
             where: {
               webhookRegistrationOid: d.webhookRegistration.oid,
-              status: d.statuses?.length ? { in: d.statuses } : undefined
+              status: d.statuses?.length ? { in: d.statuses } : undefined,
+              skipped: d.skipped
             },
             include,
             orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }]

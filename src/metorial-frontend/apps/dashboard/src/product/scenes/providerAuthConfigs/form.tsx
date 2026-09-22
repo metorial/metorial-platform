@@ -4,6 +4,7 @@ import {
   DashboardInstanceProvidersAuthMethodsListOutput
 } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
+import { Stepper } from '@metorial/explainer';
 import {
   useCreateProviderAuthConfig,
   useCurrentInstance,
@@ -23,7 +24,6 @@ import {
 } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Stepper } from '@metorial/explainer';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
 import { orderProviderAuthMethods } from '../../lib/providerCreationCapabilities';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
@@ -235,10 +235,6 @@ export let ProviderAuthConfigForm = (
     oauthAutoRegistrationEnabled;
   let useOAuthAuthConfigNameHints = selectedMethod?.type === 'oauth';
 
-  if ((props.providerDeploymentId && deployment.isLoading) || authMethods.isLoading) {
-    return <CenteredSpinner />;
-  }
-
   let authMethodItems = manualAuthMethods.map((method: AuthMethod) => ({
     id: method.id,
     label: method.name
@@ -277,11 +273,16 @@ export let ProviderAuthConfigForm = (
   }, [initialAuthMethodId, form.values.authMethodId]);
 
   useEffect(() => {
+    if (!authMethods.data) return;
     if (!form.values.authMethodId) return;
     if (manualAuthMethods.some(method => method.id === form.values.authMethodId)) return;
     form.setFieldValue('authMethodId', '');
     resetCredentials();
-  }, [form.values.authMethodId, manualAuthMethods]);
+  }, [authMethods.data, form.values.authMethodId, manualAuthMethods]);
+
+  if ((props.providerDeploymentId && deployment.isLoading) || authMethods.isLoading) {
+    return <CenteredSpinner />;
+  }
 
   let handleAuthMethodChange = (value: string) => {
     form.setFieldValue('authMethodId', value);

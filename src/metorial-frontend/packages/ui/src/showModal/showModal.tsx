@@ -100,7 +100,27 @@ export let ModalRoot = () => {
   );
 };
 
+let patchHistoryOnce = (() => {
+  let patched = false;
+
+  return () => {
+    if (patched || typeof window == 'undefined') return;
+    patched = true;
+
+    for (let key of ['pushState', 'replaceState'] as const) {
+      let original = window.history[key];
+      window.history[key] = function (...args: Parameters<History[typeof key]>) {
+        let result = original.apply(this, args);
+        window.dispatchEvent(new Event('metorial:locationchange'));
+        return result;
+      };
+    }
+  };
+})();
+
 let usePathname = () => {
+  patchHistoryOnce();
+
   let [pathname, setPathname] = useState(() =>
     typeof window != 'undefined' ? window.location.pathname : '/'
   );
@@ -108,19 +128,19 @@ let usePathname = () => {
   currentPathRef.current = pathname;
 
   useEffect(() => {
-    let handler = () => setPathname(window.location.pathname);
-    window.addEventListener('popstate', handler);
-    return () => window.removeEventListener('popstate', handler);
-  }, []);
-
-  useEffect(() => {
-    let to = setInterval(() => {
+    let handler = () => {
       if (currentPathRef.current != window.location.pathname) {
         setPathname(window.location.pathname);
       }
-    }, 500);
+    };
 
-    return () => clearInterval(to);
+    window.addEventListener('popstate', handler);
+    window.addEventListener('metorial:locationchange', handler);
+
+    return () => {
+      window.removeEventListener('popstate', handler);
+      window.removeEventListener('metorial:locationchange', handler);
+    };
   }, []);
 
   return pathname;

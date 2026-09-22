@@ -6,7 +6,7 @@ export let discoverSlateCapabilities = async (d: {
   slateVersion: SlateVersion;
   deploymentTarget: SlateInvocationDeploymentTarget;
   suppressServerErrorReporting?: boolean;
-}): Promise<PrismaJson.SlateCapabilities> => {
+}): Promise<PrismaJson.SlateCapabilities & { capabilitiesSupported: boolean }> => {
   try {
     let stack = await slateInvocationService.createInvocation({
       slateVersion: d.slateVersion,
@@ -16,11 +16,19 @@ export let discoverSlateCapabilities = async (d: {
     });
 
     let result = await slateInvocationService.getProviderCapabilities({ stack });
-    if (result.status === 'error') return {};
+    if (result.status === 'error')
+      return {
+        capabilitiesSupported: false
+      };
 
-    return result.data.capabilities ?? {};
+    return {
+      ...(result.data.capabilities ?? {}),
+      capabilitiesSupported: true
+    };
   } catch (e) {
     console.error('Error discovering slate capabilities:', e);
-    return {};
+    return {
+      capabilitiesSupported: false
+    };
   }
 };

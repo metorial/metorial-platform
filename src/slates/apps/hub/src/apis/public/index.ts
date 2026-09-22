@@ -116,11 +116,14 @@ let handleWebhookReceive = async (c: Context) => {
   }
 
   let final = result.event;
+  if (final.responseOverride) {
+    let override = final.responseOverride;
+    let status = 'error' in override ? override.error.status : 200;
+    return c.json(override, status as any);
+  }
   if (final.slateResponse) return toHttpResponse(final.slateResponse);
 
-  let override = final.responseOverride ?? { webhookEventId: final.id };
-  let status = 'error' in override ? override.error.status : 200;
-  return c.json(override, status as any);
+  return c.json({ webhookEventId: final.id }, 200 as any);
 };
 
 let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';

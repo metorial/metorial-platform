@@ -566,7 +566,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         configSchemaResult,
         authMethodsResult,
         actionsResult,
-        adaptersResult,
+        rawAdaptersResult,
         rawTriggerGroupsResult
       ] = await Promise.all([
         slateInvocationService.getProviderInfo({ stack }),
@@ -574,7 +574,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         // slateInvocationService.getDefaultConfig({ stack }),
         slateInvocationService.listAuthMethods({ stack }),
         slateInvocationService.listActions({ stack }),
-        slateInvocationService.listAdapters({ stack }),
+        capabilities.capabilitiesSupported
+          ? slateInvocationService.listAdapters({ stack })
+          : Promise.resolve(null),
         supportsTriggerGroups
           ? slateInvocationService.listTriggerGroups({ stack })
           : Promise.resolve(null)
@@ -586,6 +588,12 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           invocation: providerInfoResult.invocation,
           data: { triggerGroups: [] }
         };
+
+      let adaptersResult: InvocationResult<'slates/adapters.list'> = rawAdaptersResult ?? {
+        status: 'success',
+        invocation: providerInfoResult.invocation,
+        data: { adapters: [] }
+      };
 
       let stackResult: [
         typeof providerInfoResult,
@@ -608,7 +616,6 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
       if (error) {
         console.error('Discovery error:', error);
-
         await discoverSlateErrorQueue.add({
           versionId: version.id,
           deploymentId: data.deploymentId,

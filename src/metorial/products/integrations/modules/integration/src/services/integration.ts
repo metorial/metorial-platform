@@ -93,6 +93,7 @@ type IntegrationWriteInput = {
   canAttachCustomToolFilters?: boolean;
   canAttachCustomProviderConfig?: boolean;
   canOverrideToolFilters?: boolean;
+  enableCallbackTools?: boolean;
   useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
 };
 
@@ -128,6 +129,7 @@ export type CreateIntegrationParams = {
     canAttachCustomToolFilters?: boolean;
     canAttachCustomProviderConfig?: boolean;
     canOverrideToolFilters?: boolean;
+    enableCallbackTools?: boolean;
     useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
   };
 };
@@ -143,6 +145,7 @@ export type UpsertMagicMcpIntegrationParams = {
     canAttachCustomToolFilters?: boolean;
     canAttachCustomProviderConfig?: boolean;
     canOverrideToolFilters?: boolean;
+    enableCallbackTools?: boolean;
     useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
   };
 };
@@ -157,6 +160,7 @@ export type UpdateIntegrationParams = {
     canAttachCustomToolFilters?: boolean;
     canAttachCustomProviderConfig?: boolean;
     canOverrideToolFilters?: boolean;
+    enableCallbackTools?: boolean;
     useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
   };
 };
@@ -198,6 +202,7 @@ class integrationServiceImpl {
         canOverrideToolFilters || (d.input.canAttachCustomToolFilters ?? true),
       canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig ?? false,
       canOverrideToolFilters,
+      enableCallbackTools: d.input.enableCallbackTools ?? false,
       useIntegrationNameForSessionProviderNameTemplatesOverride:
         d.input.useIntegrationNameForSessionProviderNameTemplatesOverride ?? null,
       currentVersionIndex: 0,
@@ -225,6 +230,7 @@ class integrationServiceImpl {
         : input.canAttachCustomToolFilters,
       canAttachCustomProviderConfig: input.canAttachCustomProviderConfig,
       canOverrideToolFilters: input.canOverrideToolFilters,
+      enableCallbackTools: input.enableCallbackTools,
       useIntegrationNameForSessionProviderNameTemplatesOverride:
         input.useIntegrationNameForSessionProviderNameTemplatesOverride
     };
@@ -500,6 +506,7 @@ class integrationServiceImpl {
           canAttachCustomToolFilters,
           canAttachCustomProviderConfig: d.input.canAttachCustomProviderConfig,
           canOverrideToolFilters,
+          enableCallbackTools: d.input.enableCallbackTools,
           useIntegrationNameForSessionProviderNameTemplatesOverride:
             d.input.useIntegrationNameForSessionProviderNameTemplatesOverride
         },

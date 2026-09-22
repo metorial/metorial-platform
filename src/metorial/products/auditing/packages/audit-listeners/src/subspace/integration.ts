@@ -20,6 +20,7 @@ let integrationPayload = (integration: AuditSubspaceIntegration) => ({
   canAttachCustomToolFilters: integration.canAttachCustomToolFilters,
   canAttachCustomProviderConfig: integration.canAttachCustomProviderConfig,
   canOverrideToolFilters: integration.canOverrideToolFilters,
+  enableCallbackTools: integration.enableCallbackTools,
   currentVersionId: integration.currentVersion?.id ?? null,
   currentVersionIndex: integration.currentVersionIndex,
   archivedAt: integration.archivedAt

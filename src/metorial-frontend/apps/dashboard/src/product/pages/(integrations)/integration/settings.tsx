@@ -29,7 +29,8 @@ export let IntegrationSettingsPage = () => {
         integration.data?.configuration?.canAttachCustomProviderConfig ?? true,
       canAttachCustomToolFilters:
         integration.data?.configuration?.canAttachCustomToolFilters ?? true,
-      canOverrideToolFilters: integration.data?.configuration?.canOverrideToolFilters ?? true
+      canOverrideToolFilters: integration.data?.configuration?.canOverrideToolFilters ?? true,
+      enableCallbackTools: integration.data?.configuration?.enableCallbackTools ?? false
     },
     updateInitialValues: true,
     onSubmit: async values => {
@@ -38,7 +39,8 @@ export let IntegrationSettingsPage = () => {
         description: values.description.trim() || undefined,
         canAttachCustomProviderConfig: values.canAttachCustomProviderConfig,
         canAttachCustomToolFilters: values.canAttachCustomToolFilters,
-        canOverrideToolFilters: values.canOverrideToolFilters
+        canOverrideToolFilters: values.canOverrideToolFilters,
+        enableCallbackTools: values.enableCallbackTools
       });
     },
     schema: yup =>
@@ -47,7 +49,8 @@ export let IntegrationSettingsPage = () => {
         description: yup.string(),
         canAttachCustomProviderConfig: yup.boolean(),
         canAttachCustomToolFilters: yup.boolean(),
-        canOverrideToolFilters: yup.boolean()
+        canOverrideToolFilters: yup.boolean(),
+        enableCallbackTools: yup.boolean()
       })
   });
 
@@ -95,6 +98,15 @@ export let IntegrationSettingsPage = () => {
             description="Allow integration instances to override the tool filters set at the integration level."
             checked={form.values.canOverrideToolFilters}
             onCheckedChange={checked => form.setFieldValue('canOverrideToolFilters', checked)}
+          />
+
+          <Spacer size={10} />
+
+          <Checkbox
+            label="Enable callback tools"
+            description="Expose tools in sessions of this integration that let agents list, inspect, and mark as read the callback events Metorial received for its providers."
+            checked={form.values.enableCallbackTools}
+            onCheckedChange={checked => form.setFieldValue('enableCallbackTools', checked)}
           />
 
           <Spacer size={15} />

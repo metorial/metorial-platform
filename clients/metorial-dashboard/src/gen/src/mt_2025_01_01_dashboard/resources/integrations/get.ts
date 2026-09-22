@@ -12,6 +12,7 @@ export type IntegrationsGetOutput = {
     canAttachCustomToolFilters: boolean;
     canAttachCustomProviderConfig: boolean;
     canOverrideToolFilters: boolean;
+    enableCallbackTools: boolean;
     useIntegrationNameInToolNames: boolean | null;
   };
   implementation:
@@ -183,6 +184,10 @@ export let mapIntegrationsGetOutput = mtMap.object<IntegrationsGetOutput>({
       ),
       canOverrideToolFilters: mtMap.objectField(
         'can_override_tool_filters',
+        mtMap.passthrough()
+      ),
+      enableCallbackTools: mtMap.objectField(
+        'enable_callback_tools',
         mtMap.passthrough()
       ),
       useIntegrationNameInToolNames: mtMap.objectField(
