@@ -30,7 +30,6 @@
   },
   "devDependencies": {
     "@lowerdeck/testing-tools": "workspace:2.0.0",
-    "@metorial-platform-systems/function-bay-client": "workspace:*",
     "@types/bun": "latest",
     "@types/lodash": "^4.17.23",
     "@vercel/ncc": "^0.38.1",

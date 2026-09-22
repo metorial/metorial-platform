@@ -16,6 +16,10 @@
       "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["dist/**"]
     },
+    "@metorial-platform-systems/function-bay-client#build": {
+      "dependsOn": ["^build", "@metorial/function-bay#prisma:generate"],
+      "outputs": ["dist/**"]
+    },
     "prisma:generate": {
       "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "outputs": ["prisma/generated/**"]
