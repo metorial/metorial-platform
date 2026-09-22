@@ -92,7 +92,7 @@
     "@metorial-platform-systems/function-bay-client": "workspace:*",
     "@metorial-platform-systems/nebula-client": "workspace:*",
     "@metorial-platform-systems/signal-client": "workspace:*",
-    "@metorial-services/slates-registry-client": "latest",
+    "@metorial-services/slates-registry-client": "workspace:*",
     "@metorial-services/slates-registry-internal-client": "^1.0.0",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
