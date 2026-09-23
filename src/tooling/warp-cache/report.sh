@@ -6,7 +6,7 @@ if [ -z "${TURBO_API:-}" ] || [ -z "${TURBO_TOKEN:-}" ]; then
   exit 0
 fi
 
-stats="$(curl --fail --silent --show-error -H "authorization: Bearer $TURBO_TOKEN" "$TURBO_API/v8/artifacts/stats?teamId=$TURBO_TEAM" || true)"
+stats="$(curl --fail --silent --show-error -H "authorization: Bearer $TURBO_TOKEN" "$TURBO_API/v8/artifacts/status?teamId=$TURBO_TEAM&stats=1" || true)"
 if [ -n "$stats" ]; then
   echo "## Warp Cache" >> "$GITHUB_STEP_SUMMARY"
   echo '```json' >> "$GITHUB_STEP_SUMMARY"

@@ -34,6 +34,8 @@ test('reports aggregate cache activity without artifact details', async () => {
   await app(new Request(`http://cache/artifacts/${hash}`, { headers }));
   let stats = await app(new Request('http://cache/artifacts/stats', { headers }));
   expect(await stats.json()).toMatchObject({ hits: expect.any(Number), misses: expect.any(Number), uploads: expect.any(Number), uploadBytes: expect.any(Number), errors: expect.any(Number), inFlightReads: 0, inFlightUploads: 0, inFlightQueries: 0 });
+  let status = await app(new Request('http://cache/v8/artifacts/status?teamId=metorial&stats=1', { headers }));
+  expect(await status.json()).toMatchObject({ status: 'enabled', hits: expect.any(Number), misses: expect.any(Number), uploads: expect.any(Number) });
 });
 
 test('filesystem storage preserves streamed artifact bodies', async () => {

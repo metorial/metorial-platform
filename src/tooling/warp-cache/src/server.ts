@@ -61,7 +61,9 @@ export function createApp(config: Config) {
     }
     let team = url.searchParams.get('teamId') || url.searchParams.get('slug');
     if (team && team !== config.team) return response('forbidden', 'Team is not authorized', 403);
-    if (request.method === 'GET' && pathname === '/artifacts/status') return Response.json({ status: 'enabled' });
+    if (request.method === 'GET' && pathname === '/artifacts/status') {
+      return Response.json(url.searchParams.get('stats') === '1' ? { status: 'enabled', ...stats } : { status: 'enabled' });
+    }
     if (request.method === 'GET' && pathname === '/artifacts/stats') return Response.json(stats);
     if (request.method === 'POST' && pathname === '/artifacts/events') return new Response(null, { status: 200 });
     if (request.method === 'POST' && pathname === '/artifacts') {
