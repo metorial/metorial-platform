@@ -33,7 +33,7 @@ test('reports aggregate cache activity without artifact details', async () => {
   let hash = 'd4e5f6';
   await app(new Request(`http://cache/artifacts/${hash}`, { headers }));
   let stats = await app(new Request('http://cache/artifacts/stats', { headers }));
-  expect(await stats.json()).toMatchObject({ hits: expect.any(Number), misses: expect.any(Number), uploads: expect.any(Number), uploadBytes: expect.any(Number), errors: expect.any(Number) });
+  expect(await stats.json()).toMatchObject({ hits: expect.any(Number), misses: expect.any(Number), uploads: expect.any(Number), uploadBytes: expect.any(Number), errors: expect.any(Number), inFlightReads: 0, inFlightUploads: 0, inFlightQueries: 0 });
 });
 
 test('filesystem storage preserves streamed artifact bodies', async () => {

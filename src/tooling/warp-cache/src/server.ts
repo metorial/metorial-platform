@@ -12,6 +12,9 @@ type Stats = {
   uploads: number;
   uploadBytes: number;
   errors: number;
+  inFlightReads: number;
+  inFlightUploads: number;
+  inFlightQueries: number;
 };
 
 let hashPattern = /^[a-fA-F0-9]+$/;
@@ -28,11 +31,17 @@ function metadataHeaders(metadata: ArtifactMetadata) {
 }
 
 export function createApp(config: Config) {
-  let stats: Stats = { hits: 0, misses: 0, uploads: 0, uploadBytes: 0, errors: 0 };
+  let stats: Stats = { hits: 0, misses: 0, uploads: 0, uploadBytes: 0, errors: 0, inFlightReads: 0, inFlightUploads: 0, inFlightQueries: 0 };
 
   async function artifact(request: Request, hash: string) {
     if (!hashPattern.test(hash)) return response('invalid_hash', 'Artifact hash is invalid', 400);
-    let entry = await config.storage.get(`v8/${config.team}/${hash}`);
+    stats.inFlightReads += 1;
+    let entry;
+    try {
+      entry = await config.storage.get(`v8/${config.team}/${hash}`);
+    } finally {
+      stats.inFlightReads -= 1;
+    }
     if (!entry) {
       stats.misses += 1;
       return response('artifact_not_found', 'Artifact was not found', 404);
@@ -56,20 +65,25 @@ export function createApp(config: Config) {
     if (request.method === 'GET' && pathname === '/artifacts/stats') return Response.json(stats);
     if (request.method === 'POST' && pathname === '/artifacts/events') return new Response(null, { status: 200 });
     if (request.method === 'POST' && pathname === '/artifacts') {
-      let body = (await request.json()) as { hashes?: string[] };
-      if (!Array.isArray(body.hashes)) return response('invalid_request', 'hashes must be an array', 400);
-      let entries: Record<string, unknown> = {};
-      for (let offset = 0; offset < body.hashes.length; offset += 16) {
-        await Promise.all(body.hashes.slice(offset, offset + 16).map(async hash => {
-          if (!hashPattern.test(hash)) return;
-          let key = `v8/${config.team}/${hash}`;
-          let [exists, metadata] = await Promise.all([config.storage.exists(key), config.storage.metadata(key)]);
-          entries[hash] = exists && metadata ? { size: metadata.size, taskDurationMs: metadata.duration || 0, tag: metadata.tag } : null;
-          if (exists && metadata) stats.hits += 1;
-          else stats.misses += 1;
-        }));
+      stats.inFlightQueries += 1;
+      try {
+        let body = (await request.json()) as { hashes?: string[] };
+        if (!Array.isArray(body.hashes)) return response('invalid_request', 'hashes must be an array', 400);
+        let entries: Record<string, unknown> = {};
+        for (let offset = 0; offset < body.hashes.length; offset += 16) {
+          await Promise.all(body.hashes.slice(offset, offset + 16).map(async hash => {
+            if (!hashPattern.test(hash)) return;
+            let key = `v8/${config.team}/${hash}`;
+            let [exists, metadata] = await Promise.all([config.storage.exists(key), config.storage.metadata(key)]);
+            entries[hash] = exists && metadata ? { size: metadata.size, taskDurationMs: metadata.duration || 0, tag: metadata.tag } : null;
+            if (exists && metadata) stats.hits += 1;
+            else stats.misses += 1;
+          }));
+        }
+        return Response.json(entries);
+      } finally {
+        stats.inFlightQueries -= 1;
       }
-      return Response.json(entries);
     }
     let match = pathname.match(/^\/artifacts\/([a-fA-F0-9]+)$/);
     if (!match) return response('not_found', 'Route was not found', 404);
@@ -80,6 +94,7 @@ export function createApp(config: Config) {
     let duration = request.headers.get('x-artifact-duration');
     let tag = request.headers.get('x-artifact-tag');
     try {
+      stats.inFlightUploads += 1;
       await config.storage.put(`v8/${config.team}/${match[1]}`, request.body, {
         size,
         duration: duration ? Number(duration) : undefined,
@@ -90,6 +105,8 @@ export function createApp(config: Config) {
     } catch (error) {
       stats.errors += 1;
       throw error;
+    } finally {
+      stats.inFlightUploads -= 1;
     }
     return Response.json({ urls: [] }, { status: 200 });
   };
