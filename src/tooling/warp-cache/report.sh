@@ -6,7 +6,21 @@ if [ -z "${TURBO_API:-}" ] || [ -z "${TURBO_TOKEN:-}" ]; then
   exit 0
 fi
 
-stats="$(curl --fail --silent --show-error -H "authorization: Bearer $TURBO_TOKEN" "$TURBO_API/v8/artifacts/status?teamId=$TURBO_TEAM&stats=1" || true)"
+stats="$(bun -e '
+  let url = new URL("/v8/artifacts/status", process.env.TURBO_API);
+  url.searchParams.set("teamId", process.env.TURBO_TEAM);
+  url.searchParams.set("stats", "1");
+  try {
+    let result = await fetch(url, {
+      headers: { authorization: `Bearer ${process.env.TURBO_TOKEN}` },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (result.ok) console.log(JSON.stringify(await result.json()));
+    else console.error(`Warp Cache statistics returned HTTP ${result.status}`);
+  } catch {
+    console.error("Warp Cache statistics are unavailable");
+  }
+')"
 if [ -n "$stats" ]; then
   echo "## Warp Cache" >> "$GITHUB_STEP_SUMMARY"
   echo '```json' >> "$GITHUB_STEP_SUMMARY"
