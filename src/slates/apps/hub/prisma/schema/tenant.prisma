@@ -10,6 +10,8 @@ model Tenant {
   functionBayTenantId         String?
   functionBayTenantIdentifier String?
 
+  tenantIsolationEnabled Boolean @default(false)
+
   logRetentionInDays       Int     @default(30)
   storeContent             Boolean @default(true)
   collectErrors            Boolean @default(true)

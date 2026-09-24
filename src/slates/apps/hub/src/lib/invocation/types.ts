@@ -23,6 +23,7 @@ export interface SlateInvocationBaseParams {
     | 'name'
     | 'functionBayTenantId'
     | 'functionBayTenantIdentifier'
+    | 'tenantIsolationEnabled'
     | 'storeContent'
   >;
   slateVersion: SlateVersion;

@@ -30,6 +30,7 @@ export * from './slateVersionDiscovery';
 export * from './slateWebhookEvent';
 export * from './slateWebhookRegistration';
 export * from './tenant';
+export * from './tenantIsolation';
 export * from './triggerEvent';
 export * from './triggerEventInvocation';
 export * from './triggerRegistration';
