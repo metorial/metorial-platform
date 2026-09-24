@@ -62,6 +62,8 @@ model Project {
 
   autoAddOrganizationMembersToPortals Boolean @default(false)
 
+  reducedSubprocessors Boolean @default(false)
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt

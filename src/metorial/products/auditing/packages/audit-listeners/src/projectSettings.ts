@@ -141,6 +141,29 @@ export let recordProjectToolCallingUpdated = async (
   });
 };
 
+export let recordProjectReducedSubprocessorsUpdated = async (
+  event: FabricEvents['organization.project.reduced_subprocessors_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_reduced_subprocessors_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project,
+          reducedSubprocessors: event.configuration.reducedSubprocessors
+        },
+        previousPayload: {
+          project: event.project,
+          reducedSubprocessors: event.previousConfiguration.reducedSubprocessors
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordProjectBrandUpdated = async (
   event: FabricEvents['organization.project.brand.updated:after']
 ) => {
@@ -210,5 +233,9 @@ Fabric.listen(
 Fabric.listen(
   'organization.project.data_retention_configuration.updated:after',
   recordProjectDataRetentionUpdated
+);
+Fabric.listen(
+  'organization.project.reduced_subprocessors_configuration.updated:after',
+  recordProjectReducedSubprocessorsUpdated
 );
 Fabric.listen('organization.project.brand.updated:after', recordProjectBrandUpdated);

@@ -13,6 +13,7 @@ export * from './organizationScopes';
 export * from './profile';
 export * from './project';
 export * from './projectBrand';
+export * from './projectReducedSubprocessorsConfiguration';
 export * from './projectRetention';
 export * from './projectAuthConfigConfiguration';
 export * from './projectDataRetentionConfiguration';

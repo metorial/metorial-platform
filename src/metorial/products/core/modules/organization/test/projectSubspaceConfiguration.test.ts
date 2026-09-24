@@ -29,6 +29,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 import { projectAuthConfigConfigurationService } from '../src/services/projectAuthConfigConfiguration';
 import { projectDataRetentionConfigurationService } from '../src/services/projectDataRetentionConfiguration';
 import { projectIntegrationNamingConfigurationService } from '../src/services/projectIntegrationNamingConfiguration';
+import { projectReducedSubprocessorsConfigurationService } from '../src/services/projectReducedSubprocessorsConfiguration';
 import { projectToolCallingConfigurationService } from '../src/services/projectToolCallingConfiguration';
 
 let tenant = {
@@ -50,7 +51,8 @@ let tenant = {
   dataRetentionLevel: 'full',
   storeToolCallAttachments: true,
   collectErrors: true,
-  disableCallbacks: false
+  disableCallbacks: false,
+  reducedSubprocessors: false
 };
 
 let project = {
@@ -190,6 +192,34 @@ describe('project integrations-backed configuration setters', () => {
       where: { oid: 1n },
       data: {
         useIntegrationNamesForSessionProviderNameTemplates: true
+      }
+    });
+  });
+
+  it('mirrors reduced subprocessors configuration returned by integrations', async () => {
+    let updatedTenant = {
+      ...tenant,
+      reducedSubprocessors: true
+    };
+    mocks.upsertTenant.mockResolvedValue(updatedTenant);
+    mocks.projectUpdate.mockResolvedValue({ ...project, ...updatedTenant });
+
+    await projectReducedSubprocessorsConfigurationService.updateProjectReducedSubprocessorsConfiguration(
+      {
+        ...common,
+        input: { reducedSubprocessors: true }
+      }
+    );
+
+    expect(mocks.upsertTenant).toHaveBeenCalledWith({
+      input: expect.objectContaining({
+        reducedSubprocessors: true
+      })
+    });
+    expect(mocks.projectUpdate).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      data: {
+        reducedSubprocessors: true
       }
     });
   });

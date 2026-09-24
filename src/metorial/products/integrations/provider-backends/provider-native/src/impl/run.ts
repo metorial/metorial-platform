@@ -17,6 +17,8 @@ import {
 } from '@metorial-subspace/provider-utils';
 import { getNativeIntegration } from '../registry';
 
+let reducedSubprocessorProviders = new Set(['metorial-search', 'metorial-crawl']);
+
 let getNativeIdentifierFromProviderIdentifier = (identifier: string) => {
   let prefix = 'provider::native::';
   let suffix = '::provider';
@@ -108,6 +110,22 @@ class ProviderRunConnection extends IProviderRunConnection {
         session: true
       }
     });
+
+    if (
+      reducedSubprocessorProviders.has(integrationIdentifier) &&
+      sessionProvider.tenant.reducedSubprocessors
+    ) {
+      return {
+        output: {
+          type: 'error',
+          error: {
+            code: 'compliance_restricted',
+            message:
+              'Due to elevated compliance settings enabled on this account, the request cannot be fulfilled.'
+          }
+        }
+      };
+    }
 
     if (!data.message.connectionOid) {
       throw new Error('Native tool invocation requires a session connection');

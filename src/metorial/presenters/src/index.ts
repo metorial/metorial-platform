@@ -168,6 +168,7 @@ import {
   v1ProjectDataRetentionConfigurationPresenter,
   v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectPresenter,
+  v1ProjectReducedSubprocessorsConfigurationPresenter,
   v1ProjectRetentionPresenter,
   v1ProjectSkillSyncConfigurationPresenter,
   v1ProjectToolCallingConfigurationPresenter,
@@ -396,6 +397,7 @@ import {
   projectBrandType,
   projectDataRetentionConfigurationType,
   projectIntegrationNamingConfigurationType,
+  projectReducedSubprocessorsConfigurationType,
   projectRetentionType,
   projectSkillSyncConfigurationType,
   projectToolCallingConfigurationType,
@@ -784,6 +786,14 @@ export let projectDataRetentionConfigurationPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1ProjectDataRetentionConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectDataRetentionConfigurationPresenter
+  }
+);
+
+export let projectReducedSubprocessorsConfigurationPresenter = declarePresenter(
+  projectReducedSubprocessorsConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectReducedSubprocessorsConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectReducedSubprocessorsConfigurationPresenter
   }
 );
 

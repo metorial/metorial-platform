@@ -47,6 +47,8 @@ model Tenant {
   collectErrors            Boolean                   @default(true)
   disableCallbacks         Boolean                   @default(false)
 
+  reducedSubprocessors Boolean @default(false)
+
   retiredAt DateTime?
 
   providers                                  Provider[]
