@@ -34,8 +34,10 @@ import {
   type SubagentSessionsConfig,
   type SubagentSource
 } from './lib/subagents';
+import { pruneOldToolResults } from './lib/pruneToolResults';
+import { defaultEstimateTokens } from './lib/utils';
 import type { FsProvider } from './providers/types';
-import { Session } from './session';
+import { Session, type CompactionCheckInfo, type CompactionStrategy } from './session';
 import { createSkillTool } from './tools/skill';
 
 // ── Token usage ──────────────────────────────────────────────────────
@@ -64,6 +66,10 @@ export type AgentEvent =
   | { type: 'tool.error'; toolCallId: string; toolName: string; error: string }
   | { type: 'step.start'; stepNumber: number }
   | { type: 'step.done'; stepNumber: number; usage: TokenUsage; finishReason: string }
+  | { type: 'compaction.start'; reason: 'overflow' | 'manual'; tokensBefore: number }
+  | { type: 'compaction.pruned'; tokensRemoved: number; messagesRemoved: number }
+  | { type: 'compaction.summary'; summary: string }
+  | { type: 'compaction.done'; tokensBefore: number; tokensAfter: number }
   | { type: 'error'; error: Error }
   | {
       type: 'done';
@@ -94,6 +100,16 @@ export type ApproveFn = (toolCall: ToolCallInfo) => boolean | Promise<boolean>;
  * a subagent spawns its own subagent.
  */
 export type SubagentEventFn = (path: string[], event: AgentEvent) => void;
+
+export interface AgentCompaction {
+  contextWindow: number;
+  reservedTokens?: number;
+  autoCompact?: boolean;
+  protectedTokens?: number;
+  minPruneSavings?: number;
+  shouldCompact?: (info: CompactionCheckInfo) => boolean;
+  strategy?: CompactionStrategy;
+}
 
 type TaskSessionInput = {
   mode: SubagentSessionMode;
@@ -138,6 +154,8 @@ export class Agent {
 
   /** Static tools provided at construction time. */
   readonly tools?: ToolSet;
+
+  readonly compaction?: AgentCompaction;
 
   /**
    * Filesystem provider used for harness-managed reads such as AGENTS.md and
@@ -206,6 +224,12 @@ export class Agent {
      * Discovered lazily on first run.
      */
     skills?: SkillsConfig;
+    /**
+     * Compact the conversation when it nears the model context window.
+     * The session reads this before each turn. The agent also prunes older
+     * tool results between steps so a long tool loop stays inside the window.
+     */
+    compaction?: AgentCompaction;
   }) {
     this.name = options.name;
     this.description = options.description;
@@ -230,6 +254,7 @@ export class Agent {
     this.mcpServerConfigs = options.mcpServers;
     this.skillsConfig = options.skills;
     this.tools = options.tools;
+    this.compaction = options.compaction;
 
     if (options.subagentSessions) {
       getSubagentSessionRuntime(options.subagentSessions);
@@ -316,6 +341,10 @@ export class Agent {
           ? allTools
           : undefined;
 
+    let compactionEvents: AgentEvent[] = [];
+    let summarizedHistory = false;
+    let compaction = this.compaction;
+
     const stream = streamText({
       model: this.model,
       system,
@@ -324,7 +353,93 @@ export class Agent {
       stopWhen: stepCountIs(this.maxSteps),
       temperature: this.temperature,
       maxOutputTokens: this.maxTokens,
-      abortSignal: options?.signal
+      abortSignal: options?.signal,
+      prepareStep: compaction
+        ? async ({ messages: stepMessages, steps }) => {
+            if (!compaction) return undefined;
+
+            let reservedTokens = compaction.reservedTokens ?? 20_000;
+            let threshold = compaction.contextWindow - reservedTokens;
+            let lastInputTokens = steps.at(-1)?.usage.inputTokens ?? 0;
+            let tokensBefore = Math.max(lastInputTokens, defaultEstimateTokens(stepMessages));
+            let shouldCompact = compaction.shouldCompact
+              ? compaction.shouldCompact({
+                  lastInputTokens,
+                  contextWindow: compaction.contextWindow,
+                  reservedTokens,
+                  messages: stepMessages,
+                  turnNumber: steps.length
+                })
+              : tokensBefore >= threshold;
+
+            if (!shouldCompact) return undefined;
+
+            let pruned = pruneOldToolResults(stepMessages, {
+              protectedTokens: compaction.protectedTokens ?? 40_000,
+              minSavings: compaction.minPruneSavings ?? 8_000,
+              inPlace: true
+            });
+            let tokensAfterPrune = defaultEstimateTokens(stepMessages);
+            let needsSummary =
+              tokensAfterPrune >= threshold && !summarizedHistory && !!compaction.strategy;
+
+            if (pruned.tokensSaved <= 0 && !needsSummary) return undefined;
+
+            compactionEvents.push({
+              type: 'compaction.start',
+              reason: 'overflow',
+              tokensBefore
+            });
+
+            if (pruned.tokensSaved > 0) {
+              compactionEvents.push({
+                type: 'compaction.pruned',
+                tokensRemoved: pruned.tokensSaved,
+                messagesRemoved: 0
+              });
+            }
+
+            if (!needsSummary) {
+              compactionEvents.push({
+                type: 'compaction.done',
+                tokensBefore,
+                tokensAfter: tokensAfterPrune
+              });
+              return { messages: stepMessages };
+            }
+
+            // The SDK rebuilds the next step from the original prompt plus new
+            // response messages. Summarize only that prompt and keep the tail.
+            summarizedHistory = true;
+            let responseTail = stepMessages.slice(messages.length);
+            let result = await compaction.strategy.compact({
+              messages: [...messages],
+              model: this.model,
+              systemPrompt: this.systemPrompt,
+              totalTokens: defaultEstimateTokens(messages),
+              targetTokens: threshold,
+              signal: options?.signal
+            });
+
+            messages.splice(0, messages.length, ...result.messages);
+
+            if (result.summary) {
+              compactionEvents.push({
+                type: 'compaction.summary',
+                summary: result.summary
+              });
+            }
+
+            let nextMessages = [...messages, ...responseTail];
+            compactionEvents.push({
+              type: 'compaction.done',
+              tokensBefore,
+              tokensAfter: defaultEstimateTokens(nextMessages)
+            });
+
+            return { messages: nextMessages };
+          }
+        : undefined
     });
 
     let stepNumber = 0;
@@ -334,8 +449,17 @@ export class Agent {
     let doneEmitted = false;
     let abortReason: string | undefined;
 
+    let drainCompactionEvents = function* (): Generator<AgentEvent> {
+      while (compactionEvents.length > 0) {
+        let event = compactionEvents.shift();
+        if (event) yield event;
+      }
+    };
+
     try {
       for await (const part of stream.fullStream) {
+        yield* drainCompactionEvents();
+
         switch (part.type) {
           case 'start-step':
             stepNumber++;
@@ -542,6 +666,7 @@ function createChildFromTemplate(
     maxSteps: template.maxSteps,
     temperature: template.temperature,
     maxTokens: template.maxTokens,
+    compaction: template.compaction,
     instructions: template.instructions,
     ...(nextDepth > 0 && template.subagents
       ? {
