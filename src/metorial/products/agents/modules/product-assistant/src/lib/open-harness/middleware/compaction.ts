@@ -43,9 +43,10 @@ export function withCompaction(config: CompactionConfig): Middleware {
         turnNumber: 0
       };
 
+      let usedTokens = Math.max(lastInputTokens, defaultEstimateTokens(history));
       const needsCompaction = config.shouldCompact
         ? config.shouldCompact(info)
-        : lastInputTokens >= config.contextWindow - reservedTokens;
+        : usedTokens >= config.contextWindow - reservedTokens;
 
       if (needsCompaction && history.length > 0) {
         const tokensBefore = defaultEstimateTokens(history);

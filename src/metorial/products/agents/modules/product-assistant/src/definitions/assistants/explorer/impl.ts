@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { implementation } from '../../../lib/definitions';
 import { detag } from '../../../lib/detag';
-import { Agent } from '../../../lib/open-harness';
+import { Agent, DefaultCompactionStrategy } from '../../../lib/open-harness';
 import {
   deepseekV4Flash,
   deepseekV4Pro,
@@ -14,12 +14,21 @@ import {
   moonshotaiKimiK25,
   moonshotaiKimiK26,
   moonshotaiKimiK2Turbo,
+  summaryModel,
   xaiGrok41FastNonReasoning,
   xaiGrok420NonReasoning
 } from '../../models';
 import { claudeSonnet46 } from '../../models/anthropic';
 import { openaiGpt54, openaiGpt55, openaiGptOss120b } from '../../models/openai';
 import { subspaceAssistant } from '../_shared/subspace';
+import {
+  explorerCompactionPrompt,
+  explorerContextWindow,
+  explorerMinPruneSavings,
+  explorerProtectedTokens,
+  explorerReservedTokens,
+  explorerShouldCompact
+} from './compaction';
 
 let systemPrompt = detag`
 <identity>
@@ -94,7 +103,22 @@ export let explorerAssistantImplementation = implementation({
           input: d.input
         })
       },
-      maxSteps: 1024
+      maxSteps: 1024,
+      maxTokens: 150_000,
+      compaction: {
+        contextWindow: explorerContextWindow(d.model.contextWindow),
+        reservedTokens: explorerReservedTokens,
+        protectedTokens: explorerProtectedTokens,
+        minPruneSavings: explorerMinPruneSavings,
+        shouldCompact: explorerShouldCompact,
+        autoCompact: true,
+        strategy: new DefaultCompactionStrategy({
+          protectedTokens: explorerProtectedTokens,
+          minPruneSavings: explorerMinPruneSavings,
+          summaryModel: (await summaryModel).model,
+          summaryPrompt: explorerCompactionPrompt
+        })
+      }
     });
   }
 });
