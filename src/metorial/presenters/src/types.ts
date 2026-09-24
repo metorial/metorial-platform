@@ -1219,6 +1219,11 @@ export let projectToolCallingConfigurationType = PresentableType.create<{
   messageProcessingTimeoutMs: number;
 }>()('project_tool_calling_configuration');
 
+export let projectReducedSubprocessorsConfigurationType = PresentableType.create<{
+  project: Project;
+  reducedSubprocessors: boolean;
+}>()('project_reduced_subprocessors_configuration');
+
 export let projectDataRetentionConfigurationType = PresentableType.create<{
   project: Project;
   dataRetentionLevel: 'full' | 'intent_only' | 'none';

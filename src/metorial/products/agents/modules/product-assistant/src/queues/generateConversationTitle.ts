@@ -53,9 +53,13 @@ export let generateAssistantConversationTitleQueueProcessor =
       let conversation = await db.productAssistantConversation.findUnique({
         where: {
           id: data.conversationId
+        },
+        include: {
+          project: true
         }
       });
       if (!conversation) throw new QueueRetryError();
+      if (conversation.project.reducedSubprocessors) return;
       if (conversation.title?.trim()) return;
 
       let firstUserMessage = await db.productAssistantConversationItem.findFirst({

@@ -10,6 +10,7 @@ import type {
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import type { Implementation } from '../lib/definitions';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
+import { assertAiChatAllowed } from '../lib/reducedSubprocessors';
 import {
   applyHandoffToolResponses,
   getHandoffToolCalls,
@@ -280,6 +281,8 @@ class ProductAssistantRequestServiceImpl {
       allowAllActors?: boolean;
     };
   }) {
+    assertAiChatAllowed(d.project);
+
     let parentMessage = await this.resolveParentMessage({
       conversation: d.conversation,
       parentMessageId: d.input.parentMessageId
@@ -408,6 +411,8 @@ class ProductAssistantRequestServiceImpl {
       }>;
     };
   }) {
+    assertAiChatAllowed(d.project);
+
     if (!d.input.responses.length) {
       throw new ServiceError(
         badRequestError({

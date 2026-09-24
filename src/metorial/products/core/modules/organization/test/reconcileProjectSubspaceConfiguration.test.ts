@@ -53,7 +53,8 @@ let baseConfiguration = {
   disableCallbacks: false,
   collectOperationDescriptionForToolCalls: true,
   messageProcessingTimeoutMs: 30000,
-  useIntegrationNamesForSessionProviderNameTemplates: false
+  useIntegrationNamesForSessionProviderNameTemplates: false,
+  reducedSubprocessors: false
 };
 
 describe('project subspace configuration reconciler', () => {

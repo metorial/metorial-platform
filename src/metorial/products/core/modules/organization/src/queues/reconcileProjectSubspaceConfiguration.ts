@@ -87,7 +87,8 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
         tenant.collectOperationDescriptionForToolCalls ||
       project.messageProcessingTimeoutMs !== tenant.messageProcessingTimeoutMs ||
       project.useIntegrationNamesForSessionProviderNameTemplates !==
-        tenant.useIntegrationNamesForSessionProviderNameTemplates;
+        tenant.useIntegrationNamesForSessionProviderNameTemplates ||
+      project.reducedSubprocessors !== tenant.reducedSubprocessors;
     if (!hasDrift) return;
 
     await db.project.update({
@@ -104,7 +105,8 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
           tenant.collectOperationDescriptionForToolCalls,
         messageProcessingTimeoutMs: tenant.messageProcessingTimeoutMs,
         useIntegrationNamesForSessionProviderNameTemplates:
-          tenant.useIntegrationNamesForSessionProviderNameTemplates
+          tenant.useIntegrationNamesForSessionProviderNameTemplates,
+        reducedSubprocessors: tenant.reducedSubprocessors
       }
     });
   });

@@ -42,6 +42,7 @@ class tenantServiceImpl {
       storeToolCallAttachments?: boolean;
       collectErrors?: boolean;
       disableCallbacks?: boolean;
+      reducedSubprocessors?: boolean;
       projectOid?: bigint;
       skipNetworks?: boolean;
       environments: {
@@ -88,7 +89,8 @@ class tenantServiceImpl {
           dataRetentionLevel: d.input.dataRetentionLevel,
           storeToolCallAttachments: d.input.storeToolCallAttachments,
           collectErrors: d.input.collectErrors,
-          disableCallbacks: d.input.disableCallbacks
+          disableCallbacks: d.input.disableCallbacks,
+          reducedSubprocessors: d.input.reducedSubprocessors
         },
         create: {
           ...getId('tenant'),
@@ -112,6 +114,7 @@ class tenantServiceImpl {
           storeToolCallAttachments: d.input.storeToolCallAttachments ?? true,
           collectErrors: d.input.collectErrors ?? true,
           disableCallbacks: d.input.disableCallbacks ?? false,
+          reducedSubprocessors: d.input.reducedSubprocessors ?? false,
 
           urlKey: generatePlainId(10).toLowerCase()
         }
