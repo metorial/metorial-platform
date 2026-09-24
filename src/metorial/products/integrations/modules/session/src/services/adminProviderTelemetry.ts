@@ -301,6 +301,7 @@ let presentProvider = async (
     id: listing.provider.id,
     listing_id: listing.id,
     name: listing.name,
+    description: listing.description,
     slug: listing.slug,
     pretty_slug: listing.prettySlug,
     status: listing.status,
