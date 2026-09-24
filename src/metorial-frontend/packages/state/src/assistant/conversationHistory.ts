@@ -566,7 +566,7 @@ export let useConversationHistory = (
       setReferenceMessageId(optimisticId);
 
       try {
-        let [createdMessage] = await createMessage.mutate({
+        let [createdMessage, error] = await createMessage.mutate({
           organizationId,
           instanceId,
           assistantConversationId,
@@ -577,9 +577,13 @@ export let useConversationHistory = (
           }
         });
 
+        if (error || !createdMessage) {
+          throw new Error(error?.data.message ?? 'Unable to send message.');
+        }
+
         setLocalMessages(current => {
           let next = current.filter(message => message.id != optimisticId);
-          if (createdMessage) next.push(createdMessage);
+          next.push(createdMessage);
           return next;
         });
 
