@@ -380,8 +380,9 @@ export class Agent {
               inPlace: true
             });
             let tokensAfterPrune = defaultEstimateTokens(stepMessages);
+            let strategy = compaction.strategy;
             let needsSummary =
-              tokensAfterPrune >= threshold && !summarizedHistory && !!compaction.strategy;
+              tokensAfterPrune >= threshold && !summarizedHistory && !!strategy;
 
             if (pruned.tokensSaved <= 0 && !needsSummary) return undefined;
 
@@ -399,7 +400,7 @@ export class Agent {
               });
             }
 
-            if (!needsSummary) {
+            if (!needsSummary || !strategy) {
               compactionEvents.push({
                 type: 'compaction.done',
                 tokensBefore,
@@ -412,7 +413,7 @@ export class Agent {
             // response messages. Summarize only that prompt and keep the tail.
             summarizedHistory = true;
             let responseTail = stepMessages.slice(messages.length);
-            let result = await compaction.strategy.compact({
+            let result = await strategy.compact({
               messages: [...messages],
               model: this.model,
               systemPrompt: this.systemPrompt,
