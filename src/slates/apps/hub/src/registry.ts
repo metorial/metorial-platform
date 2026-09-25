@@ -61,6 +61,40 @@ let predefinedRegistryMap = new Map(
   effectivePredefinedRegistries.map(r => [r.registryUrl, r])
 );
 
+let ensureStaticRegistry = async (registry: { registryUrl: string }) => {
+  let identifier = `reg::default::${await Hash.sha256(JSON.stringify([registry.registryUrl]))}`;
+  let name = `Default Registry ${registry.registryUrl}`;
+
+  let existing = await db.registry.findUnique({ where: { identifier } });
+  if (existing) {
+    if (existing.status !== 'active' || existing.url !== registry.registryUrl) {
+      await db.registry.update({
+        where: { id: existing.id },
+        data: { url: registry.registryUrl, name, status: 'active' }
+      });
+    }
+    return;
+  }
+
+  let stale = await db.registry.findMany({
+    where: { status: 'active', tenantOid: null, url: { not: registry.registryUrl } },
+    orderBy: [{ lastSyncedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }]
+  });
+  if (stale.length === 0) {
+    await upsertRegistry({ registryUrl: registry.registryUrl });
+    return;
+  }
+
+  let keep = stale[0]!;
+  await db.registry.update({
+    where: { id: keep.id },
+    data: { identifier, url: registry.registryUrl, name, status: 'active' }
+  });
+  for (let row of stale.slice(1)) {
+    await db.registry.update({ where: { id: row.id }, data: { status: 'disabled' } });
+  }
+};
+
 export let upsertRegistry = async (registry: { registryUrl: string; name?: string }) => {
   let identifier = `reg::default::${await Hash.sha256(JSON.stringify([registry.registryUrl]))}`;
   let name = registry.name ?? `Default Registry ${registry.registryUrl}`;
@@ -86,16 +120,7 @@ export let upsertRegistry = async (registry: { registryUrl: string; name?: strin
 };
 
 if (staticRegistryUrl) {
-  await db.registry.updateMany({
-    where: {
-      status: 'active',
-      tenantOid: null,
-      url: { not: staticRegistryUrl }
-    },
-    data: { status: 'disabled' }
-  });
-
-  await upsertRegistry({ registryUrl: staticRegistryUrl });
+  await ensureStaticRegistry({ registryUrl: staticRegistryUrl });
 } else {
   if (effectivePredefinedRegistries.length === 1) {
     let predefined = await db.registry.findMany({ where: { isPredefined: true } });
