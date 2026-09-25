@@ -47,7 +47,19 @@ if (!predefinedRegistryRes.success) {
 let predefinedRegistries = predefinedRegistryRes.value.map(r =>
   typeof r === 'string' ? { registryUrl: r } : r
 );
-let predefinedRegistryMap = new Map(predefinedRegistries.map(r => [r.registryUrl, r]));
+
+let staticRegistryUrl = env.registry.SLATES_REGISTRY_URL;
+let staticSubRegistryId = env.registry.SLATES_SUB_REGISTRY_ID;
+
+let effectivePredefinedRegistries: Array<{
+  registryUrl: string;
+  name?: string;
+  internalUrl?: string;
+}> = staticRegistryUrl ? [{ registryUrl: staticRegistryUrl }] : predefinedRegistries;
+
+let predefinedRegistryMap = new Map(
+  effectivePredefinedRegistries.map(r => [r.registryUrl, r])
+);
 
 export let upsertRegistry = async (registry: { registryUrl: string; name?: string }) => {
   let identifier = `reg::default::${await Hash.sha256(JSON.stringify([registry.registryUrl]))}`;
@@ -73,26 +85,39 @@ export let upsertRegistry = async (registry: { registryUrl: string; name?: strin
   });
 };
 
-if (predefinedRegistries.length === 1) {
-  let predefined = await db.registry.findMany({ where: { isPredefined: true } });
-  let stale = predefined.filter(r => !predefinedRegistryMap.has(r.url));
-  if (predefined.length === 1 && stale.length === 1) {
-    let registry = predefinedRegistries[0]!;
-    let identifier = `reg::default::${await Hash.sha256(JSON.stringify([registry.registryUrl]))}`;
-    await db.registry.update({
-      where: { id: stale[0]!.id },
-      data: {
-        identifier,
-        url: registry.registryUrl,
-        name: registry.name ?? `Default Registry ${registry.registryUrl}`,
-        status: 'active'
-      }
-    });
-  }
-}
+if (staticRegistryUrl) {
+  await db.registry.updateMany({
+    where: {
+      status: 'active',
+      tenantOid: null,
+      url: { not: staticRegistryUrl }
+    },
+    data: { status: 'disabled' }
+  });
 
-for (let registry of predefinedRegistries) {
-  await upsertRegistry(registry);
+  await upsertRegistry({ registryUrl: staticRegistryUrl });
+} else {
+  if (effectivePredefinedRegistries.length === 1) {
+    let predefined = await db.registry.findMany({ where: { isPredefined: true } });
+    let stale = predefined.filter(r => !predefinedRegistryMap.has(r.url));
+    if (predefined.length === 1 && stale.length === 1) {
+      let registry = effectivePredefinedRegistries[0]!;
+      let identifier = `reg::default::${await Hash.sha256(JSON.stringify([registry.registryUrl]))}`;
+      await db.registry.update({
+        where: { id: stale[0]!.id },
+        data: {
+          identifier,
+          url: registry.registryUrl,
+          name: registry.name ?? `Default Registry ${registry.registryUrl}`,
+          status: 'active'
+        }
+      });
+    }
+  }
+
+  for (let registry of effectivePredefinedRegistries) {
+    await upsertRegistry(registry);
+  }
 }
 
 let readerToken = new Map<string, { token: Promise<string | null>; expiresAt: number }>();
@@ -136,12 +161,26 @@ let getReaderToken = async (registry: Registry) => {
   return prom;
 };
 
+export let getRegistryHeaders = (o: { token?: string | null; subRegistryId?: string }) => {
+  let headers: Record<string, string> = {};
+  if (o.token) headers.Authorization = `Bearer ${o.token}`;
+  if (o.subRegistryId) {
+    headers['Metorial-Sub-Registry-Id'] = o.subRegistryId;
+    headers['Slates-Sub-Registry-Id'] = o.subRegistryId;
+  }
+  return headers;
+};
+
 export let createSlatesRegistryClient = (o: {
   endpoint: string;
-  token?: string;
+  token?: string | null;
+  subRegistryId?: string;
 }): RegistryClient =>
   hc(o.endpoint, {
-    headers: o.token ? { Authorization: `Bearer ${o.token}` } : {},
+    headers: getRegistryHeaders({
+      token: o.token,
+      subRegistryId: o.subRegistryId ?? staticSubRegistryId
+    }),
     init: { redirect: 'follow' }
   }) as unknown as RegistryClient;
 

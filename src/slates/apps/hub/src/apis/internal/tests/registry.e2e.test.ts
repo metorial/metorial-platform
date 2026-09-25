@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { getRegistryHeaders } from '../../registry';
 import { slatesHubClient } from '../../../test/client';
 import { fixtures } from '../../../test/fixtures';
 import { cleanDatabase, testDb } from '../../../test/setup';
@@ -90,5 +91,21 @@ describe('registry:getMany E2E', () => {
     });
 
     expect(result).toMatchObject([{ id: reg1.id }, { id: reg2.id }]);
+  });
+});
+
+describe('registry:headers', () => {
+  it('sends the sub-registry id on both headers', async () => {
+    let headers = getRegistryHeaders({ token: 'tok', subRegistryId: 'acme' });
+
+    expect(headers).toMatchObject({
+      Authorization: 'Bearer tok',
+      'Metorial-Sub-Registry-Id': 'acme',
+      'Slates-Sub-Registry-Id': 'acme'
+    });
+  });
+
+  it('omits auth and sub-registry headers when unset', async () => {
+    expect(getRegistryHeaders({})).toEqual({});
   });
 });

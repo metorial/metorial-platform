@@ -3,7 +3,6 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
-import { upsertRegistry } from '../registry';
 
 let include = { tenant: true };
 
@@ -68,10 +67,6 @@ class registryServiceImpl {
       },
       include
     });
-  }
-
-  async createRegistry(d: { registryUrl: string; name?: string }) {
-    await upsertRegistry(d);
   }
 }
 
