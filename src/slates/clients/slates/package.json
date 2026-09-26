@@ -61,6 +61,7 @@
     "@metorial-platform-systems/function-bay-client": "workspace:*"
   },
   "devDependencies": {
+    "@metorial/slates": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",
     "vitest": "^3.1.2",

@@ -1,10 +1,15 @@
+# syntax=docker/dockerfile:1.7
 # Build stage
 FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
 ARG SENTRY_AUTH_TOKEN
+ARG TURBO_API
+ARG TURBO_TEAM
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+ENV TURBO_API=${TURBO_API}
+ENV TURBO_TEAM=${TURBO_TEAM}
 
 # Copy repository contents from the OSS root context
 COPY . .
@@ -15,14 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 # Install dependencies from the OSS workspace
 RUN bun install --linker=hoisted
 
-# Build the relay client so its dist/ exports exist in the runtime image.
-RUN bun run --cwd /app/src/relay/clients/relay build
-
 # Generate Prisma client and build the service from the monorepo path
-WORKDIR /app/src/ares/service
-RUN bun prisma generate
-RUN bun run server:build
-RUN bun run frontend:build
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build frontend:build --filter=@metorial/ares
 
 # Production stage
 FROM oven/bun:1-alpine AS runner

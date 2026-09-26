@@ -1,0 +1,55 @@
+name: Is image affected
+description: Determines whether a Docker image's Turbo task closure changed
+inputs:
+  package:
+    required: true
+  tasks:
+    required: true
+  base:
+    required: false
+  head:
+    required: false
+  paths:
+    required: false
+outputs:
+  should-build:
+    value: ${{ steps.check.outputs.should-build }}
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        INPUT_PACKAGE: ${{ inputs.package }}
+        INPUT_TASKS: ${{ inputs.tasks }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_HEAD: ${{ inputs.head }}
+        INPUT_PATHS: ${{ inputs.paths }}
+      run: |
+        set -euo pipefail
+        base="$INPUT_BASE"
+        head="$INPUT_HEAD"
+        if [ -z "$base" ] && [ "${GITHUB_EVENT_NAME}" = pull_request ]; then base="${{ github.event.pull_request.base.sha }}"; fi
+        if [ -z "$head" ]; then head="${GITHUB_SHA}"; fi
+        if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+          echo "should-build=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if git diff --name-only "$base" "$head" | grep -Eq '^(turbo\.json|bun\.lock|package\.json|\.github/actions/affected-image/|\.github/actions/setup-warp-cache/|src/tooling/warp-cache/)'; then
+          echo "should-build=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ -n "$INPUT_PATHS" ] && git diff --name-only "$base" "$head" | grep -Eq "$INPUT_PATHS"; then
+          echo "should-build=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        read -r -a tasks <<< "$INPUT_TASKS"
+        if TURBO_SCM_BASE="$base" TURBO_SCM_HEAD="$head" bunx turbo@2.9.18 run "${tasks[@]}" --filter="$INPUT_PACKAGE" --affected --dry=json > "$RUNNER_TEMP/affected-image.json"; then
+          if jq -e '.tasks | length > 0' "$RUNNER_TEMP/affected-image.json" >/dev/null; then
+            echo "should-build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should-build=false" >> "$GITHUB_OUTPUT"
+          fi
+        else
+          echo "should-build=true" >> "$GITHUB_OUTPUT"
+        fi

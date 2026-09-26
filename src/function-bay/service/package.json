@@ -5,8 +5,9 @@
   "private": true,
   "scripts": {
     "start": "bun run server:start",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only && bun run sentry:sourcemaps",
+    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-function-bay ./dist && sentry-cli sourcemaps upload --org metorial --project mte-function-bay ./dist) || true",
+    "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
     "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "enterprise:dev": "bun run dev",
@@ -29,7 +30,6 @@
   },
   "devDependencies": {
     "@lowerdeck/testing-tools": "workspace:2.0.0",
-    "@metorial-platform-systems/function-bay-client": "workspace:*",
     "@types/bun": "latest",
     "@types/lodash": "^4.17.23",
     "@vercel/ncc": "^0.38.1",
@@ -42,7 +42,7 @@
     "@aws-sdk/client-cloudwatch-logs": "^3.957.0",
     "@aws-sdk/client-iam": "^3.957.0",
     "@aws-sdk/client-lambda": "^3.958.0",
-    "@function-bay/types": "^1.0.0",
+    "@function-bay/types": "workspace:*",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",

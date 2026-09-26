@@ -7,3 +7,5 @@ out
 **/dist
 **/.turbo
 **/coverage
+**/Dockerfile
+**/dev.Dockerfile

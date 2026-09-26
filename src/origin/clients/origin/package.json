@@ -56,6 +56,7 @@
     "@lowerdeck/validation": "workspace:2.0.0"
   },
   "devDependencies": {
+    "@metorial/origin": "workspace:*",
     "@types/node": "^25.0.3",
     "dts-bundle-generator": "^9.5.1",
     "microbundle": "^0.15.1",
