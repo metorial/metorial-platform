@@ -18,12 +18,15 @@ let lock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-export let syncRegistryQueueProcessor = syncRegistryQueue.process(data =>
-  lock.usingLock(data.registryId, async () => {
+export let syncRegistryQueueProcessor = syncRegistryQueue.process(async data => {
+  await lock.usingLock(data.registryId, async () => {
     let reg = await db.registry.findUnique({
       where: { id: data.registryId }
     });
-    if (!reg) return;
+    if (!reg) {
+      console.warn(`Registry sync could not find registry ${data.registryId}`);
+      return;
+    }
 
     let client = await getRegistryClient(reg);
 
@@ -35,7 +38,11 @@ export let syncRegistryQueueProcessor = syncRegistryQueue.process(data =>
         ...getRegistryQuery()
       }
     });
-    if (changeNotifications.status !== 200) return;
+    if (changeNotifications.status !== 200) {
+      let message = `Failed to fetch registry change notifications - status ${changeNotifications.status} - registry ${reg.id} - cursor ${reg.changeNotificationCursor ?? 'initial'} - ${await changeNotifications.text()}`;
+      console.error(message);
+      throw new Error(message);
+    }
 
     let { items } = (await changeNotifications.json()) as {
       items: Array<{
@@ -78,7 +85,7 @@ export let syncRegistryQueueProcessor = syncRegistryQueue.process(data =>
         }
       });
 
-      await syncRegistryQueue.add({ registryId: reg.id }, { id: reg.id });
+      await syncRegistryQueue.add({ registryId: reg.id }, { delay: 1000 });
     }
 
     // await syncRegistrySlatesFromCatalog({ reg, client });
@@ -89,5 +96,5 @@ export let syncRegistryQueueProcessor = syncRegistryQueue.process(data =>
         data: { lastSyncedAt: new Date() }
       });
     }
-  })
-);
+  });
+});
