@@ -66,9 +66,3 @@ export let Readme = ({
     </Wrapper>
   );
 };
-
-export let ReadmeHtml = ({ readmeHtml }: { readmeHtml: string }) => {
-  return (
-    <Wrapper className="markdown-body" dangerouslySetInnerHTML={{ __html: readmeHtml }} />
-  );
-};
