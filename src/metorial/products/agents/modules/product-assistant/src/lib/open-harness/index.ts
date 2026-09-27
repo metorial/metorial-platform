@@ -3,6 +3,7 @@
 export {
   Agent,
   ToolDeniedError,
+  type AgentCompaction,
   type AgentEvent,
   type ApproveFn,
   type SubagentEventFn,

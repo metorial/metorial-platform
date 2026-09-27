@@ -15,7 +15,10 @@ export let registryApp = createHono()
       'Access-Control-Allow-Methods',
       'GET, POST, PUT, DELETE, OPTIONS, PATCH'
     );
-    c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    c.res.headers.set(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, Metorial-Sub-Registry-Id, Slates-Sub-Registry-Id'
+    );
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
   .options('*', c => c.text(''))

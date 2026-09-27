@@ -82,16 +82,21 @@ export class AgentRun {
   ) {}
 
   private async createSession() {
+    let compaction = this.agent.compaction;
+
     return new Session({
       agent: this.agent,
-      autoCompact: true,
-      contextWindow: Math.ceil(this.model.contextWindow * 0.9),
-      reservedTokens: 20_000,
-      compactionStrategy: new DefaultCompactionStrategy({
-        protectedTokens: 20_000,
-        minPruneSavings: 10_000,
-        summaryModel: (await summaryModel).model
-      }),
+      autoCompact: compaction?.autoCompact ?? true,
+      contextWindow: compaction?.contextWindow ?? Math.ceil(this.model.contextWindow * 0.9),
+      reservedTokens: compaction?.reservedTokens ?? 20_000,
+      shouldCompact: compaction?.shouldCompact,
+      compactionStrategy:
+        compaction?.strategy ??
+        new DefaultCompactionStrategy({
+          protectedTokens: compaction?.protectedTokens ?? 20_000,
+          minPruneSavings: compaction?.minPruneSavings ?? 10_000,
+          summaryModel: (await summaryModel).model
+        }),
       retry: { maxRetries: 5 }
     });
   }

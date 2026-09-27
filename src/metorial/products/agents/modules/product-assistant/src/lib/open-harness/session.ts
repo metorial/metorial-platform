@@ -1,5 +1,6 @@
 import { generateText, type LanguageModel, type ModelMessage } from 'ai';
 import { Agent, type AgentEvent, type TokenUsage } from './agent';
+import { pruneOldToolResults } from './lib/pruneToolResults';
 import {
   addUsage as _addUsage,
   defaultEstimateTokens as _defaultEstimateTokens,
@@ -218,64 +219,17 @@ export class DefaultCompactionStrategy implements CompactionStrategy {
   }
 }
 
-// ── Pruning helpers ─────────────────────────────────────────────────
-
-interface PruneResult {
-  messages: ModelMessage[];
-  tokensSaved: number;
-  messagesModified: number;
-}
-
-function estimateMessageTokens(
-  msg: ModelMessage,
-  estimator: (msgs: ModelMessage[]) => number
-): number {
-  return estimator([msg]);
-}
-
 function pruneToolResults(
   messages: ModelMessage[],
   protectedTokens: number,
   minSavings: number,
   estimateTokens: (msgs: ModelMessage[]) => number
-): PruneResult {
-  const result = structuredClone(messages);
-  let accumulated = 0;
-  let boundary = result.length;
-
-  // Find protection boundary (walk backward)
-  for (let i = result.length - 1; i >= 0; i--) {
-    accumulated += estimateMessageTokens(result[i]!, estimateTokens);
-    if (accumulated >= protectedTokens) {
-      boundary = i;
-      break;
-    }
-  }
-
-  // Prune tool results before boundary
-  let tokensSaved = 0;
-  let modified = 0;
-  for (let i = 0; i < boundary; i++) {
-    let message = result[i]!;
-    if (message.role === 'tool') {
-      const before = estimateMessageTokens(message, estimateTokens);
-      const content = message.content;
-      if (Array.isArray(content)) {
-        message.content = content.map((part: any) =>
-          part.type === 'tool-result' ? { ...part, result: '[pruned]' } : part
-        );
-      }
-      const after = estimateMessageTokens(message, estimateTokens);
-      tokensSaved += before - after;
-      modified++;
-    }
-  }
-
-  if (tokensSaved < minSavings) {
-    return { messages, tokensSaved: 0, messagesModified: 0 };
-  }
-
-  return { messages: result, tokensSaved, messagesModified: modified };
+) {
+  return pruneOldToolResults(messages, {
+    protectedTokens,
+    minSavings,
+    estimateTokens
+  });
 }
 
 const defaultEstimateTokens = _defaultEstimateTokens;
@@ -528,6 +482,7 @@ export class Session {
       return this.shouldCompactFn(info);
     }
 
-    return this.lastInputTokens >= this.contextWindow - this.reservedTokens;
+    let usedTokens = Math.max(this.lastInputTokens, defaultEstimateTokens(this.messages));
+    return usedTokens >= this.contextWindow - this.reservedTokens;
   }
 }

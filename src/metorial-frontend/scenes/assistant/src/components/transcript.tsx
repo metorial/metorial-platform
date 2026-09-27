@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AssistantConversationMessage, AssistantLiveState } from '@metorial/state';
-import { Text, theme } from '@metorial/ui';
+import { Error, Text, theme } from '@metorial/ui';
 import styled from 'styled-components';
 import { getTranscriptEntries } from './helpers';
 import { TextShimmer } from './textShimmer';
@@ -39,13 +39,18 @@ export let AssistantTranscript = (p: {
   onCancelEdit?: () => void;
   onSubmitEdit?: () => void;
   onSelectReferenceMessage?: (messageId: string) => void;
+  error?: string | null;
 }) => {
   let entries = getTranscriptEntries(p.messages, p.liveState);
 
   if (!entries.length && !p.isWaitingForResponse) {
     return (
       <EmptyState>
-        <Text>No messages yet.</Text>
+        {p.error ? (
+          <Error style={{ justifyContent: 'center' }}>{p.error}</Error>
+        ) : (
+          <Text>No messages yet.</Text>
+        )}
       </EmptyState>
     );
   }
@@ -69,6 +74,8 @@ export let AssistantTranscript = (p: {
           onSelectReferenceMessage={p.onSelectReferenceMessage}
         />
       ))}
+
+      {p.error ? <Error>{p.error}</Error> : null}
 
       {p.isWaitingForResponse && (
         <ShimmerRow>

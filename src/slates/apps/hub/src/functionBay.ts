@@ -55,13 +55,19 @@ export let functionBayProvider = await db.deploymentProvider.upsert({
 export let getFunctionBayTenantForTenant = async (
   tenant: Pick<
     Tenant,
-    'oid' | 'identifier' | 'name' | 'functionBayTenantId' | 'functionBayTenantIdentifier'
+    | 'oid'
+    | 'identifier'
+    | 'name'
+    | 'functionBayTenantId'
+    | 'functionBayTenantIdentifier'
+    | 'tenantIsolationEnabled'
   >
 ) => {
   if (!tenant.functionBayTenantId) {
     let functionBayTenant = await functionBay.tenant.upsert({
       identifier: tenant.identifier,
-      name: tenant.name
+      name: tenant.name,
+      hasAutomaticEnclaveOverride: tenant.tenantIsolationEnabled
     });
 
     tenant = await db.tenant.update({

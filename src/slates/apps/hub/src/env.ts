@@ -40,6 +40,8 @@ export let env = createValidatedEnv({
 
   registry: {
     INITIAL_REGISTRIES: v.optional(v.string()),
+    SLATES_REGISTRY_URL: v.optional(v.string()),
+    SLATES_SUB_REGISTRY_ID: v.optional(v.string()),
     SUPPORTS_PREBUILT_SLATES: v.optional(v.boolean())
   },
 

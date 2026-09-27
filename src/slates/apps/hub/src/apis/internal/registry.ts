@@ -58,20 +58,5 @@ export let registryController = app.controller({
       });
 
       return registries.map(registryPresenter);
-    }),
-
-  create: app
-    .handler()
-    .input(
-      v.object({
-        registryUrl: v.string(),
-        name: v.optional(v.string())
-      })
-    )
-    .do(async ctx => {
-      await registryService.createRegistry({
-        registryUrl: ctx.input.registryUrl,
-        name: ctx.input.name
-      });
     })
 });

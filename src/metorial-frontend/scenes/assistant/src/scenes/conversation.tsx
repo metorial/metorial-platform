@@ -284,7 +284,8 @@ export let AssistantConversationScene = (p: {
       .then(() => {
         shouldAutoScrollRef.current = true;
         setDraft('');
-      });
+      })
+      .catch(() => {});
   }, [
     assistantConversationId,
     composerParentMessageId,
@@ -443,6 +444,8 @@ export let AssistantConversationScene = (p: {
         parentMessageId: composerParentMessageId,
         modelId: selectedModelId
       });
+    } catch {
+      setDraft(nextText);
     } finally {
       setIsSubmittingComposer(false);
     }
@@ -469,11 +472,15 @@ export let AssistantConversationScene = (p: {
       editingMessage?.parentMessageId ?? history.conversation.data?.rootMessageId;
     if (!parentMessageId) return;
 
-    await history.submitMessage({
-      text: editingDraft,
-      parentMessageId,
-      modelId: selectedModelId
-    });
+    try {
+      await history.submitMessage({
+        text: editingDraft,
+        parentMessageId,
+        modelId: selectedModelId
+      });
+    } catch {
+      return;
+    }
 
     shouldAutoScrollRef.current = true;
     setEditingMessageId(null);
@@ -518,6 +525,7 @@ export let AssistantConversationScene = (p: {
             messages={history.currentMessages}
             liveState={history.liveState}
             isWaitingForResponse={history.isWaitingForResponse}
+            error={history.submitError}
             messageMetaById={messageMetaById}
             editingMessageId={editingMessageId}
             editingValue={editingDraft}

@@ -34,12 +34,15 @@ export let syncRegistryAllQueueProcessor = syncRegistryAllQueue.process(async _d
       orderBy: { id: 'asc' },
       take: 100
     });
+    console.log(
+      `Registry sync poll found ${regs.length} active registries after ${cursor ?? 'initial'}`
+    );
     if (regs.length === 0) break;
 
     await syncRegistryQueue.addManyWithOps(
       regs.map(r => ({
         data: { registryId: r.id },
-        opts: { id: `1${r.id}` }
+        opts: { deduplication: { id: `poll-${r.id}` } }
       }))
     );
 

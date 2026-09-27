@@ -6,6 +6,7 @@ import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import type { Agent } from '../lib/open-harness';
 import type { AgentRunUsage } from '../lib/run';
 import { AgentRun } from '../lib/run';
+import { reducedSubprocessorsErrorMessage } from '../lib/reducedSubprocessors';
 import { createAssistantRunDeltaPublisher } from '../lib/run/redisDeltas';
 import type { InputMessage, State } from '../types';
 
@@ -183,6 +184,10 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
     let agent: Agent | null = null;
 
     try {
+      if (conversation.project.reducedSubprocessors) {
+        throw new Error(reducedSubprocessorsErrorMessage);
+      }
+
       let definition = await getAssistantDefinition(
         conversation.assistant.implementation.slug
       );

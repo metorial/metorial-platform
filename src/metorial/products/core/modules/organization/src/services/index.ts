@@ -21,6 +21,7 @@ export * from './projectAuthConfigConfiguration';
 export * from './projectBrand';
 export * from './projectDataRetentionConfiguration';
 export * from './projectIntegrationNamingConfiguration';
+export * from './projectReducedSubprocessorsConfiguration';
 export * from './projectRetention';
 export * from './projectSkillSyncConfiguration';
 export * from './projectToolCallingConfiguration';

@@ -29,12 +29,14 @@ import { slateVersionDiscoveryController } from './slateVersionDiscovery';
 import { slateWebhookEventController } from './slateWebhookEvent';
 import { slateWebhookRegistrationController } from './slateWebhookRegistration';
 import { tenantController } from './tenant';
+import { tenantIsolationController } from './tenantIsolation';
 import { triggerEventController } from './triggerEvent';
 import { triggerEventInvocationController } from './triggerEventInvocation';
 import { triggerRegistrationController } from './triggerRegistration';
 
 export let rootController = app.controller({
   tenant: tenantController,
+  tenantIsolation: tenantIsolationController,
   secret: secretController,
 
   registry: registryController,

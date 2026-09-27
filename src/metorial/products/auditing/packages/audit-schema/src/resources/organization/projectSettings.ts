@@ -8,6 +8,7 @@ import {
   projectIntegrationNamingConfigurationPresenter,
   projectRetentionPresenter,
   projectSkillSyncConfigurationPresenter,
+  projectReducedSubprocessorsConfigurationPresenter,
   projectToolCallingConfigurationPresenter,
   projectWorkforceConfigurationPresenter
 } from '@metorial/presenters';
@@ -93,6 +94,18 @@ export let projectToolCallingConfigurationResource = resource({
     messageProcessingTimeoutMs: number;
   }>('project_tool_calling_configuration'),
   presenter: projectToolCallingConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectReducedSubprocessorsConfigurationResource = resource({
+  name: 'project_reduced_subprocessors_configuration',
+  payload: v.typedAny<{
+    project: Project;
+    reducedSubprocessors: boolean;
+  }>('project_reduced_subprocessors_configuration'),
+  presenter: projectReducedSubprocessorsConfigurationPresenter,
   actions: {
     update: true
   }
