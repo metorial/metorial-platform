@@ -91,8 +91,22 @@ let emptyShape = (value: any): any => {
   return '';
 };
 
-let isSensitiveLogField = (key: string) =>
-  ['clientsecret', 'client_secret', 'key', 'token', 'secret'].includes(key.toLowerCase());
+let sensitiveFragments = [
+  'token',
+  'secret',
+  'password',
+  'passwd',
+  'key',
+  'authorization',
+  'cookie',
+  'session',
+  'credential'
+];
+
+let isSensitiveLogField = (key: string) => {
+  let k = key.toLowerCase();
+  return sensitiveFragments.some(fragment => k.includes(fragment));
+};
 
 let redactSensitiveFields = (value: any): any => {
   if (Array.isArray(value)) return value.map(item => redactSensitiveFields(item));
