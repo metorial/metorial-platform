@@ -11,6 +11,7 @@ export type DashboardInstanceMagicMcpServersGetOutput = {
     | 'inherited_from_integration';
   endpoints: { id: string; alias: string; url: string }[];
   providerTemplateId: string | null;
+  backingStatus: 'healthy' | 'needs_reconnect';
   providers: {
     object: 'magic_mcp.server.provider';
     id: string;
@@ -280,6 +281,10 @@ export let mapDashboardInstanceMagicMcpServersGetOutput = mtMap.union([
       ),
       providerTemplateId: mtMap.objectField(
         'provider_template_id',
+        mtMap.passthrough()
+      ),
+      backingStatus: mtMap.objectField(
+        'backing_status',
         mtMap.passthrough()
       ),
       providers: mtMap.objectField(
