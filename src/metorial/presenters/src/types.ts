@@ -2186,6 +2186,7 @@ export let magicMcpServerType = PresentableType.create<{
   integration?: SubspaceIntegration | null;
   integrationInstance?: SubspaceIntegrationInstance | null;
   magicMcpServerProviders?: SubspaceMagicMcpServerProvider[] | null;
+  backingStatus?: 'healthy' | 'needs_reconnect' | null;
   portal?: Portal | null;
 }>()('magic_mcp.server');
 
