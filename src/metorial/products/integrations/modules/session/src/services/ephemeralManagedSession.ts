@@ -13,7 +13,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
-import { checkDeletedEdit } from '@metorial-subspace/list-utils';
+import { checkDeletedEdit, isRecordDeleted } from '@metorial-subspace/list-utils';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -379,7 +379,7 @@ class ephemeralManagedSessionServiceImpl {
         adapterGlobalOid: adapter?.oid ?? null
       };
 
-      if (d.ephemeralManagedSession) {
+      if (d.ephemeralManagedSession && !isRecordDeleted(d.ephemeralManagedSession)) {
         return await db.ephemeralManagedSession.update({
           where: {
             oid: d.ephemeralManagedSession.oid,

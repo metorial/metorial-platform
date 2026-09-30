@@ -43,6 +43,7 @@ import {
   integrationInstanceService
 } from './integrationInstance';
 import { integrationInstanceProviderService } from './integrationInstanceProvider';
+import { integrationProviderService } from './integrationProvider';
 
 export let integrationSetupSessionProviderInclude = {
   integrationProvider: {
@@ -406,7 +407,9 @@ class integrationSetupSessionServiceImpl {
     });
     let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
 
-    let integrationProviders = await this.getActiveIntegrationProviders({
+    let integrationProviders = await this.getUsableIntegrationProviders({
+      tenant: d.tenant,
+      environment: d.environment,
       integration
     });
     if (!integrationProviders.length) {
@@ -587,7 +590,9 @@ class integrationSetupSessionServiceImpl {
       }
 
       let integrationProvider = (
-        await this.getActiveIntegrationProviders({
+        await this.getUsableIntegrationProviders({
+          tenant: setupSession.tenant,
+          environment: setupSession.environment,
           integration: setupSession.integration,
           integrationProviderOid: providerRow.integrationProviderOid
         })
@@ -813,6 +818,28 @@ class integrationSetupSessionServiceImpl {
       },
       orderBy: { createdAt: 'asc' }
     });
+  }
+
+  private async getUsableIntegrationProviders(d: {
+    tenant: Tenant;
+    environment: Environment;
+    integration: Pick<Integration, 'oid'>;
+    integrationProviderOid?: bigint;
+  }) {
+    let integrationProviders = await this.getActiveIntegrationProviders(d);
+
+    let healed = await Promise.all(
+      integrationProviders.map(integrationProvider =>
+        integrationProviderService.resolveUsableIntegrationProviderMaterialInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          integrationProvider
+        })
+      )
+    );
+    if (!healed.some(r => r.isHealed)) return integrationProviders;
+
+    return await this.getActiveIntegrationProviders(d);
   }
 
   private async createChildProviderSetupSession(d: {

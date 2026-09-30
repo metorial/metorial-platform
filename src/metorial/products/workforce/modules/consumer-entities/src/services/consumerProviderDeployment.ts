@@ -13,6 +13,7 @@ import {
 } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { magicMcpServerService } from '@metorial/module-magic';
+import { magicMcpServerBackingService } from '@metorial-subspace/module-integration';
 import {
   loadTemplateContextForDeployment,
   type ConsumerProviderTemplateContext
@@ -191,6 +192,19 @@ class ConsumerProviderDeploymentServiceImpl {
 
     assertProviderCanBeDeployed(providerContext);
 
+    let serverNeedingReconnect = await this.findOwnedServerNeedingReconnect({
+      instance: d.instance,
+      consumerProfile: d.consumerProfile,
+      providerTemplateId: providerContext.providerTemplate.id
+    });
+    if (serverNeedingReconnect) {
+      return await this.relinkOwnedServer({
+        ...d,
+        providerContext,
+        server: serverNeedingReconnect
+      });
+    }
+
     await Fabric.fire('consumer.provider.deployed:before', {
       instance: d.instance,
       auditScope: d.auditScope
@@ -292,6 +306,129 @@ class ConsumerProviderDeploymentServiceImpl {
 
       throw error;
     }
+  }
+
+  async reconnectProvider(d: {
+    organization: Organization;
+    performedBy: OrganizationActor;
+    instance: Instance;
+    context: Context;
+    consumerProfile: ConsumerProfile;
+    accessTags: AnyAccessTagSelector;
+    auditScope: AuditScope;
+    providerTemplateId: string;
+    input: ConsumerProviderDeployInput & { magicMcpServerId: string };
+  }) {
+    let providerContext = await loadTemplateContextForDeployment({
+      instance: d.instance,
+      accessTags: d.accessTags,
+      providerTemplateId: d.providerTemplateId
+    });
+
+    let server = await db.magicMcpServer.findFirst({
+      where: {
+        id: d.input.magicMcpServerId,
+        instanceOid: d.instance.oid,
+        status: 'active',
+        source: 'consumer_provider_template',
+        providerTemplateId: providerContext.providerTemplate.id,
+        consumerIntegrations: {
+          some: { consumerProfileOid: d.consumerProfile.oid }
+        }
+      }
+    });
+    if (!server) return await this.deployProvider(d);
+
+    return await this.relinkOwnedServer({ ...d, providerContext, server });
+  }
+
+  private async findOwnedServerNeedingReconnect(d: {
+    instance: Instance;
+    consumerProfile: ConsumerProfile;
+    providerTemplateId: string;
+  }) {
+    let servers = await db.magicMcpServer.findMany({
+      where: {
+        instanceOid: d.instance.oid,
+        status: 'active',
+        source: 'consumer_provider_template',
+        providerTemplateId: d.providerTemplateId,
+        hasSubspaceBacking: true,
+        consumerIntegrations: {
+          some: { consumerProfileOid: d.consumerProfile.oid }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+    if (!servers.length) return null;
+
+    let statuses = await magicMcpServerBackingService.getMagicMcpServerBackingStatuses({
+      instance: d.instance,
+      magicMcpServerBackingIds: servers.map(server => server.id)
+    });
+
+    return servers.find(server => statuses.get(server.id) === 'needs_reconnect') ?? null;
+  }
+
+  private async relinkOwnedServer(d: {
+    instance: Instance;
+    consumerProfile: ConsumerProfile;
+    auditScope: AuditScope;
+    providerContext: ConsumerProviderTemplateContext;
+    server: MagicMcpServer;
+    input: { integrationSetupSessionId: string };
+  }) {
+    let { providerContext, server } = d;
+
+    let setupSession = await consumerProviderSetupSessionService.getCompletedSetupSession({
+      instance: d.instance,
+      consumerProfile: d.consumerProfile,
+      providerTemplate: providerContext.providerTemplate,
+      integrationSetupSessionId: d.input.integrationSetupSessionId
+    });
+
+    assertActiveSetupSessionInstance(setupSession);
+
+    let consumerOwner = await getConsumerOwnerForProfile({
+      instance: d.instance,
+      consumerProfile: d.consumerProfile
+    });
+
+    let magicMcpServer = await magicMcpServerService.relinkMagicMcpServerIntegrationInstance({
+      server,
+      instance: d.instance,
+      auditScope: d.auditScope,
+      integrationInstanceId: setupSession.integrationInstance.id,
+      consumerOwner
+    });
+
+    let deployment = {
+      providerTemplate: {
+        id: providerContext.providerTemplate.id,
+        name: providerContext.providerTemplate.name
+      },
+      provider: {
+        id: providerContext.provider.id,
+        name: providerContext.provider.name
+      },
+      magicMcpServer: { id: magicMcpServer.id, name: magicMcpServer.name }
+    };
+
+    await Fabric.fire('consumer.provider.reconnected:after', {
+      instance: d.instance,
+      auditScope: d.auditScope,
+      deployment: {
+        ...deployment,
+        integrationInstanceId: setupSession.integrationInstance.id
+      },
+      previousDeployment: {
+        ...deployment,
+        integrationInstanceId: server.subspaceIntegrationInstanceId
+      }
+    });
+
+    return magicMcpServer;
   }
 
   private async rollbackFailedDeployment(d: {

@@ -35,6 +35,7 @@ import {
   integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor,
   integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor
 } from './integrationProvider';
+import { integrationProviderStaleCredentialsProcessors } from './integrationProviderStaleCredentials';
 import { magicMcpBackingReconcileQueueProcessor } from './magicMcpBackingReconcile';
 
 export let lifecycleQueues = combineQueueProcessors([
@@ -62,6 +63,7 @@ export let lifecycleQueues = combineQueueProcessors([
   integrationProviderArchivedQueueProcessor,
   integrationProviderArchiveInstanceProvidersManyQueueProcessor,
   integrationProviderArchiveGroupProvidersManyQueueProcessor,
+  integrationProviderStaleCredentialsProcessors,
   magicMcpBackingReconcileQueueProcessor,
   integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor,
   integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor

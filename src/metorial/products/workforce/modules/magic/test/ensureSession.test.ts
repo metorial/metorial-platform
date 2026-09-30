@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../src/lib/backing', () => ({
   ensureMagicMcpServerBacking: vi.fn(),
   ensureMagicMcpEndpointBacking: vi.fn(),
+  healMagicMcpServerBacking: vi.fn(async ({ server }) => server),
   waitForMagicMcpServerBackingReady: vi.fn().mockResolvedValue(null),
   waitForMagicMcpEndpointBackingReady: vi.fn().mockResolvedValue(null)
 }));

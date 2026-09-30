@@ -735,6 +735,53 @@ class providerAuthCredentialsServiceImpl {
     });
   }
 
+  async resolveReplacementProviderAuthCredentialsInternal(d: {
+    tenant: Tenant;
+    environment: Environment;
+    provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
+    providerAuthCredentials: ProviderAuthCredentials;
+  }): Promise<
+    | { type: 'replace'; providerAuthCredentials: ProviderAuthCredentials }
+    | { type: 'clear' }
+    | null
+  > {
+    let solution = await getMetorialSolution();
+    let supportsAutoRegistration =
+      !!d.provider.type.attributes.auth.oauth?.oauthAutoRegistration;
+
+    if (d.providerAuthCredentials.isAutoRegistration && supportsAutoRegistration) {
+      let defaultCredentials = await this.ensureDefaultProviderAuthCredentialsInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        provider: d.provider
+      });
+      return { type: 'replace', providerAuthCredentials: defaultCredentials };
+    }
+
+    let candidates = await db.providerAuthCredentials.findMany({
+      where: {
+        providerOid: d.provider.oid,
+        status: 'active',
+        isEphemeral: false,
+        isAutoRegistration: false,
+        oid: { not: d.providerAuthCredentials.oid },
+        OR: [
+          getTenantOwnedWhere({ ...d, solution }),
+          getManagedBackingWhere({ tenant: d.tenant, solution })
+        ]
+      },
+      take: 2
+    });
+    if (candidates.length === 1) {
+      return { type: 'replace', providerAuthCredentials: candidates[0]! };
+    }
+    if (candidates.length > 1) return null;
+
+    if (d.provider.type.supportsOAuthAutoRegistration) return { type: 'clear' };
+
+    return null;
+  }
+
   async getProviderAuthCredentialsForBackendUse(
     d: MetorialFacing<GetProviderAuthCredentialsForBackendUseParams>
   ) {

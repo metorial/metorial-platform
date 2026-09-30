@@ -1,4 +1,9 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -22,6 +27,7 @@ import {
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
+  isRecordDeleted,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -805,8 +811,13 @@ class integrationProviderServiceImpl {
             providerOid: deployment.providerOid
           }
         },
-        include: { currentVersion: true }
+        include: { currentVersion: { include: { authCredentials: true } } }
       });
+      let existingAuthCredentials = existing?.currentVersion?.authCredentials;
+      let existingAuthCredentialsOid =
+        existingAuthCredentials && !isRecordDeleted(existingAuthCredentials)
+          ? existingAuthCredentials.oid
+          : null;
 
       let toolFilter =
         d.input.toolFilters === undefined && existing?.currentVersion
@@ -857,8 +868,7 @@ class integrationProviderServiceImpl {
       let materialInput = {
         deploymentOid: deployment.oid,
         authMethodOid: existing?.currentVersion?.authMethodOid ?? inferredAuth.authMethodOid,
-        authCredentialsOid:
-          existing?.currentVersion?.authCredentialsOid ?? inferredAuth.authCredentialsOid,
+        authCredentialsOid: existingAuthCredentialsOid ?? inferredAuth.authCredentialsOid,
         configOid: existing?.currentVersion?.configOid ?? deployment.defaultConfigOid ?? null,
         toolFilter
       };
@@ -1069,6 +1079,58 @@ class integrationProviderServiceImpl {
     }
 
     return res;
+  }
+
+  async resolveUsableIntegrationProviderMaterialInternal(d: {
+    tenant: Tenant;
+    environment: Environment;
+    integrationProvider: IntegrationProvider;
+  }) {
+    let current = await db.integrationProvider.findUniqueOrThrow({
+      where: { oid: d.integrationProvider.oid },
+      include: {
+        integration: true,
+        provider: { include: { defaultVariant: true, type: true } },
+        currentVersion: { include: { authCredentials: true } }
+      }
+    });
+
+    let staleCredentials = current.currentVersion?.authCredentials;
+    if (
+      current.status !== 'active' ||
+      !staleCredentials ||
+      !isRecordDeleted(staleCredentials)
+    ) {
+      return { isHealed: false };
+    }
+
+    let replacement =
+      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        provider: current.provider,
+        providerAuthCredentials: staleCredentials
+      });
+    if (!replacement) {
+      throw new ServiceError(
+        preconditionFailedError({
+          code: 'integration_provider_credentials_unavailable',
+          message: `The OAuth app credentials for ${current.provider.name} were removed. Ask your administrator to reconfigure the "${current.integration.name}" integration.`
+        })
+      );
+    }
+
+    await this.updateIntegrationProviderInternal({
+      tenant: d.tenant,
+      environment: d.environment,
+      integrationProvider: current,
+      input: {
+        providerAuthCredentialsId:
+          replacement.type === 'replace' ? replacement.providerAuthCredentials.id : null
+      }
+    });
+
+    return { isHealed: true };
   }
 
   async enableIntegrationProviderCallbacks(

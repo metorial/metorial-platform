@@ -35,6 +35,19 @@ export let recordConsumerProviderDeployed = async (
   });
 };
 
+export let recordConsumerProviderReconnected = async (
+  event: FabricEvents['consumer.provider.reconnected:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'consumer_provider_deployment',
+      'reconnect',
+      { payload: event.deployment, previousPayload: event.previousDeployment, recordedAt }
+    );
+  });
+};
+
 export let recordConsumerSurfaceProviderGroupCreated = async (
   event: FabricEvents['consumer.surface_provider_group.created:after']
 ) => {
@@ -126,6 +139,7 @@ export let recordConsumerSurfaceProviderGroupListingRemoved = async (
 };
 
 Fabric.listen('consumer.provider.deployed:after', recordConsumerProviderDeployed);
+Fabric.listen('consumer.provider.reconnected:after', recordConsumerProviderReconnected);
 
 Fabric.listen(
   'consumer.surface_provider_group.created:after',

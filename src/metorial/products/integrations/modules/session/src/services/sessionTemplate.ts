@@ -17,6 +17,7 @@ import {
 import {
   checkDeletedEdit,
   type DateFilter,
+  isRecordDeleted,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -481,7 +482,7 @@ class sessionTemplateServiceImpl {
           d.input.integrationInstanceGroup?.oid ?? null
       };
 
-      if (d.sessionTemplate) {
+      if (d.sessionTemplate && !isRecordDeleted(d.sessionTemplate)) {
         return await db.sessionTemplate.update({
           where: {
             oid: d.sessionTemplate.oid,

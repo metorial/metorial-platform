@@ -1,3 +1,4 @@
+import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { db, ID, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
 import {
   integrationInstanceService,
@@ -174,6 +175,38 @@ export let ensureMagicMcpServerBacking = async (d: {
       }
     });
   });
+
+export let healMagicMcpServerBacking = async (d: {
+  instance: Instance;
+  server: MagicMcpServer;
+}) => {
+  if (!d.server.hasSubspaceBacking || d.server.legacySubspaceSessionTemplateId) {
+    return d.server;
+  }
+
+  let statuses = await magicMcpServerBackingService.getMagicMcpServerBackingStatuses({
+    instance: d.instance,
+    magicMcpServerBackingIds: [d.server.id]
+  });
+  let status = statuses.get(d.server.id);
+
+  if (status === 'needs_reconnect') {
+    throw new ServiceError(
+      preconditionFailedError({
+        code: 'magic_mcp_server_needs_reconnect',
+        message:
+          'The account connected to this integration was removed. Reconnect the integration to keep using it.'
+      })
+    );
+  }
+  if (status !== 'stale') return d.server;
+
+  return await ensureMagicMcpServerBacking({
+    instance: d.instance,
+    server: d.server,
+    deferReconcile: false
+  });
+};
 
 let ensureEndpointServerIds = async (endpoint: Pick<MagicMcpEndpoint, 'oid'>) => {
   let rows = await db.magicMcpEndpointServer.findMany({

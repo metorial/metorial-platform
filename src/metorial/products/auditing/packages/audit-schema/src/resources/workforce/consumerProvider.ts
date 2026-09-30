@@ -11,7 +11,8 @@ export let consumerProviderDeploymentAuditResource = resource({
   }>('consumer_provider_deployment'),
   presenter: undefined,
   actions: {
-    deploy: true
+    deploy: true,
+    reconnect: true
   }
 });
 

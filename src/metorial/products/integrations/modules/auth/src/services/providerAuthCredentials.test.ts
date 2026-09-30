@@ -306,3 +306,120 @@ describe('listProviderAuthCredentialsInternal auth method filtering', () => {
     ]);
   });
 });
+
+describe('resolveReplacementProviderAuthCredentialsInternal', () => {
+  let tenant = { oid: 10n, projectOid: 20n } as any;
+  let environment = { oid: 30n, instanceOid: 40n } as any;
+  let makeProvider = (d: { autoRegistration: boolean }) =>
+    ({
+      oid: 50n,
+      defaultVariant: { oid: 51n, backendOid: 60n },
+      type: {
+        supportsOAuthAutoRegistration: d.autoRegistration,
+        attributes: {
+          auth: {
+            oauth: d.autoRegistration ? { oauthAutoRegistration: { status: 'supported' } } : {}
+          }
+        }
+      }
+    }) as any;
+  let staleCredentials = {
+    oid: 70n,
+    id: 'pac_old',
+    status: 'archived',
+    isAutoRegistration: false
+  } as any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+  });
+
+  it('re-registers default credentials when the stale ones were auto-registered', async () => {
+    let defaults = { oid: 71n, id: 'pac_default' } as any;
+    let ensureDefault = vi
+      .spyOn(providerAuthCredentialsService, 'ensureDefaultProviderAuthCredentialsInternal')
+      .mockResolvedValue(defaults);
+
+    let result =
+      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
+        tenant,
+        environment,
+        provider: makeProvider({ autoRegistration: true }),
+        providerAuthCredentials: { ...staleCredentials, isAutoRegistration: true }
+      });
+
+    expect(result).toEqual({ type: 'replace', providerAuthCredentials: defaults });
+    expect(ensureDefault).toHaveBeenCalled();
+    expect(mocks.providerAuthCredentialsFindMany).not.toHaveBeenCalled();
+  });
+
+  it('uses the only other active credentials for the provider', async () => {
+    let candidate = { oid: 72n, id: 'pac_other' };
+    mocks.providerAuthCredentialsFindMany.mockResolvedValue([candidate]);
+
+    let result =
+      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
+        tenant,
+        environment,
+        provider: makeProvider({ autoRegistration: false }),
+        providerAuthCredentials: staleCredentials
+      });
+
+    expect(result).toEqual({ type: 'replace', providerAuthCredentials: candidate });
+    expect(mocks.providerAuthCredentialsFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          providerOid: 50n,
+          status: 'active',
+          oid: { not: staleCredentials.oid }
+        })
+      })
+    );
+  });
+
+  it('refuses to guess between multiple candidate credentials', async () => {
+    mocks.providerAuthCredentialsFindMany.mockResolvedValue([
+      { oid: 72n, id: 'pac_a' },
+      { oid: 73n, id: 'pac_b' }
+    ]);
+
+    let result =
+      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
+        tenant,
+        environment,
+        provider: makeProvider({ autoRegistration: true }),
+        providerAuthCredentials: staleCredentials
+      });
+
+    expect(result).toBeNull();
+  });
+
+  it('clears the credentials when none remain and the provider can auto-register', async () => {
+    mocks.providerAuthCredentialsFindMany.mockResolvedValue([]);
+
+    let result =
+      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
+        tenant,
+        environment,
+        provider: makeProvider({ autoRegistration: true }),
+        providerAuthCredentials: staleCredentials
+      });
+
+    expect(result).toEqual({ type: 'clear' });
+  });
+
+  it('returns null when none remain and the provider needs explicit credentials', async () => {
+    mocks.providerAuthCredentialsFindMany.mockResolvedValue([]);
+
+    let result =
+      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
+        tenant,
+        environment,
+        provider: makeProvider({ autoRegistration: false }),
+        providerAuthCredentials: staleCredentials
+      });
+
+    expect(result).toBeNull();
+  });
+});
