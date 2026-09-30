@@ -5,6 +5,7 @@ let mocks = vi.hoisted(() => ({
   providerAuthCredentialsUpdate: vi.fn(),
   managedBackingFindUnique: vi.fn(),
   managedBackingCreate: vi.fn(),
+  managedCredentialsFindUnique: vi.fn(),
   addAfterTransactionHook: vi.fn(),
   backendCreateProviderAuthCredentials: vi.fn(),
   queueAdd: vi.fn()
@@ -32,6 +33,9 @@ vi.mock('@metorial-subspace/db', () => {
     managedProviderAuthCredentialsBacking: {
       findUnique: mocks.managedBackingFindUnique,
       create: mocks.managedBackingCreate
+    },
+    managedProviderAuthCredentials: {
+      findUnique: mocks.managedCredentialsFindUnique
     }
   };
 
@@ -108,6 +112,9 @@ describe('ensureManagedProviderAuthCredentialsBacking', () => {
       id: 'pacr_1'
     });
     mocks.managedBackingCreate.mockResolvedValue({});
+    mocks.managedCredentialsFindUnique.mockImplementation(async (args: any) =>
+      args.select ? { status: managedCredentials.status } : managedCredentials
+    );
   });
 
   it('stamps projectOid from the tenant and leaves environment oids unset', async () => {
@@ -182,5 +189,66 @@ describe('ensureManagedProviderAuthCredentialsBacking', () => {
     expect(mocks.providerAuthCredentialsUpdate.mock.calls[0]![0].data).toEqual({
       projectOid: 20n
     });
+  });
+
+  it('syncs from a fresh read of the managed credentials instead of the caller snapshot', async () => {
+    mocks.managedBackingFindUnique.mockResolvedValue({
+      providerAuthCredentials: {
+        oid: 100n,
+        id: 'pacr_1',
+        status: 'active',
+        scopes: ['read'],
+        updatedAt: new Date(0)
+      }
+    });
+    mocks.managedCredentialsFindUnique.mockImplementation(async (args: any) =>
+      args.select
+        ? { status: 'archived' }
+        : { ...managedCredentials, status: 'archived', updatedAt: new Date('2026-03-01') }
+    );
+    mocks.providerAuthCredentialsUpdate.mockImplementation(async (args: any) => ({
+      oid: 100n,
+      id: 'pacr_1',
+      ...args.data
+    }));
+
+    let result = await ensureManagedProviderAuthCredentialsBacking({
+      tenant: tenant as any,
+      managedCredentials: managedCredentials as any,
+      providerAuthMethod: { globalOid: 5n }
+    });
+
+    expect(mocks.providerAuthCredentialsUpdate.mock.calls[0]![0].data).toMatchObject({
+      status: 'archived'
+    });
+    expect(result.status).toBe('archived');
+  });
+
+  it('re-archives a backing when the managed credentials were archived during the sync', async () => {
+    mocks.managedCredentialsFindUnique.mockImplementation(async (args: any) =>
+      args.select ? { status: 'archived' } : managedCredentials
+    );
+    mocks.providerAuthCredentialsCreate.mockResolvedValue({
+      oid: 100n,
+      id: 'pacr_1',
+      status: 'active'
+    });
+    mocks.providerAuthCredentialsUpdate.mockImplementation(async (args: any) => ({
+      oid: 100n,
+      id: 'pacr_1',
+      ...args.data
+    }));
+
+    let result = await ensureManagedProviderAuthCredentialsBacking({
+      tenant: tenant as any,
+      managedCredentials: managedCredentials as any,
+      providerAuthMethod: { globalOid: 5n }
+    });
+
+    expect(mocks.providerAuthCredentialsUpdate).toHaveBeenCalledWith({
+      where: { oid: 100n },
+      data: { status: 'archived' }
+    });
+    expect(result.status).toBe('archived');
   });
 });

@@ -44,8 +44,8 @@ vi.mock('@metorial-subspace/db', () => {
       findMany: mocks.providerAuthCredentialsFindMany,
       findUniqueOrThrow: vi.fn()
     },
-    managedProviderAuthCredentials: { findFirstOrThrow: vi.fn() },
-    managedProviderAuthCredentialsBacking: { findFirstOrThrow: vi.fn() },
+    managedProviderAuthCredentials: { findFirstOrThrow: vi.fn(), findFirst: vi.fn() },
+    managedProviderAuthCredentialsBacking: { findFirstOrThrow: vi.fn(), findFirst: vi.fn() },
     integrationProvider: { findFirst: vi.fn() }
   };
 
@@ -109,6 +109,8 @@ vi.mock('../queues/lifecycle/providerAuthCredentials', () => ({
   providerAuthCredentialsUpdatedQueue: { add: mocks.queueAdd }
 }));
 
+import { db } from '@metorial-subspace/db';
+import { ensureManagedProviderAuthCredentialsBacking } from '../lib/managedProviderAuthCredentialsBacking';
 import { providerAuthCredentialsService } from './providerAuthCredentials';
 
 let makeParams = ({
@@ -421,5 +423,185 @@ describe('resolveReplacementProviderAuthCredentialsInternal', () => {
       });
 
     expect(result).toBeNull();
+  });
+
+  describe('managed credentials', () => {
+    let staleManagedCredentials = {
+      oid: 80n,
+      providerAuthMethodGlobalOid: null,
+      initialProviderAuthMethod: { globalOid: 90n }
+    };
+    let rotatedManagedCredentials = { oid: 81n, id: 'mpac_new', status: 'active' };
+    let materializedBacking = { oid: 74n, id: 'pac_managed_new', origin: 'managed_backing' };
+
+    beforeEach(() => {
+      vi.mocked(db.managedProviderAuthCredentialsBacking.findFirst).mockResolvedValue({
+        managedCredentials: staleManagedCredentials
+      } as any);
+      vi.mocked(ensureManagedProviderAuthCredentialsBacking).mockResolvedValue(
+        materializedBacking as any
+      );
+      vi.mocked(db.providerAuthCredentials.findFirst).mockResolvedValue(
+        materializedBacking as any
+      );
+    });
+
+    it('materializes the active managed credentials that replaced an archived backing', async () => {
+      vi.mocked(db.managedProviderAuthCredentials.findFirst).mockResolvedValue(
+        rotatedManagedCredentials as any
+      );
+
+      let result =
+        await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal(
+          {
+            tenant,
+            environment,
+            provider: makeProvider({ autoRegistration: false }),
+            providerAuthCredentials: { ...staleCredentials, origin: 'managed_backing' }
+          }
+        );
+
+      expect(result).toEqual({
+        type: 'replace',
+        providerAuthCredentials: materializedBacking
+      });
+      expect(db.managedProviderAuthCredentials.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'active',
+            OR: [
+              { providerAuthMethodGlobalOid: 90n },
+              {
+                providerAuthMethodGlobalOid: null,
+                initialProviderAuthMethod: { globalOid: 90n }
+              }
+            ]
+          }),
+          orderBy: { createdAt: 'desc' }
+        })
+      );
+      expect(ensureManagedProviderAuthCredentialsBacking).toHaveBeenCalledWith({
+        tenant,
+        managedCredentials: rotatedManagedCredentials,
+        providerAuthMethod: { globalOid: 90n }
+      });
+      expect(mocks.providerAuthCredentialsFindMany).not.toHaveBeenCalled();
+    });
+
+    it('resolves legacy managed_public rows through their managed credentials', async () => {
+      vi.mocked(db.managedProviderAuthCredentials.findFirst)
+        .mockResolvedValueOnce(staleManagedCredentials as any)
+        .mockResolvedValueOnce(rotatedManagedCredentials as any);
+
+      let result =
+        await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal(
+          {
+            tenant,
+            environment,
+            provider: makeProvider({ autoRegistration: false }),
+            providerAuthCredentials: {
+              ...staleCredentials,
+              origin: 'managed_public',
+              managedCredentialsOid: 80n
+            }
+          }
+        );
+
+      expect(result).toEqual({
+        type: 'replace',
+        providerAuthCredentials: materializedBacking
+      });
+      expect(db.managedProviderAuthCredentialsBacking.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('matches managed credentials on the global auth method of the integration', async () => {
+      vi.mocked(db.managedProviderAuthCredentials.findFirst).mockResolvedValue(
+        rotatedManagedCredentials as any
+      );
+
+      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
+        tenant,
+        environment,
+        provider: makeProvider({ autoRegistration: false }),
+        providerAuthCredentials: { ...staleCredentials, origin: 'managed_backing' },
+        providerAuthMethod: { globalOid: 91n }
+      });
+
+      expect(db.managedProviderAuthCredentialsBacking.findFirst).not.toHaveBeenCalled();
+      expect(db.managedProviderAuthCredentials.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { providerAuthMethodGlobalOid: 91n },
+              {
+                providerAuthMethodGlobalOid: null,
+                initialProviderAuthMethod: { globalOid: 91n }
+              }
+            ]
+          })
+        })
+      );
+      expect(ensureManagedProviderAuthCredentialsBacking).toHaveBeenCalledWith(
+        expect.objectContaining({ providerAuthMethod: { globalOid: 91n } })
+      );
+    });
+
+    it('does not use a materialized backing that was archived concurrently', async () => {
+      vi.mocked(db.managedProviderAuthCredentials.findFirst).mockResolvedValue(
+        rotatedManagedCredentials as any
+      );
+      vi.mocked(db.providerAuthCredentials.findFirst).mockResolvedValue(null);
+      mocks.providerAuthCredentialsFindMany.mockResolvedValue([]);
+
+      let result =
+        await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal(
+          {
+            tenant,
+            environment,
+            provider: makeProvider({ autoRegistration: false }),
+            providerAuthCredentials: { ...staleCredentials, origin: 'managed_backing' }
+          }
+        );
+
+      expect(db.providerAuthCredentials.findFirst).toHaveBeenCalledWith({
+        where: { oid: materializedBacking.oid, status: 'active' }
+      });
+      expect(result).toBeNull();
+    });
+
+    it('falls back to tenant candidates when no managed credentials are active', async () => {
+      vi.mocked(db.managedProviderAuthCredentials.findFirst).mockResolvedValue(null);
+      mocks.providerAuthCredentialsFindMany.mockResolvedValue([{ oid: 72n, id: 'pac_other' }]);
+
+      let result =
+        await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal(
+          {
+            tenant,
+            environment,
+            provider: makeProvider({ autoRegistration: false }),
+            providerAuthCredentials: { ...staleCredentials, origin: 'managed_backing' }
+          }
+        );
+
+      expect(result).toEqual({
+        type: 'replace',
+        providerAuthCredentials: { oid: 72n, id: 'pac_other' }
+      });
+      expect(ensureManagedProviderAuthCredentialsBacking).not.toHaveBeenCalled();
+    });
+
+    it('does not look up managed credentials for tenant-created rows', async () => {
+      mocks.providerAuthCredentialsFindMany.mockResolvedValue([]);
+
+      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
+        tenant,
+        environment,
+        provider: makeProvider({ autoRegistration: false }),
+        providerAuthCredentials: { ...staleCredentials, origin: 'tenant_created' }
+      });
+
+      expect(db.managedProviderAuthCredentials.findFirst).not.toHaveBeenCalled();
+      expect(db.managedProviderAuthCredentialsBacking.findFirst).not.toHaveBeenCalled();
+    });
   });
 });

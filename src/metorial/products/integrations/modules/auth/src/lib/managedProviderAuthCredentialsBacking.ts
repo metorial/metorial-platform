@@ -44,29 +44,42 @@ let getProviderAuthMethodGlobalOid = (managedCredentials: {
   managedCredentials.providerAuthMethodGlobalOid ??
   managedCredentials.initialProviderAuthMethod.globalOid;
 
+let managedCredentialsSyncInclude = {
+  provider: managedProviderAuthCredentialsBackingSourceInclude.provider,
+  initialProviderAuthMethod:
+    managedProviderAuthCredentialsBackingSourceInclude.initialProviderAuthMethod
+};
+
+type ManagedCredentialsSyncSource = Omit<
+  ManagedProviderAuthCredentialsBackingSource,
+  'backings'
+>;
+
+let getDesiredBackingStatus = (managedCredentials: { status: string }) =>
+  managedCredentials.status === 'archived' ? ('archived' as const) : ('active' as const);
+
 export let ensureManagedProviderAuthCredentialsBacking = async (d: {
   tenant: Tenant;
-  managedCredentials: ManagedProviderAuthCredentialsBackingSource;
+  managedCredentials: ManagedCredentialsSyncSource;
   providerAuthMethod: {
     globalOid: bigint;
   };
 }) => {
   let solution = await getMetorialSolution();
-  let provider = getProviderForManagedCredentials(d.managedCredentials);
-  let managedCredentialsGlobalOid = getProviderAuthMethodGlobalOid(d.managedCredentials);
-  let managedScopeIds = normalizeManagedOAuthScopeIds(d.managedCredentials.oauthScopes);
-  let desiredStatus =
-    d.managedCredentials.status === 'archived' ? ('archived' as const) : ('active' as const);
-  let syncAfter = d.managedCredentials.updatedAt.getTime();
 
-  if (managedCredentialsGlobalOid !== d.providerAuthMethod.globalOid) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'Managed credentials can only be used with their configured auth method',
-        code: 'managed_credentials_auth_method_mismatch'
-      })
-    );
-  }
+  let assertAuthMethodMatches = (managedCredentials: ManagedCredentialsSyncSource) => {
+    if (
+      getProviderAuthMethodGlobalOid(managedCredentials) !== d.providerAuthMethod.globalOid
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Managed credentials can only be used with their configured auth method',
+          code: 'managed_credentials_auth_method_mismatch'
+        })
+      );
+    }
+  };
+  assertAuthMethodMatches(d.managedCredentials);
 
   let getExistingBacking = async () => {
     let backing = await db.managedProviderAuthCredentialsBacking.findUnique({
@@ -103,11 +116,20 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
   };
 
   let isBackingFresh = (
-    backing: Awaited<ReturnType<typeof getExistingBacking>>
+    backing: Awaited<ReturnType<typeof getExistingBacking>>,
+    managedCredentials: ManagedCredentialsSyncSource
   ): backing is NonNullable<Awaited<ReturnType<typeof getExistingBacking>>> =>
-    !!backing && backing.updatedAt.getTime() >= syncAfter && backing.status === desiredStatus;
+    !!backing &&
+    backing.updatedAt.getTime() >= managedCredentials.updatedAt.getTime() &&
+    backing.status === getDesiredBackingStatus(managedCredentials);
 
-  let syncBacking = async (existing: Awaited<ReturnType<typeof getExistingBacking>>) => {
+  let syncBacking = async (
+    existing: Awaited<ReturnType<typeof getExistingBacking>>,
+    managedCredentials: ManagedCredentialsSyncSource
+  ) => {
+    let provider = getProviderForManagedCredentials(managedCredentials);
+    let managedScopeIds = normalizeManagedOAuthScopeIds(managedCredentials.oauthScopes);
+    let desiredStatus = getDesiredBackingStatus(managedCredentials);
     let defaultVariant = provider.defaultVariant;
     if (!defaultVariant) {
       throw new Error('Provider has no default variant');
@@ -130,8 +152,8 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
       provider,
       input: {
         type: 'oauth',
-        clientId: d.managedCredentials.oauthClientId,
-        clientSecret: d.managedCredentials.oauthClientSecret,
+        clientId: managedCredentials.oauthClientId,
+        clientSecret: managedCredentials.oauthClientSecret,
         scopes: desiredScopes
       }
     });
@@ -150,9 +172,9 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
             isAutoRegistration: backendProviderAuthCredentials.isAutoRegistration,
             slateCredentialsOid: backendProviderAuthCredentials.slateOAuthCredentials?.oid,
             shuttleCredentialsOid: backendProviderAuthCredentials.shuttleOAuthCredentials?.oid,
-            name: d.managedCredentials.name,
-            description: d.managedCredentials.description,
-            metadata: d.managedCredentials.metadata,
+            name: managedCredentials.name,
+            description: managedCredentials.description,
+            metadata: managedCredentials.metadata,
             scopes: desiredScopes,
             needsScopeSync: false,
             projectOid: d.tenant.projectOid
@@ -187,9 +209,9 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
           isAutoRegistration: backendProviderAuthCredentials.isAutoRegistration,
           slateCredentialsOid: backendProviderAuthCredentials.slateOAuthCredentials?.oid,
           shuttleCredentialsOid: backendProviderAuthCredentials.shuttleOAuthCredentials?.oid,
-          name: d.managedCredentials.name,
-          description: d.managedCredentials.description,
-          metadata: d.managedCredentials.metadata,
+          name: managedCredentials.name,
+          description: managedCredentials.description,
+          metadata: managedCredentials.metadata,
           scopes: desiredScopes,
           needsScopeSync: false,
           isEphemeral: false,
@@ -204,7 +226,7 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
       await db.managedProviderAuthCredentialsBacking.create({
         data: {
           oid: snowflake.nextId(),
-          managedCredentialsOid: d.managedCredentials.oid,
+          managedCredentialsOid: managedCredentials.oid,
           providerAuthCredentialsOid: backingCredentials.oid,
           tenantOid: d.tenant.oid,
           projectOid: d.tenant.projectOid,
@@ -228,18 +250,46 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
     });
   };
 
+  let settleConcurrentArchive = async (
+    backing: NonNullable<Awaited<ReturnType<typeof getExistingBacking>>>
+  ) => {
+    if (backing.status !== 'active') return backing;
+
+    let latest = await db.managedProviderAuthCredentials.findUnique({
+      where: { oid: d.managedCredentials.oid },
+      select: { status: true }
+    });
+    if (latest && getDesiredBackingStatus(latest) === 'active') return backing;
+
+    return await db.providerAuthCredentials.update({
+      where: { oid: backing.oid },
+      data: { status: 'archived' }
+    });
+  };
+
   let existingBacking = await getExistingBacking();
-  if (isBackingFresh(existingBacking)) return await backfillResourceOids(existingBacking);
+  if (isBackingFresh(existingBacking, d.managedCredentials)) {
+    return await backfillResourceOids(existingBacking);
+  }
 
   return await createManagedBackingLock.usingLock(
     [String(d.managedCredentials.oid), d.tenant.id],
     async () => {
+      let managedCredentials =
+        (await db.managedProviderAuthCredentials.findUnique({
+          where: { oid: d.managedCredentials.oid },
+          include: managedCredentialsSyncInclude
+        })) ?? d.managedCredentials;
+      assertAuthMethodMatches(managedCredentials);
+
       let lockedExistingBacking = await getExistingBacking();
-      if (isBackingFresh(lockedExistingBacking)) {
+      if (isBackingFresh(lockedExistingBacking, managedCredentials)) {
         return await backfillResourceOids(lockedExistingBacking);
       }
 
-      return await syncBacking(lockedExistingBacking);
+      return await settleConcurrentArchive(
+        await syncBacking(lockedExistingBacking, managedCredentials)
+      );
     }
   );
 };

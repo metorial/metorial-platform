@@ -740,6 +740,7 @@ class providerAuthCredentialsServiceImpl {
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
     providerAuthCredentials: ProviderAuthCredentials;
+    providerAuthMethod?: { globalOid: bigint } | null;
   }): Promise<
     | { type: 'replace'; providerAuthCredentials: ProviderAuthCredentials }
     | { type: 'clear' }
@@ -756,6 +757,15 @@ class providerAuthCredentialsServiceImpl {
         provider: d.provider
       });
       return { type: 'replace', providerAuthCredentials: defaultCredentials };
+    }
+
+    let managedReplacement = await this.resolveManagedReplacementProviderAuthCredentials({
+      tenant: d.tenant,
+      providerAuthCredentials: d.providerAuthCredentials,
+      providerAuthMethod: d.providerAuthMethod
+    });
+    if (managedReplacement) {
+      return { type: 'replace', providerAuthCredentials: managedReplacement };
     }
 
     let candidates = await db.providerAuthCredentials.findMany({
@@ -896,6 +906,87 @@ class providerAuthCredentialsServiceImpl {
         providerAuthCredentials
       });
     });
+  }
+
+  private async resolveManagedReplacementProviderAuthCredentials(d: {
+    tenant: Tenant;
+    providerAuthCredentials: ProviderAuthCredentials;
+    providerAuthMethod?: { globalOid: bigint } | null;
+  }) {
+    let { origin } = d.providerAuthCredentials;
+    if (origin !== 'managed_backing' && origin !== 'managed_public') return null;
+
+    let solution = await getMetorialSolution();
+    let providerAuthMethodGlobalOid =
+      d.providerAuthMethod?.globalOid ??
+      (await this.getStaleManagedCredentialsGlobalAuthMethodOid({
+        tenant: d.tenant,
+        solution,
+        providerAuthCredentials: d.providerAuthCredentials
+      }));
+    if (!providerAuthMethodGlobalOid) return null;
+
+    let managedCredentials = await db.managedProviderAuthCredentials.findFirst({
+      where: {
+        solutionOid: solution.oid,
+        status: 'active',
+        OR: [
+          { providerAuthMethodGlobalOid },
+          {
+            providerAuthMethodGlobalOid: null,
+            initialProviderAuthMethod: { globalOid: providerAuthMethodGlobalOid }
+          }
+        ]
+      },
+      include: managedCredentialsInclude,
+      orderBy: { createdAt: 'desc' }
+    });
+    if (!managedCredentials) return null;
+
+    let backing = await ensureManagedProviderAuthCredentialsBacking({
+      tenant: d.tenant,
+      managedCredentials,
+      providerAuthMethod: { globalOid: providerAuthMethodGlobalOid }
+    });
+
+    return await db.providerAuthCredentials.findFirst({
+      where: { oid: backing.oid, status: 'active' }
+    });
+  }
+
+  private async getStaleManagedCredentialsGlobalAuthMethodOid(d: {
+    tenant: Tenant;
+    solution: Solution;
+    providerAuthCredentials: ProviderAuthCredentials;
+  }) {
+    let staleManagedCredentialsInclude = { initialProviderAuthMethod: true } as const;
+    let staleManagedCredentials =
+      d.providerAuthCredentials.origin === 'managed_public'
+        ? d.providerAuthCredentials.managedCredentialsOid
+          ? await db.managedProviderAuthCredentials.findFirst({
+              where: {
+                oid: d.providerAuthCredentials.managedCredentialsOid,
+                solutionOid: d.solution.oid
+              },
+              include: staleManagedCredentialsInclude
+            })
+          : null
+        : (
+            await db.managedProviderAuthCredentialsBacking.findFirst({
+              where: {
+                tenantOid: d.tenant.oid,
+                solutionOid: d.solution.oid,
+                providerAuthCredentialsOid: d.providerAuthCredentials.oid
+              },
+              include: { managedCredentials: { include: staleManagedCredentialsInclude } }
+            })
+          )?.managedCredentials;
+
+    return (
+      staleManagedCredentials?.providerAuthMethodGlobalOid ??
+      staleManagedCredentials?.initialProviderAuthMethod.globalOid ??
+      null
+    );
   }
 
   private async getManagedProviderAuthCredentialsContext(d: {

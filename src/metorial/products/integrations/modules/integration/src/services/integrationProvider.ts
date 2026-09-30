@@ -4,6 +4,7 @@ import {
   preconditionFailedError,
   ServiceError
 } from '@lowerdeck/error';
+import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -58,6 +59,7 @@ import {
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceIntegrationProvider, Fabric } from '@metorial/fabric';
+import { env } from '../env';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   createIntegrationProviderVersion,
@@ -87,6 +89,11 @@ export let integrationProviderInclude = {
 };
 
 export let MAX_INTEGRATION_PROVIDERS = 50;
+
+let integrationProviderUpdateLock = createLock({
+  name: 'sub/int/integrationProvider/update/lock',
+  redisUrl: env.service.REDIS_URL
+});
 
 let maxIntegrationProvidersError = () =>
   badRequestError({
@@ -935,6 +942,14 @@ class integrationProviderServiceImpl {
   async updateIntegrationProviderInternal(
     d: { tenant: Tenant; environment: Environment } & UpdateIntegrationProviderParams
   ) {
+    return await integrationProviderUpdateLock.usingLock(d.integrationProvider.id, () =>
+      this.updateIntegrationProviderUnlocked(d)
+    );
+  }
+
+  private async updateIntegrationProviderUnlocked(
+    d: { tenant: Tenant; environment: Environment } & UpdateIntegrationProviderParams
+  ) {
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.integrationProvider);
@@ -1086,51 +1101,69 @@ class integrationProviderServiceImpl {
     environment: Environment;
     integrationProvider: IntegrationProvider;
   }) {
-    let current = await db.integrationProvider.findUniqueOrThrow({
-      where: { oid: d.integrationProvider.oid },
-      include: {
-        integration: true,
-        provider: { include: { defaultVariant: true, type: true } },
-        currentVersion: { include: { authCredentials: true } }
-      }
-    });
-
-    let staleCredentials = current.currentVersion?.authCredentials;
-    if (
-      current.status !== 'active' ||
-      !staleCredentials ||
-      !isRecordDeleted(staleCredentials)
-    ) {
-      return { isHealed: false };
-    }
-
-    let replacement =
-      await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal({
-        tenant: d.tenant,
-        environment: d.environment,
-        provider: current.provider,
-        providerAuthCredentials: staleCredentials
+    let getCurrent = () =>
+      db.integrationProvider.findUniqueOrThrow({
+        where: { oid: d.integrationProvider.oid },
+        include: {
+          integration: true,
+          provider: { include: { defaultVariant: true, type: true } },
+          currentVersion: { include: { authCredentials: true, authMethod: true } }
+        }
       });
-    if (!replacement) {
-      throw new ServiceError(
-        preconditionFailedError({
-          code: 'integration_provider_credentials_unavailable',
-          message: `The OAuth app credentials for ${current.provider.name} were removed. Ask your administrator to reconfigure the "${current.integration.name}" integration.`
-        })
-      );
-    }
-
-    await this.updateIntegrationProviderInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      integrationProvider: current,
-      input: {
-        providerAuthCredentialsId:
-          replacement.type === 'replace' ? replacement.providerAuthCredentials.id : null
+    let getStaleCredentials = (current: Awaited<ReturnType<typeof getCurrent>>) => {
+      let credentials = current.currentVersion?.authCredentials;
+      if (current.status !== 'active' || !credentials || !isRecordDeleted(credentials)) {
+        return null;
       }
-    });
+      return credentials;
+    };
 
-    return { isHealed: true };
+    if (!getStaleCredentials(await getCurrent())) return { isHealed: false };
+
+    return await integrationProviderUpdateLock.usingLock(
+      d.integrationProvider.id,
+      async () => {
+        let current = await getCurrent();
+        let staleCredentials = getStaleCredentials(current);
+        if (!staleCredentials) return { isHealed: true };
+
+        let replacement =
+          await providerAuthCredentialsService.resolveReplacementProviderAuthCredentialsInternal(
+            {
+              tenant: d.tenant,
+              environment: d.environment,
+              provider: current.provider,
+              providerAuthCredentials: staleCredentials,
+              providerAuthMethod: current.currentVersion?.authMethod
+            }
+          );
+        if (!replacement) {
+          throw new ServiceError(
+            preconditionFailedError({
+              code: 'integration_provider_credentials_unavailable',
+              message: `The OAuth app credentials for ${current.provider.name} were removed. Ask your administrator to reconfigure the "${current.integration.name}" integration.`
+            })
+          );
+        }
+
+        let latest = await getCurrent();
+        if (latest.currentVersion?.authCredentialsOid !== staleCredentials.oid) {
+          return { isHealed: true };
+        }
+
+        await this.updateIntegrationProviderUnlocked({
+          tenant: d.tenant,
+          environment: d.environment,
+          integrationProvider: latest,
+          input: {
+            providerAuthCredentialsId:
+              replacement.type === 'replace' ? replacement.providerAuthCredentials.id : null
+          }
+        });
+
+        return { isHealed: true };
+      }
+    );
   }
 
   async enableIntegrationProviderCallbacks(

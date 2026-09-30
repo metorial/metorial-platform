@@ -10,7 +10,8 @@ let {
   createIntegrationProviderVersionMock,
   createIntegrationVersionMock,
   integrationProviderUpdatedQueueAddMock,
-  assertAuthMethodAllowedForTenantMock
+  assertAuthMethodAllowedForTenantMock,
+  usingLockMock
 } = vi.hoisted(() => {
   let createModel = () => ({
     count: vi.fn(),
@@ -46,9 +47,18 @@ let {
     createIntegrationProviderVersionMock: vi.fn(),
     createIntegrationVersionMock: vi.fn(),
     integrationProviderUpdatedQueueAddMock: vi.fn(),
-    assertAuthMethodAllowedForTenantMock: vi.fn()
+    assertAuthMethodAllowedForTenantMock: vi.fn(),
+    usingLockMock: vi.fn(async (_key: string, cb: () => Promise<unknown>) => await cb())
   };
 });
+
+vi.mock('@lowerdeck/lock', () => ({
+  createLock: () => ({ usingLock: usingLockMock })
+}));
+
+vi.mock('../env', () => ({
+  env: { service: { REDIS_URL: 'redis://test' } }
+}));
 
 vi.mock('@metorial-subspace/db', () => ({
   addAfterTransactionHook: async (cb: () => Promise<void>) => await cb(),
@@ -315,6 +325,7 @@ describe('integrationProviderService.resolveUsableIntegrationProviderMaterialInt
   let oauthMethod = {
     oid: 80n,
     id: 'pam_oauth',
+    globalOid: 81n,
     providerOid: deployment.provider.oid,
     type: 'oauth'
   };
@@ -406,7 +417,8 @@ describe('integrationProviderService.resolveUsableIntegrationProviderMaterialInt
       providerAuthCredentialsServiceMock.resolveReplacementProviderAuthCredentialsInternal
     ).toHaveBeenCalledWith(
       expect.objectContaining({
-        providerAuthCredentials: expect.objectContaining({ id: 'pac_old' })
+        providerAuthCredentials: expect.objectContaining({ id: 'pac_old' }),
+        providerAuthMethod: expect.objectContaining({ globalOid: 81n })
       })
     );
     expect(createIntegrationProviderVersionMock).toHaveBeenCalledWith(
@@ -415,6 +427,50 @@ describe('integrationProviderService.resolveUsableIntegrationProviderMaterialInt
         authCredentialsOid: 71n
       })
     );
+    expect(usingLockMock).toHaveBeenCalledTimes(1);
+    expect(usingLockMock).toHaveBeenCalledWith(existingProvider.id, expect.any(Function));
+  });
+
+  it('does nothing when another heal already repointed the provider', async () => {
+    db.integrationProvider.findUniqueOrThrow
+      .mockResolvedValueOnce(staleProvider)
+      .mockResolvedValueOnce(buildProvider({ oid: 71n, id: 'pac_new', status: 'active' }));
+
+    await expect(
+      integrationProviderService.resolveUsableIntegrationProviderMaterialInternal({
+        tenant: input.tenant,
+        environment: input.environment,
+        integrationProvider: existingProvider as any
+      })
+    ).resolves.toEqual({ isHealed: true });
+
+    expect(
+      providerAuthCredentialsServiceMock.resolveReplacementProviderAuthCredentialsInternal
+    ).not.toHaveBeenCalled();
+    expect(createIntegrationProviderVersionMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps credentials chosen while the replacement was being resolved', async () => {
+    providerAuthCredentialsServiceMock.resolveReplacementProviderAuthCredentialsInternal.mockResolvedValue(
+      {
+        type: 'replace',
+        providerAuthCredentials: { oid: 71n, id: 'pac_new' }
+      }
+    );
+    db.integrationProvider.findUniqueOrThrow
+      .mockResolvedValueOnce(staleProvider)
+      .mockResolvedValueOnce(staleProvider)
+      .mockResolvedValueOnce(buildProvider({ oid: 72n, id: 'pac_user', status: 'active' }));
+
+    await expect(
+      integrationProviderService.resolveUsableIntegrationProviderMaterialInternal({
+        tenant: input.tenant,
+        environment: input.environment,
+        integrationProvider: existingProvider as any
+      })
+    ).resolves.toEqual({ isHealed: true });
+
+    expect(createIntegrationProviderVersionMock).not.toHaveBeenCalled();
   });
 
   it('throws an actionable error when no replacement credentials exist', async () => {
