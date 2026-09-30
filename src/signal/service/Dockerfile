@@ -1,10 +1,16 @@
+# syntax=docker/dockerfile:1.7
+
 # Build stage
 FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
 ARG SENTRY_AUTH_TOKEN
+ARG TURBO_API
+ARG TURBO_TEAM
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+ENV TURBO_API=${TURBO_API}
+ENV TURBO_TEAM=${TURBO_TEAM}
 
 # Copy repository contents from the OSS root context
 COPY . .
@@ -13,10 +19,12 @@ COPY . .
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 RUN sh ./src/signal/scripts/prepare-docker-build.sh
 
-# Generate Prisma client and build the service from the monorepo path.
-WORKDIR /app/src/signal/service
-RUN bun prisma generate
-RUN bun run server:build
+# Generate Prisma client and build the service through the monorepo graph.
+RUN --mount=type=secret,id=turbo_token,required=false \
+    --mount=type=secret,id=turbo_signature,required=false \
+    export TURBO_TOKEN="$(cat /run/secrets/turbo_token 2>/dev/null || true)" && \
+    export TURBO_REMOTE_CACHE_SIGNATURE_KEY="$(cat /run/secrets/turbo_signature 2>/dev/null || true)" && \
+    bunx turbo run prisma:generate server:build --filter=@metorial/signal --ui=stream
 
 # Production stage
 FROM oven/bun:1-alpine AS runner

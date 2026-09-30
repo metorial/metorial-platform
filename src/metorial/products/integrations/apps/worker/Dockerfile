@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # Build stage
 FROM oven/bun:1 AS builder
 
@@ -10,23 +11,17 @@ COPY . .
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 RUN sh ./src/metorial/products/integrations/scripts/prepare-docker-build.sh
 
-# Generate Prisma clients used by the merged service graph
-WORKDIR /app/src/metorial/db
-RUN bun run prisma:generate
-
-WORKDIR /app/src/metorial/multi-region
-RUN bun run prisma:generate
-
-WORKDIR /app/src/metorial/products/integrations/db
-RUN bun run prisma:generate
-
 ARG SENTRY_AUTH_TOKEN
+ARG TURBO_API
+ARG TURBO_TEAM
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+ENV TURBO_API=${TURBO_API}
+ENV TURBO_TEAM=${TURBO_TEAM}
 
 # Build the application using ncc
 # This bundles all dependencies into a single file
-WORKDIR /app/src/metorial/products/integrations/apps/worker
-RUN bun run server:build
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate --filter=@metorial/db --filter=@metorial/multi-region --filter=@metorial-subspace/db --filter=@metorial-subspace/app-worker
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh server:build --filter=@metorial-subspace/app-worker
 
 # Production stage
 FROM oven/bun:1-alpine AS production

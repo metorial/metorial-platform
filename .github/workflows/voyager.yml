@@ -3,6 +3,7 @@ name: 'Voyager'
 on:
   workflow_dispatch:
   push:
+    branches: [dev]
   pull_request:
 
 permissions:
@@ -24,12 +25,29 @@ jobs:
         with:
           submodules: recursive
           token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
+      - uses: oven-sh/setup-bun@v2
+      - id: affected
+        uses: ./.github/actions/affected-image
+        with:
+          package: '@metorial/voyager'
+          tasks: 'prisma:generate server:build'
+      - uses: ./.github/actions/setup-warp-cache
+        with:
+          aws-access-key-id: ${{ secrets.WARP_CACHE_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WARP_CACHE_AWS_SECRET_ACCESS_KEY }}
+          signature-key: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+          role-arn: ${{ vars.WARP_CACHE_ROLE_ARN }}
+          bucket: ${{ vars.WARP_CACHE_BUCKET }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -51,6 +69,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
+        if: steps.affected.outputs.should-build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -61,6 +80,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            TURBO_API=http://127.0.0.1:8787
+            TURBO_TEAM=metorial
+          secrets: |
+            turbo_token=${{ env.TURBO_TOKEN }}
+            turbo_signature=${{ env.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+
+      - name: Report Warp Cache
+        if: always()
+        run: sh ./src/tooling/warp-cache/report.sh
 
   test:
     name: 'Voyager Test'
