@@ -1,4 +1,4 @@
-import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { isServiceError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { db, ID, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
 import {
   integrationInstanceService,
@@ -176,13 +176,39 @@ export let ensureMagicMcpServerBacking = async (d: {
     });
   });
 
+let magicMcpServerNeedsReconnectError = () =>
+  new ServiceError(
+    preconditionFailedError({
+      code: 'magic_mcp_server_needs_reconnect',
+      message:
+        'The account connected to this integration was removed. Reconnect the integration to keep using it.'
+    })
+  );
+
+let isIntegrationInstanceUnavailableError = (error: unknown) =>
+  isServiceError(error) &&
+  (error.data.code === 'integration_instance_not_active' ||
+    (error.data.code === 'not_found' && error.data.entity === 'integration.instance'));
+
+let rebuildOrNeedsReconnect = async <T>(cb: () => Promise<T>) => {
+  try {
+    return await cb();
+  } catch (error) {
+    if (isIntegrationInstanceUnavailableError(error)) {
+      throw magicMcpServerNeedsReconnectError();
+    }
+    throw error;
+  }
+};
+
+let isHealableServer = (server: MagicMcpServer) =>
+  server.hasSubspaceBacking && !server.legacySubspaceSessionTemplateId;
+
 export let healMagicMcpServerBacking = async (d: {
   instance: Instance;
   server: MagicMcpServer;
 }) => {
-  if (!d.server.hasSubspaceBacking || d.server.legacySubspaceSessionTemplateId) {
-    return d.server;
-  }
+  if (!isHealableServer(d.server)) return d.server;
 
   let statuses = await magicMcpServerBackingService.getMagicMcpServerBackingStatuses({
     instance: d.instance,
@@ -190,22 +216,52 @@ export let healMagicMcpServerBacking = async (d: {
   });
   let status = statuses.get(d.server.id);
 
-  if (status === 'needs_reconnect') {
-    throw new ServiceError(
-      preconditionFailedError({
-        code: 'magic_mcp_server_needs_reconnect',
-        message:
-          'The account connected to this integration was removed. Reconnect the integration to keep using it.'
-      })
-    );
-  }
-  if (status !== 'stale') return d.server;
+  if (status === 'needs_reconnect') throw magicMcpServerNeedsReconnectError();
+  if (status === 'healthy') return d.server;
 
-  return await ensureMagicMcpServerBacking({
-    instance: d.instance,
-    server: d.server,
-    deferReconcile: false
-  });
+  return await rebuildOrNeedsReconnect(() =>
+    ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server: d.server,
+      deferReconcile: false
+    })
+  );
+};
+
+export let healMagicMcpEndpointBacking = async (d: {
+  instance: Instance;
+  endpoint: MagicMcpEndpointWithBackingRelations;
+}) => {
+  if (!d.endpoint.hasSubspaceBacking) return d.endpoint;
+
+  let servers = d.endpoint.servers
+    .map(server => server.magicMcpServer)
+    .filter(isHealableServer);
+
+  let [serverStatuses, endpointStatus] = await Promise.all([
+    magicMcpServerBackingService.getMagicMcpServerBackingStatuses({
+      instance: d.instance,
+      magicMcpServerBackingIds: servers.map(server => server.id)
+    }),
+    magicMcpEndpointBackingService.getMagicMcpEndpointBackingStatus({
+      instance: d.instance,
+      magicMcpEndpointBackingId: d.endpoint.id
+    })
+  ]);
+
+  let memberStatuses = servers.map(server => serverStatuses.get(server.id));
+  if (memberStatuses.includes('needs_reconnect')) throw magicMcpServerNeedsReconnectError();
+  if (endpointStatus === 'healthy' && memberStatuses.every(status => status === 'healthy')) {
+    return d.endpoint;
+  }
+
+  return await rebuildOrNeedsReconnect(() =>
+    ensureMagicMcpEndpointBacking({
+      instance: d.instance,
+      endpoint: d.endpoint,
+      deferReconcile: false
+    })
+  );
 };
 
 let ensureEndpointServerIds = async (endpoint: Pick<MagicMcpEndpoint, 'oid'>) => {

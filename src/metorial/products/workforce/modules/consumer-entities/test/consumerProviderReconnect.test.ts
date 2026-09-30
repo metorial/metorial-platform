@@ -253,6 +253,16 @@ describe('consumerProviderDeploymentService.deployProvider self-healing', () => 
     );
   });
 
+  it('relinks an owned server whose backing is missing', async () => {
+    (db.magicMcpServer.findMany as any).mockResolvedValue([existingServer]);
+    mocks.getMagicMcpServerBackingStatuses.mockResolvedValue(new Map([['mms_1', 'missing']]));
+
+    let result = await deploy();
+
+    expect(result.id).toBe('mms_1');
+    expect(mocks.createMagicMcpServer).not.toHaveBeenCalled();
+  });
+
   it('creates a new server when all owned servers are healthy', async () => {
     (db.magicMcpServer.findMany as any).mockResolvedValue([existingServer]);
     mocks.getMagicMcpServerBackingStatuses.mockResolvedValue(new Map([['mms_1', 'healthy']]));

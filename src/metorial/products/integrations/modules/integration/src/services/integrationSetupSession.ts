@@ -1,4 +1,9 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  isServiceError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -828,7 +833,7 @@ class integrationSetupSessionServiceImpl {
   }) {
     let integrationProviders = await this.getActiveIntegrationProviders(d);
 
-    let healed = await Promise.all(
+    let results = await Promise.allSettled(
       integrationProviders.map(integrationProvider =>
         integrationProviderService.resolveUsableIntegrationProviderMaterialInternal({
           tenant: d.tenant,
@@ -837,9 +842,30 @@ class integrationSetupSessionServiceImpl {
         })
       )
     );
-    if (!healed.some(r => r.isHealed)) return integrationProviders;
 
-    return await this.getActiveIntegrationProviders(d);
+    let unusableProviderOids = new Set<bigint>();
+    let firstUnusableError: unknown;
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') return;
+      if (
+        !isServiceError(result.reason) ||
+        result.reason.data.code !== 'integration_provider_credentials_unavailable'
+      ) {
+        throw result.reason;
+      }
+      unusableProviderOids.add(integrationProviders[i]!.oid);
+      firstUnusableError ??= result.reason;
+    });
+
+    let isHealed = results.some(r => r.status === 'fulfilled' && r.value.isHealed);
+    let providers = isHealed
+      ? await this.getActiveIntegrationProviders(d)
+      : integrationProviders;
+    let usableProviders = providers.filter(p => !unusableProviderOids.has(p.oid));
+
+    if (!usableProviders.length && firstUnusableError) throw firstUnusableError;
+
+    return usableProviders;
   }
 
   private async createChildProviderSetupSession(d: {

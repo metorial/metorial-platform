@@ -4,6 +4,7 @@ vi.mock('../src/lib/backing', () => ({
   ensureMagicMcpServerBacking: vi.fn(),
   ensureMagicMcpEndpointBacking: vi.fn(),
   healMagicMcpServerBacking: vi.fn(async ({ server }) => server),
+  healMagicMcpEndpointBacking: vi.fn(async ({ endpoint }) => endpoint),
   waitForMagicMcpServerBackingReady: vi.fn().mockResolvedValue(null),
   waitForMagicMcpEndpointBackingReady: vi.fn().mockResolvedValue(null)
 }));

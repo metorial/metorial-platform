@@ -35,7 +35,7 @@ import {
   withMagicMcpBackingLock
 } from './shared';
 
-export type MagicMcpServerBackingStatus = 'healthy' | 'stale' | 'needs_reconnect';
+export type MagicMcpServerBackingStatus = 'healthy' | 'stale' | 'missing' | 'needs_reconnect';
 
 type UpsertMagicMcpServerBackingParams = {
   input: MagicMcpBackingInputBase & {
@@ -441,7 +441,9 @@ class magicMcpServerBackingServiceImpl {
   async getMagicMcpServerBackingStatuses(
     d: MetorialFacing<{ magicMcpServerBackingIds: string[] }>
   ) {
-    let statuses = new Map<string, MagicMcpServerBackingStatus>();
+    let statuses = new Map<string, MagicMcpServerBackingStatus>(
+      d.magicMcpServerBackingIds.map(id => [id, 'missing'])
+    );
     if (!d.magicMcpServerBackingIds.length) return statuses;
 
     let scope = await resolveMetorialFacing(d);

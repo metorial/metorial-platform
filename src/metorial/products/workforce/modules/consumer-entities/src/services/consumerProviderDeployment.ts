@@ -368,7 +368,12 @@ class ConsumerProviderDeploymentServiceImpl {
       magicMcpServerBackingIds: servers.map(server => server.id)
     });
 
-    return servers.find(server => statuses.get(server.id) === 'needs_reconnect') ?? null;
+    return (
+      servers.find(server => {
+        let status = statuses.get(server.id);
+        return status === 'needs_reconnect' || status === 'missing';
+      }) ?? null
+    );
   }
 
   private async relinkOwnedServer(d: {
