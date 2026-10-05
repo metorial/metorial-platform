@@ -22,7 +22,7 @@ if (args.includes('--filter=@metorial-subspace/app-worker')) {
   args.push('--filter=@metorial/db', '--filter=@metorial/multi-region', '--filter=@metorial-subspace/db');
 }
 
-let graph = JSON.parse(runTurbo(['run', ...args, '--dry=json'], true));
+let graph = JSON.parse(runTurbo(['run', ...args, '--dry=json', '--cache=local:,remote:'], true));
 let packages = [...new Set<string>(graph.tasks.map((task: { package: string }) => task.package))]
   .filter(name => name !== '//')
   .sort();
