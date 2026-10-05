@@ -1,5 +1,5 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 let turboVersion = '2.9.18';
 let outputDirectory = 'out';
@@ -71,6 +71,27 @@ mkdirSync(join(outputDirectory, 'full', toolingDirectory), { recursive: true });
 cpSync(join(toolingDirectory, 'warp-cache'), join(outputDirectory, 'full', toolingDirectory, 'warp-cache'), {
   recursive: true
 });
+
+let ancestors = new Set<string>();
+
+for (let task of graph.tasks) {
+  let directory = task.directory;
+
+  while (directory !== '.') {
+    ancestors.add(directory);
+    directory = dirname(directory);
+  }
+}
+
+ancestors.add('.');
+
+for (let directory of ancestors) {
+  for (let config of new Bun.Glob('tsconfig*.json').scanSync({ cwd: directory })) {
+    let target = join(outputDirectory, 'full', directory);
+    mkdirSync(target, { recursive: true });
+    cpSync(join(directory, config), join(target, config));
+  }
+}
 
 let originDirectory = enterprise ? 'oss/src/origin/apps/code-bucket' : 'src/origin/apps/code-bucket';
 let originService = enterprise ? 'oss/src/origin/apps/service' : 'src/origin/apps/service';
