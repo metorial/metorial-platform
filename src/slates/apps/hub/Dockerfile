@@ -1,8 +1,21 @@
 # syntax=docker/dockerfile:1.7
-# Build stage
-FROM oven/bun:1 AS builder
+FROM oven/bun:1.4.2 AS base
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
+
+FROM base AS pruner
+
+COPY . .
+RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build admin:build --filter=@metorial/slates
+
+FROM base AS dependencies
+
+COPY --from=pruner /app/out/json/ ./
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile --linker=hoisted
+
+FROM dependencies AS builder
 
 ARG SENTRY_AUTH_TOKEN
 ARG TURBO_API
@@ -11,14 +24,8 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 
-# Copy repository contents from the OSS root context
-COPY . .
+COPY --from=pruner /app/out/full/ ./
 
-# Install CA certificates and native build tools before preparing Slates packages.
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
-RUN sh ./src/slates/scripts/prepare-docker-build.sh
-
-# Build the hub app from the monorepo path.
 RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate admin:build server:build --filter=@metorial/slates
 
 # Production stage

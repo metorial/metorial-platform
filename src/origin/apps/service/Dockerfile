@@ -1,8 +1,21 @@
 # syntax=docker/dockerfile:1.7
-# Build stage — Docker context is the OSS monorepo root (./oss).
-FROM oven/bun:1 AS builder
+FROM oven/bun:1.4.2 AS base
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
+
+FROM base AS pruner
+
+COPY . .
+RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=@metorial/origin
+
+FROM base AS dependencies
+
+COPY --from=pruner /app/out/json/ ./
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile --linker=hoisted
+
+FROM dependencies AS builder
 
 ARG SENTRY_AUTH_TOKEN
 ARG TURBO_API
@@ -11,10 +24,7 @@ ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 
-COPY . .
-
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
-RUN sh ./src/origin/scripts/prepare-docker-build.sh
+COPY --from=pruner /app/out/full/ ./
 
 WORKDIR /app/src/origin/apps/service
 

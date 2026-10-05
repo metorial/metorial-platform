@@ -60,6 +60,8 @@ jobs:
           context: .
           file: ${{ matrix.service.dockerfile }}
           push: false
+          cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.service.name || 'image' }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.service.name || 'image' }}
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
             TURBO_API=http://127.0.0.1:8787

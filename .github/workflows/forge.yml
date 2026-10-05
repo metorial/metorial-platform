@@ -76,6 +76,8 @@ jobs:
           file: ./src/forge/service/Dockerfile
           platforms: linux/amd64
           push: false
+          cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.service.name || 'image' }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.service.name || 'image' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |

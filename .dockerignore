@@ -9,3 +9,7 @@ out
 **/coverage
 **/Dockerfile
 **/dev.Dockerfile
+
+**/out
+**/target
+**/prisma/generated
