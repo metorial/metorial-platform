@@ -86,8 +86,8 @@ jobs:
           file: ./src/forge/service/Dockerfile
           target: dependencies
           push: false
-          cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.service.name || 'image' }}
-          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.service.name || 'image' }}
+          cache-from: type=gha,scope=${{ github.workflow }}-image
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-image
 
       - name: Build and push Docker image
         if: steps.affected.outputs.should-build == 'true'
@@ -98,8 +98,7 @@ jobs:
           file: ./src/forge/service/Dockerfile
           platforms: linux/amd64
           push: false
-          cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.service.name || 'image' }}
-          cache-to: ${{ steps.prune.outputs.pruned != 'true' && format('type=gha,mode=max,scope=oss-{0}-{1}', github.job, matrix.service.name || 'image') || '' }}
+          cache-from: type=gha,scope=${{ github.workflow }}-image
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
