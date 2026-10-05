@@ -1,5 +1,6 @@
-import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { proxy } from '@lowerdeck/proxy';
+import type { Ed25519SignatureCredentials } from '@lowerdeck/rpc-signature';
+import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import type { Requester } from './requester';
 
 export type SignatureTokenResult =
@@ -18,6 +19,9 @@ export interface ClientOpts {
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
   getSignatureToken?: () => Promise<SignatureTokenResult> | SignatureTokenResult;
+  getSignatureCredentials?: () =>
+    | Promise<Ed25519SignatureCredentials>
+    | Ed25519SignatureCredentials;
   onRequest?: (d: {
     endpoint: string;
     name: string;
@@ -70,70 +74,78 @@ let injectTraceHeaders = (headers: Record<string, string | undefined>) => {
 export let clientBuilder =
   (request: Requester, withContext: (cb: (ctx: any) => any) => any = noopWithContext) =>
   <T extends object>(clientOpts: ClientOpts) =>
-    proxy<T>(
-      async (path, data, requestOpts?: ClientRequestOpts) =>
-        await withContext(async context => {
-          let disableBatching = requestOpts?.disableBatching ?? clientOpts.disableBatching;
-          let useDirectMethodRoute = clientOpts.useDirectMethodRoute ?? false;
-          let timeoutMs = requestOpts?.timeoutMs ?? clientOpts.timeoutMs;
-          let signal = requestOpts?.signal;
-          let signature = await clientOpts.getSignatureToken?.();
+    (() => {
+      if (clientOpts.getSignatureToken && clientOpts.getSignatureCredentials)
+        throw new Error('Choose one RPC signature provider');
+      return proxy<T>(
+        async (path, data, requestOpts?: ClientRequestOpts) =>
+          await withContext(async context => {
+            let disableBatching = requestOpts?.disableBatching ?? clientOpts.disableBatching;
+            let useDirectMethodRoute = clientOpts.useDirectMethodRoute ?? false;
+            let timeoutMs = requestOpts?.timeoutMs ?? clientOpts.timeoutMs;
+            let signal = requestOpts?.signal;
+            let signature = clientOpts.getSignatureCredentials
+              ? await clientOpts.getSignatureCredentials()
+              : await clientOpts.getSignatureToken?.();
 
-          let headers = {
-            ...clientOpts.headers,
-            ...(await clientOpts.getHeaders?.()),
-            ...(typeof signature == 'object' ? signature.headers : undefined),
-            ...requestOpts?.headers
-          };
+            let headers = {
+              ...clientOpts.headers,
+              ...(await clientOpts.getHeaders?.()),
+              ...(typeof signature == 'object' && 'headers' in signature
+                ? signature.headers
+                : undefined),
+              ...requestOpts?.headers
+            };
 
-          headers = injectTraceHeaders(headers);
+            headers = injectTraceHeaders(headers);
 
-          clientOpts.onRequest?.({
-            endpoint: clientOpts.endpoint,
-            name: path.join(':'),
-            payload: data,
-            headers,
-            query: requestOpts?.query
-          });
-
-          if (path[path.length - 1] == 'getFull') {
-            return await request({
+            clientOpts.onRequest?.({
               endpoint: clientOpts.endpoint,
-              payload: data,
-              name: path.slice(0, -1).join(':'),
-              headers,
-              signature:
-                typeof signature == 'string'
-                  ? signature
-                  : signature && { ...signature, headers: undefined },
-              query: requestOpts?.query,
-              referrerPolicy: clientOpts.referrerPolicy,
-              disableBatching,
-              useDirectMethodRoute,
-              timeoutMs,
-              signal,
-              context
-            });
-          }
-
-          return (
-            await request({
-              endpoint: clientOpts.endpoint,
-              payload: data,
               name: path.join(':'),
+              payload: data,
               headers,
-              signature:
-                typeof signature == 'string'
-                  ? signature
-                  : signature && { ...signature, headers: undefined },
-              query: requestOpts?.query,
-              referrerPolicy: clientOpts.referrerPolicy,
-              disableBatching,
-              useDirectMethodRoute,
-              timeoutMs,
-              signal,
-              context
-            })
-          ).data;
-        })
-    );
+              query: requestOpts?.query
+            });
+
+            if (path[path.length - 1] == 'getFull') {
+              return await request({
+                endpoint: clientOpts.endpoint,
+                payload: data,
+                name: path.slice(0, -1).join(':'),
+                headers,
+                signature:
+                  typeof signature == 'string'
+                    ? signature
+                    : signature && { ...signature, headers: undefined },
+                query: requestOpts?.query,
+                referrerPolicy: clientOpts.referrerPolicy,
+                disableBatching,
+                useDirectMethodRoute,
+                timeoutMs,
+                signal,
+                context
+              });
+            }
+
+            return (
+              await request({
+                endpoint: clientOpts.endpoint,
+                payload: data,
+                name: path.join(':'),
+                headers,
+                signature:
+                  typeof signature == 'string'
+                    ? signature
+                    : signature && { ...signature, headers: undefined },
+                query: requestOpts?.query,
+                referrerPolicy: clientOpts.referrerPolicy,
+                disableBatching,
+                useDirectMethodRoute,
+                timeoutMs,
+                signal,
+                context
+              })
+            ).data;
+          })
+      );
+    })();
