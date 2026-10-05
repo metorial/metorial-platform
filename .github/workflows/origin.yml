@@ -115,7 +115,7 @@ jobs:
           platforms: linux/amd64
           push: false
           cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.service.name || 'image' }}
-          cache-to: ${{ steps.prune.outputs.pruned != 'true' && format('type=gha,mode=max,scope=oss-{0}-{1}', github.job, matrix.service.name || 'image') || '' }}
+          cache-to: ${{ steps.prune.outputs.pruned != 'true' && format('type=gha,mode=max,scope={0}-{1}', github.workflow, matrix.service.name || 'image') || '' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
