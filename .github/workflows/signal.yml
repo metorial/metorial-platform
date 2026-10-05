@@ -72,11 +72,21 @@ jobs:
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Prune Docker workspace
+        id: prune
+        if: steps.affected.outputs.should-build == 'true'
+        uses: ./.github/actions/prune-docker
+        with:
+          package: '@metorial/signal'
+          tasks: 'prisma:generate server:build'
+          dockerfile: ./src/signal/service/Dockerfile
+
       - name: Build and push Docker image
         if: steps.affected.outputs.should-build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
+          build-contexts: pruned=${{ steps.prune.outputs.context }}
           file: ./src/signal/service/Dockerfile
           platforms: linux/amd64
           push: false

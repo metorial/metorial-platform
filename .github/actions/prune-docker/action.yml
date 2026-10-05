@@ -1,0 +1,43 @@
+name: Prune Docker workspace
+description: Prepare the service build closure before uploading it to BuildKit
+inputs:
+  package:
+    required: false
+  tasks:
+    required: false
+  dockerfile:
+    required: true
+  workspace:
+    required: false
+    default: .
+outputs:
+  context:
+    value: ${{ steps.prune.outputs.context }}
+runs:
+  using: composite
+  steps:
+    - id: prune
+      shell: bash
+      env:
+        INPUT_PACKAGE: ${{ inputs.package }}
+        INPUT_TASKS: ${{ inputs.tasks }}
+        INPUT_WORKSPACE: ${{ inputs.workspace }}
+        INPUT_DOCKERFILE: ${{ inputs.dockerfile }}
+      run: |
+        set -euo pipefail
+        if grep -q 'AS pruned' "$INPUT_DOCKERFILE"; then
+          if [ -n "$INPUT_PACKAGE" ]; then
+            read -r -a tasks <<< "$INPUT_TASKS"
+            tasks+=("--filter=$INPUT_PACKAGE")
+          else
+            read -r -a tasks <<< "$(sed -n 's/^RUN bun [^ ]*prune.ts //p' "$INPUT_DOCKERFILE")"
+          fi
+          cd "$INPUT_WORKSPACE"
+          tooling=src/tooling/docker-build/prune.ts
+          if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
+          bun "$tooling" "${tasks[@]}"
+          echo "context=$PWD/out" >> "$GITHUB_OUTPUT"
+        else
+          mkdir -p "$RUNNER_TEMP/unpruned-context"
+          echo "context=$RUNNER_TEMP/unpruned-context" >> "$GITHUB_OUTPUT"
+        fi

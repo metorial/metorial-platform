@@ -18,6 +18,10 @@ let runTurbo = (args: string[], capture = false) => {
   return capture ? result.stdout.toString() : '';
 };
 
+if (args.includes('--filter=@metorial-subspace/app-worker')) {
+  args.push('--filter=@metorial/db', '--filter=@metorial/multi-region', '--filter=@metorial-subspace/db');
+}
+
 let graph = JSON.parse(runTurbo(['run', ...args, '--dry=json'], true));
 let packages = [...new Set<string>(graph.tasks.map((task: { package: string }) => task.package))]
   .filter(name => name !== '//')
@@ -67,5 +71,17 @@ mkdirSync(join(outputDirectory, 'full', toolingDirectory), { recursive: true });
 cpSync(join(toolingDirectory, 'warp-cache'), join(outputDirectory, 'full', toolingDirectory, 'warp-cache'), {
   recursive: true
 });
+
+let originDirectory = enterprise ? 'oss/src/origin/apps/code-bucket' : 'src/origin/apps/code-bucket';
+let originService = enterprise ? 'oss/src/origin/apps/service' : 'src/origin/apps/service';
+
+if (existsSync(join(outputDirectory, 'full', originService))) {
+  let target = join(outputDirectory, 'full', originDirectory);
+  mkdirSync(target, { recursive: true });
+
+  for (let asset of ['package.json', 'index.ts', 'ts-proto-gen']) {
+    cpSync(join(originDirectory, asset), join(target, asset), { recursive: true });
+  }
+}
 
 console.log(`Pruned build closure: ${packages.length} task workspaces`);
