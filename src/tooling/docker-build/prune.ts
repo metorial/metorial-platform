@@ -6,9 +6,15 @@ let outputDirectory = 'out';
 let args = process.argv.slice(2);
 let enterprise = existsSync('oss/package.json');
 let toolingDirectory = enterprise ? 'oss/src/tooling' : 'src/tooling';
+let metadataEnvironment = { ...process.env };
+
+for (let name of ['TURBO_API', 'TURBO_TEAM', 'TURBO_TOKEN', 'TURBO_REMOTE_CACHE_SIGNATURE_KEY']) {
+  delete metadataEnvironment[name];
+}
 
 let runTurbo = (args: string[], capture = false) => {
   let result = Bun.spawnSync(['bunx', `turbo@${turboVersion}`, ...args], {
+    env: metadataEnvironment,
     stdout: capture ? 'pipe' : 'inherit',
     stderr: 'inherit'
   });
