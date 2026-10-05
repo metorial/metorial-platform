@@ -1,5 +1,6 @@
 import { generatePlainId } from '@lowerdeck/id';
 import { memo } from '@lowerdeck/memo';
+import type { Ed25519SignatureCredentials } from '@lowerdeck/rpc-signature';
 
 let index = 0;
 let rootId = memo(() => generatePlainId(10));
@@ -22,6 +23,7 @@ export interface Call {
   timeoutMs?: number;
   signal?: AbortSignal;
   signature?:
+    | Ed25519SignatureCredentials
     | string
     | {
         secret: string;
@@ -34,6 +36,7 @@ export type Requester = (
   call: Omit<Call, 'id' | 'headers' | 'query'> & {
     headers: Record<string, string | undefined>;
     signature?:
+      | Ed25519SignatureCredentials
       | string
       | {
           secret: string;

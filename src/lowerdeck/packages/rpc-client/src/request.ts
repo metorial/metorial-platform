@@ -5,7 +5,12 @@ import {
   ServiceError,
   timeoutError
 } from '@lowerdeck/error';
-import { createRpcSignatureHeader, rpcSignatureHeader } from '@lowerdeck/rpc-signature';
+import {
+  createEd25519RpcSignatureHeader,
+  createRpcSignatureHeader,
+  rpcSignatureDigest,
+  rpcSignatureHeader
+} from '@lowerdeck/rpc-signature';
 import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
 import type { Call, Requester } from './shared/requester';
@@ -155,13 +160,22 @@ let runCalls = async (
   };
 
   if (call.signature) {
-    headers[rpcSignatureHeader] = await createRpcSignatureHeader({
-      token: typeof call.signature == 'string' ? call.signature : call.signature.secret,
-      timestamp: Date.now(),
-      method: 'POST',
-      url,
-      body
-    });
+    headers[rpcSignatureHeader] =
+      typeof call.signature == 'object' && 'algorithm' in call.signature
+        ? await createEd25519RpcSignatureHeader({
+            ...call.signature,
+            authorization: new Headers(headers).get('authorization') ?? '',
+            method: 'POST',
+            url,
+            body
+          })
+        : await createRpcSignatureHeader({
+            token: typeof call.signature == 'string' ? call.signature : call.signature.secret,
+            timestamp: Date.now(),
+            method: 'POST',
+            url,
+            body
+          });
   }
 
   fetch(url.toString(), {
@@ -195,7 +209,7 @@ let runCalls = async (
         return;
       }
 
-      if (res.__typename == 'error') {
+      if (res.__typename == 'error' || (res.object == 'error' && res.ok === false)) {
         let err = ServiceError.fromResponse(res);
         c.forEach(x => x.reject(err));
         return;
@@ -231,7 +245,7 @@ let runCalls = async (
     });
 };
 
-let performRequest = (call: Call) => {
+let performRequest = async (call: Call) => {
   if (call.disableBatching || call.signal) {
     return new Promise((resolve, reject) => {
       runCalls(call, [{ call, resolve, reject }]).catch(reject);
@@ -244,7 +258,7 @@ let performRequest = (call: Call) => {
     });
   }
 
-  let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}${canonicalize(call.referrerPolicy ?? null)}`;
+  let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}${canonicalize(call.referrerPolicy ?? null)}${await rpcSignatureDigest(canonicalize(call.signature ?? null))}`;
 
   if (!calls[key]) calls[key] = { calls: [], to: null };
   let current = calls[key]!;
@@ -308,7 +322,7 @@ let createDeadlineSignal = (call: { timeoutMs?: number; signal?: AbortSignal }) 
 
 let requesterInternal: Requester = async call => {
   let id = generateRequestId();
-  log(`[call:${call.name.replace(':', '-')}:${id}] Queued`, call);
+  log(`[call:${call.name.replace(':', '-')}:${id}] Queued`);
 
   let tries = 0;
   let boundedRetryFailures = 0;
@@ -348,7 +362,7 @@ let requesterInternal: Requester = async call => {
           },
           err => {
             if (isServer) {
-              log(`[call:${call.name.replace(':', '-')}:${id}] Queued`, call);
+              log(`[call:${call.name.replace(':', '-')}:${id}] Queued`);
             }
 
             log(`[call:${call.name.replace(':', '-')}:${id}] Error`, err);

@@ -1,7 +1,9 @@
 import {
   internalServerError,
+  isServiceError,
   notAcceptableError,
   notFoundError,
+  unauthorizedError,
   validationError
 } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
@@ -90,6 +92,12 @@ export let rpcMux = (
   opts: {
     path: string;
     allowRootSpan?: boolean;
+    captureRequestBody?: boolean;
+    authenticateRequest?: (input: {
+      request: Request;
+      rawBody: string;
+      requestId: string;
+    }) => Promise<Record<string, any>>;
     getSignatureToken?: (
       request: Request
     ) =>
@@ -121,6 +129,9 @@ export let rpcMux = (
     }>;
   }[]
 ) => {
+  if (opts.authenticateRequest && opts.getSignatureToken)
+    throw new Error('Choose one RPC authentication provider');
+
   let handlerNameToRpcMap = new Map<string, number>(
     rpcs.flatMap((rpc, i) => rpc.handlerNames.map(name => [normalizeHandlerName(name), i]))
   );
@@ -129,6 +140,7 @@ export let rpcMux = (
     path: opts.path,
 
     fetch: async (req: any): Promise<any> => {
+      let requestId = generateCustomId('req_');
       let origin = req.headers.get('origin') ?? '';
       let corsOk = false;
 
@@ -201,7 +213,10 @@ export let rpcMux = (
 
       if (opts.getSignatureToken) {
         if (!signatureHeader)
-          return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+          return new Response(serialize.encode(unauthorizedError().toResponse()), {
+            status: 401,
+            headers: { ...corsHeaders, 'content-type': 'application/rpc+json' }
+          });
 
         try {
           let signatureResult = await opts.getSignatureToken(req.clone());
@@ -212,11 +227,17 @@ export let rpcMux = (
             signatureContext = signatureResult.context;
           }
         } catch {
-          return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+          return new Response(serialize.encode(unauthorizedError().toResponse()), {
+            status: 401,
+            headers: { ...corsHeaders, 'content-type': 'application/rpc+json' }
+          });
         }
 
         if (!signatureToken) {
-          return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+          return new Response(serialize.encode(unauthorizedError().toResponse()), {
+            status: 401,
+            headers: { ...corsHeaders, 'content-type': 'application/rpc+json' }
+          });
         }
       }
 
@@ -225,12 +246,27 @@ export let rpcMux = (
 
       try {
         bodyText = await req.text();
-        body = serialize.decode(bodyText);
       } catch (e) {
         return new Response(
           JSON.stringify(notAcceptableError({ message: 'Invalid JSON' }).toResponse()),
           { status: 406 }
         );
+      }
+
+      if (opts.authenticateRequest) {
+        try {
+          signatureContext = await opts.authenticateRequest({
+            request: req,
+            rawBody: bodyText,
+            requestId
+          });
+        } catch (error) {
+          let responseError = isServiceError(error) ? error : internalServerError();
+          return new Response(serialize.encode(responseError.toResponse()), {
+            status: responseError.data.status,
+            headers: { ...corsHeaders, 'content-type': 'application/rpc+json' }
+          });
+        }
       }
 
       if (
@@ -243,7 +279,19 @@ export let rpcMux = (
           signatureHeader
         }))
       ) {
-        return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+        return new Response(serialize.encode(unauthorizedError().toResponse()), {
+          status: 401,
+          headers: { ...corsHeaders, 'content-type': 'application/rpc+json' }
+        });
+      }
+
+      try {
+        body = serialize.decode(bodyText);
+      } catch {
+        return new Response(
+          serialize.encode(notAcceptableError({ message: 'Invalid JSON' }).toResponse()),
+          { status: 406 }
+        );
       }
 
       let sentryTraceHeaders = req.headers.get('sentry-trace');
@@ -305,7 +353,7 @@ export let rpcMux = (
                   async () => {
                     try {
                       let beforeSends: Array<() => Promise<any>> = [];
-                      let id = generateCustomId('req_');
+                      let id = requestId;
 
                       let parseCookies = memo(() =>
                         Cookie.parse(req.headers.get('cookie') ?? '')
@@ -350,11 +398,12 @@ export let rpcMux = (
                         query: Object.fromEntries(url.searchParams.entries())
                       });
 
-                      Sentry.getCurrentScope().addAttachment({
-                        filename: 'rpc.request.body.json',
-                        data: body,
-                        contentType: 'application/json'
-                      });
+                      if (opts.captureRequestBody !== false)
+                        Sentry.getCurrentScope().addAttachment({
+                          filename: 'rpc.request.body.json',
+                          data: body,
+                          contentType: 'application/json'
+                        });
 
                       return provideExecutionContext(
                         createExecutionContext({
@@ -475,7 +524,12 @@ export let rpcMux = (
                       if (verbose) console.error(e);
 
                       Sentry.captureException(e, {
-                        extra: { url: req.url, method: req.method, ip, body }
+                        extra: {
+                          url: req.url,
+                          method: req.method,
+                          ip,
+                          ...(opts.captureRequestBody !== false ? { body } : {})
+                        }
                       });
 
                       return new Response(
