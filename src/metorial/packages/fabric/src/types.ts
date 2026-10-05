@@ -1256,6 +1256,7 @@ export interface FabricEvents {
 
   'consumer.provider.deployed:before': { instance: Instance; auditScope: AuditScope };
   'consumer.provider.deployed:after': { instance: Instance; auditScope: AuditScope; deployment: AuditConsumerProviderDeployment };
+  'consumer.provider.reconnected:after': { instance: Instance; auditScope: AuditScope; deployment: AuditConsumerProviderDeployment; previousDeployment: AuditConsumerProviderDeployment };
 
   'consumer.surface_provider_group.created:after': { auditScope: AuditScope; consumerSurface: ConsumerSurface; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup };
   'consumer.surface_provider_group.updated:after': { auditScope: AuditScope; consumerSurface: ConsumerSurface; consumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup; previousConsumerSurfaceProviderGroup: AuditConsumerSurfaceProviderGroup };

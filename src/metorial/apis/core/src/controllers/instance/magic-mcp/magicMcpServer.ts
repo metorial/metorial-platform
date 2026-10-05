@@ -235,7 +235,11 @@ let getMagicMcpServerPresentationData = async (d: {
     portal: d.portal,
     integration,
     integrationInstance,
-    magicMcpServerProviders
+    magicMcpServerProviders,
+    backingStatus:
+      backing.integrationInstance.status === 'active'
+        ? ('healthy' as const)
+        : ('needs_reconnect' as const)
   };
 };
 
@@ -254,6 +258,10 @@ let getMagicMcpServerListPresentationData = async (d: {
     .filter(magicMcpServer => magicMcpServer.hasSubspaceBacking)
     .map(magicMcpServer => magicMcpServer.id);
   let providersByServerId = new Map<string, RawMagicMcpServerProvider[]>();
+  let backingStatuses = await magicMcpServerBackingService.getMagicMcpServerBackingStatuses({
+    instance: d.instance,
+    magicMcpServerBackingIds: backedServerIds
+  });
 
   if (backedServerIds.length > 0) {
     let after: string | undefined;
@@ -283,7 +291,11 @@ let getMagicMcpServerListPresentationData = async (d: {
       portal: d.portal,
       integration: null,
       integrationInstance: null,
-      magicMcpServerProviders: providersByServerId.get(magicMcpServer.id) ?? []
+      magicMcpServerProviders: providersByServerId.get(magicMcpServer.id) ?? [],
+      backingStatus:
+        backingStatuses.get(magicMcpServer.id) === 'needs_reconnect'
+          ? ('needs_reconnect' as const)
+          : ('healthy' as const)
     });
   }
 

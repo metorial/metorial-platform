@@ -31,7 +31,8 @@ describe('paginatedProviderExternalCursor', () => {
     expect(fetch).toHaveBeenCalledWith({
       cursor: undefined,
       limit: 20,
-      direction: 'forward'
+      direction: 'forward',
+      order: 'asc'
     });
     expect(list.items).toEqual([{ id: 'ws_1' }]);
     expect(list.pagination.hasNextPage).toBe(true);
@@ -56,7 +57,8 @@ describe('paginatedProviderExternalCursor', () => {
     expect(fetch).toHaveBeenCalledWith({
       cursor: 'raw-adapter-cursor',
       limit: 10,
-      direction: 'forward'
+      direction: 'forward',
+      order: 'asc'
     });
     expect(list.pagination.after).toBe(Cursor.fromId('n2', 'after').toString());
     expect(list.pagination.before).toBe(Cursor.fromId('p2', 'before').toString());
@@ -74,7 +76,8 @@ describe('paginatedProviderExternalCursor', () => {
     expect(fetch).toHaveBeenCalledWith({
       cursor: 'raw-adapter-cursor',
       limit: 10,
-      direction: 'backward'
+      direction: 'backward',
+      order: 'asc'
     });
   });
 
@@ -91,7 +94,8 @@ describe('paginatedProviderExternalCursor', () => {
     expect(fetch).toHaveBeenCalledWith({
       cursor: 'inner-token',
       limit: 5,
-      direction: 'forward'
+      direction: 'forward',
+      order: 'asc'
     });
   });
 
@@ -108,7 +112,8 @@ describe('paginatedProviderExternalCursor', () => {
     expect(fetch).toHaveBeenCalledWith({
       cursor: 'inner-token',
       limit: 5,
-      direction: 'backward'
+      direction: 'backward',
+      order: 'asc'
     });
   });
 
@@ -176,8 +181,20 @@ describe('Paginator present', () => {
     expect(fetch).toHaveBeenCalledWith({
       cursor: 'adapter-page',
       limit: 10,
-      direction: 'forward'
+      direction: 'forward',
+      order: 'asc'
     });
     expect(list.pagination.after).toBe(Cursor.fromId('n2', 'after').toString());
+  });
+});
+
+it('forwards descending order to external providers', async () => {
+  let fetch = vi.fn(async () => ({ items: [] }));
+  await paginatedProviderExternalCursor(fetch)({ limit: 2, order: 'desc' });
+  expect(fetch).toHaveBeenCalledWith({
+    cursor: undefined,
+    limit: 2,
+    direction: 'forward',
+    order: 'desc'
   });
 });

@@ -510,6 +510,49 @@ export let consumerProviderController = Controller.create(
         return magicMcpServerPresenter.present({
           magicMcpServer: hydratedMagicMcpServer
         });
+      }),
+
+    reconnect: consumerProviderItemGroup
+      .post(consumerPath('providers/:catalogItemId/reconnect', 'providers.reconnect'), {
+        name: 'Reconnect consumer provider',
+        description:
+          'Relinks an existing owned Magic MCP server to a freshly completed integration setup, keeping its URL.'
+      })
+      .use(hasFlags(['paid-portals', 'portals-access', 'magic-mcp-enabled']))
+      .body(
+        'default',
+        v.object({
+          magic_mcp_server_id: v.string(),
+          integration_setup_session_id: v.string()
+        })
+      )
+      .output(magicMcpServerPresenter)
+      .do(async ctx => {
+        let consumerProvider = requireProviderTemplate(ctx.consumerProvider);
+        let magicMcpServer = await consumerProviderDeploymentService.reconnectProvider({
+          organization: ctx.organization,
+          performedBy: ctx.actor!,
+          instance: ctx.instance,
+          context: ctx.context,
+          auditScope: ctx.auditScope,
+          consumerProfile: ctx.consumerProfile,
+          accessTags: ctx.accessTags!,
+          providerTemplateId: consumerProvider.providerTemplate.id,
+          input: {
+            magicMcpServerId: ctx.body.magic_mcp_server_id,
+            integrationSetupSessionId: ctx.body.integration_setup_session_id
+          }
+        });
+
+        let hydratedMagicMcpServer = await magicMcpServerService.getMagicMcpServerById({
+          instance: ctx.instance,
+          magicMcpServerId: magicMcpServer.id,
+          accessTags: ctx.accessTags
+        });
+
+        return magicMcpServerPresenter.present({
+          magicMcpServer: hydratedMagicMcpServer
+        });
       })
   }
 );

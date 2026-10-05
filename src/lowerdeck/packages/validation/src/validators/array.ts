@@ -1,23 +1,20 @@
 import { error, success } from '../lib/result';
 import type { ValidationType, ValidationTypeValue, ValidatorOptions } from '../lib/types';
+import { createValidator } from '../lib/validator';
 
 export let array = <Validator extends ValidationType<any>>(
   validator: Validator,
   opts?: ValidatorOptions<ValidationTypeValue<Validator>[]>
 ): ValidationType<ValidationTypeValue<Validator>[]> => ({
-  type: 'array',
-  items: validator,
-  name: opts?.name,
-  description: opts?.description,
-  examples: Array.isArray(validator.examples)
-    ? validator.examples.map(v => [v, v])
-    : undefined,
-  validate: value => {
+  ...createValidator<
+    ValidationTypeValue<Validator>[],
+    ValidatorOptions<ValidationTypeValue<Validator>[]>
+  >('array', (opts, value) => {
     if (!Array.isArray(value)) {
       return error([
         {
           code: 'invalid_type',
-          message: `Invalid input, expected array, received ${typeof value}`,
+          message: opts.message ?? `Invalid input, expected array, received ${typeof value}`,
           received: typeof value,
           expected: 'array'
         }
@@ -39,5 +36,9 @@ export let array = <Validator extends ValidationType<any>>(
     }
 
     return success(values);
-  }
+  })(opts),
+  items: validator,
+  examples:
+    opts?.examples ??
+    (Array.isArray(validator.examples) ? validator.examples.map(v => [v, v]) : undefined)
 });

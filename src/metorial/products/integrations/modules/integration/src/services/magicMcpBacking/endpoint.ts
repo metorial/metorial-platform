@@ -42,6 +42,8 @@ type UpsertMagicMcpEndpointBackingParams = {
   };
 };
 
+export type MagicMcpEndpointBackingStatus = 'healthy' | 'stale' | 'missing';
+
 type GetMagicMcpEndpointBackingByIdParams = {
   magicMcpEndpointBackingId: string;
 };
@@ -124,22 +126,24 @@ class magicMcpEndpointBackingServiceImpl {
           });
 
           let group =
-            await integrationInstanceGroupService.upsertMagicMcpIntegrationInstanceGroupInternal({
-              tenant: d.tenant,
-              environment: d.environment,
-              integrationInstanceGroup: existing?.integrationGroup,
-              input: {
-                name: d.input.name?.trim() || d.input.id,
-                description: d.input.description,
-                metadata: d.input.metadata,
-                privateMetadata: d.input.privateMetadata,
-                identityActorId: d.input.identityActorId,
-                identityId: d.input.identityId,
-                identitySourceIntegrationInstances: serverBackings.map(
-                  backing => backing.integrationInstance
-                )
+            await integrationInstanceGroupService.upsertMagicMcpIntegrationInstanceGroupInternal(
+              {
+                tenant: d.tenant,
+                environment: d.environment,
+                integrationInstanceGroup: existing?.integrationGroup,
+                input: {
+                  name: d.input.name?.trim() || d.input.id,
+                  description: d.input.description,
+                  metadata: d.input.metadata,
+                  privateMetadata: d.input.privateMetadata,
+                  identityActorId: d.input.identityActorId,
+                  identityId: d.input.identityId,
+                  identitySourceIntegrationInstances: serverBackings.map(
+                    backing => backing.integrationInstance
+                  )
+                }
               }
-            });
+            );
 
           let sessionTemplate =
             await sessionTemplateService.upsertInternalLinkedSessionTemplateInternal({
@@ -156,17 +160,19 @@ class magicMcpEndpointBackingServiceImpl {
             });
 
           let ephemeralManagedSession =
-            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSessionInternal({
-              tenant: d.tenant,
-              environment: d.environment,
-              ephemeralManagedSession: existing?.ephemeralManagedSession,
-              sessionTemplate,
-              input: {
-                maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
-                actorOid,
-                isReconciling: shouldDeferReconcile
+            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSessionInternal(
+              {
+                tenant: d.tenant,
+                environment: d.environment,
+                ephemeralManagedSession: existing?.ephemeralManagedSession,
+                sessionTemplate,
+                input: {
+                  maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
+                  actorOid,
+                  isReconciling: shouldDeferReconcile
+                }
               }
-            });
+            );
 
           let backing = await db.magicMcpEndpointBacking.upsert({
             where: { id: d.input.id },
@@ -251,7 +257,9 @@ class magicMcpEndpointBackingServiceImpl {
     };
   }
 
-  async getMagicMcpEndpointBackingById(d: MetorialFacing<GetMagicMcpEndpointBackingByIdParams>) {
+  async getMagicMcpEndpointBackingById(
+    d: MetorialFacing<GetMagicMcpEndpointBackingByIdParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -285,6 +293,34 @@ class magicMcpEndpointBackingServiceImpl {
     }
 
     return backing;
+  }
+
+  async getMagicMcpEndpointBackingStatus(
+    d: MetorialFacing<{ magicMcpEndpointBackingId: string }>
+  ): Promise<MagicMcpEndpointBackingStatus> {
+    let scope = await resolveMetorialFacing(d);
+    let solution = await getMetorialSolution();
+
+    let backing = await db.magicMcpEndpointBacking.findFirst({
+      where: {
+        id: d.magicMcpEndpointBackingId,
+        integrationGroup: {
+          tenantOid: scope.tenant.oid,
+          solutionOid: solution.oid,
+          environmentOid: scope.environment.oid
+        }
+      },
+      select: {
+        sessionTemplate: { select: { status: true } },
+        ephemeralManagedSession: { select: { status: true } }
+      }
+    });
+    if (!backing) return 'missing';
+
+    return backing.sessionTemplate.status !== 'active' ||
+      backing.ephemeralManagedSession.status !== 'active'
+      ? 'stale'
+      : 'healthy';
   }
 
   async archiveMagicMcpEndpointBacking(

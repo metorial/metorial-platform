@@ -3,6 +3,8 @@ import { db, ID, Instance, MagicMcpSession, Prisma } from '@metorial/db';
 import {
   ensureMagicMcpEndpointBacking,
   ensureMagicMcpServerBacking,
+  healMagicMcpEndpointBacking,
+  healMagicMcpServerBacking,
   waitForMagicMcpEndpointBackingReady,
   waitForMagicMcpServerBackingReady
 } from './backing';
@@ -34,7 +36,14 @@ let ensureServerBackingSession = async (
     !targetServer.isSubspaceBackingReconciling
   ) {
     await assertMagicMcpTargetLinkedResourcesActive(target);
-    return targetServer.subspaceEphemeralManagedSessionId;
+    let healed = await healMagicMcpServerBacking({
+      instance: target.target.instance as Instance,
+      server: targetServer
+    });
+    return (
+      healed.subspaceEphemeralManagedSessionId ??
+      targetServer.subspaceEphemeralManagedSessionId
+    );
   }
 
   let server = {
@@ -90,7 +99,14 @@ let ensureEndpointBackingSession = async (
     !targetEndpoint.isSubspaceBackingReconciling
   ) {
     await assertMagicMcpTargetLinkedResourcesActive(target);
-    return targetEndpoint.subspaceEphemeralManagedSessionId;
+    let healed = await healMagicMcpEndpointBacking({
+      instance: target.target.instance as Instance,
+      endpoint: targetEndpoint
+    });
+    return (
+      healed.subspaceEphemeralManagedSessionId ??
+      targetEndpoint.subspaceEphemeralManagedSessionId
+    );
   }
 
   let endpoint = await ensureMagicMcpEndpointBacking({

@@ -1,4 +1,9 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  isServiceError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -43,6 +48,7 @@ import {
   integrationInstanceService
 } from './integrationInstance';
 import { integrationInstanceProviderService } from './integrationInstanceProvider';
+import { integrationProviderService } from './integrationProvider';
 
 export let integrationSetupSessionProviderInclude = {
   integrationProvider: {
@@ -406,7 +412,9 @@ class integrationSetupSessionServiceImpl {
     });
     let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
 
-    let integrationProviders = await this.getActiveIntegrationProviders({
+    let integrationProviders = await this.getUsableIntegrationProviders({
+      tenant: d.tenant,
+      environment: d.environment,
       integration
     });
     if (!integrationProviders.length) {
@@ -587,7 +595,9 @@ class integrationSetupSessionServiceImpl {
       }
 
       let integrationProvider = (
-        await this.getActiveIntegrationProviders({
+        await this.getUsableIntegrationProviders({
+          tenant: setupSession.tenant,
+          environment: setupSession.environment,
           integration: setupSession.integration,
           integrationProviderOid: providerRow.integrationProviderOid
         })
@@ -813,6 +823,49 @@ class integrationSetupSessionServiceImpl {
       },
       orderBy: { createdAt: 'asc' }
     });
+  }
+
+  private async getUsableIntegrationProviders(d: {
+    tenant: Tenant;
+    environment: Environment;
+    integration: Pick<Integration, 'oid'>;
+    integrationProviderOid?: bigint;
+  }) {
+    let integrationProviders = await this.getActiveIntegrationProviders(d);
+
+    let results = await Promise.allSettled(
+      integrationProviders.map(integrationProvider =>
+        integrationProviderService.resolveUsableIntegrationProviderMaterialInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          integrationProvider
+        })
+      )
+    );
+
+    let unusableProviderOids = new Set<bigint>();
+    let firstUnusableError: unknown;
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') return;
+      if (
+        !isServiceError(result.reason) ||
+        result.reason.data.code !== 'integration_provider_credentials_unavailable'
+      ) {
+        throw result.reason;
+      }
+      unusableProviderOids.add(integrationProviders[i]!.oid);
+      firstUnusableError ??= result.reason;
+    });
+
+    let isHealed = results.some(r => r.status === 'fulfilled' && r.value.isHealed);
+    let providers = isHealed
+      ? await this.getActiveIntegrationProviders(d)
+      : integrationProviders;
+    let usableProviders = providers.filter(p => !unusableProviderOids.has(p.oid));
+
+    if (!usableProviders.length && firstUnusableError) throw firstUnusableError;
+
+    return usableProviders;
   }
 
   private async createChildProviderSetupSession(d: {

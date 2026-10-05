@@ -91,8 +91,37 @@ let emptyShape = (value: any): any => {
   return '';
 };
 
+let sensitiveLogFields = new Set([
+  'token',
+  'accesstoken',
+  'refreshtoken',
+  'idtoken',
+  'sessiontoken',
+  'authtoken',
+  'bearertoken',
+  'secret',
+  'clientsecret',
+  'secretkey',
+  'key',
+  'apikey',
+  'xapikey',
+  'accesskey',
+  'privatekey',
+  'signingkey',
+  'password',
+  'passwd',
+  'pwd',
+  'passphrase',
+  'authorization',
+  'cookie',
+  'setcookie',
+  'sessioncookie',
+  'credential',
+  'credentials'
+]);
+
 let isSensitiveLogField = (key: string) =>
-  ['clientsecret', 'client_secret', 'key', 'token', 'secret'].includes(key.toLowerCase());
+  sensitiveLogFields.has(key.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
 let redactSensitiveFields = (value: any): any => {
   if (Array.isArray(value)) return value.map(item => redactSensitiveFields(item));

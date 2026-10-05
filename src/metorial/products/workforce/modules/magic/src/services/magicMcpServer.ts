@@ -41,12 +41,17 @@ import {
 import { assertAuthMethodAllowedForTenant } from '@metorial-subspace/module-provider-internal';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
-import { ensureMagicMcpServerBacking, type ConsumerOwner } from '../lib/backing';
+import {
+  ensureMagicMcpServerBacking,
+  healMagicMcpServerBacking,
+  type ConsumerOwner
+} from '../lib/backing';
 import {
   magicMcpServerCreatedQueue,
   magicMcpServerDeletedQueue,
   magicMcpServerUpdatedQueue
 } from '../queues/lifecycle/magicMcpServer';
+import { magicMcpEndpointUpdatedQueue } from '../queues/lifecycle/magicMcpEndpoint';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let include = {
@@ -186,7 +191,7 @@ class MagicMcpServerImpl {
 
     if (!sessionTemplateId) {
       let server = d.server.hasSubspaceBacking
-        ? d.server
+        ? await healMagicMcpServerBacking({ instance: d.instance, server: d.server })
         : await ensureMagicMcpServerBacking({
             instance: d.instance,
             server: d.server,
@@ -462,6 +467,95 @@ class MagicMcpServerImpl {
     });
 
     return magicMcpServer;
+  }
+
+  async relinkMagicMcpServerIntegrationInstance(d: {
+    server: MagicMcpServer;
+    instance: Instance;
+    auditScope: AuditScope;
+    integrationInstanceId: string;
+    consumerOwner?: ConsumerOwner;
+  }) {
+    if (d.server.status !== 'active') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Cannot relink a magic MCP server that is not active'
+        })
+      );
+    }
+
+    let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
+    let integrationInstance = await integrationInstanceService.getIntegrationInstanceById({
+      instance: d.instance,
+      integrationInstanceId: d.integrationInstanceId
+    });
+
+    for (let provider of integrationInstance.integrationInstanceProviders) {
+      let authMethod =
+        provider.currentVersion?.authConfig?.authMethod ??
+        provider.currentVersion?.integrationProviderVersion.authMethod;
+      assertAuthMethodAllowedForTenant({ tenant, authMethod });
+    }
+
+    let { server, endpointLinks } = await withTransaction(async db => {
+      let endpointLinks = await db.magicMcpEndpointServer.findMany({
+        where: { magicMcpServerOid: d.server.oid },
+        select: {
+          magicMcpEndpoint: { select: { oid: true, id: true } }
+        }
+      });
+
+      await db.magicMcpSession.updateMany({
+        where: {
+          OR: [
+            { magicMcpServerOid: d.server.oid },
+            {
+              magicMcpEndpointOid: {
+                in: endpointLinks.map(link => link.magicMcpEndpoint.oid)
+              }
+            }
+          ]
+        },
+        data: { isConsumerReconciled: false }
+      });
+
+      let server = await db.magicMcpServer.update({
+        where: { oid: d.server.oid },
+        data: {
+          subspaceIntegrationInstanceId: integrationInstance.id,
+          isSubspaceBackingReconciling: true
+        }
+      });
+
+      return { server, endpointLinks };
+    });
+
+    await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server,
+      owner: d.consumerOwner,
+      deferReconcile: false
+    });
+
+    if (endpointLinks.length) {
+      await magicMcpEndpointUpdatedQueue.addMany(
+        endpointLinks.map(link => ({ magicMcpEndpointId: link.magicMcpEndpoint.id }))
+      );
+    }
+
+    let relinked = await db.magicMcpServer.findUniqueOrThrow({
+      where: { oid: d.server.oid },
+      include
+    });
+
+    await Fabric.fire('magic_mcp.server.updated:after', {
+      instance: d.instance,
+      magicMcpServer: relinked,
+      previousMagicMcpServer: d.server,
+      auditScope: d.auditScope
+    });
+
+    return relinked;
   }
 
   async updateMagicMcpServer(d: {

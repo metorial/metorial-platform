@@ -28,6 +28,7 @@ export type PaginatedProvider<T> = (
 ) => Promise<PaginatedList<T>>;
 
 export type ExternalCursorPageInput = {
+  order: 'asc' | 'desc';
   cursor?: string;
   limit: number;
   direction: 'forward' | 'backward';
@@ -198,7 +199,7 @@ export let paginatedProviderExternalCursor =
     fetch: (page: ExternalCursorPageInput) => Promise<ExternalCursorPageResult<T>>
   ): PaginatedProvider<T> =>
   async input => {
-    let { limit, after, before } = input;
+    let { limit, after, before, order } = input;
 
     if (after && before) {
       throw new ServiceError(
@@ -224,7 +225,8 @@ export let paginatedProviderExternalCursor =
     let page = await fetch({
       cursor,
       limit,
-      direction
+      direction,
+      order
     });
 
     return {

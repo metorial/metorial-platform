@@ -35,6 +35,8 @@ import {
   withMagicMcpBackingLock
 } from './shared';
 
+export type MagicMcpServerBackingStatus = 'healthy' | 'stale' | 'missing' | 'needs_reconnect';
+
 type UpsertMagicMcpServerBackingParams = {
   input: MagicMcpBackingInputBase & {
     providerTemplateBackingId?: string | null;
@@ -309,17 +311,19 @@ class magicMcpServerBackingServiceImpl {
             });
 
           let ephemeralManagedSession =
-            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSessionInternal({
-              tenant: d.tenant,
-              environment: d.environment,
-              ephemeralManagedSession: existing?.ephemeralManagedSession,
-              sessionTemplate,
-              input: {
-                maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
-                actorOid,
-                isReconciling: shouldDeferReconcile
+            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSessionInternal(
+              {
+                tenant: d.tenant,
+                environment: d.environment,
+                ephemeralManagedSession: existing?.ephemeralManagedSession,
+                sessionTemplate,
+                input: {
+                  maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
+                  actorOid,
+                  isReconciling: shouldDeferReconcile
+                }
               }
-            });
+            );
 
           let backing = await db.magicMcpServerBacking.upsert({
             where: { id: d.input.id },
@@ -358,14 +362,16 @@ class magicMcpServerBackingServiceImpl {
     );
 
     if (providers.length) {
-      await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProvidersInternal({
-        tenant: d.tenant,
-        environment: d.environment,
-        integration: syncTarget.integration,
-        integrationInstance: syncTarget.integrationInstance,
-        isReconciliation: d.input.isReconciliation,
-        input: providers
-      });
+      await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProvidersInternal(
+        {
+          tenant: d.tenant,
+          environment: d.environment,
+          integration: syncTarget.integration,
+          integrationInstance: syncTarget.integrationInstance,
+          isReconciliation: d.input.isReconciliation,
+          input: providers
+        }
+      );
     }
 
     if (shouldDeferReconcile) {
@@ -430,6 +436,49 @@ class magicMcpServerBackingServiceImpl {
     }
 
     return backing;
+  }
+
+  async getMagicMcpServerBackingStatuses(
+    d: MetorialFacing<{ magicMcpServerBackingIds: string[] }>
+  ) {
+    let statuses = new Map<string, MagicMcpServerBackingStatus>(
+      d.magicMcpServerBackingIds.map(id => [id, 'missing'])
+    );
+    if (!d.magicMcpServerBackingIds.length) return statuses;
+
+    let scope = await resolveMetorialFacing(d);
+    let solution = await getMetorialSolution();
+
+    let backings = await db.magicMcpServerBacking.findMany({
+      where: {
+        id: { in: d.magicMcpServerBackingIds },
+        integrationInstance: {
+          tenantOid: scope.tenant.oid,
+          solutionOid: solution.oid,
+          environmentOid: scope.environment.oid
+        }
+      },
+      select: {
+        id: true,
+        sessionTemplate: { select: { status: true } },
+        ephemeralManagedSession: { select: { status: true } },
+        integrationInstance: { select: { status: true } }
+      }
+    });
+
+    for (let backing of backings) {
+      statuses.set(
+        backing.id,
+        backing.integrationInstance.status !== 'active'
+          ? 'needs_reconnect'
+          : backing.sessionTemplate.status !== 'active' ||
+              backing.ephemeralManagedSession.status !== 'active'
+            ? 'stale'
+            : 'healthy'
+      );
+    }
+
+    return statuses;
   }
 
   async archiveMagicMcpServerBacking(d: MetorialFacing<ArchiveMagicMcpServerBackingParams>) {

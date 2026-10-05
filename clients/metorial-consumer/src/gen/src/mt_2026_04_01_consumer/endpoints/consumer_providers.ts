@@ -10,6 +10,8 @@ import {
   mapConsumerProvidersGetSetupOutput,
   mapConsumerProvidersListOutput,
   mapConsumerProvidersListQuery,
+  mapConsumerProvidersReconnectBody,
+  mapConsumerProvidersReconnectOutput,
   mapConsumerProvidersRequestAccessBody,
   mapConsumerProvidersRequestAccessOutput,
   mapConsumerProvidersSetupBody,
@@ -20,6 +22,8 @@ import {
   type ConsumerProvidersGetSetupOutput,
   type ConsumerProvidersListOutput,
   type ConsumerProvidersListQuery,
+  type ConsumerProvidersReconnectBody,
+  type ConsumerProvidersReconnectOutput,
   type ConsumerProvidersRequestAccessBody,
   type ConsumerProvidersRequestAccessOutput,
   type ConsumerProvidersSetupBody,
@@ -217,5 +221,33 @@ export class MetorialConsumerProvidersEndpoint {
     } as any;
 
     return this._post(request).transform(mapConsumerProvidersDeployOutput);
+  }
+
+  /**
+   * @name Reconnect consumer provider
+   * @description Relinks an existing owned Magic MCP server to a freshly completed integration setup, keeping its URL.
+   *
+   * @param `catalogItemId` - string
+   * @param `body` - ConsumerProvidersReconnectBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns ConsumerProvidersReconnectOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  reconnect(
+    catalogItemId: string,
+    body: ConsumerProvidersReconnectBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ConsumerProvidersReconnectOutput> {
+    let path = `consumer/providers/${catalogItemId}/reconnect`;
+
+    let request = {
+      path,
+      body: mapConsumerProvidersReconnectBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapConsumerProvidersReconnectOutput);
   }
 }

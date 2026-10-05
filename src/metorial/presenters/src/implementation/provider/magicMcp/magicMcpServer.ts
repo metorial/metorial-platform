@@ -171,6 +171,7 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
 
       integration_id: input.integration?.id ?? null,
       integration_instance_id: input.integrationInstance?.id ?? null,
+      backing_status: input.backingStatus ?? ('healthy' as const),
       consumer_owners: getDashboardConsumerOwners(input.magicMcpServer),
 
       providers: await Promise.all(
@@ -188,6 +189,7 @@ export let dashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerTyp
       v.object({
         integration_id: v.nullable(v.string()),
         integration_instance_id: v.nullable(v.string()),
+        backing_status: v.enumOf(['healthy', 'needs_reconnect']),
         consumer_owners: v.array(dashboardMagicMcpServerConsumerOwnerSchema),
         providers: v.array(dashboardMagicMcpServerProviderPresenter.schema)
       })
