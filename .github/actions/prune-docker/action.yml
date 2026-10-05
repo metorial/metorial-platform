@@ -11,6 +11,8 @@ inputs:
     required: false
     default: .
 outputs:
+  pruned:
+    value: ${{ steps.prune.outputs.pruned }}
   context:
     value: ${{ steps.prune.outputs.context }}
 runs:
@@ -36,8 +38,10 @@ runs:
           tooling=src/tooling/docker-build/prune.ts
           if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
           bun "$tooling" "${tasks[@]}"
+          echo "pruned=true" >> "$GITHUB_OUTPUT"
           echo "context=$PWD/out" >> "$GITHUB_OUTPUT"
         else
+          echo "pruned=false" >> "$GITHUB_OUTPUT"
           mkdir -p "$RUNNER_TEMP/unpruned-context"
           echo "context=$RUNNER_TEMP/unpruned-context" >> "$GITHUB_OUTPUT"
         fi
