@@ -501,6 +501,13 @@ class UserServiceImpl {
     d.email = d.email.trim().toLowerCase();
 
     return withTransaction(async tdb => {
+      await tdb.$queryRaw`
+        SELECT "oid"
+        FROM "User"
+        WHERE "oid" = ${d.user.oid}
+        FOR UPDATE
+      `;
+
       let existingEmail = await tdb.userEmail.findFirst({
         where: {
           appOid: d.app.oid,
@@ -563,6 +570,17 @@ class UserServiceImpl {
       }
 
       return email;
+    }).catch(error => {
+      if (
+        isUniqueConstraintError(error) &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes('email') &&
+        error.meta.target.includes('appOid')
+      ) {
+        throw new EmailInUseError();
+      }
+
+      throw error;
     });
   }
 
@@ -824,13 +842,33 @@ class UserServiceImpl {
     emails: { email: string; isPrimary: boolean; isVerified: boolean }[];
     suppressSync?: boolean;
   }) {
+    let emailsByEmail = new Map(
+      d.emails.map(input => [parseEmail(input.email).email, input])
+    );
+
     return withTransaction(async tdb => {
+      await tdb.$queryRaw`
+        SELECT "oid"
+        FROM "User"
+        WHERE "oid" = ${d.user.oid}
+        FOR UPDATE
+      `;
+
       let existing = await tdb.userEmail.findMany({
         where: { userOid: d.user.oid }
       });
 
       let existingByEmail = new Map(existing.map(e => [e.email, e]));
-      let incomingEmails = new Set(d.emails.map(e => parseEmail(e.email).email));
+      let incomingEmails = new Set(emailsByEmail.keys());
+      let conflictingEmail = await tdb.userEmail.findFirst({
+        where: {
+          appOid: d.user.appOid,
+          email: { in: [...incomingEmails] },
+          userOid: { not: d.user.oid }
+        }
+      });
+
+      if (conflictingEmail) throw new EmailInUseError();
 
       // Delete emails that are no longer in the input
       for (let ex of existing) {
@@ -841,7 +879,7 @@ class UserServiceImpl {
 
       let results: UserEmail[] = [];
 
-      for (let input of d.emails) {
+      for (let input of emailsByEmail.values()) {
         let parsed = parseEmail(input.email);
         let ex = existingByEmail.get(parsed.email);
 
@@ -911,6 +949,17 @@ class UserServiceImpl {
       }
 
       return results;
+    }).catch(error => {
+      if (
+        isUniqueConstraintError(error) &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes('email') &&
+        error.meta.target.includes('appOid')
+      ) {
+        throw new EmailInUseError();
+      }
+
+      throw error;
     });
   }
 
