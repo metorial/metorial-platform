@@ -1,3 +1,4 @@
+import type { webcrypto } from 'node:crypto';
 import { afterEach, expect, test, vi } from 'vitest';
 import {
   parseEd25519RpcSignature,
@@ -105,7 +106,7 @@ test('batches identical credentials and isolates different signing keys', async 
     })
   );
   let { createClient } = await import('./index');
-  let clientFor = (privateKey: JsonWebKey) =>
+  let clientFor = (privateKey: webcrypto.JsonWebKey) =>
     createClient<{ ping: (input: {}) => Promise<string> }>({
       endpoint: 'https://firehose.test/rpc',
       headers: { Authorization: 'Bearer employee' },

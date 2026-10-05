@@ -1,3 +1,4 @@
+import type { webcrypto } from 'node:crypto';
 export let ed25519RpcSignatureVersion = 'ed25519-v1';
 export let ed25519RpcSignatureMaxAgeMs = 60_000;
 
@@ -5,7 +6,7 @@ export type Ed25519SignatureCredentials = {
   algorithm: 'ed25519';
   keyId: string;
   audience: string;
-  privateKey: JsonWebKey;
+  privateKey: webcrypto.JsonWebKey;
 };
 
 export type Ed25519SignatureMetadata = {
@@ -86,7 +87,7 @@ let canonicalPayload = async (input: Ed25519SignatureInput) => {
 
 export let createEd25519RpcSignatureHeader = async (
   input: Omit<Ed25519SignatureInput, 'timestamp' | 'nonce'> & {
-    privateKey: JsonWebKey;
+    privateKey: webcrypto.JsonWebKey;
     timestamp?: number;
     nonce?: string;
   }
@@ -111,7 +112,7 @@ export let createEd25519RpcSignatureHeader = async (
 
 export let verifyEd25519RpcSignature = async (input: {
   signatureHeader: string | null | undefined;
-  publicKey: JsonWebKey;
+  publicKey: webcrypto.JsonWebKey;
   audience: string;
   method: string;
   url: string | URL;
