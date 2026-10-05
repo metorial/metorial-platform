@@ -86,7 +86,7 @@ for (let task of graph.tasks) {
 ancestors.add('.');
 
 for (let directory of ancestors) {
-  for (let config of new Bun.Glob('tsconfig*.json').scanSync({ cwd: directory })) {
+  for (let config of new Bun.Glob('{tsconfig*.json,prisma.config.ts}').scanSync({ cwd: directory })) {
     let target = join(outputDirectory, 'full', directory);
     mkdirSync(target, { recursive: true });
     cpSync(join(directory, config), join(target, config));

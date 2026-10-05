@@ -175,6 +175,21 @@
     },
     "control:db:push": {
       "cache": false
+    },
+    "@metorial-subspace/app-worker#server:build": {
+      "dependsOn": [
+        "admin:build",
+        "prisma:generate",
+        "^prisma:generate",
+        "^build",
+        "^server:build",
+        "@metorial/module-community#build",
+        "@metorial/module-skill-groups#build",
+        "@metorial/module-skill-templates#build"
+      ],
+      "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
+      "env": ["METORIAL_ENV"],
+      "outputs": ["dist/**", "!dist/admin/**"]
     }
   }
 }
