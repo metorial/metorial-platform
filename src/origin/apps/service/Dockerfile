@@ -25,6 +25,7 @@ ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 
 COPY --from=pruner /app/out/full/ ./
+COPY src/origin/apps/code-bucket/ ./src/origin/apps/code-bucket/
 
 WORKDIR /app/src/origin/apps/service
 
