@@ -80,6 +80,7 @@ class EmailService {
   }
 
   async sendEmail(d: {
+    idempotencyKey?: string;
     type: 'email';
     to: string[];
     template: any;
@@ -90,44 +91,50 @@ class EmailService {
     };
     identity: EmailIdentity;
   }) {
-    let email = await db.outgoingEmail.create({
-      data: {
-        oid: get4ByteIntId(),
-        id: ID.generateIdSync('outgoingEmail'),
+    let email;
+    try {
+      email = await db.outgoingEmail.create({
+        data: {
+          oid: get4ByteIntId(),
+          id: ID.generateIdSync('outgoingEmail'),
+          idempotencyKey: d.idempotencyKey,
+          numberOfDestinations: d.to.length,
+          numberOfDestinationsCompleted: 0,
+          values: normalizeTemplate(d.template),
+          subject: d.content.subject,
+          identityId: d.identity.oid,
+          content: {
+            create: { subject: d.content.subject, html: d.content.html, text: d.content.text }
+          },
+          destinations: {
+            create: d.to.map(destination => ({
+              id: snowflake.nextId(),
+              status: 'pending',
+              destination
+            }))
+          }
+        }
+      });
+    } catch (error) {
+      if (!d.idempotencyKey || (error as { code?: string }).code !== 'P2002') throw error;
+      email = await db.outgoingEmail.findUnique({
+        where: {
+          identityId_idempotencyKey: {
+            identityId: d.identity.oid,
+            idempotencyKey: d.idempotencyKey
+          }
+        }
+      });
+      if (!email) throw error;
+    }
 
-        numberOfDestinations: d.to.length,
-        numberOfDestinationsCompleted: 0,
-
-        values: normalizeTemplate(d.template),
-
-        subject: d.content.subject,
-
-        identityId: d.identity.oid
-      }
-    });
-
-    await db.outgoingEmailContent.createMany({
-      data: {
-        subject: d.content.subject,
-        html: d.content.html,
-        text: d.content.text,
-        emailId: email.oid
-      }
-    });
-
-    await db.outgoingEmailDestination.createMany({
-      data: d.to.map(t => ({
-        id: snowflake.nextId(),
-        status: 'pending',
-        destination: t,
-        emailId: email.oid
-      }))
-    });
-
-    setTimeout(async () => {
-      await sendEmailQueue.add({ emailId: email.id });
-    }, 1000);
-
+    if (!email.queuedAt) {
+      await sendEmailQueue.add({ emailId: email.id }, { id: email.id });
+      await db.outgoingEmail.update({
+        where: { oid: email.oid },
+        data: { queuedAt: new Date() }
+      });
+    }
     return email;
   }
 }

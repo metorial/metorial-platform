@@ -48,7 +48,8 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
     }
   });
   let email = destination?.email;
-  if (!destination || !email?.content) throw new QueueRetryError();
+  if (!destination) return;
+  if (!email?.content) throw new QueueRetryError();
 
   let sendRes: any;
   let status: OutgoingEmailSendStatus = 'success';

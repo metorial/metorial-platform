@@ -3,6 +3,7 @@ import { joinPaths } from '@lowerdeck/join-paths';
 export type NexusSlices =
   | 'account'
   | 'documents'
+  | 'trust'
   | 'enterprise'
   | 'index'
   | 'join'

@@ -11,6 +11,7 @@ export let emailController = app.controller({
         senderId: v.string(),
         emailIdentityId: v.string(),
 
+        idempotencyKey: v.optional(v.string()),
         type: v.optional(v.enumOf(['email'])),
         to: v.array(v.string()),
         template: v.record(v.any()),
@@ -29,6 +30,7 @@ export let emailController = app.controller({
 
       let email = await emailService.sendEmail({
         identity: emailIdentity,
+        idempotencyKey: ctx.input.idempotencyKey,
 
         type: ctx.input.type || 'email',
         to: ctx.input.to,
