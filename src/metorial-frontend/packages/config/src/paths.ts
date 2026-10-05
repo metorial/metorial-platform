@@ -343,7 +343,8 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'integrations', 'callbacks', ...subPages),
+    ) =>
+      InstancePaths(organization, project, instance, 'integrations', 'callbacks', ...subPages),
     callback: (
       organization: EntityParam,
       project: EntityParam,
@@ -1212,6 +1213,16 @@ let SupportPaths = Object.assign(
       if (!ticketId) return '#';
       return SupportPaths.tickets(organizationId, ticketId);
     }
+  }
+);
+
+let TrustPaths = Object.assign(
+  (...subPages: SubPages) => getNexusUrl('trust', () => joinPaths(...subPages)),
+  {
+    documents: (organizationId: string | null | undefined) =>
+      organizationId ? TrustPaths(organizationId, 'documents') : '#',
+    requests: (organizationId: string | null | undefined) =>
+      organizationId ? TrustPaths(organizationId, 'requests') : '#'
   }
 );
 
@@ -2090,6 +2101,7 @@ export let Paths = {
   instance: InstancePaths,
   account: AccountPaths,
   documents: DocumentsPaths,
+  trust: TrustPaths,
   support: SupportPaths,
   enterprise: EnterprisePaths,
   organization: OrganizationPaths,
