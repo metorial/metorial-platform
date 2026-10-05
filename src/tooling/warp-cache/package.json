@@ -1,0 +1,10 @@
+{
+  "name": "@metorial/warp-cache",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test"
+  }
+}

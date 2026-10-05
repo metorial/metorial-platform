@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "prettier": "^3.5.3",
-    "turbo": "^2.5.4",
+    "turbo": "2.9.18",
     "typescript": "5.8.2"
   },
   "engines": {
@@ -75,6 +75,7 @@
     "src/synthesis/*",
     "src/synthesis/*/*",
     "src/synthesis/*/*/*",
+    "src/tooling/*",
     "src/voyager/*",
     "src/voyager/*/*",
     "src/voyager/*/*/*",

@@ -1,0 +1,59 @@
+name: Setup Warp Cache
+description: Starts the S3-backed Turborepo v8 cache proxy for this job
+inputs:
+  aws-access-key-id:
+    required: false
+  aws-secret-access-key:
+    required: false
+  role-arn:
+    required: true
+  bucket:
+    required: true
+  signature-key:
+    required: false
+  team:
+    required: false
+    default: metorial
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        INPUT_AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+        INPUT_ROLE_ARN: ${{ inputs.role-arn }}
+        INPUT_BUCKET: ${{ inputs.bucket }}
+        INPUT_SIGNATURE_KEY: ${{ inputs.signature-key }}
+        INPUT_TEAM: ${{ inputs.team }}
+      run: |
+        if [ -z "$INPUT_AWS_ACCESS_KEY_ID" ] || [ -z "$INPUT_AWS_SECRET_ACCESS_KEY" ] || [ -z "$INPUT_SIGNATURE_KEY" ]; then
+          echo "Warp Cache disabled because cache secrets are unavailable."
+          exit 0
+        fi
+        export AWS_ACCESS_KEY_ID="$INPUT_AWS_ACCESS_KEY_ID"
+        export AWS_SECRET_ACCESS_KEY="$INPUT_AWS_SECRET_ACCESS_KEY"
+        credentials="$(aws sts assume-role --role-arn "$INPUT_ROLE_ARN" --role-session-name "warp-cache-${GITHUB_RUN_ID}" --duration-seconds 3600 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)"
+        read -r assumed_key assumed_secret assumed_token <<< "$credentials"
+        token="$(openssl rand -hex 32)"
+        echo "::add-mask::$assumed_secret"
+        echo "::add-mask::$assumed_token"
+        echo "::add-mask::$token"
+        echo "::add-mask::$INPUT_SIGNATURE_KEY"
+        export AWS_ACCESS_KEY_ID="$assumed_key"
+        export AWS_SECRET_ACCESS_KEY="$assumed_secret"
+        export AWS_SESSION_TOKEN="$assumed_token"
+        export WARP_CACHE_TOKEN="$token"
+        export WARP_CACHE_TEAM="$INPUT_TEAM"
+        export WARP_CACHE_BUCKET="$INPUT_BUCKET"
+        nohup bun "$GITHUB_WORKSPACE/src/tooling/warp-cache/src/index.ts" > "$RUNNER_TEMP/warp-cache.log" 2>&1 &
+        for attempt in {1..20}; do
+          curl --fail --silent http://127.0.0.1:8787/health && break
+          sleep 1
+        done
+        curl --fail --silent http://127.0.0.1:8787/health > /dev/null
+        {
+          echo "TURBO_API=http://127.0.0.1:8787"
+          echo "TURBO_TEAM=$INPUT_TEAM"
+          echo "TURBO_TOKEN=$token"
+          echo "TURBO_REMOTE_CACHE_SIGNATURE_KEY=$INPUT_SIGNATURE_KEY"
+        } >> "$GITHUB_ENV"

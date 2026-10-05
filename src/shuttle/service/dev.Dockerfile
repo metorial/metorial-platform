@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
 
 RUN sh ./src/shuttle/scripts/prepare-docker-build.sh
 
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@metorial/shuttle
+
 # Run in dev mode with hot reloading. Reinstall if the mounted node_modules
 # volume is empty so local SDK workspace packages resolve during tests.
-CMD ["sh", "-c", "cd /app && if [ ! -f /app/node_modules/@metorial/mcp-server/package.json ]; then bun install --linker=hoisted; fi && bunx turbo run --ui=stream build --filter=\"./src/shuttle/sdk/packages/**\" && cd /app/src/shuttle/service && bun prisma generate && bun prisma db push --accept-data-loss && bun --watch src/server.ts"]
+CMD ["sh", "-c", "cd /app && if [ ! -f /app/node_modules/@metorial/mcp-server/package.json ]; then bun install --linker=hoisted; fi && cd /app/src/shuttle/service && bun prisma generate && bun prisma db push --accept-data-loss && bun --watch src/server.ts"]

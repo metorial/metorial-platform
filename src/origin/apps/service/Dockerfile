@@ -1,10 +1,15 @@
+# syntax=docker/dockerfile:1.7
 # Build stage — Docker context is the OSS monorepo root (./oss).
 FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
 ARG SENTRY_AUTH_TOKEN
+ARG TURBO_API
+ARG TURBO_TEAM
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+ENV TURBO_API=${TURBO_API}
+ENV TURBO_TEAM=${TURBO_TEAM}
 
 COPY . .
 
@@ -17,8 +22,7 @@ RUN mkdir -p ./node_modules/@metorial/code-bucket-service-generated && \
   cp ../code-bucket/package.json ../code-bucket/index.ts ./node_modules/@metorial/code-bucket-service-generated/ && \
   cp -r ../code-bucket/ts-proto-gen ./node_modules/@metorial/code-bucket-service-generated/ts-proto-gen
 
-RUN bunx prisma generate
-RUN bun run server:build
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@metorial/origin
 
 # Production stage
 FROM oven/bun:1-alpine AS runner
