@@ -28,14 +28,22 @@ if (args.includes('--filter=@metorial-subspace/app-worker')) {
   args.push('--filter=@metorial/db', '--filter=@metorial/multi-region', '--filter=@metorial-subspace/db');
 }
 
-let graph = JSON.parse(runTurbo(['run', ...args, '--dry=json', '--cache=local:,remote:'], true));
-let packages = [...new Set<string>(graph.tasks.map((task: { package: string }) => task.package))]
+let graph = runTurbo(['run', ...args, '--graph', '--cache=local:,remote:'], true);
+let packages = [...new Set([...graph.matchAll(/"\[root\] ([^"#]+)#[^"\n]+"/g)].map(match => match[1]))]
   .filter(name => name !== '//')
   .sort();
 
 if (!packages.length) throw new Error('No build workspaces selected');
 
 let rootManifest = await Bun.file('package.json').json();
+let workspaceDirectories = new Map<string, string>();
+
+for (let workspace of rootManifest.workspaces) {
+  for (let manifestPath of new Bun.Glob(`${workspace}/package.json`).scanSync('.')) {
+    let manifest = await Bun.file(manifestPath).json();
+    workspaceDirectories.set(manifest.name, dirname(manifestPath));
+  }
+}
 
 while (true) {
   rmSync(outputDirectory, { recursive: true, force: true });
@@ -80,8 +88,9 @@ cpSync(join(toolingDirectory, 'warp-cache'), join(outputDirectory, 'full', tooli
 
 let ancestors = new Set<string>();
 
-for (let task of graph.tasks) {
-  let directory = task.directory;
+for (let name of packages) {
+  let directory = workspaceDirectories.get(name);
+  if (!directory) throw new Error(`Missing workspace directory for ${name}`);
 
   while (directory !== '.') {
     ancestors.add(directory);
