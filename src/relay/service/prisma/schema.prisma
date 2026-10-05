@@ -57,7 +57,10 @@ model EmailIdentity {
 
 model OutgoingEmail {
   oid BigInt @id
-  id  String
+  id  String @unique
+
+  idempotencyKey String?
+  queuedAt DateTime?
 
   numberOfDestinations          Int
   numberOfDestinationsCompleted Int
@@ -73,6 +76,9 @@ model OutgoingEmail {
 
   content      OutgoingEmailContent?
   destinations OutgoingEmailDestination[]
+
+  @@unique([identityId, idempotencyKey])
+  @@index([queuedAt, createdAt])
 }
 
 enum OutgoingEmailDestinationStatus {
