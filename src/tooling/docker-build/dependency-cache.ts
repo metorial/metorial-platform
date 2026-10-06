@@ -48,7 +48,7 @@ if (command === 'fingerprint') {
   mkdirSync(cacheDirectory, { recursive: true });
   cpSync('out/json', join(cacheDirectory, 'json'), { recursive: true });
   let fullFiles = [...new Bun.Glob('**/*').scanSync({ cwd: 'out/full', onlyFiles: true, dot: true })];
-  let directories = fullFiles.filter(path => path.endsWith('/package.json')).map(dirname);
+  let directories = fullFiles.filter(path => path.endsWith('/package.json') && existsSync(join(cacheDirectory, 'json', path))).map(dirname);
   let extras = fullFiles.filter(path => !directories.some(directory => path.startsWith(directory + '/')));
   let generated = fullFiles.filter(path => /(^|\/)(package|turbo)\.json$/.test(path) && (!existsSync(path) || !readFileSync(path).equals(readFileSync(join('out/full', path)))));
   rmSync(join(cacheDirectory, 'generated'), { recursive: true, force: true });

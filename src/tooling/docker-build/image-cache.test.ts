@@ -137,3 +137,24 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   expect(resolveImage(directory).tag).not.toBe(original.tag);
   expect(resolveImage(directory, '{}', warmEnvironment).tag).toBe(resolveImage(directory).tag);
 }, 30000);
+
+
+test('metadata restoration preserves deliberately partial runtime assets', async () => {
+  let directory = await fixture();
+  await Bun.write(join(directory, 'out/json/package.json'), '{}');
+  await Bun.write(join(directory, 'assets/package.json'), '{}');
+  await Bun.write(join(directory, 'assets/index.ts'), 'export let included = true;');
+  await Bun.write(join(directory, 'assets/unrelated.go'), 'package ignored');
+  await Bun.write(join(directory, 'out/full/assets/package.json'), '{}');
+  await Bun.write(join(directory, 'out/full/assets/index.ts'), 'export let included = true;');
+  Bun.spawnSync(['git', 'add', 'assets'], { cwd: directory });
+  let cache = join(directory, 'metadata');
+  for (let command of ['capture', 'restore']) {
+    let result = Bun.spawnSync([process.execPath, join(import.meta.dir, 'dependency-cache.ts'), command], {
+      cwd: directory, env: { ...process.env, DOCKER_BUILD_CACHE_DIRECTORY: cache }
+    });
+    expect(result.exitCode, result.stderr.toString()).toBe(0);
+  }
+  expect(await Bun.file(join(directory, 'out/full/assets/index.ts')).text()).toBe('export let included = true;');
+  expect(await Bun.file(join(directory, 'out/full/assets/unrelated.go')).exists()).toBe(false);
+});
