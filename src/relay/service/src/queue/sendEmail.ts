@@ -36,7 +36,7 @@ export let sendEmailQueueProcessor = sendEmailQueue.process(async data => {
       )
       .map(destination => ({
         data: { destinationId: destination.id },
-        opts: { id: destination.id.toString() }
+        opts: { id: `destination-${destination.id}` }
       }))
   );
 });
