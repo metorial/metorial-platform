@@ -40,7 +40,7 @@ jobs:
         with:
           submodules: recursive
           token: ${{ secrets.GH_TOKEN || github.token }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
