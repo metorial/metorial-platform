@@ -48,9 +48,16 @@ if (command === 'fingerprint') {
   let fullFiles = [...new Bun.Glob('**/*').scanSync({ cwd: 'out/full', onlyFiles: true, dot: true })];
   let directories = fullFiles.filter(path => path.endsWith('/package.json')).map(dirname);
   let extras = fullFiles.filter(path => !directories.some(directory => path.startsWith(directory + '/')));
-  await Bun.write(recipePath, JSON.stringify({ directories, extras }));
+  let generated = fullFiles.filter(path => /(^|\/)(package|turbo)\.json$/.test(path) && (!existsSync(path) || !readFileSync(path).equals(readFileSync(join('out/full', path)))));
+  rmSync(join(cacheDirectory, 'generated'), { recursive: true, force: true });
+  for (let path of generated) {
+    let target = join(cacheDirectory, 'generated', path);
+    mkdirSync(dirname(target), { recursive: true });
+    cpSync(join('out/full', path), target, { dereference: false });
+  }
+  await Bun.write(recipePath, JSON.stringify({ directories, extras, generated }));
 } else if (command === 'restore') {
-  let recipe = JSON.parse(readFileSync(recipePath, 'utf8')) as { directories: string[]; extras: string[] };
+  let recipe = JSON.parse(readFileSync(recipePath, 'utf8')) as { directories: string[]; extras: string[]; generated: string[] };
   rmSync('out', { recursive: true, force: true });
   cpSync(join(cacheDirectory, 'json'), 'out/json', { recursive: true });
   for (let path of files.filter(path => recipe.extras.includes(path) || recipe.directories.some(directory => path.startsWith(directory + '/')))) {
@@ -58,12 +65,11 @@ if (command === 'fingerprint') {
     mkdirSync(dirname(target), { recursive: true });
     cpSync(path, target, { dereference: false });
   }
-  for (let path of new Bun.Glob('**/package.json').scanSync({ cwd: join(cacheDirectory, 'json'), dot: true })) {
+  for (let path of recipe.generated) {
     let target = join('out/full', path);
     mkdirSync(dirname(target), { recursive: true });
-    cpSync(join(cacheDirectory, 'json', path), target);
+    cpSync(join(cacheDirectory, 'generated', path), target, { dereference: false });
   }
-  for (let path of ['bun.lock', 'bunfig.toml']) cpSync(join(cacheDirectory, 'json', path), join('out/full', path));
 } else {
   throw new Error(`Unknown dependency cache command: ${command}`);
 }
