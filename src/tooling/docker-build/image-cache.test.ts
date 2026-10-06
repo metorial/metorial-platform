@@ -60,6 +60,8 @@ test('fingerprint covers source, build arguments and external COPY images but ex
   expect(resolveImage(directory, '{}', { BASE_DIGEST: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc' }).tag).not.toBe(original.tag);
   let pinned = await Bun.file(join(directory, `image-${original.tag}`, 'Dockerfile')).text();
   expect(pinned).toContain('COPY --from=node:22@sha256:');
+  await Bun.write(join(directory, 'Dockerfile'), (await Bun.file(join(directory, 'Dockerfile')).text()) + 'LABEL variant=changed\n');
+  expect(resolveImage(directory).tag).not.toBe(original.tag);
 });
 
 test('resolves hits to immutable digests and fails on authorization errors', async () => {
@@ -82,7 +84,7 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   await Bun.write(join(directory, 'bunfig.toml'), '');
   await Bun.write(join(directory, 'turbo.json'), JSON.stringify({ tasks: { build: { dependsOn: ['^build'] }, '@fixture/app#build': { dependsOn: ['^build', '@fixture/tool#build'] } } }));
   await Bun.write(join(directory, 'packages/app/package.json'), JSON.stringify({ name: '@fixture/app', scripts: { build: 'echo app' }, dependencies: { '@fixture/library': 'workspace:*' } }));
-  await Bun.write(join(directory, 'packages/library/package.json'), JSON.stringify({ name: '@fixture/library', scripts: { build: 'echo library' } }));
+  await Bun.write(join(directory, 'packages/library/package.json'), JSON.stringify({ name: '@fixture/library', scripts: { build: 'echo library' }, dependencies: { 'is-number': '7.0.0' } }));
   await Bun.write(join(directory, 'packages/library/src/index.ts'), 'export let library = 1;');
   await Bun.write(join(directory, 'packages/tool/package.json'), JSON.stringify({ name: '@fixture/tool', scripts: { build: 'echo tool' } }));
   await Bun.write(join(directory, 'packages/tool/src/index.ts'), 'export let tool = 1;');
@@ -97,6 +99,14 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   let lockfile = await Bun.file(join(directory, 'bun.lock')).text();
   await Bun.write(join(directory, 'bun.lock'), lockfile.replace(/"lockfileVersion":\s*2/, '"lockfileVersion": 1'));
   Bun.spawnSync(['git', 'add', '.'], { cwd: directory });
+  let key = () => {
+    let result = Bun.spawnSync([process.execPath, join(directory, 'src/tooling/docker-build/dependency-cache.ts'), 'fingerprint', 'Dockerfile', 'build', '--filter=@fixture/app'], {
+      cwd: directory, env: { ...process.env, DOCKER_BUILD_METADATA_ONLY: 'true' }
+    });
+    expect(result.exitCode).toBe(0);
+    return result.stdout.toString();
+  };
+  let metadataKey = key();
   let cache = join(directory, 'metadata');
   let metadataEnvironment = { DOCKER_BUILD_CACHE_DIRECTORY: cache };
   let original = resolveImage(directory, '{}', metadataEnvironment);
@@ -104,7 +114,7 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   let warmEnvironment = { ...metadataEnvironment, IMAGE_METADATA_CACHE_HIT: 'true' };
   expect(resolveImage(directory, '{}', warmEnvironment).tag).toBe(original.tag);
   await Bun.write(join(directory, 'packages/library/src/new.ts'), 'export let added = true;');
-  Bun.spawnSync(['git', 'add', '.'], { cwd: directory });
+  Bun.spawnSync(['git', 'add', 'packages/library/src/new.ts'], { cwd: directory });
   let added = resolveImage(directory, '{}', warmEnvironment);
   expect(added.tag).not.toBe(original.tag);
   expect(resolveImage(directory).tag).toBe(added.tag);
@@ -112,6 +122,11 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   expect(resolveImage(directory, '{}', warmEnvironment).tag).toBe(original.tag);
   await Bun.write(join(directory, 'packages/unrelated/src/index.ts'), 'changed');
   expect(resolveImage(directory).tag).toBe(original.tag);
+  expect(key()).toBe(metadataKey);
+  await Bun.write(join(directory, 'bun.lock'), (await Bun.file(join(directory, 'bun.lock')).text()).replaceAll('is-number@7.0.0', 'is-number@6.0.0'));
+  expect(key()).not.toBe(metadataKey);
+  expect(resolveImage(directory).tag).not.toBe(original.tag);
+  await Bun.write(join(directory, 'bun.lock'), lockfile.replace(/"lockfileVersion":\s*2/, '"lockfileVersion": 1'));
   await Bun.write(join(directory, 'packages/library/src/index.ts'), 'changed');
   expect(resolveImage(directory).tag).not.toBe(original.tag);
   await Bun.write(join(directory, 'packages/library/src/index.ts'), 'export let library = 1;');
