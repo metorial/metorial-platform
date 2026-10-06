@@ -78,7 +78,7 @@ jobs:
           dockerfile: ./src/function-bay/service/Dockerfile
 
       - name: Cache Docker dependencies
-        if: steps.prune.outputs.pruned == 'true'
+        if: steps.prune.outputs.pruned == 'true' && steps.prune.outputs.cache-hit != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -86,8 +86,14 @@ jobs:
           file: ./src/function-bay/service/Dockerfile
           target: dependencies
           push: false
-          cache-from: type=gha,scope=${{ github.workflow }}-image
-          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-image
+          cache-to: type=local,mode=max,dest=${{ steps.prune.outputs.cache-path }}/layers
+
+      - name: Save Docker dependency cache
+        if: steps.prune.outputs.pruned == 'true' && steps.prune.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ steps.prune.outputs.cache-path }}
+          key: ${{ steps.prune.outputs.cache-key }}
 
       - name: Build and push Docker image
         if: steps.affected.outputs.should-build == 'true'
@@ -98,7 +104,7 @@ jobs:
           file: ./src/function-bay/service/Dockerfile
           platforms: linux/amd64
           push: false
-          cache-from: type=gha,scope=${{ github.workflow }}-image
+          cache-from: ${{ steps.prune.outputs.pruned == 'true' && format('type=local,src={0}/layers', steps.prune.outputs.cache-path) || format('type=gha,scope={0}-{1}-{2}', github.workflow, github.job, matrix.service.name || 'image') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |

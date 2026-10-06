@@ -15,10 +15,16 @@ outputs:
     value: ${{ steps.prune.outputs.pruned }}
   context:
     value: ${{ steps.prune.outputs.context }}
+  cache-hit:
+    value: ${{ steps.restore.outputs.cache-hit }}
+  cache-key:
+    value: ${{ steps.fingerprint.outputs.key }}
+  cache-path:
+    value: ${{ steps.fingerprint.outputs.cache }}
 runs:
   using: composite
   steps:
-    - id: prune
+    - id: fingerprint
       shell: bash
       env:
         INPUT_PACKAGE: ${{ inputs.package }}
@@ -37,11 +43,48 @@ runs:
           cd "$INPUT_WORKSPACE"
           tooling=src/tooling/docker-build/prune.ts
           if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
-          bun "$tooling" "${tasks[@]}"
+          bun "${tooling%prune.ts}dependency-cache.ts" fingerprint "$GITHUB_WORKSPACE/$INPUT_DOCKERFILE" "${tasks[@]}" >> "$GITHUB_OUTPUT"
           echo "pruned=true" >> "$GITHUB_OUTPUT"
           echo "context=$PWD/out" >> "$GITHUB_OUTPUT"
         else
           echo "pruned=false" >> "$GITHUB_OUTPUT"
           mkdir -p "$RUNNER_TEMP/unpruned-context"
           echo "context=$RUNNER_TEMP/unpruned-context" >> "$GITHUB_OUTPUT"
+        fi
+
+    - id: restore
+      if: steps.fingerprint.outputs.pruned == 'true'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.fingerprint.outputs.cache }}
+        key: ${{ steps.fingerprint.outputs.key }}
+    - id: prune
+      shell: bash
+      env:
+        INPUT_PACKAGE: ${{ inputs.package }}
+        INPUT_TASKS: ${{ inputs.tasks }}
+        INPUT_WORKSPACE: ${{ inputs.workspace }}
+        INPUT_DOCKERFILE: ${{ inputs.dockerfile }}
+        PRUNED: ${{ steps.fingerprint.outputs.pruned }}
+        CONTEXT: ${{ steps.fingerprint.outputs.context }}
+        CACHE_HIT: ${{ steps.restore.outputs.cache-hit }}
+      run: |
+        set -euo pipefail
+        echo "pruned=$PRUNED" >> "$GITHUB_OUTPUT"
+        echo "context=$CONTEXT" >> "$GITHUB_OUTPUT"
+        if [ "$PRUNED" != true ]; then exit 0; fi
+        if [ -n "$INPUT_PACKAGE" ]; then
+          read -r -a tasks <<< "$INPUT_TASKS"
+          tasks+=("--filter=$INPUT_PACKAGE")
+        else
+          read -r -a tasks <<< "$(sed -n 's/^RUN bun [^ ]*prune.ts //p' "$INPUT_DOCKERFILE")"
+        fi
+        cd "$INPUT_WORKSPACE"
+        tooling=src/tooling/docker-build
+        if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
+        if [ "$CACHE_HIT" = true ]; then
+          bun "$tooling/dependency-cache.ts" restore
+        else
+          bun "$tooling/prune.ts" "${tasks[@]}"
+          bun "$tooling/dependency-cache.ts" capture
         fi
