@@ -11,6 +11,8 @@ inputs:
     default: .
   lookup:
     default: 'true'
+  anonymous:
+    default: 'false'
   publish:
     default: 'false'
   build-arguments:
@@ -64,6 +66,7 @@ runs:
       env:
         IMAGE_METADATA_CACHE_HIT: ${{ steps.restore-metadata.outputs.cache-hit }}
         DOCKER_BUILD_CACHE_DIRECTORY: ${{ steps.metadata.outputs.cache }}
+        IMAGE_CACHE_ANONYMOUS: ${{ inputs.anonymous }}
         IMAGE_CACHE_PUBLISH: ${{ inputs.publish }}
         IMAGE_CACHE_LOOKUP: ${{ inputs.lookup }}
         WORKSPACE: ${{ inputs.workspace }}
@@ -79,7 +82,7 @@ runs:
         if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
         bun "$tooling" resolve "$dockerfile" "$IMAGE" "$CANONICAL" "$BUILD_ARGUMENTS"
     - name: Save build graph metadata
-      if: steps.metadata.outputs.pruned == 'true' && steps.restore-metadata.outputs.cache-hit != 'true' && inputs.lookup == 'true'
+      if: steps.metadata.outputs.pruned == 'true' && steps.restore-metadata.outputs.cache-hit != 'true' && inputs.publish == 'true'
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.metadata.outputs.cache }}

@@ -31,7 +31,9 @@ On a hit, skip dependency-cache restoration, Warp Cache startup, and Docker setu
 Use `image-cache.ts copy SOURCE TARGETS` to copy by digest and verify destination
 digests. It preserves the complete OCI image, including platform manifests. Builds
 publish the fingerprint tag and existing aliases to GHCR. Trusted same-repository
-PRs may publish to GHCR; fork PRs build without publishing or privileged cache access.
+PRs may publish to GHCR; fork PRs can reuse anonymously accessible images and otherwise build without
+publishing or privileged cache access. Inaccessible anonymous lookups are reported
+explicitly; authenticated lookups still fail on authorization errors.
 Enterprise non-PR deployment runs promote the GHCR image and aliases to ECR before
 allowing deployment. Tests still run even when image builds are skipped.
 

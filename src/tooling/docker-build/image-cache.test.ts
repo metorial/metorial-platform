@@ -73,6 +73,9 @@ test('resolves hits to immutable digests and fails on authorization errors', asy
   let denied = resolveImage(directory, '{}', { REGISTRY_ERROR: 'unauthorized' });
   expect(denied.code).not.toBe(0);
   expect(denied.error).toContain('unauthorized');
+  let anonymous = resolveImage(directory, '{}', { REGISTRY_ERROR: 'denied', IMAGE_CACHE_ANONYMOUS: 'true' });
+  expect(anonymous.code).toBe(0);
+  expect(anonymous.text).toContain('hit=false');
   let initialized = resolveImage(directory, '{}', { REGISTRY_ERROR: 'denied', IMAGE_CACHE_PUBLISH: 'true', ALLOW_INITIALIZE: 'true' });
   expect(initialized.code, initialized.error).toBe(0);
   expect(initialized.text).toContain('hit=false');

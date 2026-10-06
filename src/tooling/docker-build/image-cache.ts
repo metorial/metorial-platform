@@ -25,6 +25,10 @@ let digest = async (reference: string, missingAllowed = false, initializeAllowed
     if (!result.exitCode) return result.stdout.toString().trim();
     let error = result.stderr.toString();
     if (missingAllowed && /manifest unknown|name unknown|not found|404/i.test(error) && !/unauthorized|denied/i.test(error)) return null;
+    if (missingAllowed && process.env.IMAGE_CACHE_ANONYMOUS === 'true' && /unauthorized|denied/i.test(error)) {
+      console.log(`Image cache ${reference} is not accessible anonymously`);
+      return null;
+    }
     if (initializeAllowed && attempt === 0 && /unauthorized|denied/i.test(error)) {
       let repository = reference.replace(/:[^/:]+$/, '');
       let initialize = Bun.spawnSync(['regctl', 'manifest', 'put', `${repository}:cache-bootstrap-v1`, '--content-type', 'application/vnd.oci.image.index.v1+json'], {
