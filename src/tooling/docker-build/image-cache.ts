@@ -5,6 +5,11 @@ import { dirname, join, resolve } from 'node:path';
 let [command, dockerfileArgument, destination, canonical = '', buildArguments = '{}'] = process.argv.slice(2);
 let outputFile = process.env.GITHUB_OUTPUT;
 let startedAt = Date.now();
+let phaseStartedAt = startedAt;
+let reportPhase = (phase: string) => {
+  console.log(`Image cache ${phase}: ${((Date.now() - phaseStartedAt) / 1000).toFixed(1)}s`);
+  phaseStartedAt = Date.now();
+};
 let run = (args: string[]) => {
   let result = Bun.spawnSync(args, { stdout: 'pipe', stderr: 'pipe' });
   if (result.exitCode) throw new Error(`${args[0]} failed: ${result.stderr.toString()}`);
@@ -52,6 +57,8 @@ if (command === 'resolve') {
   let syntax = recipe.match(/^# syntax=(\S+)/m)?.[1];
   if (syntax) bases.set(syntax, `${syntax.split('@')[0]}@${await digest(syntax)}`);
 
+  reportPhase('base resolution');
+
   let pinned = recipe.replace(/^# syntax=(\S+)/m, (line, reference) => `# syntax=${bases.get(reference) ?? reference}`).replace(/^(FROM\s+(?:--platform=\S+\s+)?)(\S+)/gim, (line, prefix, reference) => prefix + (bases.get(reference) ?? reference))
     .replace(/^(COPY\s+--from=)(\S+)/gim, (line, prefix, reference) => prefix + (bases.get(reference) ?? reference));
   let tasks = tasksRecipe.match(/^RUN bun \S*prune\.ts (.+)$/m)?.[1];
@@ -65,6 +72,8 @@ if (command === 'resolve') {
       for (let file of new Bun.Glob('**/*').scanSync({ cwd: directory, dot: true, onlyFiles: true })) inputs.add(join(directory, file));
     }
   }
+
+  reportPhase('pruning');
 
   let tracked = run(['git', 'ls-files', '--recurse-submodules', '-z']).split('\0').filter(Boolean);
   for (let line of recipe.split('\n')) {
@@ -91,6 +100,8 @@ if (command === 'resolve') {
     hash.update(stat.isSymbolicLink() ? readlinkSync(file) : readFileSync(file));
   }
 
+  reportPhase('input hashing');
+
   let tag = `build-v1-${hash.digest('hex')}`;
   let pinnedDirectory = join(process.env.RUNNER_TEMP ?? '/tmp', `image-${tag}`);
   mkdirSync(pinnedDirectory, { recursive: true });
@@ -101,6 +112,8 @@ if (command === 'resolve') {
     let found = await digest(`${repository}:${tag}`, true);
     if (found) { source = `${repository}@${found}`; break; }
   }
+
+  reportPhase('registry lookup');
 
   output('tag', tag);
   output('dockerfile', pinnedFile);
