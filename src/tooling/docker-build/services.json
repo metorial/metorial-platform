@@ -1,0 +1,204 @@
+{
+  "voyager": {
+    "dockerfile": "src/voyager/service/Dockerfile",
+    "image": "ghcr.io/metorial/voyager",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/voyager"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "forge": {
+    "dockerfile": "src/forge/service/Dockerfile",
+    "image": "ghcr.io/metorial/forge",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/forge"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "synthesis": {
+    "dockerfile": "src/synthesis/service/Dockerfile",
+    "image": "ghcr.io/metorial/synthesis",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/synthesis"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "signal": {
+    "dockerfile": "src/signal/service/Dockerfile",
+    "image": "ghcr.io/metorial/signal",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/signal"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "shuttle": {
+    "dockerfile": "src/shuttle/service/Dockerfile",
+    "image": "ghcr.io/metorial/shuttle",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/shuttle"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "origin": {
+    "dockerfile": "src/origin/apps/service/Dockerfile",
+    "image": "ghcr.io/metorial/mte-origin",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/origin"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "function-bay": {
+    "dockerfile": "src/function-bay/service/Dockerfile",
+    "image": "ghcr.io/metorial/function-bay",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/function-bay"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "nebula": {
+    "dockerfile": "src/nebula/service/Dockerfile",
+    "image": "ghcr.io/metorial/nebula",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/nebula"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "relay": {
+    "dockerfile": "src/relay/service/Dockerfile",
+    "image": "ghcr.io/metorial/relay",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial/relay"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "ares": {
+    "dockerfile": "src/ares/service/Dockerfile",
+    "image": "ghcr.io/metorial/ares",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "frontend:build",
+      "--filter=@metorial/ares"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "deflector": {
+    "dockerfile": "src/function-bay/deflector/Dockerfile",
+    "image": "ghcr.io/metorial/deflector",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "function-bay-observer": {
+    "dockerfile": "src/function-bay/observer/Dockerfile",
+    "image": "ghcr.io/metorial/function-bay-observer",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "subspace-worker": {
+    "dockerfile": "src/metorial/products/integrations/apps/worker/Dockerfile",
+    "image": "ghcr.io/metorial/subspace-worker",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "--filter=@metorial-subspace/app-worker",
+      "--filter=@metorial/db",
+      "--filter=@metorial/multi-region",
+      "--filter=@metorial-subspace/db"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "slates-hub": {
+    "dockerfile": "src/slates/apps/hub/Dockerfile",
+    "image": "ghcr.io/metorial/slates-hub",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "admin:build",
+      "--filter=@metorial/slates"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "slates-registry": {
+    "dockerfile": "src/slates/apps/registry/Dockerfile",
+    "image": "ghcr.io/metorial/slates-registry",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "server:build",
+      "admin:build",
+      "--filter=@metorial/slates-registry"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "code-bucket": {
+    "dockerfile": "src/origin/apps/code-bucket/Dockerfile",
+    "image": "ghcr.io/metorial/mte-code-bucket",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  }
+}

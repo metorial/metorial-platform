@@ -1,0 +1,56 @@
+name: Resolve reusable image
+description: Fingerprint actual Docker inputs and find an existing GHCR image
+inputs:
+  dockerfile:
+    required: true
+  image:
+    required: true
+  canonical:
+    default: ''
+  workspace:
+    default: .
+  lookup:
+    default: 'true'
+  build-arguments:
+    default: '{}'
+outputs:
+  hit:
+    value: ${{ steps.resolve.outputs.hit }}
+  source:
+    value: ${{ steps.resolve.outputs.source }}
+  tag:
+    value: ${{ steps.resolve.outputs.tag }}
+  dockerfile:
+    value: ${{ steps.resolve.outputs.dockerfile }}
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: '1.4.2'
+    - name: Install registry client
+      shell: bash
+      run: |
+        set -euo pipefail
+        directory="$RUNNER_TEMP/regctl"
+        mkdir -p "$directory"
+        curl --fail --retry 3 -L https://github.com/regclient/regclient/releases/download/v0.11.6/regctl-linux-amd64 -o "$directory/regctl"
+        echo "8e0e62a497fcdb8048d18aa927a139613176ba0531f412bc541044e28f9856bd  $directory/regctl" | sha256sum -c -
+        chmod +x "$directory/regctl"
+        echo "$directory" >> "$GITHUB_PATH"
+    - id: resolve
+      shell: bash
+      env:
+        IMAGE_CACHE_LOOKUP: ${{ inputs.lookup }}
+        WORKSPACE: ${{ inputs.workspace }}
+        DOCKERFILE: ${{ inputs.dockerfile }}
+        IMAGE: ${{ inputs.image }}
+        CANONICAL: ${{ inputs.canonical }}
+        BUILD_ARGUMENTS: ${{ inputs.build-arguments }}
+      run: |
+        set -euo pipefail
+        dockerfile="$(realpath "$DOCKERFILE")"
+        cd "$WORKSPACE"
+        tooling=src/tooling/docker-build/image-cache.ts
+        if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
+        bun "$tooling" resolve "$dockerfile" "$IMAGE" "$CANONICAL" "$BUILD_ARGUMENTS"

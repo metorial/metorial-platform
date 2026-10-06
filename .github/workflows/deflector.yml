@@ -1,4 +1,4 @@
-name: 'Shuttle'
+name: 'deflector'
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: 'Shuttle Build'
+    name: 'deflector Build'
     runs-on: ubuntu-latest
 
     permissions:
@@ -40,8 +40,8 @@ jobs:
         uses: ./.github/actions/image-cache
         with:
           lookup: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-          dockerfile: ./src/shuttle/service/Dockerfile
-          image: ghcr.io/metorial/shuttle
+          dockerfile: ./src/function-bay/deflector/Dockerfile
+          image: ghcr.io/metorial/deflector
 
       - uses: ./.github/actions/setup-warp-cache
         if: steps.image.outputs.hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -62,7 +62,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/metorial/shuttle
+          images: ghcr.io/metorial/deflector
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -75,7 +75,7 @@ jobs:
         if: steps.image.outputs.hit != 'true'
         uses: ./.github/actions/prune-docker
         with:
-          dockerfile: ./src/shuttle/service/Dockerfile
+          dockerfile: ./src/function-bay/deflector/Dockerfile
 
       - name: Cache Docker dependencies
         if: steps.image.outputs.hit != 'true' && steps.prune.outputs.pruned == 'true' && steps.prune.outputs.cache-hit != 'true'
@@ -102,13 +102,12 @@ jobs:
           context: .
           build-contexts: pruned=${{ steps.prune.outputs.context }}
           file: ${{ steps.image.outputs.dockerfile }}
-          # platforms: linux/amd64,linux/arm64
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           cache-from: ${{ steps.prune.outputs.pruned == 'true' && format('type=local,src={0}/layers', steps.prune.outputs.cache-path) || format('type=gha,scope={0}-{1}-{2}', github.workflow, github.job, 'image') }}
           tags: |
             ${{ steps.meta.outputs.tags }}
-            ghcr.io/metorial/shuttle:${{ steps.image.outputs.tag }}
+            ghcr.io/metorial/deflector:${{ steps.image.outputs.tag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -123,30 +122,10 @@ jobs:
         env:
           SOURCE: ${{ steps.image.outputs.source }}
           TAGS: ${{ steps.meta.outputs.tags }}
-          CACHE_IMAGE: ghcr.io/metorial/shuttle:${{ steps.image.outputs.tag }}
+          CACHE_IMAGE: ghcr.io/metorial/deflector:${{ steps.image.outputs.tag }}
         run: bun src/tooling/docker-build/image-cache.ts copy "$SOURCE" "$TAGS $CACHE_IMAGE"
 
       - name: Report Warp Cache
         if: always() && steps.image.outputs.hit != 'true'
         run: sh ./src/tooling/warp-cache/report.sh
 
-  # test:
-  #   name: 'Shuttle Test'
-  #   permissions:
-  #     contents: read
-  #     packages: read
-  #   uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
-  #   secrets: inherit
-  #   with:
-  #     service_directory: src/shuttle/service
-  #     compose_project_prefix: shuttle-ci
-  #     compose_profiles: 'infra service'
-  #     wait_services: |
-  #       shuttle-postgres
-  #       shuttle-redis
-  #       shuttle-object-storage
-  #       shuttle-forge
-  #       shuttle-function-bay
-  #       @metorial/shuttle
-  #     test_container: @metorial/shuttle
-  #     test_command: cd /app/src/shuttle/service && bun run test
