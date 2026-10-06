@@ -23,8 +23,18 @@ if (command === 'fingerprint') {
     path.startsWith('.github/actions/') || path.startsWith('.github/workflows/') || /(^|\/)(tsconfig[^/]*\.json|prisma\.config\.ts)$/.test(path) ||
     lifecycleDirectories.some(directory => path.startsWith(directory + '/'))
   );
+  let stages = new Set<string>(['scratch']);
+  let bases: string[] = [];
+  for (let match of readFileSync(dockerfile, 'utf8').matchAll(/^FROM\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+(\S+))?/gim)) {
+    if (!stages.has(match[1].toLowerCase())) {
+      let result = Bun.spawnSync(['docker', 'buildx', 'imagetools', 'inspect', match[1], '--format', '{{.Manifest.Digest}}']);
+      if (result.exitCode) throw new Error(result.stderr.toString());
+      bases.push(match[1] + '@' + result.stdout.toString().trim());
+    }
+    if (match[2]) stages.add(match[2].toLowerCase());
+  }
   let hash = createHash('sha256');
-  hash.update(JSON.stringify({ version: 1, tasks, dockerfile, platform: process.platform, arch: process.arch, bun: Bun.version }));
+  hash.update(JSON.stringify({ version: 1, tasks, dockerfile, bases, platform: process.platform, arch: process.arch, bun: Bun.version }));
   for (let path of [...new Set([...inputs, dockerfile])].sort()) {
     hash.update(path + '\0');
     hash.update(readFileSync(path));
