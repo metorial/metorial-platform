@@ -6,9 +6,9 @@ FROM oven/bun:1.2-alpine AS workspace-builder
 
 WORKDIR /workspace
 
-COPY src/origin/apps/code-workspace/package.json ./
+COPY src/origin/apps/code-workspace/package.json src/origin/apps/code-workspace/bun.lock ./
 RUN apk add --no-cache python3 py3-setuptools make g++
-RUN bun install
+RUN bun install --frozen-lockfile
 
 COPY src/origin/apps/code-workspace/ ./
 
@@ -22,7 +22,7 @@ RUN mkdir -p ./public/vscode && \
     cp node_modules/vscode-oniguruma/release/onig.wasm ./public/vscode/vscode-oniguruma/release/
 
 RUN cd extensions/memfs && \
-    bun install && \
+    bun install --frozen-lockfile && \
     bun run package && \
     cd ../.. && \
     cp -r extensions/memfs/dist/* ./public/extensions/memfs/ && \
