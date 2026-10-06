@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let { db, auditLogService, markAresUserChanged, userEvents } = vi.hoisted(() => ({
   db: {
     user: { findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
-    userEmail: { findFirst: vi.fn(), create: vi.fn() },
+    userEmail: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    $queryRaw: vi.fn(),
     userTermsAgreement: { upsert: vi.fn() },
     accountDomain: { findUnique: vi.fn() },
     emailDomain: { upsert: vi.fn() }
@@ -225,5 +226,104 @@ describe('userService.createUser', () => {
       code: 'conflict',
       message: 'This email is already in use'
     });
+  });
+});
+
+
+describe('userService.setEmails', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+
+    db.userEmail.findMany.mockResolvedValue([]);
+    db.userEmail.findFirst.mockResolvedValue(null);
+    db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
+    db.userEmail.create.mockImplementation(async ({ data }) => ({ ...data, oid: 4n }));
+  });
+
+  let user = existingUser as any;
+  let email = { email: user.email, isPrimary: false, isVerified: true };
+
+  it('inserts normalized duplicates only once', async () => {
+    let results = await userService.setEmails({
+      user,
+      emails: [email, { ...email, email: `  ${email.email.toUpperCase()}  ` }]
+    });
+
+    expect(db.userEmail.create).toHaveBeenCalledOnce();
+    expect(results).toHaveLength(1);
+    expect(results[0].email).toBe(email.email);
+    expect(db.$queryRaw).toHaveBeenCalledOnce();
+    expect(db.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      db.userEmail.findMany.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('updates an existing address without inserting it again', async () => {
+    db.userEmail.findMany.mockResolvedValue([{ ...email, oid: 4n, verifiedAt: new Date() }]);
+    db.userEmail.update.mockResolvedValue({ ...email, oid: 4n });
+
+    await userService.setEmails({ user, emails: [email, email] });
+
+    expect(db.userEmail.update).toHaveBeenCalledOnce();
+    expect(db.userEmail.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects another account ownership before deleting existing addresses', async () => {
+    db.userEmail.findMany.mockResolvedValue([{ oid: 6n, email: 'old@example.com' }]);
+    db.userEmail.findFirst.mockResolvedValue({ userOid: 99n });
+
+    await expect(userService.setEmails({ user, emails: [email] })).rejects.toBeInstanceOf(
+      EmailInUseError
+    );
+
+    expect(db.userEmail.delete).not.toHaveBeenCalled();
+    expect(db.userEmail.create).not.toHaveBeenCalled();
+  });
+
+  it('reports a concurrent claim by another account as an email conflict', async () => {
+    db.userEmail.create.mockRejectedValue(Object.assign(uniqueConstraintError(), {
+      meta: { target: ['email', 'appOid'] }
+    }));
+
+    await expect(userService.setEmails({ user, emails: [email] })).rejects.toBeInstanceOf(
+      EmailInUseError
+    );
+  });
+
+  it('preserves unrelated database errors', async () => {
+    let error = Object.assign(uniqueConstraintError(), { meta: { target: ['id'] } });
+    db.userEmail.create.mockRejectedValue(error);
+
+    await expect(userService.setEmails({ user, emails: [email] })).rejects.toBe(error);
+  });
+});
+
+
+describe('userService.createEmail', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+
+    db.userEmail.findFirst.mockResolvedValue(null);
+    db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
+  });
+
+  it('locks the user before checking email ownership', async () => {
+    db.userEmail.create.mockResolvedValue({ oid: 4n });
+
+    await userService.createEmail({ user: existingUser as any, app, context, email: input.email });
+
+    expect(db.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      db.userEmail.findFirst.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('reports an email claimed after the lookup as a conflict', async () => {
+    db.userEmail.create.mockRejectedValue(Object.assign(uniqueConstraintError(), {
+      meta: { target: ['email', 'appOid'] }
+    }));
+
+    await expect(userService.createEmail({
+      user: existingUser as any, app, context, email: input.email
+    })).rejects.toBeInstanceOf(EmailInUseError);
   });
 });
