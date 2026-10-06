@@ -93,8 +93,7 @@
         "admin:build",
         "prisma:generate",
         "^prisma:generate",
-        "^build",
-        "^server:build"
+        "^build"
       ],
       "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
       "env": ["METORIAL_ENV"],
@@ -105,7 +104,6 @@
         "prisma:generate",
         "^prisma:generate",
         "^build",
-        "^server:build",
         "^oss:server:build"
       ],
       "inputs": ["$TURBO_DEFAULT$", "!Dockerfile", "!dev.Dockerfile", "!.dockerignore", "!README*", "!control.toml"],
@@ -182,7 +180,6 @@
         "prisma:generate",
         "^prisma:generate",
         "^build",
-        "^server:build",
         "@metorial/module-community#build",
         "@metorial/module-skill-groups#build",
         "@metorial/module-skill-templates#build"
