@@ -8,7 +8,7 @@ let script = join(import.meta.dir, 'image-cache.ts');
 let fixture = async () => {
   let directory = mkdtempSync(join(tmpdir(), 'image-cache-test-'));
   directories.push(directory);
-  await Bun.write(join(directory, 'Dockerfile'), 'FROM alpine:latest AS base\nCOPY --from=node:22 /usr/local/bin/node /node\nCOPY src/ /app/\n');
+  await Bun.write(join(directory, 'Dockerfile'), 'FROM alpine:latest AS base\nCOPY --from=node:22 /usr/local/bin/node /node\nCOPY "src/" /app/\n');
   await Bun.write(join(directory, 'src/index.ts'), 'export let value = 1;');
   await Bun.write(join(directory, 'unrelated/index.ts'), 'export let value = 1;');
   await Bun.write(join(directory, 'bin/regctl'), `#!/bin/sh
@@ -84,6 +84,8 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   await Bun.write(join(directory, 'Dockerfile'), 'FROM alpine:latest AS pruner\nCOPY . .\nRUN bun ./src/tooling/docker-build/prune.ts build --filter=@fixture/app\nFROM scratch AS pruned\nCOPY --from=pruner /app/out /\n');
   let install = Bun.spawnSync([process.execPath, 'install', '--lockfile-only', '--ignore-scripts'], { cwd: directory });
   expect(install.exitCode).toBe(0);
+  let lockfile = await Bun.file(join(directory, 'bun.lock')).text();
+  await Bun.write(join(directory, 'bun.lock'), lockfile.replace(/"lockfileVersion":\s*2/, '"lockfileVersion": 1'));
   Bun.spawnSync(['git', 'add', '.'], { cwd: directory });
   let original = resolveImage(directory);
   expect(original.code, original.error).toBe(0);

@@ -69,7 +69,7 @@ if (command === 'resolve') {
   let tracked = run(['git', 'ls-files', '--recurse-submodules', '-z']).split('\0').filter(Boolean);
   for (let line of recipe.split('\n')) {
     if (!/^COPY\s/i.test(line) || /--from=/.test(line)) continue;
-    let tokens = line.replace(/^COPY\s+/i, '').trim().split(/\s+/).filter(token => !token.startsWith('--'));
+    let tokens = (line.replace(/^COPY\s+/i, '').match(/"[^"]*"|'[^']*'|\S+/g) ?? []).filter(token => !token.startsWith('--')).map(token => token.replace(/^["']|["']$/g, ''));
     for (let source of tokens.slice(0, -1)) {
       source = source.replace(/^\//, '').replace(/\/$/, '');
       if (source === '.' && tasks) continue;
