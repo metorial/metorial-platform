@@ -17,6 +17,15 @@ inputs:
 runs:
   using: composite
   steps:
+    - id: bun-version
+      shell: bash
+      run: echo "version=$(bun --version)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: bun-downloads-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun-version.outputs.version }}-${{ hashFiles('**/bun.lock') }}
+        restore-keys: |
+          bun-downloads-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun-version.outputs.version }}-
     - shell: bash
       env:
         INPUT_AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}

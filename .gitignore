@@ -162,6 +162,11 @@ wheels/
 
 # Cache
 cache/
+!src/metorial/packages/cache/
+!src/metorial/packages/cache/**
+src/metorial/packages/cache/.turbo/
+src/metorial/packages/cache/dist/
+src/metorial/packages/cache/node_modules/
 !src/lowerdeck/packages/cache/
 !src/lowerdeck/packages/cache/**
 src/lowerdeck/packages/cache/.turbo/
