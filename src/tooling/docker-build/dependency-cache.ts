@@ -4,7 +4,8 @@ import { dirname, join, relative, resolve } from 'node:path';
 
 let [command, dockerfile, ...tasks] = process.argv.slice(2);
 dockerfile = dockerfile ? relative(process.cwd(), resolve(dockerfile)) : '';
-let cacheDirectory = resolve(process.env.RUNNER_TEMP ?? '/tmp', 'docker-dependencies');
+let metadataOnly = process.env.DOCKER_BUILD_METADATA_ONLY === 'true';
+let cacheDirectory = process.env.DOCKER_BUILD_CACHE_DIRECTORY || resolve(process.env.RUNNER_TEMP ?? '/tmp', 'docker-dependencies');
 let enterprise = existsSync('oss/package.json');
 let tooling = enterprise ? 'oss/src/tooling/docker-build' : 'src/tooling/docker-build';
 let tracked = Bun.spawnSync(['git', 'ls-files', '--recurse-submodules', '-z']);
@@ -20,12 +21,13 @@ if (command === 'fingerprint') {
   let inputs = files.filter(path =>
     /(^|\/)(package\.json|bun\.lockb?|bunfig\.toml|turbo\.json|\.npmrc|\.gitignore|\.dockerignore)$/.test(path) ||
     path.startsWith(tooling + '/') || path.startsWith(tooling.replace('docker-build', 'warp-cache') + '/') ||
+    (metadataOnly && /(^|\/)src\/origin\/apps\/code-bucket\//.test(path)) ||
     path.startsWith('.github/actions/') || path.startsWith('.github/workflows/') || /(^|\/)(tsconfig[^/]*\.json|prisma\.config\.ts)$/.test(path) ||
     lifecycleDirectories.some(directory => path.startsWith(directory + '/'))
   );
   let stages = new Set<string>(['scratch']);
   let bases: string[] = [];
-  for (let match of readFileSync(dockerfile, 'utf8').matchAll(/^FROM\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+(\S+))?/gim)) {
+  for (let match of (metadataOnly ? '' : readFileSync(dockerfile, 'utf8')).matchAll(/^FROM\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+(\S+))?/gim)) {
     if (!stages.has(match[1].toLowerCase())) {
       let result = Bun.spawnSync(['docker', 'buildx', 'imagetools', 'inspect', match[1], '--format', '{{.Manifest.Digest}}']);
       if (result.exitCode) throw new Error(result.stderr.toString());
@@ -34,12 +36,12 @@ if (command === 'fingerprint') {
     if (match[2]) stages.add(match[2].toLowerCase());
   }
   let hash = createHash('sha256');
-  hash.update(JSON.stringify({ version: 1, tasks, dockerfile, bases, platform: process.platform, arch: process.arch, bun: Bun.version }));
+  hash.update(JSON.stringify({ version: 1, metadataOnly, tasks, dockerfile, bases, platform: process.platform, arch: process.arch, bun: Bun.version }));
   for (let path of [...new Set([...inputs, dockerfile])].sort()) {
     hash.update(path + '\0');
     hash.update(readFileSync(path));
   }
-  console.log(`key=docker-dependencies-v1-${hash.digest('hex')}`);
+  console.log(`key=${metadataOnly ? 'image-metadata' : 'docker-dependencies'}-v1-${hash.digest('hex')}`);
   console.log(`cache=${cacheDirectory}`);
 } else if (command === 'capture') {
   rmSync(join(cacheDirectory, 'json'), { recursive: true, force: true });

@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 let turboVersion = '2.9.18';
@@ -13,13 +13,13 @@ for (let name of ['TURBO_API', 'TURBO_TEAM', 'TURBO_TOKEN', 'TURBO_REMOTE_CACHE_
 }
 
 let runTurbo = (args: string[], capture = false) => {
-  let result = Bun.spawnSync(['bunx', `turbo@${turboVersion}`, ...args], {
+  let result = Bun.spawnSync(['bunx', `turbo@${turboVersion}`, '--skip-infer', ...args], {
     env: metadataEnvironment,
     stdout: capture ? 'pipe' : 'inherit',
     stderr: 'inherit'
   });
 
-  if (result.exitCode !== 0) process.exit(result.exitCode);
+  if (result.exitCode !== 0) throw new Error(`Turbo failed with exit code ${result.exitCode}`);
 
   return capture ? result.stdout.toString() : '';
 };
@@ -28,22 +28,51 @@ if (args.includes('--filter=@metorial-subspace/app-worker')) {
   args.push('--filter=@metorial/db', '--filter=@metorial/multi-region', '--filter=@metorial-subspace/db');
 }
 
-let graph = runTurbo(['run', ...args, '--graph', '--cache=local:,remote:'], true);
-let packages = [...new Set([...graph.matchAll(/"\[root\] ([^"#]+)#[^"\n]+"/g)].map(match => match[1]))]
-  .filter(name => name !== '//')
-  .sort();
+let filters = args.filter(argument => argument.startsWith('--filter='));
+let taskNames = args.filter(argument => !argument.startsWith('--'));
+let packages: string[] = [];
+let workspaceDirectories = new Map<string, string>();
+
+if (filters.length && filters.every(filter => !/[.*!{}\[\]]/.test(filter.slice('--filter='.length))) &&
+  args.every(argument => !argument.startsWith('--') || argument.startsWith('--filter='))) {
+  let names = filters.map(filter => filter.slice('--filter='.length));
+  let fields = names.map((name, index) =>
+    `p${index}: package(name: ${JSON.stringify(name)}) { name path tasks { items { name allDependencies { items { package { name path } } } } } }`
+  );
+  let response = JSON.parse(runTurbo(['query', `{ ${fields.join(' ')} }`], true));
+  if (response.errors?.length) throw new Error(JSON.stringify(response.errors));
+
+  let complete = names.every((name, index) => taskNames.every(taskName =>
+    response.data[`p${index}`]?.tasks.items.some((task: { name: string }) => task.name === taskName)
+  ));
+  if (complete) {
+    for (let [index, name] of names.entries()) {
+      let workspace = response.data[`p${index}`];
+      packages.push(name);
+      workspaceDirectories.set(name, workspace.path);
+
+      for (let task of workspace.tasks.items) {
+        if (taskNames.includes(task.name)) {
+          for (let dependency of task.allDependencies.items) {
+            packages.push(dependency.package.name);
+            workspaceDirectories.set(dependency.package.name, dependency.package.path);
+          }
+        }
+      }
+    }
+  }
+}
+
+if (!packages.length) {
+  let graph = runTurbo(['run', ...args, '--graph', '--cache=local:,remote:'], true);
+  packages = [...graph.matchAll(/"\[root\] ([^"#]+)#[^"\n]+"/g)].map(match => match[1]);
+}
+
+packages = [...new Set(packages)].filter(name => name !== '//').sort();
 
 if (!packages.length) throw new Error('No build workspaces selected');
 
 let rootManifest = await Bun.file('package.json').json();
-let workspaceDirectories = new Map<string, string>();
-
-for (let workspace of rootManifest.workspaces) {
-  for (let manifestPath of new Bun.Glob(`${workspace}/package.json`).scanSync('.')) {
-    let manifest = await Bun.file(manifestPath).json();
-    workspaceDirectories.set(manifest.name, dirname(manifestPath));
-  }
-}
 
 while (true) {
   rmSync(outputDirectory, { recursive: true, force: true });
@@ -66,6 +95,13 @@ while (true) {
   if (!additionalPackages.size) break;
 
   packages = [...packages, ...additionalPackages].sort();
+}
+
+if (packages.some(name => !workspaceDirectories.has(name))) {
+  let workspaces = JSON.parse(runTurbo(['ls', '--output=json'], true)) as {
+    packages: { items: { name: string; path: string }[] };
+  };
+  for (let workspace of workspaces.packages.items) workspaceDirectories.set(workspace.name, workspace.path);
 }
 
 for (let directory of ['json', 'full']) {
@@ -101,7 +137,9 @@ for (let name of packages) {
 ancestors.add('.');
 
 for (let directory of ancestors) {
-  for (let config of new Bun.Glob('{tsconfig*.json,prisma.config.ts}').scanSync({ cwd: directory })) {
+  for (let entry of readdirSync(directory, { withFileTypes: true })) {
+    if ((!entry.isFile() && !entry.isSymbolicLink()) || !/^(tsconfig.*\.json|prisma\.config\.ts)$/.test(entry.name)) continue;
+    let config = entry.name;
     let target = join(outputDirectory, 'full', directory);
     mkdirSync(target, { recursive: true });
     cpSync(join(directory, config), join(target, config));
@@ -121,3 +159,4 @@ if (existsSync(join(outputDirectory, 'full', originService))) {
 }
 
 console.log(`Pruned build closure: ${packages.length} task workspaces`);
+

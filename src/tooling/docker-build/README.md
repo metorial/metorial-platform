@@ -21,6 +21,12 @@ all output-affecting build arguments through `build-arguments` as JSON. Credenti
 for caching and Sentry upload are excluded. Unsupported dynamic external image
 references or direct COPY inputs fail rather than silently produce unsafe keys.
 
+The action caches only the dependency graph and pruned manifests separately from
+Docker dependency layers. Restoring this metadata reconstructs the pruned tree
+from the current tracked source, including added and deleted files. Manifest,
+lockfile, lifecycle, configuration, and tooling changes invalidate the metadata.
+The final image fingerprint always hashes current inputs.
+
 On a hit, skip dependency-cache restoration, Warp Cache startup, and Docker setup.
 Use `image-cache.ts copy SOURCE TARGETS` to copy by digest and verify destination
 digests. It preserves the complete OCI image, including platform manifests. Builds
@@ -29,7 +35,11 @@ PRs may publish to GHCR; fork PRs build without publishing or privileged cache a
 Enterprise non-PR deployment runs promote the GHCR image and aliases to ECR before
 allowing deployment. Tests still run even when image builds are skipped.
 
-Registry authorization errors are fatal. Missing manifests cause a build; transient
+Registry authorization errors are fatal. For a trusted publisher, a denied lookup
+on its own destination first attempts to publish a reserved empty OCI index
+(`cache-bootstrap-v1`). This initializes a new GHCR package and proves write
+access; a denied initialization still fails. Canonical OSS lookups never initialize
+packages. Missing manifests cause a build; transient
 errors retry. Deleting a fingerprint image is safe and results in a cold build.
 Mutable external base tags are resolved on every run, so base updates invalidate
 reuse. Existing SHA tags without a fingerprint are not assumed safe to reuse.

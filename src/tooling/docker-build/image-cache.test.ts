@@ -13,11 +13,15 @@ let fixture = async () => {
   await Bun.write(join(directory, 'unrelated/index.ts'), 'export let value = 1;');
   await Bun.write(join(directory, 'bin/regctl'), `#!/bin/sh
 if [ "$1 $2" = 'image copy' ]; then exit 0; fi
+if [ "$1 $2" = 'manifest put' ]; then
+  if [ "\${ALLOW_INITIALIZE:-}" = true ]; then touch initialized; exit 0; fi
+  echo unauthorized >&2; exit 1
+fi
 case "$3" in
   alpine:*|node:*) echo "sha256:\${BASE_DIGEST:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}" ;;
   *@*) echo "\${3##*@}" ;;
   *)
-    if [ "\${REGISTRY_ERROR:-}" != '' ]; then echo "$REGISTRY_ERROR" >&2; exit 1; fi
+    if [ "\${REGISTRY_ERROR:-}" != '' ] && [ ! -f initialized ]; then echo "$REGISTRY_ERROR" >&2; exit 1; fi
     if [ "\${CACHE_HIT:-}" = true ]; then echo sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     else echo 'manifest unknown: not found' >&2; exit 1; fi ;;
 esac
@@ -67,19 +71,25 @@ test('resolves hits to immutable digests and fails on authorization errors', asy
   let denied = resolveImage(directory, '{}', { REGISTRY_ERROR: 'unauthorized' });
   expect(denied.code).not.toBe(0);
   expect(denied.error).toContain('unauthorized');
+  let initialized = resolveImage(directory, '{}', { REGISTRY_ERROR: 'denied', IMAGE_CACHE_PUBLISH: 'true', ALLOW_INITIALIZE: 'true' });
+  expect(initialized.code, initialized.error).toBe(0);
+  expect(initialized.text).toContain('hit=false');
 });
 
 test('real Turbo pruning includes transitive sources and dependency resolutions', async () => {
   let directory = await fixture();
   await Bun.write(join(directory, 'package.json'), JSON.stringify({ name: 'fixture', packageManager: 'bun@1.2.22', private: true, workspaces: ['packages/*'] }));
   await Bun.write(join(directory, 'bunfig.toml'), '');
-  await Bun.write(join(directory, 'turbo.json'), JSON.stringify({ tasks: { build: { dependsOn: ['^build'] } } }));
+  await Bun.write(join(directory, 'turbo.json'), JSON.stringify({ tasks: { build: { dependsOn: ['^build'] }, '@fixture/app#build': { dependsOn: ['^build', '@fixture/tool#build'] } } }));
   await Bun.write(join(directory, 'packages/app/package.json'), JSON.stringify({ name: '@fixture/app', scripts: { build: 'echo app' }, dependencies: { '@fixture/library': 'workspace:*' } }));
   await Bun.write(join(directory, 'packages/library/package.json'), JSON.stringify({ name: '@fixture/library', scripts: { build: 'echo library' } }));
   await Bun.write(join(directory, 'packages/library/src/index.ts'), 'export let library = 1;');
+  await Bun.write(join(directory, 'packages/tool/package.json'), JSON.stringify({ name: '@fixture/tool', scripts: { build: 'echo tool' } }));
+  await Bun.write(join(directory, 'packages/tool/src/index.ts'), 'export let tool = 1;');
   await Bun.write(join(directory, 'packages/unrelated/package.json'), JSON.stringify({ name: '@fixture/unrelated', scripts: { build: 'echo unrelated' } }));
   await Bun.write(join(directory, 'packages/unrelated/src/index.ts'), 'export let unrelated = 1;');
   await Bun.write(join(directory, 'src/tooling/docker-build/prune.ts'), await Bun.file(join(import.meta.dir, 'prune.ts')).text());
+  await Bun.write(join(directory, 'src/tooling/docker-build/dependency-cache.ts'), await Bun.file(join(import.meta.dir, 'dependency-cache.ts')).text());
   await Bun.write(join(directory, 'src/tooling/warp-cache/run-turbo.sh'), 'echo fixture');
   await Bun.write(join(directory, 'Dockerfile'), 'FROM alpine:latest AS pruner\nCOPY . .\nRUN bun ./src/tooling/docker-build/prune.ts build --filter=@fixture/app\nFROM scratch AS pruned\nCOPY --from=pruner /app/out /\n');
   let install = Bun.spawnSync([process.execPath, 'install', '--lockfile-only', '--ignore-scripts'], { cwd: directory });
@@ -87,10 +97,25 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   let lockfile = await Bun.file(join(directory, 'bun.lock')).text();
   await Bun.write(join(directory, 'bun.lock'), lockfile.replace(/"lockfileVersion":\s*2/, '"lockfileVersion": 1'));
   Bun.spawnSync(['git', 'add', '.'], { cwd: directory });
-  let original = resolveImage(directory);
+  let cache = join(directory, 'metadata');
+  let metadataEnvironment = { DOCKER_BUILD_CACHE_DIRECTORY: cache };
+  let original = resolveImage(directory, '{}', metadataEnvironment);
   expect(original.code, original.error).toBe(0);
+  let warmEnvironment = { ...metadataEnvironment, IMAGE_METADATA_CACHE_HIT: 'true' };
+  expect(resolveImage(directory, '{}', warmEnvironment).tag).toBe(original.tag);
+  await Bun.write(join(directory, 'packages/library/src/new.ts'), 'export let added = true;');
+  Bun.spawnSync(['git', 'add', '.'], { cwd: directory });
+  let added = resolveImage(directory, '{}', warmEnvironment);
+  expect(added.tag).not.toBe(original.tag);
+  expect(resolveImage(directory).tag).toBe(added.tag);
+  rmSync(join(directory, 'packages/library/src/new.ts'));
+  expect(resolveImage(directory, '{}', warmEnvironment).tag).toBe(original.tag);
   await Bun.write(join(directory, 'packages/unrelated/src/index.ts'), 'changed');
   expect(resolveImage(directory).tag).toBe(original.tag);
   await Bun.write(join(directory, 'packages/library/src/index.ts'), 'changed');
   expect(resolveImage(directory).tag).not.toBe(original.tag);
+  await Bun.write(join(directory, 'packages/library/src/index.ts'), 'export let library = 1;');
+  await Bun.write(join(directory, 'packages/tool/src/index.ts'), 'changed');
+  expect(resolveImage(directory).tag).not.toBe(original.tag);
+  expect(resolveImage(directory, '{}', warmEnvironment).tag).toBe(resolveImage(directory).tag);
 }, 30000);

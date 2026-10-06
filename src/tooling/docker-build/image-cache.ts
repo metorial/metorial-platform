@@ -19,12 +19,21 @@ let output = (name: string, value: string) => {
   console.log(`${name}=${value}`);
   if (outputFile) appendFileSync(outputFile, `${name}=${value}\n`);
 };
-let digest = async (reference: string, missingAllowed = false) => {
+let digest = async (reference: string, missingAllowed = false, initializeAllowed = false) => {
   for (let attempt = 0; attempt < 3; attempt++) {
     let result = Bun.spawnSync(['regctl', 'image', 'digest', reference], { stdout: 'pipe', stderr: 'pipe' });
     if (!result.exitCode) return result.stdout.toString().trim();
     let error = result.stderr.toString();
     if (missingAllowed && /manifest unknown|name unknown|not found|404/i.test(error) && !/unauthorized|denied/i.test(error)) return null;
+    if (initializeAllowed && attempt === 0 && /unauthorized|denied/i.test(error)) {
+      let repository = reference.replace(/:[^/:]+$/, '');
+      let initialize = Bun.spawnSync(['regctl', 'manifest', 'put', `${repository}:cache-bootstrap-v1`, '--content-type', 'application/vnd.oci.image.index.v1+json'], {
+        stdin: Buffer.from(JSON.stringify({ schemaVersion: 2, mediaType: 'application/vnd.oci.image.index.v1+json', manifests: [] })),
+        stdout: 'pipe', stderr: 'pipe'
+      });
+      if (initialize.exitCode) throw new Error(`Cannot authenticate or initialize ${repository}: ${initialize.stderr.toString()}`);
+      continue;
+    }
     if (attempt === 2 || /unauthorized|denied/i.test(error)) throw new Error(`Cannot resolve ${reference}: ${error}`);
     await Bun.sleep(1000 * (attempt + 1));
   }
@@ -66,7 +75,12 @@ if (command === 'resolve') {
 
   if (tasks) {
     let tooling = existsSync('oss/package.json') ? 'oss/src/tooling/docker-build' : 'src/tooling/docker-build';
-    run(['bun', `${tooling}/prune.ts`, ...tasks.trim().split(/\s+/)]);
+    if (process.env.IMAGE_METADATA_CACHE_HIT === 'true') {
+      run(['bun', `${tooling}/dependency-cache.ts`, 'restore']);
+    } else {
+      run(['bun', `${tooling}/prune.ts`, ...tasks.trim().split(/\s+/)]);
+      if (process.env.DOCKER_BUILD_CACHE_DIRECTORY) run(['bun', `${tooling}/dependency-cache.ts`, 'capture']);
+    }
     inputs.add(`${tooling}/prune.ts`);
     for (let directory of ['out/json', 'out/full']) {
       for (let file of new Bun.Glob('**/*').scanSync({ cwd: directory, dot: true, onlyFiles: true })) inputs.add(join(directory, file));
@@ -109,7 +123,7 @@ if (command === 'resolve') {
   await Bun.write(pinnedFile, pinned);
   let source = '';
   for (let repository of (process.env.IMAGE_CACHE_LOOKUP === 'false' ? [] : [...new Set([destination, canonical].filter(Boolean))])) {
-    let found = await digest(`${repository}:${tag}`, true);
+    let found = await digest(`${repository}:${tag}`, true, repository === destination && process.env.IMAGE_CACHE_PUBLISH === 'true');
     if (found) { source = `${repository}@${found}`; break; }
   }
 
