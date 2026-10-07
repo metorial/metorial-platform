@@ -187,6 +187,8 @@ model SlateAuthConfig {
   slateErrors                   SlateError[]
   triggerRegistrations          TriggerRegistration[]
   slateAttachments              SlateAttachment[]
+
+  @@index([slateOid, profileUid])
 }
 
 model SlateAuthConfigManualDecrypt {
