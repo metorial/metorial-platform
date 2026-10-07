@@ -15,19 +15,22 @@ let identity = {
 
 describe('sharedOAuthRefreshLockKey', () => {
   it('is the same for configs of one provider identity', () => {
-    expect(sharedOAuthRefreshLockKey(identity)).toBe(
-      sharedOAuthRefreshLockKey({ ...identity, authConfigOid: 2n })
+    expect(sharedOAuthRefreshLockKey(identity, true)).toBe(
+      sharedOAuthRefreshLockKey({ ...identity, authConfigOid: 2n }, true)
     );
   });
 
   it('differs when the OAuth client or profile differs', () => {
-    let key = sharedOAuthRefreshLockKey(identity);
-    expect(sharedOAuthRefreshLockKey({ ...identity, clientId: 'client-2' })).not.toBe(key);
-    expect(sharedOAuthRefreshLockKey({ ...identity, profileUid: 'U999' })).not.toBe(key);
+    let key = sharedOAuthRefreshLockKey(identity, true);
+    expect(sharedOAuthRefreshLockKey({ ...identity, clientId: 'client-2' }, true)).not.toBe(
+      key
+    );
+    expect(sharedOAuthRefreshLockKey({ ...identity, profileUid: 'U999' }, true)).not.toBe(key);
   });
 
-  it('falls back to a per-config key without a profile', () => {
-    expect(sharedOAuthRefreshLockKey({ ...identity, profileUid: null })).toBe('cfg:1');
+  it('uses a per-config key without a profile or without token sync', () => {
+    expect(sharedOAuthRefreshLockKey({ ...identity, profileUid: null }, true)).toBe('cfg:1');
+    expect(sharedOAuthRefreshLockKey(identity, false)).toBe('cfg:1');
   });
 });
 

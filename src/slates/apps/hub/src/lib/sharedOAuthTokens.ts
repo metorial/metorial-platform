@@ -8,8 +8,13 @@ export type SharedOAuthIdentity = {
   profileUid: string | null;
 };
 
-export let sharedOAuthRefreshLockKey = (identity: SharedOAuthIdentity) => {
-  if (!identity.profileUid) return `cfg:${identity.authConfigOid}`;
+export let sharedOAuthRefreshLockKey = (
+  identity: SharedOAuthIdentity,
+  syncsTokensAcrossConnections: boolean
+) => {
+  if (!syncsTokensAcrossConnections || !identity.profileUid) {
+    return `cfg:${identity.authConfigOid}`;
+  }
 
   let hash = createHash('sha256')
     .update(

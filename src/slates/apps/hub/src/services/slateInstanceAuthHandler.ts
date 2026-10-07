@@ -34,6 +34,27 @@ let refreshLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+// Configs stay linked to the auth method version they were created with, so
+// read the flag from the slate's current version.
+let syncsTokensAcrossConnections = async (authConfig: AuthConfigWithSecret) => {
+  let slate = await db.slate.findUnique({
+    where: { oid: authConfig.slateOid },
+    select: { currentVersion: { select: { specificationOid: true } } }
+  });
+  let specificationOid = slate?.currentVersion?.specificationOid;
+  let currentMethods = specificationOid
+    ? await db.slateSpecificationAuthMethod.findMany({
+        where: { specificationOid },
+        select: { authMethod: { select: { key: true, spec: true } } }
+      })
+    : [];
+  let current = currentMethods.find(m => m.authMethod.key === authConfig.authMethod.key);
+  let spec = (current?.authMethod.spec ?? authConfig.authMethod.spec) as
+    | { syncTokensAcrossConnections?: boolean }
+    | undefined;
+  return spec?.syncTokensAcrossConnections === true;
+};
+
 let isExpiring = (tokenExpiresAt: Date | null, minExpirationBuffer: number) =>
   !!tokenExpiresAt && tokenExpiresAt.getTime() < Date.now() + minExpirationBuffer;
 
@@ -193,6 +214,7 @@ class slateAuthHandlerServiceImpl {
       clientId: d.oauthCredentials.clientId,
       profileUid: d.authConfig.profileUid
     };
+    let syncsTokens = await syncsTokensAcrossConnections(d.authConfig);
 
     let reload = async () => {
       let fresh = await db.slateAuthConfig.findFirstOrThrow({
@@ -221,7 +243,7 @@ class slateAuthHandlerServiceImpl {
 
     try {
       await refreshLock.usingLock(
-        sharedOAuthRefreshLockKey(identity),
+        sharedOAuthRefreshLockKey(identity, syncsTokens),
         async () => {
           try {
             let fresh = await reload();
@@ -234,7 +256,8 @@ class slateAuthHandlerServiceImpl {
                 authConfig: fresh,
                 oauthCredentials: d.oauthCredentials,
                 decrypted,
-                syncSiblingsOf: fresh.profileUid === identity.profileUid ? identity : null
+                syncSiblingsOf:
+                  syncsTokens && fresh.profileUid === identity.profileUid ? identity : null
               });
             }
 

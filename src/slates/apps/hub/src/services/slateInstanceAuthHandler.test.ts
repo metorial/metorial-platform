@@ -5,6 +5,7 @@ let mocks = vi.hoisted(() => {
   return {
     LockAcquisitionError,
     eventCreateMany: vi.fn(async () => ({})),
+    currentMethods: vi.fn(),
     usingLock: vi.fn(async (_key: string, fn: () => Promise<unknown>) => fn()),
     findFirst: vi.fn(),
     findFirstOrThrow: vi.fn(),
@@ -42,6 +43,10 @@ vi.mock('../db', () => ({
         secret: { oid: 51n }
       }))
     },
+    slate: {
+      findUnique: vi.fn(async () => ({ currentVersion: { specificationOid: 12n } }))
+    },
+    slateSpecificationAuthMethod: { findMany: mocks.currentMethods },
     slateAuthMethod: {
       findFirstOrThrow: vi.fn(async () => ({
         key: 'oauth',
@@ -161,6 +166,10 @@ describe('getSlateInstanceAuth refresh coordination', () => {
     );
     mocks.findFirst.mockResolvedValue(config());
     mocks.findFirstOrThrow.mockResolvedValue(config());
+    mocks.currentMethods.mockResolvedValue([
+      { authMethod: { key: 'bot_token', spec: {} } },
+      { authMethod: { key: 'oauth', spec: { syncTokensAcrossConnections: true } } }
+    ]);
     mocks.decrypt.mockImplementation(async (d: { purpose: string }) =>
       d.purpose === 'slate_oauth_credentials'
         ? { clientId: 'client-1', clientSecret: 'secret-1' }
@@ -306,6 +315,31 @@ describe('getSlateInstanceAuth refresh coordination', () => {
 
     await expect(call()).rejects.toThrow('redis exploded');
     expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('keeps a per-config lock and no sync when the method does not sync tokens', async () => {
+    mocks.currentMethods.mockResolvedValue([{ authMethod: { key: 'oauth', spec: {} } }]);
+
+    let result = await call();
+
+    expect(mocks.currentMethods).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { specificationOid: 12n } })
+    );
+    expect(mocks.usingLock.mock.calls[0]![0]).toBe('cfg:1');
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
+    expect(result.output).toEqual(newOutput);
+  });
+
+  it("falls back to the config's own auth method when the current version lacks it", async () => {
+    mocks.currentMethods.mockResolvedValue([]);
+    mocks.findFirst.mockResolvedValue(
+      config({ authMethod: { key: 'oauth', spec: { syncTokensAcrossConnections: true } } })
+    );
+
+    await call();
+
+    expect(mocks.usingLock.mock.calls[0]![0]).toMatch(/^idn:/);
   });
 
   it('skips the sibling sync when the profile appeared between reads', async () => {
