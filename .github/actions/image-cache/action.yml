@@ -18,6 +18,10 @@ inputs:
   build-arguments:
     default: '{}'
 outputs:
+  prepared:
+    value: ${{ steps.resolve.outputs.prepared }}
+  context:
+    value: ${{ steps.resolve.outputs.context }}
   hit:
     value: ${{ steps.resolve.outputs.hit }}
   source:

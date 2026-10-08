@@ -1,6 +1,8 @@
 name: Prune Docker workspace
 description: Prepare the service build closure before uploading it to BuildKit
 inputs:
+  prepared:
+    default: 'false'
   package:
     required: false
   tasks:
@@ -68,6 +70,7 @@ runs:
         PRUNED: ${{ steps.fingerprint.outputs.pruned }}
         CONTEXT: ${{ steps.fingerprint.outputs.context }}
         CACHE_HIT: ${{ steps.restore.outputs.cache-hit }}
+        PREPARED: ${{ inputs.prepared }}
       run: |
         set -euo pipefail
         echo "pruned=$PRUNED" >> "$GITHUB_OUTPUT"
@@ -82,7 +85,13 @@ runs:
         cd "$INPUT_WORKSPACE"
         tooling=src/tooling/docker-build
         if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
-        if [ "$CACHE_HIT" = true ]; then
+        if [ "$PREPARED" = true ]; then
+          test -f out/json/package.json
+          test -f out/json/bun.lock
+          test -d out/full
+          echo "Reusing resolver build context; no second prune"
+          bun "$tooling/dependency-cache.ts" capture
+        elif [ "$CACHE_HIT" = true ]; then
           bun "$tooling/dependency-cache.ts" restore
         else
           bun "$tooling/prune.ts" "${tasks[@]}"
