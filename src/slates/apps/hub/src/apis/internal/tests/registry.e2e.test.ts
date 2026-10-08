@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getRegistryHeaders } from '../../registry';
+import { getRegistryHeaders } from '../../../registry';
 import { slatesHubClient } from '../../../test/client';
 import { fixtures } from '../../../test/fixtures';
 import { cleanDatabase, testDb } from '../../../test/setup';

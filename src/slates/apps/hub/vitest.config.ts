@@ -20,15 +20,9 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
-    '@slates/proto': resolve(configDirectory, '../../packages/proto/src/index.ts'),
-    '@slates/provider': resolve(configDirectory, '../../packages/provider/src/index.ts'),
     '@metorial-services/slates-registry-client': resolve(
       configDirectory,
       '../../clients/registry/src/index.ts'
-    ),
-    '@metorial-services/slates-registry-internal-client': resolve(
-      configDirectory,
-      '../../clients/registry-internal/src/index.ts'
     )
   });
 });

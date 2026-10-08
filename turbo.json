@@ -274,11 +274,13 @@
     },
     "test:e2e": {
       "cache": false,
-      "dependsOn": ["^build", "prisma:generate", "^prisma:generate"]
+      "dependsOn": ["^build", "prisma:generate", "^prisma:generate"],
+      "passThroughEnv": ["*"]
     },
     "test:integration": {
       "cache": false,
-      "dependsOn": ["^build", "prisma:generate", "^prisma:generate"]
+      "dependsOn": ["^build", "prisma:generate", "^prisma:generate"],
+      "passThroughEnv": ["*"]
     }
   }
 }

@@ -26,7 +26,15 @@ if (command === 'prepare') {
   ])
     delete metadataEnvironment[name];
   let dry = Bun.spawnSync(
-    ['bunx', 'turbo@2.9.18', 'run', ...tasks, '--dry=json', '--cache=local:,remote:'],
+    [
+      ...(process.env.TURBO_EXECUTABLE
+        ? [process.env.TURBO_EXECUTABLE]
+        : ['bunx', 'turbo@2.9.18']),
+      'run',
+      ...tasks,
+      '--dry=json',
+      '--cache=local:,remote:'
+    ],
     {
       env: metadataEnvironment,
       stdout: 'pipe',

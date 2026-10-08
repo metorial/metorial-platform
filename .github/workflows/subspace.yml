@@ -133,7 +133,6 @@ jobs:
 
   conduit-integration:
     name: 'Conduit Integration (Redis + NATS)'
-    needs: build
     runs-on: ubuntu-latest
 
     permissions:

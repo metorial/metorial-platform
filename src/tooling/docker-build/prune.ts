@@ -19,7 +19,7 @@ for (let name of ['TURBO_API', 'TURBO_TEAM', 'TURBO_TOKEN', 'TURBO_REMOTE_CACHE_
 
 let runTurbo = (args: string[], capture = false) => {
   let startedAt = performance.now();
-  let result = Bun.spawnSync(['bunx', `turbo@${turboVersion}`, '--skip-infer', ...args], {
+  let result = Bun.spawnSync([...(process.env.TURBO_EXECUTABLE ? [process.env.TURBO_EXECUTABLE] : ['bunx', `turbo@${turboVersion}`]), '--skip-infer', ...args], {
     env: metadataEnvironment,
     stdout: capture ? 'pipe' : 'inherit',
     stderr: 'inherit'

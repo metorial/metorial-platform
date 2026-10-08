@@ -2,7 +2,9 @@
 
 `setup-test-workspace` prunes the requested Turbo task graph into a separate runner
 checkout, installs its frozen Bun lockfile, and restores complete hoisted installs
-by exact dependency/configuration/lifecycle/runtime identity. Ordinary source and
+by exact dependency/configuration/lifecycle/runtime identity. Nested resolutions
+omitted by Turbo pruning are restored from the source lockfile without resolving
+new versions. Ordinary source and
 test edits do not invalidate installs. Root enterprise install hooks are removed
 only from the generated manifest. The source checkout remains intact.
 
@@ -19,9 +21,10 @@ CI Compose JSON from the local service definitions, removes all development buil
 recipes and source mounts, and substitutes exact image digests. Wrong revisions,
 missing images, or mutable application references fail rather than rebuilding.
 
-Tests run on the runner, with container endpoints translated to published ports.
+Tests run on the runner, with container endpoints translated to dynamically
+allocated loopback ports.
 Compiled workers use separate runtime databases; fixtures clean only isolated test
-databases. Every pulled application receives HTTP and RPC create/get smoke checks.
+databases and a separate Redis database. Every pulled application receives HTTP and RPC create/get smoke checks.
 Existing in-memory fixtures and mocks remain supported. Logs and volumes are
 collected and cleaned on both success and failure.
 

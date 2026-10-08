@@ -29,8 +29,8 @@ let run = (args: string[], cwd?: string, env?: Record<string, string>) => {
   console.log(
     `${args.slice(0, 3).join(' ')}: ${((performance.now() - started) / 1000).toFixed(1)}s`
   );
-  if (result.exitCode) console.error(result.stdout.toString());
-  if (args[0] === 'bunx' || args[0] === 'bun') console.log(result.stdout.toString());
+  if (result.exitCode || args[0] === 'bunx' || args[0] === 'bun')
+    console.log(result.stdout.toString());
   if (result.exitCode)
     throw new Error(`Command failed (${result.exitCode}): ${args.join(' ')}`);
   return result.stdout.toString();
@@ -127,6 +127,9 @@ if (command === 'prepare') {
           return [line.slice(0, separator), hostUrl(line.slice(separator + 1))];
         })
     ) as Record<string, string>;
+    let redis = new URL(environment.REDIS_URL);
+    redis.pathname = '/1';
+    environment.REDIS_URL = redis.toString();
     if (suite === 'relay') {
       let url = new URL(environment.DATABASE_URL);
       url.pathname = '/padd_relay_test';
@@ -200,8 +203,7 @@ if (command === 'prepare') {
         'run',
         'test:e2e',
         `--filter=${JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')).name}`,
-        '--ui=stream',
-        '--env-mode=loose'
+        '--ui=stream'
       ],
       undefined,
       environment
