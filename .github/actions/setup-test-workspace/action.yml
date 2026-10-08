@@ -1,0 +1,70 @@
+name: Set up cached test workspace
+description: Prune test prerequisites and restore an exact hoisted dependency install
+inputs:
+  workspace:
+    default: .
+  tasks:
+    required: true
+outputs:
+  workspace:
+    value: ${{ steps.prepare.outputs.workspace }}
+  install-cache-hit:
+    value: ${{ steps.restore.outputs.cache-hit }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: '1.4.2'
+    - id: prepare
+      shell: bash
+      env:
+        SOURCE_WORKSPACE: ${{ inputs.workspace }}
+        TASKS: ${{ inputs.tasks }}
+      run: |
+        set -euo pipefail
+        cd "$SOURCE_WORKSPACE"
+        tooling=src/tooling/test-ci/workspace.ts
+        if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
+        read -r -a tasks <<< "$TASKS"
+        bun "$tooling" prepare "${tasks[@]}"
+    - id: restore
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.prepare.outputs.cache }}
+        key: ${{ steps.prepare.outputs.key }}
+    - uses: actions/cache@v4
+      if: steps.restore.outputs.cache-hit != 'true'
+      with:
+        path: ~/.bun/install/cache
+        key: test-downloads-${{ runner.os }}-${{ runner.arch }}-1.4.2-${{ steps.prepare.outputs.key }}
+        restore-keys: test-downloads-${{ runner.os }}-${{ runner.arch }}-1.4.2-
+    - name: Restore or install test dependencies
+      shell: bash
+      env:
+        SOURCE_WORKSPACE: ${{ inputs.workspace }}
+        TEST_WORKSPACE: ${{ steps.prepare.outputs.workspace }}
+        CACHE_HIT: ${{ steps.restore.outputs.cache-hit }}
+      run: |
+        set -euo pipefail
+        tooling="$GITHUB_WORKSPACE/$SOURCE_WORKSPACE/src/tooling/test-ci/workspace.ts"
+        if [ -f "$GITHUB_WORKSPACE/$SOURCE_WORKSPACE/oss/package.json" ]; then
+          tooling="$GITHUB_WORKSPACE/$SOURCE_WORKSPACE/oss/src/tooling/test-ci/workspace.ts"
+        fi
+        if [ "$CACHE_HIT" = true ]; then
+          bun "$tooling" restore
+        else
+          cd "$TEST_WORKSPACE"
+          time bun install --frozen-lockfile --linker=hoisted
+          bun "$tooling" capture
+        fi
+        echo "TEST_CACHE_RUNTIME=$(uname -sm)-$(node --version)-$(bun --version)" >> "$GITHUB_ENV"
+        echo "NODE_ENV=test" >> "$GITHUB_ENV"
+    - uses: actions/cache/save@v4
+      if: steps.restore.outputs.cache-hit != 'true'
+      with:
+        path: ${{ steps.prepare.outputs.cache }}
+        key: ${{ steps.prepare.outputs.key }}

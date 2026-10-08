@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit",
     "dev:start": "bun --watch ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
-    "control:db:push": "bun run prisma:push"
+    "control:db:push": "bun run prisma:push",
+    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts --configLoader runner"
   },
   "devDependencies": {
     "@lowerdeck/testing-tools": "workspace:2.0.0",

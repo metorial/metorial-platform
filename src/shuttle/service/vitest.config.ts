@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
-    '@metorial-platform-systems/shuttle-client': resolve(__dirname, '../clients/typescript/src/index.ts'),
+    '@metorial-platform-systems/shuttle-client': resolve(__dirname, '../clients/shuttle/src/index.ts'),
     '@metorial/mcp-server': resolve(__dirname, '../sdk/packages/mcp-server/src/index.ts'),
     '@metorial/mcp': resolve(__dirname, '../sdk/packages/mcp/src/index.ts'),
     '@metorial/mcp-transport-memory': resolve(

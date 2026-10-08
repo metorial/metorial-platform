@@ -16,15 +16,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GH_TOKEN || github.token }}
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Set up test workspace
+        id: tests
+        uses: ./.github/actions/setup-test-workspace
         with:
-          node-version: 20
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
+          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
 
       - name: Set up Warp Cache
         uses: ./.github/actions/setup-warp-cache
@@ -35,30 +34,13 @@ jobs:
           role-arn: ${{ vars.WARP_CACHE_ROLE_ARN }}
           bucket: ${{ vars.WARP_CACHE_BUCKET }}
 
-      # - name: Patch bun
-      #   run: mv _package.json package.json
+      - name: Test packages and services
+        working-directory: ${{ steps.tests.outputs.workspace }}
+        run: bunx turbo@2.9.18 run test --concurrency=2 --ui=stream --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
 
-      - name: Install Packages
-        run: bun i --linker=hoisted
-
-      - name: Generate Prisma Clients
-        run: |
-          bunx turbo run --ui=stream prisma:generate
-
-      - name: Build Packages
-        run: |
-          bunx turbo run --ui=stream build --filter=!./src/**
-          bunx turbo run --ui=stream build --filter=./src/*/clients/** --filter=!./src/origin/clients/**
-          bunx turbo run --ui=stream build --filter='./src/outpost/*/*'
-
-      - name: Test Metorial Packages
-        run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/metorial/packages/*'
-
-      - name: Test Metorial Modules
-        run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/metorial/products/**'
-
-      - name: Test Lowerdeck Packages
-        run: bunx turbo run --concurrency=1 --ui=stream test --filter='./src/lowerdeck/**'
+      - name: Test CI tooling
+        working-directory: ${{ steps.tests.outputs.workspace }}
+        run: bun test src/tooling/test-ci/*.test.ts
 
       - name: Report Warp Cache
         if: always()

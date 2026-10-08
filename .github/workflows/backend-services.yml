@@ -1,4 +1,4 @@
-name: 'Slates'
+name: Backend Services
 
 on:
   workflow_dispatch:
@@ -6,13 +6,17 @@ on:
     branches: [dev]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   packages: read
 
 jobs:
   build:
-    name: 'Slates Build'
+    name: 'Build ${{ matrix.service.name }}'
     runs-on: ubuntu-latest
 
     permissions:
@@ -20,16 +24,36 @@ jobs:
       packages: write
 
     strategy:
+      fail-fast: false
       matrix:
         service:
-          - name: hub
+          - name: forge
+            image: ghcr.io/metorial/forge
+            dockerfile: ./src/forge/service/Dockerfile
+          - name: nebula
+            image: ghcr.io/metorial/nebula
+            dockerfile: ./src/nebula/service/Dockerfile
+          - name: function-bay
+            image: ghcr.io/metorial/function-bay
+            dockerfile: ./src/function-bay/service/Dockerfile
+          - name: shuttle
+            image: ghcr.io/metorial/shuttle
+            dockerfile: ./src/shuttle/service/Dockerfile
+          - name: relay
+            image: ghcr.io/metorial/relay
+            dockerfile: ./src/relay/service/Dockerfile
+          - name: voyager
+            image: ghcr.io/metorial/voyager
+            dockerfile: ./src/voyager/service/Dockerfile
+          - name: slates-hub
             image: ghcr.io/metorial/slates-hub
             dockerfile: ./src/slates/apps/hub/Dockerfile
-            package: '@metorial/slates'
-          - name: registry
+          - name: slates-registry
             image: ghcr.io/metorial/slates-registry
             dockerfile: ./src/slates/apps/registry/Dockerfile
-            package: '@metorial/slates-registry'
+          - name: signal
+            image: ghcr.io/metorial/signal
+            dockerfile: ./src/signal/service/Dockerfile
 
     steps:
       - name: Checkout repository
@@ -144,25 +168,58 @@ jobs:
         if: always() && steps.image.outputs.hit != 'true'
         run: sh ./src/tooling/warp-cache/report.sh
 
-  test:
-    name: 'Slates Hub Test'
-    permissions:
-      contents: read
-      packages: read
-    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
-    secrets: inherit
-    with:
-      service_directory: src/slates/apps/hub
-      compose_project_prefix: slates-hub-ci
-      compose_profiles: 'hub infra'
-      wait_mode: healthy
-      wait_services: |
-        slates-hub-postgres
-        slates-hub-redis
-        slates-hub-object-storage
-        slates-hub-forge
-        slates-hub-signal
-        slates-hub-function-bay
-        slates-hub-registry
-      test_container: slates-hub-service
-      test_command: cd /app/src/slates/apps/hub && bun run test
+      - name: Record tested image
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/image-artifact
+        with:
+          name: ${{ matrix.service.name }}
+          image: ${{ matrix.service.image }}:${{ steps.image.outputs.tag }}
+
+  e2e:
+    name: '${{ matrix.service.name }} E2E'
+    needs: build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - { name: forge, package: '@metorial/forge' }
+          - { name: nebula, package: '@metorial/nebula' }
+          - { name: function-bay, package: '@metorial/function-bay' }
+          - { name: shuttle, package: '@metorial/shuttle' }
+          - { name: slates-hub, package: '@metorial/slates' }
+          - { name: relay, package: '@metorial/relay' }
+          - { name: voyager, package: '@metorial/voyager' }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GH_TOKEN || github.token }}
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_TOKEN || github.token }}
+      - uses: ./.github/actions/setup-test-workspace
+        id: tests
+        with:
+          tasks: prisma:generate test:e2e --filter=${{ matrix.service.package }}
+      - uses: ./.github/actions/setup-warp-cache
+        with:
+          aws-access-key-id: ${{ secrets.WARP_CACHE_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.WARP_CACHE_AWS_SECRET_ACCESS_KEY }}
+          signature-key: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+          role-arn: ${{ vars.WARP_CACHE_ROLE_ARN }}
+          bucket: ${{ vars.WARP_CACHE_BUCKET }}
+      - name: Restore test prerequisites
+        working-directory: ${{ steps.tests.outputs.workspace }}
+        run: bunx turbo@2.9.18 run prisma:generate build --ui=stream --concurrency=2
+      - uses: ./.github/actions/backend-e2e
+        with:
+          suite: ${{ matrix.service.name }}
+          test-workspace: ${{ steps.tests.outputs.workspace }}
+      - name: Report Warp Cache
+        if: always()
+        run: sh src/tooling/warp-cache/report.sh

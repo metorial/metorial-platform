@@ -133,6 +133,7 @@ jobs:
 
   conduit-integration:
     name: 'Conduit Integration (Redis + NATS)'
+    needs: build
     runs-on: ubuntu-latest
 
     permissions:
@@ -146,15 +147,11 @@ jobs:
           submodules: 'recursive'
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: ./.github/actions/setup-test-workspace
+        id: tests
+        with:
+          tasks: test:integration --filter=@metorial-subspace/conduit
 
-      - name: Install Packages
-        run: bun i --linker=hoisted
-
-      # Docker is preinstalled on ubuntu-latest. The Vitest globalSetup brings the
-      # Redis + NATS containers up (and tears them down), so no `services:` block
-      # is needed and local == CI via the same compose-driven setup.
       - name: Run conduit integration tests
-        run: bun run test:integration
-        working-directory: src/metorial/products/integrations/packages/conduit
+        working-directory: ${{ steps.tests.outputs.workspace }}
+        run: bunx turbo@2.9.18 run test:integration --filter=@metorial-subspace/conduit --ui=stream

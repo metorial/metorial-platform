@@ -21,12 +21,13 @@
     "db:push:dev": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --accept-data-loss'",
     "db:push:test": "sh -c 'set -a; . ./.env.test; set +a; bun prisma db push --accept-data-loss'",
     "db:push": "bun run db:push:dev && bun run db:push:test",
-    "test": "bunx vitest run --passWithNoTests --configLoader runner",
+    "test": "bunx vitest run --config vitest.unit.config.ts --configLoader runner --passWithNoTests",
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit",
     "dev:start": "bun --watch ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
-    "control:db:push": "bun run prisma:push"
+    "control:db:push": "bun run prisma:push",
+    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts --configLoader runner"
   },
   "devDependencies": {
     "@types/bun": "latest",
