@@ -76,6 +76,7 @@ jobs:
         if: steps.image.outputs.hit != 'true'
         uses: ./.github/actions/prune-docker
         with:
+          prepared: ${{ steps.image.outputs.prepared }}
           dockerfile: ./src/shuttle/service/Dockerfile
 
       - name: Cache Docker dependencies

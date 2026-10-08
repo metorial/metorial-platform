@@ -1,17 +1,20 @@
 # Backend image reuse
 
-The `image-cache` composite action computes a `build-v1-<sha256>` tag before any
+The `image-cache` composite action computes a `build-v2-<sha256>` tag before any
 Docker build or dependency installation. It resolves that tag in the destination
 GHCR repository and then in the canonical OSS repository from `services.json`.
 The registry is the index; no previous branch or commit is assumed to be equivalent.
 
-Pruned services hash the actual `out/json` and `out/full` trees, plus direct Docker
-`COPY` inputs outside the pruned context. Other services hash their direct `COPY`
-inputs. File contents, executable permissions, Dockerfile, output-affecting build
-arguments, pruning implementation, image-cache implementation, and external image
-digests determine identity. The Dockerfile frontend, `FROM` images, and external
-`COPY --from` images are pinned in a generated Dockerfile used for both dependency
-and final builds. Commit IDs and registry destinations do not determine identity.
+Pruned services hash workspace-relative Git blob IDs and modes selected by a
+versioned input descriptor, exact pruned manifests/lockfiles, generated manifest
+replacements, and direct Docker `COPY` inputs. Modified tracked files are hashed
+from the working tree; staged additions and deletions are included. The descriptor
+preserves task-only dependencies, workspace overrides, and partial runtime assets.
+Other services hash direct `COPY` inputs. Dockerfiles, output-affecting arguments,
+resolver/prune tooling, and pinned external image digests also determine identity.
+Commit IDs, branches, credentials, descriptor lookup keys, and registry destinations
+are excluded. External images are pinned in the generated Dockerfile used for
+both dependency and final builds.
 
 `services.json` records OSS images and their build recipes. Turbo tasks are read
 from each Dockerfile's prune command to keep fingerprinting and builds aligned.
@@ -21,11 +24,23 @@ all output-affecting build arguments through `build-arguments` as JSON. Credenti
 for caching and Sentry upload are excluded. Unsupported dynamic external image
 references or direct COPY inputs fail rather than silently produce unsafe keys.
 
-The action caches only the dependency graph and pruned manifests separately from
-Docker dependency layers. Restoring this metadata reconstructs the pruned tree
-from the current tracked source, including added and deleted files. Manifest,
-lockfile, lifecycle, configuration, and tooling changes invalidate the metadata.
-The final image fingerprint always hashes current inputs.
+Descriptors are restored from GitHub Actions cache first and from an immutable
+GHCR artifact second (`descriptor-image-descriptor-v1-<sha256>`). Trusted runs
+publish descriptor artifacts in their image repository; canonical OSS artifacts
+are read-only fallbacks. Artifacts are validated as data, including their expected
+key and safe paths. Keys cover manifests, complete locks, Turbo/task/prune
+configuration, and additional file inventories needed by pruning. Workflow edits
+and lifecycle source edits do not invalidate descriptors.
+
+A descriptor hit performs no Turbo command and copies no source before image
+lookup. On an image miss, it materializes the build context once. Descriptor misses
+run normal discovery/pruning once and retain that context. The `prepared` action
+output lets `prune-docker` reuse it without a second prune. Dependency layer caches
+continue to work. Whole locks invalidate descriptors, but image identity includes
+only the exact pruned lock: unrelated resolutions do not invalidate images.
+
+The version change deliberately causes initial image-cache misses. Existing
+SHA/branch/deployment aliases and registry-copy verification remain compatible.
 
 On a hit, skip dependency-cache restoration, Warp Cache startup, and Docker setup.
 Use `image-cache.ts copy SOURCE TARGETS` to copy by digest and verify destination
