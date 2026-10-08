@@ -19,7 +19,7 @@ for (let name of ['TURBO_API', 'TURBO_TEAM', 'TURBO_TOKEN', 'TURBO_REMOTE_CACHE_
 
 let runTurbo = (args: string[], capture = false) => {
   let startedAt = performance.now();
-  let result = Bun.spawnSync(['bunx', `turbo@${turboVersion}`, '--skip-infer', ...args], {
+  let result = Bun.spawnSync([...(process.env.TURBO_EXECUTABLE ? [process.env.TURBO_EXECUTABLE] : ['bunx', `turbo@${turboVersion}`]), '--skip-infer', ...args], {
     env: metadataEnvironment,
     stdout: capture ? 'pipe' : 'inherit',
     stderr: 'inherit'
@@ -41,7 +41,16 @@ let taskNames = args.filter(argument => !argument.startsWith('--'));
 let packages: string[] = [];
 let workspaceDirectories = new Map<string, string>();
 
-if (filters.length && filters.every(filter => !/[.*!{}\[\]]/.test(filter.slice('--filter='.length))) &&
+if (process.env.TEST_PRUNE_GRAPH) {
+  let workspaces = await Bun.file(process.env.TEST_PRUNE_GRAPH).json();
+  for (let [name, directory] of Object.entries(workspaces)) {
+    if (typeof directory !== 'string') throw new Error(`Invalid test workspace directory: ${name}`);
+    packages.push(name);
+    workspaceDirectories.set(name, directory);
+  }
+}
+
+if (!packages.length && filters.length && filters.every(filter => !/[.*!{}\[\]]/.test(filter.slice('--filter='.length))) &&
   args.every(argument => !argument.startsWith('--') || argument.startsWith('--filter='))) {
   let names = filters.map(filter => filter.slice('--filter='.length));
   let fields = names.map((name, index) =>

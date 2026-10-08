@@ -1,0 +1,36 @@
+name: 'Conduit Integration'
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  conduit-integration:
+    name: 'Conduit Integration (Redis + NATS)'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: ./.github/actions/setup-test-workspace
+        id: tests
+        with:
+          tasks: test:integration --filter=@metorial-subspace/conduit
+
+      - name: Run conduit integration tests
+        working-directory: ${{ steps.tests.outputs.workspace }}
+        run: bunx turbo@2.9.18 run test:integration --filter=@metorial-subspace/conduit --ui=stream

@@ -1,0 +1,48 @@
+name: Test compiled backend images
+description: Pull exact built images and run integration tests without rebuilding containers
+inputs:
+  suite:
+    required: true
+  source-workspace:
+    default: .
+  test-workspace:
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: test-image-*
+        path: ${{ runner.temp }}/test-images
+        merge-multiple: true
+    - name: Prepare image-only CI Compose
+      shell: bash
+      env:
+        SUITE: ${{ inputs.suite }}
+        SOURCE_WORKSPACE: ${{ inputs.source-workspace }}
+        TEST_WORKSPACE: ${{ inputs.test-workspace }}
+      run: |
+        set -euo pipefail
+        cd "$TEST_WORKSPACE"
+        bun src/tooling/test-ci/e2e.ts prepare "$SUITE" "$GITHUB_WORKSPACE/$SOURCE_WORKSPACE" "$RUNNER_TEMP/test-images"
+    - name: Test pulled images
+      shell: bash
+      env:
+        SUITE: ${{ inputs.suite }}
+        SOURCE_WORKSPACE: ${{ inputs.source-workspace }}
+        TEST_WORKSPACE: ${{ inputs.test-workspace }}
+      run: |
+        set -euo pipefail
+        cd "$TEST_WORKSPACE"
+        bun src/tooling/test-ci/e2e.ts run "$SUITE" "$GITHUB_WORKSPACE/$SOURCE_WORKSPACE" "$RUNNER_TEMP/test-images"
+    - name: Collect logs and clean up
+      if: always()
+      shell: bash
+      env:
+        SUITE: ${{ inputs.suite }}
+        SOURCE_WORKSPACE: ${{ inputs.source-workspace }}
+        TEST_WORKSPACE: ${{ inputs.test-workspace }}
+      run: |
+        set -euo pipefail
+        cd "$TEST_WORKSPACE"
+        bun src/tooling/test-ci/e2e.ts cleanup "$SUITE" "$GITHUB_WORKSPACE/$SOURCE_WORKSPACE" "$RUNNER_TEMP/test-images"
