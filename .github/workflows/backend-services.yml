@@ -208,6 +208,7 @@ jobs:
           tasks: prisma:generate test:e2e --filter=${{ matrix.service.package }}
       - uses: ./.github/actions/setup-warp-cache
         with:
+          cache-bun-downloads: 'false'
           aws-access-key-id: ${{ secrets.WARP_CACHE_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.WARP_CACHE_AWS_SECRET_ACCESS_KEY }}
           signature-key: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}

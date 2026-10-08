@@ -1,5 +1,13 @@
 import { expect, test } from 'bun:test';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+  symlinkSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { installKey } from './install-key';
@@ -71,10 +79,15 @@ test('captures and restores nested hoisted installs and workspace links', () => 
       });
       expect(result.exitCode).toBe(0);
     };
+    symlinkSync('../packages/a', join(workspace, 'node_modules/workspace-a'));
     execute('capture');
     rmSync(join(workspace, 'node_modules'), { recursive: true });
     rmSync(join(workspace, 'packages/a/node_modules'), { recursive: true });
     execute('restore');
+    expect(existsSync(join(temporary, 'test-install/node_modules'))).toBe(false);
+    expect(
+      readFileSync(join(workspace, 'node_modules/workspace-a/package.json'), 'utf8')
+    ).toBe('packages/a/package.json');
     expect(readFileSync(join(workspace, 'node_modules/normal/index.js'), 'utf8')).toBe(
       'node_modules/normal/index.js'
     );

@@ -1,7 +1,15 @@
 import { installKey } from './install-key';
 import { restoreNestedResolutions } from './lockfile';
 import { executableTargets, taskWorkspaceClosure } from './targets';
-import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import {
+  appendFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 let [command, ...tasks] = process.argv.slice(2);
@@ -142,6 +150,7 @@ if (command === 'prepare') {
     let target = join(command === 'capture' ? cache : workspace, path);
     if (!existsSync(source)) continue;
     mkdirSync(dirname(target), { recursive: true });
-    cpSync(source, target, { recursive: true, dereference: false });
+    if (command === 'restore') renameSync(source, target);
+    else cpSync(source, target, { recursive: true, dereference: false });
   }
 } else throw new Error(`Unknown test workspace command: ${command}`);
