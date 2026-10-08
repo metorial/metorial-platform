@@ -23,6 +23,7 @@ if (command === 'prepare') {
 
   rmSync(workspace, { recursive: true, force: true });
   cpSync('out/full', workspace, { recursive: true });
+  cpSync('out/json/bun.lock', join(workspace, 'bun.lock'));
   cpSync('.gitignore', join(workspace, '.gitignore'));
   cpSync(dirname(import.meta.path), join(workspace, tooling, 'test-ci'), { recursive: true });
   let manifestPath = join(workspace, 'package.json');
