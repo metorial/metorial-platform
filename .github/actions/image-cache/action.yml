@@ -9,6 +9,8 @@ inputs:
     default: ''
   workspace:
     default: .
+  descriptor-cache:
+    default: 'true'
   lookup:
     default: 'true'
   anonymous:
@@ -60,7 +62,7 @@ runs:
         if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
         bun "$tooling" "$dockerfile" "$BUILD_ARGUMENTS"
     - id: restore-metadata
-      if: steps.metadata.outputs.pruned == 'true'
+      if: steps.metadata.outputs.pruned == 'true' && inputs.descriptor-cache == 'true'
       uses: actions/cache/restore@v4
       with:
         path: ${{ steps.metadata.outputs.cache }}
@@ -86,7 +88,7 @@ runs:
         if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
         bun "$tooling" resolve "$dockerfile" "$IMAGE" "$CANONICAL" "$BUILD_ARGUMENTS"
     - name: Save build graph metadata
-      if: steps.metadata.outputs.pruned == 'true' && steps.restore-metadata.outputs.cache-hit != 'true' && inputs.publish == 'true'
+      if: steps.metadata.outputs.pruned == 'true' && inputs.descriptor-cache == 'true' && steps.restore-metadata.outputs.cache-hit != 'true' && inputs.publish == 'true'
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.metadata.outputs.cache }}
