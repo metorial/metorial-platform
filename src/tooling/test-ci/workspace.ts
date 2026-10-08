@@ -1,6 +1,6 @@
 import { installKey } from './install-key';
 import { restoreNestedResolutions } from './lockfile';
-import { executableTargets } from './targets';
+import { executableTargets, taskWorkspaceClosure } from './targets';
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
@@ -43,11 +43,18 @@ if (command === 'prepare') {
   );
   if (dry.exitCode) throw new Error(`Test target discovery failed: ${dry.exitCode}`);
   let names = tasks.filter(argument => !argument.startsWith('--'));
-  let targets = executableTargets({ names, tasks: JSON.parse(dry.stdout.toString()).tasks });
+  let graph = JSON.parse(dry.stdout.toString());
+  let targets = executableTargets({ names, tasks: graph.tasks });
   if (!targets.length) throw new Error('No executable test or prerequisite tasks selected');
   let selected = [...names, ...targets.map(name => `--filter=${name}`)];
   console.log(`Executable test targets: ${targets.length}`);
+  let graphPath = resolve(process.env.RUNNER_TEMP ?? '/tmp', 'test-prune-graph.json');
+  await Bun.write(
+    graphPath,
+    JSON.stringify(taskWorkspaceClosure({ names, targets, tasks: graph.tasks }))
+  );
   let result = Bun.spawnSync(['bun', `${tooling}/docker-build/prune.ts`, ...selected], {
+    env: { ...process.env, TEST_PRUNE_GRAPH: graphPath },
     stdout: 'inherit',
     stderr: 'inherit'
   });
