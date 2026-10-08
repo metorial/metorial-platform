@@ -165,11 +165,12 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
     join(directory, 'packages/library/package.json'),
     JSON.stringify({
       name: '@fixture/library',
-      scripts: { build: 'echo library' },
+      scripts: { build: 'echo library', postinstall: 'bun ./install.ts' },
       dependencies: { 'is-number': '7.0.0' }
     })
   );
   await Bun.write(join(directory, 'packages/library/src/index.ts'), 'export let library = 1;');
+  await Bun.write(join(directory, 'packages/library/install.ts'), 'console.log(1);');
   await Bun.write(
     join(directory, 'packages/tool/package.json'),
     JSON.stringify({ name: '@fixture/tool', scripts: { build: 'echo tool' } })
@@ -267,6 +268,16 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   await Bun.write(join(directory, 'packages/unrelated/src/index.ts'), 'changed');
   expect(resolveImage(directory).tag).toBe(original.tag);
   expect(key()).toBe(metadataKey);
+  await Bun.write(join(directory, '.github/workflows/fixture.yml'), 'name: unrelated');
+  Bun.spawnSync(['git', 'add', '.github/workflows/fixture.yml'], { cwd: directory });
+  expect(key()).toBe(metadataKey);
+  await Bun.write(join(directory, 'packages/library/install.ts'), 'console.log(2);');
+  expect(key()).toBe(metadataKey);
+  let lifecycleChanged = resolveImage(directory, '{}', warmEnvironment);
+  expect(lifecycleChanged.code, lifecycleChanged.error).toBe(0);
+  expect(lifecycleChanged.tag).not.toBe(original.tag);
+  expect(lifecycleChanged.text).toContain('no Turbo or source copying');
+  await Bun.write(join(directory, 'packages/library/install.ts'), 'console.log(1);');
   await Bun.write(
     join(directory, 'bun.lock'),
     (await Bun.file(join(directory, 'bun.lock')).text()).replaceAll(
@@ -346,6 +357,9 @@ test('Git identities cover modes, symlinks, staged additions and source deletion
   rmSync(join(directory, 'src/link'));
   symlinkSync('../unrelated/index.ts', join(directory, 'src/link'));
   expect(resolveImage(directory).tag).not.toBe(linked.tag);
+  rmSync(join(directory, 'src/link'));
+  symlinkSync('missing-target', join(directory, 'src/link'));
+  expect(resolveImage(directory).tag).not.toBe(original.tag);
   rmSync(join(directory, 'src/index.ts'));
   expect(resolveImage(directory).tag).not.toBe(original.tag);
 });

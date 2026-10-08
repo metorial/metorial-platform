@@ -15,8 +15,11 @@ let [command, dockerfileArgument, destination, canonical = '', buildArguments = 
 let outputFile = process.env.GITHUB_OUTPUT;
 let startedAt = Date.now();
 let phaseStartedAt = startedAt;
+let phaseTimings: { phase: string; seconds: string }[] = [];
 let reportPhase = (phase: string) => {
-  console.log(`Image cache ${phase}: ${((Date.now() - phaseStartedAt) / 1000).toFixed(1)}s`);
+  let seconds = ((Date.now() - phaseStartedAt) / 1000).toFixed(1);
+  phaseTimings.push({ phase, seconds });
+  console.log(`Image cache ${phase}: ${seconds}s`);
   phaseStartedAt = Date.now();
 };
 let run = (args: string[], env = process.env) => {
@@ -156,6 +159,8 @@ if (command === 'resolve') {
   let tasks = tasksRecipe.match(/^RUN bun \S*prune\.ts (.+)$/m)?.[1];
   let inputs = new Set<string>();
   let trackedInputs = gitInputs();
+  reportPhase('Git inventory');
+  let descriptorOrigin = 'not needed';
   let descriptor: InputDescriptor | undefined;
   let prepared = false;
   let cache =
@@ -185,7 +190,10 @@ if (command === 'resolve') {
     let descriptorFile = join(cache, 'descriptor.json');
     if (existsSync(descriptorFile)) {
       let stored = JSON.parse(readFileSync(descriptorFile, 'utf8'));
-      if (stored.key === key) descriptor = validateDescriptor(stored, key);
+      if (stored.key === key) {
+        descriptor = validateDescriptor(stored, key);
+        descriptorOrigin = 'local metadata cache';
+      }
     }
     let repositories = [...new Set([destination, canonical].filter(Boolean))];
     if (!descriptor && process.env.IMAGE_DESCRIPTOR_REGISTRY !== 'false') {
@@ -203,7 +211,8 @@ if (command === 'resolve') {
         descriptor = validateDescriptor(JSON.parse(payload), key);
         mkdirSync(cache, { recursive: true });
         await Bun.write(descriptorFile, JSON.stringify(descriptor));
-        console.log(`Input descriptor source: ${repository}@${found}`);
+        descriptorOrigin = `${repository}@${found}`;
+        console.log(`Input descriptor source: ${descriptorOrigin}`);
         break;
       }
     }
@@ -219,6 +228,7 @@ if (command === 'resolve') {
       descriptor = captureDescriptor(cache, key);
       await Bun.write(descriptorFile, JSON.stringify(descriptor));
       prepared = true;
+      descriptorOrigin = 'cold discovery';
       console.log('Input descriptor: discovered');
     } else console.log('Input descriptor: reused; no Turbo or source copying');
     reportPhase('descriptor discovery');
@@ -268,11 +278,10 @@ if (command === 'resolve') {
       let glob = new Bun.Glob(source);
       for (let file of tracked) {
         if (
-          (source === '.' ||
-            file === source ||
-            file.startsWith(source + '/') ||
-            glob.match(file)) &&
-          existsSync(file)
+          source === '.' ||
+          file === source ||
+          file.startsWith(source + '/') ||
+          glob.match(file)
         )
           inputs.add(file);
       }
@@ -299,7 +308,9 @@ if (command === 'resolve') {
     if (!input) throw new Error(`Build input is not tracked: ${file}`);
     records.set(`direct/${file}`, input);
   }
-  for (let [path, input] of [...records].sort(([left], [right]) => left.localeCompare(right)))
+  for (let [path, input] of [...records].sort(([left], [right]) =>
+    left < right ? -1 : left > right ? 1 : 0
+  ))
     hash.update(JSON.stringify([path, input.mode, input.oid]));
 
   reportPhase('input hashing');
@@ -340,7 +351,7 @@ if (command === 'resolve') {
   if (process.env.GITHUB_STEP_SUMMARY)
     appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
-      `### Image cache\n- Image: ${destination}\n- Fingerprint: ${tag}\n- Result: ${source || 'miss; build required'}\n- Resolve time: ${((Date.now() - startedAt) / 1000).toFixed(1)}s\n`
+      `### Image cache\n- Image: ${destination}\n- Fingerprint: ${tag}\n- Descriptor: ${descriptorOrigin}\n- Result: ${source || 'miss; build required'}\n- Resolve time: ${((Date.now() - startedAt) / 1000).toFixed(1)}s\n${phaseTimings.map(timing => `- ${timing.phase}: ${timing.seconds}s`).join('\n')}\n`
     );
 } else if (command === 'copy') {
   let sourceDigest = dockerfileArgument.split('@')[1] ?? (await digest(dockerfileArgument));

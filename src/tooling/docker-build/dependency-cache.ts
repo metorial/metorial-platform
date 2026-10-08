@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
 let [command, dockerfile, ...tasks] = process.argv.slice(2);
@@ -82,7 +82,7 @@ if (command === 'fingerprint') {
     })
   );
   for (let path of [...new Set([...inputs, dockerfile])].sort()) {
-    hash.update(path + '\0');
+    hash.update(JSON.stringify([path, lstatSync(path).mode & 0o777]));
     hash.update(readFileSync(path));
   }
   console.log(
