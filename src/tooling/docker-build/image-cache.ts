@@ -79,12 +79,14 @@ if (command === 'resolve') {
 
   if (tasks) {
     let tooling = existsSync('oss/package.json') ? 'oss/src/tooling/docker-build' : 'src/tooling/docker-build';
+    let pruningOutput = '';
     if (process.env.IMAGE_METADATA_CACHE_HIT === 'true') {
-      run(['bun', `${tooling}/dependency-cache.ts`, 'restore']);
+      pruningOutput = run(['bun', `${tooling}/dependency-cache.ts`, 'restore']);
     } else {
-      run(['bun', `${tooling}/prune.ts`, ...tasks.trim().split(/\s+/)]);
+      pruningOutput = run(['bun', `${tooling}/prune.ts`, ...tasks.trim().split(/\s+/)]);
       if (process.env.DOCKER_BUILD_CACHE_DIRECTORY) run(['bun', `${tooling}/dependency-cache.ts`, 'capture']);
     }
+    console.log(pruningOutput);
     inputs.add(`${tooling}/prune.ts`);
     for (let directory of ['out/json', 'out/full']) {
       for (let file of new Bun.Glob('**/*').scanSync({ cwd: directory, dot: true, onlyFiles: true })) inputs.add(join(directory, file));

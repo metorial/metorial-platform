@@ -7,17 +7,25 @@ let args = process.argv.slice(2);
 let enterprise = existsSync('oss/package.json');
 let toolingDirectory = enterprise ? 'oss/src/tooling' : 'src/tooling';
 let metadataEnvironment = { ...process.env };
+let pruningStartedAt = performance.now();
+let prunePass = 0;
+let reportTiming = (phase: string, startedAt: number) => {
+  console.log(`Prune timing ${phase}: ${((performance.now() - startedAt) / 1000).toFixed(3)}s`);
+};
 
 for (let name of ['TURBO_API', 'TURBO_TEAM', 'TURBO_TOKEN', 'TURBO_REMOTE_CACHE_SIGNATURE_KEY']) {
   delete metadataEnvironment[name];
 }
 
 let runTurbo = (args: string[], capture = false) => {
+  let startedAt = performance.now();
   let result = Bun.spawnSync(['bunx', `turbo@${turboVersion}`, '--skip-infer', ...args], {
     env: metadataEnvironment,
     stdout: capture ? 'pipe' : 'inherit',
     stderr: 'inherit'
   });
+
+  reportTiming(`turbo ${args[0]} (${args[0] === 'prune' ? `${args.length - 3} workspaces` : 'graph metadata'})`, startedAt);
 
   if (result.exitCode !== 0) throw new Error(`Turbo failed with exit code ${result.exitCode}`);
 
@@ -75,9 +83,14 @@ if (!packages.length) throw new Error('No build workspaces selected');
 let rootManifest = await Bun.file('package.json').json();
 
 while (true) {
+  prunePass++;
+  let cleanupStartedAt = performance.now();
   rmSync(outputDirectory, { recursive: true, force: true });
+  reportTiming(`pass ${prunePass} output cleanup`, cleanupStartedAt);
+  console.log(`Prune pass ${prunePass}: ${packages.length} selected workspaces`);
   runTurbo(['prune', ...packages, '--docker', `--out-dir=${outputDirectory}`]);
 
+  let overrideStartedAt = performance.now();
   let lockfile = readFileSync(join(outputDirectory, 'json', 'bun.lock'), 'utf8');
   let additionalPackages = new Set<string>();
 
@@ -92,6 +105,8 @@ while (true) {
     }
   }
 
+  reportTiming(`pass ${prunePass} override scan (${additionalPackages.size} additions)`, overrideStartedAt);
+
   if (!additionalPackages.size) break;
 
   packages = [...packages, ...additionalPackages].sort();
@@ -103,6 +118,8 @@ if (packages.some(name => !workspaceDirectories.has(name))) {
   };
   for (let workspace of workspaces.packages.items) workspaceDirectories.set(workspace.name, workspace.path);
 }
+
+let assetsStartedAt = performance.now();
 
 for (let directory of ['json', 'full']) {
   let target = join(outputDirectory, directory);
@@ -160,3 +177,6 @@ if (existsSync(join(outputDirectory, 'full', originService))) {
 
 console.log(`Pruned build closure: ${packages.length} task workspaces`);
 
+
+reportTiming('configuration and runtime assets', assetsStartedAt);
+reportTiming(`total (${prunePass} passes)`, pruningStartedAt);
