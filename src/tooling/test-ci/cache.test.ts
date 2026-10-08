@@ -18,6 +18,7 @@ test('Turbo reuses standalone results and invalidates dependencies, configuratio
   try {
     mkdirSync(join(workspace, 'packages/app'), { recursive: true });
     mkdirSync(join(workspace, 'packages/util'), { recursive: true });
+    mkdirSync(join(workspace, 'packages/db'), { recursive: true });
     writeFileSync(
       join(workspace, 'package.json'),
       JSON.stringify({
@@ -37,15 +38,27 @@ test('Turbo reuses standalone results and invalidates dependencies, configuratio
     );
     writeFileSync(
       join(workspace, 'packages/util/package.json'),
-      JSON.stringify({ name: 'util', version: '1.0.0' })
+      JSON.stringify({ name: 'util', version: '1.0.0', dependencies: { db: 'workspace:*' } })
+    );
+    writeFileSync(
+      join(workspace, 'packages/db/package.json'),
+      JSON.stringify({
+        name: 'db',
+        version: '1.0.0',
+        scripts: { 'prisma:generate': 'bun generate.ts' }
+      })
+    );
+    writeFileSync(
+      join(workspace, 'packages/db/generate.ts'),
+      "import { mkdirSync, writeFileSync } from 'node:fs'; mkdirSync('prisma/generated', { recursive: true }); writeFileSync('prisma/generated/client.txt', 'generated');"
     );
     writeFileSync(join(workspace, 'packages/util/source.ts'), 'export let value = 1;');
     writeFileSync(join(workspace, 'tsconfig.json'), '{}');
-    writeFileSync(join(workspace, '.gitignore'), 'node_modules/\n.turbo/\n');
+    writeFileSync(join(workspace, '.gitignore'), 'node_modules/\n.turbo/\ngenerated/\n');
     writeFileSync(join(workspace, 'packages/app/README.md'), 'docs');
     writeFileSync(
       join(workspace, 'packages/app/check.ts'),
-      "import { existsSync, readFileSync, writeFileSync } from 'node:fs'; let path = process.env.TEST_COUNTER!; writeFileSync(path, String((existsSync(path) ? Number(readFileSync(path, 'utf8')) : 0) + 1)); if (process.env.TEST_FAIL === 'true') process.exit(1);"
+      "import { existsSync, readFileSync, writeFileSync } from 'node:fs'; if (!existsSync('../db/prisma/generated/client.txt')) throw new Error('Transitive Prisma prerequisite missing'); let path = process.env.TEST_COUNTER!; writeFileSync(path, String((existsSync(path) ? Number(readFileSync(path, 'utf8')) : 0) + 1)); if (process.env.TEST_FAIL === 'true') process.exit(1);"
     );
     writeFileSync(
       join(workspace, 'turbo.json'),
@@ -85,7 +98,11 @@ test('Turbo reuses standalone results and invalidates dependencies, configuratio
       );
     expect(execute().exitCode).toBe(0);
     expect(count()).toBe(1);
+    rmSync(join(workspace, 'packages/db/prisma/generated'), { recursive: true });
     expect(execute().exitCode).toBe(0);
+    expect(
+      readFileSync(join(workspace, 'packages/db/prisma/generated/client.txt'), 'utf8')
+    ).toBe('generated');
     expect(count()).toBe(1);
     writeFileSync(join(workspace, 'packages/app/README.md'), 'changed documentation');
     expect(execute().exitCode).toBe(0);

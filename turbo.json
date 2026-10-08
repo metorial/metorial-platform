@@ -35,6 +35,7 @@
       "outputs": ["dist/**"]
     },
     "prisma:generate": {
+      "dependsOn": ["^prisma:generate"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "!Dockerfile",
