@@ -95,12 +95,13 @@ if (command === 'fingerprint') {
   cpSync('out/json', join(cacheDirectory, 'json'), { recursive: true });
   let fullFiles = [
     ...new Bun.Glob('**/*').scanSync({ cwd: 'out/full', onlyFiles: true, dot: true })
-  ];
+  ].sort();
   let directories = fullFiles
     .filter(
       path => path.endsWith('/package.json') && existsSync(join(cacheDirectory, 'json', path))
     )
-    .map(dirname);
+    .map(dirname)
+    .sort();
   let extras = fullFiles.filter(
     path => !directories.some(directory => path.startsWith(directory + '/'))
   );

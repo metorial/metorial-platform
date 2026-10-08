@@ -340,6 +340,10 @@ test('metadata restoration preserves deliberately partial runtime assets', async
     'export let included = true;'
   );
   expect(await Bun.file(join(directory, 'out/full/assets/unrelated.go')).exists()).toBe(false);
+  let blueprint = await Bun.file(join(cache, 'recipe.json')).json();
+  expect(blueprint.extras).toEqual([...blueprint.extras].sort());
+  expect(blueprint.directories).toEqual([...blueprint.directories].sort());
+  expect(blueprint.generated).toEqual([...blueprint.generated].sort());
 });
 
 test('Git identities cover modes, symlinks, staged additions and source deletions', async () => {
