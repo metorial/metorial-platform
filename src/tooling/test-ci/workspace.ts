@@ -1,4 +1,6 @@
 import { installKey } from './install-key';
+import { restoreNestedResolutions } from './lockfile';
+import { executableTargets } from './targets';
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
@@ -15,7 +17,29 @@ let output = (name: string, value: string) => {
 if (command === 'prepare') {
   let started = performance.now();
   let tooling = existsSync('oss/package.json') ? 'oss/src/tooling' : 'src/tooling';
-  let result = Bun.spawnSync(['bun', `${tooling}/docker-build/prune.ts`, ...tasks], {
+  let metadataEnvironment = { ...process.env };
+  for (let name of [
+    'TURBO_API',
+    'TURBO_TEAM',
+    'TURBO_TOKEN',
+    'TURBO_REMOTE_CACHE_SIGNATURE_KEY'
+  ])
+    delete metadataEnvironment[name];
+  let dry = Bun.spawnSync(
+    ['bunx', 'turbo@2.9.18', 'run', ...tasks, '--dry=json', '--cache=local:,remote:'],
+    {
+      env: metadataEnvironment,
+      stdout: 'pipe',
+      stderr: 'inherit'
+    }
+  );
+  if (dry.exitCode) throw new Error(`Test target discovery failed: ${dry.exitCode}`);
+  let names = tasks.filter(argument => !argument.startsWith('--'));
+  let targets = executableTargets({ names, tasks: JSON.parse(dry.stdout.toString()).tasks });
+  if (!targets.length) throw new Error('No executable test or prerequisite tasks selected');
+  let selected = [...names, ...targets.map(name => `--filter=${name}`)];
+  console.log(`Executable test targets: ${targets.length}`);
+  let result = Bun.spawnSync(['bun', `${tooling}/docker-build/prune.ts`, ...selected], {
     stdout: 'inherit',
     stderr: 'inherit'
   });
@@ -23,14 +47,42 @@ if (command === 'prepare') {
 
   rmSync(workspace, { recursive: true, force: true });
   cpSync('out/full', workspace, { recursive: true });
-  cpSync('out/json/bun.lock', join(workspace, 'bun.lock'));
+  await Bun.write(
+    join(workspace, 'bun.lock'),
+    JSON.stringify(
+      restoreNestedResolutions(
+        Bun.JSONC.parse(readFileSync('bun.lock', 'utf8')),
+        Bun.JSONC.parse(readFileSync('out/json/bun.lock', 'utf8'))
+      ),
+      null,
+      2
+    ) + '\n'
+  );
   cpSync('.gitignore', join(workspace, '.gitignore'));
   cpSync(dirname(import.meta.path), join(workspace, tooling, 'test-ci'), { recursive: true });
+  await Bun.write(join(workspace, '.test-command.json'), JSON.stringify(selected));
   let manifestPath = join(workspace, 'package.json');
   let manifest = await Bun.file(manifestPath).json();
   for (let name of ['preinstall', 'postinstall', 'cleanup-oss'])
     delete manifest.scripts?.[name];
   await Bun.write(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+
+  let configuration = await Bun.file(join(workspace, 'turbo.json')).json();
+  let sharedInputs = new Set<string>(
+    Object.values(configuration.tasks).flatMap((task: any) =>
+      (task.inputs ?? []).filter(
+        (input: unknown) => typeof input === 'string' && input.startsWith('$TURBO_ROOT$/')
+      )
+    )
+  );
+  for (let pattern of sharedInputs) {
+    for (let path of new Bun.Glob(pattern.slice('$TURBO_ROOT$/'.length)).scanSync({
+      onlyFiles: true
+    })) {
+      mkdirSync(join(workspace, dirname(path)), { recursive: true });
+      cpSync(path, join(workspace, path));
+    }
+  }
 
   let files = [
     ...new Bun.Glob('**/*').scanSync({ cwd: workspace, dot: true, onlyFiles: true })

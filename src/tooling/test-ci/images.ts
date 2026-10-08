@@ -15,6 +15,7 @@ export let prepareCompose = (d: {
 }) => {
   let config = structuredClone(d.config);
   let applications: string[] = [];
+  config['x-ci-hosts'] = {};
 
   for (let [name, service] of Object.entries(config.services) as [string, any][]) {
     if (
@@ -23,6 +24,12 @@ export let prepareCompose = (d: {
     ) {
       delete config.services[name];
       continue;
+    }
+    config['x-ci-hosts'][name] = name;
+    if (service.container_name) config['x-ci-hosts'][service.container_name] = name;
+    for (let mapping of service.ports ?? []) {
+      mapping.published = '0';
+      mapping.host_ip = '127.0.0.1';
     }
     delete service.profiles;
     delete service.container_name;

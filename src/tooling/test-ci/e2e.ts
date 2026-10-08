@@ -60,6 +60,19 @@ if (command === 'prepare') {
       join(sourceWorkspace, directory)
     )
   );
+  let ciEnvironment = Object.fromEntries(
+    readFileSync(join(sourceWorkspace, directory, '.env.ci'), 'utf8')
+      .split('\n')
+      .filter(line => /^[A-Z][A-Z0-9_]*=/.test(line))
+      .map(line => {
+        let separator = line.indexOf('=');
+        return [line.slice(0, separator), line.slice(separator + 1)];
+      })
+  );
+  config.services[suite].environment = {
+    ...ciEnvironment,
+    ...config.services[suite].environment
+  };
   let prepared = prepareCompose({
     config,
     suite,
@@ -77,31 +90,52 @@ if (command === 'prepare') {
 } else if (command === 'run') {
   let config = await Bun.file(composePath).json();
   let applications = (await Bun.file(join(stack, 'applications.json')).json()) as string[];
+  compose('pull');
+  let infrastructure = Object.keys(config.services).filter(
+    name => !applications.includes(name)
+  );
+  compose('up', '-d', '--no-build', '--wait', '--wait-timeout', '120', ...infrastructure);
+  let refreshPorts = (names: string[]) => {
+    for (let name of names) {
+      for (let mapping of config.services[name].ports ?? []) {
+        mapping.published = compose('port', name, String(mapping.target))
+          .trim()
+          .split(':')
+          .at(-1);
+      }
+    }
+  };
+  refreshPorts(infrastructure);
   let hostUrl = (value: string) =>
     value.replace(
       /(\w+:\/\/)([^/@]+@)?([a-z-]+):(\d+)/g,
       (original, scheme, auth, host, port) => {
-        let target = config.services[host]?.ports?.find(
+        let name = config['x-ci-hosts'][host] ?? host;
+        let target = config.services[name]?.ports?.find(
           (mapping: any) => Number(mapping.target) === Number(port)
         );
         return target ? `${scheme}${auth ?? ''}127.0.0.1:${target.published}` : original;
       }
     );
-  let environment = Object.fromEntries(
-    readFileSync(join(sourceWorkspace, directory, '.env.ci'), 'utf8')
-      .split('\n')
-      .filter(line => /^[A-Z][A-Z0-9_]*=/.test(line))
-      .map(line => {
-        let separator = line.indexOf('=');
-        return [line.slice(0, separator), hostUrl(line.slice(separator + 1))];
-      })
-  ) as Record<string, string>;
-  if (suite === 'relay') {
-    let url = new URL(environment.DATABASE_URL);
-    url.pathname = '/padd_relay_test';
-    environment.DATABASE_URL = url.toString();
-    environment.PADD_RELAY_TEST_DATABASE_URL = url.toString();
-  }
+  let testEnvironment = () => {
+    let environment = Object.fromEntries(
+      readFileSync(join(sourceWorkspace, directory, '.env.ci'), 'utf8')
+        .split('\n')
+        .filter(line => /^[A-Z][A-Z0-9_]*=/.test(line))
+        .map(line => {
+          let separator = line.indexOf('=');
+          return [line.slice(0, separator), hostUrl(line.slice(separator + 1))];
+        })
+    ) as Record<string, string>;
+    if (suite === 'relay') {
+      let url = new URL(environment.DATABASE_URL);
+      url.pathname = '/padd_relay_test';
+      environment.DATABASE_URL = url.toString();
+      environment.PADD_RELAY_TEST_DATABASE_URL = url.toString();
+    }
+    return environment;
+  };
+  let environment = testEnvironment();
   let databases = new Set<string>();
   for (let name of applications) {
     for (let key of ['DATABASE_URL', 'SEARCH_DATABASE_URL']) {
@@ -110,11 +144,6 @@ if (command === 'prepare') {
     }
   }
   databases.add(new URL(environment.DATABASE_URL).pathname.slice(1));
-  compose('pull');
-  let infrastructure = Object.keys(config.services).filter(
-    name => !applications.includes(name)
-  );
-  compose('up', '-d', '--no-build', '--wait', '--wait-timeout', '120', ...infrastructure);
   let postgres = config.services.postgres.environment;
   for (let database of databases) {
     if (!/^[a-z0-9_-]+$/.test(database)) throw new Error(`Invalid CI database: ${database}`);
@@ -135,6 +164,8 @@ if (command === 'prepare') {
   }
   run(['bun', 'prisma', 'db', 'push', '--accept-data-loss'], directory, environment);
   compose('up', '-d', '--no-build', '--wait', '--wait-timeout', '240');
+  refreshPorts(applications);
+  environment = testEnvironment();
   for (let name of applications) {
     let service = config.services[name];
     let container = compose('ps', '-q', name).trim();

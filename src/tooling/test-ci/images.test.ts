@@ -49,6 +49,11 @@ describe('image-only E2E Compose', () => {
       expect(config.services.forge[field]).toBeUndefined();
     }
     expect(config.services.admin).toBeUndefined();
+    expect(config.services.forge.ports[0]).toMatchObject({
+      published: '0',
+      host_ip: '127.0.0.1'
+    });
+    expect(config['x-ci-hosts']['forge-service']).toBe('forge');
     expect(config.services.postgres.volumes).toEqual(['data:/data']);
     expect(new URL(config.services.forge.environment.DATABASE_URL).pathname).toBe(
       '/forge-test-runtime'

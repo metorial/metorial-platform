@@ -36,7 +36,7 @@ jobs:
 
       - name: Test packages and services
         working-directory: ${{ steps.tests.outputs.workspace }}
-        run: bunx turbo@2.9.18 run test --concurrency=2 --ui=stream --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
+        run: bun src/tooling/test-ci/run.ts --concurrency=2 --ui=stream
 
       - name: Test CI tooling
         working-directory: ${{ steps.tests.outputs.workspace }}
