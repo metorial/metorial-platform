@@ -38,6 +38,20 @@ const post = await client.createPost({
 console.log(post.id);
 ```
 
+## Timeouts, retries, and reporting
+
+Client defaults and per-call options accept `timeoutMs`, `retry`, and `captureErrors`.
+`retry: false` makes one attempt. `captureErrors: false` lets a caller with a fallback
+own error reporting; it still receives the same sanitized `ServiceError`.
+
+`getRpcRequestDiagnostics(error)` returns process-local diagnostic information for a
+transport or invalid-response failure: the original diagnostic error, endpoint, method,
+configured timeout, elapsed time, and attempt count. These details are held in a
+`WeakMap` and are not included when the error is serialized over RPC.
+
+The client propagates active Sentry trace headers, including when OpenTelemetry is
+disabled, and preserves trace headers explicitly supplied by the caller.
+
 ## License
 
 This project is licensed under the Apache License 2.0.

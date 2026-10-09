@@ -81,6 +81,35 @@ describe('lock pooling and acquisition', () => {
     expect(mocks.redisInstances).toHaveLength(1);
   });
 
+  it('bounds an in-flight Redis acquisition and releases a lease arriving after the deadline', async () => {
+    vi.useFakeTimers();
+    let resolveAcquisition!: (lease: any) => void;
+    mocks.acquire.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveAcquisition = resolve;
+        })
+    );
+    let lock = createLock({ name: 'deadline', redisUrl: 'redis://localhost:6379/0' });
+    let run = vi.fn();
+    let result = lock
+      .usingLock('resource', run, { acquisitionTimeoutMs: 100 })
+      .catch(error => error);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(await result).toBeInstanceOf(LockAcquisitionError);
+    expect(((await result) as LockAcquisitionError).detail).toMatchObject({
+      name: 'deadline',
+      attempts: 1,
+      elapsedMs: 100
+    });
+    expect(run).not.toHaveBeenCalled();
+    let lease = createFakeLease(10000);
+    resolveAcquisition(lease);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(lease.release).toHaveBeenCalledOnce();
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it('uses fresh acquisition attempts so waiting does not consume the lease', async () => {
     vi.useFakeTimers();
     mocks.acquire

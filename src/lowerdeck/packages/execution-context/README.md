@@ -47,6 +47,14 @@ const childContext = createExecutionContext({
 console.log(childContext.contextId); // Auto-generated ID
 ```
 
+## Providing a context
+
+`provideExecutionContext(context, callback)` runs the callback and its after hooks in
+separate Sentry scopes. Concurrent requests and jobs cannot replace each other's
+execution-context metadata, and nested work restores its parent's scope when it finishes.
+Standalone scheduled and queue work starts a fresh trace. Work with an explicit parent
+or incoming trace parent continues that trace.
+
 ## License
 
 This project is licensed under the Apache License 2.0.

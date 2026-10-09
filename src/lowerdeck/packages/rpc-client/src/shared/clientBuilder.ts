@@ -1,4 +1,5 @@
 import { proxy } from '@lowerdeck/proxy';
+import { getSentry } from '@lowerdeck/sentry';
 import type { Ed25519SignatureCredentials } from '@lowerdeck/rpc-signature';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import type { Requester } from './requester';
@@ -16,6 +17,8 @@ export interface ClientOpts {
   disableBatching?: boolean;
   useDirectMethodRoute?: boolean;
   timeoutMs?: number;
+  captureErrors?: boolean;
+  retry?: boolean;
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
   getSignatureToken?: () => Promise<SignatureTokenResult> | SignatureTokenResult;
@@ -36,6 +39,8 @@ export interface ClientRequestOpts {
   query?: Record<string, string | undefined>;
   disableBatching?: boolean;
   timeoutMs?: number;
+  captureErrors?: boolean;
+  retry?: boolean;
   signal?: AbortSignal;
 }
 
@@ -47,13 +52,11 @@ let isTelemetryEnabled = () =>
 let hasActiveSpan = () => !!trace.getSpan(otelContext.active());
 
 let injectTraceHeaders = (headers: Record<string, string | undefined>) => {
-  if (!isTelemetryEnabled()) return headers;
-  if (!hasActiveSpan()) return headers;
-
-  let carrier: Record<string, string> = {};
+  let carrier: Record<string, string> = { ...getSentry().getTraceData?.() };
 
   try {
-    propagation.inject(otelContext.active(), carrier);
+    if (isTelemetryEnabled() && hasActiveSpan())
+      propagation.inject(otelContext.active(), carrier);
   } catch {
     return headers;
   }
@@ -83,6 +86,8 @@ export let clientBuilder =
             let disableBatching = requestOpts?.disableBatching ?? clientOpts.disableBatching;
             let useDirectMethodRoute = clientOpts.useDirectMethodRoute ?? false;
             let timeoutMs = requestOpts?.timeoutMs ?? clientOpts.timeoutMs;
+            let captureErrors = requestOpts?.captureErrors ?? clientOpts.captureErrors;
+            let retry = requestOpts?.retry ?? clientOpts.retry;
             let signal = requestOpts?.signal;
             let signature = clientOpts.getSignatureCredentials
               ? await clientOpts.getSignatureCredentials()
@@ -122,6 +127,8 @@ export let clientBuilder =
                 disableBatching,
                 useDirectMethodRoute,
                 timeoutMs,
+                captureErrors,
+                retry,
                 signal,
                 context
               });
@@ -142,6 +149,8 @@ export let clientBuilder =
                 disableBatching,
                 useDirectMethodRoute,
                 timeoutMs,
+                captureErrors,
+                retry,
                 signal,
                 context
               })

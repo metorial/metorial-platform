@@ -3,11 +3,15 @@ import { rpcSignatureHeader, verifyRpcSignature } from '@lowerdeck/rpc-signature
 import { serialize } from '@lowerdeck/serialize';
 
 let mocks = vi.hoisted(() => ({
-  captureException: vi.fn()
+  captureException: vi.fn(),
+  getTraceData: vi.fn()
 }));
 
 vi.mock('@lowerdeck/sentry', () => ({
-  getSentry: () => ({ captureException: mocks.captureException })
+  getSentry: () => ({
+    captureException: mocks.captureException,
+    getTraceData: mocks.getTraceData
+  })
 }));
 
 let originalWindow = (globalThis as any).window;
@@ -42,6 +46,7 @@ describe('request', () => {
   beforeEach(() => {
     delete (globalThis as any).window;
     mocks.captureException.mockReset();
+    mocks.getTraceData.mockReset();
   });
 
   afterEach(() => {
@@ -350,7 +355,7 @@ describe('request', () => {
       }),
       expect.objectContaining({
         tags: { rpcMethod: 'health:check' },
-        extra: { endpoint: 'http://localhost/rpc' }
+        extra: expect.objectContaining({ endpoint: 'http://localhost/rpc' })
       })
     );
   });
@@ -694,6 +699,69 @@ describe('request', () => {
     expect(observedSignals[0]).toBeInstanceOf(AbortSignal);
   });
 
+  test('allows the caller to own error reporting and preserves private diagnostics', async () => {
+    let fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('connection refused'));
+    // @ts-ignore Test-only cache buster.
+    let module = await import('./request?test=caller-reporting');
+    let error = await module
+      .request({
+        endpoint: 'http://localhost/rpc',
+        name: 'test:call',
+        payload: {},
+        headers: {},
+        context: {},
+        captureErrors: false,
+        retry: false
+      })
+      .catch((error: unknown) => error);
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(mocks.captureException).not.toHaveBeenCalled();
+    expect(module.getRpcRequestDiagnostics(error)).toMatchObject({
+      endpoint: 'http://localhost/rpc',
+      rpcMethod: 'test:call',
+      attempts: 1
+    });
+    expect(JSON.stringify(error)).not.toContain('connection refused');
+    expect(JSON.stringify(error)).not.toContain('http://localhost/rpc');
+  });
+
+  test('reports an aborted fetch as a timeout rather than a connection failure', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (_input, init) =>
+        await new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError'))
+          );
+        })
+    );
+    let request = await importRequest('timeout-diagnostic');
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'test:call',
+        payload: {},
+        headers: {},
+        context: {},
+        timeoutMs: 10
+      })
+    ).rejects.toMatchObject({ data: { status: 504 } });
+    expect(mocks.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'RpcTimeoutError',
+        message: 'Request timed out: test:call on http://localhost/rpc'
+      }),
+      expect.objectContaining({
+        extra: expect.objectContaining({
+          timeoutMs: 10,
+          attempts: 1,
+          elapsedMs: expect.any(Number)
+        })
+      })
+    );
+  });
+
   test('stops retrying once the deadline passes instead of burning every try', async () => {
     let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
       throw new Error('connection refused');
@@ -709,7 +777,7 @@ describe('request', () => {
       useDirectMethodRoute: true,
       timeoutMs: 45,
       context: {}
-    }).catch(error => error);
+    }).catch((error: unknown) => error);
 
     expect(clientError).toMatchObject({
       data: { status: 500, message: 'An internal server error occurred.' }
@@ -822,6 +890,31 @@ describe('request', () => {
     expect((observedSignal as AbortSignal | null)?.aborted).toBe(false);
   });
 
+  test('propagates the active Sentry trace even when OpenTelemetry is disabled', async () => {
+    mocks.getTraceData.mockReturnValue({
+      'sentry-trace': 'trace-one',
+      baggage: 'sentry-trace_id=trace-one'
+    });
+    let requestSpy = vi.fn(async () => ({ data: true, status: 200, headers: {} }));
+    let createClient = (await importClientBuilder('sentry-headers'))(requestSpy);
+    let client = createClient<any>({ endpoint: 'http://localhost/rpc' });
+    await client.test.call({});
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'sentry-trace': 'trace-one',
+          baggage: 'sentry-trace_id=trace-one'
+        })
+      })
+    );
+    await client.test.call({}, { headers: { 'sentry-trace': 'explicit-trace' } });
+    expect(requestSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'sentry-trace': 'explicit-trace' })
+      })
+    );
+  });
+
   test('threads client and per-call timeouts through to the requester', async () => {
     let requestSpy = vi.fn(async call => ({
       data: { timeoutMs: call.timeoutMs ?? null },
@@ -835,7 +928,12 @@ describe('request', () => {
       test: {
         call: (
           input: { value: string },
-          opts?: { timeoutMs?: number; signal?: AbortSignal }
+          opts?: {
+            timeoutMs?: number;
+            signal?: AbortSignal;
+            captureErrors?: boolean;
+            retry?: boolean;
+          }
         ) => Promise<{ timeoutMs: number | null }>;
       };
     }>({
@@ -851,9 +949,14 @@ describe('request', () => {
     );
 
     let signal = new AbortController().signal;
-    await client.test.call({ value: 'signal' }, { signal });
+    await client.test.call(
+      { value: 'signal' },
+      { signal, captureErrors: false, retry: false }
+    );
 
-    expect(requestSpy).toHaveBeenLastCalledWith(expect.objectContaining({ signal }));
+    expect(requestSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ signal, captureErrors: false, retry: false })
+    );
   });
 
   test('forwards referrerPolicy to fetch', async () => {

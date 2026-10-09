@@ -294,67 +294,64 @@ export let createBullMqQueue = <JobData>(
           anyQueueStartedRef.started = true;
 
           let runJob = async (job: Job<JobData>) => {
-            try {
-              let data = job.data as any;
+            let data = job.data as any;
+            let parentExecutionContext = (data as any)
+              .$$execution_context$$ as ExecutionContext;
+            while (
+              parentExecutionContext &&
+              parentExecutionContext.type == 'job' &&
+              parentExecutionContext.parent
+            )
+              parentExecutionContext = parentExecutionContext.parent;
 
-              let payload: any;
+            let jobExecutionContext = createExecutionContext({
+              type: 'job',
+              contextId: job.id ?? generateSnowflakeId(),
+              queue: opts.name,
+              parent: parentExecutionContext
+            });
 
+            return await provideExecutionContext(jobExecutionContext, async () => {
               try {
-                payload = SuperJson.deserialize(data.payload);
+                let payload: any;
+
+                try {
+                  payload = SuperJson.deserialize(data.payload);
+                } catch (e: any) {
+                  payload = data.payload;
+                }
+
+                await withQueueSpan(
+                  {
+                    name: `queue process: ${opts.name}`,
+                    kind: SpanKind.CONSUMER,
+                    queueName: opts.name,
+                    operation: 'process',
+                    createSpan: true,
+                    attributes: {
+                      'messaging.message.id': job.id ? String(job.id) : undefined,
+                      'messaging.message.retry.count': job.attemptsMade
+                    }
+                  },
+                  async () => await cb(payload as any, job)
+                );
               } catch (e: any) {
-                payload = data.payload;
+                if (e instanceof QueueRetryError) {
+                  await delay(1000);
+                  throw e;
+                } else if (
+                  isPostgresDeadlockError(e) &&
+                  job.attemptsMade + 1 < (job.opts.attempts ?? opts.jobOpts?.attempts ?? 25)
+                ) {
+                  await delay(1000 + Math.random() * 5000);
+                  throw e;
+                } else {
+                  Sentry.captureException(e);
+                  console.error(e);
+                  throw e;
+                }
               }
-
-              let parentExecutionContext = (data as any)
-                .$$execution_context$$ as ExecutionContext;
-              while (
-                parentExecutionContext &&
-                parentExecutionContext.type == 'job' &&
-                parentExecutionContext.parent
-              )
-                parentExecutionContext = parentExecutionContext.parent;
-
-              let jobExecutionContext = createExecutionContext({
-                type: 'job',
-                contextId: job.id ?? generateSnowflakeId(),
-                queue: opts.name,
-                parent: parentExecutionContext
-              });
-
-              await provideExecutionContext(
-                jobExecutionContext,
-                async () =>
-                  await withQueueSpan(
-                    {
-                      name: `queue process: ${opts.name}`,
-                      kind: SpanKind.CONSUMER,
-                      queueName: opts.name,
-                      operation: 'process',
-                      createSpan: true,
-                      attributes: {
-                        'messaging.message.id': job.id ? String(job.id) : undefined,
-                        'messaging.message.retry.count': job.attemptsMade
-                      }
-                    },
-                    async () => await cb(payload as any, job)
-                  )
-              );
-            } catch (e: any) {
-              if (e instanceof QueueRetryError) {
-                await delay(1000);
-                throw e;
-              } else if (
-                isPostgresDeadlockError(e) &&
-                job.attemptsMade + 1 < (job.opts.attempts ?? opts.jobOpts?.attempts ?? 25)
-              ) {
-                await delay(1000 + Math.random() * 5000);
-                throw e;
-              } else {
-                Sentry.captureException(e);
-                console.error(e);
-                throw e;
-              }
-            }
+            });
           };
 
           let worker = new Worker<JobData>(

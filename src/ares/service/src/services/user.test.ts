@@ -2,8 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db, auditLogService, markAresUserChanged, userEvents } = vi.hoisted(() => ({
   db: {
-    user: { findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
-    userEmail: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    user: {
+      findFirst: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
+      create: vi.fn(),
+      updateMany: vi.fn()
+    },
+    userEmail: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn()
+    },
     $queryRaw: vi.fn(),
     userTermsAgreement: { upsert: vi.fn() },
     accountDomain: { findUnique: vi.fn() },
@@ -204,7 +215,7 @@ describe('userService.createUser', () => {
     expect(db.userEmail.create).toHaveBeenCalledOnce();
   });
 
-  it('stores the signup method without creating an email identity for SSO signup', async () => {
+  it('creates a verified primary email before publishing an SSO user', async () => {
     db.user.create.mockResolvedValue({ ...existingUser, id: 'usr_new' });
 
     await userService.createUser({ ...input, signupMethod: 'sso' });
@@ -212,7 +223,12 @@ describe('userService.createUser', () => {
     expect(db.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ signupMethod: 'sso' })
     });
-    expect(db.userEmail.create).not.toHaveBeenCalled();
+    expect(db.userEmail.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ isPrimary: true, verifiedAt: expect.any(Date) })
+    });
+    expect(db.userEmail.create.mock.invocationCallOrder[0]).toBeLessThan(
+      markAresUserChanged.mock.invocationCallOrder[0]!
+    );
   });
 
   it('reports a duplicate email as a 409', async () => {
@@ -228,7 +244,6 @@ describe('userService.createUser', () => {
     });
   });
 });
-
 
 describe('userService.setEmails', () => {
   beforeEach(() => {
@@ -251,7 +266,7 @@ describe('userService.setEmails', () => {
 
     expect(db.userEmail.create).toHaveBeenCalledOnce();
     expect(results).toHaveLength(1);
-    expect(results[0].email).toBe(email.email);
+    expect(results[0]!.email).toBe(email.email);
     expect(db.$queryRaw).toHaveBeenCalledOnce();
     expect(db.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
       db.userEmail.findMany.mock.invocationCallOrder[0]!
@@ -281,9 +296,11 @@ describe('userService.setEmails', () => {
   });
 
   it('reports a concurrent claim by another account as an email conflict', async () => {
-    db.userEmail.create.mockRejectedValue(Object.assign(uniqueConstraintError(), {
-      meta: { target: ['email', 'appOid'] }
-    }));
+    db.userEmail.create.mockRejectedValue(
+      Object.assign(uniqueConstraintError(), {
+        meta: { target: ['email', 'appOid'] }
+      })
+    );
 
     await expect(userService.setEmails({ user, emails: [email] })).rejects.toBeInstanceOf(
       EmailInUseError
@@ -298,7 +315,6 @@ describe('userService.setEmails', () => {
   });
 });
 
-
 describe('userService.createEmail', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -310,7 +326,12 @@ describe('userService.createEmail', () => {
   it('locks the user before checking email ownership', async () => {
     db.userEmail.create.mockResolvedValue({ oid: 4n });
 
-    await userService.createEmail({ user: existingUser as any, app, context, email: input.email });
+    await userService.createEmail({
+      user: existingUser as any,
+      app,
+      context,
+      email: input.email
+    });
 
     expect(db.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
       db.userEmail.findFirst.mock.invocationCallOrder[0]!
@@ -318,12 +339,118 @@ describe('userService.createEmail', () => {
   });
 
   it('reports an email claimed after the lookup as a conflict', async () => {
-    db.userEmail.create.mockRejectedValue(Object.assign(uniqueConstraintError(), {
-      meta: { target: ['email', 'appOid'] }
-    }));
+    db.userEmail.create.mockRejectedValue(
+      Object.assign(uniqueConstraintError(), {
+        meta: { target: ['email', 'appOid'] }
+      })
+    );
 
-    await expect(userService.createEmail({
-      user: existingUser as any, app, context, email: input.email
-    })).rejects.toBeInstanceOf(EmailInUseError);
+    await expect(
+      userService.createEmail({
+        user: existingUser as any,
+        app,
+        context,
+        email: input.email
+      })
+    ).rejects.toBeInstanceOf(EmailInUseError);
+  });
+});
+
+describe('SSO sync snapshot repair', () => {
+  let storedUser: any;
+  let storedEmails: any[];
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    storedUser = {
+      ...existingUser,
+      signupMethod: 'sso',
+      status: 'active',
+      type: 'user',
+      syncRevision: 2n
+    };
+    storedEmails = [];
+    db.user.findUniqueOrThrow.mockImplementation(async ({ include }) =>
+      include
+        ? {
+            ...storedUser,
+            userEmails: storedEmails,
+            userIdentities: [],
+            userTermsAgreements: []
+          }
+        : storedUser
+    );
+    db.userEmail.findMany.mockImplementation(async () => storedEmails);
+    db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
+    db.userEmail.create.mockImplementation(async ({ data }) => {
+      let email = { ...data, domain: { domain: 'a.herber.space' }, id: 'ume_1' };
+      storedEmails.push(email);
+      return email;
+    });
+    markAresUserChanged.mockImplementation(async () => {
+      storedUser.syncRevision += 1n;
+    });
+  });
+
+  it('repairs an older SSO user atomically and returns the new revision', async () => {
+    let snapshot = await userService.getSyncSnapshot({ user: storedUser });
+    expect(snapshot.revision).toBe('3');
+    expect(snapshot.emails).toEqual([
+      expect.objectContaining({
+        email: storedUser.email,
+        isPrimary: true,
+        verifiedAt: expect.any(Date)
+      })
+    ]);
+    expect(db.$queryRaw).toHaveBeenCalledOnce();
+    expect(markAresUserChanged).toHaveBeenCalledOnce();
+    await userService.getSyncSnapshot({ user: storedUser });
+    expect(db.userEmail.create).toHaveBeenCalledOnce();
+    expect(markAresUserChanged).toHaveBeenCalledOnce();
+  });
+
+  it('uses the latest locked user when an email changed during the repair', async () => {
+    let stale = { ...storedUser };
+    db.user.findUniqueOrThrow.mockImplementation(async ({ include }) =>
+      include
+        ? { ...stale, userEmails: storedEmails, userIdentities: [], userTermsAgreements: [] }
+        : { ...storedUser, email: 'new@a.herber.space' }
+    );
+    await userService.getSyncSnapshot({ user: stale });
+    expect(db.userEmail.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        email: 'new@a.herber.space',
+        verifiedAt: expect.any(Date)
+      })
+    });
+  });
+
+  it('preserves email rows another writer already repaired', async () => {
+    db.userEmail.findMany.mockResolvedValue([{ isPrimary: true }]);
+    await userService.getSyncSnapshot({ user: storedUser });
+    expect(db.userEmail.create).not.toHaveBeenCalled();
+    expect(markAresUserChanged).not.toHaveBeenCalled();
+  });
+
+  it.each(['email', 'oauth'])(
+    'does not repair a non-SSO user with signup method %s',
+    async signupMethod => {
+      storedUser.signupMethod = signupMethod;
+      await userService.getSyncSnapshot({ user: storedUser });
+      expect(db.userEmail.create).not.toHaveBeenCalled();
+      expect(db.$queryRaw).not.toHaveBeenCalled();
+    }
+  );
+
+  it('keeps the empty-email snapshot allowed for system users', async () => {
+    storedUser.type = 'system';
+    await userService.getSyncSnapshot({ user: storedUser });
+    expect(db.userEmail.create).not.toHaveBeenCalled();
+  });
+
+  it('does not recreate emails for a deleted SSO user', async () => {
+    storedUser.status = 'deleted';
+    await userService.getSyncSnapshot({ user: storedUser });
+    expect(db.userEmail.create).not.toHaveBeenCalled();
   });
 });

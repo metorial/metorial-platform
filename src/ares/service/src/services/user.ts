@@ -31,23 +31,75 @@ export class EmailInUseError extends ServiceError<ReturnType<typeof conflictErro
 let isUniqueConstraintError = (e: any) => e?.code === 'P2002';
 
 class UserServiceImpl {
-  async getSyncSnapshot(d: { user: User }) {
-    let user = await db.user.findUniqueOrThrow({
-      where: { oid: d.user.oid },
-      include: {
-        userEmails: { include: { domain: true }, orderBy: { id: 'asc' } },
-        userIdentities: {
-          include: {
-            provider: { include: { oauthProvider: true, ssoTenant: true } }
-          },
-          orderBy: { id: 'asc' }
-        },
-        userTermsAgreements: {
-          include: { type: true },
-          orderBy: { id: 'asc' }
+  private async ensureSsoPrimaryEmail(d: { user: User }) {
+    if (d.user.signupMethod !== 'sso' || d.user.status !== 'active' || d.user.type !== 'user')
+      return;
+
+    await withTransaction(async tdb => {
+      await tdb.$queryRaw`
+        SELECT "oid" FROM "User" WHERE "oid" = ${d.user.oid} FOR UPDATE
+      `;
+
+      let user = await tdb.user.findUniqueOrThrow({ where: { oid: d.user.oid } });
+      if (user.signupMethod !== 'sso' || user.status !== 'active' || user.type !== 'user')
+        return;
+
+      let emails = await tdb.userEmail.findMany({ where: { userOid: user.oid } });
+      if (emails.length) return;
+
+      let parsed = parseEmail(user.email);
+      let domain = await tdb.emailDomain.upsert({
+        where: { domain: parsed.domain },
+        create: { ...getId('emailDomain'), appOid: user.appOid, domain: parsed.domain },
+        update: {}
+      });
+
+      await tdb.userEmail.create({
+        data: {
+          ...getId('userEmail'),
+          appOid: user.appOid,
+          userOid: user.oid,
+          domainOid: domain.oid,
+          email: parsed.email,
+          normalizedEmail: parsed.normalizedEmail,
+          isPrimary: true,
+          verifiedAt: new Date()
         }
-      }
+      });
+
+      await markAresUserChanged({ userId: user.id, db: tdb });
     });
+  }
+
+  async getSyncSnapshot(d: { user: User }) {
+    let loadUser = () =>
+      db.user.findUniqueOrThrow({
+        where: { oid: d.user.oid },
+        include: {
+          userEmails: { include: { domain: true }, orderBy: { id: 'asc' } },
+          userIdentities: {
+            include: {
+              provider: { include: { oauthProvider: true, ssoTenant: true } }
+            },
+            orderBy: { id: 'asc' }
+          },
+          userTermsAgreements: {
+            include: { type: true },
+            orderBy: { id: 'asc' }
+          }
+        }
+      });
+
+    let user = await loadUser();
+    if (
+      user.signupMethod === 'sso' &&
+      user.status === 'active' &&
+      user.type === 'user' &&
+      !user.userEmails.length
+    ) {
+      await this.ensureSsoPrimaryEmail({ user });
+      user = await loadUser();
+    }
 
     return {
       revision: user.syncRevision.toString(),
@@ -389,16 +441,14 @@ class UserServiceImpl {
           suppressSync: true
         });
 
-        if (d.signupMethod !== 'sso') {
-          await this.createEmail({
-            email: d.email,
-            user,
-            app: d.app,
-            context: d.context,
-            isForNewUser: true,
-            suppressSync: true
-          });
-        }
+        await this.createEmail({
+          email: d.email,
+          user,
+          app: d.app,
+          context: d.context,
+          isForNewUser: true,
+          suppressSync: true
+        });
 
         addAfterTransactionHook(() => userEvents.fire('create', user));
         await markAresUserChanged({ userId: user.id, db: tdb });
@@ -842,9 +892,7 @@ class UserServiceImpl {
     emails: { email: string; isPrimary: boolean; isVerified: boolean }[];
     suppressSync?: boolean;
   }) {
-    let emailsByEmail = new Map(
-      d.emails.map(input => [parseEmail(input.email).email, input])
-    );
+    let emailsByEmail = new Map(d.emails.map(input => [parseEmail(input.email).email, input]));
 
     return withTransaction(async tdb => {
       await tdb.$queryRaw`

@@ -14,11 +14,13 @@ let mocks = vi.hoisted(() => ({
   workerClose: vi.fn(),
   captureException: vi.fn(),
   openScopes: [] as { transactionName?: string; tags: Record<string, string> }[],
-  scopeDuringCapture: [] as (string | undefined)[]
+  scopeDuringCapture: [] as (string | undefined)[],
+  contextDuringCapture: [] as unknown[]
 }));
 
 vi.mock('@lowerdeck/sentry', () => {
   let current: { transactionName?: string; tags: Record<string, string> } | null = null;
+  let contexts = new WeakMap<object, Record<string, unknown>>();
 
   // The driver is not the only consumer of this module, and what the others reach for is
   // beside the point here, so anything unnamed is a no-op.
@@ -28,13 +30,25 @@ vi.mock('@lowerdeck/sentry', () => {
   return {
     getSentry: () =>
       asSentry({
+        setContext: (name: string, value: unknown) => {
+          if (current) {
+            let context = contexts.get(current) ?? {};
+            context[name] = value;
+            contexts.set(current, context);
+          }
+        },
+        withScope: async (run: () => unknown) => await run(),
+        startNewTrace: async (run: () => unknown) => await run(),
+        startSpan: async (_options: unknown, run: () => unknown) => await run(),
         captureException: (...args: unknown[]) => {
           mocks.scopeDuringCapture.push(current?.transactionName);
+          mocks.contextDuringCapture.push(current && contexts.get(current)?.executionContext);
           return mocks.captureException(...args);
         },
         withIsolationScope: async (cb: (scope: FakeScope) => Promise<unknown>) => {
           let opened: { transactionName?: string; tags: Record<string, string> } = {
-            tags: {}
+            transactionName: current?.transactionName,
+            tags: { ...current?.tags }
           };
           let previous = current;
           current = opened;
@@ -133,7 +147,11 @@ describe('createBullMqQueue', () => {
     await handler({ id: 'job_1', data: { payload: { value: 1 } }, attemptsMade: 0 });
     await handler({ id: 'job_2', data: { payload: { value: 2 } }, attemptsMade: 0 });
 
-    expect(mocks.openScopes).toEqual([
+    expect(
+      Array.from(
+        new Map(mocks.openScopes.map(scope => [scope.tags['queue.job_id'], scope])).values()
+      )
+    ).toEqual([
       {
         transactionName: 'queue process: scoped-queue',
         tags: { queue: 'scoped-queue', 'queue.job_id': 'job_1' }
@@ -154,6 +172,9 @@ describe('createBullMqQueue', () => {
       handler({ id: 'job_1', data: { payload: {} }, attemptsMade: 0 })
     ).rejects.toThrow('job failed');
 
+    expect(mocks.contextDuringCapture).toEqual([
+      expect.objectContaining({ type: 'job', queue: 'failing-queue', contextId: 'job_1' })
+    ]);
     expect(mocks.captureException).toHaveBeenCalledOnce();
     expect(mocks.scopeDuringCapture).toEqual(['queue process: failing-queue']);
   });
