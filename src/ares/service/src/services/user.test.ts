@@ -432,6 +432,39 @@ describe('SSO sync snapshot repair', () => {
     expect(markAresUserChanged).not.toHaveBeenCalled();
   });
 
+  it('reports an address held as another user secondary email as a conflict', async () => {
+    db.userEmail.findFirst.mockResolvedValue({
+      userOid: 99n,
+      isPrimary: false,
+      email: storedUser.email
+    });
+    await expect(userService.getSyncSnapshot({ user: storedUser })).rejects.toBeInstanceOf(
+      EmailInUseError
+    );
+    expect(db.userEmail.create).not.toHaveBeenCalled();
+    expect(markAresUserChanged).not.toHaveBeenCalled();
+    expect(storedUser.syncRevision).toBe(2n);
+  });
+
+  it('classifies a racing email claim without advancing the snapshot revision', async () => {
+    db.userEmail.create.mockRejectedValue({
+      code: 'P2002',
+      meta: { target: ['email', 'appOid'] }
+    });
+    await expect(userService.getSyncSnapshot({ user: storedUser })).rejects.toBeInstanceOf(
+      EmailInUseError
+    );
+    expect(markAresUserChanged).not.toHaveBeenCalled();
+    expect(storedUser.syncRevision).toBe(2n);
+  });
+
+  it('does not misclassify unrelated repair failures as email conflicts', async () => {
+    let error = { code: 'P2002', meta: { target: ['id'] } };
+    db.userEmail.create.mockRejectedValue(error);
+    await expect(userService.getSyncSnapshot({ user: storedUser })).rejects.toBe(error);
+    expect(markAresUserChanged).not.toHaveBeenCalled();
+  });
+
   it.each(['email', 'oauth'])(
     'does not repair a non-SSO user with signup method %s',
     async signupMethod => {

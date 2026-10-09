@@ -48,6 +48,11 @@ class UserServiceImpl {
       if (emails.length) return;
 
       let parsed = parseEmail(user.email);
+      let existingEmail = await tdb.userEmail.findFirst({
+        where: { appOid: user.appOid, email: parsed.email }
+      });
+      if (existingEmail) throw new EmailInUseError();
+
       let domain = await tdb.emailDomain.upsert({
         where: { domain: parsed.domain },
         create: { ...getId('emailDomain'), appOid: user.appOid, domain: parsed.domain },
@@ -68,6 +73,18 @@ class UserServiceImpl {
       });
 
       await markAresUserChanged({ userId: user.id, db: tdb });
+    }).catch(error => {
+      // Another user can claim the address after the check. Classify the conflict only
+      // after the transaction rolls back; its snapshot revision must remain unchanged.
+      if (
+        isUniqueConstraintError(error) &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes('email') &&
+        error.meta.target.includes('appOid')
+      ) {
+        throw new EmailInUseError();
+      }
+      throw error;
     });
   }
 
