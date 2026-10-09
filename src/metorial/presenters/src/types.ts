@@ -3526,6 +3526,10 @@ export let chatTypingIndicatorType = PresentableType.create<{
   started: boolean;
 }>()('chat_typing_indicator');
 
+export let chatCommandResponseType = PresentableType.create<{
+  chatMessage: RawChatMessage | null;
+}>()('chat_command_response');
+
 export let chatReactionListType = PresentableType.create<{
   reactions: ReactionCount[];
 }>()('chat_reaction_list');

@@ -53,7 +53,8 @@ export let triggerEventProcessQueueProcessor = triggerEventProcessQueue.process(
     triggerRegistrationId: registration.id,
     triggerGroupKey: instance.triggerGroup.key,
     triggerKey: event.triggerId,
-    source: event.source,
+    // Gateway events are pushed by the provider like webhooks; consumers do not distinguish them.
+    source: event.source === 'gateway' ? 'webhook' : event.source,
     webhookEventId: event.rawEvent?.webhookEvent?.id ?? undefined,
     mappedType: event.mappedType ?? undefined,
     mappedId: event.mappedId ?? undefined,

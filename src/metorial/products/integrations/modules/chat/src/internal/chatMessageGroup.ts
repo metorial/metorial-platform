@@ -2,7 +2,7 @@ import { Service } from '@lowerdeck/service';
 import { type ChatPart } from '@metorial-subspace/adapter-chat';
 import { type ChatChannel, type ChatMessage, db, getId } from '@metorial-subspace/db';
 
-let messageHasTextContent = (message: Pick<ChatMessage, 'body'>) => {
+export let messageHasTextContent = (message: Pick<ChatMessage, 'body'>) => {
   let body = message.body as { parts?: ChatPart[] } | null;
   if (!body?.parts?.length) return false;
 

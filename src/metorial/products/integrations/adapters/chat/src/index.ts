@@ -10,6 +10,7 @@ export type {
   ChannelType,
   ChatBody,
   ChatPart,
+  CommandInvoked,
   Emoji,
   EmojiInput,
   LinkUnfurl,

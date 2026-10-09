@@ -42,7 +42,10 @@ export let env = createValidatedEnv({
     INITIAL_REGISTRIES: v.optional(v.string()),
     SLATES_REGISTRY_URL: v.optional(v.string()),
     SLATES_SUB_REGISTRY_ID: v.optional(v.string()),
-    SUPPORTS_PREBUILT_SLATES: v.optional(v.boolean())
+    SUPPORTS_PREBUILT_SLATES: v.optional(v.boolean()),
+    // npm registry for installing slate deployment dependencies (for example a mirror or a
+    // local registry with unpublished packages); npm's default registry when unset.
+    SLATE_DEPLOYMENT_NPM_REGISTRY_URL: v.optional(v.string())
   },
 
   ares: {

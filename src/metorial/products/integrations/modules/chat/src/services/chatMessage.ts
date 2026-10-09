@@ -30,6 +30,7 @@ import {
 } from '@metorial/module-file';
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatChannelServiceInternal } from '../internal/chatChannel';
+import { chatEventInternalService } from '../internal/chatEvent';
 import {
   chatMessageServiceInternal,
   type ChatMessageWithRelations
@@ -39,10 +40,14 @@ import {
   chatMessageAttachmentInternalService,
   type HydratedChatMessageAttachment
 } from '../internal/chatMessageAttachment';
-import { chatMessageGroupServiceInternal } from '../internal/chatMessageGroup';
+import {
+  chatMessageGroupServiceInternal,
+  messageHasTextContent
+} from '../internal/chatMessageGroup';
 import { chatThreadServiceInternal } from '../internal/chatThread';
 import {
   assertChatCapability,
+  hasChatCapability,
   requireLocalChatEntity,
   withChatCapabilityFallback
 } from '../lib/chatCapability';
@@ -76,6 +81,13 @@ export type SendChatMessageParams = {
   body: SendChatMessageBody;
   reply?: { messageId: string };
   ephemeral?: { targetUserId: string };
+};
+
+export type RespondToChatCommandParams = {
+  chat: ChatWithProvider;
+  chatEventId: string;
+  body: Omit<SendChatMessageBody, 'attachments'>;
+  ephemeral?: boolean;
 };
 
 export type EditChatMessageParams = {
@@ -113,10 +125,17 @@ let assertMessageSendEphemeralCapability = (client: ChatAdapterInstance) =>
     message: 'This chat provider does not support sending ephemeral messages.'
   });
 
-let assertMessageReplyCapability = (client: ChatAdapterInstance) =>
+let assertMessageReplyCapability = (client: ChatAdapterInstance) => {
+  if (hasChatCapability(client, 'message_reply')) return;
   assertChatCapability(client, 'thread_posts', {
     code: 'chat_message_reply_not_supported',
     message: 'This chat provider does not support replying to messages.'
+  });
+};
+
+let assertCommandRespondCapability = (client: ChatAdapterInstance) =>
+  assertChatCapability(client, 'command_respond', {
+    message: 'This chat provider does not support responding to commands.'
   });
 
 let assertMessageEditCapability = (client: ChatAdapterInstance) =>
@@ -590,6 +609,81 @@ class chatMessageServiceImpl {
     });
   }
 
+  async respondToChatCommand(d: MetorialFacing<RespondToChatCommandParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+    return this.respondToChatCommandInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async respondToChatCommandInternal(
+    d: { tenant: Tenant; environment: Environment } & RespondToChatCommandParams
+  ) {
+    return usingChatMessageLock(d.chat.oid, async () => {
+      checkTenant(d, d.chat.chatInstanceProvider);
+
+      let client = await chatAdapterService.getChatAdapterClientInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        chatInstanceProvider: d.chat.chatInstanceProvider
+      });
+
+      assertCommandRespondCapability(client);
+
+      let command = await chatEventInternalService.resolveCommandInvocation({
+        tenant: d.tenant,
+        chat: d.chat,
+        chatEventId: d.chatEventId
+      });
+      let localChannel = command.channel;
+
+      let responded = await client.call('metorial_chat$command.respond', {
+        parts: d.body.parts,
+        altText: d.body.altText,
+        responseToken: command.responseToken,
+        channelId: command.channelId,
+        threadId: command.threadId,
+        ephemeral: d.ephemeral
+      });
+
+      let result = unwrapChatCall(responded, {
+        code: 'chat_command_respond_failed',
+        message: 'Failed to respond to the command with the chat provider.',
+        invocation: {
+          operation: 'command.respond',
+          chatInstanceProvider: d.chat.chatInstanceProvider,
+          chat: d.chat
+        }
+      });
+
+      // Some providers accept the response without returning the message it created.
+      if (!result.message) return null;
+
+      // The response is already delivered, so a channel Metorial cannot place it in must not
+      // turn it into an error the caller would retry.
+      let persistChannel =
+        localChannel ??
+        (result.channel
+          ? null
+          : await db.chatChannel.findFirst({
+              where: { chatOid: d.chat.oid, channelId: result.message.channelId }
+            }));
+      if (!result.channel && !persistChannel) return null;
+
+      let withRelations = await this.persistMessageResult(
+        d.tenant,
+        d.environment,
+        d.chat,
+        persistChannel,
+        { message: result.message, channel: result.channel, thread: result.thread }
+      );
+      return this.hydrateChatMessage(withRelations);
+    });
+  }
+
   private async sendChatMessageWithAttachments(d: {
     tenant: Tenant;
     environment: Environment;
@@ -687,7 +781,8 @@ class chatMessageServiceImpl {
 
     if (d.body.parts.length > 0 || pendingAttachmentRefs.length > 0) {
       let sent = await d.client.call('metorial_chat$message.send', {
-        parts: d.body.parts,
+        // The shared body schema requires a part; a file-only message carries an empty text part.
+        parts: d.body.parts.length > 0 ? d.body.parts : [{ type: 'text', content: '' }],
         altText: d.body.altText,
         channelId: d.channelId,
         threadId: d.threadId,
@@ -742,11 +837,7 @@ class chatMessageServiceImpl {
     }
 
     let primary =
-      createdMessages.find(m =>
-        (m.chatMessage.body as ChatBody | null)?.parts?.some(
-          part => part.type === 'text' || part.type === 'markdown'
-        )
-      ) ?? createdMessages[0];
+      createdMessages.find(m => messageHasTextContent(m.chatMessage)) ?? createdMessages[0];
     if (!primary) {
       throw new ServiceError(
         badRequestError({

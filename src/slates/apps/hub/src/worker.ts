@@ -10,9 +10,12 @@ import { reconcileEventIdsQueue } from './queues/instance/reconcileEventIds';
 import { registryQueues } from './queues/registry';
 import { retentionQueues } from './queues/retention';
 import { triggerQueues } from './queues/trigger';
+import { startTriggerGatewayManager } from './queues/trigger/gateway';
 import { webhookQueues } from './queues/webhook';
 
 await reconcileEventIdsQueue.add({});
+
+startTriggerGatewayManager();
 
 await runQueueProcessors([
   attachmentQueues,

@@ -37,3 +37,38 @@ export let triggerEventMapBackoffMs = (attempt: number) =>
 export let TRIGGER_RAW_EVENT_FAILED_RETENTION_DAYS = 5;
 
 export let TRIGGER_RAW_EVENT_IDEMPOTENCY_KEY_TTL_HOURS = 24;
+
+export let TRIGGER_GATEWAY_TICK_MS = 10_000;
+
+export let TRIGGER_GATEWAY_LEASE_MS = 60_000;
+
+export let TRIGGER_GATEWAY_MAX_CONNECTIONS_PER_WORKER = 250;
+
+export let TRIGGER_GATEWAY_FRAME_BATCH_DELAY_MS = 100;
+
+export let TRIGGER_GATEWAY_STATE_PERSIST_INTERVAL_MS = 5_000;
+
+export let TRIGGER_GATEWAY_CONTEXT_TTL_MS = 5 * 60 * 1000;
+
+export let TRIGGER_GATEWAY_MAX_RECONNECT_BACKOFF_MS = 5 * 60 * 1000;
+
+// Frames handed to one receive invocation; the rest wait for the next one.
+export let TRIGGER_GATEWAY_MAX_BATCH_FRAMES = 100;
+
+// A backlog this large means processing cannot keep up; reconnect so the provider replays.
+export let TRIGGER_GATEWAY_MAX_PENDING_FRAMES = 5_000;
+
+// A connection must stay up this long before the reconnect backoff resets.
+export let TRIGGER_GATEWAY_HEALTHY_UPTIME_MS = 30_000;
+
+// Consecutive failed connects before the registration instance reports an error.
+export let TRIGGER_GATEWAY_CONNECT_FAILURES_BEFORE_ERROR = 5;
+
+// Attempt 0 waits 1-5 s, which also covers Discord's required wait after an invalid session.
+export let triggerGatewayReconnectBackoffMs = (attempt: number) =>
+  attempt === 0
+    ? 1000 + Math.random() * 4000
+    : Math.min(
+        2 ** attempt * 1000 + Math.random() * 1000,
+        TRIGGER_GATEWAY_MAX_RECONNECT_BACKOFF_MS
+      );

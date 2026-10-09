@@ -2,7 +2,11 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v, type ValidationType } from '@lowerdeck/validation';
 import { chatMessageService, chatReactionService } from '@metorial-subspace/module-chat';
-import { chatMessagePresenter, chatReactionListPresenter } from '@metorial/presenters';
+import {
+  chatCommandResponsePresenter,
+  chatMessagePresenter,
+  chatReactionListPresenter
+} from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import type { ChatPart, EmojiInput } from '@slates/adapter-chat';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -300,6 +304,47 @@ export let chatMessageController = Controller.create(
         });
 
         return chatMessagePresenter.present({ chatMessage });
+      }),
+
+    respondToCommand: chatGroup
+      .post(instancePath('chats/:chatId/commands/respond', 'chats.commands.respond'), {
+        name: 'Respond to chat command',
+        description:
+          "Replies to a slash command from a chat.command.invoked event, using the provider's native command response."
+      })
+      .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
+      .body(
+        'default',
+        v.object({
+          chat_event_id: v.string({
+            name: 'chat_event_id',
+            description:
+              'The chat.command.invoked event to respond to. Providers only accept a response within their response window after the command was invoked.',
+            examples: ['chevt_4dEfGhJkLmNpQrSt']
+          }),
+          parts: chatPartsValidator,
+          alt_text: v.optional(
+            v.string({ description: 'Plain-text fallback for the response' })
+          ),
+          ephemeral: v.optional(
+            v.boolean({
+              description:
+                'If true, only the user who invoked the command can see the response. Defaults to the provider behavior. Providers that already acknowledged the command publicly reject it.'
+            })
+          )
+        })
+      )
+      .output(chatCommandResponsePresenter)
+      .do(async ctx => {
+        let chatMessage = await chatMessageService.respondToChatCommand({
+          instance: ctx.instance,
+          chat: ctx.chat,
+          chatEventId: ctx.body.chat_event_id,
+          body: { parts: ctx.body.parts, altText: ctx.body.alt_text },
+          ephemeral: ctx.body.ephemeral
+        });
+
+        return chatCommandResponsePresenter.present({ chatMessage });
       }),
 
     update: chatMessageGroup

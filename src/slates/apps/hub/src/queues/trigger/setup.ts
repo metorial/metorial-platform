@@ -34,13 +34,34 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
             authConfig: { include: { authMethod: true } }
           }
         },
-        schedule: true
+        schedule: true,
+        gateway: true
       }
     });
-    if (!instance || instance.schedule || instance.triggerRegistration.status !== 'active')
+    if (
+      !instance ||
+      instance.schedule ||
+      instance.gateway ||
+      instance.triggerRegistration.status !== 'active'
+    )
       return;
 
     let invocation = instance.triggerGroup.spec.invocation;
+
+    if (invocation.type === 'gateway') {
+      try {
+        await db.triggerRegistrationGateway.create({
+          data: {
+            ...getId('triggerRegistrationGateway'),
+            triggerRegistrationInstanceOid: instance.oid
+          }
+        });
+      } catch (err: any) {
+        if (err.code !== 'P2002') throw err;
+      }
+
+      return;
+    }
 
     if (invocation.type === 'polling') {
       let intervalSeconds = Math.max(
