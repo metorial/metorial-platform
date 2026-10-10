@@ -3,6 +3,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { getSentry } from '@lowerdeck/sentry';
 import { hostname } from 'node:os';
 import { db } from '../../db';
+import type { SlateInvocationStack } from '../../lib/invocation/stack';
 import { AuthConfigSecretSerializer } from '../../lib/secretSerializer';
 import { getActiveSlateVersion } from '../../lib/slateVersion';
 import { secretService } from '../../services/secret';
@@ -27,10 +28,10 @@ let Sentry = getSentry();
 
 let WORKER_ID = `${hostname()}:${process.pid}:${generatePlainId(8)}`;
 
-// Not 1000/1001: providers such as Discord invalidate the resumable session on a normal close.
+// Not 1000/1001: those make providers like Discord drop the resumable session.
 let RESUMABLE_CLOSE_CODE = 4000;
 
-// WebSocket close reasons are limited to 123 UTF-8 bytes; longer ones throw.
+// Close reasons over 123 UTF-8 bytes throw.
 let closeReason = (reason: string) => {
   let bytes = new TextEncoder().encode(reason);
   if (bytes.length <= 123) return reason;
@@ -69,8 +70,7 @@ type ReceiveInput = { frames: string[]; closed: CloseNotice | null };
 
 type GatewayContext = {
   loadedAt: number;
-  createStack: () => Promise<any>;
-  // Restores auth-config placeholders in outgoing frames; the slate never returns raw secrets.
+  createStack: () => Promise<SlateInvocationStack>;
   serializer: AuthConfigSecretSerializer | null;
 };
 
@@ -94,6 +94,7 @@ export class GatewayConnection {
   constructor(
     readonly oid: bigint,
     readonly id: string,
+    readonly triggerRegistrationInstanceOid: bigint,
     private readonly onExit: () => void
   ) {}
 
@@ -107,7 +108,7 @@ export class GatewayConnection {
     this.#socket?.close(RESUMABLE_CLOSE_CODE, 'shutting down');
   }
 
-  /** Closes the socket for a hub-side reason; the slate reconnects without being told it failed. */
+  // Hub-initiated close; the slate gets no close notice.
   #closeForReconnect(reason: string) {
     this.#closeRequested = { reconnect: true, reason };
     this.#socket?.close(RESUMABLE_CLOSE_CODE, closeReason(reason));
@@ -122,7 +123,7 @@ export class GatewayConnection {
       } catch (err) {
         attempt++;
         Sentry.captureException(err, { extra: { gatewayId: this.id } });
-        await this.#recordError(
+        await this.#recordConnectFailure(
           'gateway_connection_failed',
           String((err as Error)?.message ?? err)
         );
@@ -192,6 +193,11 @@ export class GatewayConnection {
       return false;
     }
 
+    // The secret only holds raw input until auth processing finishes; retry after backoff.
+    if (record.triggerRegistrationInstance.triggerRegistration.authConfig?.isProcessing) {
+      return false;
+    }
+
     if (this.#state === undefined) {
       this.#state = record.state ?? null;
       this.#persistedState = JSON.stringify(this.#state);
@@ -223,6 +229,7 @@ export class GatewayConnection {
     this.#lastFrameAt = Date.now();
 
     let socket = new WebSocket(connected.data.url);
+    socket.binaryType = 'arraybuffer';
     this.#socket = socket;
 
     let openedAt: number | null = null;
@@ -239,16 +246,13 @@ export class GatewayConnection {
 
       socket.addEventListener('message', event => {
         this.#lastFrameAt = Date.now();
-        let data = event.data;
         let frame =
-          typeof data === 'string'
-            ? data
-            : new TextDecoder().decode(
-                data instanceof ArrayBuffer ? data : (data as Uint8Array)
-              );
+          typeof event.data === 'string'
+            ? event.data
+            : new TextDecoder().decode(event.data as ArrayBuffer);
         this.#pending.push(frame);
         if (this.#pending.length > TRIGGER_GATEWAY_MAX_PENDING_FRAMES) {
-          // Unprocessed frames are dropped; resuming replays them from the persisted state.
+          // Dropped frames are replayed on resume.
           this.#pending = [];
           this.#closeForReconnect('event backlog too large');
           return;
@@ -270,7 +274,6 @@ export class GatewayConnection {
     });
 
     this.#socket = null;
-    // Only a connection that stayed up resets the backoff; one that drops right away keeps it growing.
     return openedAt !== null && Date.now() - openedAt >= TRIGGER_GATEWAY_HEALTHY_UPTIME_MS;
   }
 
@@ -282,10 +285,6 @@ export class GatewayConnection {
     }, TRIGGER_GATEWAY_FRAME_BATCH_DELAY_MS);
   }
 
-  /**
-   * Hands pending frames to the slate one receive at a time; frames that arrive meanwhile wait
-   * for the next batch. Resolves once the pending frames and any close notice are handled.
-   */
   #process(record: GatewayRecord, triggerGroupId: string): Promise<void> {
     if (this.#processing) return this.#processing;
     if (this.#pending.length === 0 && !this.#closeNotice) return Promise.resolve();
@@ -305,8 +304,7 @@ export class GatewayConnection {
         this.#closeForReconnect('processing failed');
       }
     };
-    // Cleared in a later tick: clearing inside `drain` could run before this assignment and
-    // leave a settled promise that would swallow every later batch.
+    // Clear in finally, not in drain, which can finish before this assignment.
     this.#processing = drain().finally(() => {
       this.#processing = null;
     });
@@ -325,7 +323,6 @@ export class GatewayConnection {
 
     if (result.status === 'error') {
       await this.#recordError(result.error.code, result.error.message);
-      // Reconnecting lets providers that support resume replay what was not processed.
       this.#pending = [];
       this.#closeForReconnect('processing failed');
       return;
@@ -352,7 +349,7 @@ export class GatewayConnection {
       });
     }
 
-    // Advance the state only once the events are stored, so a failed insert is replayed on resume.
+    // Advance state only after events are stored so a failed insert replays on resume.
     if (data.state !== undefined) this.#state = data.state;
 
     if (data.heartbeat !== undefined) this.#setHeartbeat(data.heartbeat);
@@ -384,7 +381,7 @@ export class GatewayConnection {
         let current = this.#heartbeat;
         if (!socket || socket.readyState !== WebSocket.OPEN || !current) return;
 
-        // A connection that stayed silent for several heartbeats is a zombie; reconnect.
+        // Silent for two intervals: zombie connection.
         if (Date.now() - this.#lastFrameAt > current.intervalMs * 2) {
           this.#closeForReconnect('no frames received');
           return;
@@ -432,12 +429,10 @@ export class GatewayConnection {
   async #recordConnectFailure(code: string, message: string) {
     await this.#recordError(code, message);
     this.#connectFailures++;
-    // Surface a connect that keeps failing (for example revoked credentials) once per streak.
+    // Report once per failure streak.
     if (this.#connectFailures !== TRIGGER_GATEWAY_CONNECT_FAILURES_BEFORE_ERROR) return;
-    let record = await db.triggerRegistrationGateway.findUnique({ where: { oid: this.oid } });
-    if (!record) return;
     await createTriggerRegistrationInstanceError({
-      triggerRegistrationInstanceOid: record.triggerRegistrationInstanceOid,
+      triggerRegistrationInstanceOid: this.triggerRegistrationInstanceOid,
       code: 'gateway_connect_failed',
       message: `The provider event connection keeps failing: ${message}`
     });
@@ -445,12 +440,12 @@ export class GatewayConnection {
 
   async #disable(message: string) {
     this.#stopped = true;
-    let record = await db.triggerRegistrationGateway.update({
+    await db.triggerRegistrationGateway.update({
       where: { oid: this.oid },
       data: { isDisabled: true, lastErrorCode: 'gateway_closed', lastErrorMessage: message }
     });
     await createTriggerRegistrationInstanceError({
-      triggerRegistrationInstanceOid: record.triggerRegistrationInstanceOid,
+      triggerRegistrationInstanceOid: this.triggerRegistrationInstanceOid,
       code: 'gateway_closed',
       message: `The provider closed the event connection: ${message}`
     });
@@ -463,7 +458,7 @@ let leaseUntil = () => new Date(Date.now() + TRIGGER_GATEWAY_LEASE_MS);
 
 let lastLeaseRenewalAt = Date.now();
 
-// Stop before another worker may claim an expired lease, so two sockets never run at once.
+// Stop before another worker can claim the expired lease.
 let LEASE_SAFETY_MS = TRIGGER_GATEWAY_LEASE_MS - 2 * TRIGGER_GATEWAY_TICK_MS;
 
 let renewLeases = async () => {
@@ -509,7 +504,7 @@ let claimGateways = async () => {
     where: unclaimed(),
     orderBy: { createdAt: 'asc' },
     take: capacity,
-    select: { oid: true, id: true }
+    select: { oid: true, id: true, triggerRegistrationInstanceOid: true }
   });
 
   for (let candidate of candidates) {
@@ -521,8 +516,11 @@ let claimGateways = async () => {
     });
     if (claimed.count !== 1) continue;
 
-    let connection = new GatewayConnection(candidate.oid, candidate.id, () =>
-      connections.delete(candidate.oid)
+    let connection = new GatewayConnection(
+      candidate.oid,
+      candidate.id,
+      candidate.triggerRegistrationInstanceOid,
+      () => connections.delete(candidate.oid)
     );
     connections.set(candidate.oid, connection);
     connection.start();
@@ -531,11 +529,7 @@ let claimGateways = async () => {
 
 let started = false;
 
-/**
- * Keeps one provider connection open per gateway trigger group instance. Each hub worker
- * leases connections from the database, so a connection moves to another worker when its
- * owner stops renewing the lease.
- */
+// Workers lease gateways from the DB; an unrenewed lease moves to another worker.
 export let startTriggerGatewayManager = () => {
   if (started) return;
   started = true;

@@ -13,18 +13,19 @@ let invocation = {
   receiveTriggerGroupGatewayFrames: vi.fn()
 };
 let createRawEvents = vi.fn(async () => ({ created: [] }));
+let decrypt = vi.fn();
 let instanceError = vi.fn();
 
-vi.mock('@lowerdeck/delay', () => ({ delay: vi.fn(async () => {}) }));
+vi.mock('@lowerdeck/delay', () => ({
+  delay: vi.fn(() => new Promise(resolve => setTimeout(resolve, 0)))
+}));
 vi.mock('@lowerdeck/sentry', () => ({ getSentry: () => ({ captureException: vi.fn() }) }));
 vi.mock('../../db', () => ({ db }));
 vi.mock('../../lib/slateVersion', () => ({
   getActiveSlateVersion: vi.fn(async () => ({ id: 'version' }))
 }));
 vi.mock('../../services/secret', () => ({
-  secretService: {
-    DANGEROUSLY_decryptSecret: vi.fn(async () => ({ output: { token: 'bot-token' } }))
-  }
+  secretService: { DANGEROUSLY_decryptSecret: decrypt }
 }));
 vi.mock('../../services/slateInvocation', () => ({ slateInvocationService: invocation }));
 vi.mock('./_rawEvent', () => ({ createTriggerRawEvents: createRawEvents }));
@@ -60,7 +61,7 @@ class FakeWebSocket {
   close(code = 1000, reason = '') {
     if (this.readyState === 3) return;
     this.readyState = 3;
-    // Like a real socket, the close event arrives after the current work has finished.
+    // Real sockets emit close asynchronously.
     setTimeout(() => this.emit('close', { code, reason }), 5);
   }
 }
@@ -91,7 +92,7 @@ let { GatewayConnection } = await import('./gateway');
 
 let started: InstanceType<typeof GatewayConnection>[] = [];
 let startConnection = () => {
-  let connection = new GatewayConnection(1n, 'gateway-1', () => {});
+  let connection = new GatewayConnection(1n, 'gateway-1', 7n, () => {});
   started.push(connection);
   connection.start();
   return connection;
@@ -103,6 +104,7 @@ describe('trigger gateway connection', () => {
     FakeWebSocket.instances = [];
     (globalThis as any).WebSocket = FakeWebSocket;
     gatewayTable.findUnique.mockResolvedValue(record);
+    decrypt.mockResolvedValue({ output: { token: 'bot-token' } });
     invocation.connectTriggerGroupGateway.mockResolvedValue(
       success({ url: 'wss://gateway.example/1', state: { session: null } })
     );
@@ -207,7 +209,6 @@ describe('trigger gateway connection', () => {
   });
 
   it('keeps processing frames after a requested close with nothing pending', async () => {
-    // Discord: RESUME rejected with INVALID_SESSION → the slate asks for a reconnect.
     invocation.receiveTriggerGroupGatewayFrames.mockResolvedValueOnce(
       success({ send: [], events: [], close: { reconnect: true, reason: 'resume rejected' } })
     );
@@ -300,5 +301,40 @@ describe('trigger gateway connection', () => {
     expect(gatewayTable.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ lastErrorCode: 'internal' }) })
     );
+  });
+
+  it('reports repeated thrown connect failures once per streak', async () => {
+    decrypt.mockRejectedValue(new Error('secret unavailable'));
+
+    startConnection();
+    await vi.waitFor(() => expect(decrypt.mock.calls.length).toBeGreaterThan(6));
+
+    expect(invocation.connectTriggerGroupGateway).not.toHaveBeenCalled();
+    expect(gatewayTable.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ lastErrorCode: 'gateway_connection_failed' })
+      })
+    );
+    expect(instanceError).toHaveBeenCalledTimes(1);
+    expect(instanceError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        triggerRegistrationInstanceOid: 7n,
+        code: 'gateway_connect_failed'
+      })
+    );
+  });
+
+  it('waits for auth processing before reading the secret and connecting', async () => {
+    let processing: any = structuredClone(record);
+    processing.triggerRegistrationInstance.triggerRegistration.authConfig.isProcessing = true;
+    gatewayTable.findUnique.mockResolvedValueOnce(processing);
+
+    startConnection();
+    await vi.waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+
+    expect(gatewayTable.findUnique).toHaveBeenCalledTimes(2);
+    expect(decrypt).toHaveBeenCalledTimes(1);
+    expect(invocation.connectTriggerGroupGateway).toHaveBeenCalledTimes(1);
+    expect(instanceError).not.toHaveBeenCalled();
   });
 });

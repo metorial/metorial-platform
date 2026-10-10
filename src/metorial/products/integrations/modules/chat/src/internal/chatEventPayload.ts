@@ -33,7 +33,7 @@ class chatEventPayloadServiceInternalImpl {
   }): Promise<PrismaJson.ChatEventPayload> {
     let payload: PrismaJson.ChatEventPayload = {};
 
-    // The response token is left out; the respond endpoint resolves it from the event id.
+    // responseToken is intentionally omitted.
     if (d.command) {
       payload.command = {
         object: 'chat.command_invocation',

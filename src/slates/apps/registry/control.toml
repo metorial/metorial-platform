@@ -32,7 +32,7 @@ METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 OBJECT_STORAGE_URL = "http://services:52010"
 PACKAGE_BUCKET_NAME = "package-bucket"
-# Unset means registry.npmjs.org; the local npm registry workflow sets these from the shell.
+# Passed through from the shell; unset uses registry.npmjs.org.
 NPM_REGISTRY_URL = true
 NPM_PACKAGES = true
 NPM_SYNC_DELAY_SECONDS = true

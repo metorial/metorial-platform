@@ -175,8 +175,7 @@ class chatEventInternalServiceImpl {
     }
   }
 
-  // The response token stays server-side: it is read back from the callback event the command
-  // arrived on, so it is never published in a chat event payload.
+  // The response token is read from the callback event; it is never published in payloads.
   async resolveCommandInvocation(d: { tenant: Tenant; chat: Chat; chatEventId: string }) {
     let chatEvent = await db.chatEvent.findFirst({
       where: { id: d.chatEventId, chatOid: d.chat.oid },

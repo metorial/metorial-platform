@@ -268,7 +268,6 @@ export let buildSlateDeploymentFiles = (
     }
   ];
   if (opts.npmRegistryUrl) {
-    // The deployment build installs dependencies with npm in the slate directory.
     generatedFiles.push({ filename: '.npmrc', content: `registry=${opts.npmRegistryUrl}\n` });
   }
   let generatedFilenames = new Set(generatedFiles.map(file => file.filename));

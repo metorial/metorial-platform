@@ -57,9 +57,7 @@ let syncsTokensAcrossConnections = async (authConfig: AuthConfigWithSecret) => {
 
 type OAuthCredentialsWithSecret = SlateOAuthCredentials & { secret: Secret };
 
-// Non-OAuth methods (for example client-credentials bot tokens) refresh from their
-// stored input, so they need no OAuth app credentials. Unlike the sync flag above, this
-// reads the config's own method spec: refreshAuthConfig invokes that spec's version.
+// Non-OAuth methods (e.g. bot tokens) refresh from stored input, without OAuth creds.
 let refreshesFromInput = (authConfig: AuthConfigWithSecret) =>
   authConfig.type === 'manual' &&
   authConfig.authMethod.type !== 'oauth' &&
@@ -226,7 +224,6 @@ class slateAuthHandlerServiceImpl {
       clientId: d.oauthCredentials?.clientId ?? '',
       profileUid: d.authConfig.profileUid
     };
-    // Token syncing between connections only applies to OAuth app installs.
     let syncsTokens = d.oauthCredentials
       ? await syncsTokensAcrossConnections(d.authConfig)
       : false;
@@ -366,8 +363,7 @@ class slateAuthHandlerServiceImpl {
       scopes: oauthCredentials?.scopes ?? []
     });
     if (res.status === 'error') {
-      // A failed OAuth refresh may have consumed its refresh token, so the config is
-      // marked broken. Input-based refreshes keep durable credentials and retry next time.
+      // Only OAuth failures break the config; input-based refreshes retry next time.
       if (oauthCredentials) {
         await db.slateAuthConfig.updateMany({
           where: { oid: authConfig.oid },

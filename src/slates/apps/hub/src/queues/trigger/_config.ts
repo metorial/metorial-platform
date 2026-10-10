@@ -52,19 +52,15 @@ export let TRIGGER_GATEWAY_CONTEXT_TTL_MS = 5 * 60 * 1000;
 
 export let TRIGGER_GATEWAY_MAX_RECONNECT_BACKOFF_MS = 5 * 60 * 1000;
 
-// Frames handed to one receive invocation; the rest wait for the next one.
 export let TRIGGER_GATEWAY_MAX_BATCH_FRAMES = 100;
 
-// A backlog this large means processing cannot keep up; reconnect so the provider replays.
 export let TRIGGER_GATEWAY_MAX_PENDING_FRAMES = 5_000;
 
-// A connection must stay up this long before the reconnect backoff resets.
 export let TRIGGER_GATEWAY_HEALTHY_UPTIME_MS = 30_000;
 
-// Consecutive failed connects before the registration instance reports an error.
 export let TRIGGER_GATEWAY_CONNECT_FAILURES_BEFORE_ERROR = 5;
 
-// Attempt 0 waits 1-5 s, which also covers Discord's required wait after an invalid session.
+// Attempt 0 waits 1-5 s, as Discord requires after an invalid session.
 export let triggerGatewayReconnectBackoffMs = (attempt: number) =>
   attempt === 0
     ? 1000 + Math.random() * 4000

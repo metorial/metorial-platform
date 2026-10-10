@@ -16,10 +16,9 @@ export let env = createValidatedEnv({
     NPM_ORG: v.optional(v.string()),
     NPM_REGISTRY_URL: v.optional(v.string()),
     NPM_TOKEN: v.optional(v.string()),
-    // Comma-separated package names to sync instead of listing NPM_ORG, for registries
-    // without npm's org endpoint (for example a local Verdaccio).
+    // Comma-separated packages to sync instead of listing NPM_ORG (e.g. local Verdaccio).
     NPM_PACKAGES: v.optional(v.string()),
-    // Fixed delay before syncing a listed package; defaults to 3-7 minutes for npm's caches.
+    // Fixed sync delay; defaults to a random 3-7 minutes.
     NPM_SYNC_DELAY_SECONDS: v.optional(v.number())
   },
 

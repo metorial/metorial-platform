@@ -380,7 +380,6 @@ describe('getSlateInstanceAuth refresh coordination', () => {
     it('refreshes an expiring custom token from its stored input', async () => {
       let result = await call();
 
-      // The OAuth sync flag is on for this slate, but token sync never applies here.
       expect(mocks.usingLock.mock.calls[0]![0]).toBe('cfg:1');
       expect(mocks.currentMethods).not.toHaveBeenCalled();
       expect(mocks.refreshOAuthToken).toHaveBeenCalledWith(

@@ -104,8 +104,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async data => {
-  if (!isSyncEnabled()) return;
-
   let packageNames = await listPackageNames();
   let currentPage = packageNames.slice(data.cursor, data.cursor + pageSize);
   if (currentPage.length === 0) return;

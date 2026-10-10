@@ -133,7 +133,6 @@ model TriggerRegistrationSchedule {
   @@index([claimedUntil])
 }
 
-// One persistent provider connection per gateway trigger group instance, held by one hub worker at a time.
 model TriggerRegistrationGateway {
   oid BigInt @id
   id  String @unique

@@ -28,7 +28,7 @@ let toTriggerInvocation = (trigger: SlateSpecificationTrigger) => {
     return { type: 'polling' as const, intervalSeconds: invocation.intervalSeconds };
   }
 
-  // A gateway connection is opened by the platform without setup, like an auto-registered webhook.
+  // Gateways connect without setup, like auto-registered webhooks.
   let isAuto = invocation.type !== 'webhook' || invocation.registration.mode === 'auto';
 
   return {

@@ -109,8 +109,7 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
       }
 
       if (matcherCount === 0) {
-        // A new manual config gets its output from processAuthQueue; until then the secret
-        // holds only the raw input, which the slate rejects as auth. Wait instead of failing.
+        // The secret only holds raw input until processAuthQueue finishes; retry later.
         if (authConfig?.isProcessing) throw new QueueRetryError();
 
         let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;

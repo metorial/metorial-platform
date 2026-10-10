@@ -172,7 +172,7 @@ export interface SpecificationTriggerGroup {
         type: 'polling';
         intervalSeconds: number;
       }
-    // Persistent connection the platform opens without setup (e.g. the Discord Gateway).
+    // Persistent provider connection, e.g. the Discord Gateway.
     | { type: 'gateway' }
     | {
         type: 'webhook';

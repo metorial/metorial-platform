@@ -63,9 +63,7 @@ SIGNAL_SENDER_IDENTIFIER = "dev-slates-hub"
 INVOCATIONS_BUCKET_NAME = "dev-invocations"
 SLATES_HUB_INSTANCE_IDENTIFIER = "dev-slates-hub"
 SUPPORTS_PREBUILT_SLATES = "true"
-# Unset means registry.npmjs.org for slate deployment installs.
 SLATE_DEPLOYMENT_NPM_REGISTRY_URL = true
-# Public base URL for provider webhooks (for example an ngrok tunnel); unset means SERVICE_PUBLIC_URL.
 SLATES_WEBHOOK_TRIGGER_HOST = true
 NEBULA_CONSUMER_IDENTIFIER = "dev-slates-hub"
 NEBULA_CONSUMER_TOKEN = "local-dev-nebula-slates-registration-secret"

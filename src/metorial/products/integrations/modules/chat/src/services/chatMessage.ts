@@ -638,7 +638,6 @@ class chatMessageServiceImpl {
         chat: d.chat,
         chatEventId: d.chatEventId
       });
-      let localChannel = command.channel;
 
       let responded = await client.call('metorial_chat$command.respond', {
         parts: d.body.parts,
@@ -659,13 +658,11 @@ class chatMessageServiceImpl {
         }
       });
 
-      // Some providers accept the response without returning the message it created.
       if (!result.message) return null;
 
-      // The response is already delivered, so a channel Metorial cannot place it in must not
-      // turn it into an error the caller would retry.
+      // Already delivered: skip persisting rather than fail and invite a retry.
       let persistChannel =
-        localChannel ??
+        command.channel ??
         (result.channel
           ? null
           : await db.chatChannel.findFirst({
@@ -781,7 +778,7 @@ class chatMessageServiceImpl {
 
     if (d.body.parts.length > 0 || pendingAttachmentRefs.length > 0) {
       let sent = await d.client.call('metorial_chat$message.send', {
-        // The shared body schema requires a part; a file-only message carries an empty text part.
+        // The body schema requires a part, so file-only messages send an empty text part.
         parts: d.body.parts.length > 0 ? d.body.parts : [{ type: 'text', content: '' }],
         altText: d.body.altText,
         channelId: d.channelId,
