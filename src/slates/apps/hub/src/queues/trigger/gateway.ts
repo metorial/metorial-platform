@@ -4,6 +4,10 @@ import { getSentry } from '@lowerdeck/sentry';
 import { hostname } from 'node:os';
 import { db } from '../../db';
 import type { SlateInvocationStack } from '../../lib/invocation/stack';
+import {
+  assertPublicWebSocketUrl,
+  WebSocketUrlNotAllowedError
+} from '../../lib/network/assertPublicWebSocketUrl';
 import { AuthConfigSecretSerializer } from '../../lib/secretSerializer';
 import { getActiveSlateVersion } from '../../lib/slateVersion';
 import { secretService } from '../../services/secret';
@@ -13,6 +17,8 @@ import {
   TRIGGER_GATEWAY_CONTEXT_TTL_MS,
   TRIGGER_GATEWAY_FRAME_BATCH_DELAY_MS,
   TRIGGER_GATEWAY_HEALTHY_UPTIME_MS,
+  TRIGGER_GATEWAY_HEARTBEAT_ACK_RECHECK_MS,
+  TRIGGER_GATEWAY_IDLE_TIMEOUT_MS,
   TRIGGER_GATEWAY_LEASE_MS,
   TRIGGER_GATEWAY_MAX_BATCH_FRAMES,
   TRIGGER_GATEWAY_MAX_CONNECTIONS_PER_WORKER,
@@ -68,6 +74,8 @@ type CloseNotice = { code: number; reason: string };
 
 type ReceiveInput = { frames: string[]; closed: CloseNotice | null };
 
+type HeartbeatConfig = { intervalMs: number; frame: string; expectsAck?: boolean };
+
 type GatewayContext = {
   loadedAt: number;
   createStack: () => Promise<SlateInvocationStack>;
@@ -86,8 +94,10 @@ export class GatewayConnection {
   #flushTimer: ReturnType<typeof setTimeout> | null = null;
   #processing: Promise<void> | null = null;
   #connectFailures = 0;
-  #heartbeat: { intervalMs: number; frame: string } | null = null;
+  #heartbeat: HeartbeatConfig | null = null;
   #heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+  #heartbeatUnackedSince: number | null = null;
+  #idleTimer: ReturnType<typeof setInterval> | null = null;
   #lastFrameAt = 0;
   #closeRequested: { reconnect: boolean; reason?: string } | null = null;
 
@@ -216,6 +226,15 @@ export class GatewayConnection {
       await this.#recordConnectFailure(connected.error.code, connected.error.message);
       return false;
     }
+
+    try {
+      await assertPublicWebSocketUrl(connected.data.url);
+    } catch (err) {
+      if (!(err instanceof WebSocketUrlNotAllowedError)) throw err;
+      await this.#recordConnectFailure(err.code, err.message);
+      return false;
+    }
+
     this.#connectFailures = 0;
     if (connected.data.state !== undefined) this.#state = connected.data.state;
     await this.#persistState(true);
@@ -226,11 +245,13 @@ export class GatewayConnection {
     this.#closeNotice = null;
     this.#pending = [];
     this.#heartbeat = null;
+    this.#heartbeatUnackedSince = null;
     this.#lastFrameAt = Date.now();
 
     let socket = new WebSocket(connected.data.url);
     socket.binaryType = 'arraybuffer';
     this.#socket = socket;
+    this.#startIdleTimer();
 
     let openedAt: number | null = null;
     await new Promise<void>(resolve => {
@@ -262,6 +283,7 @@ export class GatewayConnection {
 
       socket.addEventListener('close', event => {
         this.#clearHeartbeat();
+        this.#clearIdleTimer();
         if (this.#flushTimer) clearTimeout(this.#flushTimer);
         this.#flushTimer = null;
 
@@ -352,6 +374,9 @@ export class GatewayConnection {
     // Advance state only after events are stored so a failed insert replays on resume.
     if (data.state !== undefined) this.#state = data.state;
 
+    if ((data as { heartbeatAcked?: boolean }).heartbeatAcked === true) {
+      this.#heartbeatUnackedSince = null;
+    }
     if (data.heartbeat !== undefined) this.#setHeartbeat(data.heartbeat);
 
     await this.#persistState(!!data.close);
@@ -367,12 +392,14 @@ export class GatewayConnection {
     }
   }
 
-  #setHeartbeat(heartbeat: { intervalMs: number; frame: string } | null) {
+  #setHeartbeat(heartbeat: HeartbeatConfig | null) {
     let intervalChanged = heartbeat?.intervalMs !== this.#heartbeat?.intervalMs;
     this.#heartbeat = heartbeat;
+    if (!heartbeat?.expectsAck) this.#heartbeatUnackedSince = null;
     if (!intervalChanged) return;
 
     this.#clearHeartbeat();
+    this.#heartbeatUnackedSince = null;
     if (!heartbeat) return;
 
     let beat = (nextMs: number) => {
@@ -387,7 +414,19 @@ export class GatewayConnection {
           return;
         }
 
+        if (current.expectsAck && this.#heartbeatUnackedSince !== null) {
+          // The ack may still be queued for a receive call; wait up to one more interval.
+          let receiving = this.#processing !== null || this.#pending.length > 0;
+          if (receiving && Date.now() - this.#heartbeatUnackedSince < current.intervalMs * 2) {
+            beat(TRIGGER_GATEWAY_HEARTBEAT_ACK_RECHECK_MS);
+            return;
+          }
+          this.#closeForReconnect('heartbeat not acknowledged');
+          return;
+        }
+
         socket.send(current.frame);
+        this.#heartbeatUnackedSince = current.expectsAck ? Date.now() : null;
         beat(current.intervalMs);
       }, nextMs);
     };
@@ -397,6 +436,22 @@ export class GatewayConnection {
   #clearHeartbeat() {
     if (this.#heartbeatTimer) clearTimeout(this.#heartbeatTimer);
     this.#heartbeatTimer = null;
+  }
+
+  #startIdleTimer() {
+    this.#clearIdleTimer();
+    this.#idleTimer = setInterval(() => {
+      let limit = Math.max(
+        TRIGGER_GATEWAY_IDLE_TIMEOUT_MS,
+        (this.#heartbeat?.intervalMs ?? 0) * 2
+      );
+      if (Date.now() - this.#lastFrameAt > limit) this.#closeForReconnect('connection idle');
+    }, TRIGGER_GATEWAY_TICK_MS);
+  }
+
+  #clearIdleTimer() {
+    if (this.#idleTimer) clearInterval(this.#idleTimer);
+    this.#idleTimer = null;
   }
 
   async #persistState(force: boolean) {

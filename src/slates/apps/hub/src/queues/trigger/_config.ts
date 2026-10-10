@@ -60,6 +60,11 @@ export let TRIGGER_GATEWAY_HEALTHY_UPTIME_MS = 30_000;
 
 export let TRIGGER_GATEWAY_CONNECT_FAILURES_BEFORE_ERROR = 5;
 
+// Reconnect when no frame arrives for this long, heartbeat or not.
+export let TRIGGER_GATEWAY_IDLE_TIMEOUT_MS = 2 * 60_000;
+
+export let TRIGGER_GATEWAY_HEARTBEAT_ACK_RECHECK_MS = 1_000;
+
 // Attempt 0 waits 1-5 s, as Discord requires after an invalid session.
 export let triggerGatewayReconnectBackoffMs = (attempt: number) =>
   attempt === 0
