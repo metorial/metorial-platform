@@ -360,6 +360,12 @@ if (command === 'resolve') {
     for (let attempt = 0; ; attempt++) {
       try {
         run(['regctl', 'image', 'copy', source, target]);
+        let manifest = await registryCommand(['manifest', 'get', target, '--format', 'raw-body']);
+        let actual = `sha256:${createHash('sha256').update(manifest).digest('hex')}`;
+        if (actual !== sourceDigest)
+          throw new Error(
+            `Digest mismatch after copying ${target}: expected ${sourceDigest}, received ${actual}`
+          );
         break;
       } catch (error) {
         if (attempt === 2 || /unauthorized|denied/i.test(String(error))) throw error;
@@ -367,8 +373,6 @@ if (command === 'resolve') {
       }
     }
     let expected = sourceDigest;
-    if ((await digest(target)) !== expected)
-      throw new Error(`Digest mismatch after copying ${target}`);
     console.log(`Verified ${target}`);
     if (process.env.GITHUB_STEP_SUMMARY)
       appendFileSync(
