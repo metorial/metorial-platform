@@ -51,6 +51,7 @@ import {
   v1ChatAuthenticatedUserPresenter,
   v1ChatAuthorPresenter,
   v1ChatChannelPresenter,
+  v1ChatCommandResponsePresenter,
   v1ChatConnectionPresenter,
   v1ChatConnectionProviderPresenter,
   v1ChatEventListPresenter,
@@ -497,6 +498,7 @@ import {
   chatAuthenticatedUserType,
   chatAuthorType,
   chatChannelType,
+  chatCommandResponseType,
   chatConnectionProviderType,
   chatConnectionType,
   chatEventType,
@@ -1141,6 +1143,11 @@ export let chatInstanceProviderPresenter = declarePresenter(chatInstanceProvider
 export let chatTypingIndicatorPresenter = declarePresenter(chatTypingIndicatorType, {
   mt_2025_01_01_dashboard: v1ChatTypingIndicatorPresenter,
   mt_2026_01_01_magnetar: v1ChatTypingIndicatorPresenter
+});
+
+export let chatCommandResponsePresenter = declarePresenter(chatCommandResponseType, {
+  mt_2025_01_01_dashboard: v1ChatCommandResponsePresenter,
+  mt_2026_01_01_magnetar: v1ChatCommandResponsePresenter
 });
 
 export let chatReactionListPresenter = declarePresenter(chatReactionListType, {

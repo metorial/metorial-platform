@@ -6,6 +6,7 @@ export * from './chatConnectionProvider';
 export * from './chatInstance';
 export * from './chatInstanceProvider';
 export * from './channel';
+export * from './commandResponse';
 export * from './event';
 export * from './message';
 export * from './messageAttachment';

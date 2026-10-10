@@ -160,7 +160,9 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
           buffer: await file.buffer()
         }))
       );
-      let deploymentFiles = buildSlateDeploymentFiles(archiveFiles);
+      let deploymentFiles = buildSlateDeploymentFiles(archiveFiles, {
+        npmRegistryUrl: env.registry.SLATE_DEPLOYMENT_NPM_REGISTRY_URL
+      });
 
       await log(deployment, `Using entrypoint ./${deploymentFiles.slateEntrypoint}`);
 

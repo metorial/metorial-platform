@@ -1,4 +1,5 @@
 import { Service } from '@lowerdeck/service';
+import { type CommandInvoked } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
   type ChatAuthor,
@@ -28,8 +29,23 @@ class chatEventPayloadServiceInternalImpl {
     thread: ChatThread | null;
     message: ChatMessage | null;
     author: ChatAuthor | null;
+    command?: CommandInvoked | null;
   }): Promise<PrismaJson.ChatEventPayload> {
     let payload: PrismaJson.ChatEventPayload = {};
+
+    // responseToken is intentionally omitted.
+    if (d.command) {
+      payload.command = {
+        object: 'chat.command_invocation',
+        name: d.command.name,
+        command_id: d.command.commandId ?? null,
+        text: d.command.text ?? null,
+        subcommand: d.command.subcommand ?? null,
+        subcommand_group: d.command.subcommandGroup ?? null,
+        options: d.command.options ?? [],
+        trigger_id: d.command.triggerId ?? null
+      };
+    }
 
     if (d.channel) {
       let workspace = d.channel.workspaceOid

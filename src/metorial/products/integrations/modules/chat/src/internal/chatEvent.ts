@@ -1,7 +1,9 @@
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
   type Channel,
   chatTriggers,
+  type CommandInvoked,
   type Emoji,
   type Message,
   type ReactionCount,
@@ -171,6 +173,50 @@ class chatEventInternalServiceImpl {
         payload
       });
     }
+  }
+
+  // The response token is read from the callback event; it is never published in payloads.
+  async resolveCommandInvocation(d: { tenant: Tenant; chat: Chat; chatEventId: string }) {
+    let chatEvent = await db.chatEvent.findFirst({
+      where: { id: d.chatEventId, chatOid: d.chat.oid },
+      include: { channel: true, thread: true, callbackEvent: { include: { callback: true } } }
+    });
+    if (!chatEvent) throw new ServiceError(notFoundError('chat.event', d.chatEventId));
+
+    if (chatEvent.type !== 'chat.command.invoked') {
+      throw new ServiceError(
+        badRequestError({
+          code: 'chat_event_not_command',
+          message: 'Only chat.command.invoked events can be responded to.'
+        })
+      );
+    }
+
+    let rawPayload = chatEvent.callbackEvent
+      ? await callbackEventInternalService.getEventPayload({
+          tenant: d.tenant,
+          callback: chatEvent.callbackEvent.callback,
+          callbackEvent: chatEvent.callbackEvent
+        })
+      : null;
+    let parsed = chatTriggers.commandInvoked.output.safeParse(rawPayload);
+    let responseToken = parsed.success ? parsed.data.responseToken : undefined;
+
+    if (!responseToken) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'chat_command_response_unavailable',
+          message: 'This command invocation cannot be responded to.'
+        })
+      );
+    }
+
+    return {
+      responseToken,
+      channel: chatEvent.channel,
+      channelId: chatEvent.providerChannelId ?? undefined,
+      threadId: chatEvent.providerThreadId ?? undefined
+    };
   }
 
   async recordLifecycleEvent(d: {
@@ -451,7 +497,11 @@ class chatEventInternalServiceImpl {
       channel: d.persisted.channel,
       thread: d.persisted.thread,
       message: d.persisted.message,
-      author
+      author,
+      command:
+        d.payload.type === 'chat.command.invoked'
+          ? (d.payload as ChatTriggerPayload & CommandInvoked)
+          : null
     });
 
     try {

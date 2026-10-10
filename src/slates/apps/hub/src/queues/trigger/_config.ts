@@ -37,3 +37,39 @@ export let triggerEventMapBackoffMs = (attempt: number) =>
 export let TRIGGER_RAW_EVENT_FAILED_RETENTION_DAYS = 5;
 
 export let TRIGGER_RAW_EVENT_IDEMPOTENCY_KEY_TTL_HOURS = 24;
+
+export let TRIGGER_GATEWAY_TICK_MS = 10_000;
+
+export let TRIGGER_GATEWAY_LEASE_MS = 60_000;
+
+export let TRIGGER_GATEWAY_MAX_CONNECTIONS_PER_WORKER = 250;
+
+export let TRIGGER_GATEWAY_FRAME_BATCH_DELAY_MS = 100;
+
+export let TRIGGER_GATEWAY_STATE_PERSIST_INTERVAL_MS = 5_000;
+
+export let TRIGGER_GATEWAY_CONTEXT_TTL_MS = 5 * 60 * 1000;
+
+export let TRIGGER_GATEWAY_MAX_RECONNECT_BACKOFF_MS = 5 * 60 * 1000;
+
+export let TRIGGER_GATEWAY_MAX_BATCH_FRAMES = 100;
+
+export let TRIGGER_GATEWAY_MAX_PENDING_FRAMES = 5_000;
+
+export let TRIGGER_GATEWAY_HEALTHY_UPTIME_MS = 30_000;
+
+export let TRIGGER_GATEWAY_CONNECT_FAILURES_BEFORE_ERROR = 5;
+
+// Reconnect when no frame arrives for this long, heartbeat or not.
+export let TRIGGER_GATEWAY_IDLE_TIMEOUT_MS = 2 * 60_000;
+
+export let TRIGGER_GATEWAY_HEARTBEAT_ACK_RECHECK_MS = 1_000;
+
+// Attempt 0 waits 1-5 s, as Discord requires after an invalid session.
+export let triggerGatewayReconnectBackoffMs = (attempt: number) =>
+  attempt === 0
+    ? 1000 + Math.random() * 4000
+    : Math.min(
+        2 ** attempt * 1000 + Math.random() * 1000,
+        TRIGGER_GATEWAY_MAX_RECONNECT_BACKOFF_MS
+      );

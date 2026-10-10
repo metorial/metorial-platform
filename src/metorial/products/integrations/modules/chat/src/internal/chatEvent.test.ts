@@ -13,6 +13,7 @@ let {
   recordChatEvent
 } = vi.hoisted(() => {
   let createModel = () => ({
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     findUniqueOrThrow: vi.fn(),
     findMany: vi.fn(),
@@ -53,7 +54,8 @@ vi.mock('@lowerdeck/service', () => ({
 
 vi.mock('@metorial-subspace/adapter-chat', () => ({
   chatTriggers: {
-    messageReceived: { key: 'chat.message.received', output: { safeParse } }
+    messageReceived: { key: 'chat.message.received', output: { safeParse } },
+    commandInvoked: { key: 'chat.command.invoked', output: { safeParse } }
   }
 }));
 
@@ -184,6 +186,44 @@ describe('chatEventInternalService.ingestCallbackEvent', () => {
         providerId: 'prov_1'
       })
     );
+  });
+
+  it('builds the payload without a command for a non-command event', async () => {
+    await chatEventInternalService.ingestCallbackEvent({ callbackEventId: 'cbe_1' });
+
+    expect(buildChatEventPayload).toHaveBeenCalledWith(
+      expect.objectContaining({ command: null })
+    );
+  });
+
+  it('passes the invocation to the payload so consumers can respond to a command', async () => {
+    let commandPayload = {
+      type: 'chat.command.invoked',
+      id: 'evt_cmd',
+      name: 'deploy',
+      text: 'staging',
+      channelId: 'C1',
+      responseToken: 'token_1',
+      author: { userId: 'U1' },
+      channel: { id: 'C1', workspaceId: 'T1' }
+    };
+    db.callbackEvent.findUnique.mockResolvedValue(
+      callbackEvent({ providerTriggerKey: 'chat.command.invoked' })
+    );
+    safeParse.mockReturnValue({ success: true, data: commandPayload });
+
+    await chatEventInternalService.ingestCallbackEvent({ callbackEventId: 'cbe_1' });
+
+    expect(buildChatEventPayload).toHaveBeenCalledWith(
+      expect.objectContaining({ command: commandPayload })
+    );
+    expect(db.chatEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: 'chat.command.invoked',
+        providerChannelId: 'C1',
+        providerAuthorId: 'U1'
+      })
+    });
   });
 
   it('ignores a callback that is not managed by an adapter', async () => {
@@ -319,5 +359,74 @@ describe('chatEventInternalService.recordInvocationFailedEvent', () => {
     });
     expect(db.chatEvent.create.mock.calls[0]![0].data).not.toHaveProperty('invocationId');
     expect(recordChatEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('chatEventInternalService.resolveCommandInvocation', () => {
+  let tenant = { oid: BigInt(1) } as any;
+  let commandEvent = {
+    id: 'chevt_cmd',
+    type: 'chat.command.invoked',
+    channel,
+    providerChannelId: 'C1',
+    providerThreadId: null,
+    callbackEvent: { oid: BigInt(900), callback: { oid: BigInt(70) } }
+  };
+
+  let resolve = () =>
+    chatEventInternalService.resolveCommandInvocation({
+      tenant,
+      chat: chat as any,
+      chatEventId: 'chevt_cmd'
+    });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.chatEvent.findFirst.mockResolvedValue(commandEvent);
+    getEventPayload.mockResolvedValue({ raw: true });
+    safeParse.mockReturnValue({ success: true, data: { responseToken: 'token_1' } });
+  });
+
+  it('reads the response token from the callback event the command arrived on', async () => {
+    await expect(resolve()).resolves.toEqual({
+      responseToken: 'token_1',
+      channel,
+      channelId: 'C1',
+      threadId: undefined
+    });
+    expect(db.chatEvent.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'chevt_cmd', chatOid: BigInt(5) } })
+    );
+    expect(getEventPayload).toHaveBeenCalledWith({
+      tenant,
+      callback: commandEvent.callbackEvent.callback,
+      callbackEvent: commandEvent.callbackEvent
+    });
+  });
+
+  it('rejects an event of another chat as not found', async () => {
+    db.chatEvent.findFirst.mockResolvedValue(null);
+
+    await expect(resolve()).rejects.toMatchObject({ data: { status: 404 } });
+  });
+
+  it('rejects an event that is not a command invocation', async () => {
+    db.chatEvent.findFirst.mockResolvedValue({
+      ...commandEvent,
+      type: 'chat.message.received'
+    });
+
+    await expect(resolve()).rejects.toMatchObject({
+      data: { code: 'chat_event_not_command' }
+    });
+    expect(getEventPayload).not.toHaveBeenCalled();
+  });
+
+  it('rejects a command the provider issued no response token for', async () => {
+    safeParse.mockReturnValue({ success: true, data: {} });
+
+    await expect(resolve()).rejects.toMatchObject({
+      data: { code: 'chat_command_response_unavailable' }
+    });
   });
 });

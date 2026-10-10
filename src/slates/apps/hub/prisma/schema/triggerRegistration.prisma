@@ -50,6 +50,7 @@ model TriggerRegistrationInstance {
   createdAt DateTime @default(now())
 
   schedule        TriggerRegistrationSchedule?
+  gateway         TriggerRegistrationGateway?
   webhooks        TriggerRegistrationWebhook[]
   errors          TriggerRegistrationInstanceError[]
   rawEvents       TriggerRawEvent[]
@@ -62,6 +63,7 @@ model TriggerRegistrationInstance {
 enum TriggerRawEventSource {
   polling
   webhook
+  gateway
 }
 
 enum TriggerRawEventProcessingStatus {
@@ -129,6 +131,31 @@ model TriggerRegistrationSchedule {
 
   @@index([nextRunAt, claimedUntil])
   @@index([claimedUntil])
+}
+
+model TriggerRegistrationGateway {
+  oid BigInt @id
+  id  String @unique
+
+  isDisabled Boolean @default(false)
+
+  /// [AnyRecord]
+  state Json?
+
+  claimedBy    String?
+  claimedUntil DateTime?
+
+  lastConnectedAt  DateTime?
+  lastErrorCode    String?
+  lastErrorMessage String?
+
+  triggerRegistrationInstanceOid BigInt                      @unique
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([isDisabled, claimedUntil])
 }
 
 enum TriggerPollingRunStatus {

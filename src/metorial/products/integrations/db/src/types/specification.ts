@@ -172,6 +172,8 @@ export interface SpecificationTriggerGroup {
         type: 'polling';
         intervalSeconds: number;
       }
+    // Persistent provider connection, e.g. the Discord Gateway.
+    | { type: 'gateway' }
     | {
         type: 'webhook';
         registration:

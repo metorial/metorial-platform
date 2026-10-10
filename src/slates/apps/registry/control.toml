@@ -32,7 +32,10 @@ METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 OBJECT_STORAGE_URL = "http://services:52010"
 PACKAGE_BUCKET_NAME = "package-bucket"
-NPM_REGISTRY_URL = "https://registry.npmjs.org"
+# Passed through from the shell; unset uses registry.npmjs.org.
+NPM_REGISTRY_URL = true
+NPM_PACKAGES = true
+NPM_SYNC_DELAY_SECONDS = true
 NPM_SEARCH_URL = "https://registry.npmjs.org/-/v1/search"
 NPM_TOKEN = true
 NPM_ORG = "slates-integrations"

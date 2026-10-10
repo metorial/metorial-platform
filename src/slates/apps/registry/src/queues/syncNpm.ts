@@ -56,6 +56,29 @@ let fetchBuffer = async (url: string) => {
   return Buffer.from(await response.arrayBuffer());
 };
 
+let configuredPackages = () =>
+  (env.npm.NPM_PACKAGES ?? '')
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean);
+
+let listPackageNames = async () => {
+  let configured = configuredPackages();
+  if (configured.length > 0) return configured.sort();
+  if (!env.npm.NPM_ORG) return [];
+
+  let normalizedOrg = env.npm.NPM_ORG.startsWith('@')
+    ? env.npm.NPM_ORG.slice(1)
+    : env.npm.NPM_ORG;
+
+  let response = await fetchJson<Record<string, 'read-only' | 'read-write' | 'write'>>(
+    `${getNpmRegistryUrl()}/-/org/${encodeURIComponent(normalizedOrg)}/package`
+  );
+  return Object.keys(response).sort();
+};
+
+let isSyncEnabled = () => !!env.npm.NPM_ORG || configuredPackages().length > 0;
+
 export let syncNpmCronProcessor = createCron(
   {
     name: 'sreg/slate/npm/sync',
@@ -63,7 +86,7 @@ export let syncNpmCronProcessor = createCron(
     redisUrl: env.service.REDIS_URL
   },
   async () => {
-    if (!env.npm.NPM_ORG) return;
+    if (!isSyncEnabled()) return;
     await syncNpmPackagesQueue.add({ cursor: 0 }, { id: 'page_0' });
   }
 );
@@ -81,17 +104,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async data => {
-  if (!env.npm.NPM_ORG) return;
-
-  let normalizedOrg = env.npm.NPM_ORG.startsWith('@')
-    ? env.npm.NPM_ORG.slice(1)
-    : env.npm.NPM_ORG;
-
-  let response = await fetchJson<Record<string, 'read-only' | 'read-write' | 'write'>>(
-    `${getNpmRegistryUrl()}/-/org/${encodeURIComponent(normalizedOrg)}/package`
-  );
-
-  let packageNames = Object.keys(response).sort();
+  let packageNames = await listPackageNames();
   let currentPage = packageNames.slice(data.cursor, data.cursor + pageSize);
   if (currentPage.length === 0) return;
 
@@ -100,7 +113,8 @@ export let syncNpmPackagesQueueProcessor = syncNpmPackagesQueue.process(async da
       data: { packageName },
       opts: {
         id: btoa(packageName),
-        delay: 1000 * randomIntBetween(60 * 3, 60 * 7) // Delay because npm's caches can take a bit to update
+        // Delay because npm's caches can take a bit to update
+        delay: 1000 * (env.npm.NPM_SYNC_DELAY_SECONDS ?? randomIntBetween(60 * 3, 60 * 7))
       }
     }))
   );

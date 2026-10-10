@@ -1,4 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import type { SlatesTriggerRoutingMatcher } from '@slates/proto';
 import { db } from '../../db';
 import { env } from '../../env';
@@ -34,13 +34,34 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
             authConfig: { include: { authMethod: true } }
           }
         },
-        schedule: true
+        schedule: true,
+        gateway: true
       }
     });
-    if (!instance || instance.schedule || instance.triggerRegistration.status !== 'active')
+    if (
+      !instance ||
+      instance.schedule ||
+      instance.gateway ||
+      instance.triggerRegistration.status !== 'active'
+    )
       return;
 
     let invocation = instance.triggerGroup.spec.invocation;
+
+    if (invocation.type === 'gateway') {
+      try {
+        await db.triggerRegistrationGateway.create({
+          data: {
+            ...getId('triggerRegistrationGateway'),
+            triggerRegistrationInstanceOid: instance.oid
+          }
+        });
+      } catch (err: any) {
+        if (err.code !== 'P2002') throw err;
+      }
+
+      return;
+    }
 
     if (invocation.type === 'polling') {
       let intervalSeconds = Math.max(
@@ -88,6 +109,9 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
       }
 
       if (matcherCount === 0) {
+        // The secret only holds raw input until processAuthQueue finishes; retry later.
+        if (authConfig?.isProcessing) throw new QueueRetryError();
+
         let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
         if (authConfig) {
           let decrypted = await secretService.DANGEROUSLY_decryptSecret({

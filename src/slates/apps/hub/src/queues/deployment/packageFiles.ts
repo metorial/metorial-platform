@@ -152,7 +152,10 @@ let getFunctionBayConfig = (providerImportPath: string) => ({
     : {})
 });
 
-export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
+export let buildSlateDeploymentFiles = (
+  files: DeploymentArchiveFile[],
+  opts: { npmRegistryUrl?: string } = {}
+) => {
   let packageJsonFile = getArchiveFile(files, 'package.json');
   let packageJson: SlatePackageJson | null = null;
 
@@ -264,6 +267,9 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
         `
     }
   ];
+  if (opts.npmRegistryUrl) {
+    generatedFiles.push({ filename: '.npmrc', content: `registry=${opts.npmRegistryUrl}\n` });
+  }
   let generatedFilenames = new Set(generatedFiles.map(file => file.filename));
 
   return {
