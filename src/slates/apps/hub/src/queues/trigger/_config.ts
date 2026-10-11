@@ -63,6 +63,10 @@ export let TRIGGER_GATEWAY_CONNECT_FAILURES_BEFORE_ERROR = 5;
 // Reconnect when no frame arrives for this long, heartbeat or not.
 export let TRIGGER_GATEWAY_IDLE_TIMEOUT_MS = 2 * 60_000;
 
+// WebSocket pings detect a dead transport; reconnect when a pong is this late.
+export let TRIGGER_GATEWAY_PING_INTERVAL_MS = 30_000;
+export let TRIGGER_GATEWAY_PONG_TIMEOUT_MS = 30_000;
+
 export let TRIGGER_GATEWAY_HEARTBEAT_ACK_RECHECK_MS = 1_000;
 
 // Attempt 0 waits 1-5 s, as Discord requires after an invalid session.

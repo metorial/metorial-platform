@@ -38,6 +38,8 @@ class FakeWebSocket {
   static instances: FakeWebSocket[] = [];
   readyState = 0;
   sent: string[] = [];
+  pings = 0;
+  autoPong = true;
   closedWith: { code: number; reason: string } | null = null;
   listeners = new Map<string, ((event: any) => void)[]>();
 
@@ -59,6 +61,11 @@ class FakeWebSocket {
 
   send(frame: string) {
     this.sent.push(frame);
+  }
+
+  ping() {
+    this.pings++;
+    if (this.autoPong) queueMicrotask(() => this.emit('pong', {}));
   }
 
   close(code = 1000, reason = '') {
@@ -475,6 +482,36 @@ describe('trigger gateway connection', () => {
       await advance(1000);
       expect(socket.closedWith).toBeNull();
       expect(socket.sent).toEqual([BEAT, BEAT]);
+    });
+
+    it('pings the socket and reconnects when a pong does not arrive in time', async () => {
+      heartbeatReplies(null);
+      let socket = await openSocket();
+      socket.autoPong = false;
+
+      await advance(30_000);
+      expect(socket.pings).toBe(1);
+      expect(socket.closedWith).toBeNull();
+
+      await advance(40_000);
+      expect(socket.pings).toBe(1);
+      expect(socket.closedWith).toEqual({ code: 4000, reason: 'ping not answered' });
+      await advance(100);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+    });
+
+    it('keeps pinging a connection that answers', async () => {
+      heartbeatReplies(null);
+      let socket = await openSocket();
+
+      for (let i = 0; i < 5; i++) {
+        socket.emit('message', { data: '{"op":0}' });
+        await advance(20_000);
+      }
+
+      expect(socket.pings).toBeGreaterThanOrEqual(3);
+      expect(socket.closedWith).toBeNull();
+      expect(FakeWebSocket.instances).toHaveLength(1);
     });
 
     it('keeps the legacy any-frame rule when the heartbeat expects no ack', async () => {

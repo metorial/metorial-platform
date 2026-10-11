@@ -21,6 +21,8 @@ import {
   TRIGGER_GATEWAY_IDLE_TIMEOUT_MS,
   TRIGGER_GATEWAY_LEASE_MS,
   TRIGGER_GATEWAY_MAX_BATCH_FRAMES,
+  TRIGGER_GATEWAY_PING_INTERVAL_MS,
+  TRIGGER_GATEWAY_PONG_TIMEOUT_MS,
   TRIGGER_GATEWAY_MAX_CONNECTIONS_PER_WORKER,
   TRIGGER_GATEWAY_MAX_PENDING_FRAMES,
   TRIGGER_GATEWAY_STATE_PERSIST_INTERVAL_MS,
@@ -74,6 +76,12 @@ type CloseNotice = { code: number; reason: string };
 
 type ReceiveInput = { frames: string[]; closed: CloseNotice | null };
 
+// Bun's client WebSocket adds protocol pings and a `pong` event; the DOM type lacks them.
+type GatewaySocket = WebSocket & {
+  ping(): void;
+  addEventListener(type: 'pong', listener: () => void): void;
+};
+
 type HeartbeatConfig = { intervalMs: number; frame: string; expectsAck?: boolean };
 
 type GatewayContext = {
@@ -84,7 +92,7 @@ type GatewayContext = {
 
 export class GatewayConnection {
   #stopped = false;
-  #socket: WebSocket | null = null;
+  #socket: GatewaySocket | null = null;
   #state: any;
   #persistedState = 'null';
   #lastPersistAt = 0;
@@ -99,6 +107,8 @@ export class GatewayConnection {
   #heartbeatUnackedSince: number | null = null;
   #idleTimer: ReturnType<typeof setInterval> | null = null;
   #lastFrameAt = 0;
+  #lastPingAt = 0;
+  #pingSentAt: number | null = null;
   #closeRequested: { reconnect: boolean; reason?: string } | null = null;
 
   constructor(
@@ -247,8 +257,10 @@ export class GatewayConnection {
     this.#heartbeat = null;
     this.#heartbeatUnackedSince = null;
     this.#lastFrameAt = Date.now();
+    this.#lastPingAt = Date.now();
+    this.#pingSentAt = null;
 
-    let socket = new WebSocket(connected.data.url);
+    let socket = new WebSocket(connected.data.url) as GatewaySocket;
     socket.binaryType = 'arraybuffer';
     this.#socket = socket;
     this.#startIdleTimer();
@@ -263,6 +275,10 @@ export class GatewayConnection {
             data: { lastConnectedAt: new Date(), lastErrorCode: null, lastErrorMessage: null }
           })
           .catch(() => {});
+      });
+
+      socket.addEventListener('pong', () => {
+        this.#pingSentAt = null;
       });
 
       socket.addEventListener('message', event => {
@@ -445,7 +461,21 @@ export class GatewayConnection {
         TRIGGER_GATEWAY_IDLE_TIMEOUT_MS,
         (this.#heartbeat?.intervalMs ?? 0) * 2
       );
-      if (Date.now() - this.#lastFrameAt > limit) this.#closeForReconnect('connection idle');
+      let now = Date.now();
+      if (now - this.#lastFrameAt > limit) return this.#closeForReconnect('connection idle');
+
+      if (this.#pingSentAt !== null) {
+        if (now - this.#pingSentAt > TRIGGER_GATEWAY_PONG_TIMEOUT_MS) {
+          this.#closeForReconnect('ping not answered');
+        }
+        return;
+      }
+      let socket = this.#socket;
+      if (socket?.readyState !== WebSocket.OPEN) return;
+      if (now - this.#lastPingAt < TRIGGER_GATEWAY_PING_INTERVAL_MS) return;
+      socket.ping();
+      this.#lastPingAt = now;
+      this.#pingSentAt = now;
     }, TRIGGER_GATEWAY_TICK_MS);
   }
 
