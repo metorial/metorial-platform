@@ -23,11 +23,6 @@ export let env = createValidatedEnv({
     FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: v.number()
   },
 
-  signal: {
-    SIGNAL_API_URL: v.string(),
-    SIGNAL_SENDER_IDENTIFIER: v.string()
-  },
-
   storage: {
     OBJECT_STORAGE_URL: v.string(),
     INVOCATIONS_BUCKET_NAME: v.string(),
