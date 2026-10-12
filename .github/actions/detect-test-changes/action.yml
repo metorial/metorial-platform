@@ -1,0 +1,33 @@
+name: Detect affected backend tests
+description: Select tests using changed files and transitive workspace dependencies
+inputs:
+  tasks:
+    required: true
+outputs:
+  units:
+    value: ${{ steps.changes.outputs.units }}
+  unit-tasks:
+    value: ${{ steps.changes.outputs.unit-tasks }}
+  e2e:
+    value: ${{ steps.changes.outputs.e2e }}
+  matrix:
+    value: ${{ steps.changes.outputs.matrix }}
+  conduit:
+    value: ${{ steps.changes.outputs.conduit }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: '1.4.2'
+    - id: changes
+      shell: bash
+      env:
+        TEST_TASKS: ${{ inputs.tasks }}
+      run: |
+        tooling=src/tooling/test-ci/changes.ts
+        if [ -f oss/package.json ]; then tooling="oss/$tooling"; fi
+        bun "$tooling"

@@ -7,7 +7,29 @@ on:
   pull_request:
 
 jobs:
+  changes:
+    name: Detect affected tests
+    runs-on: ubuntu-latest
+    outputs:
+      units: ${{ steps.changes.outputs.units }}
+      unit-tasks: ${{ steps.changes.outputs.unit-tasks }}
+      e2e: ${{ steps.changes.outputs.e2e }}
+      matrix: ${{ steps.changes.outputs.matrix }}
+      conduit: ${{ steps.changes.outputs.conduit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.GH_TOKEN || github.token }}
+      - uses: ./.github/actions/detect-test-changes
+        id: changes
+        with:
+          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
+
   build-and-test-ts:
+    needs: changes
+    if: needs.changes.outputs.units == 'true'
     name: 'Build and Test TS'
     runs-on: ubuntu-latest
 
@@ -23,7 +45,7 @@ jobs:
         id: tests
         uses: ./.github/actions/setup-test-workspace
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
+          tasks: ${{ needs.changes.outputs.unit-tasks }}
 
       - name: Set up Warp Cache
         uses: ./.github/actions/setup-warp-cache
