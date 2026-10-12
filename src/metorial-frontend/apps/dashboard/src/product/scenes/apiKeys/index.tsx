@@ -29,12 +29,17 @@ import {
   useCopy
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { Table as DashboardTable, type TableStateProviderResult } from '@metorial/table';
+import { useSearchParams } from 'react-router-dom';
+import { getApiKeyPage } from './visibleApiKeys';
 import { useNow } from '@metorial/use-now';
 import { RiClipboardLine, RiMoreLine } from '@remixicon/react';
-import { subDays } from 'date-fns';
+import { getVisibleApiKeys } from './visibleApiKeys';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useApiKeysWithAutoInit } from './useApiKeysWithAutoInit';
+
+let apiKeyHeaders = ['Status', 'Type', 'Name', 'Secret', 'Expires', 'Last Used', ' '];
 
 type ApiKeyType = ApiKeysGetOutput['type'];
 type ApiKeyFilterType = ApiKeysFilter['type'];
@@ -80,7 +85,8 @@ let getApiKeyTypeLabel = (type: ApiKeyType) => {
 export let ApiKeysScene = ({
   filter,
   header,
-  extra
+  extra,
+  tableLayout
 }: {
   filter: ApiKeysFilter;
   header: {
@@ -88,6 +94,7 @@ export let ApiKeysScene = ({
     description: string;
   };
   extra?: React.ReactNode;
+  tableLayout?: 'product';
 }) => {
   let name = getApiKeySceneName(filter.type);
   let apiKeyTypeItems: Array<{ id: ApiKeyType; label: string }> = [
@@ -234,13 +241,25 @@ export let ApiKeysScene = ({
             <Spacer height={15} />
 
             <Dialog.Actions>
-              <Button size="1" variant="soft" onClick={close} type="button">
+              <Button
+                size="1"
+                variant="soft"
+                onClick={close}
+                type="button"
+                disabled={mutator.isLoading}
+              >
                 Cancel
               </Button>
-              <Button size="1" type="submit">
+              <Button
+                size="1"
+                type="submit"
+                loading={mutator.isLoading}
+                success={mutator.isSuccess}
+              >
                 Create
               </Button>
             </Dialog.Actions>
+            <mutator.RenderError />
           </form>
         </Dialog.Wrapper>
       );
@@ -342,13 +361,25 @@ export let ApiKeysScene = ({
             <Spacer height={15} />
 
             <Dialog.Actions>
-              <Button size="1" variant="soft" onClick={close} type="button">
+              <Button
+                size="1"
+                variant="soft"
+                onClick={close}
+                type="button"
+                disabled={mutator.isLoading}
+              >
                 Cancel
               </Button>
-              <Button size="1" type="submit">
+              <Button
+                size="1"
+                type="submit"
+                loading={mutator.isLoading}
+                success={mutator.isSuccess}
+              >
                 Update
               </Button>
             </Dialog.Actions>
+            <mutator.RenderError />
           </form>
         </Dialog.Wrapper>
       );
@@ -384,9 +415,13 @@ export let ApiKeysScene = ({
           <Spacer height={15} />
 
           <Dialog.Actions>
-            <Button onClick={close}>Close</Button>
+            <Button onClick={close} disabled={mutator.isLoading}>
+              Close
+            </Button>
 
             <Button
+              loading={mutator.isLoading}
+              success={mutator.isSuccess}
               onClick={async () => {
                 let [res] = await mutator.mutate({
                   apiKeyId,
@@ -427,6 +462,7 @@ export let ApiKeysScene = ({
               Rotate
             </Button>
           </Dialog.Actions>
+          <mutator.RenderError />
         </Dialog.Wrapper>
       );
     });
@@ -444,8 +480,6 @@ export let ApiKeysScene = ({
         if (res) toast.success(`${name} deleted successfully`);
       }
     });
-
-  let sevenDaysAgo = subDays(new Date(), 7);
 
   return (
     <>
@@ -466,82 +500,13 @@ export let ApiKeysScene = ({
 
             {extra && <div>{extra}</div>}
 
-            <Table
-              headers={['Status', 'Type', 'Name', 'Secret', 'Expires', 'Last Used', ' ']}
-              data={apiKeys.data
-                .filter(
-                  apiKey =>
-                    apiKey.status == 'active' ||
-                    (apiKey.deletedAt && apiKey.deletedAt > sevenDaysAgo) ||
-                    (apiKey.expiresAt && apiKey.expiresAt > sevenDaysAgo)
-                )
-                .map(apiKey => [
-                  <Badge size="1" color={apiKey.status == 'active' ? 'green' : 'gray'}>
-                    {capitalize(apiKey.status)}
-                  </Badge>,
-                  <Badge
-                    size="1"
-                    color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}
-                  >
-                    {getApiKeyTypeLabel(apiKey.type)}
-                  </Badge>,
-                  <Flex gap={3} direction="column">
-                    <Text size="2" weight="strong">
-                      {apiKey.name}
-                    </Text>
-                    <Text size="1" color="gray600" truncate>
-                      {apiKey.description}
-                    </Text>
-                  </Flex>,
-                  <ApiKeySecret apiKey={apiKey} />,
-                  apiKey.expiresAt ? <RenderDate date={apiKey.expiresAt} /> : 'Never',
-                  apiKey.lastUsedAt ? <RenderDate date={apiKey.lastUsedAt} /> : 'Never',
-
-                  org.data?.member?.role == 'admin' ? (
-                    <Menu
-                      items={[
-                        {
-                          id: 'update',
-                          label: 'Update',
-                          disabled: apiKey.status != 'active'
-                        },
-                        {
-                          id: 'delete',
-                          label: 'Delete',
-                          disabled: apiKey.status != 'active'
-                        },
-                        {
-                          id: 'rotate',
-                          label: 'Rotate',
-                          disabled: apiKey.status != 'active'
-                        }
-                      ]}
-                      onItemClick={item => {
-                        if (item == 'update')
-                          updateApiKeyModal({
-                            apiKeyId: apiKey.id
-                          });
-                        if (item == 'delete')
-                          deleteApiKeyModal({
-                            apiKeyId: apiKey.id
-                          });
-                        if (item == 'rotate')
-                          rotateApiKeyModal({
-                            apiKeyId: apiKey.id
-                          });
-                      }}
-                    >
-                      <Button
-                        size="1"
-                        variant="outline"
-                        iconLeft={<RiMoreLine />}
-                        title="Open API key options"
-                      />
-                    </Menu>
-                  ) : (
-                    <div />
-                  )
-                ])}
+            <ApiKeysTable
+              items={apiKeys.data}
+              layout={tableLayout}
+              canManage={org.data?.member?.role === 'admin'}
+              onUpdate={apiKeyId => updateApiKeyModal({ apiKeyId })}
+              onDelete={apiKeyId => deleteApiKeyModal({ apiKeyId })}
+              onRotate={apiKeyId => rotateApiKeyModal({ apiKeyId })}
             />
 
             {apiKeys.data.length == 0 && (
@@ -558,6 +523,132 @@ export let ApiKeysScene = ({
     </>
   );
 };
+
+type ApiKeysTableProps = {
+  items: ApiKeysGetOutput[];
+  compact?: boolean;
+  layout?: 'product';
+  canManage?: boolean;
+  onUpdate?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onRotate?: (id: string) => void;
+};
+
+let getApiKeyTableCells = (
+  apiKey: ApiKeysGetOutput,
+  {
+    compact = false,
+    canManage = false,
+    onUpdate,
+    onDelete,
+    onRotate
+  }: Omit<ApiKeysTableProps, 'items' | 'layout'>
+) => [
+  <Badge size="1" color={apiKey.status == 'active' ? 'green' : 'gray'}>
+    {capitalize(apiKey.status)}
+  </Badge>,
+  <Badge size="1" color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}>
+    {getApiKeyTypeLabel(apiKey.type)}
+  </Badge>,
+  <Flex gap={3} direction="column">
+    <Text size="2" weight="strong">
+      {apiKey.name}
+    </Text>
+    <Text size="1" color="gray600" truncate>
+      {apiKey.description}
+    </Text>
+  </Flex>,
+  ...(!compact ? [<ApiKeySecret apiKey={apiKey} />] : []),
+  apiKey.expiresAt ? <RenderDate date={apiKey.expiresAt} /> : 'Never',
+  apiKey.lastUsedAt ? <RenderDate date={apiKey.lastUsedAt} /> : 'Never',
+
+  ...(!compact
+    ? [
+        canManage ? (
+          <Menu
+            items={[
+              {
+                id: 'update',
+                label: 'Update',
+                disabled: apiKey.status != 'active'
+              },
+              {
+                id: 'delete',
+                label: 'Delete',
+                disabled: apiKey.status != 'active'
+              },
+              {
+                id: 'rotate',
+                label: 'Rotate',
+                disabled: apiKey.status != 'active'
+              }
+            ]}
+            onItemClick={item => {
+              if (item == 'update') onUpdate?.(apiKey.id);
+              if (item == 'delete') onDelete?.(apiKey.id);
+              if (item == 'rotate') onRotate?.(apiKey.id);
+            }}
+          >
+            <Button
+              size="1"
+              variant="outline"
+              iconLeft={<RiMoreLine />}
+              title="Open API key options"
+            />
+          </Menu>
+        ) : (
+          <div />
+        )
+      ]
+    : [])
+];
+
+let apiKeysProductTable = new DashboardTable<ApiKeysTableProps, ApiKeysGetOutput>(
+  'instance-api-keys'
+)
+  .state<ApiKeysTableProps, ApiKeysGetOutput, TableStateProviderResult<ApiKeysGetOutput>>(
+    (props, opts) => {
+      let [searchParams] = useSearchParams();
+      let page = getApiKeyPage(props.items, {
+        search: opts.search,
+        after: searchParams.get('after') ?? undefined,
+        before: searchParams.get('before') ?? undefined
+      });
+
+      return {
+        ...page,
+        isLoading: false,
+        loadNext: () => {},
+        loadPrevious: () => {}
+      };
+    }
+  )
+  .columns(
+    apiKeyHeaders.map((header, index) => ({
+      id: ['status', 'type', 'name', 'secret', 'expires', 'last-used', 'actions'][index],
+      header,
+      isDefault: true,
+      render: (item: ApiKeysGetOutput, props: ApiKeysTableProps) =>
+        getApiKeyTableCells(item, props)[index]
+    }))
+  )
+  .search('Search API Keys')
+  .build();
+
+export let ApiKeysTable = (props: ApiKeysTableProps) =>
+  props.layout === 'product' ? (
+    apiKeysProductTable({
+      ...props,
+      emptyState: 'No API keys found.'
+    })
+  ) : (
+    <Table
+      headers={
+        props.compact ? ['Status', 'Type', 'Name', 'Expires', 'Last Used'] : apiKeyHeaders
+      }
+      data={getVisibleApiKeys(props.items).map(apiKey => getApiKeyTableCells(apiKey, props))}
+    />
+  );
 
 let SecretWrapper = styled('div')`
   max-width: 300px;

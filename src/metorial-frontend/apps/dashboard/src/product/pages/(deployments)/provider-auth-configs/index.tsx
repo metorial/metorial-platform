@@ -1,3 +1,4 @@
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { CodeBlock } from '@metorial/code';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
@@ -42,7 +43,7 @@ export let ProviderAuthConfigOverviewPage = () => {
     let deploymentTargetName = authConfig.data.deployment?.name ?? deploymentTargetId;
 
     return (
-      <>
+      <DetailsOverviewLayout>
         <Attributes
           itemWidth="300px"
           attributes={[
@@ -128,7 +129,7 @@ export let ProviderAuthConfigOverviewPage = () => {
             </Box>
           </>
         ) : null}
-      </>
+      </DetailsOverviewLayout>
     );
   });
 };

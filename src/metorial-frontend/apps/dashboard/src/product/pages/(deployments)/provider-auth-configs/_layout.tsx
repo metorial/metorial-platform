@@ -1,15 +1,16 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout, PageHeader } from '@metorial/layout';
+import { DetailsLayout } from '@metorial/details-layout';
+import { ID } from '@metorial/ui-product';
+import { RiSettings3Line } from '@remixicon/react';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviderAuthConfig,
-  useProviderDeployment
+  useProviderAuthConfig
 } from '@metorial/state';
-import { LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { RenderDate } from '@metorial/ui';
+import { Outlet, useParams } from 'react-router-dom';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
 export let ProviderAuthConfigLayout = () => {
@@ -20,12 +21,6 @@ export let ProviderAuthConfigLayout = () => {
   let { providerAuthConfigId } = useParams();
   let authConfig = useProviderAuthConfig(instance.data?.id, providerAuthConfigId);
 
-  let location = useLocation();
-  let pathname = location.pathname;
-  let deploymentId = authConfig.data?.deployment?.id;
-
-  let deployment = useProviderDeployment(instance.data?.id, deploymentId);
-
   let authConfigPathParams = [
     organization.data,
     project.data,
@@ -33,88 +28,55 @@ export let ProviderAuthConfigLayout = () => {
     authConfig.data?.id ?? providerAuthConfigId
   ] as const;
 
-  let deploymentBreadcrumbParams = [
-    organization.data,
-    project.data,
-    instance.data,
-    deployment.data?.id ?? deploymentId
-  ] as const;
-
   let overviewPath = Paths.instance.providerAuthConfig(...authConfigPathParams);
   let settingsPath = Paths.instance.providerAuthConfig(...authConfigPathParams, 'settings');
 
-  let pagination = deploymentId
-    ? [
-        {
-          label: 'Deployments',
-          href: Paths.instance.providerDeployments(
-            organization.data,
-            project.data,
-            instance.data
-          )
-        },
-        {
-          label: deployment.data?.name ?? '...',
-          href: Paths.instance.providerDeployment(...deploymentBreadcrumbParams)
-        },
-        {
-          label: 'Auth Configs',
-          href: Paths.instance.providerDeployment(
-            ...deploymentBreadcrumbParams,
-            'auth-configs'
-          )
-        },
-        {
-          label: authConfig.data?.name ?? '...',
-          href: overviewPath
-        }
-      ]
-    : [
-        {
-          label: 'Auth Configs',
-          href: Paths.instance.providerAuthConfigs(
-            organization.data,
-            project.data,
-            instance.data
-          )
-        },
-        {
-          label: authConfig.data?.name ?? '...',
-          href: overviewPath
-        }
-      ];
-
   return (
-    <ContentLayout>
-      <PageHeader
-        title={authConfig.data?.name ?? '...'}
-        description={authConfig.data?.description ?? undefined}
-        pagination={pagination}
-      />
-
+    <DetailsLayout
+      entity={authConfig.data}
+      icon={<RiSettings3Line />}
+      breadcrumbs={[
+        {
+          label: 'Auth Configs',
+          to: Paths.instance.providerAuthConfigs(
+            organization.data,
+            project.data,
+            instance.data
+          )
+        },
+        {
+          label: authConfig.data?.name ?? '...',
+          to: overviewPath
+        }
+      ]}
+      tabs={[
+        {
+          label: 'Overview',
+          to: overviewPath
+        },
+        {
+          label: 'Settings',
+          to: settingsPath
+        }
+      ]}
+      attributes={
+        authConfig.data
+          ? [
+              { label: 'ID', value: <ID id={authConfig.data.id} /> },
+              { label: 'Created', value: <RenderDate date={authConfig.data.createdAt} /> }
+            ]
+          : []
+      }
+    >
       <InitialLoadBoundary>
         {renderWithLoader({ authConfig })(() => (
           <>
             <DeletedRecordCallout status={authConfig.data?.status} />
 
-            <LinkTabs
-              current={pathname}
-              links={[
-                {
-                  label: 'Overview',
-                  to: overviewPath
-                },
-                {
-                  label: 'Settings',
-                  to: settingsPath
-                }
-              ]}
-            />
-
             <Outlet />
           </>
         ))}
       </InitialLoadBoundary>
-    </ContentLayout>
+    </DetailsLayout>
   );
 };

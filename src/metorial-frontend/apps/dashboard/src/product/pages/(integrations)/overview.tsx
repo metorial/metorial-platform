@@ -310,7 +310,7 @@ export let IntegrationsOverviewPage = () => {
           stats={[
             {
               label: 'Deployments',
-              to: Paths.organization.instance.providerDeployments(...params),
+              to: Paths.instance.providerDeployments(...params),
               countResources: ['provider_deployments']
             },
             {
@@ -401,7 +401,7 @@ export let IntegrationsOverviewPage = () => {
               {
                 label: 'Deployments',
                 description: 'Provider deployments available to apps and agents.',
-                to: Paths.organization.instance.providerDeployments(...params),
+                to: Paths.instance.providerDeployments(...params),
                 countResources: ['provider_deployments'],
                 action: 'View',
                 tone: 'green'

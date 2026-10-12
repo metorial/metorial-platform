@@ -406,7 +406,7 @@ let ErrorDetails = ({ error }: { error: AuthError }) => {
       label: 'Auth Config',
       value: (
         <DashedLink
-          to={Paths.organization.instance.providerAuthConfig(
+          to={Paths.instance.providerAuthConfig(
             organization.data,
             project.data,
             instance.data,

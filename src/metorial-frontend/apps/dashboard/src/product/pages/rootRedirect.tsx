@@ -22,6 +22,10 @@ export let getHomePathForProductPane = (
     return Paths.instance.integrationsOverview(organization, project, instance);
   }
 
+  if (pane === 'developer') {
+    return Paths.instance.developer(organization, project, instance);
+  }
+
   if (pane === 'skills') {
     return Paths.instance.skills(organization, project, instance);
   }

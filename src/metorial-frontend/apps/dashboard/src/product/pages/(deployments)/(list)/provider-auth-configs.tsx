@@ -320,7 +320,7 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
   ])
   .search('Search auth configs...')
   .link((row, props) =>
-    Paths.organization.instance.providerAuthConfig(
+    Paths.instance.providerAuthConfig(
       props.organization.data,
       props.project.data,
       props.instance.data,

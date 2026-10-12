@@ -62,9 +62,7 @@ export let ProviderSelectionStep = (p: {
   creatingProviderId?: string;
   selectionDisabled?: boolean;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, {
-    updateSearchParams: false
-  });
+  let { search, setSearch, searchQuery } = useSearchFilter(500, { updateSearchParams: false });
   let providerListingsFilter = useMemo(
     (): DashboardInstanceProviderListingsListQuery => ({
       ...p.providerListingsFilter,
@@ -114,21 +112,24 @@ export let ProviderSelectionStep = (p: {
 
 export let showProviderCreationPanel = (
   children: (d: { close: () => void; setWidth: (width: number) => void }) => ReactNode,
-  opts?: { width?: number }
+  opts?: { width?: number; onClose?: () => void }
 ) =>
-  showModal(({ dialogProps, close }) => {
-    let defaultWidth = opts?.width ?? 1100;
-    let [width, setWidth] = useState(defaultWidth);
+  showModal(
+    ({ dialogProps, close }) => {
+      let defaultWidth = opts?.width ?? 1100;
+      let [width, setWidth] = useState(defaultWidth);
 
-    return (
-      <Panel.Wrapper
-        {...dialogProps}
-        width={width}
-        style={{
-          transition: 'width 0.42s cubic-bezier(0.22, 1, 0.36, 1)'
-        }}
-      >
-        {children({ close, setWidth })}
-      </Panel.Wrapper>
-    );
-  });
+      return (
+        <Panel.Wrapper
+          {...dialogProps}
+          width={width}
+          style={{
+            transition: 'width 0.42s cubic-bezier(0.22, 1, 0.36, 1)'
+          }}
+        >
+          {children({ close, setWidth })}
+        </Panel.Wrapper>
+      );
+    },
+    { onClose: opts?.onClose }
+  );

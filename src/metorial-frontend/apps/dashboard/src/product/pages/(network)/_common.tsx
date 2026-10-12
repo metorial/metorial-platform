@@ -107,7 +107,7 @@ export let EnclavesTable = (p: {
           let deployment = deploymentById.get(enclave.providerDeploymentId);
 
           return {
-            href: Paths.organization.instance.providerDeployment(
+            href: Paths.instance.providerDeployment(
               organization.data,
               project.data,
               instance.data,

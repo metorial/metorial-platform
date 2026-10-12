@@ -13,6 +13,7 @@ export {
   productDocumentSlice,
   productExplorerSlice,
   productHomeSlice,
+  productDeveloperSlice,
   productIntegrationsSlice,
   productLogsSlice,
   productSkillsSlice,
