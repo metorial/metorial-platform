@@ -1,5 +1,5 @@
-import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -9,8 +9,8 @@ import {
   useProviderConfig,
   useSessions
 } from '@metorial/state';
-import { Attributes, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
+import { Attributes, Spacer, Text } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
@@ -48,27 +48,6 @@ export let ProviderConfigOverviewPage = () => {
           itemWidth="300px"
           attributes={[
             {
-              label: 'Type',
-              content: config.data.isDefault ? (
-                <Badge color="blue">Default</Badge>
-              ) : (
-                <Badge color="gray">Custom</Badge>
-              )
-            },
-            {
-              label: 'Source',
-              content: config.data.fromVault ? (
-                <SummaryValue>
-                  <Badge color="purple">Vault</Badge>
-                  <Text size="2">
-                    {config.data.fromVault.name ?? config.data.fromVault.id}
-                  </Text>
-                </SummaryValue>
-              ) : (
-                'Direct'
-              )
-            },
-            {
               label: 'Deployment',
               content: config.data.deployment ? (
                 <Link
@@ -90,14 +69,6 @@ export let ProviderConfigOverviewPage = () => {
             {
               label: 'Provider',
               content: provider.data?.name ?? '...'
-            },
-            {
-              label: 'Config ID',
-              content: <ID id={config.data.id} />
-            },
-            {
-              label: 'Updated At',
-              content: <RenderDate date={config.data.updatedAt} />
             }
           ]}
         />

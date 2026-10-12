@@ -1,6 +1,6 @@
-import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { CodeBlock } from '@metorial/code';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -8,13 +8,12 @@ import {
   useCurrentProject,
   useProviderAuthConfig
 } from '@metorial/state';
-import { Attributes, Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Attributes, Spacer, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { ProviderAuthEventsTable } from '../../../scenes/providerAuthEvents/table';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
-import { formatAuthConfigSource, formatAuthConfigType } from './helpers';
 
 let VariantIcon = styled.div`
   width: 24px;
@@ -48,22 +47,6 @@ export let ProviderAuthConfigOverviewPage = () => {
           itemWidth="300px"
           attributes={[
             {
-              label: 'Type',
-              content: formatAuthConfigType(authConfig.data.type)
-            },
-            {
-              label: 'Source',
-              content: formatAuthConfigSource(authConfig.data.source)
-            },
-            {
-              label: 'Status',
-              content: (
-                <Badge color={authConfig.data.status === 'active' ? 'green' : 'gray'}>
-                  {authConfig.data.status}
-                </Badge>
-              )
-            },
-            {
               label: 'Deployment',
               content: deploymentTargetId ? (
                 <Link
@@ -85,10 +68,6 @@ export let ProviderAuthConfigOverviewPage = () => {
             {
               label: 'Auth Method',
               content: authMethodName
-            },
-            {
-              label: 'Updated At',
-              content: <RenderDate date={authConfig.data.updatedAt} />
             }
           ]}
         />

@@ -21,7 +21,7 @@ export let ConfigurationsDeploymentsPage = () => {
     <ContentLayout>
       <PageHeader
         title="Deployments"
-        description="Manage your provider deployments, configs, and authentication."
+        description="Manage the base configuration of your provider deployments."
         actions={
           <Button
             size="2"

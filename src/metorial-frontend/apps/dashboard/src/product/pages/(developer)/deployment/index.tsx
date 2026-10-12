@@ -1,10 +1,10 @@
-import { DetailsOverviewLayout } from '@metorial/details-layout';
-import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { useCurrentInstance, useProvider, useProviderDeployment } from '@metorial/state';
-import { Attributes, Badge, RenderDate, Spacer } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
+import { Attributes, Badge, Spacer } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
+import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
 
 export let ConfigurationsDeploymentOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -20,10 +20,6 @@ export let ConfigurationsDeploymentOverviewPage = () => {
           itemWidth="300px"
           attributes={[
             {
-              label: 'Name',
-              content: deployment.data.name ?? '—'
-            },
-            {
               label: 'Provider',
               content: provider.data?.name ?? deployment.data.providerId
             },
@@ -37,10 +33,6 @@ export let ConfigurationsDeploymentOverviewPage = () => {
               ) : (
                 <Badge color="gray">Latest</Badge>
               )
-            },
-            {
-              label: 'Updated At',
-              content: <RenderDate date={deployment.data.updatedAt!} />
             }
           ]}
         />

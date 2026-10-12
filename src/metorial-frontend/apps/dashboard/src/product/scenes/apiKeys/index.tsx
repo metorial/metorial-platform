@@ -544,9 +544,13 @@ let getApiKeyTableCells = (
     onRotate
   }: Omit<ApiKeysTableProps, 'items' | 'layout'>
 ) => [
-  <Badge size="1" color={apiKey.status == 'active' ? 'green' : 'gray'}>
-    {capitalize(apiKey.status)}
-  </Badge>,
+  ...(!compact
+    ? [
+        <Badge size="1" color={apiKey.status == 'active' ? 'green' : 'gray'}>
+          {capitalize(apiKey.status)}
+        </Badge>
+      ]
+    : []),
   <Badge size="1" color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}>
     {getApiKeyTypeLabel(apiKey.type)}
   </Badge>,
@@ -558,7 +562,7 @@ let getApiKeyTableCells = (
       {apiKey.description}
     </Text>
   </Flex>,
-  ...(!compact ? [<ApiKeySecret apiKey={apiKey} />] : []),
+  <ApiKeySecret apiKey={apiKey} />,
   apiKey.expiresAt ? <RenderDate date={apiKey.expiresAt} /> : 'Never',
   apiKey.lastUsedAt ? <RenderDate date={apiKey.lastUsedAt} /> : 'Never',
 
@@ -644,7 +648,7 @@ export let ApiKeysTable = (props: ApiKeysTableProps) =>
   ) : (
     <Table
       headers={
-        props.compact ? ['Status', 'Type', 'Name', 'Expires', 'Last Used'] : apiKeyHeaders
+        props.compact ? ['Type', 'Name', 'Secret', 'Expires', 'Last Used'] : apiKeyHeaders
       }
       data={getVisibleApiKeys(props.items).map(apiKey => getApiKeyTableCells(apiKey, props))}
     />

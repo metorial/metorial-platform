@@ -13,6 +13,7 @@ let state = vi.hoisted(() => ({
   error: null as string | null,
   loading: false,
   reveal: vi.fn(),
+  revealHook: vi.fn(),
   create: vi.fn(),
   autoInit: vi.fn(() => {
     throw new Error('Developer Home must not initialize API keys');
@@ -38,7 +39,10 @@ vi.mock('@metorial/state', () => ({
     error: state.error,
     createMutator: state.create
   }),
-  useRevealableApiKey: state.reveal,
+  useRevealableApiKey: (props: unknown) => {
+    state.revealHook(props);
+    return { value: undefined, isLoading: false, reveal: state.reveal };
+  },
   useProviderDeployments: (instanceId: string, query: unknown) => {
     state.deploymentQuery(instanceId, query);
     return {
@@ -84,7 +88,9 @@ vi.mock('@metorial/ui', () => ({
   Button: ({ children }: any) => <span>{children}</span>,
   Text: ({ children }: any) => <span>{children}</span>,
   Flex: ({ children }: any) => <span>{children}</span>,
-  RenderDate: ({ date }: any) => <span>{String(date)}</span>
+  RenderDate: ({ date }: any) => <span>{String(date)}</span>,
+  Tooltip: ({ children }: any) => <span>{children}</span>,
+  useCopy: () => ({ copy: vi.fn(), copied: false })
 }));
 
 vi.mock('@metorial/table', () => ({
@@ -175,7 +181,7 @@ describe('Developer Home', () => {
     expect(state.reveal).not.toHaveBeenCalled();
   });
 
-  it('shows at most five metadata rows per resource without secrets or pagination', () => {
+  it('shows at most five rows with shared secret previews, no statuses, and no pagination', () => {
     let records = Array.from({ length: 8 }, (_, i) => ({
       id: `id_${i}`,
       name: `Record ${i}`,
@@ -188,7 +194,9 @@ describe('Developer Home', () => {
     state.keys = records.map(item => ({
       ...item,
       type: 'instance_access_token_secret',
-      secret: 'must-not-render-secret',
+      secretRedacted: 'metorial_...redacted',
+      secretRedactedLong: 'metorial_...redacted-long',
+      revealInfo: item.id === 'id_0' ? { forever: true } : null,
       expiresAt: null,
       lastUsedAt: null
     }));
@@ -197,8 +205,12 @@ describe('Developer Home', () => {
     expect(html.match(/<tbody><tr>/g)).toHaveLength(4);
     expect(html.match(/<tr>/g)).toHaveLength(24);
     expect(html).not.toContain('Record 5');
-    expect(html).not.toContain('must-not-render-secret');
-    expect(html).not.toContain('<th>Secret</th>');
+    expect(html).toContain('<th>Secret</th>');
+    expect(html).toContain('metorial_...redacted');
+    expect(html).toContain('Reveal Secret');
+    expect(html).toContain('metorial_...redacted-long');
+    expect(html).not.toContain('<th>Status</th>');
+    expect(state.revealHook).toHaveBeenCalledTimes(5);
     expect(html).not.toContain('Previous');
     expect(html).not.toContain('Next');
     expect(html).toContain('href="/i/sandbox/configurations/id_0"');

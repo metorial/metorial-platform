@@ -10,7 +10,7 @@ import {
   useProviderConfigs,
   useProviderAuthConfigs
 } from '@metorial/state';
-import { Badge, Button, RenderDate, Text } from '@metorial/ui';
+import { Button, RenderDate, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -50,7 +50,7 @@ let DeploymentsPreview = ({ instanceId }: { instanceId: string }) => {
   return renderWithLoader({ deployments })(({ deployments }) =>
     deployments.data.items.length ? (
       <Table
-        headers={['Name', 'Status', 'Created']}
+        headers={['Name', 'Created']}
         data={deployments.data.items.slice(0, previewLimit).map(item => ({
           href: Paths.instance.providerDeployment(
             organization.data,
@@ -58,11 +58,7 @@ let DeploymentsPreview = ({ instanceId }: { instanceId: string }) => {
             instance.data,
             item.id
           ),
-          data: [
-            item.name ?? item.id,
-            <Badge color={item.status === 'active' ? 'green' : 'gray'}>{item.status}</Badge>,
-            <RenderDate date={item.createdAt} />
-          ]
+          data: [item.name ?? item.id, <RenderDate date={item.createdAt} />]
         }))}
       />
     ) : (
@@ -82,7 +78,7 @@ let ConfigsPreview = ({ instanceId }: { instanceId: string }) => {
   return renderWithLoader({ configs })(({ configs }) =>
     configs.data.items.length ? (
       <Table
-        headers={['Name', 'Status', 'Created']}
+        headers={['Name', 'Created']}
         data={configs.data.items.slice(0, previewLimit).map(item => ({
           href: Paths.instance.providerConfig(
             organization.data,
@@ -90,11 +86,7 @@ let ConfigsPreview = ({ instanceId }: { instanceId: string }) => {
             instance.data,
             item.id
           ),
-          data: [
-            item.name ?? item.id,
-            <Badge color={item.status === 'active' ? 'green' : 'gray'}>{item.status}</Badge>,
-            <RenderDate date={item.createdAt} />
-          ]
+          data: [item.name ?? item.id, <RenderDate date={item.createdAt} />]
         }))}
       />
     ) : (
@@ -114,7 +106,7 @@ let AuthConfigsPreview = ({ instanceId }: { instanceId: string }) => {
   return renderWithLoader({ configs })(({ configs }) =>
     configs.data.items.length ? (
       <Table
-        headers={['Name', 'Status', 'Created']}
+        headers={['Name', 'Created']}
         data={configs.data.items.slice(0, previewLimit).map(item => ({
           href: Paths.instance.providerAuthConfig(
             organization.data,
@@ -122,11 +114,7 @@ let AuthConfigsPreview = ({ instanceId }: { instanceId: string }) => {
             instance.data,
             item.id
           ),
-          data: [
-            item.name ?? item.id,
-            <Badge color={item.status === 'active' ? 'green' : 'gray'}>{item.status}</Badge>,
-            <RenderDate date={item.createdAt} />
-          ]
+          data: [item.name ?? item.id, <RenderDate date={item.createdAt} />]
         }))}
       />
     ) : (
