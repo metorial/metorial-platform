@@ -218,6 +218,10 @@ class UserPasswordServiceImpl {
       await withTransaction(async tdb => {
         let fresh = await tdb.authIntent.findUnique({ where: { oid: current.oid } });
         let freshStep = await tdb.authIntentStep.findUnique({ where: { oid: step.oid } });
+        let freshUser = await tdb.user.findUnique({ where: { oid: current.user!.oid } });
+        let freshCredential = await tdb.userPassword.findUnique({
+          where: { userOid: current.user!.oid }
+        });
         if (
           !fresh ||
           fresh.consumedAt ||
@@ -225,6 +229,14 @@ class UserPasswordServiceImpl {
           fresh.expiresAt <= new Date() ||
           freshStep?.type != 'password' ||
           freshStep.verifiedAt
+        ) {
+          throw new ServiceError(forbiddenError({ message: 'Invalid authentication step.' }));
+        }
+
+        if (
+          !freshUser ||
+          !(await this.canManagePassword(freshUser)) ||
+          (success && (!freshCredential || freshCredential.hash != credential!.hash))
         ) {
           throw new ServiceError(forbiddenError({ message: 'Invalid authentication step.' }));
         }

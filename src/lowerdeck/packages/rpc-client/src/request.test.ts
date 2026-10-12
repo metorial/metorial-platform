@@ -59,6 +59,31 @@ describe('request', () => {
     }
   });
 
+  test('omits token-bearing browser responses when response logging is disabled', async () => {
+    (globalThis as any).window = {};
+    let log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      let body = serialize.decode(init?.body as string) as { calls: { id: string }[] };
+      return createBatchResponse([
+        { id: body.calls[0]!.id, result: { token: 'private-elevation-token' } }
+      ]);
+    });
+    let createClient = (await importClientBuilder('client-private-response'))(
+      await importRequest('client-private-response-request')
+    );
+    let client = createClient<{
+      elevation: { exchange: (input: {}) => Promise<{ token: string }> };
+    }>({
+      endpoint: 'http://localhost/rpc',
+      logResponses: false
+    });
+
+    await expect(client.elevation.exchange({})).resolves.toEqual({
+      token: 'private-elevation-token'
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private-elevation-token');
+  });
+
   test('posts a single call to the direct method route with the raw payload body', async () => {
     let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       expect(String(input)).toBe('http://localhost/rpc/health.check');

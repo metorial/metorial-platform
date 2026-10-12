@@ -1285,6 +1285,14 @@ class AuthServiceImpl {
       db.authDevice.findUnique({ where: { oid: d.authIntent.deviceOid } })
     ]);
     if (!user || !device) throw new Error('WTF - Invalid auth intent state');
+    if (
+      d.authIntent.type == 'password' &&
+      !(await userPasswordService.canManagePassword(user))
+    ) {
+      throw new ServiceError(
+        forbiddenError({ message: 'Password login is unavailable for this account.' })
+      );
+    }
     let account = d.authIntent.accountOid
       ? await db.account.findUnique({ where: { oid: d.authIntent.accountOid } })
       : null;

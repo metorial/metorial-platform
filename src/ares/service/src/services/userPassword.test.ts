@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db, password, captcha, audit } = vi.hoisted(() => ({
   db: {
-    user: { findFirst: vi.fn() },
+    user: { findFirst: vi.fn(), findUnique: vi.fn() },
     app: { findUnique: vi.fn() },
     account: { findUnique: vi.fn() },
     userIdentity: { findFirst: vi.fn() },
@@ -62,6 +62,7 @@ beforeEach(() => {
     steps: [step]
   };
   db.user.findFirst.mockResolvedValue(user);
+  db.user.findUnique.mockResolvedValue(user);
   db.app.findUnique.mockResolvedValue({ disableEmailAuth: false });
   db.account.findUnique.mockResolvedValue(null);
   db.userIdentity.findFirst.mockResolvedValue(null);
@@ -223,6 +224,32 @@ describe('Ares optional passwords', () => {
       expect.objectContaining({ data: expect.objectContaining({ status: 'failure' }) })
     );
     expect(db.authIntent.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a credential replaced while verification is in progress', async () => {
+    db.userPassword.findUnique
+      .mockResolvedValueOnce({ hash: 'hash_1' })
+      .mockResolvedValueOnce({ hash: 'replacement_hash' });
+    await expect(
+      userPasswordService.verify({
+        authIntentId: intent.id,
+        stepId: step.id,
+        password: 'My passphrase 1!'
+      })
+    ).rejects.toMatchObject({ data: { code: 'forbidden' } });
+    expect(db.authIntent.update).not.toHaveBeenCalled();
+  });
+
+  it('rechecks user eligibility before committing verification', async () => {
+    db.user.findUnique.mockResolvedValueOnce({ ...user, status: 'deleted' });
+    await expect(
+      userPasswordService.verify({
+        authIntentId: intent.id,
+        stepId: step.id,
+        password: 'My passphrase 1!'
+      })
+    ).rejects.toMatchObject({ data: { code: 'forbidden' } });
+    expect(db.authIntentVerificationAttempt.create).not.toHaveBeenCalled();
   });
 
   it.each([5, 10])('rejects attempts at failure limit %i before hashing', async limit => {

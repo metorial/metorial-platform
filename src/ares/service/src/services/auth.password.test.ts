@@ -1,24 +1,38 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, userService, passwordService, emails, successfulLogin, device, captcha } = vi.hoisted(() => ({
-  db: {
-    user: { findFirst: vi.fn(), findUnique: vi.fn() },
-    userPassword: { findUnique: vi.fn() },
-    account: { findUnique: vi.fn() }, accountDomain: { findUnique: vi.fn() }, app: { findUnique: vi.fn() },
-    ssoConnection: { findMany: vi.fn() }, authDevice: { findUnique: vi.fn() },
-    authIntent: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-    authIntentStep: { create: vi.fn(), update: vi.fn() }, authIntentCode: { create: vi.fn() },
-    authAttempt: { create: vi.fn() }
-  },
-  userService: { findByEmailSafe: vi.fn(), linkToAccount: vi.fn() },
-  passwordService: { canManagePassword: vi.fn(), verify: vi.fn() },
-  emails: { send: vi.fn() }, successfulLogin: { send: vi.fn() },
-  device: { checkIfUserIsLoggedIn: vi.fn() }, captcha: { enabled: false, verify: vi.fn() }
-}));
+let { db, userService, passwordService, emails, successfulLogin, device, captcha } =
+  vi.hoisted(() => ({
+    db: {
+      user: { findFirst: vi.fn(), findUnique: vi.fn() },
+      userPassword: { findUnique: vi.fn() },
+      account: { findUnique: vi.fn() },
+      accountDomain: { findUnique: vi.fn() },
+      app: { findUnique: vi.fn() },
+      ssoConnection: { findMany: vi.fn() },
+      authDevice: { findUnique: vi.fn() },
+      authIntent: {
+        create: vi.fn(),
+        findUnique: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn()
+      },
+      authIntentStep: { create: vi.fn(), update: vi.fn() },
+      authIntentCode: { create: vi.fn() },
+      authAttempt: { create: vi.fn() }
+    },
+    userService: { findByEmailSafe: vi.fn(), linkToAccount: vi.fn() },
+    passwordService: { canManagePassword: vi.fn(), verify: vi.fn() },
+    emails: { send: vi.fn() },
+    successfulLogin: { send: vi.fn() },
+    device: { checkIfUserIsLoggedIn: vi.fn() },
+    captcha: { enabled: false, verify: vi.fn() }
+  }));
 
 vi.mock('../db', () => ({ db, withTransaction: (fn: (db: unknown) => unknown) => fn(db) }));
 vi.mock('../id', () => ({ getId: (name: string) => ({ oid: 20n, id: `${name}_1` }) }));
-vi.mock('../lib/passwordLock', () => ({ withUserPasswordLock: (_: string, fn: () => unknown) => fn() }));
+vi.mock('../lib/passwordLock', () => ({
+  withUserPasswordLock: (_: string, fn: () => unknown) => fn()
+}));
 vi.mock('../lib/turnstile', () => ({ turnstileVerifier: captcha }));
 vi.mock('../email/authCode', () => ({ sendAuthCodeEmail: emails }));
 vi.mock('../email/successfulLogin', () => ({ successfulLoginVerification: successfulLogin }));
@@ -29,15 +43,32 @@ vi.mock('./userPassword', () => ({ userPasswordService: passwordService }));
 vi.mock('./device', () => ({ deviceService: device }));
 vi.mock('./auditLog', () => ({ auditLogService: { log: vi.fn() } }));
 vi.mock('./authBlock', () => ({ authBlockService: { registerBlock: vi.fn() } }));
-vi.mock('./accessGroup', () => ({ accessGroupService: { checkAppAccess: vi.fn(async () => true) } }));
+vi.mock('./accessGroup', () => ({
+  accessGroupService: { checkAppAccess: vi.fn(async () => true) }
+}));
 vi.mock('./sso/domainPolicy', () => ({ ssoDomainPolicyService: {} }));
-vi.mock('@lowerdeck/service', () => ({ Service: { create: (_: string, factory: () => unknown) => ({ build: factory }) } }));
+vi.mock('@lowerdeck/service', () => ({
+  Service: { create: (_: string, factory: () => unknown) => ({ build: factory }) }
+}));
 
 import { authService } from './auth';
 
 let app = { oid: 1n, id: 'app_1', disableEmailAuth: false } as any;
-let user = { oid: 2n, id: 'user_1', appOid: app.oid, email: 'primary@example.com', status: 'active', signupMethod: 'email' } as any;
-let input = { app, email: 'alias@example.com', context: { ip: '127.0.0.1', ua: 'test' }, redirectUrl: 'https://example.com/callback', device: { oid: 3n } as any };
+let user = {
+  oid: 2n,
+  id: 'user_1',
+  appOid: app.oid,
+  email: 'primary@example.com',
+  status: 'active',
+  signupMethod: 'email'
+} as any;
+let input = {
+  app,
+  email: 'alias@example.com',
+  context: { ip: '127.0.0.1', ua: 'test' },
+  redirectUrl: 'https://example.com/callback',
+  device: { oid: 3n } as any
+};
 let intent: any;
 let step: any;
 
@@ -64,10 +95,20 @@ beforeEach(() => {
     if (where.expiresAt && (intent.expiresAt <= new Date() || intent.consumedAt)) return null;
     return intent;
   });
-  db.authIntent.update.mockImplementation(async ({ data }) => { Object.assign(intent, data); return intent; });
+  db.authIntent.update.mockImplementation(async ({ data }) => {
+    Object.assign(intent, data);
+    return intent;
+  });
   db.authIntent.updateMany.mockResolvedValue({ count: 1 });
-  db.authIntentStep.create.mockImplementation(async ({ data }) => { step = { ...data, verifiedAt: null, codes: [] }; intent.steps = [step]; return step; });
-  db.authIntentStep.update.mockImplementation(async ({ data }) => { Object.assign(step, data); return step; });
+  db.authIntentStep.create.mockImplementation(async ({ data }) => {
+    step = { ...data, verifiedAt: null, codes: [] };
+    intent.steps = [step];
+    return step;
+  });
+  db.authIntentStep.update.mockImplementation(async ({ data }) => {
+    Object.assign(step, data);
+    return step;
+  });
   db.authIntentCode.create.mockImplementation(async ({ data }) => data);
   db.authDevice.findUnique.mockResolvedValue(input.device);
   db.authAttempt.create.mockImplementation(async ({ data }) => data);
@@ -77,21 +118,28 @@ describe('password-first Ares email flow', () => {
   it('creates a password challenge without sending an email, including verified aliases', async () => {
     let result = await authService.authWithEmail(input);
     expect(result.type).toBe('auth_intent');
-    expect(intent).toMatchObject({ type: 'password', userOid: user.oid, identifier: input.email });
+    expect(intent).toMatchObject({
+      type: 'password',
+      userOid: user.oid,
+      identifier: input.email
+    });
     expect(step).toMatchObject({ type: 'password', email: input.email });
     expect(emails.send).not.toHaveBeenCalled();
     expect(userService.findByEmailSafe).toHaveBeenCalledWith({ email: input.email, app });
   });
 
-  it.each(['signup', 'no_password', 'policy'])('preserves the email-code flow for %s', async mode => {
-    if (mode == 'signup') userService.findByEmailSafe.mockResolvedValue(null);
-    if (mode == 'no_password') db.userPassword.findUnique.mockResolvedValue(null);
-    if (mode == 'policy') passwordService.canManagePassword.mockResolvedValue(false);
-    await authService.authWithEmail(input);
-    expect(intent.type).toBe('email_code');
-    expect(step.type).toBe('email_code');
-    expect(emails.send).toHaveBeenCalledTimes(1);
-  });
+  it.each(['signup', 'no_password', 'policy'])(
+    'preserves the email-code flow for %s',
+    async mode => {
+      if (mode == 'signup') userService.findByEmailSafe.mockResolvedValue(null);
+      if (mode == 'no_password') db.userPassword.findUnique.mockResolvedValue(null);
+      if (mode == 'policy') passwordService.canManagePassword.mockResolvedValue(false);
+      await authService.authWithEmail(input);
+      expect(intent.type).toBe('email_code');
+      expect(step.type).toBe('email_code');
+      expect(emails.send).toHaveBeenCalledTimes(1);
+    }
+  );
 
   it('preserves the authenticated-device shortcut', async () => {
     device.checkIfUserIsLoggedIn.mockResolvedValue(true);
@@ -104,7 +152,12 @@ describe('password-first Ares email flow', () => {
   it('switches to email-code verification exactly once and leaves password limits behind', async () => {
     await authService.authWithEmail(input);
     passwordService.verify.mockRejectedValueOnce(new Error('Password attempts exceeded'));
-    await expect(authService.verifyAuthIntentStep({ step, input: { type: 'password', password: 'incorrect' } })).rejects.toThrow('Password attempts exceeded');
+    await expect(
+      authService.verifyAuthIntentStep({
+        step,
+        input: { type: 'password', password: 'incorrect' }
+      })
+    ).rejects.toThrow('Password attempts exceeded');
     await authService.requestAuthIntentEmailCode({ authIntent: intent, step });
     await authService.requestAuthIntentEmailCode({ authIntent: intent, step });
     expect(intent.type).toBe('email_code');
@@ -115,7 +168,9 @@ describe('password-first Ares email flow', () => {
   it('rejects expired or consumed fallback requests', async () => {
     await authService.authWithEmail(input);
     intent.expiresAt = new Date(0);
-    await expect(authService.requestAuthIntentEmailCode({ authIntent: intent, step })).rejects.toHaveProperty('data');
+    await expect(
+      authService.requestAuthIntentEmailCode({ authIntent: intent, step })
+    ).rejects.toHaveProperty('data');
     expect(emails.send).not.toHaveBeenCalled();
   });
 
@@ -124,14 +179,29 @@ describe('password-first Ares email flow', () => {
     intent.verifiedAt = new Date();
     let result = await authService.completeAuthIntent({ authIntent: intent, app });
     expect(result.loginMethod).toBe('password');
-    expect(successfulLogin.send).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ method: 'Password' }) }));
-    expect(db.authIntent.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ consumedAt: null, expiresAt: { gt: expect.any(Date) } }) }));
+    expect(successfulLogin.send).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: 'Password' }) })
+    );
+    expect(db.authIntent.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          consumedAt: null,
+          expiresAt: { gt: expect.any(Date) }
+        })
+      })
+    );
   });
 
   it('cannot create a new user from a password intent', async () => {
     await authService.authWithEmail(input);
     intent.verifiedAt = new Date();
     intent.userOid = null;
-    await expect(authService.createUserForAuthIntent({ authIntent: intent, app, input: { firstName: 'Test', lastName: 'User', acceptedTerms: true } })).rejects.toHaveProperty('data');
+    await expect(
+      authService.createUserForAuthIntent({
+        authIntent: intent,
+        app,
+        input: { firstName: 'Test', lastName: 'User', acceptedTerms: true }
+      })
+    ).rejects.toHaveProperty('data');
   });
 });

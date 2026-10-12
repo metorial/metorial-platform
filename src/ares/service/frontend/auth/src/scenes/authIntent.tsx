@@ -153,9 +153,11 @@ let PasswordIntentStep = (p: {
   stepId: string;
   email: string | null;
   loading: boolean;
+  success: boolean;
   error?: string;
   requestCode: () => void;
   requestingCode: boolean;
+  codeSuccess: boolean;
   codeError?: string;
   captchaReady: boolean;
 }) => {
@@ -195,6 +197,7 @@ let PasswordIntentStep = (p: {
           fullWidth
           type="submit"
           loading={p.loading}
+          success={p.success}
           disabled={p.requestingCode || !p.captchaReady}
         >
           Sign In
@@ -205,6 +208,7 @@ let PasswordIntentStep = (p: {
           variant="outline"
           type="button"
           loading={p.requestingCode}
+          success={p.codeSuccess}
           disabled={p.loading}
           onClick={p.requestCode}
         >
@@ -220,12 +224,14 @@ let AuthIntentStep = ({
   step,
   verify,
   verifyLoading,
+  verifySuccess,
   verifyError,
   authIntent,
   resendStep,
   resending,
   requestCode,
   requestingCode,
+  codeSuccess,
   codeError
 }: {
   step: IAuthIntent['steps'][0] | undefined | null;
@@ -235,11 +241,13 @@ let AuthIntentStep = ({
     stepId: string;
   }) => void;
   verifyLoading: boolean;
+  verifySuccess: boolean;
   verifyError?: string;
   resendStep: () => void;
   resending: boolean;
   requestCode: () => void;
   requestingCode: boolean;
+  codeSuccess: boolean;
   codeError?: string;
 }) => {
   let lastCode = useMemo(() => {
@@ -273,9 +281,11 @@ let AuthIntentStep = ({
         email={step.email}
         verify={verify}
         loading={verifyLoading}
+        success={verifySuccess}
         error={verifyError}
         requestCode={requestCode}
         requestingCode={requestingCode}
+        codeSuccess={codeSuccess}
         codeError={codeError}
         captchaReady={!authIntent.captcha || authIntent.captcha.status == 'complete'}
       />
@@ -428,11 +438,13 @@ export let AuthIntentScene = (p: {
         step={authIntent.data.status == 'needs_verification' ? currentStep : null}
         verify={verify.mutate}
         verifyLoading={verify.isLoading}
+        verifySuccess={verify.isSuccess}
         verifyError={verify.error?.message}
         resendStep={() => resendStep.mutate({ stepId: currentStep.id })}
         resending={resendStep.isLoading}
         requestCode={() => requestCode.mutate({ stepId: currentStep.id })}
         requestingCode={requestCode.isLoading}
+        codeSuccess={requestCode.isSuccess}
         codeError={requestCode.error?.message}
         authIntent={authIntent.data}
       />
