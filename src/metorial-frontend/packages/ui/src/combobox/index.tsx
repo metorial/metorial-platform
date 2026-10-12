@@ -435,6 +435,8 @@ let ComboboxInner = <TData,>({
   let [animateArrowIn, setAnimateArrowIn] = useState(false);
   let dialog = useDialogContext();
   let showLoading = open && !!isLoading;
+  let hidePopover = !!isLoading && flatItems.length === 0;
+
   let clearSelectedLabelSearch = () => {
     if (search !== selectedLabel) return;
     setSearch('');
@@ -524,11 +526,11 @@ let ComboboxInner = <TData,>({
           onSearchChange?.(nextValue);
         }}
         open={open}
-        onOpenChange={(nextOpen: boolean) => {
+        onOpenChange={(nextOpen, eventDetails) => {
           setOpen(nextOpen);
 
           if (nextOpen) {
-            clearSelectedLabelSearch();
+            if (eventDetails.reason !== 'input-change') clearSelectedLabelSearch();
             return;
           }
 
@@ -586,7 +588,10 @@ let ComboboxInner = <TData,>({
         </InputGroup>
 
         <BaseCombobox.Portal container={dialog?.contentRef}>
-          <Positioner sideOffset={6} style={{ zIndex }}>
+          <Positioner
+            sideOffset={6}
+            style={{ zIndex, display: hidePopover ? 'none' : undefined }}
+          >
             <Popup>
               <List>
                 {normalizedGroups.map((group, groupIndex) =>
@@ -691,7 +696,13 @@ let ProvidedCombobox = <TData,>({
       status: liveResult.status,
       empty: liveResult.empty
     });
-  }, [liveResult.empty, liveResult.isLoading, liveResult.items, liveResult.status, resolvedQueryKey]);
+  }, [
+    liveResult.empty,
+    liveResult.isLoading,
+    liveResult.items,
+    liveResult.status,
+    resolvedQueryKey
+  ]);
 
   let cachedResult = cacheRef.current.get(activeCacheKey);
   let result =
