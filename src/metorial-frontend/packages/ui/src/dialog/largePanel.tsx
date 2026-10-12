@@ -2,6 +2,7 @@ import * as RadixDialogDialog from '@radix-ui/react-dialog';
 import { RiCloseLine } from '@remixicon/react';
 import React, { useRef } from 'react';
 import { styled } from 'styled-components';
+import { useModalAutoFocus } from './focus';
 import {
   DialogProvider,
   preventDialogDismissForSelectInteraction,
@@ -50,6 +51,7 @@ export let LargePanelDialog = {
   }) => {
     let zIndex = useDialogZIndex(isOpen);
     let contentRef = useRef<HTMLDivElement | null>(null);
+    let autoFocus = useModalAutoFocus(contentRef, isOpen);
 
     return (
       <DialogProvider value={{ isOpen, onOpenChange, autoCloseOnSubmit, contentRef }}>
@@ -58,7 +60,8 @@ export let LargePanelDialog = {
             <Overlay style={{ zIndex }} />
 
             <PanelContent
-              ref={contentRef}
+              ref={autoFocus.ref}
+              onOpenAutoFocus={autoFocus.onOpenAutoFocus}
               onPointerDownOutside={preventDialogDismissForSelectInteraction}
               onInteractOutside={preventDialogDismissForSelectInteraction}
               onFocusOutside={preventDialogDismissForSelectInteraction}

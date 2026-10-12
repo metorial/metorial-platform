@@ -3,6 +3,7 @@ import { RiCloseLine } from '@remixicon/react';
 import React, { useRef } from 'react';
 import { styled } from 'styled-components';
 import { theme } from '../theme';
+import { useModalAutoFocus } from './focus';
 import {
   DialogProvider,
   preventDialogDismissForSelectInteraction,
@@ -82,6 +83,7 @@ export let Dialog = {
   }) => {
     let zIndex = useDialogZIndex(isOpen);
     let contentRef = useRef<HTMLDivElement | null>(null);
+    let autoFocus = useModalAutoFocus(contentRef, isOpen);
 
     return (
       <DialogProvider value={{ isOpen, onOpenChange, autoCloseOnSubmit, contentRef }}>
@@ -90,7 +92,8 @@ export let Dialog = {
             <Overlay style={{ zIndex }} />
 
             <Wrapper
-              ref={contentRef}
+              ref={autoFocus.ref}
+              onOpenAutoFocus={autoFocus.onOpenAutoFocus}
               onPointerDownOutside={preventDialogDismissForSelectInteraction}
               onInteractOutside={preventDialogDismissForSelectInteraction}
               onFocusOutside={preventDialogDismissForSelectInteraction}
