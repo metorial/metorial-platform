@@ -72,3 +72,17 @@ test('unit selection follows Turbo input exclusions and external config globs', 
     expect(taskInputsChanged([path], task)).toBe(true);
   }
 });
+
+test('documentation exclusions preserve README test fixtures', async () => {
+  let { testRelevantPaths } = await import('./changes');
+  expect(
+    testRelevantPaths(
+      [
+        'src/forge/service/README.md',
+        'src/forge/service/fixtures/README.md',
+        'src/tooling/test-ci/README.md'
+      ],
+      ['src/forge/service', 'src/tooling/test-ci']
+    )
+  ).toEqual(['src/forge/service/fixtures/README.md']);
+});

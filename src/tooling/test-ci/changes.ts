@@ -1,5 +1,5 @@
 import { appendFileSync, readFileSync } from 'node:fs';
-import { dirname, normalize, join, relative } from 'node:path';
+import { dirname, normalize, join, relative, basename } from 'node:path';
 
 export let suites = [
   { name: 'forge', package: '@metorial/forge', services: ['forge'] },
@@ -28,6 +28,13 @@ export let affected = (paths: string[], directories: string[], global: boolean) 
   paths.some(path =>
     directories.some(directory => path === directory || path.startsWith(`${directory}/`))
   );
+
+export let testRelevantPaths = (paths: string[], documentationDirectories: string[]) => {
+  let directories = new Set(documentationDirectories);
+  return paths.filter(
+    path => !(/^README[^/]*$/.test(basename(path)) && directories.has(dirname(path)))
+  );
+};
 
 export let taskInputsChanged = (
   paths: string[],
@@ -100,6 +107,17 @@ if (import.meta.main) {
         });
     }
   }
+  paths = testRelevantPaths(paths, [
+    '.',
+    prefix.slice(0, -1) || '.',
+    ...[...packages.values()].map(value => value.directory),
+    `${prefix}src/tooling/test-ci`,
+    `${prefix}src/tooling/docker-build`,
+    ...suites.flatMap(suite => suite.services.map(service => `${prefix}src/${service}`)),
+    ...paths
+      .filter(path => /^((oss\/)?\.github\/actions\/[^/]+\/README[^/]*)$/.test(path))
+      .map(dirname)
+  ]);
   let closure = (name: string, seen = new Set<string>()): string[] => {
     if (seen.has(name)) return [];
     seen.add(name);
@@ -181,13 +199,13 @@ if (import.meta.main) {
   }
   let selected = suites.filter(suite =>
     affected(
-      paths.filter(path => !/(^|\/)README[^/]*$/.test(path)),
+      paths,
       [...closure(suite.package), ...suite.services.map(service => `${prefix}src/${service}`)],
       e2eGlobal
     )
   );
   let conduit = affected(
-    paths.filter(path => !/(^|\/)README[^/]*$/.test(path)),
+    paths,
     closure('@metorial-subspace/conduit'),
     global || paths.includes(`${prefix}.github/workflows/conduit-integration.yml`)
   );
