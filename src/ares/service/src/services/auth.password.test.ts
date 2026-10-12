@@ -21,7 +21,11 @@ let { db, userService, passwordService, emails, successfulLogin, device, captcha
       authAttempt: { create: vi.fn() }
     },
     userService: { findByEmailSafe: vi.fn(), linkToAccount: vi.fn() },
-    passwordService: { canManagePassword: vi.fn(), verify: vi.fn() },
+    passwordService: {
+      canManagePassword: vi.fn(),
+      verify: vi.fn(),
+      assertVerifiedPassword: vi.fn()
+    },
     emails: { send: vi.fn() },
     successfulLogin: { send: vi.fn() },
     device: { checkIfUserIsLoggedIn: vi.fn() },
@@ -86,6 +90,7 @@ beforeEach(() => {
   device.checkIfUserIsLoggedIn.mockResolvedValue(false);
   passwordService.canManagePassword.mockResolvedValue(true);
   passwordService.verify.mockResolvedValue(undefined);
+  passwordService.assertVerifiedPassword.mockResolvedValue(undefined);
   db.userPassword.findUnique.mockResolvedValue({ hash: 'never_exposed' });
   db.authIntent.create.mockImplementation(async ({ data }) => {
     intent = { ...data, steps: [], userIdentity: null, verifiedAt: null, consumedAt: null };
@@ -190,6 +195,82 @@ describe('password-first Ares email flow', () => {
         })
       })
     );
+    expect(db.authAttempt.create.mock.invocationCallOrder[0]).toBeLessThan(
+      successfulLogin.send.mock.invocationCallOrder[0]!
+    );
+    expect(passwordService.assertVerifiedPassword).toHaveBeenCalledWith({
+      userOid: user.oid,
+      authIntentOid: intent.oid
+    });
+    expect(passwordService.assertVerifiedPassword.mock.invocationCallOrder[0]).toBeLessThan(
+      db.authIntent.updateMany.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('rejects a changed credential before consuming the intent or sending a success email', async () => {
+    await authService.authWithEmail(input);
+    intent.verifiedAt = new Date();
+    passwordService.assertVerifiedPassword.mockRejectedValueOnce(
+      new Error('Password replaced')
+    );
+
+    await expect(authService.completeAuthIntent({ authIntent: intent, app })).rejects.toThrow(
+      'Password replaced'
+    );
+    expect(db.authIntent.updateMany).not.toHaveBeenCalled();
+    expect(db.authAttempt.create).not.toHaveBeenCalled();
+    expect(successfulLogin.send).not.toHaveBeenCalled();
+  });
+
+  it('rejects expired verified intents before creating an attempt or sending a success email', async () => {
+    await authService.authWithEmail(input);
+    intent.verifiedAt = new Date();
+    intent.expiresAt = new Date(0);
+
+    await expect(
+      authService.completeAuthIntent({ authIntent: intent, app })
+    ).rejects.toHaveProperty('data');
+    expect(db.authAttempt.create).not.toHaveBeenCalled();
+    expect(successfulLogin.send).not.toHaveBeenCalled();
+  });
+
+  it('does not send a success email when another completion has consumed the intent', async () => {
+    await authService.authWithEmail(input);
+    intent.verifiedAt = new Date();
+    db.authIntent.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(
+      authService.completeAuthIntent({ authIntent: intent, app })
+    ).rejects.toHaveProperty('data');
+    expect(db.authAttempt.create).not.toHaveBeenCalled();
+    expect(successfulLogin.send).not.toHaveBeenCalled();
+  });
+
+  it('does not send a success email when attempt creation fails', async () => {
+    await authService.authWithEmail(input);
+    intent.verifiedAt = new Date();
+    db.authAttempt.create.mockRejectedValueOnce(new Error('Attempt creation failed'));
+
+    await expect(authService.completeAuthIntent({ authIntent: intent, app })).rejects.toThrow(
+      'Attempt creation failed'
+    );
+    expect(successfulLogin.send).not.toHaveBeenCalled();
+  });
+
+  it('returns the completed attempt even if the success email cannot be delivered', async () => {
+    await authService.authWithEmail(input);
+    intent.verifiedAt = new Date();
+    successfulLogin.send.mockRejectedValueOnce(new Error('Email delivery failed'));
+    let log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      await expect(
+        authService.completeAuthIntent({ authIntent: intent, app })
+      ).resolves.toMatchObject({ loginMethod: 'password' });
+      expect(log).toHaveBeenCalledWith('Unable to send the successful login email.');
+    } finally {
+      log.mockRestore();
+    }
   });
 
   it('cannot create a new user from a password intent', async () => {

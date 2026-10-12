@@ -83,7 +83,8 @@ model UserPassword {
   userOid BigInt @unique
   user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
 
-  hash String
+  hash    String
+  version String @default(dbgenerated("(gen_random_uuid())::text"))
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

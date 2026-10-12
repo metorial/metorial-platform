@@ -10,7 +10,6 @@ import {
   Spacer,
   Switch
 } from '@metorial-io/ui';
-import { differenceInMinutes } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -20,6 +19,8 @@ import { AuthLayout } from '../components/layout';
 import { useNonNullable } from '../hooks/useNonNullable';
 import { authIntentState } from '../state/authIntent';
 import type { IAuthIntent } from '../state/client';
+
+let resendCooldownMs = 30 * 1000;
 
 let FullSpinner = styled.div`
   height: 100dvh;
@@ -251,27 +252,20 @@ let AuthIntentStep = ({
   codeError?: string;
 }) => {
   let lastCode = useMemo(() => {
-    return step?.codes.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+    return step?.codes
+      .slice()
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
   }, [step]);
 
-  let [canResend, setCanResend] = useState(false);
-  let [sentAt, setSentAt] = useState(() => lastCode?.createdAt ?? new Date());
-
-  useEffect(() => {
-    if (lastCode) {
-      setSentAt(lastCode.createdAt);
-
-      if (Math.abs(Date.now() - lastCode.createdAt.getTime()) > 1000 * 60) {
-        setCanResend(true);
-      }
-    }
-  }, [lastCode?.createdAt.getTime()]);
+  let [now, setNow] = useState(Date.now);
+  let canResend =
+    step?.type == 'email_code' &&
+    !!lastCode &&
+    now - lastCode.createdAt.getTime() >= resendCooldownMs;
 
   useInterval(
-    () => {
-      if (Math.abs(differenceInMinutes(new Date(), sentAt)) > 1) setCanResend(true);
-    },
-    !canResend ? 1000 : null
+    () => setNow(Date.now()),
+    step?.type == 'email_code' && lastCode && !canResend ? 1000 : null
   );
 
   if (step?.type == 'password') {
@@ -317,11 +311,7 @@ let AuthIntentStep = ({
           <>
             <Spacer size={15} />
             <LinkButton
-              onClick={() => {
-                resendStep();
-                setCanResend(false);
-                setSentAt(new Date());
-              }}
+              onClick={resendStep}
               disabled={verifyLoading || resending}
               style={{ opacity: 0.5, fontSize: 12, textDecoration: 'none' }}
             >
@@ -362,6 +352,8 @@ export let AuthIntentScene = (p: {
   let currentStep = useNonNullable(
     authIntent.data?.steps.find(step => step.status == 'current')
   );
+  let verificationMatchesStep =
+    verify.input?.stepId == currentStep?.id && verify.input?.input.type == currentStep?.type;
 
   let completedRef = useRef(false);
 
@@ -438,8 +430,8 @@ export let AuthIntentScene = (p: {
         step={authIntent.data.status == 'needs_verification' ? currentStep : null}
         verify={verify.mutate}
         verifyLoading={verify.isLoading}
-        verifySuccess={verify.isSuccess}
-        verifyError={verify.error?.message}
+        verifySuccess={verificationMatchesStep && verify.isSuccess}
+        verifyError={verificationMatchesStep ? verify.error?.message : undefined}
         resendStep={() => resendStep.mutate({ stepId: currentStep.id })}
         resending={resendStep.isLoading}
         requestCode={() => requestCode.mutate({ stepId: currentStep.id })}

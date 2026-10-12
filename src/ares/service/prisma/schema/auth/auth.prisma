@@ -24,6 +24,7 @@ model AuthIntent {
   identifier     String
 
   captchaVerifiedAt DateTime?
+  passwordVersion   String?
 
   userOid BigInt?
   user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)

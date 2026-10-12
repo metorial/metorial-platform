@@ -1275,7 +1275,8 @@ class AuthServiceImpl {
       (turnstileVerifier.enabled && !d.authIntent.captchaVerifiedAt) ||
       !d.authIntent.verifiedAt ||
       !d.authIntent.userOid ||
-      d.authIntent.consumedAt
+      d.authIntent.consumedAt ||
+      d.authIntent.expiresAt <= new Date()
     ) {
       throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
     }
@@ -1300,15 +1301,14 @@ class AuthServiceImpl {
       throw new ServiceError(forbiddenError({ message: 'Invalid account' }));
     }
 
-    await sendSuccessfulLoginEmail({
-      user,
-      method: await resolveAuthIntentLoginMethod(d.authIntent),
-      ip: d.authIntent.ip,
-      ua: d.authIntent.ua,
-      createdAt: d.authIntent.createdAt
-    });
+    let attempt = await withTransaction(async tdb => {
+      if (d.authIntent.type == 'password') {
+        await userPasswordService.assertVerifiedPassword({
+          userOid: user.oid,
+          authIntentOid: d.authIntent.oid
+        });
+      }
 
-    return withTransaction(async tdb => {
       if (d.authIntent.userIdentityOid) {
         let identity = await tdb.userIdentity.findUnique({
           where: { oid: d.authIntent.userIdentityOid }
@@ -1361,6 +1361,20 @@ class AuthServiceImpl {
         account
       });
     });
+
+    try {
+      await sendSuccessfulLoginEmail({
+        user,
+        method: await resolveAuthIntentLoginMethod(d.authIntent),
+        ip: d.authIntent.ip,
+        ua: d.authIntent.ua,
+        createdAt: d.authIntent.createdAt
+      });
+    } catch {
+      console.error('Unable to send the successful login email.');
+    }
+
+    return attempt;
   }
 
   async getAuthAttempt(d: { authAttemptId: string; clientSecret: string }) {

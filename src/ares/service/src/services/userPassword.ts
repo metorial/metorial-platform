@@ -5,7 +5,8 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { subMinutes } from 'date-fns';
+import { generateCustomId } from '@lowerdeck/id';
+import { addMinutes, subMinutes } from 'date-fns';
 import type { User } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
@@ -51,19 +52,58 @@ class UserPasswordServiceImpl {
       return false;
     }
 
-    let [app, account, ssoIdentity] = await Promise.all([
-      db.app.findUnique({ where: { oid: user.appOid } }),
-      user.accountOid ? db.account.findUnique({ where: { oid: user.accountOid } }) : null,
-      db.userIdentity.findFirst({
-        where: { userOid: user.oid, ssoUserProfileOid: { not: null } }
-      })
-    ]);
+    return withTransaction(
+      async tdb => {
+        let [app, account, ssoIdentity] = await Promise.all([
+          tdb.app.findUnique({ where: { oid: user.appOid } }),
+          user.accountOid ? tdb.account.findUnique({ where: { oid: user.accountOid } }) : null,
+          tdb.userIdentity.findFirst({
+            where: { userOid: user.oid, ssoUserProfileOid: { not: null } }
+          })
+        ]);
 
-    return (
-      !!app &&
-      !app.disableEmailAuth &&
-      !ssoIdentity &&
-      (!account || (account.status == 'active' && account.allowEmailLogin))
+        return (
+          !!app &&
+          !app.disableEmailAuth &&
+          !ssoIdentity &&
+          (!account || (account.status == 'active' && account.allowEmailLogin))
+        );
+      },
+      { ifExists: true }
+    );
+  }
+
+  async assertVerifiedPassword(d: { userOid: bigint; authIntentOid: bigint }) {
+    return withTransaction(
+      async tdb => {
+        let [intent, user] = await Promise.all([
+          tdb.authIntent.findUnique({ where: { oid: d.authIntentOid } }),
+          tdb.user.findUnique({ where: { oid: d.userOid } })
+        ]);
+        let credentials = await tdb.$queryRaw<Array<{ version: string }>>`
+          SELECT "version" FROM "UserPassword"
+          WHERE "userOid" = ${d.userOid}
+          FOR UPDATE
+        `;
+
+        if (
+          !user ||
+          intent?.type != 'password' ||
+          intent.userOid != user.oid ||
+          intent.appOid != user.appOid ||
+          !intent.verifiedAt ||
+          !intent.passwordVersion ||
+          credentials[0]?.version != intent.passwordVersion ||
+          !(await this.canManagePassword(user))
+        ) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'Password verification is no longer valid. Please sign in again.'
+            })
+          );
+        }
+      },
+      { ifExists: true }
     );
   }
 
@@ -113,10 +153,11 @@ class UserPasswordServiceImpl {
       }
 
       let previous = await db.userPassword.findUnique({ where: { userOid: user.oid } });
+      let version = generateCustomId('upv_');
       let password = await db.userPassword.upsert({
         where: { userOid: user.oid },
-        create: { ...getId('userPassword'), userOid: user.oid, hash },
-        update: { hash }
+        create: { ...getId('userPassword'), userOid: user.oid, hash, version },
+        update: { hash, version }
       });
 
       auditLogService.log({
@@ -236,7 +277,10 @@ class UserPasswordServiceImpl {
         if (
           !freshUser ||
           !(await this.canManagePassword(freshUser)) ||
-          (success && (!freshCredential || freshCredential.hash != credential!.hash))
+          (success &&
+            (!freshCredential ||
+              freshCredential.hash != credential!.hash ||
+              freshCredential.version != credential!.version))
         ) {
           throw new ServiceError(forbiddenError({ message: 'Invalid authentication step.' }));
         }
@@ -251,13 +295,18 @@ class UserPasswordServiceImpl {
           }
         });
         if (success) {
+          let verifiedAt = new Date();
           await tdb.authIntentStep.update({
             where: { oid: step.oid },
-            data: { verifiedAt: new Date() }
+            data: { verifiedAt }
           });
           await tdb.authIntent.update({
             where: { oid: current.oid },
-            data: { verifiedAt: new Date() }
+            data: {
+              verifiedAt,
+              expiresAt: addMinutes(verifiedAt, 30),
+              passwordVersion: credential!.version
+            }
           });
         }
       });
