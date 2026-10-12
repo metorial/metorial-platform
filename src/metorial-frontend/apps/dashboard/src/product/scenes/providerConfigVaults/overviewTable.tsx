@@ -291,14 +291,6 @@ let providerConfigVaultsOverviewTable = new DashboardTable<
     }
   ])
   .search('Search config vaults...')
-  .link((row, props) =>
-    Paths.organization.instance.providerConfigVault(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      row.id
-    )
-  )
   .actions({
     deleteImmediate: async (vaults, state) => {
       let vault = vaults[0];

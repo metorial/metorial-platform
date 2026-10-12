@@ -629,7 +629,7 @@ export let NetworkFirewallPage = () => {
             label: 'Network',
             content: (
               <Link
-                to={Paths.organization.instance.network(
+                to={Paths.organization.instance.networkSettings(
                   organization.data,
                   project.data,
                   instance.data

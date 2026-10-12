@@ -1,3 +1,4 @@
+import { showProviderDeploymentPanelFlow } from './panelFlow';
 import { DashboardInstanceProviderDeploymentsCreateOutput } from '@metorial/dashboard-sdk';
 import { Dialog, showModal } from '@metorial/ui';
 import { ProviderDeploymentForm, ProviderDeploymentFormProps } from './form';
@@ -8,8 +9,10 @@ export let showProviderDeploymentFormModal = (
     onCreate?: (deployment: DashboardInstanceProviderDeploymentsCreateOutput) => void;
     onClose?: () => void;
   }
-) =>
-  showModal(
+) => {
+  if (p.type === 'create') return showProviderDeploymentPanelFlow(p);
+
+  return showModal(
     ({ dialogProps, close }) => (
       <Dialog.Wrapper {...dialogProps} width={650}>
         <Dialog.Title>
@@ -29,6 +32,7 @@ export let showProviderDeploymentFormModal = (
       onClose: p.onClose
     }
   );
+};
 
 export let showMagicMcpServerFormModal = (
   p: MagicMcpServerFormProps & {

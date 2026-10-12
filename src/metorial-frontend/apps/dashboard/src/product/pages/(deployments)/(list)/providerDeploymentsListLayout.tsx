@@ -1,12 +1,7 @@
-import { Paths } from '@metorial/frontend-config';
 import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject
-} from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
+import { useCurrentInstance } from '@metorial/state';
+import { Button } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import {
   showCreateProviderAuthConfigFlow,
@@ -14,8 +9,6 @@ import {
 } from '../../../scenes/providerCreationFlows';
 
 type ConfigurationsTabId = 'auth-configs' | 'configs';
-
-let configurationsTabOrder: ConfigurationsTabId[] = ['auth-configs', 'configs'];
 
 let getActiveTab = (pathname: string): ConfigurationsTabId => {
   if (pathname.endsWith('/configs')) return 'configs';
@@ -33,7 +26,7 @@ let configurationsTabs: Record<
   }
 > = {
   configs: {
-    label: 'Configs',
+    label: 'Provider Configs',
     segment: 'configs',
     description: 'Manage provider configuration profiles across your providers.',
     actionLabel: 'Create Config',
@@ -53,19 +46,15 @@ let configurationsTabs: Record<
 
 export let ProviderDeploymentsListLayout = () => {
   let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
   let location = useLocation();
   let pathname = location.pathname;
-  let search = location.search;
   let activeTab = getActiveTab(pathname);
   let currentTab = configurationsTabs[activeTab];
-  let pathParams = [organization.data, project.data, instance.data] as const;
 
   return (
     <ContentLayout>
       <PageHeader
-        title="Configurations"
+        title={currentTab.label}
         description={currentTab.description}
         actions={
           <Button
@@ -77,22 +66,6 @@ export let ProviderDeploymentsListLayout = () => {
             {currentTab.actionLabel}
           </Button>
         }
-      />
-
-      <LinkTabs
-        current={pathname}
-        links={configurationsTabOrder.map(tabId => {
-          let tab = configurationsTabs[tabId];
-
-          return {
-            label: tab.label,
-            to: `${
-              tab.segment === 'configs'
-                ? Paths.instance.providerConfigs(...pathParams)
-                : Paths.instance.providerAuthConfigs(...pathParams)
-            }${search}`
-          };
-        })}
       />
 
       <PaginationSearchParamsProvider enabled={true}>

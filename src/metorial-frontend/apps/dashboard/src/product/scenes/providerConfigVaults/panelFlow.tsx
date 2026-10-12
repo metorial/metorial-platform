@@ -68,11 +68,10 @@ export let ProviderConfigVaultPanelFlow = (p: {
                 if (!organization.data || !project.data || !instance.data) return;
 
                 navigate(
-                  Paths.instance.providerConfigVault(
+                  Paths.instance.providerConfigs(
                     organization.data,
                     project.data,
-                    instance.data,
-                    vault.id
+                    instance.data
                   )
                 );
               }}

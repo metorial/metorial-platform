@@ -1,3 +1,4 @@
+import { DetailsSettingsLayout } from '@metorial/details-layout';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConfig } from '@metorial/state';
@@ -34,64 +35,66 @@ export let ProviderConfigSettingsPage = () => {
   });
 
   return renderWithLoader({ config })(({ config }) => (
-    <>
-      <Box title="Config Settings" description="Modify the settings of this configuration.">
-        <form onSubmit={form.handleSubmit}>
-          <Input label="Name" {...form.getFieldProps('name')} />
-          <form.RenderError field="name" />
+    <DetailsSettingsLayout>
+      <>
+        <Box title="Config Settings" description="Modify the settings of this configuration.">
+          <form onSubmit={form.handleSubmit}>
+            <Input label="Name" {...form.getFieldProps('name')} />
+            <form.RenderError field="name" />
 
-          <Spacer size={15} />
+            <Spacer size={15} />
 
-          <Input label="Description" {...form.getFieldProps('description')} />
-          <form.RenderError field="description" />
+            <Input label="Description" {...form.getFieldProps('description')} />
+            <form.RenderError field="description" />
 
-          <Spacer size={15} />
+            <Spacer size={15} />
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              size="2"
-              type="submit"
-              loading={updateMutator.isLoading}
-              success={updateMutator.isSuccess}
-            >
-              Save
-            </Button>
-          </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                size="2"
+                type="submit"
+                loading={updateMutator.isLoading}
+                success={updateMutator.isSuccess}
+              >
+                Save
+              </Button>
+            </div>
 
-          <updateMutator.RenderError />
-        </form>
-      </Box>
+            <updateMutator.RenderError />
+          </form>
+        </Box>
 
-      <Spacer size={20} />
+        <Spacer size={20} />
 
-      <DeleteResourceDangerZone
-        description="Delete this config and remove it from your saved provider configurations."
-        buttonLabel="Delete Config"
-        confirmTitle="Delete config"
-        confirmDescription="Are you sure you want to delete this config?"
-        loading={deleteMutator.isLoading}
-        success={deleteMutator.isSuccess}
-        onDelete={async () => {
-          let [res] = await deleteMutator.mutate({});
-          if (!res) return;
+        <DeleteResourceDangerZone
+          description="Delete this config and remove it from your saved provider configurations."
+          buttonLabel="Delete Config"
+          confirmTitle="Delete config"
+          confirmDescription="Are you sure you want to delete this config?"
+          loading={deleteMutator.isLoading}
+          success={deleteMutator.isSuccess}
+          onDelete={async () => {
+            let [res] = await deleteMutator.mutate({});
+            if (!res) return;
 
-          navigate(
-            config.data.deployment?.id
-              ? Paths.instance.providerDeployment(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  config.data.deployment.id,
-                  'configs'
-                )
-              : Paths.instance.providerConfigs(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data
-                )
-          );
-        }}
-      />
-    </>
+            navigate(
+              config.data.deployment?.id
+                ? Paths.instance.providerDeployment(
+                    instance.data?.organization,
+                    instance.data?.project,
+                    instance.data,
+                    config.data.deployment.id,
+                    'configs'
+                  )
+                : Paths.instance.providerConfigs(
+                    instance.data?.organization,
+                    instance.data?.project,
+                    instance.data
+                  )
+            );
+          }}
+        />
+      </>
+    </DetailsSettingsLayout>
   ));
 };

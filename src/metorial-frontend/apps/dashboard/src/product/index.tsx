@@ -688,6 +688,177 @@ export let productHomeSlice = createSlice([
   }
 ]);
 
+let ConfigurationsAuthConfigLayout = dynamicPage(() =>
+  import('./pages/(deployments)/provider-auth-configs/_layout').then(
+    c => c.ProviderAuthConfigLayout
+  )
+);
+let ConfigurationsAuthConfigOverviewPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-auth-configs/index').then(
+    c => c.ProviderAuthConfigOverviewPage
+  )
+);
+let ConfigurationsAuthConfigSettingsPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-auth-configs/settings').then(
+    c => c.ProviderAuthConfigSettingsPage
+  )
+);
+let ConfigurationsAuthConfigsPage = dynamicPage(() =>
+  import('./pages/(deployments)/(list)/provider-auth-configs').then(
+    c => c.ProviderAuthConfigsOverviewPage
+  )
+);
+let ConfigurationsConfigLayout = dynamicPage(() =>
+  import('./pages/(deployments)/provider-config/_layout').then(c => c.ProviderConfigLayout)
+);
+let ConfigurationsConfigOverviewPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-config/index').then(c => c.ProviderConfigOverviewPage)
+);
+let ConfigurationsConfigSettingsPage = dynamicPage(() =>
+  import('./pages/(deployments)/provider-config/settings').then(
+    c => c.ProviderConfigSettingsPage
+  )
+);
+let ConfigurationsConfigsPage = dynamicPage(() =>
+  import('./pages/(deployments)/(list)/provider-configs').then(
+    c => c.ProviderConfigsOverviewPage
+  )
+);
+let ConfigurationsDeploymentAuthConfigsPage = dynamicPage(() =>
+  import('./pages/(developer)/deployment/auth-configs').then(
+    c => c.ConfigurationsDeploymentAuthConfigsPage
+  )
+);
+let ConfigurationsDeploymentConfigsPage = dynamicPage(() =>
+  import('./pages/(developer)/deployment/configs').then(
+    c => c.ConfigurationsDeploymentConfigsPage
+  )
+);
+let ConfigurationsDeploymentLayout = dynamicPage(() =>
+  import('./pages/(developer)/deployment/layout').then(c => c.ConfigurationsDeploymentLayout)
+);
+let ConfigurationsDeploymentNetworkPage = dynamicPage(() =>
+  import('./pages/(developer)/deployment/network').then(
+    c => c.ConfigurationsDeploymentNetworkPage
+  )
+);
+let ConfigurationsDeploymentOverviewPage = dynamicPage(() =>
+  import('./pages/(developer)/deployment').then(c => c.ConfigurationsDeploymentOverviewPage)
+);
+let ConfigurationsDeploymentSettingsPage = dynamicPage(() =>
+  import('./pages/(developer)/deployment/settings').then(
+    c => c.ConfigurationsDeploymentSettingsPage
+  )
+);
+let ConfigurationsDeploymentsPage = dynamicPage(() =>
+  import('./pages/(developer)/deployments').then(c => c.ConfigurationsDeploymentsPage)
+);
+let ConfigurationsListLayout = dynamicPage(() =>
+  import('./pages/(deployments)/(list)/providerDeploymentsListLayout').then(
+    c => c.ProviderDeploymentsListLayout
+  )
+);
+let DeveloperHomePage = dynamicPage(() =>
+  import('./pages/(developer)/home').then(c => c.DeveloperHomePage)
+);
+let DeveloperApiKeysPage = dynamicPage(() =>
+  import('./pages/(developer)/apiKeys').then(c => c.ProjectDeveloperApiKeysPage)
+);
+let DeveloperApiAccessPage = dynamicPage(() =>
+  import('./pages/(developer)/apiAccess').then(c => c.ProjectDeveloperApiAccessPage)
+);
+
+export let productDeveloperSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+    children: [
+      {
+        element: <InstanceLayout />,
+        children: [
+          { path: 'developer', element: <DeveloperHomePage /> },
+          { path: 'developer/api-keys', element: <DeveloperApiKeysPage /> },
+          { path: 'developer/api', element: <DeveloperApiAccessPage /> },
+
+          {
+            path: 'configurations',
+            element: <ConfigurationsDeploymentsPage />
+          },
+          {
+            element: <ConfigurationsListLayout />,
+            children: [
+              {
+                path: 'configurations/configs',
+                element: <ConfigurationsConfigsPage />
+              },
+              {
+                path: 'configurations/auth-configs',
+                element: <ConfigurationsAuthConfigsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'configurations/config/:providerConfigId',
+            element: <ConfigurationsConfigLayout />,
+            children: [
+              {
+                path: '',
+                element: <ConfigurationsConfigOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ConfigurationsConfigSettingsPage />
+              }
+            ]
+          },
+          {
+            path: 'configurations/auth-config/:providerAuthConfigId',
+            element: <ConfigurationsAuthConfigLayout />,
+            children: [
+              {
+                path: '',
+                element: <ConfigurationsAuthConfigOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <ConfigurationsAuthConfigSettingsPage />
+              }
+            ]
+          },
+          { path: 'configurations/config-vaults', element: <NotFound /> },
+          { path: 'configurations/config-vault/*', element: <NotFound /> },
+          {
+            path: 'configurations/:providerDeploymentId',
+            element: <ConfigurationsDeploymentLayout />,
+            children: [
+              {
+                path: '',
+                element: <ConfigurationsDeploymentOverviewPage />
+              },
+              {
+                path: 'configs',
+                element: <ConfigurationsDeploymentConfigsPage />
+              },
+              {
+                path: 'auth-configs',
+                element: <ConfigurationsDeploymentAuthConfigsPage />
+              },
+              {
+                path: 'settings',
+                element: <ConfigurationsDeploymentSettingsPage />
+              },
+              {
+                path: 'network',
+                element: <ConfigurationsDeploymentNetworkPage />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
 export let productSkillsSlice = createSlice([
   {
     element: <ProductWrapper />,
@@ -1379,7 +1550,8 @@ export let productSlice = createSlice([
       ...productWebhooksSlice.routes,
       ...productChatSlice.routes,
       ...productSkillsSlice.routes,
-      ...productHomeSlice.routes
+      ...productHomeSlice.routes,
+      ...productDeveloperSlice.routes
     ]
   },
   {

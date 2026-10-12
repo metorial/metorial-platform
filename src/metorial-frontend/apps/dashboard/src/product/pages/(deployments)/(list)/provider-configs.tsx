@@ -325,7 +325,7 @@ export let providerConfigsOverviewTable = new DashboardTable<
   ])
   .search('Search configs...')
   .link((row, props) =>
-    Paths.organization.instance.providerConfig(
+    Paths.instance.providerConfig(
       props.organization.data,
       props.project.data,
       props.instance.data,

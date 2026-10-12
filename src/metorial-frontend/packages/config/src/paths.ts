@@ -665,7 +665,8 @@ let InstancePaths = Object.assign(
         organization,
         project,
         instance,
-        'provider-config-vault',
+        'configurations',
+        'config-vault',
         id,
         ...subPages
       );
@@ -2082,18 +2083,8 @@ let dashboardInstanceRedirect = (
   return dashUrl.toString();
 };
 
-// Deployments, vaults, credentials, and configs live under org settings; keep
-// Paths.instance.* aliases so existing product links resolve correctly.
-InstancePaths.providerDeployments = OrganizationPaths.instance.providerDeployments;
-InstancePaths.providerDeployment = OrganizationPaths.instance.providerDeployment;
-InstancePaths.providerConfigVaults = OrganizationPaths.instance.providerConfigVaults;
-InstancePaths.providerConfigVault = OrganizationPaths.instance.providerConfigVault;
 InstancePaths.providerAuthCredentials = OrganizationPaths.instance.providerAuthCredentials;
 InstancePaths.providerAuthCredential = OrganizationPaths.instance.providerAuthCredential;
-InstancePaths.providerConfigs = OrganizationPaths.instance.providerConfigs;
-InstancePaths.providerConfig = OrganizationPaths.instance.providerConfig;
-InstancePaths.providerAuthConfigs = OrganizationPaths.instance.providerAuthConfigs;
-InstancePaths.providerAuthConfig = OrganizationPaths.instance.providerAuthConfig;
 
 export let Paths = {
   join: joinPaths,

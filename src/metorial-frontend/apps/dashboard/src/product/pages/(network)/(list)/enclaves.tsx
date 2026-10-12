@@ -88,7 +88,7 @@ let enclavesTable = new DashboardTable<EnclavesTableProps, Enclave>('network-enc
     }
   ])
   .link((enclave, props) =>
-    Paths.organization.instance.providerDeployment(
+    Paths.instance.providerDeployment(
       props.organization.data,
       props.project.data,
       props.instance.data,
