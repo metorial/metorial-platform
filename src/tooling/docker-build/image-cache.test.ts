@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import { chmodSync, mkdtempSync, rmSync, existsSync, readFileSync, lstatSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -82,6 +83,61 @@ afterEach(() => {
   for (let directory of directories) rmSync(directory, { recursive: true, force: true });
   directories = [];
 });
+
+for (let scenario of [
+  { name: 'ignores a misleading HEAD digest', mode: 'head-mismatch', code: 0, copies: 1 },
+  { name: 'retries stale destination manifests', mode: 'stale', code: 0, copies: 2 },
+  { name: 'rejects persistent manifest mismatches', mode: 'mismatch', code: 1, copies: 3 },
+  { name: 'fails immediately on authorization errors', mode: 'denied', code: 1, copies: 1 }
+]) {
+  test(`copy ${scenario.name}`, async () => {
+    let directory = await fixture();
+    let manifest = '{"schemaVersion":2,"manifests":[]}\n';
+    let expected = `sha256:${createHash('sha256').update(manifest).digest('hex')}`;
+    await Bun.write(join(directory, 'manifest.json'), manifest);
+    await Bun.write(
+      join(directory, 'bin/regctl'),
+      `#!/bin/sh
+if [ "$1 $2" = 'image digest' ]; then echo sha256:incorrect-head; exit 0; fi
+if [ "$1 $2" = 'image copy' ]; then
+  echo "$3 $4" >> copies
+  if [ "$COPY_MODE" = denied ]; then echo unauthorized >&2; exit 1; fi
+  exit 0
+fi
+if [ "$1 $2" = 'manifest get' ] && [ "$4 $5" = '--format raw-body' ]; then
+  if [ "$COPY_MODE" = mismatch ] || { [ "$COPY_MODE" = stale ] && [ "$(wc -l < copies)" -eq 1 ]; }; then
+    echo '{"schemaVersion":2,"manifests":[{"digest":"sha256:wrong"}]}'
+  else cat manifest.json; fi
+  exit 0
+fi
+echo 'unexpected registry command' >&2
+exit 1
+`
+    );
+    let source = `ghcr.io/fixture/service@${expected}`;
+    let target = 'fixture.dkr.ecr.us-east-1.amazonaws.com/service:deployment';
+    let result = Bun.spawnSync([process.execPath, script, 'copy', source, target], {
+      cwd: directory,
+      env: {
+        ...process.env,
+        PATH: `${directory}/bin:${process.env.PATH}`,
+        COPY_MODE: scenario.mode,
+        GITHUB_STEP_SUMMARY: ''
+      }
+    });
+
+    expect(result.exitCode, result.stderr.toString()).toBe(scenario.code);
+    expect(readFileSync(join(directory, 'copies'), 'utf8').trim().split('\n')).toEqual(
+      Array(scenario.copies).fill(`${source} ${target}`)
+    );
+    if (scenario.code === 0) expect(result.stdout.toString()).toContain(`Verified ${target}`);
+    if (scenario.mode === 'mismatch') {
+      expect(result.stderr.toString()).toContain(`expected ${expected}, received sha256:`);
+      expect(result.stdout.toString()).not.toContain('Verified');
+    }
+    if (scenario.mode === 'denied') expect(result.stderr.toString()).toContain('unauthorized');
+  }, 10000);
+}
 
 test('fingerprint covers source, build arguments and external COPY images but excludes unrelated files', async () => {
   let directory = await fixture();

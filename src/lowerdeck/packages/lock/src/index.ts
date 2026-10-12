@@ -19,7 +19,15 @@ interface LockPoolState {
 }
 
 export class LockAcquisitionError extends Error {
-  constructor(cause: unknown) {
+  constructor(
+    cause: unknown,
+    public readonly detail?: {
+      name: string;
+      keyCount: number;
+      attempts: number;
+      elapsedMs: number;
+    }
+  ) {
     super(cause instanceof Error ? cause.message : 'Failed to acquire distributed lock', {
       cause
     });
@@ -111,7 +119,34 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
         try {
           // Each attempt starts a new lease clock. Redlock's internal retry loop
           // starts the clock before waiting and can otherwise return an expired lock.
-          lock = await redlock.acquire(keyArray, durationMs, { retryCount: 0 });
+          let acquiring = redlock.acquire(keyArray, durationMs, { retryCount: 0 });
+          let abandoned = false;
+          let timer: ReturnType<typeof setTimeout>;
+          lock = await new Promise<any>((resolve, reject) => {
+            timer = setTimeout(
+              () => {
+                abandoned = true;
+                reject(new Error('Lock acquisition deadline exceeded'));
+              },
+              Math.max(0, acquisitionTimeoutMs - (Date.now() - startedAt))
+            );
+
+            acquiring.then(
+              (lease: any) => {
+                clearTimeout(timer);
+                if (abandoned || Date.now() - startedAt > acquisitionTimeoutMs) {
+                  reject(new Error('Lock acquisition deadline exceeded'));
+                  lease.release().catch((error: unknown) => {
+                    console.error(`LOCK.release.abandoned name=${name}`, error);
+                  });
+                } else resolve(lease);
+              },
+              (error: unknown) => {
+                clearTimeout(timer);
+                reject(error);
+              }
+            );
+          });
           break;
         } catch (error) {
           let elapsedMs = Date.now() - startedAt;
@@ -119,7 +154,12 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             console.warn(
               `LOCK.acquire.failed name=${name} keyCount=${keyArray.length} attempts=${attempt + 1} elapsedMs=${elapsedMs}`
             );
-            throw new LockAcquisitionError(error);
+            throw new LockAcquisitionError(error, {
+              name,
+              keyCount: keyArray.length,
+              attempts: attempt + 1,
+              elapsedMs
+            });
           }
 
           let jitter = Math.floor((Math.random() * 2 - 1) * retryJitter);
@@ -128,7 +168,12 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             console.warn(
               `LOCK.acquire.failed name=${name} keyCount=${keyArray.length} attempts=${attempt + 1} elapsedMs=${elapsedMs}`
             );
-            throw new LockAcquisitionError(error);
+            throw new LockAcquisitionError(error, {
+              name,
+              keyCount: keyArray.length,
+              attempts: attempt + 1,
+              elapsedMs
+            });
           }
 
           attempt++;
@@ -189,6 +234,12 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
 
         try {
           await lock.release();
+          let heldMs = Date.now() - startedAt - acquiredAfterMs;
+          if (heldMs >= 500) {
+            console.warn(
+              `LOCK.hold.slow name=${name} keyCount=${keyArray.length} heldMs=${heldMs} waitedMs=${acquiredAfterMs}`
+            );
+          }
         } catch (error) {
           console.error(
             `LOCK.release.failed name=${name} keyCount=${keyArray.length} heldMs=${Date.now() - startedAt}`,

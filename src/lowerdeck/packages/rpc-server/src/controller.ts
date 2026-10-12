@@ -94,6 +94,8 @@ export type InferClientCallOpts = {
   headers?: Record<string, string>;
   query?: Record<string, string>;
   timeoutMs?: number;
+  captureErrors?: boolean;
+  retry?: boolean;
   signal?: AbortSignal;
 };
 

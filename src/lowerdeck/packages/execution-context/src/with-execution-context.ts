@@ -86,34 +86,63 @@ export let provideExecutionContext = async <T>(
   ctx: ExecutionContext,
   cb: () => Promise<T>
 ): Promise<T> => {
-  let afterHooks: Array<() => Promise<void | any>> = [];
-
-  Sentry.setContext('executionContext', ctx);
-
-  let res = await withExecutionTraceContext(
-    ctx,
+  return await Sentry.withIsolationScope(
     async () =>
-      await ctxStorage.run(
-        {
-          context: ctx,
-          afterHooks
-        },
-        async () => await cb()
-      )
+      await Sentry.withScope(async () => {
+        let afterHooks: Array<() => Promise<void | any>> = [];
+
+        let independent =
+          (ctx.type === 'scheduled' || ctx.type === 'job') &&
+          !ctx.parent &&
+          !ctx.trace?.traceparent;
+        if (independent) ctx = { ...ctx, trace: undefined };
+
+        Sentry.setContext('executionContext', ctx);
+
+        let execute = async () =>
+          await withExecutionTraceContext(
+            ctx,
+            async () =>
+              await ctxStorage.run(
+                {
+                  context: ctx,
+                  afterHooks
+                },
+                async () => await cb()
+              )
+          );
+
+        let res = independent
+          ? await Sentry.startNewTrace(() =>
+              Sentry.startSpan(
+                {
+                  name:
+                    ctx.type === 'scheduled'
+                      ? ctx.name
+                      : ctx.type === 'job'
+                        ? ctx.queue
+                        : 'background',
+                  op: ctx.type === 'scheduled' ? 'cron' : 'queue.process'
+                },
+                execute
+              )
+            )
+          : await execute();
+
+        for (let hook of afterHooks) {
+          hook().catch(err => {
+            Sentry.captureException(err);
+
+            console.error('Error in after hook', {
+              err,
+              context: ctx
+            });
+          });
+        }
+
+        return res;
+      })
   );
-
-  for (let hook of afterHooks) {
-    hook().catch(err => {
-      Sentry.captureException(err);
-
-      console.error('Error in after hook', {
-        err,
-        context: ctx
-      });
-    });
-  }
-
-  return res;
 };
 
 export let setExecutionContextSync = (ctx: ExecutionContext) => {

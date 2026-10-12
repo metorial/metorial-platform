@@ -43,8 +43,10 @@ The version change deliberately causes initial image-cache misses. Existing
 SHA/branch/deployment aliases and registry-copy verification remain compatible.
 
 On a hit, skip dependency-cache restoration, Warp Cache startup, and Docker setup.
-Use `image-cache.ts copy SOURCE TARGETS` to copy by digest and verify destination
-digests. It preserves the complete OCI image, including platform manifests. Builds
+Use `image-cache.ts copy SOURCE TARGETS` to copy by digest and verify the SHA-256 of
+the raw destination manifest, rather than relying on a registry's HEAD digest.
+Copy and verification retry together; persistent mismatches include both digests
+and fail publication. It preserves the complete OCI image, including platform manifests. Builds
 publish the fingerprint tag and existing aliases to GHCR. Trusted same-repository
 PRs may publish to GHCR; fork PRs can reuse anonymously accessible images and otherwise build without
 publishing or privileged cache access. Inaccessible anonymous lookups are reported

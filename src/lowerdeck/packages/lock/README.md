@@ -71,6 +71,11 @@ contention separately from errors thrown by the critical section:
 import { LockAcquisitionError } from '@lowerdeck/lock';
 ```
 
+The acquisition budget also bounds an in-flight Redis request. A lease arriving after
+expiry is released without entering the critical section. `LockAcquisitionError.detail`
+contains the lock name, key count, attempt count, and elapsed time; raw resource keys
+are omitted. Lease duration and extension continue to protect work after acquisition.
+
 Redis connections are pooled by URL. Long-running services may close the shared pool during
 graceful shutdown:
 

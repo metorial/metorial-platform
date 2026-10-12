@@ -68,6 +68,21 @@ class InvalidRpcResponseError extends Error {
 
 let rpcRequestDiagnostics = new WeakMap<object, Error>();
 
+let reportedRequestDiagnostics = new WeakMap<
+  object,
+  {
+    error: Error;
+    endpoint: string;
+    rpcMethod: string;
+    timeoutMs?: number;
+    elapsedMs: number;
+    attempts: number;
+  }
+>();
+
+export let getRpcRequestDiagnostics = (error: unknown) =>
+  error instanceof Error ? reportedRequestDiagnostics.get(error) : undefined;
+
 class RpcRequestError extends ServiceError<any> {
   constructor(
     error: ReturnType<typeof internalServerError> | ReturnType<typeof timeoutError>,
@@ -93,17 +108,19 @@ let decodeRpcResponse = (body: string) => {
 
 let toRequestError = (call: Call, error: unknown) => {
   let invalidResponse = error instanceof InvalidRpcResponseError;
-  let diagnosticMessage = invalidResponse
-    ? `Invalid response from server ${call.endpoint} for ${call.name}`
-    : `Unable to reach server ${call.endpoint} for ${call.name}`;
+  let timedOut =
+    (error instanceof Error && error.name === 'AbortError') || call.signal?.aborted;
+  let diagnosticMessage = timedOut
+    ? `Request timed out: ${call.name} on ${call.endpoint}`
+    : invalidResponse
+      ? `Invalid response from server ${call.endpoint} for ${call.name}`
+      : `Unable to reach server ${call.endpoint} for ${call.name}`;
   let diagnostic = new Error(diagnosticMessage, {
     cause: error instanceof Error ? error : undefined
   });
 
-  if (
-    (error instanceof Error && error.name === 'AbortError') ||
-    (call.signal && call.signal.aborted)
-  ) {
+  if (timedOut) {
+    diagnostic.name = 'RpcTimeoutError';
     return new RpcTransportError(timeoutError(), diagnostic);
   }
 
@@ -320,7 +337,10 @@ let createDeadlineSignal = (call: { timeoutMs?: number; signal?: AbortSignal }) 
   };
 };
 
-let requesterInternal: Requester = async call => {
+let requesterInternal = async (
+  call: Parameters<Requester>[0],
+  diagnostics: { attempts: number }
+) => {
   let id = generateRequestId();
   log(`[call:${call.name.replace(':', '-')}:${id}] Queued`);
 
@@ -348,6 +368,7 @@ let requesterInternal: Requester = async call => {
       if (deadline.signal?.aborted) throw error ?? abortedError();
 
       try {
+        diagnostics.attempts += 1;
         return (await performRequest({
           ...(call as any),
           id,
@@ -374,6 +395,7 @@ let requesterInternal: Requester = async call => {
         error = e;
 
         if (deadline.signal?.aborted) throw error ?? abortedError();
+        if (call.retry === false) throw e;
 
         if (isServiceError(e)) {
           // 400 errors are not retried
@@ -405,18 +427,37 @@ let requesterInternal: Requester = async call => {
 };
 
 export let request: Requester = async call => {
+  let startedAt = Date.now();
+  let diagnostics = { attempts: 0 };
   try {
-    return await requesterInternal(call);
+    return await requesterInternal(call, diagnostics);
   } catch (error) {
     if (!(error instanceof RpcRequestError)) throw error;
 
-    if (!call.signal?.aborted) {
-      Sentry.captureException(rpcRequestDiagnostics.get(error)!, {
+    let details = {
+      error: rpcRequestDiagnostics.get(error)!,
+      endpoint: call.endpoint,
+      rpcMethod: call.name,
+      timeoutMs: call.timeoutMs ?? (isServer ? serverRetryTimeoutMs : undefined),
+      elapsedMs: Date.now() - startedAt,
+      attempts: diagnostics.attempts
+    };
+    if (call.captureErrors !== false && !call.signal?.aborted) {
+      Sentry.captureException(details.error, {
         tags: { rpcMethod: call.name },
-        extra: { endpoint: call.endpoint }
+        extra: {
+          endpoint: call.endpoint,
+          timeoutMs: call.timeoutMs ?? (isServer ? serverRetryTimeoutMs : undefined),
+          elapsedMs: details.elapsedMs,
+          attempts: diagnostics.attempts
+        }
       });
     }
 
-    throw new ServiceError(error.data.status == 504 ? timeoutError() : internalServerError());
+    let publicError = new ServiceError(
+      error.data.status == 504 ? timeoutError() : internalServerError()
+    );
+    reportedRequestDiagnostics.set(publicError, details);
+    throw publicError;
   }
 };

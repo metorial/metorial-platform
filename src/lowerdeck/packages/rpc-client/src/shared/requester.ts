@@ -21,6 +21,8 @@ export interface Call {
   disableBatching?: boolean;
   useDirectMethodRoute?: boolean;
   timeoutMs?: number;
+  captureErrors?: boolean;
+  retry?: boolean;
   signal?: AbortSignal;
   signature?:
     | Ed25519SignatureCredentials
