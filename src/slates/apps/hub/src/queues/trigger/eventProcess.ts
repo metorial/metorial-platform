@@ -53,7 +53,7 @@ export let triggerEventProcessQueueProcessor = triggerEventProcessQueue.process(
     triggerRegistrationId: registration.id,
     triggerGroupKey: instance.triggerGroup.key,
     triggerKey: event.triggerId,
-    source: event.source,
+    source: event.source === 'gateway' ? 'webhook' : event.source,
     webhookEventId: event.rawEvent?.webhookEvent?.id ?? undefined,
     mappedType: event.mappedType ?? undefined,
     mappedId: event.mappedId ?? undefined,

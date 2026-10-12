@@ -41,6 +41,11 @@ export let triggerRegistrationCleanupQueueProcessor = triggerRegistrationCleanup
       data: { isDisabled: true }
     });
 
+    await db.triggerRegistrationGateway.updateMany({
+      where: { triggerRegistrationInstance: { triggerRegistrationOid: registration.oid } },
+      data: { isDisabled: true }
+    });
+
     await scheduleOrphanedTargetCleanup({
       targetOids: linkedTargetOids,
       triggerRegistrationId: registration.id

@@ -32,6 +32,24 @@ describe('buildSlateDeploymentFiles', () => {
     expect(entryPoint).toContain("from './src/index.ts'");
   });
 
+  it('points dependency installs at a configured npm registry', () => {
+    let files = [
+      toArchiveFile('package.json', JSON.stringify({ name: 'slate', main: 'src/index.ts' })),
+      toArchiveFile('src/index.ts', 'export let provider = {};')
+    ];
+
+    expect(
+      buildSlateDeploymentFiles(files).files.find(file => file.filename === '.npmrc')
+    ).toBeUndefined();
+
+    let result = buildSlateDeploymentFiles(files, {
+      npmRegistryUrl: 'http://host.docker.internal:4873/'
+    });
+    expect(result.files.find(file => file.filename === '.npmrc')?.content).toBe(
+      'registry=http://host.docker.internal:4873/\n'
+    );
+  });
+
   it('does not abort the message batch on notification errors', () => {
     let result = buildSlateDeploymentFiles([
       toArchiveFile('package.json', JSON.stringify({ name: 'slate', main: 'src/index.ts' })),

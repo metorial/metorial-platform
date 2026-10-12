@@ -398,6 +398,7 @@ class slateSessionToolCallServiceImpl {
     authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
   }) {
     let needsAuthConfig =
+      containsSecretPlaceholder(d.content.url) ||
       containsSecretPlaceholder(d.content.headers) ||
       containsSecretPlaceholder(d.content.query);
 

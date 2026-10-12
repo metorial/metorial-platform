@@ -28,7 +28,8 @@ let toTriggerInvocation = (trigger: SlateSpecificationTrigger) => {
     return { type: 'polling' as const, intervalSeconds: invocation.intervalSeconds };
   }
 
-  let isAuto = invocation.registration.mode === 'auto';
+  // Gateways connect without setup, like auto-registered webhooks.
+  let isAuto = invocation.type !== 'webhook' || invocation.registration.mode === 'auto';
 
   return {
     type: 'webhook' as const,

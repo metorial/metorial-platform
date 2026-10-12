@@ -307,6 +307,32 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async connectTriggerGroupGateway(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    state: any;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.gateway.connect', {
+      triggerGroupId: d.triggerGroupId,
+      state: d.state
+    });
+  }
+
+  async receiveTriggerGroupGatewayFrames(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    state: any;
+    frames: string[];
+    closed: { code: number; reason: string } | null;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.gateway.receive', {
+      triggerGroupId: d.triggerGroupId,
+      state: d.state,
+      frames: d.frames,
+      closed: d.closed
+    });
+  }
+
   async mapTriggerEvent(d: {
     stack: SlateInvocationStack;
     actionId: string;
