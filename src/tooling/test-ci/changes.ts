@@ -74,7 +74,9 @@ if (import.meta.main) {
 
   if (!all) {
     if (event.pull_request) base = git('merge-base', base, 'HEAD');
-    paths = git('diff', '--name-only', base, 'HEAD').split('\n').filter(Boolean);
+    paths = git('diff', '--name-only', '--no-renames', '-z', base, 'HEAD')
+      .split('\0')
+      .filter(Boolean);
     if (enterprise && paths.includes('oss')) {
       let previous = git('rev-parse', `${base}:oss`);
       let current = git('-C', 'oss', 'rev-parse', 'HEAD');
@@ -82,8 +84,8 @@ if (import.meta.main) {
       if (present.exitCode) git('-C', 'oss', 'fetch', 'origin', previous);
       paths = paths.filter(path => path !== 'oss');
       paths.push(
-        ...git('-C', 'oss', 'diff', '--name-only', previous, current)
-          .split('\n')
+        ...git('-C', 'oss', 'diff', '--name-only', '--no-renames', '-z', previous, current)
+          .split('\0')
           .filter(Boolean)
           .map(path => `oss/${path}`)
       );
