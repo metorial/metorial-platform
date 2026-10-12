@@ -13,7 +13,7 @@ model SsoAuth {
   id           String @unique
   clientSecret String @unique
 
-  status SsoAuthStatus @default(pending)
+  status  SsoAuthStatus  @default(pending)
   purpose SsoAuthPurpose @default(authentication)
 
   redirectUri  String
@@ -36,10 +36,10 @@ model SsoAuth {
   userOid BigInt?
   user    SsoUser? @relation(fields: [userOid], references: [oid], onDelete: SetNull)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
   expiresAt DateTime?
 
   delegationAuthRequest SsoDelegationAuthRequest?
-  testSso              SsoTest?
+  testSso               SsoTest?
 }

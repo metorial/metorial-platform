@@ -29,6 +29,7 @@ import {
 } from '../lib/accountPolicy';
 import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
+import { withUserPasswordLock } from '../lib/passwordLock';
 import type { OAuthCredentials } from '../lib/socials';
 import { socials } from '../lib/socials';
 import { turnstileVerifier } from '../lib/turnstile';
@@ -39,6 +40,7 @@ import { authBlockService } from './authBlock';
 import { deviceService } from './device';
 import { ssoDomainPolicyService } from './sso/domainPolicy';
 import { userService } from './user';
+import { userPasswordService } from './userPassword';
 
 let sendSuccessfulLoginEmail = async (d: {
   user: User;
@@ -61,6 +63,7 @@ let sendSuccessfulLoginEmail = async (d: {
 
 let resolveAuthIntentLoginMethod = async (authIntent: AuthIntent) => {
   if (authIntent.type == 'email_code') return 'Email Code';
+  if (authIntent.type == 'password') return 'Password';
 
   if (authIntent.userIdentityOid) {
     let identity = await db.userIdentity.findUnique({
@@ -427,6 +430,11 @@ class AuthServiceImpl {
       metadata: { email, accountId: account?.id ?? null }
     });
 
+    let usePassword =
+      !!user &&
+      !!(await db.userPassword.findUnique({ where: { userOid: user.oid } })) &&
+      (await userPasswordService.canManagePassword(user));
+
     return await withTransaction(async tdb => {
       if (user) {
         let isLoggedIn = await deviceService.checkIfUserIsLoggedIn({
@@ -453,7 +461,7 @@ class AuthServiceImpl {
           ...getId('authIntent'),
           clientSecret: generateCustomId('ait_sec_'),
 
-          type: 'email_code',
+          type: usePassword ? 'password' : 'email_code',
 
           redirectUrl: d.redirectUrl,
 
@@ -473,7 +481,7 @@ class AuthServiceImpl {
       });
 
       await this.createAuthIntentStep({
-        type: 'email_code',
+        type: usePassword ? 'password' : 'email_code',
         email,
         authIntent,
         index: 0
@@ -857,7 +865,7 @@ class AuthServiceImpl {
   }
 
   async createAuthIntentStep(i: {
-    type: 'email_code';
+    type: 'email_code' | 'password';
     email: string;
     authIntent: AuthIntent;
     index: number;
@@ -878,7 +886,9 @@ class AuthServiceImpl {
         }
       });
 
-      await this.createAuthIntentCode({ step });
+      if (i.type == 'email_code') await this.createAuthIntentCode({ step });
+
+      return step;
     });
   }
 
@@ -933,6 +943,16 @@ class AuthServiceImpl {
   }
 
   async resendAuthIntentCode(d: { authIntent: AuthIntent; step: AuthIntentStep }) {
+    if (
+      d.step.type != 'email_code' ||
+      d.step.verifiedAt ||
+      d.authIntent.verifiedAt ||
+      d.authIntent.consumedAt ||
+      d.authIntent.expiresAt <= new Date()
+    ) {
+      throw new ServiceError(forbiddenError({ message: 'Invalid authentication step.' }));
+    }
+
     await this.ensureEmailAuthEnabled({
       appOid: d.authIntent.appOid,
       accountOid: d.authIntent.accountOid
@@ -961,14 +981,69 @@ class AuthServiceImpl {
     await this.createAuthIntentCode({ step: d.step });
   }
 
+  async requestAuthIntentEmailCode(d: { authIntent: AuthIntent; step: AuthIntentStep }) {
+    if (!d.authIntent.userOid)
+      throw new ServiceError(forbiddenError({ message: 'Invalid authentication step.' }));
+
+    let user = await db.user.findUnique({ where: { oid: d.authIntent.userOid } });
+    if (!user) throw new ServiceError(notFoundError('user'));
+
+    return withUserPasswordLock(user.id, async () => {
+      let intent = await this.getAuthIntent({
+        authIntentId: d.authIntent.id,
+        clientSecret: d.authIntent.clientSecret
+      });
+      let step = intent.steps.find(step => step.id == d.step.id);
+      if (!step || step.verifiedAt || intent.verifiedAt) {
+        throw new ServiceError(forbiddenError({ message: 'Invalid authentication step.' }));
+      }
+      if (step.type == 'email_code') return;
+      if (step.type != 'password' || !(await userPasswordService.canManagePassword(user))) {
+        throw new ServiceError(
+          forbiddenError({ message: 'Email login is unavailable for this account.' })
+        );
+      }
+
+      await this.ensureEmailAuthEnabled({
+        appOid: intent.appOid,
+        accountOid: intent.accountOid
+      });
+      await withTransaction(async tdb => {
+        let switched = await tdb.authIntentStep.update({
+          where: { oid: step.oid },
+          data: { type: 'email_code' }
+        });
+        await tdb.authIntent.update({
+          where: { oid: intent.oid },
+          data: { type: 'email_code' }
+        });
+        await this.createAuthIntentCode({ step: switched });
+      });
+    });
+  }
+
   async verifyAuthIntentStep(d: {
     step: AuthIntentStep;
-    input: { type: 'email_code'; code: string };
+    input: { type: 'email_code'; code: string } | { type: 'password'; password: string };
   }) {
+    if (d.input.type == 'password') {
+      let intent = await db.authIntent.findUnique({ where: { oid: d.step.authIntentOid } });
+      if (!intent) throw new ServiceError(notFoundError('auth_intent'));
+
+      return userPasswordService.verify({
+        authIntentId: intent.id,
+        stepId: d.step.id,
+        password: d.input.password
+      });
+    }
+
     let authIntent = await db.authIntent.findUnique({
       where: { oid: d.step.authIntentOid }
     });
     if (!authIntent) throw new ServiceError(notFoundError('auth_intent'));
+    if (authIntent.consumedAt || authIntent.expiresAt <= new Date() || d.step.verifiedAt) {
+      throw new ServiceError(forbiddenError({ message: 'Invalid authentication step.' }));
+    }
 
     await this.ensureEmailAuthEnabled({
       appOid: authIntent.appOid,
@@ -1081,14 +1156,14 @@ class AuthServiceImpl {
       throw new ServiceError(forbiddenError({ message: 'Invalid account' }));
     }
 
-    if (d.authIntent.type == 'email_code') {
+    if (d.authIntent.type == 'email_code' || d.authIntent.type == 'password') {
       await this.ensureEmailAuthEnabled({
         app: d.app,
         account
       });
     }
 
-    if (!d.authIntent.verifiedAt || d.authIntent.userOid) {
+    if (d.authIntent.type == 'password' || !d.authIntent.verifiedAt || d.authIntent.userOid) {
       throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
     }
 
@@ -1189,7 +1264,7 @@ class AuthServiceImpl {
   }
 
   async completeAuthIntent(d: { authIntent: AuthIntent; app: App }) {
-    if (d.authIntent.type == 'email_code') {
+    if (d.authIntent.type == 'email_code' || d.authIntent.type == 'password') {
       await this.ensureEmailAuthEnabled({
         app: d.app,
         accountOid: d.authIntent.accountOid
@@ -1252,14 +1327,26 @@ class AuthServiceImpl {
         }
       }
 
-      await tdb.authIntent.update({
-        where: { oid: d.authIntent.oid },
+      let consumed = await tdb.authIntent.updateMany({
+        where: {
+          oid: d.authIntent.oid,
+          consumedAt: null,
+          verifiedAt: { not: null },
+          expiresAt: { gt: new Date() }
+        },
         data: { consumedAt: new Date(), expiresAt: new Date() }
       });
+      if (!consumed.count)
+        throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
 
       return await this.createAuthAttempt({
         authIntent: d.authIntent,
-        loginMethod: d.authIntent.type == 'oauth' ? 'oauth' : 'email',
+        loginMethod:
+          d.authIntent.type == 'oauth'
+            ? 'oauth'
+            : d.authIntent.type == 'password'
+              ? 'password'
+              : 'email',
         redirectUrl: d.authIntent.redirectUrl,
         user,
         device,

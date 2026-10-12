@@ -7,7 +7,8 @@ export type { InternalClient } from './controllers';
 let internalMux = rpcMux(
   {
     cors: { check: () => true },
-    path: '/metorial-ares-internal/api'
+    path: '/metorial-ares-internal/api',
+    captureRequestBody: false
   },
   [internalRPC]
 );

@@ -148,6 +148,74 @@ let CreateUserStep = ({
   );
 };
 
+let PasswordIntentStep = (p: {
+  verify: (d: { input: { type: 'password'; password: string }; stepId: string }) => void;
+  stepId: string;
+  email: string | null;
+  loading: boolean;
+  error?: string;
+  requestCode: () => void;
+  requestingCode: boolean;
+  codeError?: string;
+  captchaReady: boolean;
+}) => {
+  let form = useForm({
+    initialValues: { password: '' },
+    schema: yup =>
+      yup.object({ password: yup.string().required('Please enter your password') }),
+    onSubmit: async values =>
+      p.verify({ stepId: p.stepId, input: { type: 'password', password: values.password } })
+  });
+
+  return (
+    <AuthLayout
+      main={{
+        title: 'Enter Your Password',
+        description: `Sign in to ${p.email ?? 'your account'}.`
+      }}
+    >
+      <form onSubmit={form.handleSubmit}>
+        <Input
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          autoFocus
+          disabled={p.loading || p.requestingCode}
+          {...form.getFieldProps('password')}
+        />
+        <form.RenderError field="password" />
+        {p.error && (
+          <>
+            <Spacer size={4} />
+            <Error>{p.error}</Error>
+          </>
+        )}
+        <Spacer size={15} />
+        <Button
+          fullWidth
+          type="submit"
+          loading={p.loading}
+          disabled={p.requestingCode || !p.captchaReady}
+        >
+          Sign In
+        </Button>
+        <Spacer size={15} />
+        <Button
+          fullWidth
+          variant="outline"
+          type="button"
+          loading={p.requestingCode}
+          disabled={p.loading}
+          onClick={p.requestCode}
+        >
+          Send Me a Code Instead
+        </Button>
+        {p.codeError && <Error>{p.codeError}</Error>}
+      </form>
+    </AuthLayout>
+  );
+};
+
 let AuthIntentStep = ({
   step,
   verify,
@@ -155,15 +223,24 @@ let AuthIntentStep = ({
   verifyError,
   authIntent,
   resendStep,
-  resending
+  resending,
+  requestCode,
+  requestingCode,
+  codeError
 }: {
   step: IAuthIntent['steps'][0] | undefined | null;
   authIntent: IAuthIntent;
-  verify: (d: { input: { type: 'email_code'; code: string }; stepId: string }) => void;
+  verify: (d: {
+    input: { type: 'email_code'; code: string } | { type: 'password'; password: string };
+    stepId: string;
+  }) => void;
   verifyLoading: boolean;
   verifyError?: string;
   resendStep: () => void;
   resending: boolean;
+  requestCode: () => void;
+  requestingCode: boolean;
+  codeError?: string;
 }) => {
   let lastCode = useMemo(() => {
     return step?.codes.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
@@ -188,6 +265,22 @@ let AuthIntentStep = ({
     },
     !canResend ? 1000 : null
   );
+
+  if (step?.type == 'password') {
+    return (
+      <PasswordIntentStep
+        stepId={step.id}
+        email={step.email}
+        verify={verify}
+        loading={verifyLoading}
+        error={verifyError}
+        requestCode={requestCode}
+        requestingCode={requestingCode}
+        codeError={codeError}
+        captchaReady={!authIntent.captcha || authIntent.captcha.status == 'complete'}
+      />
+    );
+  }
 
   if (step?.type == 'email_code') {
     return (
@@ -254,6 +347,7 @@ export let AuthIntentScene = (p: {
   let captcha = useMutation(authIntent.mutators.verifyCaptcha);
   let complete = useMutation(authIntent.mutators.complete);
   let resendStep = useMutation(authIntent.mutators.resendStep);
+  let requestCode = useMutation(authIntent.mutators.requestEmailCode);
 
   let currentStep = useNonNullable(
     authIntent.data?.steps.find(step => step.status == 'current')
@@ -337,6 +431,9 @@ export let AuthIntentScene = (p: {
         verifyError={verify.error?.message}
         resendStep={() => resendStep.mutate({ stepId: currentStep.id })}
         resending={resendStep.isLoading}
+        requestCode={() => requestCode.mutate({ stepId: currentStep.id })}
+        requestingCode={requestCode.isLoading}
+        codeError={requestCode.error?.message}
         authIntent={authIntent.data}
       />
     </>

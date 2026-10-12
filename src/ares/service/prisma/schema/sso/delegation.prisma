@@ -40,7 +40,7 @@ model SsoExportedDelegation {
   id  String @unique
 
   identifier   String
-  clientId     String @unique
+  clientId     String  @unique
   clientSecret String
   redirectUri  String?
 

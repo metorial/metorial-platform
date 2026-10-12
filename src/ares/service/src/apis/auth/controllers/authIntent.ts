@@ -50,10 +50,16 @@ export let authIntentController = publicApp.controller({
 
         stepId: v.string({ modifiers: [v.maxLength(150)] }),
 
-        input: v.object({
-          type: v.literal('email_code'),
-          code: v.string({ modifiers: [v.maxLength(150)] })
-        })
+        input: v.union([
+          v.object({
+            type: v.literal('email_code'),
+            code: v.string({ modifiers: [v.maxLength(150)] })
+          }),
+          v.object({
+            type: v.literal('password'),
+            password: v.string({ modifiers: [v.maxLength(256)] })
+          })
+        ])
       })
     )
     .do(async ({ authIntent, input }) => {
@@ -91,6 +97,29 @@ export let authIntentController = publicApp.controller({
         authIntent,
         step
       });
+
+      return authIntentPresenter(
+        await authService.getAuthIntent({
+          authIntentId: authIntent.id,
+          clientSecret: authIntent.clientSecret
+        })
+      );
+    }),
+
+  requestEmailCode: authIntentApp
+    .handler()
+    .input(
+      v.object({
+        authIntentId: v.string(),
+        clientSecret: v.string(),
+        stepId: v.string()
+      })
+    )
+    .do(async ({ authIntent, input }) => {
+      let step = authIntent.steps.find(step => step.id == input.stepId);
+      if (!step) throw new ServiceError(notFoundError('auth_intent_step'));
+
+      await authService.requestAuthIntentEmailCode({ authIntent, step });
 
       return authIntentPresenter(
         await authService.getAuthIntent({

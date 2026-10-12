@@ -1,6 +1,7 @@
 enum AuthIntentType {
   email_code
   oauth
+  password
 }
 
 enum AuthIntentIdentifier {
@@ -53,6 +54,7 @@ model AuthIntent {
 
 enum AuthIntentStepType {
   email_code
+  password
 }
 
 model AuthIntentStep {
@@ -85,6 +87,7 @@ model AuthIntentVerificationAttempt {
   id  String @unique
 
   status AuthIntentVerificationAttemptStatus
+  method AuthIntentStepType                  @default(email_code)
 
   authIntentOid BigInt
   authIntent    AuthIntent @relation(fields: [authIntentOid], references: [oid], onDelete: Cascade)
@@ -93,6 +96,8 @@ model AuthIntentVerificationAttempt {
   step   AuthIntentStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([authIntentOid, method, status, createdAt])
 }
 
 model AuthIntentCode {
@@ -120,6 +125,7 @@ enum AuthLoginMethod {
   email
   oauth
   sso
+  password
 }
 
 model AuthAttempt {
