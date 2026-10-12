@@ -41,3 +41,34 @@ test('E2E suites include every application container dependency', () => {
   ]);
   expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain('forge');
 });
+
+test('unit selection follows Turbo input exclusions and external config globs', async () => {
+  let { taskInputsChanged } = await import('./changes');
+  let task = {
+    directory: 'src/forge/service',
+    resolvedTaskDefinition: {
+      inputs: [
+        '$TURBO_DEFAULT$',
+        '!README*',
+        '!Dockerfile',
+        '../../../tsconfig*.json',
+        '../../../shared/vitest.config.ts'
+      ]
+    }
+  };
+  for (let path of [
+    'docs/guide.md',
+    'src/forge/service/README.md',
+    'src/forge/service/Dockerfile'
+  ]) {
+    expect(taskInputsChanged([path], task)).toBe(false);
+  }
+  for (let path of [
+    'src/forge/service/src/new.ts',
+    'src/forge/service/src/deleted.ts',
+    'tsconfig.test.json',
+    'shared/vitest.config.ts'
+  ]) {
+    expect(taskInputsChanged([path], task)).toBe(true);
+  }
+});

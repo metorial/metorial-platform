@@ -1,5 +1,5 @@
 import { appendFileSync, readFileSync } from 'node:fs';
-import { dirname, normalize, join } from 'node:path';
+import { dirname, normalize, join, relative } from 'node:path';
 
 export let suites = [
   { name: 'forge', package: '@metorial/forge', services: ['forge'] },
@@ -29,7 +29,29 @@ export let affected = (paths: string[], directories: string[], global: boolean) 
     directories.some(directory => path === directory || path.startsWith(`${directory}/`))
   );
 
+export let taskInputsChanged = (
+  paths: string[],
+  task: { directory: string; resolvedTaskDefinition: { inputs: string[] } }
+) => {
+  let patterns = task.resolvedTaskDefinition.inputs.length
+    ? task.resolvedTaskDefinition.inputs
+    : ['$TURBO_DEFAULT$'];
+  let matches = (pattern: string, path: string) => {
+    if (pattern === '$TURBO_DEFAULT$') {
+      let local = relative(task.directory || '.', path);
+      return local !== '..' && !local.startsWith('../');
+    }
+    return new Bun.Glob(normalize(join(task.directory || '.', pattern))).match(path);
+  };
+  return paths.some(
+    path =>
+      patterns.some(pattern => !pattern.startsWith('!') && matches(pattern, path)) &&
+      !patterns.some(pattern => pattern.startsWith('!') && matches(pattern.slice(1), path))
+  );
+};
+
 if (import.meta.main) {
+  let started = performance.now();
   let git = (...args: string[]) => {
     let result = Bun.spawnSync(['git', ...args], { stdout: 'pipe', stderr: 'inherit' });
     if (result.exitCode) throw new Error(`git ${args.join(' ')} failed`);
@@ -120,6 +142,9 @@ if (import.meta.main) {
     paths.some(
       path =>
         path.startsWith(`${prefix}.github/actions/backend-e2e/`) ||
+        path.startsWith(`${prefix}.github/actions/image-artifact/`) ||
+        path.startsWith(`${prefix}.github/actions/image-cache/`) ||
+        path === `${prefix}.dockerignore` ||
         path ===
           (enterprise
             ? '.github/workflows/deploy-backend.yml'
@@ -133,16 +158,15 @@ if (import.meta.main) {
   if (graphResult.exitCode) throw new Error('Test graph discovery failed');
   let graph = JSON.parse(graphResult.stdout.toString());
   let taskMap = new Map<string, any>(graph.tasks.map((task: any) => [task.taskId, task]));
-  let graphInputs = (id: string, seen = new Set<string>()): string[] => {
-    if (seen.has(id)) return [];
+  let taskChanged = (id: string, seen = new Set<string>()): boolean => {
+    if (seen.has(id)) return false;
     seen.add(id);
     let task = taskMap.get(id);
-    if (!task) return [];
-    return [
-      task.directory,
-      ...Object.keys(task.inputs ?? {}).map(path => normalize(join(task.directory, path))),
-      ...task.dependencies.flatMap((dependency: string) => graphInputs(dependency, seen))
-    ];
+    if (!task) throw new Error(`Missing task in affected test graph: ${id}`);
+    return (
+      taskInputsChanged(paths, task) ||
+      task.dependencies.some((dependency: string) => taskChanged(dependency, seen))
+    );
   };
   let units = [
     ...new Set<string>(
@@ -150,18 +174,20 @@ if (import.meta.main) {
         .filter((task: any) => task.task === 'test' && task.command !== '<NONEXISTENT>')
         .map((task: any) => task.package)
     )
-  ].filter(name =>
-    affected(paths, [...closure(name), ...graphInputs(`${name}#test`)], unitGlobal)
-  );
+  ].filter(name => unitGlobal || taskChanged(`${name}#test`));
+  for (let suite of suites) {
+    if (!packages.has(suite.package))
+      throw new Error(`Missing E2E workspace: ${suite.package}`);
+  }
   let selected = suites.filter(suite =>
     affected(
-      paths,
+      paths.filter(path => !/(^|\/)README[^/]*$/.test(path)),
       [...closure(suite.package), ...suite.services.map(service => `${prefix}src/${service}`)],
       e2eGlobal
     )
   );
   let conduit = affected(
-    paths,
+    paths.filter(path => !/(^|\/)README[^/]*$/.test(path)),
     closure('@metorial-subspace/conduit'),
     global || paths.includes(`${prefix}.github/workflows/conduit-integration.yml`)
   );
@@ -180,6 +206,9 @@ if (import.meta.main) {
       null,
       2
     )
+  );
+  console.log(
+    `Affected test selection: ${((performance.now() - started) / 1000).toFixed(1)}s`
   );
   for (let [name, value] of Object.entries(outputs))
     appendFileSync(process.env.GITHUB_OUTPUT!, `${name}=${value}\n`);

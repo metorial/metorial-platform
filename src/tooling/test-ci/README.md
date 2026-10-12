@@ -31,3 +31,20 @@ collected and cleaned on both success and failure.
 Run `bun test src/tooling/test-ci/*.test.ts` after restoring the standalone test
 prerequisites. Coverage includes dependency/runtime/configuration invalidation,
 failed-task caching, install restoration, and unsafe image/Compose rejection.
+
+### Affected test selection
+
+`detect-test-changes` compares a PR with its merge base, or a push with its previous
+revision. Enterprise submodule updates are expanded into OSS file changes. Unit tests
+are selected through Turbo's task graph and resolved input patterns, including shared
+configuration and transitive prerequisites. E2E selection includes workspace dependency
+closures and all application containers used by each suite. Conduit is selected through
+its workspace dependency closure and remains uncached.
+
+Documentation and package README changes do not select tests. Root dependency/install
+configuration, shared test tooling, and relevant workflow changes select all affected
+categories conservatively. A manual workflow dispatch runs the complete test selection;
+enterprise's explicit emergency `skip_tests` still takes precedence. Detection errors
+fail the workflow rather than treating unknown changes as an empty selection. Image
+publication remains independent of test selection so deployment aliases and the exact
+artifacts required by selected E2E suites are always available.
