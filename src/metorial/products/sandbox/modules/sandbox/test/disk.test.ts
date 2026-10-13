@@ -300,6 +300,16 @@ describe('sandboxDiskResizeService', () => {
     );
   });
 
+  it('filters resizes by an array of statuses', async () => {
+    genesis.disk.resizeList.mockResolvedValue(page([]));
+
+    await sandboxDiskResizeService.list({ disk, statuses: ['failed', 'pending'] }).run({});
+
+    expect(genesis.disk.resizeList).toHaveBeenCalledWith(
+      expect.objectContaining({ statuses: ['failed', 'pending'] })
+    );
+  });
+
   it('retries only a resize of the disk', async () => {
     genesis.disk.resizeRetry.mockResolvedValue({ id: 'r1' });
     genesis.disk.resizeGet.mockResolvedValueOnce({ id: 'r1', diskId: 'sbd_1' });

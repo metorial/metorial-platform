@@ -4,7 +4,7 @@ import {
   sandboxDiskInternalService,
   type SandboxDiskWithTenant
 } from '../internal/diskInternal';
-import { getRegional } from '../lib/regional';
+import { getRegional, type SandboxDiskResizeFilter } from '../lib/regional';
 import { createRemotePaginator } from '../lib/remotePaginator';
 
 class SandboxDiskResizeServiceImpl {
@@ -30,11 +30,17 @@ class SandboxDiskResizeServiceImpl {
     return resize;
   }
 
-  list(d: { disk: SandboxDiskWithTenant }) {
+  list(d: { disk: SandboxDiskWithTenant; statuses?: SandboxDiskResizeFilter['statuses'] }) {
     let { genesis, tenantId } = getRegional(d.disk.tenant);
 
     return createRemotePaginator(
-      page => genesis.disk.resizeList({ tenantId, diskId: d.disk.id, ...page }),
+      page =>
+        genesis.disk.resizeList({
+          tenantId,
+          diskId: d.disk.id,
+          statuses: d.statuses,
+          ...page
+        }),
       { defaultOrder: 'desc' }
     );
   }

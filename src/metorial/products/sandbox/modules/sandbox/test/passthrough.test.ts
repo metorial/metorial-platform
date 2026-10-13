@@ -249,16 +249,28 @@ describe('sandboxMachineEventService', () => {
     genesis.machine.event.list.mockResolvedValue(page([]));
 
     await sandboxMachineEventService
-      .list({ machine, instanceId: 'sbmi_1', scope: 'instance', reverse: true })
+      .list({ machine, instanceIds: ['sbmi_1'], scope: 'instance', reverse: true })
       .run({});
 
     expect(genesis.machine.event.list).toHaveBeenCalledWith(
       expect.objectContaining({
         machineId: 'sbm_1',
-        instanceId: 'sbmi_1',
+        instanceIds: ['sbmi_1'],
         scope: 'instance',
         reverse: true
       })
+    );
+  });
+
+  it('forwards type and source array filters', async () => {
+    genesis.machine.event.list.mockResolvedValue(page([]));
+
+    await sandboxMachineEventService
+      .list({ machine, types: ['running', 'failed'], sources: ['guest'] })
+      .run({});
+
+    expect(genesis.machine.event.list).toHaveBeenCalledWith(
+      expect.objectContaining({ types: ['running', 'failed'], sources: ['guest'] })
     );
   });
 
@@ -296,6 +308,27 @@ describe.each([
       expect.objectContaining({ tenantId: 'sbt_1', machineId: 'sbm_1' })
     );
     expect(genesis.machine.instance[key].list).not.toHaveBeenCalled();
+  });
+
+  it('forwards array filters at both levels', async () => {
+    if (key != 'operation') return;
+
+    genesis.machine.operation.list.mockResolvedValue(page([]));
+    genesis.machine.instance.operation.list.mockResolvedValue(page([]));
+
+    await (service as any)
+      .list({ machine, kinds: ['start'], triggers: ['api'], outcomes: ['failed'] })
+      .run({});
+    await (service as any)
+      .list({ machine, instanceId: 'sbmi_1', kinds: ['pause'], outcomes: ['active'] })
+      .run({});
+
+    expect(genesis.machine.operation.list).toHaveBeenCalledWith(
+      expect.objectContaining({ kinds: ['start'], triggers: ['api'], outcomes: ['failed'] })
+    );
+    expect(genesis.machine.instance.operation.list).toHaveBeenCalledWith(
+      expect.objectContaining({ kinds: ['pause'], outcomes: ['active'] })
+    );
   });
 
   it('lists at instance level when an instance is given', async () => {

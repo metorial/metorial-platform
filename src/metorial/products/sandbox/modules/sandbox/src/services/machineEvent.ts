@@ -1,12 +1,18 @@
 import { Service } from '@lowerdeck/service';
-import { getRegional, type SandboxMachineWithTenant } from '../lib/regional';
+import {
+  getRegional,
+  type SandboxMachineEventFilter,
+  type SandboxMachineWithTenant
+} from '../lib/regional';
 import { createRemotePaginator } from '../lib/remotePaginator';
 
 class SandboxMachineEventServiceImpl {
   list(d: {
     machine: SandboxMachineWithTenant;
-    instanceId?: string;
+    instanceIds?: string[];
     scope?: 'all' | 'machine' | 'instance';
+    types?: SandboxMachineEventFilter['types'];
+    sources?: SandboxMachineEventFilter['sources'];
     reverse?: boolean;
   }) {
     let { genesis, tenantId } = getRegional(d.machine.tenant);
@@ -15,8 +21,10 @@ class SandboxMachineEventServiceImpl {
       genesis.machine.event.list({
         tenantId,
         machineId: d.machine.id,
-        instanceId: d.instanceId,
+        instanceIds: d.instanceIds,
         scope: d.scope,
+        types: d.types,
+        sources: d.sources,
         reverse: d.reverse,
         ...page
       })

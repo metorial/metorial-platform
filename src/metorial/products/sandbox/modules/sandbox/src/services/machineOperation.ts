@@ -1,9 +1,29 @@
 import { Service } from '@lowerdeck/service';
-import { getRegional, type SandboxMachineWithTenant } from '../lib/regional';
+import {
+  getRegional,
+  type SandboxInstanceOperationFilter,
+  type SandboxMachineOperationFilter,
+  type SandboxMachineWithTenant
+} from '../lib/regional';
 import { createRemotePaginator } from '../lib/remotePaginator';
 
 class SandboxMachineOperationServiceImpl {
-  list(d: { machine: SandboxMachineWithTenant; instanceId?: string }) {
+  list(d: {
+    machine: SandboxMachineWithTenant;
+    instanceId?: string;
+    kinds?: (
+      | NonNullable<SandboxMachineOperationFilter['kinds']>[number]
+      | NonNullable<SandboxInstanceOperationFilter['kinds']>[number]
+    )[];
+    triggers?: (
+      | NonNullable<SandboxMachineOperationFilter['triggers']>[number]
+      | NonNullable<SandboxInstanceOperationFilter['triggers']>[number]
+    )[];
+    outcomes?: (
+      | NonNullable<SandboxMachineOperationFilter['outcomes']>[number]
+      | NonNullable<SandboxInstanceOperationFilter['outcomes']>[number]
+    )[];
+  }) {
     let { genesis, tenantId } = getRegional(d.machine.tenant);
     let machineId = d.machine.id;
 
@@ -11,12 +31,27 @@ class SandboxMachineOperationServiceImpl {
       let instanceId = d.instanceId;
 
       return createRemotePaginator(page =>
-        genesis.machine.instance.operation.list({ tenantId, machineId, instanceId, ...page })
+        genesis.machine.instance.operation.list({
+          tenantId,
+          machineId,
+          instanceId,
+          kinds: d.kinds as SandboxInstanceOperationFilter['kinds'],
+          triggers: d.triggers as SandboxInstanceOperationFilter['triggers'],
+          outcomes: d.outcomes as SandboxInstanceOperationFilter['outcomes'],
+          ...page
+        })
       );
     }
 
     return createRemotePaginator(page =>
-      genesis.machine.operation.list({ tenantId, machineId, ...page })
+      genesis.machine.operation.list({
+        tenantId,
+        machineId,
+        kinds: d.kinds as SandboxMachineOperationFilter['kinds'],
+        triggers: d.triggers as SandboxMachineOperationFilter['triggers'],
+        outcomes: d.outcomes as SandboxMachineOperationFilter['outcomes'],
+        ...page
+      })
     );
   }
 

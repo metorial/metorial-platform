@@ -3,6 +3,28 @@ import type { SandboxMachine, SandboxRegion, SandboxTenant } from '@metorial/db'
 import type { GenesisInternalClient } from '@metorial/genesis-client';
 import { getRegionClient } from './regions';
 
+type GenesisInput<F extends (input: any) => any> = Parameters<F>[0];
+
+export type SandboxMachineEventFilter = Pick<
+  GenesisInput<GenesisInternalClient['machine']['event']['list']>,
+  'types' | 'sources'
+>;
+
+export type SandboxMachineOperationFilter = Pick<
+  GenesisInput<GenesisInternalClient['machine']['operation']['list']>,
+  'kinds' | 'triggers' | 'outcomes'
+>;
+
+export type SandboxInstanceOperationFilter = Pick<
+  GenesisInput<GenesisInternalClient['machine']['instance']['operation']['list']>,
+  'kinds' | 'triggers' | 'outcomes'
+>;
+
+export type SandboxDiskResizeFilter = Pick<
+  GenesisInput<GenesisInternalClient['disk']['resizeList']>,
+  'statuses'
+>;
+
 export type SandboxTenantWithRegion = SandboxTenant & { region: SandboxRegion };
 
 export type SandboxMachineWithTenant = SandboxMachine & { tenant: SandboxTenantWithRegion };

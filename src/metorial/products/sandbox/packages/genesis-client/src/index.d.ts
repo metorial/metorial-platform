@@ -8194,10 +8194,12 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
                 tenantId: string;
                 machineId: string;
-                instanceId: string | undefined;
+                instanceIds: string[] | undefined;
                 scope: "machine" | "instance" | "all" | undefined;
+                types: ("running" | "paused" | "terminated" | "failed" | "start_requested" | "start_platform_pending" | "start_platform_complete" | "start_initialize_pending" | "pause_requested" | "pause_prepare_pending" | "pause_prepare_complete" | "pause_platform_pending" | "resume_requested" | "resume_platform_pending" | "resume_platform_complete" | "resume_initialize_pending" | "terminate_requested" | "terminate_prepare_pending" | "terminate_prepare_complete" | "terminate_platform_pending" | "operation_superseded" | "operation_aborted" | "prepare_skipped" | "guest_hook_started" | "guest_error" | "platform_error" | "platform_hook_reported" | "microvm_attached" | "step_redriven" | "machine_starting" | "machine_running" | "machine_pausing" | "machine_paused" | "machine_resuming" | "machine_hibernating" | "machine_hibernated" | "machine_restarting" | "machine_upgrading" | "machine_terminating" | "machine_terminated" | "machine_failed" | "rootfs_selected" | "rootfs_ready" | "rootfs_failed" | "rootfs_activated" | "rootfs_cancelled" | "rootfs_deleted" | "machine_created" | "machine_updated" | "machine_policy_updated" | "machine_operation_superseded" | "instance_created" | "instance_expiring" | "machine_disk_attached" | "machine_disk_detached" | "disk_wait_started" | "disk_wait_ended" | "recovery_scheduled" | "runtime_setup_started" | "runtime_setup_succeeded" | "runtime_setup_failed" | "runtime_entrypoint_started" | "runtime_entrypoint_exited" | "runtime_failed")[] | undefined;
+                sources: ("platform" | "api" | "policy" | "agent" | "guest" | "controller")[] | undefined;
                 reverse: boolean | undefined;
-            }, "reverse" | "instanceId" | "scope">> & {
+            }, "reverse" | "instanceIds" | "scope" | "types" | "sources">> & {
                 machineId: string;
                 tenantId: string;
             } & {
@@ -9730,7 +9732,10 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
                 tenantId: string;
                 machineId: string;
-            }, never>> & {
+                kinds: ("restart" | "start" | "pause" | "hibernate" | "terminate")[] | undefined;
+                triggers: ("update" | "failure" | "access" | "platform" | "api" | "idle_policy" | "paused_policy" | "lifetime")[] | undefined;
+                outcomes: ("active" | "failed" | "superseded" | "completed")[] | undefined;
+            }, "kinds" | "triggers" | "outcomes">> & {
                 machineId: string;
                 tenantId: string;
             } & {
@@ -16670,8 +16675,10 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     tenantId: string;
                     machineId: string;
                     instanceId: string;
+                    types: ("running" | "paused" | "terminated" | "failed" | "start_requested" | "start_platform_pending" | "start_platform_complete" | "start_initialize_pending" | "pause_requested" | "pause_prepare_pending" | "pause_prepare_complete" | "pause_platform_pending" | "resume_requested" | "resume_platform_pending" | "resume_platform_complete" | "resume_initialize_pending" | "terminate_requested" | "terminate_prepare_pending" | "terminate_prepare_complete" | "terminate_platform_pending" | "operation_superseded" | "operation_aborted" | "prepare_skipped" | "guest_hook_started" | "guest_error" | "platform_error" | "platform_hook_reported" | "microvm_attached" | "step_redriven" | "machine_starting" | "machine_running" | "machine_pausing" | "machine_paused" | "machine_resuming" | "machine_hibernating" | "machine_hibernated" | "machine_restarting" | "machine_upgrading" | "machine_terminating" | "machine_terminated" | "machine_failed" | "rootfs_selected" | "rootfs_ready" | "rootfs_failed" | "rootfs_activated" | "rootfs_cancelled" | "rootfs_deleted" | "machine_created" | "machine_updated" | "machine_policy_updated" | "machine_operation_superseded" | "instance_created" | "instance_expiring" | "machine_disk_attached" | "machine_disk_detached" | "disk_wait_started" | "disk_wait_ended" | "recovery_scheduled" | "runtime_setup_started" | "runtime_setup_succeeded" | "runtime_setup_failed" | "runtime_entrypoint_started" | "runtime_entrypoint_exited" | "runtime_failed")[] | undefined;
+                    sources: ("platform" | "api" | "policy" | "agent" | "guest" | "controller")[] | undefined;
                     reverse: boolean | undefined;
-                }, "reverse">> & {
+                }, "reverse" | "types" | "sources">> & {
                     machineId: string;
                     tenantId: string;
                     instanceId: string;
@@ -17725,10 +17732,13 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             };
             operation: {
                 list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
+                    kinds: ("start" | "pause" | "terminate" | "resume")[] | undefined;
+                    triggers: ("machine" | "failure" | "platform")[] | undefined;
+                    outcomes: ("active" | "failed" | "superseded" | "completed" | "aborted")[] | undefined;
                     tenantId: string;
                     machineId: string;
                     instanceId: string;
-                }, never>> & {
+                }, "kinds" | "triggers" | "outcomes">> & {
                     machineId: string;
                     tenantId: string;
                     instanceId: string;
@@ -28624,7 +28634,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         resizeList: _lowerdeck_rpc_server.Handler<Partial<Pick<{
             tenantId: string;
             diskId: string;
-        }, never>> & {
+            statuses: ("restarting" | "failed" | "pending" | "draining" | "resizing" | "verifying" | "complete")[] | undefined;
+        }, "statuses">> & {
             tenantId: string;
             diskId: string;
         } & {
