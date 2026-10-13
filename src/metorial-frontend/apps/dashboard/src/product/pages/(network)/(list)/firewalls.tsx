@@ -9,11 +9,9 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useFirewalls,
-  useNetworks
+  useFirewalls
 } from '@metorial/state';
 import { Button, Dialog, Input, RenderDate, Spacer, Text, showModal } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
 import { Table as DashboardTable } from '@metorial/table';
 import { TableStateProvider, TableStateProviderResult } from '@metorial/table';
@@ -80,12 +78,6 @@ let firewallsTable = new DashboardTable<FirewallsTableProps, Firewall>('network-
       render: firewall => <Text size="2">{firewall.networkPolicies.length}</Text>
     },
     {
-      id: 'network',
-      isDefault: true,
-      header: 'Network',
-      render: firewall => <ID id={firewall.networkId} />
-    },
-    {
       id: 'updatedAt',
       isDefault: true,
       header: 'Updated',
@@ -100,7 +92,6 @@ let FirewallsTable = () => {
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let navigate = useNavigate();
-  let networks = useNetworks(instance.data?.id, { limit: 1 });
   let { canWrite } = useNetworkManagementAccess();
   let firewallPath = (firewallId: string) =>
     Paths.organization.instance.networkFirewall(
@@ -118,14 +109,12 @@ let FirewallsTable = () => {
       canWrite ? (
         <Button
           size="2"
-          disabled={!instance.data || !networks.data?.items[0]}
+          disabled={!instance.data}
           onClick={() => {
-            let network = networks.data?.items[0];
-            if (!instance.data || !network) return;
+            if (!instance.data) return;
 
             showCreateFirewallModal({
               instanceId: instance.data.id,
-              networkId: network.id,
               onCreate: firewallId => navigate(firewallPath(firewallId))
             });
           }}
@@ -138,7 +127,6 @@ let FirewallsTable = () => {
 
 let showCreateFirewallModal = (p: {
   instanceId: string;
-  networkId: string;
   onCreate: (firewallId: string) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
@@ -151,7 +139,6 @@ let showCreateFirewallModal = (p: {
       onSubmit: async values => {
         let [firewall] = await createFirewall.mutate({
           instanceId: p.instanceId,
-          networkId: p.networkId,
           name: values.name.trim(),
           description: values.description || undefined
         });

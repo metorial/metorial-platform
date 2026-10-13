@@ -9,7 +9,6 @@ import {
   useCurrentProject,
   useDetachNetworkPolicyFromFirewall,
   useFirewall,
-  useNetwork,
   useNetworkPolicy
 } from '@metorial/state';
 import {
@@ -42,14 +41,14 @@ type PolicyRuleInput = {
 
 type PolicyRule = {
   id: string;
-  object: 'network.policy.rule';
+  object: 'networking.network_policy.rule';
   effect: 'allow' | 'deny';
   direction: 'ingress' | 'egress';
   cidrs: string[];
   description: string | null;
   enabled: boolean;
   priority: number;
-  ports: { object: 'network.policy.port_range'; from: number; to: number }[] | null;
+  ports: { object: 'networking.network_policy.port_range'; from: number; to: number }[] | null;
 };
 
 let ipv4AddressRegex = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
@@ -613,7 +612,6 @@ export let NetworkFirewallPage = () => {
   let instance = useCurrentInstance();
   let { firewallId } = useParams();
   let firewall = useFirewall(instance.data?.id, firewallId);
-  let network = useNetwork(instance.data?.id, firewall.data?.networkId);
   let { canWrite } = useNetworkManagementAccess();
 
   return renderWithLoader({ firewall })(({ firewall }) => (
@@ -624,20 +622,6 @@ export let NetworkFirewallPage = () => {
           {
             label: 'ID',
             content: <ID id={firewall.data.id} />
-          },
-          {
-            label: 'Network',
-            content: (
-              <Link
-                to={Paths.organization.instance.networkSettings(
-                  organization.data,
-                  project.data,
-                  instance.data
-                )}
-              >
-                {network.data?.name ?? 'Loading...'}
-              </Link>
-            )
           },
           {
             label: 'Created',

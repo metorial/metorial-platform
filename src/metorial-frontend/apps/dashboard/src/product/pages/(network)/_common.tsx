@@ -70,7 +70,7 @@ export let EnclavesTable = (p: {
     id: string;
     name: string;
     description: string | null;
-    networkId: string;
+    internetGatewayId: string;
     providerDeploymentId: string;
     lastUsedAt: Date | null;
     createdAt: Date;

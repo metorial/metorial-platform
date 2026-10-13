@@ -5,7 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useLastUsedEnclaves,
+  useLastUsedIntegrationEnclaves,
   useResourceCounts
 } from '@metorial/state';
 import { Badge, Button, RenderDate, Text, theme } from '@metorial/ui';
@@ -213,7 +213,7 @@ let RecentEnclavesBox = ({
   enclaves,
   enclavePath
 }: {
-  enclaves: ReturnType<typeof useLastUsedEnclaves>;
+  enclaves: ReturnType<typeof useLastUsedIntegrationEnclaves>;
   enclavePath: string;
 }) => (
   <Box title="Recently Used Enclaves" description="Runtime environments with recent activity.">
@@ -251,9 +251,9 @@ let integrationsResourceCountResources = [
   'provider_config_vaults',
   'provider_auth_configs',
   'provider_auth_credentials',
-  'networks',
+  'integration_internet_gateways',
   'firewalls',
-  'enclaves'
+  'integration_enclaves'
 ] satisfies ResourceCountResource[];
 
 let configurationCountResources = [
@@ -272,7 +272,7 @@ export let IntegrationsOverviewPage = () => {
     instance.data?.id,
     integrationsResourceCountResources
   );
-  let lastUsedEnclaves = useLastUsedEnclaves(instance.data?.id, { limit: 3 });
+  let lastUsedEnclaves = useLastUsedIntegrationEnclaves(instance.data?.id, { limit: 3 });
   let countByResource = new Map(
     resourceCounts.data?.resources.map(resource => [resource.resource, resource.count]) ?? []
   );
@@ -321,12 +321,12 @@ export let IntegrationsOverviewPage = () => {
             {
               label: 'Enclaves',
               to: Paths.organization.instance.networkEnclaves(...params),
-              countResources: ['enclaves']
+              countResources: ['integration_enclaves']
             },
             {
               label: 'Networks',
               to: Paths.organization.instance.network(...params),
-              countResources: ['networks', 'firewalls']
+              countResources: ['integration_internet_gateways', 'firewalls']
             }
           ]}
           getStatCount={getStatCount}
@@ -426,7 +426,7 @@ export let IntegrationsOverviewPage = () => {
                 label: 'Network',
                 description: 'Firewall policy, public IPs, and network settings.',
                 to: Paths.organization.instance.network(...params),
-                countResources: ['networks', 'firewalls'],
+                countResources: ['integration_internet_gateways', 'firewalls'],
                 action: 'Open',
                 tone: 'green'
               },
@@ -434,7 +434,7 @@ export let IntegrationsOverviewPage = () => {
                 label: 'Enclaves',
                 description: 'Runtime isolation for provider deployments.',
                 to: Paths.organization.instance.networkEnclaves(...params),
-                countResources: ['enclaves'],
+                countResources: ['integration_enclaves'],
                 action: 'Inspect',
                 tone: 'orange'
               }

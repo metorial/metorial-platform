@@ -6,11 +6,11 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useFirewalls,
-  useNetworkLogs,
-  useNetworks
+  useIntegrationInternetGateway,
+  useNetworkLogs
 } from '@metorial/state';
 import { Badge, Callout, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
+import { Box, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { EmptyText } from '../_common';
 
@@ -91,7 +91,7 @@ export let NetworkOverviewPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
-  let networks = useNetworks(instance.data?.id, { limit: 1 });
+  let internetGateway = useIntegrationInternetGateway(instance.data?.id);
   let firewalls = useFirewalls(instance.data?.id, { limit: 10, order: 'desc' });
   let range = useMemo(() => getNetworkLogRange(), []);
   let networkLogsQuery = useMemo(
@@ -105,7 +105,7 @@ export let NetworkOverviewPage = () => {
   );
   let networkLogs = useNetworkLogs(instance.data?.id, networkLogsQuery);
 
-  return renderWithLoader({ networks, firewalls, networkLogs })(
+  return renderWithLoader({ internetGateway, firewalls, networkLogs })(
     ({ firewalls, networkLogs }) => {
       let series = getNetworkLogSeries(networkLogs.data.records, range.from, range.to);
       let deniedCount = getDeniedNetworkLogCount(networkLogs.data.records);
@@ -135,10 +135,10 @@ export let NetworkOverviewPage = () => {
 
           <Spacer size={20} />
 
-          <Box title="Firewalls" description="Firewalls attached to this network.">
+          <Box title="Firewalls" description="Firewalls available to your instance.">
             {firewalls.data.items.length > 0 ? (
               <Table
-                headers={['Name', 'Status', 'Policies', 'Network', 'Updated']}
+                headers={['Name', 'Status', 'Policies', 'Updated']}
                 data={firewalls.data.items.map(firewall => ({
                   href: Paths.organization.instance.networkFirewall(
                     organization.data,
@@ -162,7 +162,6 @@ export let NetworkOverviewPage = () => {
                       {firewall.status}
                     </Badge>,
                     <Text size="2">{firewall.networkPolicies.length}</Text>,
-                    <ID id={firewall.networkId} />,
                     <RenderDate date={firewall.updatedAt} />
                   ]
                 }))}

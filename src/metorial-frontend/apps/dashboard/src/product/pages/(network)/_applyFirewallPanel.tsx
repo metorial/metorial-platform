@@ -1,9 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
-  useCreateFirewallBinding,
-  useDeleteFirewallBinding,
-  useFirewallBindings,
-  useFirewalls
+  useCreateIntegrationFirewallAssignment,
+  useDeleteIntegrationFirewallAssignment,
+  useFirewalls,
+  useIntegrationFirewallAssignments
 } from '@metorial/state';
 import { Checkbox, Panel, Text, showModal } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { statusBadge } from './_common';
 
 type LocalFirewall = NonNullable<ReturnType<typeof useFirewalls>['data']>['items'][number];
-type LocalFirewallBinding = {
+type LocalFirewallAssignment = {
   id: string;
   firewall: { id: string };
   target: { id: string } | null;
@@ -24,7 +24,7 @@ let targetMatches = (
   targetId: string
 ) => binding.target?.id === targetId;
 
-let toLocalBinding = (binding: LocalFirewallBinding): LocalFirewallBinding => ({
+let toLocalBinding = (binding: LocalFirewallAssignment): LocalFirewallAssignment => ({
   id: binding.id,
   firewall: { id: binding.firewall.id },
   target: binding.target ? { id: binding.target.id } : null
@@ -32,7 +32,7 @@ let toLocalBinding = (binding: LocalFirewallBinding): LocalFirewallBinding => ({
 
 export let showApplyFirewallPanel = (p: {
   instanceId: string;
-  targetType: 'network' | 'enclave';
+  targetType: 'internet_gateway' | 'enclave';
   targetId: string;
   title: string;
   description: string;
@@ -40,12 +40,15 @@ export let showApplyFirewallPanel = (p: {
 }) =>
   showModal(({ dialogProps }) => {
     let firewalls = useFirewalls(p.instanceId, { limit: 100, order: 'desc' });
-    let firewallBindings = useFirewallBindings(p.instanceId, { limit: 100, order: 'desc' });
-    let createBinding = useCreateFirewallBinding();
-    let deleteBinding = useDeleteFirewallBinding();
+    let firewallBindings = useIntegrationFirewallAssignments(p.instanceId, {
+      limit: 100,
+      order: 'desc'
+    });
+    let createBinding = useCreateIntegrationFirewallAssignment();
+    let deleteBinding = useDeleteIntegrationFirewallAssignment();
 
     let [localFirewalls, setLocalFirewalls] = useState<LocalFirewall[] | null>(null);
-    let [localBindings, setLocalBindings] = useState<LocalFirewallBinding[] | null>(null);
+    let [localBindings, setLocalBindings] = useState<LocalFirewallAssignment[] | null>(null);
     let [pendingFirewallIds, setPendingFirewallIds] = useState<string[]>([]);
 
     useEffect(() => {
@@ -107,7 +110,7 @@ export let showApplyFirewallPanel = (p: {
                             setFirewallPending(firewall.id, true);
 
                             if (checked && !binding) {
-                              let optimisticBinding: LocalFirewallBinding = {
+                              let optimisticBinding: LocalFirewallAssignment = {
                                 id: `optimistic:${firewall.id}:${p.targetId}`,
                                 firewall: { id: firewall.id },
                                 target: { id: p.targetId }
@@ -129,9 +132,9 @@ export let showApplyFirewallPanel = (p: {
                                 instanceId: p.instanceId,
                                 firewallId: firewall.id,
                                 targetType: p.targetType,
-                                ...(p.targetType === 'network'
-                                  ? { networkId: p.targetId }
-                                  : { enclaveId: p.targetId })
+                                ...(p.targetType === 'enclave'
+                                  ? { enclaveId: p.targetId }
+                                  : {})
                               });
 
                               if (error) {
@@ -174,7 +177,7 @@ export let showApplyFirewallPanel = (p: {
 
                               let [, error] = await deleteBinding.mutate({
                                 instanceId: p.instanceId,
-                                firewallBindingId: binding.id
+                                integrationFirewallAssignmentId: binding.id
                               });
 
                               if (error) {
