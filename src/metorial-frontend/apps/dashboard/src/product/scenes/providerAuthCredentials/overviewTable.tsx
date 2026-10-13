@@ -12,12 +12,8 @@ import {
   useProviderAuthCredentials,
   useProviders
 } from '@metorial/state';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { type ReactNode, useState } from 'react';
-import { Table as DashboardTable } from '@metorial/table';
 import {
+  Table as DashboardTable,
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
@@ -25,6 +21,10 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { type ReactNode, useState } from 'react';
 
 type ProviderAuthCredential =
   DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
@@ -192,7 +192,7 @@ let providerAuthCredentialsTable = new DashboardTable<
     },
     {
       id: 'createdAt',
-      isDefault: true,
+      isDefault: false,
       header: 'Created',
       render: row => <RenderDate date={row.createdAt} />
     },
