@@ -40,10 +40,11 @@ model SandboxMachineImageBuild {
   failureCode    String?
   failureMessage String?
 
-  builtAt   DateTime?
-  endedAt   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @default(now()) @updatedAt
+  lastCheckedAt DateTime  @default(now())
+  builtAt       DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
@@ -58,6 +59,7 @@ model SandboxMachineImageBuild {
 
   @@index([instanceOid, status])
   @@index([status, oid])
+  @@index([status, lastCheckedAt])
   @@index([imageOid, createdAt])
 }
 

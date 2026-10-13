@@ -56,6 +56,7 @@ vi.mock('../src/internal/imageInternal', () => ({
   sandboxImageInternalService: { refreshAvailability }
 }));
 vi.mock('../src/services/tenant', () => ({ sandboxTenantService: { ensure: ensureTenant } }));
+vi.mock('@metorial/cron', () => ({ createCron: vi.fn((_: any, fn: any) => fn) }));
 vi.mock('@metorial/queue', () => ({
   combineQueueProcessors: vi.fn((list: any[]) => list),
   createQueue: vi.fn((opts: { name: string }) => {
@@ -80,6 +81,7 @@ vi.mock('@metorial/db', () => ({
 }));
 
 await import('../src/queues/imageBuild');
+let { stalledImageBuildsCron } = await import('../src/queues/stalledImageBuilds');
 let { sandboxImageBuildService } = await import('../src/services/imageBuild');
 
 let root = () => processors['sbx/image/build/root']!;
@@ -168,7 +170,7 @@ describe('image build root job', () => {
 
     expect(db.sandboxMachineImageBuild.updateMany).toHaveBeenCalledWith({
       where: { oid: 50n, status: 'building' },
-      data: { status: 'queued', builtAt: null }
+      data: { lastCheckedAt: expect.any(Date), status: 'queued', builtAt: null }
     });
     let jobs = queues['sbx/image/build/region']!.addManyWithOps.mock.calls[0]![0];
     expect(jobs.map((job: any) => job.data.buildRegionOid)).toEqual(['102']);
@@ -189,7 +191,11 @@ describe('image build root job', () => {
     expect(jobs.map((job: any) => job.data.buildRegionOid).sort()).toEqual(['101', '102']);
     expect(db.sandboxMachineImageBuild.updateMany).toHaveBeenCalledWith({
       where: { oid: 50n, status: 'building' },
-      data: { status: 'processing', builtAt: expect.any(Date) }
+      data: {
+        lastCheckedAt: expect.any(Date),
+        status: 'processing',
+        builtAt: expect.any(Date)
+      }
     });
   });
 
@@ -209,7 +215,11 @@ describe('image build root job', () => {
 
     expect(db.sandboxMachineImageBuild.updateMany).toHaveBeenCalledWith({
       where: { oid: 50n, status: 'processing' },
-      data: { status: 'replicating', builtAt: expect.any(Date) }
+      data: {
+        lastCheckedAt: expect.any(Date),
+        status: 'replicating',
+        builtAt: expect.any(Date)
+      }
     });
     expect(queues['sbx/image/build/root']!.add).toHaveBeenCalled();
   });
@@ -306,6 +316,60 @@ describe('image build root job', () => {
 
     expect(queues['sbx/image/build/region']!.addManyWithOps).not.toHaveBeenCalled();
     expect(queues['sbx/image/build/root']!.add).not.toHaveBeenCalled();
+  });
+});
+
+describe('stalled image builds', () => {
+  let single = () => processors['sbx/image/build/stalled/single']!;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clients['aws:eu-west-1'] = makeClient();
+    clients['aws:us-east-1'] = makeClient();
+  });
+
+  it('enqueues builds that have not been checked for a while', async () => {
+    queues['sbx/image/build/stalled/single']!.addManyWithOps.mockReset();
+    db.sandboxMachineImageBuild.findMany.mockResolvedValue([{ oid: 5n }]);
+
+    await (stalledImageBuildsCron as any)();
+
+    expect(db.sandboxMachineImageBuild.findMany.mock.calls[0]![0].where).toMatchObject({
+      lastCheckedAt: { lt: expect.any(Date) }
+    });
+    expect(
+      queues['sbx/image/build/stalled/single']!.addManyWithOps.mock.calls[0]![0]
+    ).toMatchObject([{ data: { buildOid: '5' }, opts: { id: 'stalled-5' } }]);
+  });
+
+  it('times out a stalled build and cancels its regional builds', async () => {
+    db.sandboxMachineImageBuild.findFirst.mockResolvedValue(build([builderRow(), row(eu)]));
+
+    await single()({ buildOid: '50' });
+
+    expect(clients['aws:us-east-1']!.machineImage.build.cancel).toHaveBeenCalledWith({
+      tenantId: 'tenant_iad1',
+      buildId: 'gbuild_us'
+    });
+    expect(db.sandboxMachineImageBuild.updateMany).toHaveBeenCalledWith({
+      where: {
+        oid: 50n,
+        status: { notIn: ['succeeded', 'failed', 'cancelled', 'timed_out'] }
+      },
+      data: expect.objectContaining({ status: 'timed_out', failureCode: 'build_stalled' })
+    });
+    expect(db.sandboxMachineImageVersion.updateMany).toHaveBeenCalledWith({
+      where: { oid: 70n, status: 'pending' },
+      data: { status: 'deleted' }
+    });
+  });
+
+  it('ignores a build that was checked again in the meantime', async () => {
+    db.sandboxMachineImageBuild.findFirst.mockResolvedValue(null);
+
+    await single()({ buildOid: '50' });
+
+    expect(db.sandboxMachineImageBuild.updateMany).not.toHaveBeenCalled();
   });
 });
 

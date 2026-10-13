@@ -6,6 +6,11 @@ import {
 } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { sandboxImageInternalService } from '../internal/imageInternal';
+import {
+  endImageBuild,
+  terminalBuildStatuses,
+  terminalRegionStatuses
+} from '../lib/imageBuildEnd';
 import { getRegionClient } from '../lib/regions';
 
 let TICK_MS = 5000;
@@ -16,20 +21,6 @@ let toRegionStatus = (remoteStatus: string) =>
   (remoteStatus == 'awaiting_context'
     ? 'preparing'
     : remoteStatus) as SandboxMachineImageBuildRegionStatus;
-
-let terminalBuildStatuses: SandboxMachineImageBuildStatus[] = [
-  'succeeded',
-  'failed',
-  'cancelled',
-  'timed_out'
-];
-
-let terminalRegionStatuses: SandboxMachineImageBuildRegionStatus[] = [
-  'succeeded',
-  'failed',
-  'cancelled',
-  'timed_out'
-];
 
 let failedRegionStatuses: SandboxMachineImageBuildRegionStatus[] = [
   'failed',
@@ -94,12 +85,17 @@ export let imageBuildRootQueueProcessor = imageBuildRootQueue.process(async data
   }
 
   if (!terminalBuildStatuses.includes(status)) {
-    if (status != build.status || (artifactReady && !build.builtAt)) {
-      await db.sandboxMachineImageBuild.updateMany({
-        where: { oid: build.oid, status: build.status },
-        data: { status, builtAt: artifactReady ? (build.builtAt ?? new Date()) : null }
-      });
-    }
+    let changed = status != build.status || (artifactReady && !build.builtAt);
+
+    await db.sandboxMachineImageBuild.updateMany({
+      where: { oid: build.oid, status: build.status },
+      data: {
+        lastCheckedAt: new Date(),
+        ...(changed
+          ? { status, builtAt: artifactReady ? (build.builtAt ?? new Date()) : null }
+          : {})
+      }
+    });
 
     await imageBuildRootQueue.add(
       { buildOid: data.buildOid },
@@ -109,40 +105,7 @@ export let imageBuildRootQueueProcessor = imageBuildRootQueue.process(async data
     return;
   }
 
-  let remaining = build.regions.filter(row => !terminalRegionStatuses.includes(row.status));
-  for (let row of remaining) {
-    if (!row.genesisBuildId) continue;
-
-    await getRegionClient(row.region.id)
-      .machineImage.build.cancel({ tenantId: row.tenant.id, buildId: row.genesisBuildId })
-      .catch(() => undefined);
-  }
-
-  let now = new Date();
-
-  await db.sandboxMachineImageBuildRegion.updateMany({
-    where: { oid: { in: remaining.map(row => row.oid) } },
-    data: { status: 'cancelled', endedAt: now }
-  });
-
-  await db.sandboxMachineImageBuild.updateMany({
-    where: { oid: build.oid, status: { notIn: terminalBuildStatuses } },
-    data: {
-      status,
-      failureCode: failure?.code ?? null,
-      failureMessage: failure?.message ?? null,
-      endedAt: now
-    }
-  });
-
-  if (status != 'succeeded') {
-    await db.sandboxMachineImageVersion.updateMany({
-      where: { oid: build.versionOid, status: 'pending' },
-      data: { status: 'deleted' }
-    });
-  }
-
-  await sandboxImageInternalService.refreshAvailability();
+  await endImageBuild({ build, status, failure });
 });
 
 export let imageBuildRegionQueue = createQueue<{ buildRegionOid: string }>({
