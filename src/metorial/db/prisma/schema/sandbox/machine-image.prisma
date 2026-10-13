@@ -1,8 +1,14 @@
+enum SandboxMachineImageStatus {
+  pending
+  active
+  deleted
+}
+
 model SandboxMachineImage {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status SandboxResourceStatus @default(active)
+  status SandboxMachineImageStatus @default(pending)
 
   identifier String? @unique
   name       String?
@@ -58,9 +64,9 @@ model SandboxMachineImageVersion {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status SandboxResourceStatus @default(active)
+  status SandboxMachineImageStatus @default(pending)
 
-  digest String?
+  releaseKey String?
 
   imageOid BigInt
   image    SandboxMachineImage @relation(fields: [imageOid], references: [oid], onDelete: Cascade)
@@ -71,6 +77,7 @@ model SandboxMachineImageVersion {
 
   regions SandboxMachineImageVersionRegion[]
 
+  @@unique([imageOid, releaseKey])
   @@index([imageOid, status])
 }
 
@@ -81,6 +88,7 @@ model SandboxMachineImageVersionRegion {
   status SandboxResourceStatus @default(active)
 
   genesisId String
+  digest    String?
 
   versionOid BigInt
   version    SandboxMachineImageVersion @relation(fields: [versionOid], references: [oid], onDelete: Cascade)

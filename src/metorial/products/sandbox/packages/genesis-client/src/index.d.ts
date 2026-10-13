@@ -31329,6 +31329,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -31344,6 +31345,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -31398,6 +31400,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -31413,6 +31416,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -31450,6 +31454,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -31465,6 +31470,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -31570,9 +31576,10 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
             status: ("failed" | "pending" | "ready" | "deprecated")[] | undefined;
             includeGlobal: boolean | undefined;
+            imported: boolean | undefined;
             search: string | undefined;
             tenantId: string;
-        }, "status" | "search" | "includeGlobal">> & {
+        }, "status" | "search" | "includeGlobal" | "imported">> & {
             tenantId: string;
         } & {
             limit?: number;
@@ -31585,6 +31592,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             items: {
                 object: "genesis.machine_image";
                 id: string;
+                identifier: string | null;
                 tenantId: string | null;
                 visibility: _metorial_genesis_db.MachineImageVisibility;
                 status: _metorial_genesis_db.MachineImageStatus;
@@ -31600,6 +31608,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     status: _metorial_genesis_db.MachineImageVersionStatus;
                     platform: string;
                     digest: string;
+                    releaseKey: string | null;
                     rootfsBytes: number;
                     oci: {
                         index: PrismaJson.GenesisOciDocument;
@@ -31659,6 +31668,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -31674,6 +31684,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -31782,6 +31793,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -31797,6 +31809,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -32062,6 +32075,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -32099,6 +32113,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -32218,6 +32233,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     status: _metorial_genesis_db.MachineImageVersionStatus;
                     platform: string;
                     digest: string;
+                    releaseKey: string | null;
                     rootfsBytes: number;
                     oci: {
                         index: PrismaJson.GenesisOciDocument;
@@ -33136,6 +33152,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -33151,6 +33168,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -33187,6 +33205,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -33202,6 +33221,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -33307,8 +33327,9 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
             status: ("failed" | "pending" | "ready" | "deprecated")[] | undefined;
             includeGlobal: boolean | undefined;
+            imported: boolean | undefined;
             search: string | undefined;
-        }, "status" | "search" | "includeGlobal">> & {} & {
+        }, "status" | "search" | "includeGlobal" | "imported">> & {} & {
             limit?: number;
             after?: string;
             before?: string;
@@ -33319,6 +33340,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             items: {
                 object: "genesis.machine_image";
                 id: string;
+                identifier: string | null;
                 tenantId: string | null;
                 visibility: _metorial_genesis_db.MachineImageVisibility;
                 status: _metorial_genesis_db.MachineImageStatus;
@@ -33334,6 +33356,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     status: _metorial_genesis_db.MachineImageVersionStatus;
                     platform: string;
                     digest: string;
+                    releaseKey: string | null;
                     rootfsBytes: number;
                     oci: {
                         index: PrismaJson.GenesisOciDocument;
@@ -33392,6 +33415,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -33407,6 +33431,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -33514,6 +33539,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         }>, {
             object: "genesis.machine_image";
             id: string;
+            identifier: string | null;
             tenantId: string | null;
             visibility: _metorial_genesis_db.MachineImageVisibility;
             status: _metorial_genesis_db.MachineImageStatus;
@@ -33529,6 +33555,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -33643,6 +33670,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 status: _metorial_genesis_db.MachineImageVersionStatus;
                 platform: string;
                 digest: string;
+                releaseKey: string | null;
                 rootfsBytes: number;
                 oci: {
                     index: PrismaJson.GenesisOciDocument;
@@ -33760,6 +33788,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     status: _metorial_genesis_db.MachineImageVersionStatus;
                     platform: string;
                     digest: string;
+                    releaseKey: string | null;
                     rootfsBytes: number;
                     oci: {
                         index: PrismaJson.GenesisOciDocument;

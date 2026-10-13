@@ -1,4 +1,5 @@
 import { combineQueueProcessors } from '@metorial/queue';
+import { syncImagesProcessors } from './queues/syncImages';
 import { syncSpecsProcessors } from './queues/syncSpecs';
 
 export {
@@ -9,4 +10,7 @@ export {
 export { getRegionClient, isSandboxingEnabled } from './lib/regions';
 export * from './services';
 
-export let sandboxQueueProcessor = combineQueueProcessors([syncSpecsProcessors]);
+export let sandboxQueueProcessor = combineQueueProcessors([
+  syncImagesProcessors,
+  syncSpecsProcessors
+]);
