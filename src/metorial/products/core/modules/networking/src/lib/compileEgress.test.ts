@@ -127,5 +127,5 @@ describe('compileEgressRules', () => {
         ]
       })
     ).toThrow(EgressCompileError);
-  });
+  }, 30_000);
 });

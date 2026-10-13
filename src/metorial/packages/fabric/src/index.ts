@@ -25,7 +25,7 @@ export type {
   AuditSubspaceCustomProviderCommit,
   AuditSubspaceCustomProviderVersion,
   AuditSubspaceFirewall,
-  AuditSubspaceFirewallBinding,
+  AuditSubspaceIntegrationFirewallAssignment,
   AuditSubspaceIdentity,
   AuditSubspaceIdentityActor,
   AuditSubspaceIdentityCredential,

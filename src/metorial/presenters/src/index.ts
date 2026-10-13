@@ -95,7 +95,7 @@ import {
   v1DocumentPermissionsPresenter,
   v1DocumentPresenter,
   v1DocumentVersionPresenter,
-  v1EnclavePresenter,
+  v1IntegrationEnclavePresenter,
   v1EventDeliveryAttemptPresenter,
   v1EventDeliveryPresenter,
   v1EventDestinationListenerPresenter,
@@ -104,7 +104,7 @@ import {
   v1SystemEventPresenter,
   v1FileLinkPresenter,
   v1FilePresenter,
-  v1FirewallBindingPresenter,
+  v1IntegrationFirewallAssignmentPresenter,
   v1FirewallPresenter,
   v1FlagsPresenter,
   v1IdentityActorPresenter,
@@ -138,10 +138,10 @@ import {
   v1MonitorPresenter,
   v1NamespacePresenter,
   v1NamespacePropertyPresenter,
-  v1NetworkLogsPresenter,
+  v1IntegrationInternetGatewayNetworkLogsPresenter,
   v1NetworkPolicyPresenter,
   v1NetworkPolicyRulePresenter,
-  v1NetworkPresenter,
+  v1IntegrationInternetGatewayPresenter,
   v1OAuthApplicationClientSecretPresenter,
   v1OAuthApplicationPresenter,
   v1OAuthAuthorizationLogPresenter,
@@ -328,14 +328,14 @@ import {
   documentPermissionsType,
   documentType,
   documentVersionType,
-  enclaveType,
+  integrationEnclaveType,
   eventDeliveryAttemptType,
   eventDeliveryType,
   eventDestinationListenerType,
   eventDestinationType,
   fileLinkType,
   fileType,
-  firewallBindingType,
+  integrationFirewallAssignmentType,
   firewallType,
   flagsType,
   identityActorType,
@@ -368,10 +368,10 @@ import {
   monitorType,
   namespacePropertyType,
   namespaceType,
-  networkLogsType,
+  integrationInternetGatewayNetworkLogsType,
   networkPolicyRuleType,
   networkPolicyType,
-  networkType,
+  integrationInternetGatewayType,
   oauthApplicationClientSecretType,
   oauthApplicationType,
   oauthAuthorizationLogType,
@@ -1596,24 +1596,30 @@ export let skillPresenter = declarePresenter(skillType, {
   mt_2026_01_01_magnetar: v1SkillPresenter
 });
 
-export let networkPresenter = declarePresenter(networkType, {
-  mt_2025_01_01_dashboard: v1NetworkPresenter,
-  mt_2026_01_01_magnetar: v1NetworkPresenter
-});
+export let integrationInternetGatewayPresenter = declarePresenter(
+  integrationInternetGatewayType,
+  {
+    mt_2025_01_01_dashboard: v1IntegrationInternetGatewayPresenter,
+    mt_2026_01_01_magnetar: v1IntegrationInternetGatewayPresenter
+  }
+);
 
-export let networkLogsPresenter = declarePresenter(networkLogsType, {
-  mt_2025_01_01_dashboard: v1NetworkLogsPresenter,
-  mt_2026_01_01_magnetar: v1NetworkLogsPresenter
-});
+export let integrationInternetGatewayNetworkLogsPresenter = declarePresenter(
+  integrationInternetGatewayNetworkLogsType,
+  {
+    mt_2025_01_01_dashboard: v1IntegrationInternetGatewayNetworkLogsPresenter,
+    mt_2026_01_01_magnetar: v1IntegrationInternetGatewayNetworkLogsPresenter
+  }
+);
 
 export let resourceCountsPresenter = declarePresenter(resourceCountsType, {
   mt_2025_01_01_dashboard: v1ResourceCountsPresenter,
   mt_2026_01_01_magnetar: v1ResourceCountsPresenter
 });
 
-export let enclavePresenter = declarePresenter(enclaveType, {
-  mt_2025_01_01_dashboard: v1EnclavePresenter,
-  mt_2026_01_01_magnetar: v1EnclavePresenter
+export let integrationEnclavePresenter = declarePresenter(integrationEnclaveType, {
+  mt_2025_01_01_dashboard: v1IntegrationEnclavePresenter,
+  mt_2026_01_01_magnetar: v1IntegrationEnclavePresenter
 });
 
 export let firewallPresenter = declarePresenter(firewallType, {
@@ -1621,10 +1627,13 @@ export let firewallPresenter = declarePresenter(firewallType, {
   mt_2026_01_01_magnetar: v1FirewallPresenter
 });
 
-export let firewallBindingPresenter = declarePresenter(firewallBindingType, {
-  mt_2025_01_01_dashboard: v1FirewallBindingPresenter,
-  mt_2026_01_01_magnetar: v1FirewallBindingPresenter
-});
+export let integrationFirewallAssignmentPresenter = declarePresenter(
+  integrationFirewallAssignmentType,
+  {
+    mt_2025_01_01_dashboard: v1IntegrationFirewallAssignmentPresenter,
+    mt_2026_01_01_magnetar: v1IntegrationFirewallAssignmentPresenter
+  }
+);
 
 export let networkPolicyPresenter = declarePresenter(networkPolicyType, {
   mt_2025_01_01_dashboard: v1NetworkPolicyPresenter,

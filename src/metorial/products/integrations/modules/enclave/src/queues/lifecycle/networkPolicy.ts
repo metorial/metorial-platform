@@ -10,7 +10,7 @@ let resetCompiledNetworkRulesForNetworkPolicyId = async (networkPolicyId: string
       firewallLinks: {
         include: {
           firewall: {
-            include: { bindings: true }
+            include: { assignments: true }
           }
         }
       }

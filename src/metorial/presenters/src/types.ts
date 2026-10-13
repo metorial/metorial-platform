@@ -33,7 +33,7 @@ import type {
   scmProviderSetupSessionService,
   scmRepositoryService
 } from '@metorial-subspace/module-custom-provider';
-import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
+import type { IntegrationInternetGatewayNetworkLogsResponse } from '@metorial-subspace/module-enclave';
 import type {
   integrationInclude,
   integrationInstanceGroupInclude,
@@ -2906,19 +2906,18 @@ export let skillTemplateItemType = PresentableType.create<{
   skillTemplateItem: SkillTemplateItemResource;
 }>()('skill.template.item');
 
-type RawNetwork = SubspacePrisma.NetworkGetPayload<{}>;
+type RawIntegrationInternetGateway = SubspacePrisma.IntegrationInternetGatewayGetPayload<{}>;
 
-type RawEnclave = SubspacePrisma.EnclaveGetPayload<{
+type RawIntegrationEnclave = SubspacePrisma.IntegrationEnclaveGetPayload<{
   include: {
     enclaveEnvironment: true;
-    network: { select: { id: true } };
+    internetGateway: { select: { id: true } };
     providerDeployment: { select: { id: true } };
   };
 }>;
 
 type RawFirewall = SubspacePrisma.FirewallGetPayload<{
   include: {
-    network: { select: { id: true } };
     networkPolicyLinks: {
       include: {
         networkPolicy: {
@@ -2929,16 +2928,17 @@ type RawFirewall = SubspacePrisma.FirewallGetPayload<{
   };
 }>;
 
-type RawFirewallBinding = SubspacePrisma.FirewallBindingGetPayload<{
-  include: {
-    firewall: { select: { id: true; slug: true; name: true } };
-    enclave: { select: { id: true; slug: true; name: true } };
-    provider: {
-      select: { id: true; slug: true; name: true; prettySlug: true };
+type RawIntegrationFirewallAssignment =
+  SubspacePrisma.IntegrationFirewallAssignmentGetPayload<{
+    include: {
+      firewall: { select: { id: true; slug: true; name: true } };
+      enclave: { select: { id: true; slug: true; name: true } };
+      provider: {
+        select: { id: true; slug: true; name: true; prettySlug: true };
+      };
+      internetGateway: { select: { id: true; name: true } };
     };
-    network: { select: { id: true; name: true } };
-  };
-}>;
+  }>;
 
 type RawNetworkPolicy = SubspacePrisma.NetworkPolicyGetPayload<{
   include: {
@@ -2951,14 +2951,14 @@ type RawNetworkPolicy = SubspacePrisma.NetworkPolicyGetPayload<{
   };
 }>;
 
-export let networkType = PresentableType.create<{
-  network: RawNetwork;
+export let integrationInternetGatewayType = PresentableType.create<{
+  internetGateway: RawIntegrationInternetGateway;
   maskPublicIp?: boolean;
-}>()('network');
+}>()('integration.internet_gateway');
 
-export let networkLogsType = PresentableType.create<{
-  logs: EnclaveNetworkLogsResponse;
-}>()('networkLogs');
+export let integrationInternetGatewayNetworkLogsType = PresentableType.create<{
+  logs: IntegrationInternetGatewayNetworkLogsResponse;
+}>()('integration.internet_gateway.network_logs');
 
 export let resourceCountsType = PresentableType.create<{
   resources: {
@@ -2967,25 +2967,25 @@ export let resourceCountsType = PresentableType.create<{
   }[];
 }>()('resourceCounts');
 
-export let enclaveType = PresentableType.create<{
-  enclave: RawEnclave;
-}>()('enclave');
+export let integrationEnclaveType = PresentableType.create<{
+  enclave: RawIntegrationEnclave;
+}>()('integration.enclave');
 
 export let firewallType = PresentableType.create<{
   firewall: RawFirewall;
-}>()('firewall');
+}>()('networking.firewall');
 
-export let firewallBindingType = PresentableType.create<{
-  firewallBinding: RawFirewallBinding;
-}>()('firewall.binding');
+export let integrationFirewallAssignmentType = PresentableType.create<{
+  firewallAssignment: RawIntegrationFirewallAssignment;
+}>()('integration.firewall_assignment');
 
 export let networkPolicyType = PresentableType.create<{
   networkPolicy: RawNetworkPolicy;
-}>()('network.policy');
+}>()('networking.network_policy');
 
 export let networkPolicyRuleType = PresentableType.create<{
   rule: PrismaJson.NetworkPolicyRule;
-}>()('network.policy.rule');
+}>()('networking.network_policy.rule');
 
 export let integrationType = PresentableType.create<{
   integration: SubspaceIntegration;

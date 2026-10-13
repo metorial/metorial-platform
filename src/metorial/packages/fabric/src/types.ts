@@ -4,8 +4,8 @@ import type {
   CustomProviderCommit as SubspaceCustomProviderCommit,
   CustomProviderVersion as SubspaceCustomProviderVersion,
   Firewall as SubspaceFirewall,
-  FirewallBinding as SubspaceFirewallBinding,
   Integration as SubspaceIntegration,
+  IntegrationFirewallAssignment as SubspaceIntegrationFirewallAssignment,
   IntegrationInstance as SubspaceIntegrationInstance,
   IntegrationSetupSession as SubspaceIntegrationSetupSession,
   NetworkPolicy as SubspaceNetworkPolicy,
@@ -269,19 +269,20 @@ export type AuditSubspaceIntegrationInstance = SubspaceIntegrationInstance & {
 };
 
 export type AuditSubspaceFirewall = SubspaceFirewall & {
-  network: { id: string; name: string };
+  internetGateway: { id: string; name: string };
   networkPolicyLinks?: {
     position: number;
     networkPolicy: { id: string; name: string };
   }[];
 };
 
-export type AuditSubspaceFirewallBinding = SubspaceFirewallBinding & {
-  firewall: { id: string; slug: string; name: string };
-  enclave?: { id: string; slug: string; name: string } | null;
-  provider?: { id: string; name: string } | null;
-  network?: { id: string; name: string } | null;
-};
+export type AuditSubspaceIntegrationFirewallAssignment =
+  SubspaceIntegrationFirewallAssignment & {
+    firewall: { id: string; slug: string; name: string };
+    enclave?: { id: string; slug: string; name: string } | null;
+    provider?: { id: string; name: string } | null;
+    internetGateway?: { id: string; name: string } | null;
+  };
 
 export type AuditSubspaceNetworkPolicy = SubspaceNetworkPolicy & {
   currentVersion?: { id: string; version: number; rules: unknown } | null;
@@ -1574,10 +1575,10 @@ export interface FabricEvents {
   'instance.network.firewall.network_policy.detached:before': ProviderEventBase;
   'instance.network.firewall.network_policy.detached:after': ProviderEventBase & { firewall: AuditSubspaceFirewall; previousFirewall: AuditSubspaceFirewall };
 
-  'instance.network.firewall_binding.created:before': ProviderEventBase;
-  'instance.network.firewall_binding.created:after': ProviderEventBase & { firewallBinding: AuditSubspaceFirewallBinding };
-  'instance.network.firewall_binding.deleted:before': ProviderEventBase;
-  'instance.network.firewall_binding.deleted:after': ProviderEventBase & { firewallBinding: AuditSubspaceFirewallBinding };
+  'instance.network.integration_firewall_assignment.created:before': ProviderEventBase;
+  'instance.network.integration_firewall_assignment.created:after': ProviderEventBase & { firewallAssignment: AuditSubspaceIntegrationFirewallAssignment };
+  'instance.network.integration_firewall_assignment.deleted:before': ProviderEventBase;
+  'instance.network.integration_firewall_assignment.deleted:after': ProviderEventBase & { firewallAssignment: AuditSubspaceIntegrationFirewallAssignment };
 
   'instance.network.network_policy.created:before': ProviderEventBase;
   'instance.network.network_policy.created:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy };

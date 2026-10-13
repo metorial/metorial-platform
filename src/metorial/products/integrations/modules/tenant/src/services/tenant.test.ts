@@ -11,7 +11,7 @@ let mocks = vi.hoisted(() => ({
   solutionFindMany: vi.fn(),
   linkTenantToProjectMirror: vi.fn(),
   linkEnvironmentToInstanceMirror: vi.fn(),
-  ensureNetworkForEnvironment: vi.fn(),
+  ensureInternetGatewayForEnvironment: vi.fn(),
   reconcileMonitorAddManyWithOps: vi.fn(),
   reconcileBackingsAddManyWithOps: vi.fn(),
   retentionAdd: vi.fn(),
@@ -69,8 +69,8 @@ vi.mock(
 );
 
 vi.mock('@metorial-subspace/module-enclave', () => ({
-  networkInternalService: {
-    ensureNetworkForEnvironment: mocks.ensureNetworkForEnvironment
+  integrationInternetGatewayInternalService: {
+    ensureInternetGatewayForEnvironment: mocks.ensureInternetGatewayForEnvironment
   }
 }));
 

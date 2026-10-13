@@ -3,10 +3,10 @@ import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
 import { env } from '../../env';
-import { enclaveService } from '../../services/enclave';
+import { integrationEnclaveService } from '../../services/integrationEnclave';
 
 export let reconcileEnclaveInstanceConfiguration = async (enclaveId: string) => {
-  let enclave = await db.enclave.findFirst({
+  let enclave = await db.integrationEnclave.findFirst({
     where: { id: enclaveId },
     include: {
       tenant: true,
@@ -27,14 +27,14 @@ export let reconcileEnclaveInstanceConfiguration = async (enclaveId: string) => 
     providerDeployment.status !== 'active' ||
     providerDeployment.isEphemeral
   ) {
-    await db.enclave.updateMany({
+    await db.integrationEnclave.updateMany({
       where: { oid: enclave.oid },
       data: { needsEnclaveReconciliation: false }
     });
     return;
   }
 
-  let compiledNetworkRules = await enclaveService.getCompiledNetworkRulesInternal({
+  let compiledNetworkRules = await integrationEnclaveService.getCompiledNetworkRulesInternal({
     tenant: enclave.tenant,
     environment: enclave.environment,
     enclave
@@ -51,7 +51,7 @@ export let reconcileEnclaveInstanceConfiguration = async (enclaveId: string) => 
     egressPolicy
   });
 
-  await db.enclave.updateMany({
+  await db.integrationEnclave.updateMany({
     where: { oid: enclave.oid },
     data: { needsEnclaveReconciliation: false }
   });
@@ -76,7 +76,7 @@ export let reconcileEnclaveInstanceConfigurationManyQueue = createQueue<{ cursor
 
 let reconcileEnclaveInstanceConfigurationManyQueueProcessor =
   reconcileEnclaveInstanceConfigurationManyQueue.process(async data => {
-    let enclaves = await db.enclave.findMany({
+    let enclaves = await db.integrationEnclave.findMany({
       where: {
         needsEnclaveReconciliation: true,
         id: data.cursor ? { gt: data.cursor } : undefined

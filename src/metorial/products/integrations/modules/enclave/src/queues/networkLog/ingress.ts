@@ -15,7 +15,7 @@ let persistIngressNetworkLog = async (entry: BufferedIngressNetworkLogEntry) => 
   let firstSeenAt = new Date(entry.firstSeenAt);
   let lastSeenAt = new Date(entry.lastSeenAt);
 
-  let existing = await db.enclaveIngressNetworkLog.findFirst({
+  let existing = await db.integrationEnclaveIngressNetworkLog.findFirst({
     where: {
       tenantOid: entry.tenantOid,
       environmentOid: entry.environmentOid,
@@ -36,7 +36,7 @@ let persistIngressNetworkLog = async (entry: BufferedIngressNetworkLogEntry) => 
   });
 
   if (existing) {
-    await db.enclaveIngressNetworkLog.update({
+    await db.integrationEnclaveIngressNetworkLog.update({
       where: { oid: existing.oid },
       data: {
         count: { increment: entry.count },
@@ -47,9 +47,9 @@ let persistIngressNetworkLog = async (entry: BufferedIngressNetworkLogEntry) => 
     return;
   }
 
-  await db.enclaveIngressNetworkLog.create({
+  await db.integrationEnclaveIngressNetworkLog.create({
     data: {
-      ...getId('enclaveIngressNetworkLog'),
+      ...getId('integrationEnclaveIngressNetworkLog'),
       tenantOid: entry.tenantOid,
       projectOid: entry.projectOid,
       environmentOid: entry.environmentOid,

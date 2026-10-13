@@ -2,18 +2,18 @@ import { combineQueueProcessors } from '@lowerdeck/queue';
 import { enclaveCreatedQueueProcessor, enclaveUpdatedQueueProcessor } from './enclave';
 import { firewallUpdatedQueueProcessor } from './firewall';
 import {
-  firewallBindingCreatedQueueProcessor,
-  firewallBindingDeletedQueueProcessor
-} from './firewallBinding';
-import { networkCreatedQueueProcessor } from './network';
+  firewallAssignmentCreatedQueueProcessor,
+  firewallAssignmentDeletedQueueProcessor
+} from './firewallAssignment';
+import { internetGatewayCreatedQueueProcessor } from './internetGateway';
 import { networkPolicyUpdatedQueueProcessor } from './networkPolicy';
 
 export let lifecycleQueues = combineQueueProcessors([
   enclaveCreatedQueueProcessor,
   enclaveUpdatedQueueProcessor,
-  networkCreatedQueueProcessor,
+  internetGatewayCreatedQueueProcessor,
   firewallUpdatedQueueProcessor,
-  firewallBindingCreatedQueueProcessor,
-  firewallBindingDeletedQueueProcessor,
+  firewallAssignmentCreatedQueueProcessor,
+  firewallAssignmentDeletedQueueProcessor,
   networkPolicyUpdatedQueueProcessor
 ]);

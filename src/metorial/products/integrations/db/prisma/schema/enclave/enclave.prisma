@@ -1,15 +1,17 @@
-enum EnclaveEnvironmentType {
+enum IntegrationEnclaveEnvironmentType {
   metorial
   outpost
+
+  @@map("EnclaveEnvironmentType")
 }
 
-model EnclaveEnvironment {
+model IntegrationEnclaveEnvironment {
   oid BigInt @id
   id  String @unique
 
   name String
 
-  type EnclaveEnvironmentType
+  type IntegrationEnclaveEnvironmentType
 
   systemIdentifier String? @unique
 
@@ -21,12 +23,13 @@ model EnclaveEnvironment {
 
   createdAt DateTime @default(now())
 
-  enclaves Enclave[]
+  enclaves IntegrationEnclave[]
 
   @@index([projectOid])
+  @@map("EnclaveEnvironment")
 }
 
-model Enclave {
+model IntegrationEnclave {
   oid BigInt @id
   id  String @unique
 
@@ -42,13 +45,13 @@ model Enclave {
   needsEnclaveReconciliation Boolean @default(true)
 
   enclaveEnvironmentOid BigInt
-  enclaveEnvironment    EnclaveEnvironment @relation(fields: [enclaveEnvironmentOid], references: [oid], onDelete: Cascade)
+  enclaveEnvironment    IntegrationEnclaveEnvironment @relation(fields: [enclaveEnvironmentOid], references: [oid], onDelete: Cascade)
 
   providerDeploymentOid BigInt             @unique
   providerDeployment    ProviderDeployment @relation(fields: [providerDeploymentOid], references: [oid])
 
-  networkOid BigInt
-  network    Network @relation(fields: [networkOid], references: [oid], onDelete: Cascade)
+  internetGatewayOid BigInt                     @map("networkOid")
+  internetGateway    IntegrationInternetGateway @relation(fields: [internetGatewayOid], references: [oid], onDelete: Cascade)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -66,10 +69,11 @@ model Enclave {
   updatedAt  DateTime  @updatedAt
   lastUsedAt DateTime?
 
-  firewallBindings FirewallBinding[]
+  firewallAssignments IntegrationFirewallAssignment[]
 
   @@unique([environmentOid, slug])
   @@index([needsEnclaveReconciliation])
   @@index([projectOid])
   @@index([instanceOid])
+  @@map("Enclave")
 }

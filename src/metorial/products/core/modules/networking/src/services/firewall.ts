@@ -26,7 +26,6 @@ import {
   normalizeStatusForList,
   resolveEnclaves,
   resolveNetworkPolicies,
-  resolveNetworks,
   resolveProviders,
   type DateFilter
 } from '@metorial-subspace/list-utils';
@@ -37,10 +36,10 @@ import {
   toProviderEventBase,
   type MetorialFacing
 } from '@metorial-subspace/module-tenant';
-import { ensureSubspaceNetwork, mirrorFirewall } from '../internal/subspaceMirror';
+import { mirrorFirewall } from '../internal/subspaceMirror';
 
 let include = {
-  network: {
+  internetGateway: {
     select: {
       id: true,
       name: true
@@ -66,7 +65,6 @@ export type CreateFirewallParams = {
     name: string;
     description?: string;
     slug?: string;
-    networkId: string;
     networkPolicyIds?: string[];
   };
 };
@@ -131,7 +129,6 @@ type ListFirewallsParams = {
   allowDeleted?: boolean;
   ids?: string[];
   slugs?: string[];
-  networkIds?: string[];
   enclaveIds?: string[];
   providerIds?: string[];
   networkPolicyIds?: string[];
@@ -161,7 +158,6 @@ class firewallServiceImpl {
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
-    let networks = await resolveNetworks(ts, d.networkIds);
     let enclaves = await resolveEnclaves(ts, d.enclaveIds);
     let providers = await resolveProviders(ts, d.providerIds);
     let networkPolicies = await resolveNetworkPolicies(ts, d.networkPolicyIds);
@@ -177,9 +173,10 @@ class firewallServiceImpl {
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               d.slugs ? { slug: { in: d.slugs } } : undefined!,
-              networks ? { networkOid: networks.in } : undefined!,
-              enclaves ? { bindings: { some: { enclaveOid: enclaves.in } } } : undefined!,
-              providers ? { bindings: { some: { providerOid: providers.in } } } : undefined!,
+              enclaves ? { assignments: { some: { enclaveOid: enclaves.in } } } : undefined!,
+              providers
+                ? { assignments: { some: { providerOid: providers.in } } }
+                : undefined!,
               networkPolicies
                 ? {
                     networkPolicyLinks: {
@@ -320,8 +317,6 @@ class firewallServiceImpl {
   }
 
   async createFirewallInternal(d: CreateFirewallParams) {
-    await this.assertNetwork(d);
-
     let slug =
       d.input.slug?.trim() || `${slugify(d.input.name)}-${generatePlainId(10).toLowerCase()}`;
 
@@ -484,22 +479,6 @@ class firewallServiceImpl {
     });
 
     return await this.readMirrored(d.firewall.id);
-  }
-
-  private async assertNetwork(d: CreateFirewallParams) {
-    if (d.input.networkId === 'default') {
-      await ensureSubspaceNetwork(d.instance);
-      return;
-    }
-
-    let network = await db.network.findFirst({
-      where: {
-        id: d.input.networkId,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
-      }
-    });
-    if (!network) throw new ServiceError(notFoundError('network', d.input.networkId));
   }
 
   private async getForMutation(d: { instance: Instance; firewall: { id: string } }) {

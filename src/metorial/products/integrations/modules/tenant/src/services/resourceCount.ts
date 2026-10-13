@@ -13,9 +13,9 @@ export let resourceCountResources = [
   'provider_auth_configs',
   'provider_auth_credentials',
   'session_templates',
-  'networks',
+  'integration_internet_gateways',
   'firewalls',
-  'enclaves',
+  'integration_enclaves',
   'accounts',
   'agents',
   'identity_actors',
@@ -88,16 +88,16 @@ class resourceCountServiceImpl {
         db.sessionTemplate.count({
           where: { ...scopedWhere, status: 'active' }
         }),
-      networks: () =>
-        db.network.count({
+      integration_internet_gateways: () =>
+        db.integrationInternetGateway.count({
           where: networkScopedWhere
         }),
       firewalls: () =>
         db.firewall.count({
           where: { ...networkScopedWhere, status: 'active' }
         }),
-      enclaves: () =>
-        db.enclave.count({
+      integration_enclaves: () =>
+        db.integrationEnclave.count({
           where: networkScopedWhere
         }),
       accounts: () =>

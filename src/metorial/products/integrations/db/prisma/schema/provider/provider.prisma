@@ -112,7 +112,7 @@ model Provider {
   skillProviderLinks             SkillProviderLink[]
   skillTemplateItems             SkillTemplateItem[]
   tenantOAuthCallbackUrls        TenantOAuthCallbackUrl[]
-  firewallBindings               FirewallBinding[]
+  firewallAssignments            IntegrationFirewallAssignment[]
   monitors                       Monitor[]
   chats                          Chat[]
 

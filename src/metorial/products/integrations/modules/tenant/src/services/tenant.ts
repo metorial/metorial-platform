@@ -10,7 +10,7 @@ import {
 } from '@metorial-subspace/db';
 import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
 import { reconcileProviderDeploymentMonitorForEnvironmentQueue } from '@metorial-subspace/module-deployment/src/queues/reconcile/providerDeploymentMonitor';
-import { networkInternalService } from '@metorial-subspace/module-enclave';
+import { integrationInternetGatewayInternalService } from '@metorial-subspace/module-enclave';
 import {
   linkEnvironmentToInstanceMirror,
   linkTenantToProjectMirror
@@ -308,7 +308,10 @@ class tenantServiceImpl {
       where: { tenantOid: tenant.oid }
     });
     for (let environment of environments) {
-      await networkInternalService.ensureNetworkForEnvironment({ tenant, environment });
+      await integrationInternetGatewayInternalService.ensureInternetGatewayForEnvironment({
+        tenant,
+        environment
+      });
     }
   }
 

@@ -38,7 +38,7 @@ import {
 import { sessionConnectionAuditResource, sessionMessageAuditResource } from './message';
 import {
   firewallAuditResource,
-  firewallBindingAuditResource,
+  integrationFirewallAssignmentAuditResource,
   networkPolicyAuditResource
 } from './network';
 import {
@@ -113,7 +113,7 @@ export let subspaceAuditResources = resourceSet({
   provider_listing_group_listing: providerListingGroupListingAuditResource,
 
   firewall: firewallAuditResource,
-  firewall_binding: firewallBindingAuditResource,
+  integration_firewall_assignment: integrationFirewallAssignmentAuditResource,
   network_policy: networkPolicyAuditResource,
 
   session_connection: sessionConnectionAuditResource,

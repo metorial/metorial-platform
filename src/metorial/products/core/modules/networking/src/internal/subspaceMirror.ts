@@ -11,16 +11,16 @@ let resolveScope = async (instance: Instance) => {
   return { tenant, environment };
 };
 
-export let ensureSubspaceNetwork = async (instance: Instance) => {
+export let ensureSubspaceInternetGateway = async (instance: Instance) => {
   let { tenant, environment } = await resolveScope(instance);
 
-  return await subspaceDb.network.upsert({
+  return await subspaceDb.integrationInternetGateway.upsert({
     where: {
       tenantOid_environmentOid: { tenantOid: tenant.oid, environmentOid: environment.oid }
     },
     update: {},
     create: {
-      ...getId('network'),
+      ...getId('integrationInternetGateway'),
       name: defaultNetworkName,
       tenantOid: tenant.oid,
       projectOid: tenant.projectOid,
@@ -112,7 +112,7 @@ export let mirrorFirewall = async (d: { firewallId: string }) => {
   if (!source) return false;
 
   let { tenant, environment } = await resolveScope(source.instance);
-  let network = await ensureSubspaceNetwork(source.instance);
+  let internetGateway = await ensureSubspaceInternetGateway(source.instance);
 
   let policyOids = new Map<string, bigint>();
   for (let link of source.networkPolicyLinks) {
@@ -145,7 +145,7 @@ export let mirrorFirewall = async (d: { firewallId: string }) => {
       slug: source.slug,
       archivedAt: source.archivedAt,
       sourceRevision: source.revision,
-      networkOid: network.oid,
+      internetGatewayOid: internetGateway.oid,
       tenantOid: tenant.oid,
       projectOid: tenant.projectOid,
       environmentOid: environment.oid,

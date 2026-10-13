@@ -54,6 +54,12 @@ export let networkDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
+export let integrationNetworkDocsCategory = createCategory({
+  id: 'integration-network',
+  name: 'Integration Network Access',
+  indexHint: getIndexHint()
+});
+
 export let portalDocsCategory = createCategory({
   id: 'portal',
   name: 'Portals',

@@ -54,7 +54,7 @@ model ProviderDeployment {
   currentVersionOid BigInt?
   currentVersion    ProviderDeploymentVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
 
-  enclave Enclave?
+  enclave IntegrationEnclave?
 
   slateInstanceConfigurationOid BigInt?                     @unique
   slateInstanceConfiguration    SlateInstanceConfiguration? @relation(fields: [slateInstanceConfigurationOid], references: [oid])

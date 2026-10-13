@@ -1,4 +1,4 @@
-model Network {
+model IntegrationInternetGateway {
   oid BigInt @id
   id  String @unique
 
@@ -20,13 +20,14 @@ model Network {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  enclaves         Enclave[]
-  firewalls        Firewall[]
-  firewallBindings FirewallBinding[]
+  enclaves            IntegrationEnclave[]
+  firewalls           Firewall[]
+  firewallAssignments IntegrationFirewallAssignment[]
 
   @@unique([tenantOid, environmentOid])
   @@index([projectOid])
   @@index([instanceOid])
+  @@map("Network")
 }
 
 enum FirewallStatus {
@@ -47,8 +48,8 @@ model Firewall {
 
   sourceRevision Int @default(0)
 
-  networkOid BigInt
-  network    Network @relation(fields: [networkOid], references: [oid], onDelete: Cascade)
+  internetGatewayOid BigInt                     @map("networkOid")
+  internetGateway    IntegrationInternetGateway @relation(fields: [internetGatewayOid], references: [oid], onDelete: Cascade)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -66,7 +67,7 @@ model Firewall {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  bindings           FirewallBinding[]
+  assignments        IntegrationFirewallAssignment[]
   networkPolicyLinks FirewallNetworkPolicy[]
 
   @@unique([tenantOid, environmentOid, slug])
@@ -75,29 +76,31 @@ model Firewall {
   @@index([instanceOid])
 }
 
-enum FirewallBindingTargetType {
+enum IntegrationFirewallAssignmentTargetType {
   enclave
   provider
-  network
+  internet_gateway @map("network")
+
+  @@map("FirewallBindingTargetType")
 }
 
-model FirewallBinding {
+model IntegrationFirewallAssignment {
   oid BigInt @id
   id  String @unique
 
   firewallOid BigInt
   firewall    Firewall @relation(fields: [firewallOid], references: [oid], onDelete: Cascade)
 
-  targetType FirewallBindingTargetType
+  targetType IntegrationFirewallAssignmentTargetType
 
   enclaveOid BigInt?
-  enclave    Enclave? @relation(fields: [enclaveOid], references: [oid], onDelete: Cascade)
+  enclave    IntegrationEnclave? @relation(fields: [enclaveOid], references: [oid], onDelete: Cascade)
 
   providerOid BigInt?
   provider    Provider? @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
 
-  networkOid BigInt?
-  network    Network? @relation(fields: [networkOid], references: [oid], onDelete: Cascade)
+  internetGatewayOid BigInt?                     @map("networkOid")
+  internetGateway    IntegrationInternetGateway? @relation(fields: [internetGatewayOid], references: [oid], onDelete: Cascade)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -115,9 +118,10 @@ model FirewallBinding {
 
   @@unique([firewallOid, enclaveOid])
   @@unique([firewallOid, providerOid])
-  @@unique([firewallOid, networkOid])
+  @@unique([firewallOid, internetGatewayOid])
   @@index([projectOid])
   @@index([instanceOid])
+  @@map("FirewallBinding")
 }
 
 enum NetworkPolicyStatus {
@@ -202,12 +206,14 @@ model FirewallNetworkPolicy {
   @@unique([firewallOid, networkPolicyOid])
 }
 
-enum EnclaveIngressNetworkLogResult {
+enum IntegrationEnclaveIngressNetworkLogResult {
   allowed
   denied
+
+  @@map("EnclaveIngressNetworkLogResult")
 }
 
-model EnclaveIngressNetworkLog {
+model IntegrationEnclaveIngressNetworkLog {
   oid BigInt @id
   id  String @unique
 
@@ -220,8 +226,8 @@ model EnclaveIngressNetworkLog {
   hostname String
   port     Int
 
-  result EnclaveIngressNetworkLogResult
-  count  Int                            @default(1)
+  result IntegrationEnclaveIngressNetworkLogResult
+  count  Int                                       @default(1)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -248,4 +254,5 @@ model EnclaveIngressNetworkLog {
   @@index([environmentOid])
   @@index([projectOid])
   @@index([instanceOid])
+  @@map("EnclaveIngressNetworkLog")
 }
