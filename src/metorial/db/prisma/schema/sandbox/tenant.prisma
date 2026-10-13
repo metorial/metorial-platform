@@ -1,0 +1,20 @@
+model SandboxTenant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  slug String @unique
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt  @unique
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  machines        SandboxMachine[]
+  machineImages   SandboxMachineImage[]
+  disks           SandboxDisk[]
+  networkPolicies SandboxNetworkPolicy[]
+}

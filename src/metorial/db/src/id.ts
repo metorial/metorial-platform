@@ -39,6 +39,8 @@ export let ID = createIdGenerator({
   instance: idType.sorted('ins'),
   environment: idType.sorted('env'),
   sandbox: idType.sorted('sbx'),
+
+  sandboxTenant: idType.sorted('sbt'),
   resourceTenant: idType.sorted('crg_tn_'),
   resourceGroup: idType.sorted('crg_en_'),
   resourceActor: idType.sorted('crg_ta_'),

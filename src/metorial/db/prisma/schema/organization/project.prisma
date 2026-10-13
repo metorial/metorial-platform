@@ -100,6 +100,11 @@ model Project {
   productAssistantModelRuns              ProductAssistantModelRun[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
   outpostAccesses                        OutpostAccess[]
+  sandboxTenant                          SandboxTenant?
+  sandboxMachines                        SandboxMachine[]
+  sandboxMachineImages                   SandboxMachineImage[]
+  sandboxDisks                           SandboxDisk[]
+  sandboxNetworkPolicies                 SandboxNetworkPolicy[]
 
   @@index([previousSlugs])
 }

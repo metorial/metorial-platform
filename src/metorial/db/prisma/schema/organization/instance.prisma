@@ -162,12 +162,19 @@ model Instance {
   skillMergeRequests    SkillMergeRequest[]
   skillForkSyncs        SkillForkSync[]
 
+  sandboxMachines        SandboxMachine[]
+  sandboxMachineImages   SandboxMachineImage[]
+  sandboxDisks           SandboxDisk[]
+  sandboxNetworkPolicies SandboxNetworkPolicy[]
+
   productAssistantConversations          ProductAssistantConversation[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
-  outpostAccesses                        OutpostAccess[]
-  eventDestinationListeners               EventDestinationListener[]
-  systemEvents                            SystemEvent[]
-  eventDeliveryIntents                    EventDeliveryIntent[]
+
+  outpostAccesses OutpostAccess[]
+
+  eventDestinationListeners EventDestinationListener[]
+  systemEvents              SystemEvent[]
+  eventDeliveryIntents      EventDeliveryIntent[]
 
   @@index([previousSlugs])
   @@index([oldSlug])
