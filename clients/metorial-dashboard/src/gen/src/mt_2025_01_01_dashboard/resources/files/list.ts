@@ -312,6 +312,7 @@ export type FilesListQuery = {
     | 'skill_export'
     | 'generic'
     | 'chat_message_attachment'
+    | 'sandbox_image_build_context'
     | (
         | 'user_image'
         | 'organization_image'
@@ -320,6 +321,7 @@ export type FilesListQuery = {
         | 'skill_export'
         | 'generic'
         | 'chat_message_attachment'
+        | 'sandbox_image_build_context'
       )[]
     | undefined;
   storeId?: string | string[] | undefined;

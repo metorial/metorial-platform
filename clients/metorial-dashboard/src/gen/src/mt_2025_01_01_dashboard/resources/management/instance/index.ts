@@ -43,6 +43,7 @@ export * from './provider-specification-change-notifications';
 export * from './provider-templates';
 export * from './providers';
 export * from './publishers';
+export * from './sandbox';
 export * from './scm';
 export * from './session-templates';
 export * from './sessions';

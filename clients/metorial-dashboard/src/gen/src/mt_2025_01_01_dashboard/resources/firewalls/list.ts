@@ -133,6 +133,7 @@ export type FirewallsListQuery = {
   enclaveId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   networkPolicyId?: string | string[] | undefined;
+  machineId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
@@ -192,6 +193,16 @@ export let mapFirewallsListQuery = mtMap.union([
       ),
       networkPolicyId: mtMap.objectField(
         'network_policy_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      machineId: mtMap.objectField(
+        'machine_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
