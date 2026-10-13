@@ -4,7 +4,7 @@ import {
   type SandboxMachineImageBuildStatus
 } from '@metorial/db';
 import { sandboxImageInternalService } from '../internal/imageInternal';
-import { getRegionClient } from './regions';
+import { imageBuildCancelRootQueue } from '../queues/imageBuildCancel';
 
 export let terminalBuildStatuses: SandboxMachineImageBuildStatus[] = [
   'succeeded',
@@ -28,22 +28,12 @@ export let endImageBuild = async (d: {
       oid: bigint;
       status: SandboxMachineImageBuildRegionStatus;
       genesisBuildId: string | null;
-      region: { id: string };
-      tenant: { id: string };
     }[];
   };
   status: SandboxMachineImageBuildStatus;
   failure: { code: string; message: string } | null;
 }) => {
   let remaining = d.build.regions.filter(row => !terminalRegionStatuses.includes(row.status));
-
-  for (let row of remaining) {
-    if (!row.genesisBuildId) continue;
-
-    await getRegionClient(row.region.id)
-      .machineImage.build.cancel({ tenantId: row.tenant.id, buildId: row.genesisBuildId })
-      .catch(() => undefined);
-  }
 
   let now = new Date();
 
@@ -61,6 +51,10 @@ export let endImageBuild = async (d: {
       endedAt: now
     }
   });
+
+  if (remaining.some(row => row.genesisBuildId)) {
+    await imageBuildCancelRootQueue.add({ buildOid: d.build.oid.toString() });
+  }
 
   if (d.status != 'succeeded') {
     await db.sandboxMachineImageVersion.updateMany({

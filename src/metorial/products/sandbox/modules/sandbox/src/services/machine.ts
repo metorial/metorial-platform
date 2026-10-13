@@ -1,15 +1,22 @@
-import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
   type Instance,
-  type SandboxMachine,
   type SandboxRegion,
   type SandboxResourceStatus
 } from '@metorial/db';
 import type { GenesisInternalClient } from '@metorial/genesis-client';
-import { getRegional, groupByTenant, type SandboxTenantWithRegion } from '../lib/regional';
+import {
+  assertMachineActive,
+  getRegional,
+  hydrateByTenant,
+  type SandboxMachineWithTenant,
+  type SandboxTenantWithRegion
+} from '../lib/regional';
+import { sandboxDiskInternalService } from '../internal/diskInternal';
+import { createRemotePaginator } from '../lib/remotePaginator';
 import { sandboxRegionService } from './region';
 import { sandboxSpecService } from './spec';
 import { sandboxTenantService } from './tenant';
@@ -17,41 +24,16 @@ import { sandboxTenantService } from './tenant';
 type CreateMachineInput = Parameters<GenesisInternalClient['machine']['create']>[0];
 type UpdateMachineInput = Parameters<GenesisInternalClient['machine']['update']>[0];
 
-type SandboxMachineWithTenant = SandboxMachine & { tenant: SandboxTenantWithRegion };
-
 export let sandboxMachineInclude = {
   tenant: { include: { region: true } },
   instance: true
 } as const;
 
 class SandboxMachineServiceImpl {
-  private assertActive(machine: SandboxMachine) {
-    if (machine.status != 'active') {
-      throw new ServiceError(
-        conflictError({ message: 'Cannot perform this action on a terminated machine' })
-      );
-    }
-  }
-
   private async hydrate(machines: SandboxMachineWithTenant[]) {
-    let remotes = new Map<
-      string,
-      Awaited<ReturnType<GenesisInternalClient['machine']['get']>>
-    >();
-
-    await Promise.all(
-      groupByTenant(machines).map(async group => {
-        let { genesis, tenantId } = getRegional(group.tenant);
-        let found = await genesis.machine.getMany({
-          tenantId,
-          ids: group.rows.map(machine => machine.id)
-        });
-
-        for (let remote of found) remotes.set(remote.id, remote);
-      })
+    return await hydrateByTenant(machines, ({ genesis, tenantId, ids }) =>
+      genesis.machine.getMany({ tenantId, ids })
     );
-
-    return machines.map(machine => ({ ...machine, remote: remotes.get(machine.id) ?? null }));
   }
 
   private async resolveImage(d: {
@@ -161,6 +143,7 @@ class SandboxMachineServiceImpl {
         },
         include: sandboxMachineInclude
       });
+      await sandboxDiskInternalService.recordRootFs({ machine, remote });
 
       return { ...machine, remote };
     } catch (err) {
@@ -175,7 +158,7 @@ class SandboxMachineServiceImpl {
       where: {
         id: d.machineId,
         instanceOid: d.instance.oid,
-        status: d.statuses ? { in: d.statuses } : 'active'
+        ...(d.statuses ? { status: { in: d.statuses } } : {})
       },
       include: sandboxMachineInclude
     });
@@ -216,7 +199,7 @@ class SandboxMachineServiceImpl {
       mounts?: { diskId: string; mountPath: string }[];
     };
   }) {
-    this.assertActive(d.machine);
+    assertMachineActive(d.machine);
 
     let { region } = d.machine.tenant;
     let { imageId, specId, ...rest } = d.input;
@@ -246,6 +229,7 @@ class SandboxMachineServiceImpl {
       image,
       spec: spec ? { memoryMiB: spec.memoryMiB, vcpus: spec.vcpus } : undefined
     });
+    await sandboxDiskInternalService.recordRootFs({ machine: d.machine, remote });
 
     return { ...d.machine, remote };
   }
@@ -254,7 +238,7 @@ class SandboxMachineServiceImpl {
     kind: 'start' | 'pause' | 'hibernate' | 'restart';
     machine: SandboxMachineWithTenant;
   }) {
-    this.assertActive(d.machine);
+    assertMachineActive(d.machine);
 
     let { genesis, tenantId } = getRegional(d.machine.tenant);
     let remote = await genesis.machine[d.kind]({ tenantId, machineId: d.machine.id });
@@ -279,7 +263,7 @@ class SandboxMachineServiceImpl {
   }
 
   async touch(d: { machine: SandboxMachineWithTenant }) {
-    this.assertActive(d.machine);
+    assertMachineActive(d.machine);
 
     let { genesis, tenantId } = getRegional(d.machine.tenant);
     let result = await genesis.machine.touch({ tenantId, machineId: d.machine.id });
@@ -291,7 +275,7 @@ class SandboxMachineServiceImpl {
   }
 
   async terminate(d: { machine: SandboxMachineWithTenant }) {
-    this.assertActive(d.machine);
+    assertMachineActive(d.machine);
 
     let { genesis, tenantId } = getRegional(d.machine.tenant);
     let remote = await genesis.machine.terminate({ tenantId, machineId: d.machine.id });
@@ -301,23 +285,27 @@ class SandboxMachineServiceImpl {
       data: { status: 'deleted', deletedAt: new Date() },
       include: sandboxMachineInclude
     });
+    await db.sandboxDisk.updateMany({
+      where: { machineOid: machine.oid, type: 'root_fs', status: 'active' },
+      data: { status: 'deleted', deletedAt: machine.deletedAt }
+    });
 
     return { ...machine, remote };
   }
 
-  async resizeRootFs(d: {
-    machine: SandboxMachineWithTenant;
-    input: { sizeBytes: string; idempotencyKey: string };
-  }) {
-    this.assertActive(d.machine);
-
+  usage(d: { machine: SandboxMachineWithTenant; instanceIds?: string[] }) {
     let { genesis, tenantId } = getRegional(d.machine.tenant);
 
-    return await genesis.machine.resizeRootFs({
-      tenantId,
-      machineId: d.machine.id,
-      ...d.input
-    });
+    return createRemotePaginator(
+      page =>
+        genesis.machine.usage({
+          tenantId,
+          machineId: d.machine.id,
+          instanceIds: d.instanceIds,
+          ...page
+        }),
+      { defaultOrder: 'desc' }
+    );
   }
 }
 

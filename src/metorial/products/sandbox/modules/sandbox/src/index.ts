@@ -1,5 +1,7 @@
 import { combineQueueProcessors } from '@metorial/queue';
 import { imageBuildProcessors } from './queues/imageBuild';
+import { imageBuildCancelProcessors } from './queues/imageBuildCancel';
+import { imageRemoteProcessors } from './queues/imageRemote';
 import { stalledImageBuildProcessors } from './queues/stalledImageBuilds';
 import { syncImagesProcessors } from './queues/syncImages';
 import { syncSpecsProcessors } from './queues/syncSpecs';
@@ -14,6 +16,8 @@ export * from './services';
 
 export let sandboxQueueProcessor = combineQueueProcessors([
   imageBuildProcessors,
+  imageBuildCancelProcessors,
+  imageRemoteProcessors,
   stalledImageBuildProcessors,
   syncImagesProcessors,
   syncSpecsProcessors

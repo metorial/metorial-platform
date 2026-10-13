@@ -15,7 +15,7 @@ let getSpecCached = createLocallyCachedFunction({
   ttlSeconds: SPEC_CACHE_TTL_SECONDS,
   provider: async i => {
     let spec = await db.sandboxSpec.findFirst({
-      where: { id: i.specId, status: 'active' },
+      where: { id: i.specId },
       include: sandboxSpecInclude
     });
     if (!spec) throw new ServiceError(notFoundError('sandbox_spec', i.specId));
@@ -44,6 +44,11 @@ class SandboxSpecServiceImpl {
 
   async resolve(d: { specId: string; region: SandboxRegion }) {
     let spec = await this.get({ specId: d.specId });
+    if (spec.status != 'active') {
+      throw new ServiceError(
+        badRequestError({ message: `Spec ${spec.id} is no longer available` })
+      );
+    }
 
     let regional = spec.regions.find(regional => regional.regionOid == d.region.oid);
     if (!regional) {

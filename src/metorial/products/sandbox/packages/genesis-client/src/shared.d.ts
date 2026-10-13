@@ -8,9 +8,9 @@ export type DiskMountStatus = "failed" | "pending" | "mounted" | "recovering" | 
 
 export type DiskPurpose = "standard" | "machine_image" | "root_fs";
 
-export type DiskResizeStatus = "failed" | "draining" | "pending" | "resizing" | "verifying" | "restarting" | "complete";
+export type DiskResizeStatus = "failed" | "draining" | "pending" | "restarting" | "complete" | "resizing" | "verifying";
 
-export type DiskStatus = "active" | "deleted" | "cloning" | "sealed" | "deleting";
+export type DiskStatus = "active" | "cloning" | "deleting" | "deleted" | "sealed";
 
 export type LogLineSource = "system" | "stdout" | "stderr";
 
@@ -32,7 +32,7 @@ export type MachineImageBuildSource = "context" | "artifact_import";
 
 export type MachineImageBuildStatus = "failed" | "timed_out" | "succeeded" | "cancelled" | "awaiting_context" | "queued" | "building" | "copying" | "awaiting_source" | "processing";
 
-export type MachineImageStatus = "failed" | "pending" | "ready" | "deprecated" | "deleted";
+export type MachineImageStatus = "failed" | "pending" | "ready" | "deleted" | "deprecated";
 
 export type MachineImageVersionStatus = "active" | "deleted" | "retired";
 
@@ -60,9 +60,9 @@ export type MachineOperationOutcome = "failed" | "active" | "completed" | "super
 
 export type MachineOperationTrigger = "update" | "api" | "access" | "idle_policy" | "paused_policy" | "lifetime" | "failure" | "platform";
 
-export type MachineRootFsStatus = "failed" | "active" | "pending" | "ready" | "deleted" | "cloning" | "deleting";
+export type MachineRootFsStatus = "failed" | "active" | "pending" | "cloning" | "ready" | "deleting" | "deleted";
 
-export type MachineStatus = "running" | "failed" | "starting" | "restarting" | "pausing" | "paused" | "resuming" | "hibernating" | "hibernated" | "upgrading" | "terminating" | "terminated";
+export type MachineStatus = "running" | "failed" | "starting" | "pausing" | "paused" | "resuming" | "hibernating" | "hibernated" | "restarting" | "upgrading" | "terminating" | "terminated";
 
 export type MachineWaitingOn = "rootfs" | "disks" | "backoff" | "instance" | null;
 
@@ -80,7 +80,7 @@ export type TaskOutcome = "failed" | "timed_out" | "succeeded" | "lost" | "cance
 
 export type TaskStatus = "running" | "pending" | "terminating" | "terminated" | "launching";
 
-export type TenantBillingRecordStatus = "complete" | "provisional" | "incomplete";
+export type TenantBillingRecordStatus = "provisional" | "complete" | "incomplete";
 
 export type TenantKind = "standard" | "system";
 

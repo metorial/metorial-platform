@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let makeClient = () => ({
+  logStream: { lines: vi.fn(async () => ({ lines: [] })) },
   machineImage: {
     create: vi.fn(),
     version: { get: vi.fn() },
@@ -35,6 +36,7 @@ let db = {
   },
   sandboxMachineImageBuildRegion: {
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     findFirstOrThrow: vi.fn(),
     create: vi.fn(),
     updateMany: vi.fn()
@@ -81,6 +83,7 @@ vi.mock('@metorial/db', () => ({
 }));
 
 await import('../src/queues/imageBuild');
+await import('../src/queues/imageBuildCancel');
 let { stalledImageBuildsCron } = await import('../src/queues/stalledImageBuilds');
 let { sandboxImageBuildService } = await import('../src/services/imageBuild');
 
@@ -280,7 +283,7 @@ describe('image build root job', () => {
     });
   });
 
-  it('fails the build when a replica ran out of attempts and cancels what is still running', async () => {
+  it('fails the build when a replica ran out of attempts and queues cancelling what is still running', async () => {
     db.sandboxMachineImageBuild.findFirst.mockResolvedValue(
       build([
         builderRow({ status: 'succeeded' }),
@@ -295,9 +298,12 @@ describe('image build root job', () => {
 
     await root()({ buildOid: '50' });
 
-    expect(clients['aws:ap-1']!.machineImage.build.cancel).toHaveBeenCalledWith({
-      tenantId: 'tenant_syd1',
-      buildId: 'gbuild_ap'
+    expect(db.sandboxMachineImageBuildRegion.updateMany).toHaveBeenCalledWith({
+      where: { oid: { in: [103n] } },
+      data: { status: 'cancelled', endedAt: expect.any(Date) }
+    });
+    expect(queues['sbx/image/build/cancel/root']!.add).toHaveBeenCalledWith({
+      buildOid: '50'
     });
     expect(db.sandboxMachineImageBuild.updateMany).toHaveBeenCalledWith({
       where: expect.anything(),
@@ -342,15 +348,15 @@ describe('stalled image builds', () => {
     ).toMatchObject([{ data: { buildOid: '5' }, opts: { id: 'stalled-5' } }]);
   });
 
-  it('times out a stalled build and cancels its regional builds', async () => {
+  it('times out a stalled build and queues the regional cancellations', async () => {
     db.sandboxMachineImageBuild.findFirst.mockResolvedValue(build([builderRow(), row(eu)]));
 
     await single()({ buildOid: '50' });
 
-    expect(clients['aws:us-east-1']!.machineImage.build.cancel).toHaveBeenCalledWith({
-      tenantId: 'tenant_iad1',
-      buildId: 'gbuild_us'
+    expect(queues['sbx/image/build/cancel/root']!.add).toHaveBeenCalledWith({
+      buildOid: '50'
     });
+    expect(clients['aws:us-east-1']!.machineImage.build.cancel).not.toHaveBeenCalled();
     expect(db.sandboxMachineImageBuild.updateMany).toHaveBeenCalledWith({
       where: {
         oid: 50n,
@@ -697,7 +703,7 @@ describe('sandboxImageBuildService', () => {
     ).rejects.toThrow();
   });
 
-  it('cancels the regional builds and ends the build', async () => {
+  it('ends the build locally and queues the regional cancellations', async () => {
     db.sandboxMachineImageBuild.findFirst.mockResolvedValue({
       oid: 50n,
       id: 'sbb_1',
@@ -711,14 +717,116 @@ describe('sandboxImageBuildService', () => {
 
     await sandboxImageBuildService.cancel({ instance, build: { id: 'sbb_1' } });
 
+    expect(db.sandboxMachineImageBuildRegion.updateMany).toHaveBeenCalledWith({
+      where: { oid: { in: [101n] } },
+      data: { status: 'cancelled', endedAt: expect.any(Date) }
+    });
+    expect(queues['sbx/image/build/cancel/root']!.add).toHaveBeenCalledWith({
+      buildOid: '50'
+    });
+    expect(clients['aws:eu-west-1']!.machineImage.build.cancel).not.toHaveBeenCalled();
+    expect(db.sandboxMachineImageBuild.updateMany).toHaveBeenCalledWith({
+      where: { oid: 50n, status: { notIn: expect.any(Array) } },
+      data: expect.objectContaining({ status: 'cancelled', failureCode: 'cancelled' })
+    });
+  });
+
+  it('reads the builder region log stream', async () => {
+    db.sandboxMachineImageBuild.findFirst.mockResolvedValue({
+      oid: 50n,
+      id: 'sbb_1',
+      regions: [row(eu, { logStreamId: 'log_replica' }), builderRow({ logStreamId: 'log_us' })]
+    });
+
+    await sandboxImageBuildService.logs({
+      instance,
+      buildId: 'sbb_1',
+      input: { direction: 'forward', cursor: 10 }
+    });
+
+    expect(clients['aws:us-east-1']!.logStream.lines).toHaveBeenCalledWith({
+      tenantId: 'tenant_iad1',
+      logStreamId: 'log_us',
+      direction: 'forward',
+      cursor: 10
+    });
+  });
+
+  it('reports a build without a log stream as not found', async () => {
+    db.sandboxMachineImageBuild.findFirst.mockResolvedValue({
+      oid: 50n,
+      id: 'sbb_1',
+      regions: [builderRow({ logStreamId: null })]
+    });
+
+    await expect(
+      sandboxImageBuildService.logs({ instance, buildId: 'sbb_1', input: {} })
+    ).rejects.toThrow();
+  });
+});
+
+describe('image build cancellation queues', () => {
+  let rootJob = () => processors['sbx/image/build/cancel/root']!;
+  let regionCancel = () => processors['sbx/image/build/cancel/region']!;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clients['aws:eu-west-1'] = makeClient();
+  });
+
+  it('fans out to the cancelled regional builds that exist in Genesis', async () => {
+    db.sandboxMachineImageBuildRegion.findMany.mockResolvedValue([
+      { oid: 101n },
+      { oid: 102n }
+    ]);
+
+    await rootJob()({ buildOid: '50' });
+
+    expect(db.sandboxMachineImageBuildRegion.findMany).toHaveBeenCalledWith({
+      where: { buildOid: 50n, status: 'cancelled', genesisBuildId: { not: null } },
+      select: { oid: true }
+    });
+    expect(queues['sbx/image/build/cancel/region']!.addManyWithOps).toHaveBeenCalledWith([
+      { data: { buildRegionOid: '101' } },
+      { data: { buildRegionOid: '102' } }
+    ]);
+  });
+
+  it('cancels the regional build in its Genesis region', async () => {
+    db.sandboxMachineImageBuildRegion.findFirst.mockResolvedValue(
+      row(eu, { status: 'cancelled', genesisBuildId: 'gbuild_eu' })
+    );
+
+    await regionCancel()({ buildRegionOid: '101' });
+
     expect(clients['aws:eu-west-1']!.machineImage.build.cancel).toHaveBeenCalledWith({
       tenantId: 'tenant_dub1',
       buildId: 'gbuild_eu'
     });
-    expect(clients['aws:us-east-1']!.machineImage.build.cancel).not.toHaveBeenCalled();
-    expect(db.sandboxMachineImageBuild.updateMany).toHaveBeenCalledWith({
-      where: { oid: 50n, status: { in: expect.any(Array) } },
-      data: expect.objectContaining({ status: 'cancelled', failureCode: 'cancelled' })
-    });
+  });
+
+  it('ignores a build Genesis no longer has but retries other failures', async () => {
+    db.sandboxMachineImageBuildRegion.findFirst.mockResolvedValue(
+      row(eu, { status: 'cancelled', genesisBuildId: 'gbuild_eu' })
+    );
+    let { ServiceError, notFoundError } = await import('@lowerdeck/error');
+
+    clients['aws:eu-west-1']!.machineImage.build.cancel.mockRejectedValueOnce(
+      new ServiceError(notFoundError('machine_image_build', 'gbuild_eu'))
+    );
+    await expect(regionCancel()({ buildRegionOid: '101' })).resolves.toBeUndefined();
+
+    clients['aws:eu-west-1']!.machineImage.build.cancel.mockRejectedValueOnce(
+      new Error('down')
+    );
+    await expect(regionCancel()({ buildRegionOid: '101' })).rejects.toThrow('down');
+  });
+
+  it('does nothing for a row that is not cancelled any more', async () => {
+    db.sandboxMachineImageBuildRegion.findFirst.mockResolvedValue(null);
+
+    await regionCancel()({ buildRegionOid: '101' });
+
+    expect(clients['aws:eu-west-1']!.machineImage.build.cancel).not.toHaveBeenCalled();
   });
 });

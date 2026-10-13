@@ -88,6 +88,7 @@ describe('sandboxSpecService.resolve', () => {
   it('rejects a spec that is not available in the region', async () => {
     db.sandboxSpec.findFirst.mockResolvedValue({
       id: 'sbs_1',
+      status: 'active',
       regions: [{ regionOid: 2n }]
     });
 
@@ -96,9 +97,23 @@ describe('sandboxSpecService.resolve', () => {
     );
   });
 
+  it('still returns a deleted spec but refuses to resolve it', async () => {
+    db.sandboxSpec.findFirst.mockResolvedValue({
+      id: 'sbs_old',
+      status: 'deleted',
+      regions: [{ regionOid: 1n, genesisId: 's1' }]
+    });
+
+    expect((await sandboxSpecService.get({ specId: 'sbs_old' })).status).toBe('deleted');
+    await expect(sandboxSpecService.resolve({ specId: 'sbs_old', region })).rejects.toThrow(
+      /no longer available/
+    );
+  });
+
   it('returns the regional record', async () => {
     db.sandboxSpec.findFirst.mockResolvedValue({
       id: 'sbs_2',
+      status: 'active',
       regions: [{ regionOid: 1n, genesisId: 's1' }]
     });
 
@@ -111,6 +126,7 @@ describe('sandboxSpecService.resolve', () => {
     db.sandboxSpec.findFirst.mockClear();
     db.sandboxSpec.findFirst.mockResolvedValue({
       id: 'sbs_cached',
+      status: 'active',
       regions: [{ regionOid: 1n, genesisId: 's1' }]
     });
 

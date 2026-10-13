@@ -5,6 +5,7 @@ let makeGenesis = () => ({
     create: vi.fn(),
     getMany: vi.fn(),
     terminate: vi.fn(),
+    update: vi.fn(),
     start: vi.fn()
   }
 });
@@ -17,7 +18,7 @@ let genesisByRegion: Record<string, ReturnType<typeof makeGenesis>> = {
 let db = {
   sandboxMachine: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   sandboxMachineImageRegion: { findFirst: vi.fn() },
-  sandboxDisk: { count: vi.fn() }
+  sandboxDisk: { count: vi.fn(), createMany: vi.fn(), updateMany: vi.fn() }
 };
 
 vi.mock('../src/lib/regions', () => ({
@@ -60,7 +61,10 @@ describe('sandboxMachineService.create', () => {
       spec: { memoryMiB: 2048, vcpus: 2 }
     });
     db.sandboxMachineImageRegion.findFirst.mockResolvedValue({ genesisId: 'sbi_regional' });
-    genesisByRegion['aws:us-east-1']!.machine.create.mockResolvedValue({ id: 'sbm_1' });
+    genesisByRegion['aws:us-east-1']!.machine.create.mockResolvedValue({
+      id: 'sbm_1',
+      rootFs: { desired: null, current: null }
+    });
     db.sandboxMachine.create.mockImplementation(async (a: any) => a.data);
   });
 
@@ -81,7 +85,31 @@ describe('sandboxMachineService.create', () => {
       id: 'sbm_1',
       instanceOid: 7n
     });
-    expect(result.remote).toEqual({ id: 'sbm_1' });
+    expect(result.remote).toMatchObject({ id: 'sbm_1' });
+  });
+
+  it('records the root filesystem disks the machine reports, right away', async () => {
+    genesisByRegion['aws:us-east-1']!.machine.create.mockResolvedValue({
+      id: 'sbm_1',
+      rootFs: { desired: { diskId: 'sbd_root1' }, current: null }
+    });
+
+    await sandboxMachineService.create({
+      instance,
+      regionIdentifier: 'us-east-1',
+      input: { imageId: 'sbi_global', specId: 'sbs_global' }
+    });
+
+    expect(db.sandboxDisk.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          id: 'sbd_root1',
+          type: 'root_fs',
+          instanceOid: 7n
+        })
+      ],
+      skipDuplicates: true
+    });
   });
 
   it('rejects an image that does not exist in the region', async () => {
@@ -155,6 +183,24 @@ describe('sandboxMachineService.get', () => {
     expect(genesisByRegion['aws:us-east-1']!.machine.getMany).not.toHaveBeenCalled();
   });
 
+  it('still returns a deleted machine, without a remote once Genesis dropped it', async () => {
+    db.sandboxMachine.findFirst.mockResolvedValue({
+      oid: 1n,
+      id: 'sbm_gone',
+      status: 'deleted',
+      tenant: tenant('sbt_eu', euwest)
+    });
+    genesisByRegion['aws:eu-west-1']!.machine.getMany.mockResolvedValue([]);
+
+    let machine = await sandboxMachineService.get({ instance, machineId: 'sbm_gone' });
+
+    expect(db.sandboxMachine.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'sbm_gone', instanceOid: 7n } })
+    );
+    expect(machine.status).toBe('deleted');
+    expect(machine.remote).toBeNull();
+  });
+
   it('throws not found for an unknown machine', async () => {
     db.sandboxMachine.findFirst.mockResolvedValue(null);
 
@@ -185,6 +231,10 @@ describe('sandboxMachineService.list', () => {
     let paginator = await sandboxMachineService.list({ instance });
     let page = await paginator.run({});
 
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { instanceOid: 7n, status: 'active' } })
+    );
+
     expect(page.items.map(item => [item.id, item.remote?.status])).toEqual([
       ['a', 'running'],
       ['b', 'running'],
@@ -192,6 +242,60 @@ describe('sandboxMachineService.list', () => {
     ]);
     expect(genesisByRegion['aws:us-east-1']!.machine.getMany).toHaveBeenCalledTimes(1);
     expect(genesisByRegion['aws:eu-west-1']!.machine.getMany).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('sandboxMachineService.update', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  let row = {
+    oid: 1n,
+    id: 'sbm_1',
+    status: 'active',
+    tenantOid: 101n,
+    organizationOid: 5n,
+    projectOid: 6n,
+    instanceOid: 7n,
+    instance,
+    tenant: tenant('sbt_us', useast)
+  } as any;
+
+  it('records the new root filesystem and retires the ones the machine dropped', async () => {
+    genesisByRegion['aws:us-east-1']!.machine.update.mockResolvedValue({
+      id: 'sbm_1',
+      rootFs: { desired: { diskId: 'sbd_new' }, current: { diskId: 'sbd_old' } }
+    });
+
+    await sandboxMachineService.update({ machine: row, input: { name: 'renamed' } });
+
+    expect(db.sandboxDisk.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({ id: 'sbd_new', machineOid: 1n }),
+          expect.objectContaining({ id: 'sbd_old', machineOid: 1n })
+        ]
+      })
+    );
+    expect(db.sandboxDisk.updateMany).toHaveBeenCalledWith({
+      where: {
+        machineOid: 1n,
+        type: 'root_fs',
+        status: 'active',
+        id: { notIn: ['sbd_new', 'sbd_old'] }
+      },
+      data: { status: 'deleted', deletedAt: expect.any(Date) }
+    });
+  });
+
+  it('leaves root filesystem rows alone when the machine reports none', async () => {
+    genesisByRegion['aws:us-east-1']!.machine.update.mockResolvedValue({
+      id: 'sbm_1',
+      rootFs: { desired: null, current: null }
+    });
+
+    await sandboxMachineService.update({ machine: row, input: { name: 'renamed' } });
+
+    expect(db.sandboxDisk.updateMany).not.toHaveBeenCalled();
   });
 });
 
@@ -211,6 +315,12 @@ describe('sandboxMachineService lifecycle', () => {
     let result = await sandboxMachineService.terminate({ machine: row });
 
     expect(db.sandboxMachine.update.mock.calls[0]![0].data.status).toBe('deleted');
+    expect(db.sandboxDisk.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { machineOid: 1n, type: 'root_fs', status: 'active' },
+        data: expect.objectContaining({ status: 'deleted' })
+      })
+    );
     expect(result.status).toBe('deleted');
   });
 

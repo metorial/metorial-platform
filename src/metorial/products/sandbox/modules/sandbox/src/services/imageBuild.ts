@@ -11,6 +11,7 @@ import {
   type SandboxMachineImageBuildStatus
 } from '@metorial/db';
 import { resolveBuildRegion } from '../lib/buildRegion';
+import { endImageBuild } from '../lib/imageBuildEnd';
 import { getRegional } from '../lib/regional';
 import { getRegionClient } from '../lib/regions';
 import { imageBuildRootQueue } from '../queues/imageBuild';
@@ -167,43 +168,33 @@ class SandboxImageBuildServiceImpl {
     );
   }
 
+  async logs(d: {
+    instance: Instance;
+    buildId: string;
+    input: { direction?: 'forward' | 'backward'; cursor?: number; limit?: number };
+  }) {
+    let build = await this.get({ instance: d.instance, buildId: d.buildId });
+
+    let builder = build.regions.find(row => row.kind == 'builder');
+    if (!builder?.logStreamId) {
+      throw new ServiceError(notFoundError('sandbox_log_stream', d.buildId));
+    }
+
+    return await getRegionClient(builder.region.id).logStream.lines({
+      tenantId: builder.tenant.id,
+      logStreamId: builder.logStreamId,
+      ...d.input
+    });
+  }
+
   async cancel(d: { instance: Instance; build: { id: string } }) {
     let build = await this.get({ instance: d.instance, buildId: d.build.id });
     if (!ACTIVE_BUILD_STATUSES.includes(build.status)) return build;
 
-    for (let row of build.regions) {
-      if (!row.genesisBuildId || ['succeeded', 'failed', 'cancelled'].includes(row.status)) {
-        continue;
-      }
-
-      await getRegionClient(row.region.id)
-        .machineImage.build.cancel({ tenantId: row.tenant.id, buildId: row.genesisBuildId })
-        .catch(() => undefined);
-    }
-
-    let now = new Date();
-
-    await db.sandboxMachineImageBuildRegion.updateMany({
-      where: {
-        buildOid: build.oid,
-        status: { notIn: ['succeeded', 'failed', 'cancelled', 'timed_out'] }
-      },
-      data: { status: 'cancelled', endedAt: now }
-    });
-
-    await db.sandboxMachineImageBuild.updateMany({
-      where: { oid: build.oid, status: { in: ACTIVE_BUILD_STATUSES } },
-      data: {
-        status: 'cancelled',
-        failureCode: 'cancelled',
-        failureMessage: 'The build was cancelled.',
-        endedAt: now
-      }
-    });
-
-    await db.sandboxMachineImageVersion.updateMany({
-      where: { oid: build.versionOid, status: 'pending' },
-      data: { status: 'deleted' }
+    await endImageBuild({
+      build,
+      status: 'cancelled',
+      failure: { code: 'cancelled', message: 'The build was cancelled.' }
     });
 
     return await this.get({ instance: d.instance, buildId: build.id });
