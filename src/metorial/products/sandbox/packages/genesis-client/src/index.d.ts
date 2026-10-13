@@ -32346,6 +32346,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 tenantId: string | null;
                 imageId: string;
                 status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
                 options: {
                     dockerfilePath: string;
                     contextPath: string;
@@ -32415,6 +32417,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 tenantId: string | null;
                 imageId: string;
                 status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
                 options: {
                     dockerfilePath: string;
                     contextPath: string;
@@ -32536,8 +32540,30 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     currentVersionOid: bigint | null;
                 };
             }>;
-            get: _lowerdeck_rpc_server.Handler<_lowerdeck_validation.UndefinedIsOptional<{
-                buildId: string;
+            createFromArtifact: _lowerdeck_rpc_server.Handler<_lowerdeck_validation.UndefinedIsOptional<{
+                imageId: string;
+                source: _lowerdeck_validation.UndefinedIsOptional<{
+                    rootfs: _lowerdeck_validation.UndefinedIsOptional<{
+                        url: string;
+                        bytes: number;
+                        sha256: string;
+                    }>;
+                    oci: _lowerdeck_validation.UndefinedIsOptional<{
+                        url: string;
+                    }>;
+                    rootfsBytes: number;
+                    expiresAt: number;
+                }>;
+                options: _lowerdeck_validation.UndefinedIsOptional<{
+                    dockerfilePath: string | undefined;
+                    contextPath: string | undefined;
+                    target: string | undefined;
+                    buildArgs: Record<string, string> | undefined;
+                    timeoutSeconds: number | undefined;
+                    diskSizeBytes: number | undefined;
+                    builderMemoryMiB: number | undefined;
+                }> | undefined;
+                idempotencyKey: string | undefined;
                 tenantId: string;
             }>, {
                 object: "genesis.machine_image_build";
@@ -32545,6 +32571,386 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 tenantId: string | null;
                 imageId: string;
                 status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
+                options: {
+                    dockerfilePath: string;
+                    contextPath: string;
+                    target: string | null;
+                    buildArgNames: string[];
+                    timeoutSeconds: number;
+                    diskSizeBytes: number;
+                    builderMemoryMiB: number;
+                };
+                failure: PrismaJson.GenesisFailure | null;
+                versionId: string | null;
+                logStreamId: string;
+                builderTaskId: string | null;
+                processorTaskId: string | null;
+                contextBytes: number | null;
+                artifactBytes: number | null;
+                rootfsBytes: number | null;
+                upload: {
+                    url: string | null;
+                    path: string;
+                    method: "PUT";
+                    headers: {
+                        authorization: string;
+                    };
+                    maxBytes: number;
+                    expiresAt: Date;
+                } | null;
+                deadlineAt: Date | null;
+                queuedAt: Date | null;
+                startedAt: Date | null;
+                builtAt: Date | null;
+                endedAt: Date | null;
+                createdAt: Date;
+                updatedAt: Date;
+            }, {
+                tenant: {
+                    oid: bigint;
+                    id: string;
+                    createdAt: Date;
+                    kind: _metorial_genesis_db.TenantKind;
+                    slug: string;
+                    maxOpenConnections: number | null;
+                    ingressBytesPerSecondPerConnection: number | null;
+                    requestsPer10MinutesPerTenant: number | null;
+                    requestsPer10MinutesPerMachine: number | null;
+                    hostnameFanoutRevision: bigint;
+                    hostnameFanoutPending: boolean;
+                    lastMachineAt: Date | null;
+                };
+                image: {
+                    tenant: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        kind: _metorial_genesis_db.TenantKind;
+                        slug: string;
+                        maxOpenConnections: number | null;
+                        ingressBytesPerSecondPerConnection: number | null;
+                        requestsPer10MinutesPerTenant: number | null;
+                        requestsPer10MinutesPerMachine: number | null;
+                        hostnameFanoutRevision: bigint;
+                        hostnameFanoutPending: boolean;
+                        lastMachineAt: Date | null;
+                    } | null;
+                    currentVersion: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        diskOid: bigint;
+                        status: _metorial_genesis_db.MachineImageVersionStatus;
+                        deletedAt: Date | null;
+                        rootId: string;
+                        rootfsBytes: bigint;
+                        imageOid: bigint;
+                        sequence: number;
+                        platform: string;
+                        digest: string;
+                        ociIndex: PrismaJson.GenesisOciDocument;
+                        ociManifest: PrismaJson.GenesisOciDocument;
+                        ociConfig: PrismaJson.GenesisOciDocument;
+                        retiredAt: Date | null;
+                        buildOid: bigint;
+                    } | null;
+                    importedImage: {
+                        name: string;
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        runtime: string;
+                        lastSeenAt: Date;
+                        deprecatedAt: Date | null;
+                        currentVersionOid: bigint | null;
+                        imageOid: bigint;
+                        platform: string;
+                        catalogUrl: string;
+                        templateId: string;
+                        description: string | null;
+                        runtimeVersion: string;
+                        syncSequence: bigint;
+                        latestVersionOid: bigint | null;
+                    } | null;
+                } & {
+                    name: string | null;
+                    oid: bigint;
+                    id: string;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    status: _metorial_genesis_db.MachineImageStatus;
+                    version: number;
+                    idempotencyKey: string | null;
+                    deletedAt: Date | null;
+                    tenantOid: bigint | null;
+                    lifecycleHooks: PrismaJson.GenesisLifecycleHooks | null;
+                    entrypointWaitSeconds: number;
+                    lifecycleConfigUpdatedAt: bigint;
+                    visibility: _metorial_genesis_db.MachineImageVisibility;
+                    deprecatedAt: Date | null;
+                    currentVersionOid: bigint | null;
+                };
+            }>;
+            exportArtifact: _lowerdeck_rpc_server.Handler<_lowerdeck_validation.UndefinedIsOptional<{
+                buildId: string;
+                tenantId: string;
+            }>, {
+                rootfs: {
+                    url: string;
+                    bytes: number;
+                    sha256: string;
+                };
+                oci: {
+                    url: string;
+                };
+                rootfsBytes: number;
+                diskSizeBytes: number;
+                expiresAt: number;
+            }, {
+                tenant: {
+                    oid: bigint;
+                    id: string;
+                    createdAt: Date;
+                    kind: _metorial_genesis_db.TenantKind;
+                    slug: string;
+                    maxOpenConnections: number | null;
+                    ingressBytesPerSecondPerConnection: number | null;
+                    requestsPer10MinutesPerTenant: number | null;
+                    requestsPer10MinutesPerMachine: number | null;
+                    hostnameFanoutRevision: bigint;
+                    hostnameFanoutPending: boolean;
+                    lastMachineAt: Date | null;
+                };
+                build: {
+                    imageVersion: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        diskOid: bigint;
+                        status: _metorial_genesis_db.MachineImageVersionStatus;
+                        deletedAt: Date | null;
+                        rootId: string;
+                        rootfsBytes: bigint;
+                        imageOid: bigint;
+                        sequence: number;
+                        platform: string;
+                        digest: string;
+                        ociIndex: PrismaJson.GenesisOciDocument;
+                        ociManifest: PrismaJson.GenesisOciDocument;
+                        ociConfig: PrismaJson.GenesisOciDocument;
+                        retiredAt: Date | null;
+                        buildOid: bigint;
+                    } | null;
+                    disk: {
+                        name: string | null;
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        policyRevision: bigint;
+                        status: _metorial_genesis_db.DiskStatus;
+                        purpose: _metorial_genesis_db.DiskPurpose;
+                        sizeBytes: bigint;
+                        chunkSizeBytes: number;
+                        spanSizeBytes: number;
+                        epoch: number;
+                        cosmosAttachedEpoch: number | null;
+                        storageActualBytes: Decimal | null;
+                        storageReportedBytes: Decimal | null;
+                        storageCapacityBytes: Decimal | null;
+                        storageLimitBytes: Decimal | null;
+                        storageGeneration: Decimal | null;
+                        storagePolicyRevision: Decimal | null;
+                        storageExportComplete: boolean;
+                        storageExportCursor: Decimal | null;
+                        storageWindow: Decimal | null;
+                        storageRoot: string | null;
+                        storageMeasuredAt: Date | null;
+                        storageDeleted: boolean;
+                        version: number;
+                        idempotencyKey: string | null;
+                        attachedAt: Date | null;
+                        lastDetachedAt: Date | null;
+                        initializedAt: Date | null;
+                        cloneSourceDiskId: string | null;
+                        sealedAt: Date | null;
+                        sealedRootId: string | null;
+                        deletedAt: Date | null;
+                        tenantOid: bigint;
+                        attachedInstanceOid: bigint | null;
+                        attachedTaskOid: bigint | null;
+                        activeResizeOid: bigint | null;
+                    } | null;
+                    logStream: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        status: _metorial_genesis_db.LogStreamStatus;
+                        sealedAt: Date | null;
+                        tenantOid: bigint | null;
+                        kind: _metorial_genesis_db.LogStreamKind;
+                        ttl: Date;
+                        lineCount: bigint;
+                        offloadedLineCount: bigint;
+                        chunkCount: number;
+                        byteCount: bigint;
+                        droppedLineCount: bigint;
+                        truncated: boolean;
+                    };
+                    tenant: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        kind: _metorial_genesis_db.TenantKind;
+                        slug: string;
+                        maxOpenConnections: number | null;
+                        ingressBytesPerSecondPerConnection: number | null;
+                        requestsPer10MinutesPerTenant: number | null;
+                        requestsPer10MinutesPerMachine: number | null;
+                        hostnameFanoutRevision: bigint;
+                        hostnameFanoutPending: boolean;
+                        lastMachineAt: Date | null;
+                    } | null;
+                    image: {
+                        name: string | null;
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        status: _metorial_genesis_db.MachineImageStatus;
+                        version: number;
+                        idempotencyKey: string | null;
+                        deletedAt: Date | null;
+                        tenantOid: bigint | null;
+                        lifecycleHooks: PrismaJson.GenesisLifecycleHooks | null;
+                        entrypointWaitSeconds: number;
+                        lifecycleConfigUpdatedAt: bigint;
+                        visibility: _metorial_genesis_db.MachineImageVisibility;
+                        deprecatedAt: Date | null;
+                        currentVersionOid: bigint | null;
+                    };
+                    builderTask: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        status: _metorial_genesis_db.TaskStatus;
+                        version: number;
+                        tenantOid: bigint;
+                        kind: _metorial_genesis_db.TaskKind;
+                        failure: PrismaJson.GenesisFailure | null;
+                        terminatedAt: Date | null;
+                        ttl: Date;
+                        microvmId: string | null;
+                        genesisdVersion: string | null;
+                        bootId: string | null;
+                        publicKey: string | null;
+                        imageSnapshot: PrismaJson.GenesisImagePayload;
+                        logStreamOid: bigint | null;
+                        launchedAt: Date | null;
+                        outcome: _metorial_genesis_db.TaskOutcome | null;
+                        exitCode: number | null;
+                        deadlineAt: Date;
+                        enrollDeadlineAt: Date;
+                        lastSeenAt: Date | null;
+                        enrolledAt: Date | null;
+                        endedAt: Date | null;
+                    } | null;
+                    processorTask: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        status: _metorial_genesis_db.TaskStatus;
+                        version: number;
+                        tenantOid: bigint;
+                        kind: _metorial_genesis_db.TaskKind;
+                        failure: PrismaJson.GenesisFailure | null;
+                        terminatedAt: Date | null;
+                        ttl: Date;
+                        microvmId: string | null;
+                        genesisdVersion: string | null;
+                        bootId: string | null;
+                        publicKey: string | null;
+                        imageSnapshot: PrismaJson.GenesisImagePayload;
+                        logStreamOid: bigint | null;
+                        launchedAt: Date | null;
+                        outcome: _metorial_genesis_db.TaskOutcome | null;
+                        exitCode: number | null;
+                        deadlineAt: Date;
+                        enrollDeadlineAt: Date;
+                        lastSeenAt: Date | null;
+                        enrolledAt: Date | null;
+                        endedAt: Date | null;
+                    } | null;
+                } & {
+                    oid: bigint;
+                    id: string;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    diskOid: bigint | null;
+                    status: _metorial_genesis_db.MachineImageBuildStatus;
+                    version: number;
+                    idempotencyKey: string | null;
+                    tenantOid: bigint | null;
+                    failure: PrismaJson.GenesisFailure | null;
+                    logStreamOid: bigint;
+                    startedAt: Date | null;
+                    deadlineAt: Date | null;
+                    endedAt: Date | null;
+                    source: _metorial_genesis_db.MachineImageBuildSource;
+                    options: PrismaJson.GenesisMachineImageBuildOptions;
+                    uploadTokenHash: string | null;
+                    uploadExpiresAt: Date | null;
+                    contextFormat: _metorial_genesis_db.MachineImageBuildContextFormat | null;
+                    contextKey: string | null;
+                    contextBytes: bigint | null;
+                    contextSha256: string | null;
+                    artifactKey: string | null;
+                    artifactUploadId: string | null;
+                    artifactBytes: bigint | null;
+                    artifactSha256: string | null;
+                    partSizeBytes: number | null;
+                    partCount: number | null;
+                    ociKey: string | null;
+                    rootfsBytes: bigint | null;
+                    sourceRootfsUrl: string | null;
+                    sourceOciUrl: string | null;
+                    sourceExpiresAt: Date | null;
+                    queuedAt: Date | null;
+                    builtAt: Date | null;
+                    cleanedAt: Date | null;
+                    imageOid: bigint;
+                    builderTaskOid: bigint | null;
+                    processorTaskOid: bigint | null;
+                    importedVersionOid: bigint | null;
+                };
+            }>;
+            refreshSource: _lowerdeck_rpc_server.Handler<_lowerdeck_validation.UndefinedIsOptional<{
+                buildId: string;
+                source: _lowerdeck_validation.UndefinedIsOptional<{
+                    rootfs: _lowerdeck_validation.UndefinedIsOptional<{
+                        url: string;
+                        bytes: number;
+                        sha256: string;
+                    }>;
+                    oci: _lowerdeck_validation.UndefinedIsOptional<{
+                        url: string;
+                    }>;
+                    rootfsBytes: number;
+                    expiresAt: number;
+                }>;
+                tenantId: string;
+            }>, {
+                object: "genesis.machine_image_build";
+                id: string;
+                tenantId: string | null;
+                imageId: string;
+                status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
                 options: {
                     dockerfilePath: string;
                     contextPath: string;
@@ -32770,6 +33176,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     startedAt: Date | null;
                     deadlineAt: Date | null;
                     endedAt: Date | null;
+                    source: _metorial_genesis_db.MachineImageBuildSource;
                     options: PrismaJson.GenesisMachineImageBuildOptions;
                     uploadTokenHash: string | null;
                     uploadExpiresAt: Date | null;
@@ -32785,6 +33192,273 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     partCount: number | null;
                     ociKey: string | null;
                     rootfsBytes: bigint | null;
+                    sourceRootfsUrl: string | null;
+                    sourceOciUrl: string | null;
+                    sourceExpiresAt: Date | null;
+                    queuedAt: Date | null;
+                    builtAt: Date | null;
+                    cleanedAt: Date | null;
+                    imageOid: bigint;
+                    builderTaskOid: bigint | null;
+                    processorTaskOid: bigint | null;
+                    importedVersionOid: bigint | null;
+                };
+            }>;
+            get: _lowerdeck_rpc_server.Handler<_lowerdeck_validation.UndefinedIsOptional<{
+                buildId: string;
+                tenantId: string;
+            }>, {
+                object: "genesis.machine_image_build";
+                id: string;
+                tenantId: string | null;
+                imageId: string;
+                status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
+                options: {
+                    dockerfilePath: string;
+                    contextPath: string;
+                    target: string | null;
+                    buildArgNames: string[];
+                    timeoutSeconds: number;
+                    diskSizeBytes: number;
+                    builderMemoryMiB: number;
+                };
+                failure: PrismaJson.GenesisFailure | null;
+                versionId: string | null;
+                logStreamId: string;
+                builderTaskId: string | null;
+                processorTaskId: string | null;
+                contextBytes: number | null;
+                artifactBytes: number | null;
+                rootfsBytes: number | null;
+                upload: {
+                    url: string | null;
+                    path: string;
+                    method: "PUT";
+                    headers: {
+                        authorization: string;
+                    };
+                    maxBytes: number;
+                    expiresAt: Date;
+                } | null;
+                deadlineAt: Date | null;
+                queuedAt: Date | null;
+                startedAt: Date | null;
+                builtAt: Date | null;
+                endedAt: Date | null;
+                createdAt: Date;
+                updatedAt: Date;
+            }, {
+                tenant: {
+                    oid: bigint;
+                    id: string;
+                    createdAt: Date;
+                    kind: _metorial_genesis_db.TenantKind;
+                    slug: string;
+                    maxOpenConnections: number | null;
+                    ingressBytesPerSecondPerConnection: number | null;
+                    requestsPer10MinutesPerTenant: number | null;
+                    requestsPer10MinutesPerMachine: number | null;
+                    hostnameFanoutRevision: bigint;
+                    hostnameFanoutPending: boolean;
+                    lastMachineAt: Date | null;
+                };
+                build: {
+                    imageVersion: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        diskOid: bigint;
+                        status: _metorial_genesis_db.MachineImageVersionStatus;
+                        deletedAt: Date | null;
+                        rootId: string;
+                        rootfsBytes: bigint;
+                        imageOid: bigint;
+                        sequence: number;
+                        platform: string;
+                        digest: string;
+                        ociIndex: PrismaJson.GenesisOciDocument;
+                        ociManifest: PrismaJson.GenesisOciDocument;
+                        ociConfig: PrismaJson.GenesisOciDocument;
+                        retiredAt: Date | null;
+                        buildOid: bigint;
+                    } | null;
+                    disk: {
+                        name: string | null;
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        policyRevision: bigint;
+                        status: _metorial_genesis_db.DiskStatus;
+                        purpose: _metorial_genesis_db.DiskPurpose;
+                        sizeBytes: bigint;
+                        chunkSizeBytes: number;
+                        spanSizeBytes: number;
+                        epoch: number;
+                        cosmosAttachedEpoch: number | null;
+                        storageActualBytes: Decimal | null;
+                        storageReportedBytes: Decimal | null;
+                        storageCapacityBytes: Decimal | null;
+                        storageLimitBytes: Decimal | null;
+                        storageGeneration: Decimal | null;
+                        storagePolicyRevision: Decimal | null;
+                        storageExportComplete: boolean;
+                        storageExportCursor: Decimal | null;
+                        storageWindow: Decimal | null;
+                        storageRoot: string | null;
+                        storageMeasuredAt: Date | null;
+                        storageDeleted: boolean;
+                        version: number;
+                        idempotencyKey: string | null;
+                        attachedAt: Date | null;
+                        lastDetachedAt: Date | null;
+                        initializedAt: Date | null;
+                        cloneSourceDiskId: string | null;
+                        sealedAt: Date | null;
+                        sealedRootId: string | null;
+                        deletedAt: Date | null;
+                        tenantOid: bigint;
+                        attachedInstanceOid: bigint | null;
+                        attachedTaskOid: bigint | null;
+                        activeResizeOid: bigint | null;
+                    } | null;
+                    logStream: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        status: _metorial_genesis_db.LogStreamStatus;
+                        sealedAt: Date | null;
+                        tenantOid: bigint | null;
+                        kind: _metorial_genesis_db.LogStreamKind;
+                        ttl: Date;
+                        lineCount: bigint;
+                        offloadedLineCount: bigint;
+                        chunkCount: number;
+                        byteCount: bigint;
+                        droppedLineCount: bigint;
+                        truncated: boolean;
+                    };
+                    tenant: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        kind: _metorial_genesis_db.TenantKind;
+                        slug: string;
+                        maxOpenConnections: number | null;
+                        ingressBytesPerSecondPerConnection: number | null;
+                        requestsPer10MinutesPerTenant: number | null;
+                        requestsPer10MinutesPerMachine: number | null;
+                        hostnameFanoutRevision: bigint;
+                        hostnameFanoutPending: boolean;
+                        lastMachineAt: Date | null;
+                    } | null;
+                    image: {
+                        name: string | null;
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        status: _metorial_genesis_db.MachineImageStatus;
+                        version: number;
+                        idempotencyKey: string | null;
+                        deletedAt: Date | null;
+                        tenantOid: bigint | null;
+                        lifecycleHooks: PrismaJson.GenesisLifecycleHooks | null;
+                        entrypointWaitSeconds: number;
+                        lifecycleConfigUpdatedAt: bigint;
+                        visibility: _metorial_genesis_db.MachineImageVisibility;
+                        deprecatedAt: Date | null;
+                        currentVersionOid: bigint | null;
+                    };
+                    builderTask: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        status: _metorial_genesis_db.TaskStatus;
+                        version: number;
+                        tenantOid: bigint;
+                        kind: _metorial_genesis_db.TaskKind;
+                        failure: PrismaJson.GenesisFailure | null;
+                        terminatedAt: Date | null;
+                        ttl: Date;
+                        microvmId: string | null;
+                        genesisdVersion: string | null;
+                        bootId: string | null;
+                        publicKey: string | null;
+                        imageSnapshot: PrismaJson.GenesisImagePayload;
+                        logStreamOid: bigint | null;
+                        launchedAt: Date | null;
+                        outcome: _metorial_genesis_db.TaskOutcome | null;
+                        exitCode: number | null;
+                        deadlineAt: Date;
+                        enrollDeadlineAt: Date;
+                        lastSeenAt: Date | null;
+                        enrolledAt: Date | null;
+                        endedAt: Date | null;
+                    } | null;
+                    processorTask: {
+                        oid: bigint;
+                        id: string;
+                        createdAt: Date;
+                        status: _metorial_genesis_db.TaskStatus;
+                        version: number;
+                        tenantOid: bigint;
+                        kind: _metorial_genesis_db.TaskKind;
+                        failure: PrismaJson.GenesisFailure | null;
+                        terminatedAt: Date | null;
+                        ttl: Date;
+                        microvmId: string | null;
+                        genesisdVersion: string | null;
+                        bootId: string | null;
+                        publicKey: string | null;
+                        imageSnapshot: PrismaJson.GenesisImagePayload;
+                        logStreamOid: bigint | null;
+                        launchedAt: Date | null;
+                        outcome: _metorial_genesis_db.TaskOutcome | null;
+                        exitCode: number | null;
+                        deadlineAt: Date;
+                        enrollDeadlineAt: Date;
+                        lastSeenAt: Date | null;
+                        enrolledAt: Date | null;
+                        endedAt: Date | null;
+                    } | null;
+                } & {
+                    oid: bigint;
+                    id: string;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    diskOid: bigint | null;
+                    status: _metorial_genesis_db.MachineImageBuildStatus;
+                    version: number;
+                    idempotencyKey: string | null;
+                    tenantOid: bigint | null;
+                    failure: PrismaJson.GenesisFailure | null;
+                    logStreamOid: bigint;
+                    startedAt: Date | null;
+                    deadlineAt: Date | null;
+                    endedAt: Date | null;
+                    source: _metorial_genesis_db.MachineImageBuildSource;
+                    options: PrismaJson.GenesisMachineImageBuildOptions;
+                    uploadTokenHash: string | null;
+                    uploadExpiresAt: Date | null;
+                    contextFormat: _metorial_genesis_db.MachineImageBuildContextFormat | null;
+                    contextKey: string | null;
+                    contextBytes: bigint | null;
+                    contextSha256: string | null;
+                    artifactKey: string | null;
+                    artifactUploadId: string | null;
+                    artifactBytes: bigint | null;
+                    artifactSha256: string | null;
+                    partSizeBytes: number | null;
+                    partCount: number | null;
+                    ociKey: string | null;
+                    rootfsBytes: bigint | null;
+                    sourceRootfsUrl: string | null;
+                    sourceOciUrl: string | null;
+                    sourceExpiresAt: Date | null;
                     queuedAt: Date | null;
                     builtAt: Date | null;
                     cleanedAt: Date | null;
@@ -32796,7 +33470,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             }>;
             list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
                 imageId: string | undefined;
-                status: ("failed" | "succeeded" | "timed_out" | "cancelled" | "awaiting_context" | "queued" | "building" | "processing")[] | undefined;
+                status: ("failed" | "succeeded" | "timed_out" | "cancelled" | "awaiting_context" | "queued" | "building" | "copying" | "awaiting_source" | "processing")[] | undefined;
                 tenantId: string;
             }, "status" | "imageId">> & {
                 tenantId: string;
@@ -32814,6 +33488,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     tenantId: string | null;
                     imageId: string;
                     status: _metorial_genesis_db.MachineImageBuildStatus;
+                    source: _metorial_genesis_db.MachineImageBuildSource;
+                    sourceExpiresAt: Date | null;
                     options: {
                         dockerfilePath: string;
                         contextPath: string;
@@ -32878,6 +33554,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 tenantId: string | null;
                 imageId: string;
                 status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
                 options: {
                     dockerfilePath: string;
                     contextPath: string;
@@ -33103,6 +33781,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     startedAt: Date | null;
                     deadlineAt: Date | null;
                     endedAt: Date | null;
+                    source: _metorial_genesis_db.MachineImageBuildSource;
                     options: PrismaJson.GenesisMachineImageBuildOptions;
                     uploadTokenHash: string | null;
                     uploadExpiresAt: Date | null;
@@ -33118,6 +33797,9 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     partCount: number | null;
                     ociKey: string | null;
                     rootfsBytes: bigint | null;
+                    sourceRootfsUrl: string | null;
+                    sourceOciUrl: string | null;
+                    sourceExpiresAt: Date | null;
                     queuedAt: Date | null;
                     builtAt: Date | null;
                     cleanedAt: Date | null;
@@ -33910,6 +34592,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 tenantId: string | null;
                 imageId: string;
                 status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
                 options: {
                     dockerfilePath: string;
                     contextPath: string;
@@ -34039,6 +34723,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 tenantId: string | null;
                 imageId: string;
                 status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
                 options: {
                     dockerfilePath: string;
                     contextPath: string;
@@ -34264,6 +34950,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     startedAt: Date | null;
                     deadlineAt: Date | null;
                     endedAt: Date | null;
+                    source: _metorial_genesis_db.MachineImageBuildSource;
                     options: PrismaJson.GenesisMachineImageBuildOptions;
                     uploadTokenHash: string | null;
                     uploadExpiresAt: Date | null;
@@ -34279,6 +34966,9 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     partCount: number | null;
                     ociKey: string | null;
                     rootfsBytes: bigint | null;
+                    sourceRootfsUrl: string | null;
+                    sourceOciUrl: string | null;
+                    sourceExpiresAt: Date | null;
                     queuedAt: Date | null;
                     builtAt: Date | null;
                     cleanedAt: Date | null;
@@ -34290,7 +34980,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             }>;
             list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
                 imageId: string | undefined;
-                status: ("failed" | "succeeded" | "timed_out" | "cancelled" | "awaiting_context" | "queued" | "building" | "processing")[] | undefined;
+                status: ("failed" | "succeeded" | "timed_out" | "cancelled" | "awaiting_context" | "queued" | "building" | "copying" | "awaiting_source" | "processing")[] | undefined;
             }, "status" | "imageId">> & {} & {
                 limit?: number;
                 after?: string;
@@ -34305,6 +34995,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     tenantId: string | null;
                     imageId: string;
                     status: _metorial_genesis_db.MachineImageBuildStatus;
+                    source: _metorial_genesis_db.MachineImageBuildSource;
+                    sourceExpiresAt: Date | null;
                     options: {
                         dockerfilePath: string;
                         contextPath: string;
@@ -34368,6 +35060,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 tenantId: string | null;
                 imageId: string;
                 status: _metorial_genesis_db.MachineImageBuildStatus;
+                source: _metorial_genesis_db.MachineImageBuildSource;
+                sourceExpiresAt: Date | null;
                 options: {
                     dockerfilePath: string;
                     contextPath: string;
@@ -34593,6 +35287,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     startedAt: Date | null;
                     deadlineAt: Date | null;
                     endedAt: Date | null;
+                    source: _metorial_genesis_db.MachineImageBuildSource;
                     options: PrismaJson.GenesisMachineImageBuildOptions;
                     uploadTokenHash: string | null;
                     uploadExpiresAt: Date | null;
@@ -34608,6 +35303,9 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     partCount: number | null;
                     ociKey: string | null;
                     rootfsBytes: bigint | null;
+                    sourceRootfsUrl: string | null;
+                    sourceOciUrl: string | null;
+                    sourceExpiresAt: Date | null;
                     queuedAt: Date | null;
                     builtAt: Date | null;
                     cleanedAt: Date | null;

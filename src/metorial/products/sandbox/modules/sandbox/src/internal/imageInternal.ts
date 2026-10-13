@@ -44,7 +44,8 @@ class SandboxImageInternalServiceImpl {
       where: {
         regionOid: d.region.oid,
         status: 'active',
-        genesisId: { notIn: seenGenesisIds }
+        genesisId: { notIn: seenGenesisIds },
+        image: { instanceOid: null }
       },
       data: { status: 'deleted' }
     });
@@ -72,10 +73,11 @@ class SandboxImageInternalServiceImpl {
     let activeInRegions = { status: 'active' as const, regionOid: { in: regionOids } };
 
     let images = await db.sandboxMachineImage.findMany({
-      where: { identifier: { not: null } },
+      where: { OR: [{ instanceOid: null }, { status: { not: 'deleted' } }] },
       select: {
         oid: true,
         status: true,
+        instanceOid: true,
         _count: { select: { regions: { where: activeInRegions } } }
       }
     });
@@ -85,7 +87,11 @@ class SandboxImageInternalServiceImpl {
         .filter(
           image =>
             image.status != status &&
-            this.availability(image._count.regions, regionOids.length) == status
+            this.availability({
+              presentRegions: image._count.regions,
+              activeRegions: regionOids.length,
+              isGlobal: image.instanceOid === null
+            }) == status
         )
         .map(image => image.oid);
       if (!oids.length) continue;
@@ -97,9 +103,11 @@ class SandboxImageInternalServiceImpl {
     }
 
     let versions = await db.sandboxMachineImageVersion.findMany({
+      where: { OR: [{ image: { instanceOid: null } }, { status: { not: 'deleted' } }] },
       select: {
         oid: true,
         status: true,
+        image: { select: { instanceOid: true } },
         _count: { select: { regions: { where: activeInRegions } } }
       }
     });
@@ -109,7 +117,11 @@ class SandboxImageInternalServiceImpl {
         .filter(
           version =>
             version.status != status &&
-            this.availability(version._count.regions, regionOids.length) == status
+            this.availability({
+              presentRegions: version._count.regions,
+              activeRegions: regionOids.length,
+              isGlobal: version.image.instanceOid === null
+            }) == status
         )
         .map(version => version.oid);
       if (!oids.length) continue;
@@ -121,12 +133,13 @@ class SandboxImageInternalServiceImpl {
     }
   }
 
-  private availability(
-    presentRegions: number,
-    activeRegions: number
-  ): SandboxMachineImageStatus {
-    if (presentRegions == 0) return 'deleted';
-    if (presentRegions >= activeRegions) return 'active';
+  private availability(d: {
+    presentRegions: number;
+    activeRegions: number;
+    isGlobal: boolean;
+  }): SandboxMachineImageStatus {
+    if (d.presentRegions == 0) return d.isGlobal ? 'deleted' : 'pending';
+    if (d.presentRegions >= d.activeRegions) return 'active';
 
     return 'pending';
   }

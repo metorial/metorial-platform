@@ -16,10 +16,11 @@ model SandboxTenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  machines        SandboxMachine[]
-  imageRegions    SandboxMachineImageRegion[]
-  disks           SandboxDisk[]
-  networkPolicies SandboxNetworkPolicy[]
+  machines          SandboxMachine[]
+  imageRegions      SandboxMachineImageRegion[]
+  imageBuildRegions SandboxMachineImageBuildRegion[]
+  disks             SandboxDisk[]
+  networkPolicies   SandboxNetworkPolicy[]
 
   @@unique([projectOid, regionOid])
   @@unique([regionOid, slug])

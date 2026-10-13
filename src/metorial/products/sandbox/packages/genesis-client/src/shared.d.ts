@@ -28,7 +28,9 @@ export type MachineEventType = "running" | "failed" | "paused" | "terminated" | 
 
 export type MachineImageBuildContextFormat = "zip" | "tar" | "tar_gzip";
 
-export type MachineImageBuildStatus = "failed" | "timed_out" | "succeeded" | "cancelled" | "awaiting_context" | "queued" | "building" | "processing";
+export type MachineImageBuildSource = "context" | "artifact_import";
+
+export type MachineImageBuildStatus = "failed" | "timed_out" | "succeeded" | "cancelled" | "awaiting_context" | "queued" | "building" | "copying" | "awaiting_source" | "processing";
 
 export type MachineImageStatus = "failed" | "pending" | "ready" | "deprecated" | "deleted";
 

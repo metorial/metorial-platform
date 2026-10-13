@@ -164,6 +164,7 @@ model Instance {
 
   sandboxMachines        SandboxMachine[]
   sandboxMachineImages   SandboxMachineImage[]
+  sandboxImageBuilds     SandboxMachineImageBuild[]
   sandboxDisks           SandboxDisk[]
   sandboxNetworkPolicies SandboxNetworkPolicy[]
 

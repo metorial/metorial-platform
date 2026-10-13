@@ -47,6 +47,8 @@ export let ID = createIdGenerator({
   sandboxMachineImageRegion: idType.sorted('sbir'),
   sandboxMachineImageVersion: idType.sorted('sbv'),
   sandboxMachineImageVersionRegion: idType.sorted('sbvr'),
+  sandboxMachineImageBuild: idType.sorted('sbb'),
+  sandboxMachineImageBuildRegion: idType.sorted('sbbr'),
   resourceTenant: idType.sorted('crg_tn_'),
   resourceGroup: idType.sorted('crg_en_'),
   resourceActor: idType.sorted('crg_ta_'),

@@ -108,7 +108,12 @@ describe('sandboxImageInternalService.syncRegion', () => {
 
     expect(db.sandboxMachineImage.upsert).not.toHaveBeenCalled();
     expect(db.sandboxMachineImageRegion.updateMany).toHaveBeenCalledWith({
-      where: { regionOid: 1n, status: 'active', genesisId: { notIn: [] } },
+      where: {
+        regionOid: 1n,
+        status: 'active',
+        genesisId: { notIn: [] },
+        image: { instanceOid: null }
+      },
       data: { status: 'deleted' }
     });
   });
@@ -164,7 +169,12 @@ describe('sandboxImageInternalService.syncRegion', () => {
     await sandboxImageInternalService.syncRegion({ region });
 
     expect(db.sandboxMachineImageRegion.updateMany).toHaveBeenCalledWith({
-      where: { regionOid: 1n, status: 'active', genesisId: { notIn: [] } },
+      where: {
+        regionOid: 1n,
+        status: 'active',
+        genesisId: { notIn: [] },
+        image: { instanceOid: null }
+      },
       data: { status: 'deleted' }
     });
     expect(db.sandboxMachineImageVersionRegion.updateMany).toHaveBeenCalledWith({
@@ -178,6 +188,8 @@ describe('sandboxImageInternalService.refreshAvailability', () => {
   let counted = (oid: bigint, status: string, regions: number) => ({
     oid,
     status,
+    instanceOid: null,
+    image: { instanceOid: null },
     _count: { regions }
   });
 

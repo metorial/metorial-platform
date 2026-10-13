@@ -18,4 +18,5 @@ model SandboxRegion {
   specRegions         SandboxSpecRegion[]
   imageRegions        SandboxMachineImageRegion[]
   imageVersionRegions SandboxMachineImageVersionRegion[]
+  imageBuildRegions   SandboxMachineImageBuildRegion[]
 }
