@@ -2,35 +2,9 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db } from '@metorial/db';
-import { getSandboxRegionConfigs } from '../lib/regions';
+import { sandboxRegionInternalService } from '../internal/regionInternal';
 
 class SandboxRegionServiceImpl {
-  async syncFromEnv() {
-    let configs = getSandboxRegionConfigs();
-
-    for (let config of configs) {
-      let data = {
-        status: 'active' as const,
-        identifier: config.identifier,
-        name: config.name,
-        cloud: config.cloud,
-        areaId: config.area.id,
-        areaName: config.area.name
-      };
-
-      await db.sandboxRegion.upsert({
-        where: { id: config.id },
-        create: { id: config.id, ...data },
-        update: data
-      });
-    }
-
-    await db.sandboxRegion.updateMany({
-      where: { id: { notIn: configs.map(config => config.id) }, status: 'active' },
-      data: { status: 'deleted' }
-    });
-  }
-
   async list() {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -45,7 +19,7 @@ class SandboxRegionServiceImpl {
 
     let region = await find();
     if (!region) {
-      await this.syncFromEnv();
+      await sandboxRegionInternalService.syncFromEnv();
       region = await find();
     }
 

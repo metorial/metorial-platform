@@ -2,8 +2,8 @@ import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { sandboxImageInternalService } from '../internal/imageInternal';
+import { sandboxRegionInternalService } from '../internal/regionInternal';
 import { isSandboxingEnabled } from '../lib/regions';
-import { sandboxRegionService } from '../services/region';
 
 export let syncImagesCron = createCron(
   {
@@ -13,7 +13,7 @@ export let syncImagesCron = createCron(
   async () => {
     if (!isSandboxingEnabled()) return;
 
-    await sandboxRegionService.syncFromEnv();
+    await sandboxRegionInternalService.syncFromEnv();
 
     let regions = await db.sandboxRegion.findMany({
       where: { status: 'active' },

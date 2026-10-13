@@ -1,9 +1,9 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { sandboxRegionInternalService } from '../internal/regionInternal';
 import { sandboxSpecInternalService } from '../internal/specInternal';
 import { isSandboxingEnabled } from '../lib/regions';
-import { sandboxRegionService } from '../services/region';
 
 export let syncSpecsCron = createCron(
   {
@@ -13,7 +13,7 @@ export let syncSpecsCron = createCron(
   async () => {
     if (!isSandboxingEnabled()) return;
 
-    await sandboxRegionService.syncFromEnv();
+    await sandboxRegionInternalService.syncFromEnv();
 
     let regions = await db.sandboxRegion.findMany({
       where: { status: 'active' },
