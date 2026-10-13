@@ -1,4 +1,4 @@
-import { getCurrentNetworkPolicyRules } from './networkPolicyRules';
+import { getCurrentNetworkPolicyRules } from '@metorial/module-networking/src/lib/networkPolicyRules';
 
 type NetworkPolicyRules = PrismaJson.NetworkPolicyRules;
 

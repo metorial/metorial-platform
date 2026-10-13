@@ -20,6 +20,10 @@ import { eventDestinationQueueProcessor } from '@metorial/module-event-destinati
 import { eventTrackerQueueProcessor } from '@metorial/module-event-tracker';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
+import {
+  networkingQueueProcessor,
+  startNetworkingBackfill
+} from '@metorial/module-networking';
 import { organizationQueueProcessor } from '@metorial/module-organization';
 import { outpostQueueProcessor } from '@metorial/module-outpost';
 import { portalQueueProcessor } from '@metorial/module-portal';
@@ -44,6 +48,7 @@ export let worker = runQueueProcessors([
   eventDeliveryQueueProcessor,
   eventDestinationQueueProcessor,
   productAssistantQueueProcessor,
+  networkingQueueProcessor,
   sandboxQueueProcessor,
   userQueueProcessor,
   machineAccessQueueProcessor,
@@ -71,3 +76,7 @@ export let worker = runQueueProcessors([
   magicQueueProcessor,
   multiRegionQueueProcessor
 ]);
+
+startNetworkingBackfill().catch(err =>
+  console.error('Failed to start networking backfill', err)
+);

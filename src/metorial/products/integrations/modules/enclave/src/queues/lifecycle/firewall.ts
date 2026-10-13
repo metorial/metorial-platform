@@ -2,16 +2,6 @@ import { createQueue } from '@lowerdeck/queue';
 import { resetCompiledNetworkRulesForFirewallId } from '../../lib/resetCompiledNetworkRules';
 import { env } from '../../env';
 
-export let firewallCreatedQueue = createQueue<{ firewallId: string }>({
-  name: 'sub/enc/lc/firewall/created',
-  workerOpts: { concurrency: 10 },
-  redisUrl: env.service.REDIS_URL
-});
-
-export let firewallCreatedQueueProcessor = firewallCreatedQueue.process(async data => {
-  await resetCompiledNetworkRulesForFirewallId(data.firewallId);
-});
-
 export let firewallUpdatedQueue = createQueue<{ firewallId: string }>({
   name: 'sub/enc/lc/firewall/updated',
   workerOpts: { concurrency: 10 },
@@ -19,15 +9,5 @@ export let firewallUpdatedQueue = createQueue<{ firewallId: string }>({
 });
 
 export let firewallUpdatedQueueProcessor = firewallUpdatedQueue.process(async data => {
-  await resetCompiledNetworkRulesForFirewallId(data.firewallId);
-});
-
-export let firewallDeletedQueue = createQueue<{ firewallId: string }>({
-  name: 'sub/enc/lc/firewall/deleted',
-  workerOpts: { concurrency: 10 },
-  redisUrl: env.service.REDIS_URL
-});
-
-export let firewallDeletedQueueProcessor = firewallDeletedQueue.process(async data => {
   await resetCompiledNetworkRulesForFirewallId(data.firewallId);
 });

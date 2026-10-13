@@ -30,14 +30,14 @@ import {
   type CompiledNetworkAllowList,
   compileNetworkAllowList,
   unrestrictedNetworkAllowList
-} from '../lib/compileNetworkAllowList';
+} from '@metorial/module-networking/src/lib/compileNetworkAllowList';
 import { compileNetworkRulesForEnclave } from '../lib/compileNetworkRules';
 import { enclaveUpdatedQueue } from '../queues/lifecycle/enclave';
 
 export type {
   CompiledNetworkAllowEntry,
   CompiledNetworkAllowList
-} from '../lib/compileNetworkAllowList';
+} from '@metorial/module-networking/src/lib/compileNetworkAllowList';
 
 let include = {
   enclaveEnvironment: true,

@@ -29,6 +29,7 @@
     "@metorial/module-consumer-oauth": "^1.0.0",
     "@metorial/consumer-magic-access": "^1.0.0",
     "@metorial/module-portal": "^1.0.0",
+    "@metorial/module-networking": "^1.0.0",
     "@metorial/module-machine-access": "^1.0.0",
     "@metorial/module-magic": "^1.0.0",
     "@metorial/module-resource-actor": "^1.0.0",

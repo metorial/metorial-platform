@@ -8,7 +8,11 @@ import {
   resolveEnclaves,
   resolveFirewalls
 } from '@metorial-subspace/list-utils';
-import { getMetorialSolution, type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { networkInternalService } from './networkInternal';
 
 let include = {

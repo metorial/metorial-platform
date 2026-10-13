@@ -264,6 +264,21 @@ class firewallBindingServiceImpl {
     });
   }
 
+  async createFirewallBindings(
+    d: MetorialFacing<{ firewall: Firewall; bindings: FirewallBindingInput[] }>
+  ) {
+    let { tenant, environment } = await resolveMetorialFacing(d);
+    let network = await db.network.findFirstOrThrow({ where: { oid: d.firewall.networkOid } });
+
+    return await this.createFirewallBindingsInternal({
+      tenant,
+      environment,
+      firewall: d.firewall,
+      network,
+      bindings: d.bindings
+    });
+  }
+
   async createFirewallBindingsInternal(
     d: { tenant: Tenant; environment: Environment } & CreateFirewallBindingsParams
   ) {

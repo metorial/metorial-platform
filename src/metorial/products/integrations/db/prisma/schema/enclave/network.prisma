@@ -45,6 +45,8 @@ model Firewall {
   description String?
   slug        String
 
+  sourceRevision Int @default(0)
+
   networkOid BigInt
   network    Network @relation(fields: [networkOid], references: [oid], onDelete: Cascade)
 
@@ -137,6 +139,8 @@ model NetworkPolicy {
   currentVersion    NetworkPolicyVersion? @relation("currentVersion", fields: [currentVersionOid], references: [oid])
 
   currentVersionNumber Int @default(0)
+
+  sourceRevision Int @default(0)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])

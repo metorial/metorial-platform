@@ -1,7 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { firewallService, type FirewallBindingInput } from '@metorial-subspace/module-enclave';
+import {
+  firewallBindingService,
+  type FirewallBindingInput
+} from '@metorial-subspace/module-enclave';
+import { firewallService } from '@metorial/module-networking';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -127,15 +131,23 @@ export let firewallController = Controller.create(
             description: ctx.body.description,
             slug: ctx.body.slug,
             networkId: ctx.body.network_id,
-            bindings: ctx.body.bindings?.map(binding => ({
+            networkPolicyIds: ctx.body.network_policy_ids
+          }
+        });
+
+        if (ctx.body.bindings?.length) {
+          await firewallBindingService.createFirewallBindings({
+            instance: ctx.instance,
+            auditScope: ctx.auditScope,
+            firewall,
+            bindings: ctx.body.bindings.map(binding => ({
               targetType: binding.target_type,
               enclaveId: binding.enclave_id,
               providerId: binding.provider_id,
               networkId: binding.network_id
-            })) as FirewallBindingInput[] | undefined,
-            networkPolicyIds: ctx.body.network_policy_ids
-          }
-        });
+            })) as FirewallBindingInput[]
+          });
+        }
 
         return firewallPresenter.present({ firewall });
       }),

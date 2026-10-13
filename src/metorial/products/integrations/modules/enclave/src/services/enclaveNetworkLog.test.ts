@@ -60,7 +60,10 @@ let fbLogRecord = {
 describe('enclaveNetworkLogService.listNetworkLogsInternal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetTenantForFunctionBay.mockResolvedValue({ id: 'fb_tenant_1', identifier: 'tenant-a' });
+    mockGetTenantForFunctionBay.mockResolvedValue({
+      id: 'fb_tenant_1',
+      identifier: 'tenant-a'
+    });
     mockGetMetorialSolution.mockResolvedValue(solution);
   });
 

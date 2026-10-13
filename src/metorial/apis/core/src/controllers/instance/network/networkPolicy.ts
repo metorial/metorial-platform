@@ -4,7 +4,7 @@ import { v } from '@lowerdeck/validation';
 import {
   networkPolicyService,
   type NetworkPolicyRuleInput
-} from '@metorial-subspace/module-enclave';
+} from '@metorial/module-networking';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
