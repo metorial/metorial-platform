@@ -100,7 +100,7 @@ model Project {
   productAssistantModelRuns              ProductAssistantModelRun[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
   outpostAccesses                        OutpostAccess[]
-  sandboxTenant                          SandboxTenant?
+  sandboxTenants                         SandboxTenant[]
   sandboxMachines                        SandboxMachine[]
   sandboxMachineImages                   SandboxMachineImage[]
   sandboxDisks                           SandboxDisk[]

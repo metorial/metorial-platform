@@ -24,6 +24,7 @@ import { organizationQueueProcessor } from '@metorial/module-organization';
 import { outpostQueueProcessor } from '@metorial/module-outpost';
 import { portalQueueProcessor } from '@metorial/module-portal';
 import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
+import { sandboxQueueProcessor } from '@metorial/module-sandbox';
 import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/module-skill';
 import { skillConfigurationQueueProcessor } from '@metorial/module-skill-configurations';
 import { skillGroupQueueProcessor } from '@metorial/module-skill-groups';
@@ -43,6 +44,7 @@ export let worker = runQueueProcessors([
   eventDeliveryQueueProcessor,
   eventDestinationQueueProcessor,
   productAssistantQueueProcessor,
+  sandboxQueueProcessor,
   userQueueProcessor,
   machineAccessQueueProcessor,
   organizationQueueProcessor,
