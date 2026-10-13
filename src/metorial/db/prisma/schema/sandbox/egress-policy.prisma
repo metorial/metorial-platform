@@ -1,0 +1,116 @@
+enum SandboxEgressPolicyStatus {
+  pending
+  active
+  invalid
+}
+
+enum SandboxEgressPolicyRegionStatus {
+  pending
+  synced
+  failed
+  deleting
+}
+
+model SandboxMachineFirewall {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  position Int @default(0)
+
+  machineOid BigInt
+  machine    SandboxMachine @relation(fields: [machineOid], references: [oid], onDelete: Cascade)
+
+  firewallOid BigInt
+  firewall    Firewall @relation(fields: [firewallOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([machineOid, firewallOid])
+  @@index([firewallOid])
+}
+
+model SandboxEgressPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxEgressPolicyStatus @default(pending)
+
+  firewallSetHash String
+
+  /// [SandboxEgressRules]
+  rules     Json?
+  rulesHash String?
+  revision  Int     @default(0)
+
+  warnings  Json?
+  lastError String?
+
+  needsCompile Boolean @default(true)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  compiledAt DateTime?
+  unusedAt   DateTime?
+
+  firewalls SandboxEgressPolicyFirewall[]
+  regions   SandboxEgressPolicyRegion[]
+  machines  SandboxMachine[]
+
+  @@unique([instanceOid, firewallSetHash])
+  @@index([needsCompile, oid])
+  @@index([unusedAt, oid])
+}
+
+model SandboxEgressPolicyFirewall {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  position Int
+
+  policyOid BigInt
+  policy    SandboxEgressPolicy @relation(fields: [policyOid], references: [oid], onDelete: Cascade)
+
+  firewallOid BigInt
+  firewall    Firewall @relation(fields: [firewallOid], references: [oid], onDelete: Cascade)
+
+  @@unique([policyOid, firewallOid])
+  @@index([firewallOid, oid])
+}
+
+model SandboxEgressPolicyRegion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxEgressPolicyRegionStatus @default(pending)
+
+  genesisId      String?
+  syncedRevision Int     @default(0)
+
+  attempt        Int       @default(0)
+  nextAttemptAt  DateTime?
+  failureMessage String?
+
+  policyOid BigInt
+  policy    SandboxEgressPolicy @relation(fields: [policyOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    SandboxTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  machines SandboxMachine[]
+
+  @@unique([policyOid, tenantOid])
+  @@index([status, oid])
+}

@@ -284,6 +284,27 @@ declare global {
   namespace PrismaJson {
     type Record = { [key: string]: any };
     type OrganizationConfigValue = any;
+
+    type NetworkingPolicyPortRange = { from: number; to: number };
+    type NetworkingPolicyRule = {
+      id: string;
+      effect: 'allow' | 'deny';
+      direction: 'ingress' | 'egress';
+      cidrs: string[];
+      description?: string;
+      enabled: boolean;
+      priority: number;
+      ports?: NetworkingPolicyPortRange[];
+    };
+    type NetworkingPolicyRules = NetworkingPolicyRule[];
+
+    type SandboxEgressRule = {
+      action: 'allow' | 'deny';
+      protocol: 'tcp' | 'udp' | 'any';
+      cidr: string;
+      ports?: [number, number];
+    };
+    type SandboxEgressRules = SandboxEgressRule[];
     type OrganizationLayoutValue = any;
 
     type OrganizationNotificationPayload = { [key: string]: any };

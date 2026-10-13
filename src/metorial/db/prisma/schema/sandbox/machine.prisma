@@ -18,10 +18,24 @@ model SandboxMachine {
 
   disks SandboxDisk[]
 
+  egressPolicyOid BigInt?
+  egressPolicy    SandboxEgressPolicy? @relation(fields: [egressPolicyOid], references: [oid])
+
+  appliedEgressRegionOid BigInt?
+  appliedEgressRegion    SandboxEgressPolicyRegion? @relation(fields: [appliedEgressRegionOid], references: [oid])
+
+  needsEgressSync   Boolean @default(false)
+  egressSyncAttempt Int     @default(0)
+  egressSyncError   String?
+
+  firewallLinks SandboxMachineFirewall[]
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
   @@index([instanceOid, status])
   @@index([tenantOid, status])
+  @@index([needsEgressSync, oid])
+  @@index([egressPolicyOid])
 }

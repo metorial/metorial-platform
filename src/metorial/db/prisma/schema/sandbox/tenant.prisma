@@ -20,7 +20,7 @@ model SandboxTenant {
   imageRegions      SandboxMachineImageRegion[]
   imageBuildRegions SandboxMachineImageBuildRegion[]
   disks             SandboxDisk[]
-  networkPolicies   SandboxNetworkPolicy[]
+  egressRegions     SandboxEgressPolicyRegion[]
 
   @@unique([projectOid, regionOid])
   @@unique([regionOid, slug])

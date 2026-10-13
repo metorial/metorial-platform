@@ -162,11 +162,13 @@ model Instance {
   skillMergeRequests    SkillMergeRequest[]
   skillForkSyncs        SkillForkSync[]
 
-  sandboxMachines        SandboxMachine[]
-  sandboxMachineImages   SandboxMachineImage[]
-  sandboxImageBuilds     SandboxMachineImageBuild[]
-  sandboxDisks           SandboxDisk[]
-  sandboxNetworkPolicies SandboxNetworkPolicy[]
+  sandboxMachines       SandboxMachine[]
+  sandboxMachineImages  SandboxMachineImage[]
+  sandboxImageBuilds    SandboxMachineImageBuild[]
+  sandboxDisks          SandboxDisk[]
+  firewalls             Firewall[]
+  networkPolicies       NetworkPolicy[]
+  sandboxEgressPolicies SandboxEgressPolicy[]
 
   productAssistantConversations          ProductAssistantConversation[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]

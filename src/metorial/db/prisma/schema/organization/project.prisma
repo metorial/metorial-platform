@@ -104,7 +104,9 @@ model Project {
   sandboxMachines                        SandboxMachine[]
   sandboxMachineImages                   SandboxMachineImage[]
   sandboxDisks                           SandboxDisk[]
-  sandboxNetworkPolicies                 SandboxNetworkPolicy[]
+  firewalls                              Firewall[]
+  networkPolicies                        NetworkPolicy[]
+  sandboxEgressPolicies                  SandboxEgressPolicy[]
 
   @@index([previousSlugs])
 }

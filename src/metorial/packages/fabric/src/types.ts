@@ -1591,4 +1591,9 @@ export interface FabricEvents {
   'instance.network.network_policy.rule.updated:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy; previousNetworkPolicy: AuditSubspaceNetworkPolicy; rule: PrismaJson.NetworkPolicyRule };
   'instance.network.network_policy.rule.deleted:before': ProviderEventBase;
   'instance.network.network_policy.rule.deleted:after': ProviderEventBase & { networkPolicy: AuditSubspaceNetworkPolicy; previousNetworkPolicy: AuditSubspaceNetworkPolicy; ruleId: string };
+
+  'networking.firewall.changed:after': { firewallId: string };
+  'networking.firewall.mirrored:after': { firewallId: string };
+  'networking.network_policy.changed:after': { networkPolicyId: string };
+  'networking.network_policy.mirrored:after': { networkPolicyId: string };
 }

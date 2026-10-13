@@ -1,0 +1,62 @@
+enum NetworkPolicyStatus {
+  active
+  archived
+  deleted
+}
+
+model NetworkPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status NetworkPolicyStatus @default(active)
+
+  name        String
+  description String?
+
+  currentVersionNumber Int @default(0)
+
+  revision               Int     @default(1)
+  needsSubspaceSync      Boolean @default(true)
+  subspaceSyncedRevision Int     @default(0)
+
+  currentVersionOid BigInt?
+  currentVersion    NetworkPolicyVersion? @relation("CurrentNetworkPolicyVersion", fields: [currentVersionOid], references: [oid])
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  versions      NetworkPolicyVersion[]
+  firewallLinks FirewallNetworkPolicy[]
+
+  @@index([instanceOid, status])
+  @@index([needsSubspaceSync, oid])
+}
+
+model NetworkPolicyVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  version Int
+
+  /// [NetworkingPolicyRules]
+  rules Json
+
+  networkPolicyOid BigInt
+  networkPolicy    NetworkPolicy @relation(fields: [networkPolicyOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  currentVersionFor NetworkPolicy[] @relation("CurrentNetworkPolicyVersion")
+
+  @@unique([networkPolicyOid, version])
+}
