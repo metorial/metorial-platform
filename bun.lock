@@ -4264,6 +4264,30 @@
         "typescript": "^5",
       },
     },
+    "src/metorial/products/sandbox/modules/sandbox": {
+      "name": "@metorial/module-sandbox",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/genesis-client": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/sandbox/packages/genesis-client": {
+      "name": "@metorial/genesis-client",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+      },
+    },
     "src/metorial/products/skills/modules/skill": {
       "name": "@metorial/module-skill",
       "version": "1.0.0",
@@ -7454,6 +7478,8 @@
 
     "@metorial/generated": ["@metorial/generated@1.0.0", "", { "dependencies": { "@metorial/util-endpoint": "^1.0.0", "@metorial/util-resource-mapper": "^1.0.0", "jose": "^5.9.6" } }, "sha512-qlCVP8KFcjzgD3qZk2CPT8P6B2EcEXlFEcDDuSz432pgfoXRxdc+TFL5seT5LAgLFP1guGPdSuvlj3iVh7tiww=="],
 
+    "@metorial/genesis-client": ["@metorial/genesis-client@workspace:src/metorial/products/sandbox/packages/genesis-client"],
+
     "@metorial/id": ["@metorial/id@workspace:src/metorial/packages/id"],
 
     "@metorial/image-url": ["@metorial/image-url@workspace:src/metorial/packages/image-url"],
@@ -7529,6 +7555,8 @@
     "@metorial/module-product-assistant": ["@metorial/module-product-assistant@workspace:src/metorial/products/agents/modules/product-assistant"],
 
     "@metorial/module-resource-actor": ["@metorial/module-resource-actor@workspace:src/metorial/products/core/modules/resource-actor"],
+
+    "@metorial/module-sandbox": ["@metorial/module-sandbox@workspace:src/metorial/products/sandbox/modules/sandbox"],
 
     "@metorial/module-search": ["@metorial/module-search@workspace:src/metorial/products/core/modules/search"],
 
