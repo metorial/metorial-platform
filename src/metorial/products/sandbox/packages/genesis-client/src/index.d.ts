@@ -30298,6 +30298,40 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                 lastMachineAt: Date | null;
             };
         }>;
+        upsert: _lowerdeck_rpc_server.Handler<_lowerdeck_validation.UndefinedIsOptional<{
+            tenantId: string;
+            name: string;
+            rules: _lowerdeck_validation.UndefinedIsOptional<{
+                action: "allow" | "deny";
+                protocol: "tcp" | "udp" | "any";
+                cidr: string;
+                ports: number[] | undefined;
+            }>[];
+        }>, {
+            object: "genesis.egress_policy";
+            id: string;
+            tenantId: string;
+            name: string;
+            rules: PrismaJson.GenesisEgressRules;
+            revision: number;
+            createdAt: Date;
+            updatedAt: Date;
+        }, {
+            tenant: {
+                oid: bigint;
+                id: string;
+                createdAt: Date;
+                kind: _metorial_genesis_db.TenantKind;
+                slug: string;
+                maxOpenConnections: number | null;
+                ingressBytesPerSecondPerConnection: number | null;
+                requestsPer10MinutesPerTenant: number | null;
+                requestsPer10MinutesPerMachine: number | null;
+                hostnameFanoutRevision: bigint;
+                hostnameFanoutPending: boolean;
+                lastMachineAt: Date | null;
+            };
+        }>;
         getMany: _lowerdeck_rpc_server.Handler<_lowerdeck_validation.UndefinedIsOptional<{
             tenantId: string;
             ids: string[];

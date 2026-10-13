@@ -1,4 +1,6 @@
 import { combineQueueProcessors } from '@metorial/queue';
+import './listeners/networking';
+import { egressProcessors } from './queues/egress';
 import { imageBuildProcessors } from './queues/imageBuild';
 import { imageBuildCancelProcessors } from './queues/imageBuildCancel';
 import { imageRemoteProcessors } from './queues/imageRemote';
@@ -15,6 +17,7 @@ export { getRegionClient, isSandboxingEnabled } from './lib/regions';
 export * from './services';
 
 export let sandboxQueueProcessor = combineQueueProcessors([
+  egressProcessors,
   imageBuildProcessors,
   imageBuildCancelProcessors,
   imageRemoteProcessors,

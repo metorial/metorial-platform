@@ -40,6 +40,13 @@ vi.mock('../src/services/region', () => ({
   sandboxRegionService: { getByIdentifier: vi.fn() }
 }));
 vi.mock('../src/services/spec', () => ({ sandboxSpecService: { resolve: vi.fn() } }));
+vi.mock('../src/internal/machineEgressInternal', () => ({
+  sandboxMachineEgressInternalService: {
+    prepare: vi.fn(async () => ({ policy: null, region: null })),
+    attach: vi.fn(),
+    setFirewalls: vi.fn()
+  }
+}));
 vi.mock('../src/services/tenant', () => ({ sandboxTenantService: { ensure: vi.fn() } }));
 vi.mock('../src/services/imageBuild', () => ({
   sandboxImageBuildService: { cancel: vi.fn(async () => ({})) }

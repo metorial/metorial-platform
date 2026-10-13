@@ -17,6 +17,7 @@ import {
 } from '../lib/regional';
 import { sandboxDiskInternalService } from '../internal/diskInternal';
 import { createRemotePaginator } from '../lib/remotePaginator';
+import { sandboxMachineEgressInternalService } from '../internal/machineEgressInternal';
 import { sandboxRegionService } from './region';
 import { sandboxSpecService } from './spec';
 import { sandboxTenantService } from './tenant';
@@ -26,7 +27,8 @@ type UpdateMachineInput = Parameters<GenesisInternalClient['machine']['update']>
 
 export let sandboxMachineInclude = {
   tenant: { include: { region: true } },
-  instance: true
+  instance: true,
+  firewallLinks: { orderBy: { position: 'asc' }, include: { firewall: true } }
 } as const;
 
 class SandboxMachineServiceImpl {
@@ -101,6 +103,7 @@ class SandboxMachineServiceImpl {
       ignoreImageHooks?: CreateMachineInput['ignoreImageHooks'];
       entrypointWaitSeconds?: CreateMachineInput['entrypointWaitSeconds'];
       mounts?: { diskId: string; mountPath: string }[];
+      firewallIds?: string[];
       publicPorts?: CreateMachineInput['publicPorts'];
       idempotencyKey?: string;
       start?: boolean;
@@ -122,14 +125,22 @@ class SandboxMachineServiceImpl {
       await this.assertMounts({ instance: d.instance, tenant, mounts: d.input.mounts });
     }
 
-    let { imageId: _imageId, specId: _specId, ...rest } = d.input;
+    let firewallIds = [...new Set(d.input.firewallIds ?? [])];
+    let egress = await sandboxMachineEgressInternalService.prepare({
+      instance: d.instance,
+      tenant,
+      firewallIds
+    });
+
+    let { imageId: _imageId, specId: _specId, firewallIds: _firewallIds, ...rest } = d.input;
     let { genesis, tenantId } = getRegional(tenant);
 
     let remote = await genesis.machine.create({
       tenantId,
       ...rest,
       image,
-      spec: { memoryMiB: spec.memoryMiB, vcpus: spec.vcpus }
+      spec: { memoryMiB: spec.memoryMiB, vcpus: spec.vcpus },
+      egressPolicyId: egress.region?.genesisId
     });
 
     try {
@@ -144,6 +155,12 @@ class SandboxMachineServiceImpl {
         include: sandboxMachineInclude
       });
       await sandboxDiskInternalService.recordRootFs({ machine, remote });
+      await sandboxMachineEgressInternalService.attach({
+        machine,
+        firewallIds,
+        prepared: egress,
+        applied: true
+      });
 
       return { ...machine, remote };
     } catch (err) {
@@ -197,12 +214,13 @@ class SandboxMachineServiceImpl {
       ignoreImageHooks?: UpdateMachineInput['ignoreImageHooks'];
       entrypointWaitSeconds?: UpdateMachineInput['entrypointWaitSeconds'];
       mounts?: { diskId: string; mountPath: string }[];
+      firewallIds?: string[];
     };
   }) {
     assertMachineActive(d.machine);
 
     let { region } = d.machine.tenant;
-    let { imageId, specId, ...rest } = d.input;
+    let { imageId, specId, firewallIds, ...rest } = d.input;
 
     let image = imageId
       ? await this.resolveImage({ instance: d.machine.instance, region, imageId })
@@ -230,6 +248,13 @@ class SandboxMachineServiceImpl {
       spec: spec ? { memoryMiB: spec.memoryMiB, vcpus: spec.vcpus } : undefined
     });
     await sandboxDiskInternalService.recordRootFs({ machine: d.machine, remote });
+
+    if (firewallIds) {
+      await sandboxMachineEgressInternalService.setFirewalls({
+        machine: d.machine,
+        firewallIds
+      });
+    }
 
     return { ...d.machine, remote };
   }

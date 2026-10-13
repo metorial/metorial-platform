@@ -29,12 +29,21 @@ vi.mock('../src/services/region', () => ({
   sandboxRegionService: { getByIdentifier: vi.fn() }
 }));
 vi.mock('../src/services/spec', () => ({ sandboxSpecService: { resolve: vi.fn() } }));
+vi.mock('../src/internal/machineEgressInternal', () => ({
+  sandboxMachineEgressInternalService: {
+    prepare: vi.fn(async () => ({ policy: null, region: null })),
+    attach: vi.fn(),
+    setFirewalls: vi.fn()
+  }
+}));
 vi.mock('../src/services/tenant', () => ({ sandboxTenantService: { ensure: vi.fn() } }));
 
 let { sandboxMachineService } = await import('../src/services/machine');
 let { sandboxRegionService } = await import('../src/services/region');
 let { sandboxSpecService } = await import('../src/services/spec');
 let { sandboxTenantService } = await import('../src/services/tenant');
+let { sandboxMachineEgressInternalService } =
+  await import('../src/internal/machineEgressInternal');
 
 let region = (id: string, oid: bigint) => ({ oid, id, identifier: id.split(':')[1] });
 
@@ -86,6 +95,37 @@ describe('sandboxMachineService.create', () => {
       instanceOid: 7n
     });
     expect(result.remote).toMatchObject({ id: 'sbm_1' });
+  });
+
+  it('creates the machine with the regional egress policy of its firewalls', async () => {
+    let prepared = {
+      policy: { oid: 90n },
+      region: { oid: 91n, genesisId: 'snp_regional' }
+    };
+    (sandboxMachineEgressInternalService.prepare as any).mockResolvedValue(prepared);
+
+    await sandboxMachineService.create({
+      instance,
+      regionIdentifier: 'us-east-1',
+      input: {
+        imageId: 'sbi_global',
+        specId: 'sbs_global',
+        firewallIds: ['fwl_1', 'fwl_1', 'fwl_2']
+      }
+    });
+
+    expect(sandboxMachineEgressInternalService.prepare).toHaveBeenCalledWith(
+      expect.objectContaining({ instance, firewallIds: ['fwl_1', 'fwl_2'] })
+    );
+    expect(genesisByRegion['aws:us-east-1']!.machine.create).toHaveBeenCalledWith(
+      expect.objectContaining({ egressPolicyId: 'snp_regional' })
+    );
+    expect(
+      genesisByRegion['aws:us-east-1']!.machine.create.mock.calls[0]![0]
+    ).not.toHaveProperty('firewallIds');
+    expect(sandboxMachineEgressInternalService.attach).toHaveBeenCalledWith(
+      expect.objectContaining({ firewallIds: ['fwl_1', 'fwl_2'], prepared, applied: true })
+    );
   });
 
   it('records the root filesystem disks the machine reports, right away', async () => {
