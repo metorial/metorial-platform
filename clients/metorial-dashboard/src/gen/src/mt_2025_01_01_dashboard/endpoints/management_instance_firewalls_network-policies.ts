@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Firewalls controller
- * @description Manage firewalls and their attached network policies.
+ * @description Manage firewalls and their attached network policies. Firewalls apply to integration enclaves, providers, and sandbox machines.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

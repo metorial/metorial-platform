@@ -2,20 +2,19 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceFirewallsListOutput = {
   items: {
-    object: 'network.firewall';
+    object: 'networking.firewall';
     id: string;
     slug: string;
     name: string;
     description: string | null;
     status: 'active' | 'archived' | 'deleted';
-    networkId: string;
     networkPolicies: {
-      object: 'network.policy#preview';
+      object: 'networking.network_policy#preview';
       id: string;
       name: string;
       version: number;
       rules: {
-        object: 'network.policy.rule';
+        object: 'networking.network_policy.rule';
         id: string;
         effect: 'allow' | 'deny';
         direction: 'ingress' | 'egress';
@@ -24,7 +23,11 @@ export type DashboardInstanceFirewallsListOutput = {
         enabled: boolean;
         priority: number;
         ports:
-          | { object: 'network.policy.port_range'; from: number; to: number }[]
+          | {
+              object: 'networking.network_policy.port_range';
+              from: number;
+              to: number;
+            }[]
           | null;
       }[];
     }[];
@@ -47,7 +50,6 @@ export let mapDashboardInstanceFirewallsListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
-          networkId: mtMap.objectField('network_id', mtMap.passthrough()),
           networkPolicies: mtMap.objectField(
             'network_policies',
             mtMap.array(
@@ -138,7 +140,6 @@ export type DashboardInstanceFirewallsListQuery = {
     | 'deleted'
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
-  networkId?: string | string[] | undefined;
   enclaveId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   networkPolicyId?: string | string[] | undefined;
@@ -178,16 +179,6 @@ export let mapDashboardInstanceFirewallsListQuery = mtMap.union([
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      networkId: mtMap.objectField(
-        'network_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
       ),
       enclaveId: mtMap.objectField(
         'enclave_id',

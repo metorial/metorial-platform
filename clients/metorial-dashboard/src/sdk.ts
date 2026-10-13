@@ -38,10 +38,10 @@ import {
   MetorialDashboardInstanceDocumentsParticipantsEndpoint,
   MetorialDashboardInstanceDocumentsPermissionsEndpoint,
   MetorialDashboardInstanceDocumentsVersionsEndpoint,
-  MetorialDashboardInstanceEnclavesEndpoint,
+  MetorialDashboardInstanceIntegrationEnclavesEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceFilesLinksEndpoint,
-  MetorialDashboardInstanceFirewallBindingsEndpoint,
+  MetorialDashboardInstanceIntegrationFirewallAssignmentsEndpoint,
   MetorialDashboardInstanceFirewallsEndpoint,
   MetorialDashboardInstanceFirewallsNetworkPoliciesEndpoint,
   MetorialDashboardInstanceIdentitiesCredentialsEndpoint,
@@ -69,7 +69,7 @@ import {
   MetorialDashboardInstanceMonitorsEndpoint,
   MetorialDashboardInstanceNetworkPoliciesEndpoint,
   MetorialDashboardInstanceNetworkPoliciesRulesEndpoint,
-  MetorialDashboardInstanceNetworksEndpoint,
+  MetorialDashboardInstanceIntegrationInternetGatewayEndpoint,
   MetorialDashboardInstancePortalsAccessEndpoint,
   MetorialDashboardInstancePortalsAccessRequestsEndpoint,
   MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
@@ -869,17 +869,20 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
   skillSyncs: new MetorialDashboardInstanceSkillsSyncsEndpoint(manager),
 
-  networks: new MetorialDashboardInstanceNetworksEndpoint(manager),
+  integrationInternetGateway: new MetorialDashboardInstanceIntegrationInternetGatewayEndpoint(
+    manager
+  ),
   resourceCounts: new MetorialDashboardInstancesResourceCountsEndpoint(manager),
   networkPolicies: Object.assign(
     new MetorialDashboardInstanceNetworkPoliciesEndpoint(manager),
     { rules: new MetorialDashboardInstanceNetworkPoliciesRulesEndpoint(manager) }
   ),
-  enclaves: new MetorialDashboardInstanceEnclavesEndpoint(manager),
+  integrationEnclaves: new MetorialDashboardInstanceIntegrationEnclavesEndpoint(manager),
   firewalls: Object.assign(new MetorialDashboardInstanceFirewallsEndpoint(manager), {
     networkPolicies: new MetorialDashboardInstanceFirewallsNetworkPoliciesEndpoint(manager)
   }),
-  firewallBindings: new MetorialDashboardInstanceFirewallBindingsEndpoint(manager),
+  integrationFirewallAssignments:
+    new MetorialDashboardInstanceIntegrationFirewallAssignmentsEndpoint(manager),
 
   magicMcp: {
     servers: Object.assign(new MetorialDashboardInstanceMagicMcpServersEndpoint(manager), {

@@ -1,20 +1,19 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type FirewallsCreateOutput = {
-  object: 'network.firewall';
+  object: 'networking.firewall';
   id: string;
   slug: string;
   name: string;
   description: string | null;
   status: 'active' | 'archived' | 'deleted';
-  networkId: string;
   networkPolicies: {
-    object: 'network.policy#preview';
+    object: 'networking.network_policy#preview';
     id: string;
     name: string;
     version: number;
     rules: {
-      object: 'network.policy.rule';
+      object: 'networking.network_policy.rule';
       id: string;
       effect: 'allow' | 'deny';
       direction: 'ingress' | 'egress';
@@ -23,7 +22,11 @@ export type FirewallsCreateOutput = {
       enabled: boolean;
       priority: number;
       ports:
-        | { object: 'network.policy.port_range'; from: number; to: number }[]
+        | {
+            object: 'networking.network_policy.port_range';
+            from: number;
+            to: number;
+          }[]
         | null;
     }[];
   }[];
@@ -39,7 +42,6 @@ export let mapFirewallsCreateOutput = mtMap.object<FirewallsCreateOutput>({
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
   status: mtMap.objectField('status', mtMap.passthrough()),
-  networkId: mtMap.objectField('network_id', mtMap.passthrough()),
   networkPolicies: mtMap.objectField(
     'network_policies',
     mtMap.array(
@@ -91,15 +93,6 @@ export type FirewallsCreateBody = {
   name: string;
   description?: string | undefined;
   slug?: string | undefined;
-  networkId: string;
-  bindings?:
-    | {
-        targetType: 'enclave' | 'provider' | 'network';
-        enclaveId?: string | undefined;
-        providerId?: string | undefined;
-        networkId?: string | undefined;
-      }[]
-    | undefined;
   networkPolicyIds?: string[] | undefined;
 };
 
@@ -107,18 +100,6 @@ export let mapFirewallsCreateBody = mtMap.object<FirewallsCreateBody>({
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
   slug: mtMap.objectField('slug', mtMap.passthrough()),
-  networkId: mtMap.objectField('network_id', mtMap.passthrough()),
-  bindings: mtMap.objectField(
-    'bindings',
-    mtMap.array(
-      mtMap.object({
-        targetType: mtMap.objectField('target_type', mtMap.passthrough()),
-        enclaveId: mtMap.objectField('enclave_id', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        networkId: mtMap.objectField('network_id', mtMap.passthrough())
-      })
-    )
-  ),
   networkPolicyIds: mtMap.objectField(
     'network_policy_ids',
     mtMap.array(mtMap.passthrough())

@@ -11,7 +11,6 @@ export type ManagementInstanceMagicMcpServersUpdateOutput = {
     | 'inherited_from_integration';
   endpoints: { id: string; alias: string; url: string }[];
   providerTemplateId: string | null;
-  backingStatus: 'healthy' | 'needs_reconnect';
   providers: {
     object: 'magic_mcp.server.provider';
     id: string;
@@ -133,6 +132,7 @@ export type ManagementInstanceMagicMcpServersUpdateOutput = {
 } & {
   integrationId: string | null;
   integrationInstanceId: string | null;
+  backingStatus: 'healthy' | 'needs_reconnect';
   consumerOwners: {
     consumerIntegrationId: string | null;
     consumerId: string;
@@ -281,10 +281,6 @@ export let mapManagementInstanceMagicMcpServersUpdateOutput = mtMap.union([
       ),
       providerTemplateId: mtMap.objectField(
         'provider_template_id',
-        mtMap.passthrough()
-      ),
-      backingStatus: mtMap.objectField(
-        'backing_status',
         mtMap.passthrough()
       ),
       providers: mtMap.objectField(
@@ -570,6 +566,7 @@ export let mapManagementInstanceMagicMcpServersUpdateOutput = mtMap.union([
         'integration_instance_id',
         mtMap.passthrough()
       ),
+      backingStatus: mtMap.objectField('backing_status', mtMap.passthrough()),
       consumerOwners: mtMap.objectField(
         'consumer_owners',
         mtMap.array(

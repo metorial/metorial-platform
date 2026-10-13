@@ -1,14 +1,14 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementInstanceNetworkPoliciesUpdateOutput = {
-  object: 'network.policy';
+  object: 'networking.network_policy';
   id: string;
   name: string;
   description: string | null;
   status: 'active' | 'archived' | 'deleted';
   version: number;
   rules: {
-    object: 'network.policy.rule';
+    object: 'networking.network_policy.rule';
     id: string;
     effect: 'allow' | 'deny';
     direction: 'ingress' | 'egress';
@@ -17,7 +17,11 @@ export type ManagementInstanceNetworkPoliciesUpdateOutput = {
     enabled: boolean;
     priority: number;
     ports:
-      | { object: 'network.policy.port_range'; from: number; to: number }[]
+      | {
+          object: 'networking.network_policy.port_range';
+          from: number;
+          to: number;
+        }[]
       | null;
   }[];
   firewallIds: string[] | null;

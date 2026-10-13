@@ -12,6 +12,7 @@ export type ManagementInstanceIntegrationsDeleteOutput = {
     canAttachCustomToolFilters: boolean;
     canAttachCustomProviderConfig: boolean;
     canOverrideToolFilters: boolean;
+    enableCallbackTools: boolean;
     useIntegrationNameInToolNames: boolean | null;
   };
   implementation:
@@ -184,6 +185,10 @@ export let mapManagementInstanceIntegrationsDeleteOutput =
         ),
         canOverrideToolFilters: mtMap.objectField(
           'can_override_tool_filters',
+          mtMap.passthrough()
+        ),
+        enableCallbackTools: mtMap.objectField(
+          'enable_callback_tools',
           mtMap.passthrough()
         ),
         useIntegrationNameInToolNames: mtMap.objectField(

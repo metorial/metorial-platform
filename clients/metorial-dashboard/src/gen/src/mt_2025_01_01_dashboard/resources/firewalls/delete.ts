@@ -1,20 +1,19 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type FirewallsDeleteOutput = {
-  object: 'network.firewall';
+  object: 'networking.firewall';
   id: string;
   slug: string;
   name: string;
   description: string | null;
   status: 'active' | 'archived' | 'deleted';
-  networkId: string;
   networkPolicies: {
-    object: 'network.policy#preview';
+    object: 'networking.network_policy#preview';
     id: string;
     name: string;
     version: number;
     rules: {
-      object: 'network.policy.rule';
+      object: 'networking.network_policy.rule';
       id: string;
       effect: 'allow' | 'deny';
       direction: 'ingress' | 'egress';
@@ -23,7 +22,11 @@ export type FirewallsDeleteOutput = {
       enabled: boolean;
       priority: number;
       ports:
-        | { object: 'network.policy.port_range'; from: number; to: number }[]
+        | {
+            object: 'networking.network_policy.port_range';
+            from: number;
+            to: number;
+          }[]
         | null;
     }[];
   }[];
@@ -39,7 +42,6 @@ export let mapFirewallsDeleteOutput = mtMap.object<FirewallsDeleteOutput>({
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
   status: mtMap.objectField('status', mtMap.passthrough()),
-  networkId: mtMap.objectField('network_id', mtMap.passthrough()),
   networkPolicies: mtMap.objectField(
     'network_policies',
     mtMap.array(

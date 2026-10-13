@@ -1,7 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type NetworkPoliciesRulesUpdateOutput = {
-  object: 'network.policy.rule';
+  object: 'networking.network_policy.rule';
   id: string;
   effect: 'allow' | 'deny';
   direction: 'ingress' | 'egress';
@@ -10,7 +10,11 @@ export type NetworkPoliciesRulesUpdateOutput = {
   enabled: boolean;
   priority: number;
   ports:
-    | { object: 'network.policy.port_range'; from: number; to: number }[]
+    | {
+        object: 'networking.network_policy.port_range';
+        from: number;
+        to: number;
+      }[]
     | null;
 };
 
