@@ -63,7 +63,7 @@ export let imageBuildUploadQueueProcessor = imageBuildUploadQueue.process(
           {
             method: upload.method,
             headers: { ...upload.headers, 'content-length': String(content.byteLength) },
-            body: content,
+            body: new Uint8Array(content),
             signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS)
           }
         );
