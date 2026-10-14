@@ -16,6 +16,22 @@ import type {
   Prisma as SubspacePrisma
 } from '@metorial-subspace/db';
 import type { ReactionCount } from '@slates/adapter-chat';
+import type { GenesisInternalClient } from '@metorial/genesis-client';
+import type {
+  sandboxDiskResizeService,
+  sandboxDiskService,
+  sandboxImageBuildService,
+  sandboxImageService,
+  sandboxImageVersionService,
+  sandboxMachineAccessService,
+  sandboxMachineErrorService,
+  sandboxMachineEventService,
+  sandboxMachineInstanceService,
+  sandboxMachineOperationService,
+  sandboxMachineService,
+  SandboxMachineWithTenant,
+  sandboxSpecService
+} from '@metorial/module-sandbox';
 import type {
   CallbackEventDetails,
   CallbackEventWithRelations,
@@ -157,6 +173,7 @@ import {
   SkillTemplate,
   Store,
   StoreParticipant,
+  SandboxRegion,
   SystemEvent,
   Team,
   TeamMember,
@@ -2986,6 +3003,79 @@ export let networkPolicyType = PresentableType.create<{
 export let networkPolicyRuleType = PresentableType.create<{
   rule: PrismaJson.NetworkPolicyRule;
 }>()('networking.network_policy.rule');
+
+type SandboxResolved<F extends (...args: any[]) => Promise<any>> = Awaited<ReturnType<F>>;
+
+type SandboxPageItem<F extends (...args: any[]) => Promise<{ items: any[] }>> =
+  SandboxResolved<F>['items'][number];
+
+export let sandboxRegionType = PresentableType.create<{
+  region: SandboxRegion;
+}>()('sandbox.region');
+
+export let sandboxSpecType = PresentableType.create<{
+  spec: SandboxResolved<typeof sandboxSpecService.get>;
+}>()('sandbox.spec');
+
+export let sandboxMachineType = PresentableType.create<{
+  machine: SandboxResolved<typeof sandboxMachineService.get>;
+}>()('sandbox.machine');
+
+export let sandboxMachineInstanceType = PresentableType.create<{
+  machine: SandboxMachineWithTenant;
+  instance: SandboxResolved<typeof sandboxMachineInstanceService.get>;
+}>()('sandbox.machine.instance');
+
+export let sandboxMachineOperationType = PresentableType.create<{
+  operation: SandboxResolved<typeof sandboxMachineOperationService.get>;
+}>()('sandbox.machine.operation');
+
+export let sandboxMachineEventType = PresentableType.create<{
+  event: SandboxResolved<typeof sandboxMachineEventService.get>;
+}>()('sandbox.machine.event');
+
+export let sandboxMachineErrorType = PresentableType.create<{
+  error: SandboxResolved<typeof sandboxMachineErrorService.get>;
+}>()('sandbox.machine.error');
+
+export let sandboxMachineUsageType = PresentableType.create<{
+  sample: SandboxPageItem<GenesisInternalClient['machine']['usage']>;
+}>()('sandbox.machine.usage');
+
+export let sandboxMachineAccessType = PresentableType.create<{
+  access: SandboxResolved<typeof sandboxMachineAccessService.createShellAccess>;
+  scope: 'shell' | 'files' | 'port';
+  ports: number[] | '*' | null;
+}>()('sandbox.machine.access');
+
+export let sandboxDiskType = PresentableType.create<{
+  disk: SandboxResolved<typeof sandboxDiskService.get>;
+}>()('sandbox.disk');
+
+export let sandboxDiskMountType = PresentableType.create<{
+  mount: SandboxPageItem<GenesisInternalClient['disk']['mounts']>;
+}>()('sandbox.disk.mount');
+
+export let sandboxDiskResizeType = PresentableType.create<{
+  resize: SandboxResolved<typeof sandboxDiskResizeService.get>;
+}>()('sandbox.disk.resize');
+
+export let sandboxImageType = PresentableType.create<{
+  image: SandboxResolved<typeof sandboxImageService.get>;
+}>()('sandbox.image');
+
+export let sandboxImageVersionType = PresentableType.create<{
+  image: SandboxResolved<typeof sandboxImageService.get>;
+  version: SandboxResolved<typeof sandboxImageVersionService.get>;
+}>()('sandbox.image.version');
+
+export let sandboxImageBuildType = PresentableType.create<{
+  build: SandboxResolved<typeof sandboxImageBuildService.get>;
+}>()('sandbox.image.build');
+
+export let sandboxLogLinesType = PresentableType.create<{
+  logs: SandboxResolved<typeof sandboxMachineInstanceService.logs>;
+}>()('sandbox.log_lines');
 
 export let integrationType = PresentableType.create<{
   integration: SubspaceIntegration;
