@@ -29,6 +29,7 @@ import type {
   sandboxMachineInstanceService,
   sandboxMachineOperationService,
   sandboxMachineService,
+  sandboxMachineUsageService,
   SandboxMachineWithTenant,
   sandboxSpecService
 } from '@metorial/module-sandbox';
@@ -3041,6 +3042,14 @@ export let sandboxMachineErrorType = PresentableType.create<{
 export let sandboxMachineUsageType = PresentableType.create<{
   sample: SandboxPageItem<GenesisInternalClient['machine']['usage']>;
 }>()('sandbox.machine.usage');
+
+export let sandboxMachineUsageTimelineType = PresentableType.create<{
+  usage: SandboxResolved<typeof sandboxMachineUsageService.timeline>;
+}>()('sandbox.machine.usage.timeline');
+
+export let sandboxMachineUsageSummaryType = PresentableType.create<{
+  usage: SandboxResolved<typeof sandboxMachineUsageService.summary>;
+}>()('sandbox.machine.usage.summary');
 
 export let sandboxMachineAccessType = PresentableType.create<{
   access: SandboxResolved<typeof sandboxMachineAccessService.createShellAccess>;

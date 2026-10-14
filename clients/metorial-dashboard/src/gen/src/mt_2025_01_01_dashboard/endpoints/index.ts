@@ -593,3 +593,6 @@ export * from './stores_permissions';
 export * from './test-helpers_consumer-oauth_authorizations';
 export * from './tool-calls';
 export * from './webhook-registrations';
+export * from './dashboard_instance_sandbox_machines_usage';
+export * from './management_instance_sandbox_machines_usage';
+export * from './sandbox_machines_usage';

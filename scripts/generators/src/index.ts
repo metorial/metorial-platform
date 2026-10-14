@@ -529,7 +529,11 @@ for (let version of filteredVersions) {
           if (language === 'python') {
             return `from .${toPyIdentifier(name)} import *`;
           } else {
-            return `export * from './${name}';`;
+            let exportPath = files.includes(`${file}${fileExtension}`)
+              ? `${name}/index`
+              : name;
+
+            return `export * from './${exportPath}';`;
           }
         })
         .join('\n');

@@ -9,6 +9,7 @@ export * from './machineError';
 export * from './machineEvent';
 export * from './machineInstance';
 export * from './machineOperation';
+export * from './machineUsage';
 export * from './region';
 export * from './spec';
 export * from './tenant';

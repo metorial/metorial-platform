@@ -220,6 +220,8 @@ import {
   v1SandboxMachineEventPresenter,
   v1SandboxMachineErrorPresenter,
   v1SandboxMachineUsagePresenter,
+  v1SandboxMachineUsageTimelinePresenter,
+  v1SandboxMachineUsageSummaryPresenter,
   v1SandboxMachineAccessPresenter,
   v1SandboxDiskPresenter,
   v1SandboxDiskMountPresenter,
@@ -463,6 +465,8 @@ import {
   sandboxMachineEventType,
   sandboxMachineErrorType,
   sandboxMachineUsageType,
+  sandboxMachineUsageTimelineType,
+  sandboxMachineUsageSummaryType,
   sandboxMachineAccessType,
   sandboxDiskType,
   sandboxDiskMountType,
@@ -1911,6 +1915,22 @@ export let sandboxMachineUsagePresenter = declarePresenter(sandboxMachineUsageTy
   mt_2025_01_01_dashboard: v1SandboxMachineUsagePresenter,
   mt_2026_01_01_magnetar: v1SandboxMachineUsagePresenter
 });
+
+export let sandboxMachineUsageTimelinePresenter = declarePresenter(
+  sandboxMachineUsageTimelineType,
+  {
+    mt_2025_01_01_dashboard: v1SandboxMachineUsageTimelinePresenter,
+    mt_2026_01_01_magnetar: v1SandboxMachineUsageTimelinePresenter
+  }
+);
+
+export let sandboxMachineUsageSummaryPresenter = declarePresenter(
+  sandboxMachineUsageSummaryType,
+  {
+    mt_2025_01_01_dashboard: v1SandboxMachineUsageSummaryPresenter,
+    mt_2026_01_01_magnetar: v1SandboxMachineUsageSummaryPresenter
+  }
+);
 
 export let sandboxMachineAccessPresenter = declarePresenter(sandboxMachineAccessType, {
   mt_2025_01_01_dashboard: v1SandboxMachineAccessPresenter,

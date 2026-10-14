@@ -12,5 +12,7 @@ export * from './machineEvent';
 export * from './machineInstance';
 export * from './machineOperation';
 export * from './machineUsage';
+export * from './machineUsageTimeline';
+export * from './machineUsageSummary';
 export * from './region';
 export * from './spec';
