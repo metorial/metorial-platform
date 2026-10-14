@@ -21,7 +21,7 @@
         "@metorial/fetch": "^1.0.0-rc.5",
         "@metorial/generated": "^1.0.0-rc.5",
         "@metorial/util-endpoint": "^1.0.0-rc.5",
-        "@metorial/util-resource-mapper": "^3.0.0",
+        "@metorial/util-resource-mapper": "^3.2.0",
         "@types/cookie": "^1.0.0",
       },
       "devDependencies": {
@@ -40,7 +40,7 @@
         "@metorial/fetch": "^1.0.0-rc.5",
         "@metorial/generated": "^1.0.0-rc.5",
         "@metorial/util-endpoint": "^1.0.0-rc.5",
-        "@metorial/util-resource-mapper": "^3.0.0",
+        "@metorial/util-resource-mapper": "^3.2.0",
       },
       "devDependencies": {
         "@types/isomorphic-fetch": "^0.0.39",
@@ -77,6 +77,7 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "esbuild": "^0.25.12",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -2136,6 +2137,7 @@
         "@metorial/module-file": "^1.0.0",
         "@metorial/module-machine-access": "^1.0.0",
         "@metorial/module-magic": "^1.0.0",
+        "@metorial/module-networking": "^1.0.0",
         "@metorial/module-organization": "^1.0.0",
         "@metorial/module-portal": "^1.0.0",
         "@metorial/module-product-assistant": "^1.0.0",
@@ -2633,6 +2635,7 @@
         "@metorial/config": "^1.0.0",
         "@metorial/consumer-oauth-utils": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/genesis-client": "workspace:*",
         "@metorial/module-access": "^1.0.0",
         "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-consumer-core": "^1.0.0",
@@ -2646,6 +2649,7 @@
         "@metorial/module-portal": "^1.0.0",
         "@metorial/module-product-assistant": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
+        "@metorial/module-sandbox": "^1.0.0",
         "@metorial/module-secrets": "^1.0.0",
         "@metorial/module-skill": "^1.0.0",
         "@metorial/module-skill-marketplace": "^1.0.0",
@@ -3156,6 +3160,35 @@
         "remark-stringify": "^11.0.0",
         "unified": "^11.0.5",
         "unist-util-visit": "^5.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/core/modules/networking": {
+      "name": "@metorial/module-networking",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial-subspace/list-utils": "^1.0.0",
+        "@metorial-subspace/module-tenant": "^1.0.0",
+        "@metorial/config": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/lock": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "ipaddr.js": "^2.2.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3782,6 +3815,7 @@
         "@metorial-subspace/provider": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/module-networking": "^1.0.0",
         "ipaddr.js": "^2.2.0",
       },
       "devDependencies": {
@@ -4276,7 +4310,13 @@
         "@metorial/cache": "^1.0.0",
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
         "@metorial/genesis-client": "workspace:*",
+        "@metorial/lock": "^1.0.0",
+        "@metorial/module-file": "^1.0.0",
+        "@metorial/module-flags": "^1.0.0",
+        "@metorial/module-networking": "^1.0.0",
+        "@metorial/module-search": "^1.0.0",
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
@@ -4966,6 +5006,7 @@
         "@metorial/module-file": "1.0.0",
         "@metorial/module-machine-access": "1.0.0",
         "@metorial/module-magic": "1.0.0",
+        "@metorial/module-networking": "1.0.0",
         "@metorial/module-organization": "1.0.0",
         "@metorial/module-outpost": "1.0.0",
         "@metorial/module-portal": "1.0.0",
@@ -7553,6 +7594,8 @@
 
     "@metorial/module-markdown": ["@metorial/module-markdown@workspace:src/metorial/products/core/modules/markdown"],
 
+    "@metorial/module-networking": ["@metorial/module-networking@workspace:src/metorial/products/core/modules/networking"],
+
     "@metorial/module-organization": ["@metorial/module-organization@workspace:src/metorial/products/core/modules/organization"],
 
     "@metorial/module-outpost": ["@metorial/module-outpost@workspace:src/metorial/products/core/modules/outpost"],
@@ -7675,7 +7718,7 @@
 
     "@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.1", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-LqRt1EX5lx+/zYiDwlOHBg9NXqkARl+XQWquaJihbGc8+TPVCxw8yWEh/n6mwPU7ydG3QiAqlEM1cfPMRFpTbQ=="],
 
-    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.0.0", "", {}, "sha512-CiEVSUL9ncLQuIrZniE0lMkDdAJ9XUzd/rqwpxf0OV3yDZtdbTDP1Wo36b8tRndC1J5hyd1LVayxULQOXBCs4g=="],
+    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.2.0", "", {}, "sha512-gHeExU+5RsjFsUKybLjzw1vaNjgapQ/8nIgc5oL7WeS3iIIMZi8vdHohtG+h61vMvjQkZDU9MMiMr54QTWe6nQ=="],
 
     "@metorial/util-websocket": ["@metorial/util-websocket@1.0.0", "", { "dependencies": { "mitt": "^3.0.1", "ws": "^8.18.2" } }, "sha512-o0qRqbrjlmpjuKGyND4WDDCKBBRPztV8VkaX1HFSnbbKl/Jftz8CPtKnKmLQ38O4XPWPwl7Y7+9OPW7nqDg7UA=="],
 
@@ -12243,6 +12286,8 @@
 
     "gaxios/uuid": ["uuid@9.0.1", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA=="],
 
+    "generator/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+
     "glob/minimatch": ["minimatch@3.1.5", "", { "dependencies": { "brace-expansion": "^1.1.7" } }, "sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w=="],
 
     "globby/ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
@@ -13419,6 +13464,8 @@
 
     "@metorial/state/@metorial/generated/@metorial/util-endpoint": ["@metorial/util-endpoint@3.0.0", "", { "dependencies": { "@metorial/util-async-iterator": "^3.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-uw+yw1xwa56jzG0H6iERK/FcuHhhz4n3sEWqyCG9bXhCGeMZSygls39mZB4qU+/Kb69N8deYnP0wSqoqvsO98Q=="],
 
+    "@metorial/state/@metorial/generated/@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.0.0", "", {}, "sha512-CiEVSUL9ncLQuIrZniE0lMkDdAJ9XUzd/rqwpxf0OV3yDZtdbTDP1Wo36b8tRndC1J5hyd1LVayxULQOXBCs4g=="],
+
     "@metorial/subspace-dev/@types/bun/bun-types": ["bun-types@1.4.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-iIKw23BspnQQYd3prITOBxeUsxBHnwzX6YJfGMuNOZzeNcMmVqzIIVGRm1l69ogaPQmb4wB6BN8mA5bE9YuC5Q=="],
 
     "@metorial/subspace-dev/vitest/@vitest/expect": ["@vitest/expect@4.0.17", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@types/chai": "^5.2.2", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "chai": "^6.2.1", "tinyrainbow": "^3.0.3" } }, "sha512-mEoqP3RqhKlbmUmntNDDCJeTDavDR+fVYkSOw8qRwJFaW/0/5zA9zFeTrHqNtcmwh6j26yMmwx2PqUDPzt5ZAQ=="],
@@ -13730,6 +13777,8 @@
     "gauge/strip-ansi/ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 
     "gaxios/https-proxy-agent/agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
+
+    "generator/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
     "glob/minimatch/brace-expansion": ["brace-expansion@1.1.15", "", { "dependencies": { "balanced-match": "^1.0.0", "concat-map": "0.0.1" } }, "sha512-EwOCDEex4quD37XhqM3omwtMoJjr//isUZz1JopUNWms+4Z2ViyM/k1YIRePpoVNnQhENnxtFjLaxNHrT7xIUg=="],
 
@@ -15657,6 +15706,8 @@
 
     "filelist/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
+    "generator/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
+
     "glob/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
     "log-symbols/chalk/ansi-styles/color-convert": ["color-convert@2.0.1", "", { "dependencies": { "color-name": "~1.1.4" } }, "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ=="],
@@ -16420,6 +16471,8 @@
     "@sentry/bundler-plugin-core/glob/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
     "eslint/chalk/ansi-styles/color-convert/color-name": ["color-name@1.1.4", "", {}, "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="],
+
+    "generator/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "log-symbols/chalk/ansi-styles/color-convert/color-name": ["color-name@1.1.4", "", {}, "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="],
 
