@@ -61,6 +61,9 @@ export let firewallController = Controller.create(
             enclave_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
             network_policy_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            machine_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only firewalls applied to these sandbox machines'
+            }),
             created_at: dateFilterValidator('firewall creation time'),
             updated_at: dateFilterValidator('firewall last update time')
           })
@@ -76,6 +79,7 @@ export let firewallController = Controller.create(
           enclaveIds: normalizeArrayParam(ctx.query.enclave_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           networkPolicyIds: normalizeArrayParam(ctx.query.network_policy_id),
+          machineIds: normalizeArrayParam(ctx.query.machine_id),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

@@ -13,6 +13,7 @@ import {
   networkDocsCategory,
   portalDocsCategory,
   providerDocsCategory,
+  sandboxDocsCategory,
   sessionDocsCategory,
   skillDocsCategory
 } from './_categories';
@@ -180,7 +181,18 @@ import {
   storeParticipantController,
   tokenController,
   toolCallController,
-  webhookRegistrationController
+  webhookRegistrationController,
+  sandboxRegionController,
+  sandboxSpecController,
+  sandboxMachineController,
+  sandboxMachineInstanceController,
+  sandboxMachineOperationController,
+  sandboxMachineEventController,
+  sandboxMachineErrorController,
+  sandboxDiskController,
+  sandboxDiskResizeController,
+  sandboxImageController,
+  sandboxImageBuildController
 } from './instance';
 import {
   accessPolicyManagementController,
@@ -318,6 +330,24 @@ let setControllerDocsMetadata = <
 [firewallController, networkPolicyController].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: networkDocsCategory
+  })
+);
+
+[
+  sandboxRegionController,
+  sandboxSpecController,
+  sandboxMachineController,
+  sandboxMachineInstanceController,
+  sandboxMachineOperationController,
+  sandboxMachineEventController,
+  sandboxMachineErrorController,
+  sandboxDiskController,
+  sandboxDiskResizeController,
+  sandboxImageController,
+  sandboxImageBuildController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: sandboxDocsCategory
   })
 );
 
@@ -520,6 +550,18 @@ export let magnetarController = Controller.create<any>(
     firewallController,
     integrationFirewallAssignmentController,
     networkPolicyController,
+
+    sandboxRegionController,
+    sandboxSpecController,
+    sandboxMachineController,
+    sandboxMachineInstanceController,
+    sandboxMachineOperationController,
+    sandboxMachineEventController,
+    sandboxMachineErrorController,
+    sandboxDiskController,
+    sandboxDiskResizeController,
+    sandboxImageController,
+    sandboxImageBuildController,
 
     sessionController,
     sessionTemplateController,
@@ -795,6 +837,18 @@ export let dashboardController = Controller.create<any>(
     firewallController,
     integrationFirewallAssignmentController,
     networkPolicyController,
+
+    sandboxRegionController,
+    sandboxSpecController,
+    sandboxMachineController,
+    sandboxMachineInstanceController,
+    sandboxMachineOperationController,
+    sandboxMachineEventController,
+    sandboxMachineErrorController,
+    sandboxDiskController,
+    sandboxDiskResizeController,
+    sandboxImageController,
+    sandboxImageBuildController,
 
     sessionTemplateController,
     sessionTemplateProviderController,
