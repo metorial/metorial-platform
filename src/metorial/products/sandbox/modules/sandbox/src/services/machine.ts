@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   type Instance,
+  type Organization,
   type SandboxRegion,
   type SandboxResourceStatus
 } from '@metorial/db';
@@ -21,7 +22,7 @@ import { createRemotePaginator } from '../lib/remotePaginator';
 import { indexSandboxMachineQueue } from '../queues/search';
 import { sandboxMachineEgressInternalService } from '../internal/machineEgressInternal';
 import { sandboxRegionService } from './region';
-import { sandboxSpecService } from './spec';
+import { sandboxSpecService, type SandboxSpecSelector } from './spec';
 import { sandboxTenantService } from './tenant';
 
 type CreateMachineInput = Parameters<GenesisInternalClient['machine']['create']>[0];
@@ -94,11 +95,12 @@ class SandboxMachineServiceImpl {
 
   async create(d: {
     instance: Instance;
+    organization: Organization;
     regionIdentifier: string;
     input: {
       name?: CreateMachineInput['name'];
       imageId: string;
-      specId: string;
+      spec: SandboxSpecSelector;
       lifecyclePolicy?: CreateMachineInput['lifecyclePolicy'];
       runtime?: CreateMachineInput['runtime'];
       lifecycleHooks?: CreateMachineInput['lifecycleHooks'];
@@ -121,7 +123,11 @@ class SandboxMachineServiceImpl {
       region,
       imageId: d.input.imageId
     });
-    let { spec } = await sandboxSpecService.resolve({ specId: d.input.specId, region });
+    let { spec } = await sandboxSpecService.resolve({
+      selector: d.input.spec,
+      region,
+      organization: d.organization
+    });
 
     if (d.input.mounts) {
       await this.assertMounts({ instance: d.instance, tenant, mounts: d.input.mounts });
@@ -134,7 +140,7 @@ class SandboxMachineServiceImpl {
       firewallIds
     });
 
-    let { imageId: _imageId, specId: _specId, firewallIds: _firewallIds, ...rest } = d.input;
+    let { imageId: _imageId, spec: _spec, firewallIds: _firewallIds, ...rest } = d.input;
     let { imageOid, ...remoteImage } = image;
     let { genesis, tenantId } = getRegional(tenant);
 
@@ -233,10 +239,11 @@ class SandboxMachineServiceImpl {
 
   async update<Machine extends SandboxMachineWithTenant & { instance: Instance }>(d: {
     machine: Machine;
+    organization: Organization;
     input: {
       name?: UpdateMachineInput['name'];
       imageId?: string;
-      specId?: string;
+      spec?: SandboxSpecSelector;
       lifecyclePolicy?: UpdateMachineInput['lifecyclePolicy'];
       runtime?: UpdateMachineInput['runtime'];
       lifecycleHooks?: UpdateMachineInput['lifecycleHooks'];
@@ -249,15 +256,21 @@ class SandboxMachineServiceImpl {
     assertMachineActive(d.machine);
 
     let { region } = d.machine.tenant;
-    let { imageId, specId, firewallIds, ...rest } = d.input;
+    let { imageId, spec: specSelector, firewallIds, ...rest } = d.input;
 
     let resolvedImage = imageId
       ? await this.resolveImage({ instance: d.machine.instance, region, imageId })
       : undefined;
     let image = resolvedImage ? { imageId: resolvedImage.imageId } : undefined;
 
-    let spec = specId
-      ? (await sandboxSpecService.resolve({ specId, region })).spec
+    let spec = specSelector
+      ? (
+          await sandboxSpecService.resolve({
+            selector: specSelector,
+            region,
+            organization: d.organization
+          })
+        ).spec
       : undefined;
 
     if (d.input.mounts) {

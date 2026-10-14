@@ -3016,6 +3016,7 @@ export let sandboxRegionType = PresentableType.create<{
 
 export let sandboxSpecType = PresentableType.create<{
   spec: SandboxResolved<typeof sandboxSpecService.get>;
+  available: boolean;
 }>()('sandbox.spec');
 
 export let sandboxMachineType = PresentableType.create<{

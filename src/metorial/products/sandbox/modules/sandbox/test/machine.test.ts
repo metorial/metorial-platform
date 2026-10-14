@@ -68,6 +68,7 @@ let tenant = (id: string, regionRow: ReturnType<typeof region>) => ({
 
 let useast = region('aws:us-east-1', 1n);
 let euwest = region('aws:eu-west-1', 2n);
+let organization = { oid: 5n } as any;
 let instance = { oid: 7n, id: 'ins_1', projectOid: 6n, organizationOid: 5n } as any;
 
 describe('sandboxMachineService.create', () => {
@@ -93,8 +94,9 @@ describe('sandboxMachineService.create', () => {
   it('maps the global image and spec to the region and records the machine', async () => {
     let result = await sandboxMachineService.create({
       instance,
+      organization,
       regionIdentifier: 'us-east-1',
-      input: { name: 'm', imageId: 'sbi_global', specId: 'sbs_global' }
+      input: { name: 'm', imageId: 'sbi_global', spec: { specId: 'sbs_global' } }
     });
 
     expect(genesisByRegion['aws:us-east-1']!.machine.create).toHaveBeenCalledWith({
@@ -120,10 +122,11 @@ describe('sandboxMachineService.create', () => {
 
     await sandboxMachineService.create({
       instance,
+      organization,
       regionIdentifier: 'us-east-1',
       input: {
         imageId: 'sbi_global',
-        specId: 'sbs_global',
+        spec: { specId: 'sbs_global' },
         firewallIds: ['fwl_1', 'fwl_1', 'fwl_2']
       }
     });
@@ -150,8 +153,9 @@ describe('sandboxMachineService.create', () => {
 
     await sandboxMachineService.create({
       instance,
+      organization,
       regionIdentifier: 'us-east-1',
-      input: { imageId: 'sbi_global', specId: 'sbs_global' }
+      input: { imageId: 'sbi_global', spec: { specId: 'sbs_global' } }
     });
 
     expect(db.sandboxDisk.createMany).toHaveBeenCalledWith({
@@ -172,8 +176,9 @@ describe('sandboxMachineService.create', () => {
     await expect(
       sandboxMachineService.create({
         instance,
+        organization,
         regionIdentifier: 'us-east-1',
-        input: { imageId: 'sbi_global', specId: 'sbs_global' }
+        input: { imageId: 'sbi_global', spec: { specId: 'sbs_global' } }
       })
     ).rejects.toThrow(/not available in region/);
     expect(genesisByRegion['aws:us-east-1']!.machine.create).not.toHaveBeenCalled();
@@ -185,10 +190,11 @@ describe('sandboxMachineService.create', () => {
     await expect(
       sandboxMachineService.create({
         instance,
+        organization,
         regionIdentifier: 'us-east-1',
         input: {
           imageId: 'sbi_global',
-          specId: 'sbs_global',
+          spec: { specId: 'sbs_global' },
           mounts: [{ diskId: 'sbd_1', mountPath: '/data' }]
         }
       })
@@ -201,8 +207,9 @@ describe('sandboxMachineService.create', () => {
     await expect(
       sandboxMachineService.create({
         instance,
+        organization,
         regionIdentifier: 'us-east-1',
-        input: { imageId: 'sbi_global', specId: 'sbs_global' }
+        input: { imageId: 'sbi_global', spec: { specId: 'sbs_global' } }
       })
     ).rejects.toThrow('db down');
 

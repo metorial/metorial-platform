@@ -81,6 +81,7 @@ import {
   ProjectBrand,
   ProviderTemplate,
   Sandbox,
+  SandboxTenant,
   ServiceAccount,
   ServiceAccountCredential,
   Skill,
@@ -801,6 +802,8 @@ export type MagicMcpServerMembershipFabricChange = {
 
 // prettier-ignore
 export interface FabricEvents {
+  'sandbox.tenant.created:after': { tenant: SandboxTenant };
+
   'user.created:before': { context?: Context };
   'user.created:after': { user: User, performedBy: User; context?: Context };
   'user.updated:before': { user: User, performedBy: User; context?: Context };

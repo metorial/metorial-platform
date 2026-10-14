@@ -19,7 +19,7 @@ class SandboxSpecInternalServiceImpl {
           status: 'active' as const,
           memoryMiB: item.memoryMiB,
           vcpus: item.vcpus,
-          diskBytes: 'diskBytes' in item ? item.diskBytes : null,
+          diskBytes: null,
           lastSyncedAt: syncedAt
         };
 

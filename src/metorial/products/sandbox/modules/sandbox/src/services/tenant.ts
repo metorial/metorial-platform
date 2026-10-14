@@ -1,5 +1,12 @@
 import { Service } from '@lowerdeck/service';
-import { db, ID, type Instance, type SandboxRegion } from '@metorial/db';
+import {
+  addAfterTransactionHook,
+  db,
+  ID,
+  type Instance,
+  type SandboxRegion
+} from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   getRegional,
   sandboxTenantInclude,
@@ -12,6 +19,7 @@ export type SandboxTenantLimits = {
   ingressBytesPerSecondPerConnection: number | null;
   requestsPer10MinutesPerTenant: number | null;
   requestsPer10MinutesPerMachine: number | null;
+  boostMultiplier: number | null;
 };
 
 class SandboxTenantServiceImpl {
@@ -33,8 +41,10 @@ class SandboxTenantServiceImpl {
       tenantSlug: project.slug
     });
 
+    let tenant: SandboxTenantWithRegion;
+
     try {
-      return await db.sandboxTenant.create({
+      tenant = await db.sandboxTenant.create({
         data: {
           id,
           slug: genesisTenant.slug,
@@ -50,6 +60,12 @@ class SandboxTenantServiceImpl {
 
       throw err;
     }
+
+    await addAfterTransactionHook(() =>
+      Fabric.fire('sandbox.tenant.created:after', { tenant })
+    );
+
+    return tenant;
   }
 
   async syncLimits(d: { tenant: SandboxTenantWithRegion; limits: SandboxTenantLimits }) {

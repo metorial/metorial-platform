@@ -3,13 +3,14 @@ import { Presenter } from '@metorial/presenter';
 import { sandboxSpecType } from '../../types';
 
 export let v1SandboxSpecPresenter = Presenter.create(sandboxSpecType)
-  .presenter(async ({ spec }) => ({
+  .presenter(async ({ spec, available }) => ({
     object: 'sandbox.spec' as const,
 
     id: spec.id,
     identifier: spec.identifier,
-    memory_mib: spec.memoryMiB,
-    vcpus: spec.vcpus,
+    memory_gib: spec.memoryMiB / 1024,
+    cpus: spec.vcpus,
+    available,
     regions: spec.regions.map(regional => regional.region.identifier),
     created_at: spec.createdAt
   }))
@@ -25,11 +26,18 @@ export let v1SandboxSpecPresenter = Presenter.create(sandboxSpecType)
       }),
       identifier: v.string({
         description: "The spec's human-readable identifier",
-        examples: ['small']
+        examples: ['m3072-c3000']
       }),
-      memory_mib: v.number({ description: 'The memory of machines using this spec, in MiB' }),
-      vcpus: v.number({
-        description: 'The number of virtual CPUs of machines using this spec'
+      memory_gib: v.number({
+        description: 'The memory of machines using this spec, in GiB',
+        examples: [3]
+      }),
+      cpus: v.number({
+        description: 'The number of CPUs of machines using this spec',
+        examples: [3]
+      }),
+      available: v.boolean({
+        description: "Whether your organization's plan allows creating machines with this spec"
       }),
       regions: v.array(v.string(), {
         description: 'The identifiers of the regions this spec is available in'

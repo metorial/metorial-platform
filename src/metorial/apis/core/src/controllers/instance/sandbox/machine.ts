@@ -42,6 +42,53 @@ let accessTtlValidator = v.optional(
   v.number({ description: 'How long the token stays valid, in seconds' })
 );
 
+let specFields = {
+  spec_id: v.optional(v.string({ description: 'The ID of the spec that sets the size of the machine' })),
+  spec_identifier: v.optional(
+    v.string({
+      description: 'The identifier of the spec that sets the size of the machine',
+      examples: ['m3072-c3000']
+    })
+  ),
+  memory_gib: v.optional(
+    v.number({
+      description:
+        'The memory of the machine in GiB, in steps of 0.5. Use together with cpus instead of a spec ID.',
+      examples: [3]
+    })
+  ),
+  cpus: v.optional(
+    v.number({
+      description:
+        'The CPUs of the machine, in steps of 0.5. Use together with memory_gib instead of a spec ID.',
+      examples: [3]
+    })
+  )
+};
+
+let hasSpecSelector = (body: {
+  spec_id?: string;
+  spec_identifier?: string;
+  memory_gib?: number;
+  cpus?: number;
+}) =>
+  body.spec_id !== undefined ||
+  body.spec_identifier !== undefined ||
+  body.memory_gib !== undefined ||
+  body.cpus !== undefined;
+
+let toSpecSelector = (body: {
+  spec_id?: string;
+  spec_identifier?: string;
+  memory_gib?: number;
+  cpus?: number;
+}) => ({
+  specId: body.spec_id,
+  specIdentifier: body.spec_identifier,
+  memoryGib: body.memory_gib,
+  cpus: body.cpus
+});
+
 export let sandboxMachineController = Controller.create(
   {
     name: 'Sandbox machines',
@@ -109,7 +156,7 @@ export let sandboxMachineController = Controller.create(
           }),
           name: v.optional(v.string({ description: 'A name for the machine' })),
           image_id: v.string({ description: 'The image to boot the machine from' }),
-          spec_id: v.string({ description: 'The spec that sets the size of the machine' }),
+          ...specFields,
           lifecycle_policy: v.optional(lifecyclePolicyValidator),
           runtime: v.optional(v.nullable(runtimeValidator)),
           lifecycle_hooks: v.optional(v.nullable(v.array(lifecycleHookValidator))),
@@ -135,11 +182,12 @@ export let sandboxMachineController = Controller.create(
       .do(async ctx => {
         let machine = await sandboxMachineService.create({
           instance: ctx.instance,
+          organization: ctx.organization,
           regionIdentifier: ctx.body.region,
           input: {
             name: ctx.body.name,
             imageId: ctx.body.image_id,
-            specId: ctx.body.spec_id,
+            spec: toSpecSelector(ctx.body),
             lifecyclePolicy: toLifecyclePolicyInput(ctx.body.lifecycle_policy),
             runtime: toRuntimeInput(ctx.body.runtime),
             lifecycleHooks: toLifecycleHooksInput(ctx.body.lifecycle_hooks),
@@ -168,9 +216,7 @@ export let sandboxMachineController = Controller.create(
           image_id: v.optional(
             v.string({ description: 'The image to boot the machine from' })
           ),
-          spec_id: v.optional(
-            v.string({ description: 'The spec that sets the size of the machine' })
-          ),
+          ...specFields,
           lifecycle_policy: v.optional(lifecyclePolicyValidator),
           runtime: v.optional(v.nullable(runtimeValidator)),
           lifecycle_hooks: v.optional(v.nullable(v.array(lifecycleHookValidator))),
@@ -193,10 +239,11 @@ export let sandboxMachineController = Controller.create(
       .do(async ctx => {
         let machine = await sandboxMachineService.update({
           machine: ctx.machine,
+          organization: ctx.organization,
           input: {
             name: ctx.body.name,
             imageId: ctx.body.image_id,
-            specId: ctx.body.spec_id,
+            spec: hasSpecSelector(ctx.body) ? toSpecSelector(ctx.body) : undefined,
             lifecyclePolicy: toLifecyclePolicyInput(ctx.body.lifecycle_policy),
             runtime: toRuntimeInput(ctx.body.runtime),
             lifecycleHooks: toLifecycleHooksInput(ctx.body.lifecycle_hooks),

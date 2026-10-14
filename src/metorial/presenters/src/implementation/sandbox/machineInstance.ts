@@ -45,8 +45,9 @@ export let v1SandboxMachineInstancePresenter = Presenter.create(sandboxMachineIn
       image: { id: image.imageId, version_id: image.versionId },
       spec: {
         id: specId,
-        memory_mib: instance.spec.memoryMiB,
-        vcpus: instance.spec.vcpus
+        identifier: instance.spec.identifier,
+        memory_gib: instance.spec.memoryMiB / 1024,
+        cpus: instance.spec.vcpus
       },
 
       operation: instance.operation
@@ -118,8 +119,9 @@ export let v1SandboxMachineInstancePresenter = Presenter.create(sandboxMachineIn
       }),
       spec: v.object({
         id: sandboxReferenceSchema('The spec the instance was created with'),
-        memory_mib: v.number(),
-        vcpus: v.number()
+        identifier: v.string({ description: "The spec's human-readable identifier" }),
+        memory_gib: v.number({ description: "The instance's memory in GiB" }),
+        cpus: v.number({ description: "The instance's CPU count" })
       }),
       operation: v.nullable(
         v.object(

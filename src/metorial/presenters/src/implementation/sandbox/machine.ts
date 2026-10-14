@@ -201,8 +201,9 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
       image: { id: image.imageId, version_id: image.versionId },
       spec: {
         id: specId,
-        memory_mib: remote.spec.memoryMiB,
-        vcpus: remote.spec.vcpus
+        identifier: remote.spec.identifier,
+        memory_gib: remote.spec.memoryMiB / 1024,
+        cpus: remote.spec.vcpus
       },
       root_disk: rootFs
         ? { id: rootFs.diskId, size_bytes: toNullableNumber(rootFs.diskSizeBytes) }
@@ -276,8 +277,12 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
       }),
       spec: v.object({
         id: sandboxReferenceSchema('The spec the machine was created with'),
-        memory_mib: v.number({ description: "The machine's memory in MiB" }),
-        vcpus: v.number({ description: "The machine's virtual CPU count" })
+        identifier: v.string({
+          description: "The spec's human-readable identifier",
+          examples: ['m3072-c3000']
+        }),
+        memory_gib: v.number({ description: "The machine's memory in GiB" }),
+        cpus: v.number({ description: "The machine's CPU count" })
       }),
       root_disk: v.nullable(
         v.object(

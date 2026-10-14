@@ -46,6 +46,8 @@ export type Flags = {
   'paid-advanced-org-management': FlagValue;
 
   'sandbox-builder-memory-mib': number;
+  'sandbox-max-memory-gib': number;
+  'sandbox-max-vcpus': number;
 };
 
 export type BooleanFlagKey = {
@@ -97,7 +99,9 @@ export let defaultFlags: Flags = {
   'paid-sandboxes': true,
   'paid-advanced-org-management': true,
 
-  'sandbox-builder-memory-mib': 8192
+  'sandbox-builder-memory-mib': 8192,
+  'sandbox-max-memory-gib': 32,
+  'sandbox-max-vcpus': 16
 };
 
 export type FlagProviderParams = {

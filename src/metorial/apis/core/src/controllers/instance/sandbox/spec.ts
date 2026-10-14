@@ -1,5 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
-import { sandboxSpecService } from '@metorial/module-sandbox';
+import { flagService } from '@metorial/module-flags';
+import { isSandboxSpecAvailable, sandboxSpecService } from '@metorial/module-sandbox';
 import { sandboxSpecPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -15,7 +16,8 @@ export let sandboxSpecController = Controller.create(
     list: sandboxInstanceGroup
       .get(instancePath('sandbox/specs', 'sandbox.specs.list'), {
         name: 'List sandbox specs',
-        description: 'Returns a paginated list of available machine specs.'
+        description:
+          'Returns a paginated list of machine specs. The available field shows whether your plan allows creating machines of that size.'
       })
       .use(checkAccess({ possibleScopes: [...sandboxReadScopes] }))
       .outputList(sandboxSpecPresenter)
@@ -23,8 +25,14 @@ export let sandboxSpecController = Controller.create(
       .do(async ctx => {
         let paginator = await sandboxSpecService.list();
         let list = await paginator.run(ctx.query);
+        let flags = await flagService.getFlags({ organization: ctx.organization });
 
-        return Paginator.present(list, spec => sandboxSpecPresenter.present({ spec }));
+        return Paginator.present(list, spec =>
+          sandboxSpecPresenter.present({
+            spec,
+            available: isSandboxSpecAvailable({ spec, flags })
+          })
+        );
       }),
 
     get: sandboxInstanceGroup
@@ -39,7 +47,12 @@ export let sandboxSpecController = Controller.create(
           specId: requirePathParam(ctx.params, 'specId')
         });
 
-        return sandboxSpecPresenter.present({ spec });
+        let flags = await flagService.getFlags({ organization: ctx.organization });
+
+        return sandboxSpecPresenter.present({
+          spec,
+          available: isSandboxSpecAvailable({ spec, flags })
+        });
       })
   }
 );
