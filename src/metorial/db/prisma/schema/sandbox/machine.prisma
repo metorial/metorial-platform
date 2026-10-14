@@ -16,6 +16,9 @@ model SandboxMachine {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  imageOid BigInt?
+  image    SandboxMachineImage? @relation(fields: [imageOid], references: [oid])
+
   disks SandboxDisk[]
 
   egressPolicyOid BigInt?
@@ -38,4 +41,5 @@ model SandboxMachine {
   @@index([tenantOid, status])
   @@index([needsEgressSync, oid])
   @@index([egressPolicyOid])
+  @@index([instanceOid, imageOid])
 }

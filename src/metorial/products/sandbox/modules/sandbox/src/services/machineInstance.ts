@@ -1,15 +1,27 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { createRemotePaginator } from '../lib/remotePaginator';
-import { getRegional, type SandboxMachineWithTenant } from '../lib/regional';
+import {
+  getRegional,
+  type SandboxMachineInstanceFilter,
+  type SandboxMachineWithTenant
+} from '../lib/regional';
 import { getRegionClient } from '../lib/regions';
 
 class SandboxMachineInstanceServiceImpl {
-  list(d: { machine: SandboxMachineWithTenant }) {
+  list(d: {
+    machine: SandboxMachineWithTenant;
+    statuses?: SandboxMachineInstanceFilter['statuses'];
+  }) {
     let { genesis, tenantId } = getRegional(d.machine.tenant);
 
     return createRemotePaginator(page =>
-      genesis.machine.instance.list({ tenantId, machineId: d.machine.id, ...page })
+      genesis.machine.instance.list({
+        tenantId,
+        machineId: d.machine.id,
+        statuses: d.statuses,
+        ...page
+      })
     );
   }
 

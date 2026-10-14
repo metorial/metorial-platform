@@ -47,6 +47,9 @@ export let instanceScopes = [
   'instance.network:read' as const,
   'instance.network:write' as const,
 
+  'instance.sandbox:read' as const,
+  'instance.sandbox:write' as const,
+
   'instance.server.config_vault:read' as const,
   'instance.server.config_vault:write' as const,
 

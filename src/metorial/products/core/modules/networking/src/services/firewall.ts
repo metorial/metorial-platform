@@ -132,6 +132,7 @@ type ListFirewallsParams = {
   enclaveIds?: string[];
   providerIds?: string[];
   networkPolicyIds?: string[];
+  machineIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
 };
@@ -183,6 +184,9 @@ class firewallServiceImpl {
                       some: { networkPolicyOid: networkPolicies.in }
                     }
                   }
+                : undefined!,
+              d.machineIds
+                ? { machineLinks: { some: { machine: { id: { in: d.machineIds } } } } }
                 : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!

@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db } from '@metorial/db';
@@ -11,6 +11,15 @@ class SandboxRegionServiceImpl {
         async opts => await db.sandboxRegion.findMany({ ...opts, where: { status: 'active' } })
       )
     );
+  }
+
+  async get(d: { identifier: string }) {
+    let region = await db.sandboxRegion.findFirst({
+      where: { identifier: d.identifier, status: 'active' }
+    });
+    if (!region) throw new ServiceError(notFoundError('sandbox_region', d.identifier));
+
+    return region;
   }
 
   async getByIdentifier(d: { identifier: string }) {

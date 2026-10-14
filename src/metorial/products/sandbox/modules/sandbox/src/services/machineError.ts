@@ -3,39 +3,25 @@ import { getRegional, type SandboxMachineWithTenant } from '../lib/regional';
 import { createRemotePaginator } from '../lib/remotePaginator';
 
 class SandboxMachineErrorServiceImpl {
-  list(d: { machine: SandboxMachineWithTenant; instanceId?: string }) {
+  list(d: { machine: SandboxMachineWithTenant; instanceIds?: string[] }) {
     let { genesis, tenantId } = getRegional(d.machine.tenant);
-    let machineId = d.machine.id;
-
-    if (d.instanceId) {
-      let instanceId = d.instanceId;
-
-      return createRemotePaginator(page =>
-        genesis.machine.instance.guestError.list({ tenantId, machineId, instanceId, ...page })
-      );
-    }
 
     return createRemotePaginator(page =>
-      genesis.machine.guestError.list({ tenantId, machineId, ...page })
+      genesis.machine.guestError.list({
+        tenantId,
+        machineId: d.machine.id,
+        instanceIds: d.instanceIds,
+        ...page
+      })
     );
   }
 
-  async get(d: { machine: SandboxMachineWithTenant; instanceId?: string; errorId: string }) {
+  async get(d: { machine: SandboxMachineWithTenant; errorId: string }) {
     let { genesis, tenantId } = getRegional(d.machine.tenant);
-    let machineId = d.machine.id;
-
-    if (d.instanceId) {
-      return await genesis.machine.instance.guestError.get({
-        tenantId,
-        machineId,
-        instanceId: d.instanceId,
-        errorId: d.errorId
-      });
-    }
 
     return await genesis.machine.guestError.get({
       tenantId,
-      machineId,
+      machineId: d.machine.id,
       errorId: d.errorId
     });
   }

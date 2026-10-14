@@ -30,6 +30,7 @@ model SandboxMachineImage {
   regions  SandboxMachineImageRegion[]
   versions SandboxMachineImageVersion[]
   builds   SandboxMachineImageBuild[]
+  machines SandboxMachine[]
 
   @@index([instanceOid, status])
 }

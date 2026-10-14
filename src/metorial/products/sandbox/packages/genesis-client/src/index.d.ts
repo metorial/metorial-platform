@@ -9732,10 +9732,11 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
                 tenantId: string;
                 machineId: string;
+                instanceIds: string[] | undefined;
                 kinds: ("restart" | "start" | "pause" | "hibernate" | "terminate")[] | undefined;
                 triggers: ("update" | "failure" | "access" | "platform" | "api" | "idle_policy" | "paused_policy" | "lifetime")[] | undefined;
                 outcomes: ("active" | "failed" | "superseded" | "completed")[] | undefined;
-            }, "kinds" | "triggers" | "outcomes">> & {
+            }, "instanceIds" | "kinds" | "triggers" | "outcomes">> & {
                 machineId: string;
                 tenantId: string;
             } & {
@@ -13565,7 +13566,8 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
                 tenantId: string;
                 machineId: string;
-            }, never>> & {
+                statuses: ("running" | "paused" | "terminated" | "failed" | "start_requested" | "start_platform_pending" | "start_platform_complete" | "start_initialize_pending" | "pause_requested" | "pause_prepare_pending" | "pause_prepare_complete" | "pause_platform_pending" | "resume_requested" | "resume_platform_pending" | "resume_platform_complete" | "resume_initialize_pending" | "terminate_requested" | "terminate_prepare_pending" | "terminate_prepare_complete" | "terminate_platform_pending")[] | undefined;
+            }, "statuses">> & {
                 machineId: string;
                 tenantId: string;
             } & {
@@ -25587,9 +25589,10 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
         };
         guestError: {
             list: _lowerdeck_rpc_server.Handler<Partial<Pick<{
+                instanceIds: string[] | undefined;
                 tenantId: string;
                 machineId: string;
-            }, never>> & {
+            }, "instanceIds">> & {
                 machineId: string;
                 tenantId: string;
             } & {
@@ -28023,7 +28026,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
             from: Date | undefined;
             to: Date | undefined;
             statuses: ("complete" | "provisional" | "incomplete")[] | undefined;
-        }, "tenantId" | "from" | "to" | "statuses">> & {} & {
+        }, "tenantId" | "statuses" | "from" | "to">> & {} & {
             limit?: number;
             after?: string;
             before?: string;

@@ -1,6 +1,7 @@
 import { Service } from '@lowerdeck/service';
 import { db, ID, type SandboxMachineImageStatus, type SandboxRegion } from '@metorial/db';
 import { getRegionClient } from '../lib/regions';
+import { indexSandboxImageQueue } from '../queues/search';
 
 let SYNC_PAGE_SIZE = 100;
 
@@ -150,6 +151,11 @@ class SandboxImageInternalServiceImpl {
     syncedAt: Date;
     item: { id: string; identifier: string; name: string | null; currentVersionId: string };
   }) {
+    let existing = await db.sandboxMachineImage.findUnique({
+      where: { identifier: d.item.identifier },
+      select: { name: true }
+    });
+
     let image = await db.sandboxMachineImage.upsert({
       where: { identifier: d.item.identifier },
       create: {
@@ -160,6 +166,10 @@ class SandboxImageInternalServiceImpl {
       },
       update: { name: d.item.name, lastSyncedAt: d.syncedAt }
     });
+
+    if (!existing || existing.name != d.item.name) {
+      await indexSandboxImageQueue.add({ imageOid: image.oid.toString() });
+    }
 
     let imageRegion = await db.sandboxMachineImageRegion.upsert({
       where: { imageOid_regionOid: { imageOid: image.oid, regionOid: d.region.oid } },

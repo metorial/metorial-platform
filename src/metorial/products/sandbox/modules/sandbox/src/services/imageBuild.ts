@@ -7,18 +7,34 @@ import {
   ID,
   withTransaction,
   type Instance,
+  type Organization,
   type SandboxMachineImage,
   type SandboxMachineImageBuildStatus
 } from '@metorial/db';
+import {
+  sandboxImageBuildContextFilePurposeSlug,
+  sandboxImageBuildContextMaxBytes
+} from '@metorial/module-file';
+import { flagService } from '@metorial/module-flags';
 import { resolveBuildRegion } from '../lib/buildRegion';
 import { endImageBuild } from '../lib/imageBuildEnd';
 import { getRegional } from '../lib/regional';
 import { getRegionClient } from '../lib/regions';
 import { imageBuildRootQueue } from '../queues/imageBuild';
+import { imageBuildUploadQueue } from '../queues/imageBuildUpload';
 import { sandboxTenantService } from './tenant';
+
+export type SandboxBuildContextFile = {
+  oid: bigint;
+  id: string;
+  status: string;
+  fileSize: number;
+  purpose: { slug: string };
+};
 
 export let sandboxImageBuildInclude = {
   image: true,
+  sourceFile: { select: { id: true } },
   version: true,
   regions: { include: { region: true, tenant: true }, orderBy: { oid: 'asc' } }
 } as const;
@@ -32,9 +48,33 @@ let ACTIVE_BUILD_STATUSES: SandboxMachineImageBuildStatus[] = [
 ];
 
 class SandboxImageBuildServiceImpl {
+  private assertContextFile(file: SandboxBuildContextFile) {
+    if (file.status != 'active') {
+      throw new ServiceError(
+        badRequestError({ message: 'The build context file was deleted' })
+      );
+    }
+
+    if (file.purpose.slug != sandboxImageBuildContextFilePurposeSlug) {
+      throw new ServiceError(
+        badRequestError({
+          message: `The build context file must be uploaded with the ${sandboxImageBuildContextFilePurposeSlug} purpose`
+        })
+      );
+    }
+
+    if (file.fileSize > sandboxImageBuildContextMaxBytes) {
+      throw new ServiceError(
+        badRequestError({ message: 'The build context file is too large' })
+      );
+    }
+  }
+
   async create(d: {
     instance: Instance;
+    organization: Organization;
     image: SandboxMachineImage;
+    file: SandboxBuildContextFile;
     input: {
       dockerfilePath?: string;
       contextPath?: string;
@@ -42,12 +82,13 @@ class SandboxImageBuildServiceImpl {
       buildArgs?: Record<string, string>;
       timeoutSeconds?: number;
       diskSizeBytes?: number;
-      builderMemoryMiB?: number;
     };
   }) {
     if (d.image.instanceOid != d.instance.oid || d.image.status == 'deleted') {
       throw new ServiceError(notFoundError('sandbox_image', d.image.id));
     }
+
+    this.assertContextFile(d.file);
 
     let regions = await db.sandboxRegion.findMany({
       where: { status: 'active' },
@@ -64,6 +105,8 @@ class SandboxImageBuildServiceImpl {
     let builderTenant = tenants.find(tenant => tenant.regionOid == buildRegion.oid)!;
     let { genesis, tenantId } = getRegional(builderTenant);
 
+    let flags = await flagService.getFlags({ organization: d.organization });
+
     let buildId = await ID.generateId('sandboxMachineImageBuild');
 
     let genesisImage = await genesis.machineImage.create({
@@ -74,7 +117,7 @@ class SandboxImageBuildServiceImpl {
     let remote = await genesis.machineImage.build.create({
       tenantId,
       imageId: genesisImage.id,
-      options: d.input,
+      options: { ...d.input, builderMemoryMiB: flags['sandbox-builder-memory-mib'] },
       idempotencyKey: buildId
     });
 
@@ -94,7 +137,8 @@ class SandboxImageBuildServiceImpl {
             diskSizeBytes: BigInt(remote.options.diskSizeBytes),
             instanceOid: d.instance.oid,
             imageOid: d.image.oid,
-            versionOid: version.oid
+            versionOid: version.oid,
+            sourceFileOid: d.file.oid
           }
         });
 
@@ -117,17 +161,15 @@ class SandboxImageBuildServiceImpl {
           });
         }
 
-        addAfterTransactionHook(() =>
-          imageBuildRootQueue.add({ buildOid: created.oid.toString() })
-        );
+        addAfterTransactionHook(async () => {
+          await imageBuildUploadQueue.add({ buildOid: created.oid.toString() });
+          await imageBuildRootQueue.add({ buildOid: created.oid.toString() });
+        });
 
         return created;
       });
 
-      return {
-        build: await this.get({ instance: d.instance, buildId: build.id }),
-        upload: remote.upload
-      };
+      return await this.get({ instance: d.instance, buildId: build.id });
     } catch (err) {
       await genesis.machineImage.build
         .cancel({ tenantId, buildId: remote.id })
@@ -150,6 +192,8 @@ class SandboxImageBuildServiceImpl {
   async list(d: {
     instance: Instance;
     image?: SandboxMachineImage;
+    imageIds?: string[];
+    imageVersionIds?: string[];
     statuses?: SandboxMachineImageBuildStatus[];
   }) {
     return Paginator.create(({ prisma }) =>
@@ -160,6 +204,8 @@ class SandboxImageBuildServiceImpl {
             where: {
               instanceOid: d.instance.oid,
               ...(d.image ? { imageOid: d.image.oid } : {}),
+              ...(d.imageIds ? { image: { id: { in: d.imageIds } } } : {}),
+              ...(d.imageVersionIds ? { version: { id: { in: d.imageVersionIds } } } : {}),
               ...(d.statuses ? { status: { in: d.statuses } } : {})
             },
             include: sandboxImageBuildInclude

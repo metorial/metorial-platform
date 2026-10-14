@@ -46,6 +46,7 @@ let db = {
   sandboxMachineImageVersionRegion: { upsert: vi.fn() }
 };
 
+let getFlags = vi.fn(async () => ({ 'sandbox-builder-memory-mib': 4096 }));
 let refreshAvailability = vi.fn();
 let ensureTenant = vi.fn();
 
@@ -58,6 +59,12 @@ vi.mock('../src/internal/imageInternal', () => ({
   sandboxImageInternalService: { refreshAvailability }
 }));
 vi.mock('../src/services/tenant', () => ({ sandboxTenantService: { ensure: ensureTenant } }));
+vi.mock('@metorial/module-file', () => ({
+  sandboxImageBuildContextFilePurposeSlug: 'sandbox_image_build_context',
+  sandboxImageBuildContextMaxBytes: 50 * 1024 * 1024,
+  fileService: { downloadFileContent: vi.fn() }
+}));
+vi.mock('@metorial/module-flags', () => ({ flagService: { getFlags } }));
 vi.mock('@metorial/cron', () => ({ createCron: vi.fn((_: any, fn: any) => fn) }));
 vi.mock('@metorial/queue', () => ({
   combineQueueProcessors: vi.fn((list: any[]) => list),
@@ -84,6 +91,7 @@ vi.mock('@metorial/db', () => ({
 
 await import('../src/queues/imageBuild');
 await import('../src/queues/imageBuildCancel');
+await import('../src/queues/imageBuildUpload');
 let { stalledImageBuildsCron } = await import('../src/queues/stalledImageBuilds');
 let { sandboxImageBuildService } = await import('../src/services/imageBuild');
 
@@ -93,6 +101,7 @@ let regionJob = () => processors['sbx/image/build/region']!;
 let eu = { oid: 1n, id: 'aws:eu-west-1', identifier: 'dub1' };
 let us = { oid: 2n, id: 'aws:us-east-1', identifier: 'iad1' };
 let instance = { oid: 7n, organizationOid: 8n, projectOid: 9n } as any;
+let organization = { oid: 8n } as any;
 
 let row = (r: any, overrides: any = {}) => ({
   oid: BigInt(r.oid) + 100n,
@@ -613,6 +622,13 @@ describe('sandboxImageBuildService', () => {
     instanceOid: 7n,
     status: 'pending'
   } as any;
+  let file = {
+    oid: 90n,
+    id: 'file_1',
+    status: 'active',
+    fileSize: 1024,
+    purpose: { slug: 'sandbox_image_build_context' }
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -648,16 +664,16 @@ describe('sandboxImageBuildService', () => {
   it('builds in the region of the Metorial region and prepares a replica for each other region', async () => {
     env.service.METORIAL_REGION = 'us1';
 
-    let result = await sandboxImageBuildService.create({ instance, image, input: {} });
+    await sandboxImageBuildService.create({ instance, organization, image, file, input: {} });
 
     expect(clients['aws:us-east-1']!.machineImage.build.create).toHaveBeenCalledWith({
       tenantId: 'tenant_iad1',
       imageId: 'gimg',
-      options: {},
+      options: { builderMemoryMiB: 4096 },
       idempotencyKey: 'sandboxMachineImageBuild_new'
     });
     expect(clients['aws:eu-west-1']!.machineImage.build.create).not.toHaveBeenCalled();
-    expect(result.upload).toMatchObject({ path: 'p' });
+    expect(db.sandboxMachineImageBuild.create.mock.calls[0]![0].data.sourceFileOid).toBe(90n);
 
     let kinds = db.sandboxMachineImageBuildRegion.create.mock.calls.map((call: any) => [
       call[0].data.regionOid,
@@ -672,10 +688,55 @@ describe('sandboxImageBuildService', () => {
       'build:sandboxMachineImageBuild_new'
     );
     expect(queues['sbx/image/build/root']!.add).toHaveBeenCalledWith({ buildOid: '50' });
+    expect(queues['sbx/image/build/upload']!.add).toHaveBeenCalledWith({ buildOid: '50' });
+  });
+
+  it('filters the list by image and image version ids', async () => {
+    db.sandboxMachineImageBuild.findMany.mockResolvedValue([]);
+
+    let paginator = await sandboxImageBuildService.list({
+      instance,
+      imageIds: ['sbi_1'],
+      imageVersionIds: ['sbv_1', 'sbv_2'],
+      statuses: ['succeeded']
+    });
+    await paginator.run({});
+
+    expect(db.sandboxMachineImageBuild.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          image: { id: { in: ['sbi_1'] } },
+          version: { id: { in: ['sbv_1', 'sbv_2'] } },
+          status: { in: ['succeeded'] }
+        }
+      })
+    );
+  });
+
+  it('rejects a build context with the wrong purpose, a deleted file or too many bytes', async () => {
+    for (let bad of [
+      { ...file, purpose: { slug: 'generic' } },
+      { ...file, status: 'deleted' },
+      { ...file, fileSize: 50 * 1024 * 1024 + 1 }
+    ]) {
+      await expect(
+        sandboxImageBuildService.create({
+          instance,
+          organization,
+          image,
+          file: bad,
+          input: {}
+        })
+      ).rejects.toThrow();
+    }
+
+    expect(db.sandboxMachineImageBuild.create).not.toHaveBeenCalled();
+    expect(clients['aws:eu-west-1']!.machineImage.build.create).not.toHaveBeenCalled();
   });
 
   it('picks the first region when the Metorial region has no build region', async () => {
-    await sandboxImageBuildService.create({ instance, image, input: {} });
+    await sandboxImageBuildService.create({ instance, organization, image, file, input: {} });
 
     expect(clients['aws:eu-west-1']!.machineImage.build.create).toHaveBeenCalled();
   });
@@ -684,7 +745,7 @@ describe('sandboxImageBuildService', () => {
     db.sandboxMachineImageBuild.create.mockRejectedValue(new Error('db down'));
 
     await expect(
-      sandboxImageBuildService.create({ instance, image, input: {} })
+      sandboxImageBuildService.create({ instance, organization, image, file, input: {} })
     ).rejects.toThrow('db down');
 
     expect(clients['aws:eu-west-1']!.machineImage.build.cancel).toHaveBeenCalledWith({
@@ -697,7 +758,9 @@ describe('sandboxImageBuildService', () => {
     await expect(
       sandboxImageBuildService.create({
         instance,
+        organization,
         image: { ...image, instanceOid: 99n },
+        file,
         input: {}
       })
     ).rejects.toThrow();

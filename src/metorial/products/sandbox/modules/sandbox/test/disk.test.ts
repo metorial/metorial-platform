@@ -181,6 +181,36 @@ describe('sandboxDiskService.get and list', () => {
     );
   });
 
+  it('filters the list to the disks of the given machines', async () => {
+    db.sandboxMachine.findMany.mockResolvedValue([{ oid: 3n, id: 'sbm_1', tenant }]);
+    genesis.machine.getMany.mockResolvedValue([
+      {
+        id: 'sbm_1',
+        rootFs: { current: { diskId: 'sbd_root1' }, desired: { diskId: 'sbd_root2' } },
+        disks: [
+          { diskId: 'sbd_1', state: 'mounted' },
+          { diskId: 'sbd_old', state: 'released' }
+        ]
+      }
+    ]);
+    db.sandboxDisk.findMany.mockResolvedValue([]);
+
+    await sandboxDiskService.list({ instance, machineIds: ['sbm_1'] }).run({});
+
+    expect(db.sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: { in: ['sbm_1'] }, instanceOid: 7n } })
+    );
+    expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          id: { in: ['sbd_root1', 'sbd_root2', 'sbd_1'] }
+        }
+      })
+    );
+  });
+
   it('returns a root filesystem disk from get with its machine link', async () => {
     db.sandboxDisk.findFirst.mockResolvedValue({
       ...disk,

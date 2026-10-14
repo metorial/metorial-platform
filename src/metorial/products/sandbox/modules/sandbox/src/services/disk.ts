@@ -29,6 +29,32 @@ class SandboxDiskServiceImpl {
     return hydrated;
   }
 
+  private async resolveMachineDiskIds(d: { instance: Instance; machineIds: string[] }) {
+    let machines = await db.sandboxMachine.findMany({
+      where: { id: { in: d.machineIds }, instanceOid: d.instance.oid },
+      include: sandboxDiskInclude
+    });
+
+    let hydrated = await hydrateByTenant(machines, ({ genesis, tenantId, ids }) =>
+      genesis.machine.getMany({ tenantId, ids })
+    );
+
+    return [
+      ...new Set(
+        hydrated.flatMap(machine => {
+          let remote = machine.remote;
+          if (!remote) return [];
+
+          return [
+            remote.rootFs.current?.diskId,
+            remote.rootFs.desired?.diskId,
+            ...remote.disks.filter(disk => disk.state != 'released').map(disk => disk.diskId)
+          ].filter((diskId): diskId is string => !!diskId);
+        })
+      )
+    ];
+  }
+
   async create(d: {
     instance: Instance;
     regionIdentifier: string;
@@ -83,20 +109,31 @@ class SandboxDiskServiceImpl {
     return hydrated!;
   }
 
-  list(d: { instance: Instance; types?: SandboxDiskType[] }) {
+  list(d: { instance: Instance; types?: SandboxDiskType[]; machineIds?: string[] }) {
+    let machineDiskIds: Promise<string[]> | undefined;
+
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.sandboxDisk.findMany({
-            ...opts,
-            where: {
-              instanceOid: d.instance.oid,
-              status: 'active',
-              ...(d.types ? { type: { in: d.types } } : {})
-            },
-            include: sandboxDiskInclude
-          })
-      )
+      prisma(async opts => {
+        if (d.machineIds && !machineDiskIds) {
+          machineDiskIds = this.resolveMachineDiskIds({
+            instance: d.instance,
+            machineIds: d.machineIds
+          });
+        }
+
+        let diskIds = await machineDiskIds;
+
+        return await db.sandboxDisk.findMany({
+          ...opts,
+          where: {
+            instanceOid: d.instance.oid,
+            status: 'active',
+            ...(d.types ? { type: { in: d.types } } : {}),
+            ...(diskIds ? { id: { in: diskIds } } : {})
+          },
+          include: sandboxDiskInclude
+        });
+      })
     ).mapAll(disks => this.hydrate(disks));
   }
 

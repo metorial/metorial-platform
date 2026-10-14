@@ -15,9 +15,9 @@ export type SandboxMachineOperationFilter = Pick<
   'kinds' | 'triggers' | 'outcomes'
 >;
 
-export type SandboxInstanceOperationFilter = Pick<
-  GenesisInput<GenesisInternalClient['machine']['instance']['operation']['list']>,
-  'kinds' | 'triggers' | 'outcomes'
+export type SandboxMachineInstanceFilter = Pick<
+  GenesisInput<GenesisInternalClient['machine']['instance']['list']>,
+  'statuses'
 >;
 
 export type SandboxDiskResizeFilter = Pick<

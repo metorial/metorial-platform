@@ -11,15 +11,21 @@ import {
   type SandboxMachineImageStatus,
   withTransaction
 } from '@metorial/db';
+import {
+  isSearchEnabled,
+  searchSandboxImageIds,
+  sandboxGlobalSearchTenantId
+} from '@metorial/module-search';
 import { sandboxDiskInternalService } from '../internal/diskInternal';
 import { terminalBuildStatuses } from '../lib/imageBuildEnd';
 import { getRegional } from '../lib/regional';
 import { imageRemoteRootQueue } from '../queues/imageRemote';
+import { indexSandboxImageQueue } from '../queues/search';
 import { sandboxImageBuildService } from './imageBuild';
 import { sandboxRegionService } from './region';
 import { sandboxTenantService } from './tenant';
 
-export type SandboxImageOwner = 'all' | 'own' | 'global';
+export type SandboxImageOwner = 'own' | 'global';
 
 export let sandboxImageInclude = {
   regions: { where: { status: 'active' }, include: { region: true } },
@@ -28,7 +34,7 @@ export let sandboxImageInclude = {
 
 class SandboxImageServiceImpl {
   async create(d: { instance: Instance; input: { name?: string } }) {
-    return await db.sandboxMachineImage.create({
+    let image = await db.sandboxMachineImage.create({
       data: {
         id: await ID.generateId('sandboxMachineImage'),
         name: d.input.name ?? null,
@@ -38,28 +44,36 @@ class SandboxImageServiceImpl {
       },
       include: sandboxImageInclude
     });
+
+    await indexSandboxImageQueue.add({ imageOid: image.oid.toString() });
+
+    return image;
   }
 
   async list(d: {
     instance: Instance;
-    owner?: SandboxImageOwner;
+    owners?: SandboxImageOwner[];
     statuses?: SandboxMachineImageStatus[];
     search?: string;
   }) {
+    let searchIds: Promise<string[] | undefined> | undefined;
+
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.sandboxMachineImage.findMany({
-            ...opts,
-            where: this.visibleTo({
-              instance: d.instance,
-              owner: d.owner,
-              statuses: d.statuses,
-              search: d.search
-            }),
-            include: sandboxImageInclude
-          })
-      )
+      prisma(async opts => {
+        searchIds ??= this.resolveSearchIds({ instance: d.instance, search: d.search });
+
+        return await db.sandboxMachineImage.findMany({
+          ...opts,
+          where: this.visibleTo({
+            instance: d.instance,
+            owners: d.owners,
+            statuses: d.statuses,
+            search: d.search,
+            searchIds: await searchIds
+          }),
+          include: sandboxImageInclude
+        });
+      })
     );
   }
 
@@ -152,6 +166,7 @@ class SandboxImageServiceImpl {
       });
 
       await imageRemoteRootQueue.add({ imageOid: d.image.oid.toString() });
+      await indexSandboxImageQueue.add({ imageOid: d.image.oid.toString() });
     }
 
     return await this.get({ instance: d.instance, imageId: d.image.id });
@@ -182,9 +197,10 @@ class SandboxImageServiceImpl {
         data: { status: 'deleted', deletedAt: new Date() }
       });
 
-      addAfterTransactionHook(() =>
-        imageRemoteRootQueue.add({ imageOid: d.image.oid.toString() })
-      );
+      addAfterTransactionHook(async () => {
+        await imageRemoteRootQueue.add({ imageOid: d.image.oid.toString() });
+        await indexSandboxImageQueue.add({ imageOid: d.image.oid.toString() });
+      });
     });
 
     return await this.get({ instance: d.instance, imageId: d.image.id });
@@ -196,13 +212,29 @@ class SandboxImageServiceImpl {
     }
   }
 
+  private async resolveSearchIds(d: {
+    instance: Instance;
+    search?: string;
+  }): Promise<string[] | undefined> {
+    let search = d.search?.trim();
+    if (!search || !isSearchEnabled()) return undefined;
+
+    let [own, global] = await Promise.all([
+      searchSandboxImageIds({ tenantId: d.instance.id, query: search }),
+      searchSandboxImageIds({ tenantId: sandboxGlobalSearchTenantId, query: search })
+    ]);
+
+    return [...new Set([...own, ...global])];
+  }
+
   private visibleTo(d: {
     instance: Instance;
-    owner?: SandboxImageOwner;
+    owners?: SandboxImageOwner[];
     statuses?: SandboxMachineImageStatus[];
     search?: string;
+    searchIds?: string[];
   }) {
-    let owner = d.owner ?? 'all';
+    let owners = d.owners ?? ['own', 'global'];
 
     let global = { instanceOid: null, status: { in: d.statuses ?? ['active'] } };
     let own = {
@@ -212,17 +244,24 @@ class SandboxImageServiceImpl {
 
     return {
       AND: [
-        { OR: owner == 'global' ? [global] : owner == 'own' ? [own] : [global, own] },
-        ...(d.search
-          ? [
-              {
-                OR: [
-                  { name: { contains: d.search, mode: 'insensitive' as const } },
-                  { identifier: { contains: d.search, mode: 'insensitive' as const } }
-                ]
-              }
-            ]
-          : [])
+        {
+          OR: [
+            ...(owners.includes('global') ? [global] : []),
+            ...(owners.includes('own') ? [own] : [])
+          ]
+        },
+        ...(d.searchIds
+          ? [{ id: { in: d.searchIds } }]
+          : d.search
+            ? [
+                {
+                  OR: [
+                    { name: { contains: d.search, mode: 'insensitive' as const } },
+                    { identifier: { contains: d.search, mode: 'insensitive' as const } }
+                  ]
+                }
+              ]
+            : [])
       ]
     } satisfies Prisma.SandboxMachineImageWhereInput;
   }

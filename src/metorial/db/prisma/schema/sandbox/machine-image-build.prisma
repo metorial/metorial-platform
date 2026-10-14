@@ -40,14 +40,18 @@ model SandboxMachineImageBuild {
   failureCode    String?
   failureMessage String?
 
-  lastCheckedAt DateTime  @default(now())
-  builtAt       DateTime?
-  endedAt       DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
+  lastCheckedAt     DateTime  @default(now())
+  contextUploadedAt DateTime?
+  builtAt           DateTime?
+  endedAt           DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  sourceFileOid BigInt?
+  sourceFile    File?   @relation(fields: [sourceFileOid], references: [oid], onDelete: SetNull)
 
   imageOid BigInt
   image    SandboxMachineImage @relation(fields: [imageOid], references: [oid], onDelete: Cascade)

@@ -7,7 +7,9 @@ type VoyagerIndex =
   | 'consumerAccessRequest'
   | 'providerTemplate'
   | 'magicMcpGroup'
-  | 'magicMcpServer';
+  | 'magicMcpServer'
+  | 'sandboxImage'
+  | 'sandboxMachine';
 
 type VoyagerSearchInput = {
   index: VoyagerIndex;
@@ -80,6 +82,22 @@ type MagicMcpServerIndexInput = {
   description?: string | null;
 };
 
+type SandboxImageIndexInput = {
+  id: string;
+  tenantId: string;
+  name?: string | null;
+  identifier?: string | null;
+};
+
+type SandboxMachineIndexInput = {
+  id: string;
+  instanceId: string;
+  name?: string | null;
+  slug: string;
+};
+
+export let sandboxGlobalSearchTenantId = 'sandbox_global';
+
 let getIndexName = (suffix: string) =>
   [env.service.VOYAGER_INDEX_PREFIX, 'metorial', suffix].filter(Boolean).join('_');
 
@@ -116,6 +134,14 @@ let voyagerIndexes = {
   magicMcpServer: {
     identifier: 'magic_mcp_server',
     name: 'Magic MCP Servers'
+  },
+  sandboxImage: {
+    identifier: 'sandbox_image',
+    name: 'Sandbox Images'
+  },
+  sandboxMachine: {
+    identifier: 'sandbox_machine',
+    name: 'Sandbox Machines'
   }
 } satisfies Record<VoyagerIndex, { identifier: string; name: string }>;
 
@@ -224,6 +250,8 @@ let deleteByType = async (d: VoyagerDeleteInput) => {
   }
 };
 
+export let isSearchEnabled = () => !!voyager;
+
 export let searchConsumerIds = async (d: { instanceId: string; query: string }) =>
   await searchByIndex({
     index: 'consumer',
@@ -262,6 +290,20 @@ export let searchMagicMcpGroupIds = async (d: { instanceId: string; query: strin
 export let searchMagicMcpServerIds = async (d: { instanceId: string; query: string }) =>
   await searchByIndex({
     index: 'magicMcpServer',
+    instanceId: d.instanceId,
+    query: d.query
+  });
+
+export let searchSandboxImageIds = async (d: { tenantId: string; query: string }) =>
+  await searchByIndex({
+    index: 'sandboxImage',
+    instanceId: d.tenantId,
+    query: d.query
+  });
+
+export let searchSandboxMachineIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({
+    index: 'sandboxMachine',
     instanceId: d.instanceId,
     query: d.query
   });
@@ -402,5 +444,47 @@ export let deleteMagicMcpGroupDocument = async (d: { id: string }) =>
 export let deleteMagicMcpServerDocument = async (d: { id: string }) =>
   await deleteByType({
     index: 'magicMcpServer',
+    id: d.id
+  });
+
+export let indexSandboxImageDocument = async (d: SandboxImageIndexInput) =>
+  await indexByType({
+    index: 'sandboxImage',
+    id: d.id,
+    instanceId: d.tenantId,
+    fields: {
+      sandboxImageId: d.id
+    },
+    body: {
+      id: d.id,
+      name: d.name ?? undefined,
+      identifier: d.identifier ?? undefined
+    }
+  });
+
+export let indexSandboxMachineDocument = async (d: SandboxMachineIndexInput) =>
+  await indexByType({
+    index: 'sandboxMachine',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: {
+      sandboxMachineId: d.id
+    },
+    body: {
+      id: d.id,
+      name: d.name ?? undefined,
+      slug: d.slug
+    }
+  });
+
+export let deleteSandboxImageDocument = async (d: { id: string }) =>
+  await deleteByType({
+    index: 'sandboxImage',
+    id: d.id
+  });
+
+export let deleteSandboxMachineDocument = async (d: { id: string }) =>
+  await deleteByType({
+    index: 'sandboxMachine',
     id: d.id
   });

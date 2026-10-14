@@ -22,6 +22,7 @@ export type Flags = {
   'assistant-enabled': FlagValue;
   'advanced-security-management-enabled': FlagValue;
   'networking-enabled': FlagValue;
+  'sandbox-enabled': FlagValue;
   outposts: FlagValue;
 
   'paid-oauth-import': FlagValue;
@@ -41,8 +42,15 @@ export type Flags = {
   'paid-key-providers': FlagValue;
   'paid-networking': FlagValue;
   'paid-network-ip-access': FlagValue;
+  'paid-sandboxes': FlagValue;
   'paid-advanced-org-management': FlagValue;
+
+  'sandbox-builder-memory-mib': number;
 };
+
+export type BooleanFlagKey = {
+  [K in keyof Flags]: Flags[K] extends number ? never : K;
+}[keyof Flags];
 
 export let disabledFlag = (reason: string): DisabledFlag => ({ enabled: false, reason });
 
@@ -66,6 +74,7 @@ export let defaultFlags: Flags = {
   'assistant-enabled': false,
   'advanced-security-management-enabled': false,
   'networking-enabled': false,
+  'sandbox-enabled': false,
   outposts: false,
 
   'paid-oauth-import': true,
@@ -85,7 +94,10 @@ export let defaultFlags: Flags = {
   'paid-key-providers': true,
   'paid-networking': true,
   'paid-network-ip-access': true,
-  'paid-advanced-org-management': true
+  'paid-sandboxes': true,
+  'paid-advanced-org-management': true,
+
+  'sandbox-builder-memory-mib': 8192
 };
 
 export type FlagProviderParams = {

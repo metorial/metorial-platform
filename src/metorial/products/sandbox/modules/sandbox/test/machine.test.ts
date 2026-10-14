@@ -25,6 +25,10 @@ vi.mock('../src/lib/regions', () => ({
   getRegionClient: vi.fn((id: string) => genesisByRegion[id])
 }));
 vi.mock('@metorial/db', () => ({ db }));
+vi.mock('../src/queues/search', () => ({
+  indexSandboxImageQueue: { add: vi.fn() },
+  indexSandboxMachineQueue: { add: vi.fn() }
+}));
 vi.mock('../src/services/region', () => ({
   sandboxRegionService: { getByIdentifier: vi.fn() }
 }));
@@ -35,6 +39,12 @@ vi.mock('../src/internal/machineEgressInternal', () => ({
     attach: vi.fn(),
     setFirewalls: vi.fn()
   }
+}));
+let search = { enabled: false, searchSandboxMachineIds: vi.fn() };
+
+vi.mock('@metorial/module-search', () => ({
+  isSearchEnabled: () => search.enabled,
+  searchSandboxMachineIds: search.searchSandboxMachineIds
 }));
 vi.mock('../src/services/tenant', () => ({ sandboxTenantService: { ensure: vi.fn() } }));
 
@@ -58,7 +68,7 @@ let tenant = (id: string, regionRow: ReturnType<typeof region>) => ({
 
 let useast = region('aws:us-east-1', 1n);
 let euwest = region('aws:eu-west-1', 2n);
-let instance = { oid: 7n, projectOid: 6n, organizationOid: 5n } as any;
+let instance = { oid: 7n, id: 'ins_1', projectOid: 6n, organizationOid: 5n } as any;
 
 describe('sandboxMachineService.create', () => {
   beforeEach(() => {
@@ -69,12 +79,15 @@ describe('sandboxMachineService.create', () => {
     (sandboxSpecService.resolve as any).mockResolvedValue({
       spec: { memoryMiB: 2048, vcpus: 2 }
     });
-    db.sandboxMachineImageRegion.findFirst.mockResolvedValue({ genesisId: 'sbi_regional' });
+    db.sandboxMachineImageRegion.findFirst.mockResolvedValue({
+      genesisId: 'sbi_regional',
+      imageOid: 12n
+    });
     genesisByRegion['aws:us-east-1']!.machine.create.mockResolvedValue({
       id: 'sbm_1',
       rootFs: { desired: null, current: null }
     });
-    db.sandboxMachine.create.mockImplementation(async (a: any) => a.data);
+    db.sandboxMachine.create.mockImplementation(async (a: any) => ({ oid: 30n, ...a.data }));
   });
 
   it('maps the global image and spec to the region and records the machine', async () => {
@@ -92,7 +105,8 @@ describe('sandboxMachineService.create', () => {
     });
     expect(db.sandboxMachine.create.mock.calls[0]![0].data).toMatchObject({
       id: 'sbm_1',
-      instanceOid: 7n
+      instanceOid: 7n,
+      imageOid: 12n
     });
     expect(result.remote).toMatchObject({ id: 'sbm_1' });
   });
@@ -282,6 +296,65 @@ describe('sandboxMachineService.list', () => {
     ]);
     expect(genesisByRegion['aws:us-east-1']!.machine.getMany).toHaveBeenCalledTimes(1);
     expect(genesisByRegion['aws:eu-west-1']!.machine.getMany).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('sandboxMachineService.list filters', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    search.enabled = false;
+    (db as any).sandboxMachine.findMany = vi.fn().mockResolvedValue([]);
+  });
+
+  it('filters by the images the machines boot from', async () => {
+    let paginator = await sandboxMachineService.list({
+      instance,
+      imageIds: ['sbi_1', 'sbi_2']
+    });
+    await paginator.run({});
+
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          image: { id: { in: ['sbi_1', 'sbi_2'] } }
+        }
+      })
+    );
+  });
+
+  it('searches through voyager when it is configured', async () => {
+    search.enabled = true;
+    search.searchSandboxMachineIds.mockResolvedValue(['sbm_a', 'sbm_b']);
+
+    let paginator = await sandboxMachineService.list({ instance, search: ' web ' });
+    await paginator.run({});
+
+    expect(search.searchSandboxMachineIds).toHaveBeenCalledWith({
+      instanceId: instance.id,
+      query: 'web'
+    });
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { instanceOid: 7n, status: 'active', id: { in: ['sbm_a', 'sbm_b'] } }
+      })
+    );
+  });
+
+  it('falls back to matching the id when voyager is not configured', async () => {
+    let paginator = await sandboxMachineService.list({ instance, search: 'sbm_a' });
+    await paginator.run({});
+
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          id: { contains: 'sbm_a', mode: 'insensitive' }
+        }
+      })
+    );
   });
 });
 

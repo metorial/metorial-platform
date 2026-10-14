@@ -32,6 +32,17 @@ let db = {
 vi.mock('../src/env', () => ({ env: { genesis: {} } }));
 vi.mock('../src/lib/regions', () => ({ getRegionClient: vi.fn(() => genesis) }));
 vi.mock('../src/queues/imageBuild', () => ({ imageBuildRootQueue: { add: vi.fn() } }));
+let search = { enabled: false, searchSandboxImageIds: vi.fn() };
+
+vi.mock('@metorial/module-search', () => ({
+  isSearchEnabled: () => search.enabled,
+  sandboxGlobalSearchTenantId: 'sandbox_global',
+  searchSandboxImageIds: search.searchSandboxImageIds
+}));
+vi.mock('../src/queues/search', () => ({
+  indexSandboxImageQueue: { add: vi.fn() },
+  indexSandboxMachineQueue: { add: vi.fn() }
+}));
 vi.mock('../src/queues/imageRemote', () => ({ imageRemoteRootQueue: { add: vi.fn() } }));
 vi.mock('../src/lib/imageBuildEnd', () => ({
   terminalBuildStatuses: ['succeeded', 'failed', 'cancelled', 'timed_out']
@@ -76,7 +87,7 @@ let region = { oid: 1n, id: 'aws:us-east-1', identifier: 'us-east-1' };
 let tenant = { oid: 100n, id: 'sbt_1', slug: 'p', region } as any;
 let machine = { oid: 5n, id: 'sbm_1', status: 'active', tenant } as any;
 let terminated = { ...machine, status: 'deleted' } as any;
-let instance = { oid: 7n } as any;
+let instance = { oid: 7n, id: 'ins_1' } as any;
 
 let page = (items: any[], pagination: Record<string, unknown> = {}) => ({
   items,
@@ -178,13 +189,16 @@ describe('sandboxMachineInstanceService', () => {
     genesis.machine.instance.list.mockResolvedValue(page([{ id: 'sbmi_1' }]));
     genesis.machine.instance.get.mockResolvedValue({ id: 'sbmi_1' });
 
-    let list = await sandboxMachineInstanceService.list({ machine }).run({ limit: 5 });
+    let list = await sandboxMachineInstanceService
+      .list({ machine, statuses: ['running'] })
+      .run({ limit: 5 });
     await sandboxMachineInstanceService.get({ machine, instanceId: 'sbmi_1' });
 
     expect(list.items).toEqual([{ id: 'sbmi_1' }]);
     expect(genesis.machine.instance.list).toHaveBeenCalledWith({
       tenantId: 'sbt_1',
       machineId: 'sbm_1',
+      statuses: ['running'],
       limit: 5,
       order: 'asc',
       after: undefined
@@ -292,77 +306,65 @@ describe('sandboxMachineEventService', () => {
   });
 });
 
-describe.each([
-  {
-    name: 'sandboxMachineOperationService',
-    service: sandboxMachineOperationService,
-    key: 'operation' as const,
-    idField: 'operationId'
-  },
-  {
-    name: 'sandboxMachineErrorService',
-    service: sandboxMachineErrorService,
-    key: 'guestError' as const,
-    idField: 'errorId'
-  }
-])('$name', ({ service, key, idField }) => {
-  it('lists at machine level without an instance', async () => {
-    genesis.machine[key].list.mockResolvedValue(page([]));
-
-    await (service as any).list({ machine }).run({});
-
-    expect(genesis.machine[key].list).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: 'sbt_1', machineId: 'sbm_1' })
-    );
-    expect(genesis.machine.instance[key].list).not.toHaveBeenCalled();
-  });
-
-  it('forwards array filters at both levels', async () => {
-    if (key != 'operation') return;
-
+describe('sandboxMachineOperationService', () => {
+  it('forwards instance and array filters at machine level', async () => {
     genesis.machine.operation.list.mockResolvedValue(page([]));
-    genesis.machine.instance.operation.list.mockResolvedValue(page([]));
 
-    await (service as any)
-      .list({ machine, kinds: ['start'], triggers: ['api'], outcomes: ['failed'] })
-      .run({});
-    await (service as any)
-      .list({ machine, instanceId: 'sbmi_1', kinds: ['pause'], outcomes: ['active'] })
+    await sandboxMachineOperationService
+      .list({
+        machine,
+        instanceIds: ['sbmi_1', 'sbmi_2'],
+        kinds: ['start'],
+        triggers: ['api'],
+        outcomes: ['failed']
+      })
       .run({});
 
     expect(genesis.machine.operation.list).toHaveBeenCalledWith(
-      expect.objectContaining({ kinds: ['start'], triggers: ['api'], outcomes: ['failed'] })
-    );
-    expect(genesis.machine.instance.operation.list).toHaveBeenCalledWith(
-      expect.objectContaining({ kinds: ['pause'], outcomes: ['active'] })
+      expect.objectContaining({
+        tenantId: 'sbt_1',
+        machineId: 'sbm_1',
+        instanceIds: ['sbmi_1', 'sbmi_2'],
+        kinds: ['start'],
+        triggers: ['api'],
+        outcomes: ['failed']
+      })
     );
   });
 
-  it('lists at instance level when an instance is given', async () => {
-    genesis.machine.instance[key].list.mockResolvedValue(page([]));
+  it('gets one operation through the machine scope', async () => {
+    await sandboxMachineOperationService.get({ machine, operationId: 'sbmo_1' });
 
-    await (service as any).list({ machine, instanceId: 'sbmi_1' }).run({});
-
-    expect(genesis.machine.instance[key].list).toHaveBeenCalledWith(
-      expect.objectContaining({ machineId: 'sbm_1', instanceId: 'sbmi_1' })
-    );
-    expect(genesis.machine[key].list).not.toHaveBeenCalled();
-  });
-
-  it('gets at machine and instance level', async () => {
-    await (service as any).get({ machine, [idField]: 'x_1' });
-    await (service as any).get({ machine, instanceId: 'sbmi_1', [idField]: 'x_2' });
-
-    expect(genesis.machine[key].get).toHaveBeenCalledWith({
+    expect(genesis.machine.operation.get).toHaveBeenCalledWith({
       tenantId: 'sbt_1',
       machineId: 'sbm_1',
-      [idField]: 'x_1'
+      operationId: 'sbmo_1'
     });
-    expect(genesis.machine.instance[key].get).toHaveBeenCalledWith({
+  });
+});
+
+describe('sandboxMachineErrorService', () => {
+  it('forwards the instance filter at machine level', async () => {
+    genesis.machine.guestError.list.mockResolvedValue(page([]));
+
+    await sandboxMachineErrorService.list({ machine, instanceIds: ['sbmi_1'] }).run({});
+
+    expect(genesis.machine.guestError.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'sbt_1',
+        machineId: 'sbm_1',
+        instanceIds: ['sbmi_1']
+      })
+    );
+  });
+
+  it('gets one error through the machine scope', async () => {
+    await sandboxMachineErrorService.get({ machine, errorId: 'sbme_1' });
+
+    expect(genesis.machine.guestError.get).toHaveBeenCalledWith({
       tenantId: 'sbt_1',
       machineId: 'sbm_1',
-      instanceId: 'sbmi_1',
-      [idField]: 'x_2'
+      errorId: 'sbme_1'
     });
   });
 });
@@ -483,10 +485,36 @@ describe('sandboxImageService', () => {
     );
   });
 
-  it('filters the list by owner and search', async () => {
+  it('searches own and global images through voyager when it is configured', async () => {
+    search.enabled = true;
+    search.searchSandboxImageIds.mockImplementation(async (d: { tenantId: string }) =>
+      d.tenantId == 'sandbox_global' ? ['sbi_global'] : ['sbi_own']
+    );
     db.sandboxMachineImage.findMany.mockResolvedValue([]);
 
-    await (await sandboxImageService.list({ instance, owner: 'own', search: 'node' })).run({});
+    await (await sandboxImageService.list({ instance, search: 'node' })).run({});
+
+    expect(search.searchSandboxImageIds).toHaveBeenCalledWith({
+      tenantId: instance.id,
+      query: 'node'
+    });
+    expect(db.sandboxMachineImage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [expect.any(Object), { id: { in: ['sbi_own', 'sbi_global'] } }]
+        }
+      })
+    );
+
+    search.enabled = false;
+  });
+
+  it('filters the list by owners and search', async () => {
+    db.sandboxMachineImage.findMany.mockResolvedValue([]);
+
+    await (
+      await sandboxImageService.list({ instance, owners: ['own'], search: 'node' })
+    ).run({});
 
     expect(db.sandboxMachineImage.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

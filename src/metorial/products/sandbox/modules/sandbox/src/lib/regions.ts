@@ -56,6 +56,17 @@ export let getSandboxRegionConfigs = () => (configs ??= loadConfigs());
 
 export let isSandboxingEnabled = () => getSandboxRegionConfigs().length > 0;
 
+export let getRegionUrl = (regionId: string) => {
+  let config = getSandboxRegionConfigs().find(region => region.id == regionId);
+  if (!config) {
+    throw new ServiceError(
+      notImplementedError({ message: `Sandbox region ${regionId} is not configured` })
+    );
+  }
+
+  return config.genesisUrl;
+};
+
 export let getRegionClient = (regionId: string): GenesisInternalClient => {
   let config = getSandboxRegionConfigs().find(region => region.id == regionId);
   if (!config) {

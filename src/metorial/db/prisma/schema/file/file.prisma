@@ -82,9 +82,10 @@ model File {
   skillExports                  SkillExport[]
   skillExportRefs               SkillExportRef[]
   skillImports                  SkillImport[]
-  mergeRequestItemsAsBaseFile   SkillMergeRequestItem[] @relation("SkillMergeRequestItemBaseFile")
-  mergeRequestItemsAsSourceFile SkillMergeRequestItem[] @relation("SkillMergeRequestItemSourceFile")
-  mergeRequestItemsAsTargetFile SkillMergeRequestItem[] @relation("SkillMergeRequestItemTargetFile")
+  sandboxImageBuilds            SandboxMachineImageBuild[]
+  mergeRequestItemsAsBaseFile   SkillMergeRequestItem[]    @relation("SkillMergeRequestItemBaseFile")
+  mergeRequestItemsAsSourceFile SkillMergeRequestItem[]    @relation("SkillMergeRequestItemSourceFile")
+  mergeRequestItemsAsTargetFile SkillMergeRequestItem[]    @relation("SkillMergeRequestItemTargetFile")
 
   @@index([storeId, status])
   @@index([status, expiresAt, oid])

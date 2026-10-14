@@ -6,7 +6,12 @@ let genesis = {
 
 let db = {
   sandboxRegion: { findMany: vi.fn() },
-  sandboxMachineImage: { upsert: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
+  sandboxMachineImage: {
+    upsert: vi.fn(),
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    updateMany: vi.fn()
+  },
   sandboxMachineImageRegion: { upsert: vi.fn(), updateMany: vi.fn() },
   sandboxMachineImageVersion: { upsert: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   sandboxMachineImageVersionRegion: {
@@ -17,6 +22,10 @@ let db = {
 };
 
 vi.mock('../src/lib/regions', () => ({ getRegionClient: vi.fn(() => genesis) }));
+vi.mock('../src/queues/search', () => ({
+  indexSandboxImageQueue: { add: vi.fn() },
+  indexSandboxMachineQueue: { add: vi.fn() }
+}));
 vi.mock('@metorial/db', () => ({
   db,
   ID: { generateId: vi.fn(async (prefix: string) => `${prefix}_new`) }
