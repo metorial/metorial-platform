@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstancePortalsConsumerInvitesListOutput = {
   items: {
@@ -27,51 +27,23 @@ export type ManagementInstancePortalsConsumerInvitesListOutput = {
 };
 
 export let mapManagementInstancePortalsConsumerInvitesListOutput =
-  mtMap.object<ManagementInstancePortalsConsumerInvitesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          portalUrl: mtMap.objectField('portal_url', mtMap.passthrough()),
-          consumerProfile: mtMap.objectField(
-            'consumer_profile',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough())
-            })
-          ),
-          invitedBy: mtMap.objectField(
-            'invited_by',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough())
-            })
-          ),
-          message: mtMap.objectField('message', mtMap.passthrough()),
-          acceptedAt: mtMap.objectField('accepted_at', mtMap.date()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstancePortalsConsumerInvitesListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'portal_url',
+          'consumer_profile',
+          'invited_by',
+          'accepted_at',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstancePortalsConsumerInvitesListQuery = {
   limit?: number | undefined;
@@ -85,31 +57,7 @@ export type ManagementInstancePortalsConsumerInvitesListQuery = {
   status?: 'pending' | 'accepted' | ('pending' | 'accepted')[] | undefined;
 };
 
-export let mapManagementInstancePortalsConsumerInvitesListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      email: mtMap.objectField(
-        'email',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
-    })
-  )
-]);
-
+export let mapManagementInstancePortalsConsumerInvitesListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstancePortalsConsumerInvitesListQuery>(
+    0
+  );

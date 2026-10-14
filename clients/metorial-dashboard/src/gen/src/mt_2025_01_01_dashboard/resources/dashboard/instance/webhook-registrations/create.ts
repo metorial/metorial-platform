@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceWebhookRegistrationsCreateOutput = {
   object: 'webhook_registration';
@@ -28,44 +28,10 @@ export type DashboardInstanceWebhookRegistrationsCreateOutput = {
 };
 
 export let mapDashboardInstanceWebhookRegistrationsCreateOutput =
-  mtMap.object<DashboardInstanceWebhookRegistrationsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    receiveUrl: mtMap.objectField('receive_url', mtMap.passthrough()),
-    setup: mtMap.objectField(
-      'setup',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        document: mtMap.objectField('document', mtMap.passthrough()),
-        schema: mtMap.objectField(
-          'schema',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            schema: mtMap.objectField('schema', mtMap.passthrough())
-          })
-        )
-      })
-    ),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceWebhookRegistrationsCreateOutput>(
+    ['receive_url', ['provider', 0, 8], 'created_at', 'updated_at'],
+    1
+  );
 
 export type DashboardInstanceWebhookRegistrationsCreateBody = {
   providerId: string;
@@ -75,10 +41,6 @@ export type DashboardInstanceWebhookRegistrationsCreateBody = {
 };
 
 export let mapDashboardInstanceWebhookRegistrationsCreateBody =
-  mtMap.object<DashboardInstanceWebhookRegistrationsCreateBody>({
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceWebhookRegistrationsCreateBody>([
+    'provider_id'
+  ]);

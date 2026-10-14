@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderRunsGetLogsOutput = {
   object: 'session.provider_run.logs';
@@ -17,19 +17,7 @@ export type DashboardInstanceProviderRunsGetLogsOutput = {
 };
 
 export let mapDashboardInstanceProviderRunsGetLogsOutput =
-  mtMap.object<DashboardInstanceProviderRunsGetLogsOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
-    logs: mtMap.objectField(
-      'logs',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          timestamp: mtMap.objectField('timestamp', mtMap.date()),
-          message: mtMap.objectField('message', mtMap.passthrough()),
-          outputType: mtMap.objectField('output_type', mtMap.passthrough())
-        })
-      )
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceProviderRunsGetLogsOutput>([
+    'provider_run_id',
+    ['logs', 0, [2, [1, [['timestamp', 0, 4], 'output_type']]]]
+  ]);

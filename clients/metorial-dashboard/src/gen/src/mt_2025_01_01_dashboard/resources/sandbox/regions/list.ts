@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxRegionsListOutput = {
   items: {
@@ -10,37 +10,8 @@ export type SandboxRegionsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapSandboxRegionsListOutput = mtMap.object<SandboxRegionsListOutput>(
-  {
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          area: mtMap.objectField(
-            'area',
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough())
-            })
-          )
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  }
-);
+export let mapSandboxRegionsListOutput =
+  /* @__PURE__ */ createMapper<SandboxRegionsListOutput>([7, 0]);
 
 export type SandboxRegionsListQuery = {
   limit?: number | undefined;
@@ -50,16 +21,5 @@ export type SandboxRegionsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapSandboxRegionsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapSandboxRegionsListQuery =
+  /* @__PURE__ */ createMapper<SandboxRegionsListQuery>(0);

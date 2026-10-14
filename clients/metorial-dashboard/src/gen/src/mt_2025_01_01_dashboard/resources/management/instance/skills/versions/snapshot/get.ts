@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsVersionsSnapshotGetOutput = {
   object: 'skill.version.snapshot';
@@ -22,32 +22,21 @@ export type ManagementInstanceSkillsVersionsSnapshotGetOutput = {
 };
 
 export let mapManagementInstanceSkillsVersionsSnapshotGetOutput =
-  mtMap.object<ManagementInstanceSkillsVersionsSnapshotGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
-    storeId: mtMap.objectField('store_id', mtMap.passthrough()),
-    storeVersionId: mtMap.objectField('store_version_id', mtMap.passthrough()),
-    versionNumber: mtMap.objectField('version_number', mtMap.passthrough()),
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          kind: mtMap.objectField('kind', mtMap.passthrough()),
-          path: mtMap.objectField('path', mtMap.passthrough()),
-          fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-          documentId: mtMap.objectField('document_id', mtMap.passthrough()),
-          documentVersionId: mtMap.objectField(
-            'document_version_id',
-            mtMap.passthrough()
-          ),
-          content: mtMap.objectField('content', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsVersionsSnapshotGetOutput>(
+    [
+      'skill_id',
+      'store_id',
+      'store_version_id',
+      'version_number',
+      [
+        'items',
+        0,
+        [
+          2,
+          [1, ['file_id', 'document_id', 'document_version_id', 'created_at']]
+        ]
+      ],
+      'created_at'
+    ],
+    1
+  );

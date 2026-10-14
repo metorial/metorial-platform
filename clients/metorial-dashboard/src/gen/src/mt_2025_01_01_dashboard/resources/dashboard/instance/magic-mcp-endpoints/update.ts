@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceMagicMcpEndpointsUpdateOutput = {
   object: 'magic_mcp.endpoint';
@@ -40,84 +43,14 @@ export type DashboardInstanceMagicMcpEndpointsUpdateOutput = {
 };
 
 export let mapDashboardInstanceMagicMcpEndpointsUpdateOutput =
-  mtMap.object<DashboardInstanceMagicMcpEndpointsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    servers: mtMap.objectField(
-      'servers',
-      mtMap.array(
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              toolFilters: mtMap.objectField(
-                'tool_filters',
-                mtMap.union([
-                  mtMap.unionOption(
-                    'object',
-                    mtMap.object({
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      keys: mtMap.objectField(
-                        'keys',
-                        mtMap.array(mtMap.passthrough())
-                      ),
-                      pattern: mtMap.objectField(
-                        'pattern',
-                        mtMap.passthrough()
-                      ),
-                      uris: mtMap.objectField(
-                        'uris',
-                        mtMap.array(mtMap.passthrough())
-                      )
-                    })
-                  ),
-                  mtMap.unionOption(
-                    'array',
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          type: mtMap.objectField('type', mtMap.passthrough()),
-                          keys: mtMap.objectField(
-                            'keys',
-                            mtMap.array(mtMap.passthrough())
-                          ),
-                          pattern: mtMap.objectField(
-                            'pattern',
-                            mtMap.passthrough()
-                          ),
-                          uris: mtMap.objectField(
-                            'uris',
-                            mtMap.array(mtMap.passthrough())
-                          )
-                        })
-                      )
-                    ])
-                  )
-                ])
-              )
-            })
-          )
-        ])
-      )
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceMagicMcpEndpointsUpdateOutput>(
+    [
+      ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardInstanceMagicMcpEndpointsUpdateBody = {
   name?: string | undefined;
@@ -126,9 +59,4 @@ export type DashboardInstanceMagicMcpEndpointsUpdateBody = {
 };
 
 export let mapDashboardInstanceMagicMcpEndpointsUpdateBody =
-  mtMap.object<DashboardInstanceMagicMcpEndpointsUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstanceMagicMcpEndpointsUpdateBody>(0);

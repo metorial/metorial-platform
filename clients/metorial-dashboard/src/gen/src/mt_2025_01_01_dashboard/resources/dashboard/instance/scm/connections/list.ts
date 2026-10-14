@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceScmConnectionsListOutput = {
   items: {
@@ -21,45 +21,22 @@ export type DashboardInstanceScmConnectionsListOutput = {
 };
 
 export let mapDashboardInstanceScmConnectionsListOutput =
-  mtMap.object<DashboardInstanceScmConnectionsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          provider: mtMap.objectField('provider', mtMap.passthrough()),
-          externalInstallationId: mtMap.objectField(
-            'external_installation_id',
-            mtMap.passthrough()
-          ),
-          accountType: mtMap.objectField('account_type', mtMap.passthrough()),
-          externalAccount: mtMap.objectField(
-            'external_account',
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              login: mtMap.objectField('login', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough()),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceScmConnectionsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'external_installation_id',
+          'account_type',
+          ['external_account', 1, [1, ['image_url']]],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceScmConnectionsListQuery = {
   limit?: number | undefined;
@@ -69,16 +46,5 @@ export type DashboardInstanceScmConnectionsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardInstanceScmConnectionsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardInstanceScmConnectionsListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceScmConnectionsListQuery>(0);

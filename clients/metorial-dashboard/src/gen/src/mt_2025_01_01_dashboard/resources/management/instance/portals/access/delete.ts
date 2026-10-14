@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstancePortalsAccessDeleteOutput = {
   object: 'consumer.access';
@@ -95,132 +95,39 @@ export type ManagementInstancePortalsAccessDeleteOutput = {
 };
 
 export let mapManagementInstancePortalsAccessDeleteOutput =
-  mtMap.object<ManagementInstancePortalsAccessDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    readme: mtMap.objectField('readme', mtMap.passthrough()),
-    listing: mtMap.objectField(
-      'listing',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough())
-      })
-    ),
-    access: mtMap.objectField(
-      'access',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            providerTemplate: mtMap.objectField(
-              'provider_template',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                integrationId: mtMap.objectField(
-                  'integration_id',
-                  mtMap.passthrough()
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            magicMcpServer: mtMap.objectField(
-              'magic_mcp_server',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            ),
-            skill: mtMap.objectField(
-              'skill',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough())
-              })
-            ),
-            skillTemplate: mtMap.objectField(
-              'skill_template',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                owner: mtMap.objectField('owner', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            ),
-            skillGroup: mtMap.objectField(
-              'skill_group',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            ),
-            skillMarketplace: mtMap.objectField(
-              'skill_marketplace',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough())
-              })
-            ),
-            skillPlugin: mtMap.objectField(
-              'skill_plugin',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough())
-              })
-            )
-          })
-        )
-      ])
-    ),
-    consumerGroup: mtMap.objectField(
-      'consumer_group',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstancePortalsAccessDeleteOutput>(
+    [
+      'access_level',
+      [
+        'access',
+        0,
+        [
+          3,
+          [
+            [
+              0,
+              [
+                1,
+                [
+                  [
+                    'provider_template',
+                    1,
+                    [1, ['integration_id', 'created_at', 'updated_at']]
+                  ],
+                  'magic_mcp_server',
+                  'skill_template',
+                  'skill_group',
+                  'skill_marketplace',
+                  'skill_plugin'
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
+      ['consumer_group', 1, [1, ['is_default', 'created_at', 'updated_at']]],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCallbackEventsGetOutput = {
   object: 'callback_event';
@@ -38,67 +38,16 @@ export type DashboardInstanceCallbackEventsGetOutput = {
 };
 
 export let mapDashboardInstanceCallbackEventsGetOutput =
-  mtMap.object<DashboardInstanceCallbackEventsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    source: mtMap.objectField('source', mtMap.passthrough()),
-    providerTriggerKey: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceCallbackEventsGetOutput>(
+    [
       'provider_trigger_key',
-      mtMap.passthrough()
-    ),
-    mappedType: mtMap.objectField('mapped_type', mtMap.passthrough()),
-    mappedId: mtMap.objectField('mapped_id', mtMap.passthrough()),
-    callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
-    callbackInstanceId: mtMap.objectField(
+      'mapped_type',
+      'mapped_id',
+      'callback_id',
       'callback_instance_id',
-      mtMap.passthrough()
-    ),
-    details: mtMap.objectField(
-      'details',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        payload: mtMap.objectField('payload', mtMap.passthrough()),
-        error: mtMap.objectField(
-          'error',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            code: mtMap.objectField('code', mtMap.passthrough()),
-            message: mtMap.objectField('message', mtMap.passthrough())
-          })
-        ),
-        webhook: mtMap.objectField(
-          'webhook',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            request: mtMap.objectField(
-              'request',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                method: mtMap.objectField('method', mtMap.passthrough()),
-                url: mtMap.objectField('url', mtMap.passthrough()),
-                headers: mtMap.objectField('headers', mtMap.passthrough()),
-                body: mtMap.objectField(
-                  'body',
-                  mtMap.object({
-                    encoding: mtMap.objectField(
-                      'encoding',
-                      mtMap.passthrough()
-                    ),
-                    content: mtMap.objectField('content', mtMap.passthrough())
-                  })
-                )
-              })
-            ),
-            receivedAt: mtMap.objectField('received_at', mtMap.date())
-          })
-        )
-      })
-    ),
-    occurredAt: mtMap.objectField('occurred_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+      ['details', 0, [1, [['webhook', 0, [1, ['received_at']]]]]],
+      'occurred_at',
+      'created_at'
+    ],
+    1
+  );

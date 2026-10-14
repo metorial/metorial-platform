@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsInvitesGetOutput = {
   object: 'organization.invite';
@@ -60,88 +60,38 @@ export type DashboardOrganizationsInvitesGetOutput = {
 };
 
 export let mapDashboardOrganizationsInvitesGetOutput =
-  mtMap.object<DashboardOrganizationsInvitesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    role: mtMap.objectField('role', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    email: mtMap.objectField('email', mtMap.passthrough()),
-    inviteLink: mtMap.objectField(
-      'invite_link',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        key: mtMap.objectField('key', mtMap.passthrough()),
-        keyRedacted: mtMap.objectField('key_redacted', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    acceptedAt: mtMap.objectField('accepted_at', mtMap.date()),
-    rejectedAt: mtMap.objectField('rejected_at', mtMap.date()),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
-    organization: mtMap.objectField(
-      'organization',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        magicMcpOrigin: mtMap.objectField(
-          'magic_mcp_origin',
-          mtMap.passthrough()
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    invitedBy: mtMap.objectField(
-      'invited_by',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        organizationId: mtMap.objectField(
-          'organization_id',
-          mtMap.passthrough()
-        ),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        member: mtMap.objectField(
-          'member',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            role: mtMap.objectField('role', mtMap.passthrough())
-          })
-        ),
-        teams: mtMap.objectField(
-          'teams',
-          mtMap.array(
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              assignmentId: mtMap.objectField(
-                'assignment_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          )
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardOrganizationsInvitesGetOutput>(
+    [
+      ['invite_link', 1, [1, ['key_redacted', 'created_at']]],
+      'created_at',
+      'updated_at',
+      'expires_at',
+      'accepted_at',
+      'rejected_at',
+      'deleted_at',
+      [
+        'organization',
+        0,
+        [1, ['image_url', 'magic_mcp_origin', 'created_at', 'updated_at']]
+      ],
+      [
+        'invited_by',
+        1,
+        [
+          1,
+          [
+            'organization_id',
+            'image_url',
+            [
+              'teams',
+              0,
+              [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+            ],
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ]
+    ],
+    1
+  );

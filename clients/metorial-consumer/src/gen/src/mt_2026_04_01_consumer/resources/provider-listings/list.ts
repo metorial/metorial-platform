@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderListingsListOutput = {
   items: {
@@ -91,177 +91,68 @@ export type ProviderListingsListOutput = {
 };
 
 export let mapProviderListingsListOutput =
-  mtMap.object<ProviderListingsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          attributes: mtMap.objectField(
+  /* @__PURE__ */ createMapper<ProviderListingsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          [
             'attributes',
-            mtMap.object({
-              isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
-              isCustomized: mtMap.objectField(
+            0,
+            [
+              1,
+              [
+                'is_public',
                 'is_customized',
-                mtMap.passthrough()
-              ),
-              isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
-              isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
-              isOfficial: mtMap.objectField('is_official', mtMap.passthrough())
-            })
-          ),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-          readme: mtMap.objectField('readme', mtMap.passthrough()),
-          skills: mtMap.objectField('skills', mtMap.array(mtMap.passthrough())),
-          provider: mtMap.objectField(
+                'is_metorial',
+                'is_verified',
+                'is_official'
+              ]
+            ]
+          ],
+          'image_url',
+          [
             'provider',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              access: mtMap.objectField('access', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              publisher: mtMap.objectField(
-                'publisher',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
-                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              ),
-              currentVersion: mtMap.objectField(
-                'current_version',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  version: mtMap.objectField('version', mtMap.passthrough()),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
-                  isCurrent: mtMap.objectField(
-                    'is_current',
-                    mtMap.passthrough()
-                  ),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
-                  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                  specificationId: mtMap.objectField(
-                    'specification_id',
-                    mtMap.passthrough()
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              ),
-              oauth: mtMap.objectField(
-                'oauth',
-                mtMap.object({
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  callbackUrl: mtMap.objectField(
-                    'callback_url',
-                    mtMap.passthrough()
-                  ),
-                  autoRegistration: mtMap.objectField(
-                    'auto_registration',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  )
-                })
-              ),
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          categories: mtMap.objectField(
-            'categories',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
-          ),
-          collections: mtMap.objectField(
-            'collections',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
-          ),
-          groups: mtMap.objectField(
-            'groups',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            0,
+            [
+              1,
+              [
+                [
+                  'publisher',
+                  0,
+                  [1, ['image_url', 'created_at', 'updated_at']]
+                ],
+                [
+                  'current_version',
+                  1,
+                  [
+                    1,
+                    [
+                      'provider_id',
+                      'is_current',
+                      'specification_id',
+                      'created_at',
+                      'updated_at'
+                    ]
+                  ]
+                ],
+                ['oauth', 0, [1, ['callback_url', 'auto_registration']]],
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ],
+          ['categories', 0, [2, 8]],
+          ['collections', 0, [2, 8]],
+          ['groups', 0, [2, 8]],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ProviderListingsListQuery = {
   limit?: number | undefined;
@@ -285,86 +176,28 @@ export type ProviderListingsListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapProviderListingsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerCategoryId: mtMap.objectField(
-        'provider_category_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerCollectionId: mtMap.objectField(
-        'provider_collection_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerGroupId: mtMap.objectField(
-        'provider_group_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      publisherId: mtMap.objectField(
-        'publisher_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      isOwner: mtMap.objectField('is_owner', mtMap.passthrough()),
-      isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
-      isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
-      isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
-      isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapProviderListingsListQuery =
+  /* @__PURE__ */ createMapper<ProviderListingsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'provider_category_id',
+            'provider_collection_id',
+            'provider_group_id',
+            'publisher_id',
+            'is_owner',
+            'is_public',
+            'is_verified',
+            'is_official',
+            'is_metorial',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

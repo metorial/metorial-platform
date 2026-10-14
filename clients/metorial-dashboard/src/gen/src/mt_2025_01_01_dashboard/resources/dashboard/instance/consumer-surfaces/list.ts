@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceConsumerSurfacesListOutput = {
   items: {
@@ -28,73 +28,39 @@ export type DashboardInstanceConsumerSurfacesListOutput = {
 };
 
 export let mapDashboardInstanceConsumerSurfacesListOutput =
-  mtMap.object<DashboardInstanceConsumerSurfacesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          allowConsumerSkillAuthoring: mtMap.objectField(
-            'allow_consumer_skill_authoring',
-            mtMap.passthrough()
-          ),
-          allowConsumerSkillPublishing: mtMap.objectField(
-            'allow_consumer_skill_publishing',
-            mtMap.passthrough()
-          ),
-          skillConfiguration: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardInstanceConsumerSurfacesListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'allow_consumer_skill_authoring',
+          'allow_consumer_skill_publishing',
+          [
             'skill_configuration',
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-              allowScripts: mtMap.objectField(
+            1,
+            [
+              1,
+              [
+                'is_default',
                 'allow_scripts',
-                mtMap.passthrough()
-              ),
-              allowedFileExtensions: mtMap.objectField(
                 'allowed_file_extensions',
-                mtMap.array(mtMap.passthrough())
-              ),
-              allowNonStandardDirectories: mtMap.objectField(
-                'allow_non_standard_directories',
-                mtMap.passthrough()
-              )
-            })
-          ),
-          auth: mtMap.objectField(
+                'allow_non_standard_directories'
+              ]
+            ]
+          ],
+          [
             'auth',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              sessionExpiryTimeInSeconds: mtMap.objectField(
-                'session_expiry_time_in_seconds',
-                mtMap.passthrough()
-              ),
-              emailWhitelist: mtMap.objectField(
-                'email_whitelist',
-                mtMap.array(mtMap.passthrough())
-              )
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            0,
+            [1, ['session_expiry_time_in_seconds', 'email_whitelist']]
+          ],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceConsumerSurfacesListQuery = {
   limit?: number | undefined;
@@ -104,16 +70,5 @@ export type DashboardInstanceConsumerSurfacesListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardInstanceConsumerSurfacesListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardInstanceConsumerSurfacesListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceConsumerSurfacesListQuery>(0);

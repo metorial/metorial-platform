@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceChatsGetOutput = {
   object: 'chat';
@@ -15,23 +15,15 @@ export type ManagementInstanceChatsGetOutput = {
 };
 
 export let mapManagementInstanceChatsGetOutput =
-  mtMap.object<ManagementInstanceChatsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    chatConnectionId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceChatsGetOutput>(
+    [
       'chat_connection_id',
-      mtMap.passthrough()
-    ),
-    chatInstanceId: mtMap.objectField('chat_instance_id', mtMap.passthrough()),
-    chatInstanceProviderId: mtMap.objectField(
+      'chat_instance_id',
       'chat_instance_provider_id',
-      mtMap.passthrough()
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    workspaceId: mtMap.objectField('workspace_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'provider_id',
+      'workspace_id',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

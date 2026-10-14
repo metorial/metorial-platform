@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type IntegrationInternetGatewayGetOutput = {
   object: 'integration.internet_gateway';
@@ -18,25 +18,7 @@ export type IntegrationInternetGatewayGetOutput = {
 };
 
 export let mapIntegrationInternetGatewayGetOutput =
-  mtMap.object<IntegrationInternetGatewayGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    publicIps: mtMap.objectField(
-      'public_ips',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          ip: mtMap.objectField('ip', mtMap.passthrough()),
-          region: mtMap.objectField('region', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    )
-  });
-
+  /* @__PURE__ */ mapObject<IntegrationInternetGatewayGetOutput>(
+    ['created_at', 'updated_at', ['public_ips', 1, [2, 8]]],
+    1
+  );

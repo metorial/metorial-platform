@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderGroupsCreateOutput = {
   object: 'provider.listing_group';
@@ -11,15 +11,7 @@ export type DashboardInstanceProviderGroupsCreateOutput = {
 };
 
 export let mapDashboardInstanceProviderGroupsCreateOutput =
-  mtMap.object<DashboardInstanceProviderGroupsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceProviderGroupsCreateOutput>(8);
 
 export type DashboardInstanceProviderGroupsCreateBody = {
   name: string;
@@ -27,8 +19,4 @@ export type DashboardInstanceProviderGroupsCreateBody = {
 };
 
 export let mapDashboardInstanceProviderGroupsCreateBody =
-  mtMap.object<DashboardInstanceProviderGroupsCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstanceProviderGroupsCreateBody>(0);

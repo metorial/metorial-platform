@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsPluginsRepositoriesCreateOutput = {
   object: 'skill.plugin_repository';
@@ -21,35 +21,26 @@ export type DashboardInstanceSkillsPluginsRepositoriesCreateOutput = {
 };
 
 export let mapDashboardInstanceSkillsPluginsRepositoriesCreateOutput =
-  mtMap.object<DashboardInstanceSkillsPluginsRepositoriesCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    skillPluginId: mtMap.objectField('skill_plugin_id', mtMap.passthrough()),
-    repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
-    repository: mtMap.objectField(
-      'repository',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        provider: mtMap.objectField('provider', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough()),
-        isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-        defaultBranch: mtMap.objectField('default_branch', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceSkillsPluginsRepositoriesCreateOutput>(
+    [
+      'skill_plugin_id',
+      'repo_id',
+      [
+        'repository',
+        0,
+        [1, ['is_private', 'default_branch', 'created_at', 'updated_at']]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardInstanceSkillsPluginsRepositoriesCreateBody = {
   repoId: string;
 };
 
 export let mapDashboardInstanceSkillsPluginsRepositoriesCreateBody =
-  mtMap.object<DashboardInstanceSkillsPluginsRepositoriesCreateBody>({
-    repoId: mtMap.objectField('repo_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceSkillsPluginsRepositoriesCreateBody>(
+    ['repo_id']
+  );

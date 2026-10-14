@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureDataRetentionUpdateOutput = {
   object: 'organization.project.data_retention_configuration';
@@ -11,24 +11,17 @@ export type DashboardProjectsConfigureDataRetentionUpdateOutput = {
 };
 
 export let mapDashboardProjectsConfigureDataRetentionUpdateOutput =
-  mtMap.object<DashboardProjectsConfigureDataRetentionUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    dataRetentionLevel: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureDataRetentionUpdateOutput>(
+    [
+      'project_id',
       'data_retention_level',
-      mtMap.passthrough()
-    ),
-    storeToolCallAttachments: mtMap.objectField(
       'store_tool_call_attachments',
-      mtMap.passthrough()
-    ),
-    collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
-    disableCallbacks: mtMap.objectField(
+      'collect_errors',
       'disable_callbacks',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardProjectsConfigureDataRetentionUpdateBody = {
   dataRetentionLevel?: 'full' | 'intent_only' | 'none' | undefined;
@@ -38,19 +31,9 @@ export type DashboardProjectsConfigureDataRetentionUpdateBody = {
 };
 
 export let mapDashboardProjectsConfigureDataRetentionUpdateBody =
-  mtMap.object<DashboardProjectsConfigureDataRetentionUpdateBody>({
-    dataRetentionLevel: mtMap.objectField(
-      'data_retention_level',
-      mtMap.passthrough()
-    ),
-    storeToolCallAttachments: mtMap.objectField(
-      'store_tool_call_attachments',
-      mtMap.passthrough()
-    ),
-    collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
-    disableCallbacks: mtMap.objectField(
-      'disable_callbacks',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureDataRetentionUpdateBody>([
+    'data_retention_level',
+    'store_tool_call_attachments',
+    'collect_errors',
+    'disable_callbacks'
+  ]);

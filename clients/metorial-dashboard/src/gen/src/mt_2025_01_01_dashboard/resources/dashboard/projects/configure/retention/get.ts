@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureRetentionGetOutput = {
   object: 'organization.project.retention_configuration';
@@ -9,17 +9,12 @@ export type DashboardProjectsConfigureRetentionGetOutput = {
 };
 
 export let mapDashboardProjectsConfigureRetentionGetOutput =
-  mtMap.object<DashboardProjectsConfigureRetentionGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    logRetentionInDays: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureRetentionGetOutput>(
+    [
+      'project_id',
       'log_retention_in_days',
-      mtMap.passthrough()
-    ),
-    enforceSessionExpiry: mtMap.objectField(
       'enforce_session_expiry',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'updated_at'
+    ],
+    1
+  );

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSessionsParticipantsGetOutput = {
   object: 'session.participant';
@@ -20,34 +20,18 @@ export type ManagementInstanceSessionsParticipantsGetOutput = {
 };
 
 export let mapManagementInstanceSessionsParticipantsGetOutput =
-  mtMap.object<ManagementInstanceSessionsParticipantsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    data: mtMap.objectField(
-      'data',
-      mtMap.object({
-        identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough())
-      })
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    connectionType: mtMap.objectField('connection_type', mtMap.passthrough()),
-    agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-    agentInstanceId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSessionsParticipantsGetOutput>(
+    [
+      'provider_id',
+      'connection_type',
+      'agent_id',
       'agent_instance_id',
-      mtMap.passthrough()
-    ),
-    identityActorId: mtMap.objectField(
       'identity_actor_id',
-      mtMap.passthrough()
-    ),
-    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-    agentActorId: mtMap.objectField('agent_actor_id', mtMap.passthrough()),
-    agentClientId: mtMap.objectField('agent_client_id', mtMap.passthrough()),
-    consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+      'identity_id',
+      'agent_actor_id',
+      'agent_client_id',
+      'consumer_id',
+      'created_at'
+    ],
+    1
+  );

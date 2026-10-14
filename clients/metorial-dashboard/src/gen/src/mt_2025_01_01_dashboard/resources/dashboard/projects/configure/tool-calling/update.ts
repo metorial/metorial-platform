@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureToolCallingUpdateOutput = {
   object: 'organization.project.tool_calling_configuration';
@@ -9,19 +9,15 @@ export type DashboardProjectsConfigureToolCallingUpdateOutput = {
 };
 
 export let mapDashboardProjectsConfigureToolCallingUpdateOutput =
-  mtMap.object<DashboardProjectsConfigureToolCallingUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    collectOperationDescriptionForToolCalls: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureToolCallingUpdateOutput>(
+    [
+      'project_id',
       'collect_operation_description_for_tool_calls',
-      mtMap.passthrough()
-    ),
-    messageProcessingTimeoutMs: mtMap.objectField(
       'message_processing_timeout_ms',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardProjectsConfigureToolCallingUpdateBody = {
   collectOperationDescriptionForToolCalls?: boolean | undefined;
@@ -29,14 +25,7 @@ export type DashboardProjectsConfigureToolCallingUpdateBody = {
 };
 
 export let mapDashboardProjectsConfigureToolCallingUpdateBody =
-  mtMap.object<DashboardProjectsConfigureToolCallingUpdateBody>({
-    collectOperationDescriptionForToolCalls: mtMap.objectField(
-      'collect_operation_description_for_tool_calls',
-      mtMap.passthrough()
-    ),
-    messageProcessingTimeoutMs: mtMap.objectField(
-      'message_processing_timeout_ms',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureToolCallingUpdateBody>([
+    'collect_operation_description_for_tool_calls',
+    'message_processing_timeout_ms'
+  ]);

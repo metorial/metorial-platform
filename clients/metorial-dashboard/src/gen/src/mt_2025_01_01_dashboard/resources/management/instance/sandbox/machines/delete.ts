@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxMachinesDeleteOutput = {
   object: 'sandbox.machine';
@@ -118,154 +118,41 @@ export type ManagementInstanceSandboxMachinesDeleteOutput = {
 };
 
 export let mapManagementInstanceSandboxMachinesDeleteOutput =
-  mtMap.object<ManagementInstanceSandboxMachinesDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    region: mtMap.objectField('region', mtMap.passthrough()),
-    image: mtMap.objectField(
-      'image',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        versionId: mtMap.objectField('version_id', mtMap.passthrough())
-      })
-    ),
-    spec: mtMap.objectField(
-      'spec',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        memoryMib: mtMap.objectField('memory_mib', mtMap.passthrough()),
-        vcpus: mtMap.objectField('vcpus', mtMap.passthrough())
-      })
-    ),
-    rootDisk: mtMap.objectField(
-      'root_disk',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        sizeBytes: mtMap.objectField('size_bytes', mtMap.passthrough())
-      })
-    ),
-    mounts: mtMap.objectField(
-      'mounts',
-      mtMap.array(
-        mtMap.object({
-          diskId: mtMap.objectField('disk_id', mtMap.passthrough()),
-          mountPath: mtMap.objectField('mount_path', mtMap.passthrough()),
-          state: mtMap.objectField('state', mtMap.passthrough())
-        })
-      )
-    ),
-    firewallIds: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSandboxMachinesDeleteOutput>(
+    [
+      ['image', 0, [1, ['version_id']]],
+      ['spec', 0, [1, ['memory_mib']]],
+      ['root_disk', 1, [1, ['size_bytes']]],
+      ['mounts', 0, [2, [1, ['disk_id', 'mount_path']]]],
       'firewall_ids',
-      mtMap.array(mtMap.passthrough())
-    ),
-    publicPorts: mtMap.objectField(
       'public_ports',
-      mtMap.array(mtMap.passthrough())
-    ),
-    lifecyclePolicy: mtMap.objectField(
-      'lifecycle_policy',
-      mtMap.object({
-        pauseAfterIdleSeconds: mtMap.objectField(
-          'pause_after_idle_seconds',
-          mtMap.passthrough()
-        ),
-        hibernateAfterPausedSeconds: mtMap.objectField(
-          'hibernate_after_paused_seconds',
-          mtMap.passthrough()
-        ),
-        connectionIdleSeconds: mtMap.objectField(
-          'connection_idle_seconds',
-          mtMap.passthrough()
-        )
-      })
-    ),
-    runtime: mtMap.objectField(
-      'runtime',
-      mtMap.object({
-        setup: mtMap.objectField('setup', mtMap.array(mtMap.passthrough())),
-        entrypoint: mtMap.objectField(
-          'entrypoint',
-          mtMap.array(mtMap.passthrough())
-        ),
-        cmd: mtMap.objectField('cmd', mtMap.array(mtMap.passthrough())),
-        env: mtMap.objectField('env', mtMap.passthrough()),
-        workdir: mtMap.objectField('workdir', mtMap.passthrough()),
-        user: mtMap.objectField('user', mtMap.passthrough()),
-        stopSignal: mtMap.objectField('stop_signal', mtMap.passthrough())
-      })
-    ),
-    lifecycleHooks: mtMap.objectField(
-      'lifecycle_hooks',
-      mtMap.array(
-        mtMap.object({
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          on: mtMap.objectField('on', mtMap.passthrough()),
-          port: mtMap.objectField('port', mtMap.passthrough()),
-          path: mtMap.objectField('path', mtMap.passthrough()),
-          arguments: mtMap.objectField(
-            'arguments',
-            mtMap.array(mtMap.passthrough())
-          ),
-          wait: mtMap.objectField('wait', mtMap.passthrough()),
-          timeoutSeconds: mtMap.objectField(
-            'timeout_seconds',
-            mtMap.passthrough()
-          )
-        })
-      )
-    ),
-    ignoreImageHooks: mtMap.objectField(
+      [
+        'lifecycle_policy',
+        1,
+        [
+          1,
+          [
+            'pause_after_idle_seconds',
+            'hibernate_after_paused_seconds',
+            'connection_idle_seconds'
+          ]
+        ]
+      ],
+      ['runtime', 0, [1, ['stop_signal']]],
+      ['lifecycle_hooks', 1, [2, [1, ['timeout_seconds']]]],
       'ignore_image_hooks',
-      mtMap.passthrough()
-    ),
-    entrypointWaitSeconds: mtMap.objectField(
       'entrypoint_wait_seconds',
-      mtMap.passthrough()
-    ),
-    operation: mtMap.objectField(
-      'operation',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        kind: mtMap.objectField('kind', mtMap.passthrough()),
-        trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-        requestedAt: mtMap.objectField('requested_at', mtMap.date())
-      })
-    ),
-    currentInstance: mtMap.objectField(
+      ['operation', 0, [1, ['requested_at']]],
       'current_instance',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        generation: mtMap.objectField('generation', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        phase: mtMap.objectField('phase', mtMap.passthrough())
-      })
-    ),
-    lastActivityAt: mtMap.objectField('last_activity_at', mtMap.date()),
-    pauseAt: mtMap.objectField('pause_at', mtMap.date()),
-    hibernatesAt: mtMap.objectField('hibernates_at', mtMap.date()),
-    upcomingEvents: mtMap.objectField(
-      'upcoming_events',
-      mtMap.array(
-        mtMap.object({
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          occursAt: mtMap.objectField('occurs_at', mtMap.date())
-        })
-      )
-    ),
-    failure: mtMap.objectField(
-      'failure',
-      mtMap.object({
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        message: mtMap.objectField('message', mtMap.passthrough())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    runningAt: mtMap.objectField('running_at', mtMap.date()),
-    pausedAt: mtMap.objectField('paused_at', mtMap.date()),
-    hibernatedAt: mtMap.objectField('hibernated_at', mtMap.date()),
-    terminatedAt: mtMap.objectField('terminated_at', mtMap.date())
-  });
-
+      'last_activity_at',
+      'pause_at',
+      'hibernates_at',
+      ['upcoming_events', 1, [2, [1, ['occurs_at']]]],
+      'created_at',
+      'running_at',
+      'paused_at',
+      'hibernated_at',
+      'terminated_at'
+    ],
+    1
+  );

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationOauthScopesListOutput = {
   object: 'management.oauth.scopes';
@@ -11,21 +11,4 @@ export type ManagementOrganizationOauthScopesListOutput = {
 };
 
 export let mapManagementOrganizationOauthScopesListOutput =
-  mtMap.object<ManagementOrganizationOauthScopesListOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    permissions: mtMap.objectField(
-      'permissions',
-      mtMap.array(
-        mtMap.object({
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          dependencies: mtMap.objectField(
-            'dependencies',
-            mtMap.array(mtMap.passthrough())
-          )
-        })
-      )
-    )
-  });
-
+  /* @__PURE__ */ createMapper<ManagementOrganizationOauthScopesListOutput>(0);

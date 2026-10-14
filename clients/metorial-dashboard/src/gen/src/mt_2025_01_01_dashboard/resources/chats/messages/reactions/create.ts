@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ChatsMessagesReactionsCreateOutput = {
   object: 'chat.reaction_list';
@@ -30,52 +33,7 @@ export type ChatsMessagesReactionsCreateOutput = {
 };
 
 export let mapChatsMessagesReactionsCreateOutput =
-  mtMap.object<ChatsMessagesReactionsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    reactions: mtMap.objectField(
-      'reactions',
-      mtMap.array(
-        mtMap.object({
-          emoji: mtMap.objectField(
-            'emoji',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  value: mtMap.objectField('value', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  url: mtMap.objectField('url', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough())
-                })
-              )
-            ])
-          ),
-          count: mtMap.objectField('count', mtMap.passthrough()),
-          authors: mtMap.objectField(
-            'authors',
-            mtMap.array(
-              mtMap.object({
-                userId: mtMap.objectField('userId', mtMap.passthrough()),
-                userName: mtMap.objectField('userName', mtMap.passthrough()),
-                fullName: mtMap.objectField('fullName', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                role: mtMap.objectField('role', mtMap.passthrough()),
-                providerType: mtMap.objectField(
-                  'providerType',
-                  mtMap.passthrough()
-                ),
-                isMe: mtMap.objectField('isMe', mtMap.passthrough()),
-                email: mtMap.objectField('email', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('imageUrl', mtMap.passthrough()),
-                raw: mtMap.objectField('raw', mtMap.passthrough())
-              })
-            )
-          )
-        })
-      )
-    )
-  });
+  /* @__PURE__ */ createMapper<ChatsMessagesReactionsCreateOutput>(0);
 
 export type ChatsMessagesReactionsCreateBody = {
   channelId: string;
@@ -91,23 +49,4 @@ export type ChatsMessagesReactionsCreateBody = {
 };
 
 export let mapChatsMessagesReactionsCreateBody =
-  mtMap.object<ChatsMessagesReactionsCreateBody>({
-    channelId: mtMap.objectField('channel_id', mtMap.passthrough()),
-    emoji: mtMap.objectField(
-      'emoji',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            value: mtMap.objectField('value', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            url: mtMap.objectField('url', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough())
-          })
-        ),
-        mtMap.unionOption('string', mtMap.passthrough())
-      ])
-    )
-  });
-
+  /* @__PURE__ */ mapObject<ChatsMessagesReactionsCreateBody>(['channel_id']);

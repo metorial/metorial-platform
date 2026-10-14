@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceChatsChannelsMembersListOutput = {
   items: {
@@ -22,46 +22,27 @@ export type DashboardInstanceChatsChannelsMembersListOutput = {
 };
 
 export let mapDashboardInstanceChatsChannelsMembersListOutput =
-  mtMap.object<DashboardInstanceChatsChannelsMembersListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          role: mtMap.objectField('role', mtMap.passthrough()),
-          providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-          providerAuthorId: mtMap.objectField(
-            'provider_author_id',
-            mtMap.passthrough()
-          ),
-          userName: mtMap.objectField('user_name', mtMap.passthrough()),
-          fullName: mtMap.objectField('full_name', mtMap.passthrough()),
-          email: mtMap.objectField('email', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-          isSelf: mtMap.objectField('is_self', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          lastInteractionAt: mtMap.objectField(
-            'last_interaction_at',
-            mtMap.date()
-          )
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceChatsChannelsMembersListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'chat_id',
+          'provider_type',
+          'provider_author_id',
+          'user_name',
+          'full_name',
+          'image_url',
+          'is_self',
+          'created_at',
+          'updated_at',
+          'last_interaction_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceChatsChannelsMembersListQuery = {
   limit?: number | undefined;
@@ -71,16 +52,7 @@ export type DashboardInstanceChatsChannelsMembersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardInstanceChatsChannelsMembersListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardInstanceChatsChannelsMembersListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceChatsChannelsMembersListQuery>(
+    0
+  );

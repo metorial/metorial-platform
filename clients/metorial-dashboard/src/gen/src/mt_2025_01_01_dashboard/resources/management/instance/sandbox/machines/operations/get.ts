@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxMachinesOperationsGetOutput = {
   object: 'sandbox.machine.operation';
@@ -35,39 +35,14 @@ export type ManagementInstanceSandboxMachinesOperationsGetOutput = {
 };
 
 export let mapManagementInstanceSandboxMachinesOperationsGetOutput =
-  mtMap.object<ManagementInstanceSandboxMachinesOperationsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    machineId: mtMap.objectField('machine_id', mtMap.passthrough()),
-    kind: mtMap.objectField('kind', mtMap.passthrough()),
-    trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-    outcome: mtMap.objectField('outcome', mtMap.passthrough()),
-    failure: mtMap.objectField(
-      'failure',
-      mtMap.object({
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        message: mtMap.objectField('message', mtMap.passthrough())
-      })
-    ),
-    fromMachineInstanceId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSandboxMachinesOperationsGetOutput>(
+    [
+      'machine_id',
       'from_machine_instance_id',
-      mtMap.passthrough()
-    ),
-    supersededById: mtMap.objectField('superseded_by_id', mtMap.passthrough()),
-    instanceOperations: mtMap.objectField(
-      'instance_operations',
-      mtMap.array(
-        mtMap.object({
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          kind: mtMap.objectField('kind', mtMap.passthrough()),
-          machineInstanceId: mtMap.objectField(
-            'machine_instance_id',
-            mtMap.passthrough()
-          )
-        })
-      )
-    ),
-    requestedAt: mtMap.objectField('requested_at', mtMap.date()),
-    completedAt: mtMap.objectField('completed_at', mtMap.date())
-  });
-
+      'superseded_by_id',
+      ['instance_operations', 1, [2, [1, ['machine_instance_id']]]],
+      'requested_at',
+      'completed_at'
+    ],
+    1
+  );

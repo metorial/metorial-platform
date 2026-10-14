@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxMachinesEventsGetOutput = {
   object: 'sandbox.machine.event';
@@ -28,40 +28,15 @@ export type SandboxMachinesEventsGetOutput = {
 };
 
 export let mapSandboxMachinesEventsGetOutput =
-  mtMap.object<SandboxMachinesEventsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    machineId: mtMap.objectField('machine_id', mtMap.passthrough()),
-    machineInstanceId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<SandboxMachinesEventsGetOutput>(
+    [
+      'machine_id',
       'machine_instance_id',
-      mtMap.passthrough()
-    ),
-    generation: mtMap.objectField('generation', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    source: mtMap.objectField('source', mtMap.passthrough()),
-    machine: mtMap.objectField(
-      'machine',
-      mtMap.object({
-        fromStatus: mtMap.objectField('from_status', mtMap.passthrough()),
-        toStatus: mtMap.objectField('to_status', mtMap.passthrough())
-      })
-    ),
-    instance: mtMap.objectField(
-      'instance',
-      mtMap.object({
-        fromStatus: mtMap.objectField('from_status', mtMap.passthrough()),
-        toStatus: mtMap.objectField('to_status', mtMap.passthrough())
-      })
-    ),
-    operationId: mtMap.objectField('operation_id', mtMap.passthrough()),
-    guestErrorId: mtMap.objectField('guest_error_id', mtMap.passthrough()),
-    error: mtMap.objectField(
-      'error',
-      mtMap.object({
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        message: mtMap.objectField('message', mtMap.passthrough())
-      })
-    ),
-    occurredAt: mtMap.objectField('occurred_at', mtMap.date())
-  });
-
+      ['machine', 0, [1, ['from_status', 'to_status']]],
+      ['instance', 0, [1, ['from_status', 'to_status']]],
+      'operation_id',
+      'guest_error_id',
+      'occurred_at'
+    ],
+    1
+  );

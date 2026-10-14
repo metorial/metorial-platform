@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationMembersListOutput = {
   items: {
@@ -50,93 +50,42 @@ export type ManagementOrganizationMembersListOutput = {
 };
 
 export let mapManagementOrganizationMembersListOutput =
-  mtMap.object<ManagementOrganizationMembersListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          role: mtMap.objectField('role', mtMap.passthrough()),
-          userId: mtMap.objectField('user_id', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
-          policies: mtMap.objectField(
-            'policies',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                slug: mtMap.objectField('slug', mtMap.passthrough())
-              })
-            )
-          ),
-          lastActiveAt: mtMap.objectField('last_active_at', mtMap.date()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
-          actor: mtMap.objectField(
+  /* @__PURE__ */ createMapper<ManagementOrganizationMembersListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'user_id',
+          'organization_id',
+          'actor_id',
+          'last_active_at',
+          'created_at',
+          'updated_at',
+          'deleted_at',
+          [
             'actor',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              organizationId: mtMap.objectField(
+            0,
+            [
+              1,
+              [
                 'organization_id',
-                mtMap.passthrough()
-              ),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough()),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              member: mtMap.objectField(
-                'member',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  role: mtMap.objectField('role', mtMap.passthrough())
-                })
-              ),
-              teams: mtMap.objectField(
-                'teams',
-                mtMap.array(
-                  mtMap.object({
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    slug: mtMap.objectField('slug', mtMap.passthrough()),
-                    assignmentId: mtMap.objectField(
-                      'assignment_id',
-                      mtMap.passthrough()
-                    ),
-                    createdAt: mtMap.objectField('created_at', mtMap.date()),
-                    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                  })
-                )
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          )
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+                'image_url',
+                [
+                  'teams',
+                  0,
+                  [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                ],
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementOrganizationMembersListQuery = {
   limit?: number | undefined;
@@ -146,26 +95,8 @@ export type ManagementOrganizationMembersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { teamId?: string | string[] | undefined };
 
-export let mapManagementOrganizationMembersListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      teamId: mtMap.objectField(
-        'team_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      )
-    })
-  )
-]);
-
+export let mapManagementOrganizationMembersListQuery =
+  /* @__PURE__ */ createMapper<ManagementOrganizationMembersListQuery>([
+    3,
+    [[0, [1, ['team_id']]]]
+  ]);

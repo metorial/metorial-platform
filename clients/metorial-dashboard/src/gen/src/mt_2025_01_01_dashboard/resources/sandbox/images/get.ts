@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxImagesGetOutput = {
   object: 'sandbox.image';
@@ -14,17 +14,8 @@ export type SandboxImagesGetOutput = {
   deletedAt: Date | null;
 };
 
-export let mapSandboxImagesGetOutput = mtMap.object<SandboxImagesGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  owner: mtMap.objectField('owner', mtMap.passthrough()),
-  status: mtMap.objectField('status', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-  regions: mtMap.objectField('regions', mtMap.array(mtMap.passthrough())),
-  latestVersionId: mtMap.objectField('latest_version_id', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-  deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-});
-
+export let mapSandboxImagesGetOutput =
+  /* @__PURE__ */ mapObject<SandboxImagesGetOutput>(
+    ['latest_version_id', 'created_at', 'updated_at', 'deleted_at'],
+    1
+  );

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SessionsParticipantsListOutput = {
   items: {
@@ -23,62 +23,27 @@ export type SessionsParticipantsListOutput = {
 };
 
 export let mapSessionsParticipantsListOutput =
-  mtMap.object<SessionsParticipantsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          data: mtMap.objectField(
-            'data',
-            mtMap.object({
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough())
-            })
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          connectionType: mtMap.objectField(
-            'connection_type',
-            mtMap.passthrough()
-          ),
-          agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-          agentInstanceId: mtMap.objectField(
-            'agent_instance_id',
-            mtMap.passthrough()
-          ),
-          identityActorId: mtMap.objectField(
-            'identity_actor_id',
-            mtMap.passthrough()
-          ),
-          identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-          agentActorId: mtMap.objectField(
-            'agent_actor_id',
-            mtMap.passthrough()
-          ),
-          agentClientId: mtMap.objectField(
-            'agent_client_id',
-            mtMap.passthrough()
-          ),
-          consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<SessionsParticipantsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'provider_id',
+          'connection_type',
+          'agent_id',
+          'agent_instance_id',
+          'identity_actor_id',
+          'identity_id',
+          'agent_actor_id',
+          'agent_client_id',
+          'consumer_id',
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type SessionsParticipantsListQuery = {
   limit?: number | undefined;
@@ -116,124 +81,27 @@ export type SessionsParticipantsListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapSessionsParticipantsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      type: mtMap.objectField(
-        'type',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      agentId: mtMap.objectField(
-        'agent_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      actorId: mtMap.objectField(
-        'actor_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      consumerId: mtMap.objectField(
-        'consumer_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      identityId: mtMap.objectField(
-        'identity_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      agentInstanceId: mtMap.objectField(
-        'agent_instance_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      sessionId: mtMap.objectField(
-        'session_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      sessionConnectionId: mtMap.objectField(
-        'session_connection_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      sessionMessageId: mtMap.objectField(
-        'session_message_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapSessionsParticipantsListQuery =
+  /* @__PURE__ */ createMapper<SessionsParticipantsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'agent_id',
+            'actor_id',
+            'consumer_id',
+            'identity_id',
+            'agent_instance_id',
+            'session_id',
+            'session_connection_id',
+            'session_message_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

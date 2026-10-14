@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxMachinesInstancesGetOutput = {
   object: 'sandbox.machine.instance';
@@ -63,95 +63,33 @@ export type ManagementInstanceSandboxMachinesInstancesGetOutput = {
 };
 
 export let mapManagementInstanceSandboxMachinesInstancesGetOutput =
-  mtMap.object<ManagementInstanceSandboxMachinesInstancesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    machineId: mtMap.objectField('machine_id', mtMap.passthrough()),
-    generation: mtMap.objectField('generation', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    phase: mtMap.objectField('phase', mtMap.passthrough()),
-    creationReason: mtMap.objectField('creation_reason', mtMap.passthrough()),
-    image: mtMap.objectField(
-      'image',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        versionId: mtMap.objectField('version_id', mtMap.passthrough())
-      })
-    ),
-    spec: mtMap.objectField(
-      'spec',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        memoryMib: mtMap.objectField('memory_mib', mtMap.passthrough()),
-        vcpus: mtMap.objectField('vcpus', mtMap.passthrough())
-      })
-    ),
-    operation: mtMap.objectField(
-      'operation',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        kind: mtMap.objectField('kind', mtMap.passthrough()),
-        requestedAt: mtMap.objectField('requested_at', mtMap.date())
-      })
-    ),
-    mounts: mtMap.objectField(
-      'mounts',
-      mtMap.array(
-        mtMap.object({
-          diskId: mtMap.objectField('disk_id', mtMap.passthrough()),
-          mountPath: mtMap.objectField('mount_path', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough())
-        })
-      )
-    ),
-    disksReady: mtMap.objectField('disks_ready', mtMap.passthrough()),
-    runtime: mtMap.objectField(
-      'runtime',
-      mtMap.object({
-        state: mtMap.objectField('state', mtMap.passthrough()),
-        setup: mtMap.objectField(
-          'setup',
-          mtMap.array(
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              exitCode: mtMap.objectField('exit_code', mtMap.passthrough()),
-              durationMs: mtMap.objectField('duration_ms', mtMap.passthrough())
-            })
-          )
-        ),
-        entrypoint: mtMap.objectField(
-          'entrypoint',
-          mtMap.object({
-            startedAfterMs: mtMap.objectField(
-              'started_after_ms',
-              mtMap.passthrough()
-            ),
-            exitCode: mtMap.objectField('exit_code', mtMap.passthrough()),
-            signal: mtMap.objectField('signal', mtMap.passthrough())
-          })
-        ),
-        error: mtMap.objectField(
-          'error',
-          mtMap.object({
-            code: mtMap.objectField('code', mtMap.passthrough()),
-            message: mtMap.objectField('message', mtMap.passthrough())
-          })
-        )
-      })
-    ),
-    failure: mtMap.objectField(
-      'failure',
-      mtMap.object({
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        message: mtMap.objectField('message', mtMap.passthrough())
-      })
-    ),
-    hasLogs: mtMap.objectField('has_logs', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    startedAt: mtMap.objectField('started_at', mtMap.date()),
-    readyAt: mtMap.objectField('ready_at', mtMap.date()),
-    pausedAt: mtMap.objectField('paused_at', mtMap.date()),
-    terminatedAt: mtMap.objectField('terminated_at', mtMap.date()),
-    lastSeenAt: mtMap.objectField('last_seen_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceSandboxMachinesInstancesGetOutput>(
+    [
+      'machine_id',
+      'creation_reason',
+      ['image', 0, [1, ['version_id']]],
+      ['spec', 0, [1, ['memory_mib']]],
+      ['operation', 0, [1, ['requested_at']]],
+      ['mounts', 0, [2, [1, ['disk_id', 'mount_path']]]],
+      'disks_ready',
+      [
+        'runtime',
+        0,
+        [
+          1,
+          [
+            ['setup', 0, [2, [1, ['exit_code', 'duration_ms']]]],
+            ['entrypoint', 0, [1, ['started_after_ms', 'exit_code']]]
+          ]
+        ]
+      ],
+      'has_logs',
+      'created_at',
+      'started_at',
+      'ready_at',
+      'paused_at',
+      'terminated_at',
+      'last_seen_at'
+    ],
+    1
+  );

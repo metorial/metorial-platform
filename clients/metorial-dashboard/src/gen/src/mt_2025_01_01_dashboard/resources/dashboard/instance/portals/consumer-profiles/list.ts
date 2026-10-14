@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancePortalsConsumerProfilesListOutput = {
   items: (({
@@ -58,139 +58,82 @@ export type DashboardInstancePortalsConsumerProfilesListOutput = {
 };
 
 export let mapDashboardInstancePortalsConsumerProfilesListOutput =
-  mtMap.object<DashboardInstancePortalsConsumerProfilesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough()),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-              userId: mtMap.objectField('user_id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-              groups: mtMap.objectField(
-                'groups',
-                mtMap.array(
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    group: mtMap.objectField(
-                      'group',
-                      mtMap.object({
-                        object: mtMap.objectField(
-                          'object',
-                          mtMap.passthrough()
-                        ),
-                        id: mtMap.objectField('id', mtMap.passthrough()),
-                        status: mtMap.objectField(
-                          'status',
-                          mtMap.passthrough()
-                        ),
-                        name: mtMap.objectField('name', mtMap.passthrough()),
-                        description: mtMap.objectField(
-                          'description',
-                          mtMap.passthrough()
-                        ),
-                        isDefault: mtMap.objectField(
-                          'is_default',
-                          mtMap.passthrough()
-                        ),
-                        createdAt: mtMap.objectField(
-                          'created_at',
-                          mtMap.date()
-                        ),
-                        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                      })
-                    ),
-                    assignedVia: mtMap.objectField(
-                      'assigned_via',
-                      mtMap.passthrough()
-                    )
-                  })
-                )
-              ),
-              surface: mtMap.objectField(
-                'surface',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
-                  allowConsumerSkillAuthoring: mtMap.objectField(
-                    'allow_consumer_skill_authoring',
-                    mtMap.passthrough()
-                  ),
-                  allowConsumerSkillPublishing: mtMap.objectField(
-                    'allow_consumer_skill_publishing',
-                    mtMap.passthrough()
-                  ),
-                  skillConfiguration: mtMap.objectField(
-                    'skill_configuration',
-                    mtMap.object({
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      isDefault: mtMap.objectField(
-                        'is_default',
-                        mtMap.passthrough()
-                      ),
-                      allowScripts: mtMap.objectField(
-                        'allow_scripts',
-                        mtMap.passthrough()
-                      ),
-                      allowedFileExtensions: mtMap.objectField(
-                        'allowed_file_extensions',
-                        mtMap.array(mtMap.passthrough())
-                      ),
-                      allowNonStandardDirectories: mtMap.objectField(
-                        'allow_non_standard_directories',
-                        mtMap.passthrough()
-                      )
-                    })
-                  ),
-                  auth: mtMap.objectField(
-                    'auth',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      sessionExpiryTimeInSeconds: mtMap.objectField(
-                        'session_expiry_time_in_seconds',
-                        mtMap.passthrough()
-                      ),
-                      emailWhitelist: mtMap.objectField(
-                        'email_whitelist',
-                        mtMap.array(mtMap.passthrough())
-                      )
-                    })
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              )
-            })
-          )
-        ])
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstancePortalsConsumerProfilesListOutput>(
+    [
+      7,
+      [
+        3,
+        [
+          [
+            0,
+            [
+              1,
+              [
+                'image_url',
+                'consumer_id',
+                'user_id',
+                'created_at',
+                'updated_at',
+                [
+                  'groups',
+                  0,
+                  [
+                    2,
+                    [
+                      1,
+                      [
+                        [
+                          'group',
+                          0,
+                          [1, ['is_default', 'created_at', 'updated_at']]
+                        ],
+                        'assigned_via'
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  'surface',
+                  0,
+                  [
+                    1,
+                    [
+                      'allow_consumer_skill_authoring',
+                      'allow_consumer_skill_publishing',
+                      [
+                        'skill_configuration',
+                        1,
+                        [
+                          1,
+                          [
+                            'is_default',
+                            'allow_scripts',
+                            'allowed_file_extensions',
+                            'allow_non_standard_directories'
+                          ]
+                        ]
+                      ],
+                      [
+                        'auth',
+                        0,
+                        [
+                          1,
+                          ['session_expiry_time_in_seconds', 'email_whitelist']
+                        ]
+                      ],
+                      'created_at',
+                      'updated_at'
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstancePortalsConsumerProfilesListQuery = {
   limit?: number | undefined;
@@ -205,35 +148,7 @@ export type DashboardInstancePortalsConsumerProfilesListQuery = {
   status?: 'active' | 'invited' | ('active' | 'invited')[] | undefined;
 };
 
-export let mapDashboardInstancePortalsConsumerProfilesListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      email: mtMap.objectField(
-        'email',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      consumerGroupId: mtMap.objectField(
-        'consumer_group_id',
-        mtMap.passthrough()
-      ),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
-    })
-  )
-]);
-
+export let mapDashboardInstancePortalsConsumerProfilesListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstancePortalsConsumerProfilesListQuery>(
+    [3, [[0, [1, ['consumer_group_id']]]]]
+  );

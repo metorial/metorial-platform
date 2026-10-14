@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceIntegrationEnclavesGetLastUsedOutput = {
   items: {
@@ -23,57 +23,28 @@ export type DashboardInstanceIntegrationEnclavesGetLastUsedOutput = {
 };
 
 export let mapDashboardInstanceIntegrationEnclavesGetLastUsedOutput =
-  mtMap.object<DashboardInstanceIntegrationEnclavesGetLastUsedOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          internetGatewayId: mtMap.objectField(
-            'internet_gateway_id',
-            mtMap.passthrough()
-          ),
-          providerDeploymentId: mtMap.objectField(
-            'provider_deployment_id',
-            mtMap.passthrough()
-          ),
-          enclaveEnvironment: mtMap.objectField(
-            'enclave_environment',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          lastUsedAt: mtMap.objectField('last_used_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceIntegrationEnclavesGetLastUsedOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'internet_gateway_id',
+          'provider_deployment_id',
+          ['enclave_environment', 1, [1, ['created_at']]],
+          'created_at',
+          'last_used_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceIntegrationEnclavesGetLastUsedQuery = {
   limit?: number | undefined;
 };
 
 export let mapDashboardInstanceIntegrationEnclavesGetLastUsedQuery =
-  mtMap.object<DashboardInstanceIntegrationEnclavesGetLastUsedQuery>({
-    limit: mtMap.objectField('limit', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstanceIntegrationEnclavesGetLastUsedQuery>(
+    0
+  );

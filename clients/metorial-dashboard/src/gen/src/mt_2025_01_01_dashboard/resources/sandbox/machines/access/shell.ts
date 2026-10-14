@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxMachinesAccessShellOutput = {
   object: 'sandbox.machine.access';
@@ -10,36 +10,14 @@ export type SandboxMachinesAccessShellOutput = {
 };
 
 export let mapSandboxMachinesAccessShellOutput =
-  mtMap.object<SandboxMachinesAccessShellOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    token: mtMap.objectField('token', mtMap.passthrough()),
-    scope: mtMap.objectField('scope', mtMap.passthrough()),
-    ports: mtMap.objectField(
-      'ports',
-      mtMap.union([
-        mtMap.unionOption(
-          'array',
-          mtMap.union([mtMap.unionOption('number', mtMap.passthrough())])
-        )
-      ])
-    ),
-    urls: mtMap.objectField(
-      'urls',
-      mtMap.object({
-        shell: mtMap.objectField('shell', mtMap.passthrough()),
-        files: mtMap.objectField('files', mtMap.passthrough()),
-        ports: mtMap.objectField('ports', mtMap.passthrough())
-      })
-    ),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<SandboxMachinesAccessShellOutput>(
+    ['expires_at'],
+    1
+  );
 
 export type SandboxMachinesAccessShellBody = {
   ttlSeconds?: number | undefined;
 };
 
 export let mapSandboxMachinesAccessShellBody =
-  mtMap.object<SandboxMachinesAccessShellBody>({
-    ttlSeconds: mtMap.objectField('ttl_seconds', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<SandboxMachinesAccessShellBody>(['ttl_seconds']);

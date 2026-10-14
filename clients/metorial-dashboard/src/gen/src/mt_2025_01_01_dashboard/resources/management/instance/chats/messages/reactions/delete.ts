@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceChatsMessagesReactionsDeleteOutput = {
   object: 'chat.reaction_list';
@@ -30,52 +33,9 @@ export type ManagementInstanceChatsMessagesReactionsDeleteOutput = {
 };
 
 export let mapManagementInstanceChatsMessagesReactionsDeleteOutput =
-  mtMap.object<ManagementInstanceChatsMessagesReactionsDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    reactions: mtMap.objectField(
-      'reactions',
-      mtMap.array(
-        mtMap.object({
-          emoji: mtMap.objectField(
-            'emoji',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  value: mtMap.objectField('value', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  url: mtMap.objectField('url', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough())
-                })
-              )
-            ])
-          ),
-          count: mtMap.objectField('count', mtMap.passthrough()),
-          authors: mtMap.objectField(
-            'authors',
-            mtMap.array(
-              mtMap.object({
-                userId: mtMap.objectField('userId', mtMap.passthrough()),
-                userName: mtMap.objectField('userName', mtMap.passthrough()),
-                fullName: mtMap.objectField('fullName', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                role: mtMap.objectField('role', mtMap.passthrough()),
-                providerType: mtMap.objectField(
-                  'providerType',
-                  mtMap.passthrough()
-                ),
-                isMe: mtMap.objectField('isMe', mtMap.passthrough()),
-                email: mtMap.objectField('email', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('imageUrl', mtMap.passthrough()),
-                raw: mtMap.objectField('raw', mtMap.passthrough())
-              })
-            )
-          )
-        })
-      )
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceChatsMessagesReactionsDeleteOutput>(
+    0
+  );
 
 export type ManagementInstanceChatsMessagesReactionsDeleteQuery = {
   channelId: string;
@@ -83,8 +43,6 @@ export type ManagementInstanceChatsMessagesReactionsDeleteQuery = {
 };
 
 export let mapManagementInstanceChatsMessagesReactionsDeleteQuery =
-  mtMap.object<ManagementInstanceChatsMessagesReactionsDeleteQuery>({
-    channelId: mtMap.objectField('channel_id', mtMap.passthrough()),
-    emoji: mtMap.objectField('emoji', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceChatsMessagesReactionsDeleteQuery>(
+    ['channel_id']
+  );

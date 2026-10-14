@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureSkillSyncUpdateOutput = {
   object: 'organization.project.skill_sync_configuration';
@@ -8,25 +8,16 @@ export type DashboardProjectsConfigureSkillSyncUpdateOutput = {
 };
 
 export let mapDashboardProjectsConfigureSkillSyncUpdateOutput =
-  mtMap.object<DashboardProjectsConfigureSkillSyncUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    gitLfsThresholdBytes: mtMap.objectField(
-      'git_lfs_threshold_bytes',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureSkillSyncUpdateOutput>(
+    ['project_id', 'git_lfs_threshold_bytes', 'updated_at'],
+    1
+  );
 
 export type DashboardProjectsConfigureSkillSyncUpdateBody = {
   gitLfsThresholdBytes?: number | null | undefined;
 };
 
 export let mapDashboardProjectsConfigureSkillSyncUpdateBody =
-  mtMap.object<DashboardProjectsConfigureSkillSyncUpdateBody>({
-    gitLfsThresholdBytes: mtMap.objectField(
-      'git_lfs_threshold_bytes',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureSkillSyncUpdateBody>([
+    'git_lfs_threshold_bytes'
+  ]);

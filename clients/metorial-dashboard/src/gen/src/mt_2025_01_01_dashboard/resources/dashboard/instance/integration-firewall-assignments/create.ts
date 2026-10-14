@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceIntegrationFirewallAssignmentsCreateOutput = {
   object: 'integration.firewall_assignment';
@@ -20,30 +23,10 @@ export type DashboardInstanceIntegrationFirewallAssignmentsCreateOutput = {
 };
 
 export let mapDashboardInstanceIntegrationFirewallAssignmentsCreateOutput =
-  mtMap.object<DashboardInstanceIntegrationFirewallAssignmentsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    targetType: mtMap.objectField('target_type', mtMap.passthrough()),
-    firewall: mtMap.objectField(
-      'firewall',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough())
-      })
-    ),
-    target: mtMap.objectField(
-      'target',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceIntegrationFirewallAssignmentsCreateOutput>(
+    ['target_type', 'created_at'],
+    1
+  );
 
 export type DashboardInstanceIntegrationFirewallAssignmentsCreateBody = {
   firewallId: string;
@@ -54,15 +37,6 @@ export type DashboardInstanceIntegrationFirewallAssignmentsCreateBody = {
 };
 
 export let mapDashboardInstanceIntegrationFirewallAssignmentsCreateBody =
-  mtMap.union([
-    mtMap.unionOption(
-      'object',
-      mtMap.object({
-        firewallId: mtMap.objectField('firewall_id', mtMap.passthrough()),
-        targetType: mtMap.objectField('target_type', mtMap.passthrough()),
-        enclaveId: mtMap.objectField('enclave_id', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough())
-      })
-    )
-  ]);
-
+  /* @__PURE__ */ createMapper<DashboardInstanceIntegrationFirewallAssignmentsCreateBody>(
+    [3, [[0, [1, ['firewall_id', 'target_type', 'enclave_id', 'provider_id']]]]]
+  );

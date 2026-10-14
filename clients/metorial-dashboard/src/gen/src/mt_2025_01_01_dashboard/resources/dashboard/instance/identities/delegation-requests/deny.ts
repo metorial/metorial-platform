@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceIdentitiesDelegationRequestsDenyOutput = {
   object: 'identity.delegation_request';
@@ -113,167 +113,75 @@ export type DashboardInstanceIdentitiesDelegationRequestsDenyOutput = {
 };
 
 export let mapDashboardInstanceIdentitiesDelegationRequestsDenyOutput =
-  mtMap.object<DashboardInstanceIdentitiesDelegationRequestsDenyOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    deniedReason: mtMap.objectField('denied_reason', mtMap.passthrough()),
-    requester: mtMap.objectField(
-      'requester',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-    delegation: mtMap.objectField(
-      'delegation',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        deniedReason: mtMap.objectField('denied_reason', mtMap.passthrough()),
-        delegationLevel: mtMap.objectField(
-          'delegation_level',
-          mtMap.passthrough()
-        ),
-        permissions: mtMap.objectField(
-          'permissions',
-          mtMap.array(mtMap.passthrough())
-        ),
-        attestation: mtMap.objectField(
-          'attestation',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date())
-          })
-        ),
-        note: mtMap.objectField('note', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        identity: mtMap.objectField(
-          'identity',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough())
-          })
-        ),
-        delegationConfigId: mtMap.objectField(
-          'delegation_config_id',
-          mtMap.passthrough()
-        ),
-        parties: mtMap.objectField(
-          'parties',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              roles: mtMap.objectField(
-                'roles',
-                mtMap.array(mtMap.passthrough())
-              ),
-              actor: mtMap.objectField(
-                'actor',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
-                  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                  agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date())
-            })
-          )
-        ),
-        request: mtMap.objectField(
-          'request',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            deniedReason: mtMap.objectField(
-              'denied_reason',
-              mtMap.passthrough()
-            ),
-            requester: mtMap.objectField(
-              'requester',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-            expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-            createdAt: mtMap.objectField('created_at', mtMap.date())
-          })
-        ),
-        credentialOverrides: mtMap.objectField(
-          'credential_overrides',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              permissions: mtMap.objectField(
-                'permissions',
-                mtMap.array(mtMap.passthrough())
-              ),
-              credentialId: mtMap.objectField(
-                'credential_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              expiresAt: mtMap.objectField('expires_at', mtMap.date())
-            })
-          )
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-        revokedAt: mtMap.objectField('revoked_at', mtMap.date())
-      })
-    ),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceIdentitiesDelegationRequestsDenyOutput>(
+    [
+      'denied_reason',
+      ['requester', 0, [1, ['agent_id', 'created_at', 'updated_at']]],
+      'identity_id',
+      [
+        'delegation',
+        0,
+        [
+          1,
+          [
+            'denied_reason',
+            'delegation_level',
+            ['attestation', 0, [1, ['created_at']]],
+            'delegation_config_id',
+            [
+              'parties',
+              0,
+              [
+                2,
+                [
+                  1,
+                  [
+                    ['actor', 0, [1, ['agent_id', 'created_at', 'updated_at']]],
+                    'created_at'
+                  ]
+                ]
+              ]
+            ],
+            [
+              'request',
+              0,
+              [
+                1,
+                [
+                  'denied_reason',
+                  [
+                    'requester',
+                    0,
+                    [1, ['agent_id', 'created_at', 'updated_at']]
+                  ],
+                  'identity_id',
+                  'expires_at',
+                  'created_at'
+                ]
+              ]
+            ],
+            [
+              'credential_overrides',
+              1,
+              [2, [1, ['credential_id', 'created_at', 'expires_at']]]
+            ],
+            'created_at',
+            'expires_at',
+            'revoked_at'
+          ]
+        ]
+      ],
+      'expires_at',
+      'created_at'
+    ],
+    1
+  );
 
 export type DashboardInstanceIdentitiesDelegationRequestsDenyQuery = {
   allowDeleted?: boolean | undefined;
 };
 
 export let mapDashboardInstanceIdentitiesDelegationRequestsDenyQuery =
-  mtMap.object<DashboardInstanceIdentitiesDelegationRequestsDenyQuery>({
-    allowDeleted: mtMap.objectField('allow_deleted', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceIdentitiesDelegationRequestsDenyQuery>(
+    ['allow_deleted']
+  );

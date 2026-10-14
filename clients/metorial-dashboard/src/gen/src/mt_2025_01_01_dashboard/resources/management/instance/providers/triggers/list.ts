@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProvidersTriggersListOutput = {
   items: {
@@ -25,78 +25,43 @@ export type ManagementInstanceProvidersTriggersListOutput = {
 };
 
 export let mapManagementInstanceProvidersTriggersListOutput =
-  mtMap.object<ManagementInstanceProvidersTriggersListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          key: mtMap.objectField('key', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          inputSchema: mtMap.objectField(
-            'input_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          outputSchema: mtMap.objectField(
-            'output_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          invocation: mtMap.objectField(
+  /* @__PURE__ */ createMapper<ManagementInstanceProvidersTriggersListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'input_schema',
+          'output_schema',
+          [
             'invocation',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  intervalSeconds: mtMap.objectField(
-                    'interval_seconds',
-                    mtMap.passthrough()
-                  ),
-                  autoRegistration: mtMap.objectField(
-                    'auto_registration',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  ),
-                  autoUnregistration: mtMap.objectField(
-                    'auto_unregistration',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  )
-                })
-              )
-            ])
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          providerSpecificationId: mtMap.objectField(
-            'provider_specification_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            0,
+            [
+              3,
+              [
+                [
+                  0,
+                  [
+                    1,
+                    [
+                      'interval_seconds',
+                      'auto_registration',
+                      'auto_unregistration'
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          'provider_id',
+          'provider_specification_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstanceProvidersTriggersListQuery = {
   limit?: number | undefined;
@@ -106,20 +71,8 @@ export type ManagementInstanceProvidersTriggersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { providerVersionId: string };
 
-export let mapManagementInstanceProvidersTriggersListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      providerVersionId: mtMap.objectField(
-        'provider_version_id',
-        mtMap.passthrough()
-      )
-    })
-  )
-]);
-
+export let mapManagementInstanceProvidersTriggersListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceProvidersTriggersListQuery>([
+    3,
+    [[0, [1, ['provider_version_id']]]]
+  ]);

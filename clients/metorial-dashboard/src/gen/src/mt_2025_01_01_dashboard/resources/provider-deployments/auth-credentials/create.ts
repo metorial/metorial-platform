@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderDeploymentsAuthCredentialsCreateOutput = {
   object: 'provider.auth_credentials';
@@ -17,21 +17,10 @@ export type ProviderDeploymentsAuthCredentialsCreateOutput = {
 };
 
 export let mapProviderDeploymentsAuthCredentialsCreateOutput =
-  mtMap.object<ProviderDeploymentsAuthCredentialsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-    isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ProviderDeploymentsAuthCredentialsCreateOutput>(
+    ['is_default', 'is_managed', 'provider_id', 'created_at', 'updated_at'],
+    1
+  );
 
 export type ProviderDeploymentsAuthCredentialsCreateBody = {
   providerId: string;
@@ -47,19 +36,7 @@ export type ProviderDeploymentsAuthCredentialsCreateBody = {
 };
 
 export let mapProviderDeploymentsAuthCredentialsCreateBody =
-  mtMap.object<ProviderDeploymentsAuthCredentialsCreateBody>({
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    config: mtMap.objectField(
-      'config',
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-        clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
-        scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough()))
-      })
-    )
-  });
-
+  /* @__PURE__ */ mapObject<ProviderDeploymentsAuthCredentialsCreateBody>([
+    'provider_id',
+    ['config', 0, [1, ['client_id', 'client_secret']]]
+  ]);

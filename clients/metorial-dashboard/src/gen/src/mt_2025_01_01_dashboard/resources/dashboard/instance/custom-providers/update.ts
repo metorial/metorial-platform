@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCustomProvidersUpdateOutput = {
   object: 'custom_provider';
@@ -121,206 +121,110 @@ export type DashboardInstanceCustomProvidersUpdateOutput = {
   } | null;
 };
 
-export let mapDashboardInstanceCustomProvidersUpdateOutput = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      type: mtMap.objectField('type', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-      draft: mtMap.objectField(
-        'draft',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          containerImage: mtMap.objectField(
-            'container_image',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              containerRegistry: mtMap.objectField(
-                'container_registry',
-                mtMap.passthrough()
-              ),
-              containerImageTag: mtMap.objectField(
-                'container_image_tag',
-                mtMap.passthrough()
-              ),
-              containerImage: mtMap.objectField(
-                'container_image',
-                mtMap.passthrough()
-              )
-            })
-          ),
-          remoteMcpServer: mtMap.objectField(
-            'remote_mcp_server',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              url: mtMap.objectField('url', mtMap.passthrough()),
-              transport: mtMap.objectField('transport', mtMap.passthrough())
-            })
-          ),
-          config: mtMap.objectField(
-            'config',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              schema: mtMap.objectField(
-                'schema',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  schema: mtMap.objectField('schema', mtMap.passthrough())
-                })
-              ),
-              transformer: mtMap.objectField('transformer', mtMap.passthrough())
-            })
-          )
-        })
-      ),
-      scmRepo: mtMap.objectField(
-        'scm_repo',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          provider: mtMap.objectField(
-            'provider',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              owner: mtMap.objectField('owner', mtMap.passthrough())
-            })
-          ),
-          url: mtMap.objectField('url', mtMap.passthrough()),
-          isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-          defaultBranch: mtMap.objectField(
-            'default_branch',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      ),
-      provider: mtMap.objectField(
-        'provider',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          access: mtMap.objectField('access', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          publisher: mtMap.objectField(
-            'publisher',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          currentVersion: mtMap.objectField(
-            'current_version',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              version: mtMap.objectField('version', mtMap.passthrough()),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              specificationId: mtMap.objectField(
-                'specification_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          oauth: mtMap.objectField(
-            'oauth',
-            mtMap.object({
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              callbackUrl: mtMap.objectField(
-                'callback_url',
-                mtMap.passthrough()
-              ),
-              autoRegistration: mtMap.objectField(
-                'auto_registration',
-                mtMap.object({
-                  status: mtMap.objectField('status', mtMap.passthrough())
-                })
-              )
-            })
-          ),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      ),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-      draftBucket: mtMap.objectField(
-        'draft_bucket',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          isImmutable: mtMap.objectField('is_immutable', mtMap.passthrough()),
-          isReadOnly: mtMap.objectField('is_read_only', mtMap.passthrough()),
-          scmRepoLink: mtMap.objectField(
-            'scm_repo_link',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              isLinked: mtMap.objectField('is_linked', mtMap.passthrough()),
-              path: mtMap.objectField('path', mtMap.passthrough()),
-              repository: mtMap.objectField(
-                'repository',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  provider: mtMap.objectField(
-                    'provider',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      owner: mtMap.objectField('owner', mtMap.passthrough())
-                    })
-                  ),
-                  url: mtMap.objectField('url', mtMap.passthrough()),
-                  isPrivate: mtMap.objectField(
-                    'is_private',
-                    mtMap.passthrough()
-                  ),
-                  defaultBranch: mtMap.objectField(
-                    'default_branch',
-                    mtMap.passthrough()
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date())
-                })
-              )
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    })
-  )
-]);
+export let mapDashboardInstanceCustomProvidersUpdateOutput =
+  /* @__PURE__ */ createMapper<DashboardInstanceCustomProvidersUpdateOutput>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              [
+                'draft',
+                0,
+                [
+                  1,
+                  [
+                    [
+                      'container_image',
+                      1,
+                      [
+                        1,
+                        [
+                          'container_registry',
+                          'container_image_tag',
+                          'container_image'
+                        ]
+                      ]
+                    ],
+                    'remote_mcp_server'
+                  ]
+                ]
+              ],
+              [
+                'scm_repo',
+                1,
+                [1, ['is_private', 'default_branch', 'created_at']]
+              ],
+              [
+                'provider',
+                0,
+                [
+                  1,
+                  [
+                    [
+                      'publisher',
+                      0,
+                      [1, ['image_url', 'created_at', 'updated_at']]
+                    ],
+                    [
+                      'current_version',
+                      1,
+                      [
+                        1,
+                        [
+                          'provider_id',
+                          'is_current',
+                          'specification_id',
+                          'created_at',
+                          'updated_at'
+                        ]
+                      ]
+                    ],
+                    ['oauth', 0, [1, ['callback_url', 'auto_registration']]],
+                    'created_at',
+                    'updated_at'
+                  ]
+                ]
+              ],
+              'created_at',
+              'updated_at',
+              [
+                'draft_bucket',
+                1,
+                [
+                  1,
+                  [
+                    'is_immutable',
+                    'is_read_only',
+                    [
+                      'scm_repo_link',
+                      1,
+                      [
+                        1,
+                        [
+                          'is_linked',
+                          [
+                            'repository',
+                            0,
+                            [1, ['is_private', 'default_branch', 'created_at']]
+                          ]
+                        ]
+                      ]
+                    ],
+                    'created_at'
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceCustomProvidersUpdateBody = {
   name?: string | undefined;
@@ -330,10 +234,4 @@ export type DashboardInstanceCustomProvidersUpdateBody = {
 };
 
 export let mapDashboardInstanceCustomProvidersUpdateBody =
-  mtMap.object<DashboardInstanceCustomProvidersUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    readme: mtMap.objectField('readme', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstanceCustomProvidersUpdateBody>(0);

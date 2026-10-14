@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxMachinesErrorsGetOutput = {
   object: 'sandbox.machine.error';
@@ -19,24 +19,15 @@ export type ManagementInstanceSandboxMachinesErrorsGetOutput = {
 };
 
 export let mapManagementInstanceSandboxMachinesErrorsGetOutput =
-  mtMap.object<ManagementInstanceSandboxMachinesErrorsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    machineId: mtMap.objectField('machine_id', mtMap.passthrough()),
-    machineInstanceId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSandboxMachinesErrorsGetOutput>(
+    [
+      'machine_id',
       'machine_instance_id',
-      mtMap.passthrough()
-    ),
-    operationId: mtMap.objectField('operation_id', mtMap.passthrough()),
-    eventId: mtMap.objectField('event_id', mtMap.passthrough()),
-    kind: mtMap.objectField('kind', mtMap.passthrough()),
-    stage: mtMap.objectField('stage', mtMap.passthrough()),
-    reason: mtMap.objectField('reason', mtMap.passthrough()),
-    code: mtMap.objectField('code', mtMap.passthrough()),
-    message: mtMap.objectField('message', mtMap.passthrough()),
-    exitCode: mtMap.objectField('exit_code', mtMap.passthrough()),
-    durationMs: mtMap.objectField('duration_ms', mtMap.passthrough()),
-    stdout: mtMap.objectField('stdout', mtMap.passthrough()),
-    occurredAt: mtMap.objectField('occurred_at', mtMap.date())
-  });
-
+      'operation_id',
+      'event_id',
+      'exit_code',
+      'duration_ms',
+      'occurred_at'
+    ],
+    1
+  );

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceMonitorsGetOutput = {
   object: 'monitor';
@@ -17,22 +17,14 @@ export type ManagementInstanceMonitorsGetOutput = {
 };
 
 export let mapManagementInstanceMonitorsGetOutput =
-  mtMap.object<ManagementInstanceMonitorsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    target: mtMap.objectField('target', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    owner: mtMap.objectField('owner', mtMap.passthrough()),
-    protoGuardFilterId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceMonitorsGetOutput>(
+    [
       'proto_guard_filter_id',
-      mtMap.passthrough()
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    firstAlertAt: mtMap.objectField('first_alert_at', mtMap.date()),
-    lastAlertAt: mtMap.objectField('last_alert_at', mtMap.date())
-  });
-
+      'provider_id',
+      'created_at',
+      'updated_at',
+      'first_alert_at',
+      'last_alert_at'
+    ],
+    1
+  );

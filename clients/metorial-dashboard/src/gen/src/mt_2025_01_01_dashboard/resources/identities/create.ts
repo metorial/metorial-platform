@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type IdentitiesCreateOutput = {
   object: 'identity';
@@ -40,62 +40,40 @@ export type IdentitiesCreateOutput = {
   updatedAt: Date;
 };
 
-export let mapIdentitiesCreateOutput = mtMap.object<IdentitiesCreateOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  status: mtMap.objectField('status', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-  owner: mtMap.objectField(
-    'owner',
-    mtMap.object({
-      type: mtMap.objectField('type', mtMap.passthrough()),
-      actor: mtMap.objectField(
-        'actor',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    })
-  ),
-  credentials: mtMap.objectField(
-    'credentials',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        deploymentId: mtMap.objectField('deployment_id', mtMap.passthrough()),
-        configId: mtMap.objectField('config_id', mtMap.passthrough()),
-        authConfigId: mtMap.objectField('auth_config_id', mtMap.passthrough()),
-        delegationConfigId: mtMap.objectField(
-          'delegation_config_id',
-          mtMap.passthrough()
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    )
-  ),
-  delegationConfigId: mtMap.objectField(
-    'delegation_config_id',
-    mtMap.passthrough()
-  ),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapIdentitiesCreateOutput =
+  /* @__PURE__ */ mapObject<IdentitiesCreateOutput>(
+    [
+      [
+        'owner',
+        0,
+        [1, [['actor', 0, [1, ['agent_id', 'created_at', 'updated_at']]]]]
+      ],
+      [
+        'credentials',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'identity_id',
+              'provider_id',
+              'deployment_id',
+              'config_id',
+              'auth_config_id',
+              'delegation_config_id',
+              'created_at',
+              'updated_at'
+            ]
+          ]
+        ]
+      ],
+      'delegation_config_id',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type IdentitiesCreateBody = {
   actorId: string;
@@ -112,24 +90,23 @@ export type IdentitiesCreateBody = {
     | undefined;
 };
 
-export let mapIdentitiesCreateBody = mtMap.object<IdentitiesCreateBody>({
-  actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-  credentials: mtMap.objectField(
-    'credentials',
-    mtMap.array(
-      mtMap.object({
-        deploymentId: mtMap.objectField('deployment_id', mtMap.passthrough()),
-        configId: mtMap.objectField('config_id', mtMap.passthrough()),
-        authConfigId: mtMap.objectField('auth_config_id', mtMap.passthrough()),
-        delegationConfigId: mtMap.objectField(
-          'delegation_config_id',
-          mtMap.passthrough()
-        )
-      })
-    )
-  )
-});
-
+export let mapIdentitiesCreateBody =
+  /* @__PURE__ */ mapObject<IdentitiesCreateBody>([
+    'actor_id',
+    [
+      'credentials',
+      0,
+      [
+        2,
+        [
+          1,
+          [
+            'deployment_id',
+            'config_id',
+            'auth_config_id',
+            'delegation_config_id'
+          ]
+        ]
+      ]
+    ]
+  ]);

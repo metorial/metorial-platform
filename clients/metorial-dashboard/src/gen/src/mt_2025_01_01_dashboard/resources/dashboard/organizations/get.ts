@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsGetOutput = {
   object: 'organization';
@@ -13,15 +13,7 @@ export type DashboardOrganizationsGetOutput = {
 };
 
 export let mapDashboardOrganizationsGetOutput =
-  mtMap.object<DashboardOrganizationsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-    magicMcpOrigin: mtMap.objectField('magic_mcp_origin', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardOrganizationsGetOutput>(
+    ['image_url', 'magic_mcp_origin', 'created_at', 'updated_at'],
+    1
+  );

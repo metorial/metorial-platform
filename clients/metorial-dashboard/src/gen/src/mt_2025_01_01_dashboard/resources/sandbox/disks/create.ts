@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxDisksCreateOutput = {
   object: 'sandbox.disk';
@@ -15,38 +15,18 @@ export type SandboxDisksCreateOutput = {
   deletedAt: Date | null;
 };
 
-export let mapSandboxDisksCreateOutput = mtMap.object<SandboxDisksCreateOutput>(
-  {
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    region: mtMap.objectField('region', mtMap.passthrough()),
-    sizeBytes: mtMap.objectField('size_bytes', mtMap.passthrough()),
-    machine: mtMap.objectField(
-      'machine',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        mountPath: mtMap.objectField('mount_path', mtMap.passthrough())
-      })
-    ),
-    activeResize: mtMap.objectField(
-      'active_resize',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        targetSizeBytes: mtMap.objectField(
-          'target_size_bytes',
-          mtMap.passthrough()
-        )
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-  }
-);
+export let mapSandboxDisksCreateOutput =
+  /* @__PURE__ */ mapObject<SandboxDisksCreateOutput>(
+    [
+      'size_bytes',
+      ['machine', 0, [1, ['mount_path']]],
+      ['active_resize', 1, [1, ['target_size_bytes']]],
+      'created_at',
+      'updated_at',
+      'deleted_at'
+    ],
+    1
+  );
 
 export type SandboxDisksCreateBody = {
   region: string;
@@ -55,10 +35,8 @@ export type SandboxDisksCreateBody = {
   idempotencyKey?: string | undefined;
 };
 
-export let mapSandboxDisksCreateBody = mtMap.object<SandboxDisksCreateBody>({
-  region: mtMap.objectField('region', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  sizeBytes: mtMap.objectField('size_bytes', mtMap.passthrough()),
-  idempotencyKey: mtMap.objectField('idempotency_key', mtMap.passthrough())
-});
-
+export let mapSandboxDisksCreateBody =
+  /* @__PURE__ */ mapObject<SandboxDisksCreateBody>([
+    'size_bytes',
+    'idempotency_key'
+  ]);

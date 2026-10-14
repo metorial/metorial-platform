@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxMachinesAccessPortsOutput = {
   object: 'sandbox.machine.access';
@@ -10,29 +10,10 @@ export type SandboxMachinesAccessPortsOutput = {
 };
 
 export let mapSandboxMachinesAccessPortsOutput =
-  mtMap.object<SandboxMachinesAccessPortsOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    token: mtMap.objectField('token', mtMap.passthrough()),
-    scope: mtMap.objectField('scope', mtMap.passthrough()),
-    ports: mtMap.objectField(
-      'ports',
-      mtMap.union([
-        mtMap.unionOption(
-          'array',
-          mtMap.union([mtMap.unionOption('number', mtMap.passthrough())])
-        )
-      ])
-    ),
-    urls: mtMap.objectField(
-      'urls',
-      mtMap.object({
-        shell: mtMap.objectField('shell', mtMap.passthrough()),
-        files: mtMap.objectField('files', mtMap.passthrough()),
-        ports: mtMap.objectField('ports', mtMap.passthrough())
-      })
-    ),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<SandboxMachinesAccessPortsOutput>(
+    ['expires_at'],
+    1
+  );
 
 export type SandboxMachinesAccessPortsBody = {
   ports: number[] | '*';
@@ -40,16 +21,4 @@ export type SandboxMachinesAccessPortsBody = {
 };
 
 export let mapSandboxMachinesAccessPortsBody =
-  mtMap.object<SandboxMachinesAccessPortsBody>({
-    ports: mtMap.objectField(
-      'ports',
-      mtMap.union([
-        mtMap.unionOption(
-          'array',
-          mtMap.union([mtMap.unionOption('number', mtMap.passthrough())])
-        )
-      ])
-    ),
-    ttlSeconds: mtMap.objectField('ttl_seconds', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<SandboxMachinesAccessPortsBody>(['ttl_seconds']);

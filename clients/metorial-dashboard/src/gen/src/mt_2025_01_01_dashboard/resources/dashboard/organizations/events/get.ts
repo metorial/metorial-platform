@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsEventsGetOutput = {
   object: 'event';
@@ -18,29 +18,18 @@ export type DashboardOrganizationsEventsGetOutput = {
 };
 
 export let mapDashboardOrganizationsEventsGetOutput =
-  mtMap.object<DashboardOrganizationsEventsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-    source: mtMap.objectField('source', mtMap.passthrough()),
-    eventType: mtMap.objectField('event_type', mtMap.passthrough()),
-    callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
-    callbackEventId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardOrganizationsEventsGetOutput>(
+    [
+      'organization_id',
+      'instance_id',
+      'event_type',
+      'callback_id',
       'callback_event_id',
-      mtMap.passthrough()
-    ),
-    callbackTriggerKey: mtMap.objectField(
       'callback_trigger_key',
-      mtMap.passthrough()
-    ),
-    chatEventId: mtMap.objectField('chat_event_id', mtMap.passthrough()),
-    chatConnectionId: mtMap.objectField(
+      'chat_event_id',
       'chat_connection_id',
-      mtMap.passthrough()
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    payload: mtMap.objectField('payload', mtMap.passthrough())
-  });
-
+      'provider_id',
+      'created_at'
+    ],
+    1
+  );

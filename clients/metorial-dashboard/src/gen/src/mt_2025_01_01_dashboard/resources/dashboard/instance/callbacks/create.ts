@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCallbacksCreateOutput = {
   object: 'callback';
@@ -34,53 +34,18 @@ export type DashboardInstanceCallbacksCreateOutput = {
 };
 
 export let mapDashboardInstanceCallbacksCreateOutput =
-  mtMap.object<DashboardInstanceCallbacksCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
-    integrationProviderId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceCallbacksCreateOutput>(
+    [
+      'integration_id',
       'integration_provider_id',
-      mtMap.passthrough()
-    ),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    authCredentialsIsManaged: mtMap.objectField(
+      ['provider', 0, 8],
+      'created_at',
+      'updated_at',
       'auth_credentials_is_managed',
-      mtMap.passthrough()
-    ),
-    sync: mtMap.objectField(
-      'sync',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        error: mtMap.objectField(
-          'error',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            code: mtMap.objectField('code', mtMap.passthrough()),
-            message: mtMap.objectField('message', mtMap.passthrough())
-          })
-        ),
-        syncedAt: mtMap.objectField('synced_at', mtMap.date())
-      })
-    )
-  });
+      ['sync', 0, [1, ['synced_at']]]
+    ],
+    1
+  );
 
 export type DashboardInstanceCallbacksCreateBody = {
   integrationId: string;
@@ -90,13 +55,7 @@ export type DashboardInstanceCallbacksCreateBody = {
 };
 
 export let mapDashboardInstanceCallbacksCreateBody =
-  mtMap.object<DashboardInstanceCallbacksCreateBody>({
-    integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
-    integrationProviderId: mtMap.objectField(
-      'integration_provider_id',
-      mtMap.passthrough()
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceCallbacksCreateBody>([
+    'integration_id',
+    'integration_provider_id'
+  ]);

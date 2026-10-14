@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsMarketplacesRepositoriesListOutput = {
   items: {
@@ -24,51 +24,26 @@ export type ManagementInstanceSkillsMarketplacesRepositoriesListOutput = {
 };
 
 export let mapManagementInstanceSkillsMarketplacesRepositoriesListOutput =
-  mtMap.object<ManagementInstanceSkillsMarketplacesRepositoriesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          skillMarketplaceId: mtMap.objectField(
-            'skill_marketplace_id',
-            mtMap.passthrough()
-          ),
-          repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
-          repository: mtMap.objectField(
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsMarketplacesRepositoriesListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'skill_marketplace_id',
+          'repo_id',
+          [
             'repository',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              provider: mtMap.objectField('provider', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              url: mtMap.objectField('url', mtMap.passthrough()),
-              isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-              defaultBranch: mtMap.objectField(
-                'default_branch',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            0,
+            [1, ['is_private', 'default_branch', 'created_at', 'updated_at']]
+          ],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstanceSkillsMarketplacesRepositoriesListQuery = {
   limit?: number | undefined;
@@ -79,16 +54,6 @@ export type ManagementInstanceSkillsMarketplacesRepositoriesListQuery = {
 } & {};
 
 export let mapManagementInstanceSkillsMarketplacesRepositoriesListQuery =
-  mtMap.union([
-    mtMap.unionOption(
-      'object',
-      mtMap.object({
-        limit: mtMap.objectField('limit', mtMap.passthrough()),
-        after: mtMap.objectField('after', mtMap.passthrough()),
-        before: mtMap.objectField('before', mtMap.passthrough()),
-        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-        order: mtMap.objectField('order', mtMap.passthrough())
-      })
-    )
-  ]);
-
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsMarketplacesRepositoriesListQuery>(
+    0
+  );

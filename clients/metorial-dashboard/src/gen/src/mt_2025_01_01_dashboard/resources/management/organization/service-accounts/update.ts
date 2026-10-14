@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationServiceAccountsUpdateOutput = {
   object: 'machine_access.service_account';
@@ -29,52 +32,16 @@ export type ManagementOrganizationServiceAccountsUpdateOutput = {
 };
 
 export let mapManagementOrganizationServiceAccountsUpdateOutput =
-  mtMap.object<ManagementOrganizationServiceAccountsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    scopes: mtMap.objectField(
-      'scopes',
-      mtMap.array(
-        mtMap.object({
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough())
-        })
-      )
-    ),
-    clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-    policies: mtMap.objectField(
-      'policies',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough())
-        })
-      )
-    ),
-    clientSecrets: mtMap.objectField(
-      'client_secrets',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          preview: mtMap.objectField('preview', mtMap.passthrough()),
-          secret: mtMap.objectField('secret', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-        })
-      )
-    ),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementOrganizationServiceAccountsUpdateOutput>(
+    [
+      'client_id',
+      ['client_secrets', 1, [2, [1, ['created_at', 'deleted_at']]]],
+      'organization_id',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ManagementOrganizationServiceAccountsUpdateBody = {
   name?: string | undefined;
@@ -83,9 +50,6 @@ export type ManagementOrganizationServiceAccountsUpdateBody = {
 };
 
 export let mapManagementOrganizationServiceAccountsUpdateBody =
-  mtMap.object<ManagementOrganizationServiceAccountsUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough()))
-  });
-
+  /* @__PURE__ */ createMapper<ManagementOrganizationServiceAccountsUpdateBody>(
+    0
+  );

@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput =
   {
@@ -31,49 +34,33 @@ export type ManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput
   };
 
 export let mapManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput =
-  mtMap.object<ManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput>(
-    {
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      alertFilterCountThreshold: mtMap.objectField(
-        'alert_filter_count_threshold',
-        mtMap.passthrough()
-      ),
-      filters: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput>(
+    [
+      'alert_filter_count_threshold',
+      [
         'filters',
-        mtMap.array(
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            key: mtMap.objectField('key', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            issueType: mtMap.objectField('issue_type', mtMap.passthrough()),
-            severity: mtMap.objectField('severity', mtMap.passthrough()),
-            scoreWeight: mtMap.objectField('score_weight', mtMap.passthrough()),
-            defaultEnabled: mtMap.objectField(
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'issue_type',
+              'score_weight',
               'default_enabled',
-              mtMap.passthrough()
-            ),
-            enabled: mtMap.objectField('enabled', mtMap.passthrough()),
-            defaultAlertConfidenceThreshold: mtMap.objectField(
               'default_alert_confidence_threshold',
-              mtMap.passthrough()
-            ),
-            alertConfidenceThreshold: mtMap.objectField(
-              'alert_confidence_threshold',
-              mtMap.passthrough()
-            )
-          })
-        )
-      )
-    }
+              'alert_confidence_threshold'
+            ]
+          ]
+        ]
+      ]
+    ]
   );
 
 export type ManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdBody =
   { threshold: number | null };
 
 export let mapManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdBody =
-  mtMap.object<ManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdBody>(
-    { threshold: mtMap.objectField('threshold', mtMap.passthrough()) }
+  /* @__PURE__ */ createMapper<ManagementInstanceProtoGuardConfigSetAlertFilterCountThresholdBody>(
+    0
   );
-

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationOauthAuthorizationLogsListOutput = {
   items: {
@@ -84,184 +84,76 @@ export type ManagementOrganizationOauthAuthorizationLogsListOutput = {
 };
 
 export let mapManagementOrganizationOauthAuthorizationLogsListOutput =
-  mtMap.object<ManagementOrganizationOauthAuthorizationLogsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          redirectUri: mtMap.objectField('redirect_uri', mtMap.passthrough()),
-          clientIp: mtMap.objectField('client_ip', mtMap.passthrough()),
-          scopes: mtMap.objectField(
-            'scopes',
-            mtMap.array(
-              mtMap.object({
-                identifier: mtMap.objectField(
-                  'identifier',
-                  mtMap.passthrough()
-                ),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            )
-          ),
-          oauthApplication: mtMap.objectField(
+  /* @__PURE__ */ createMapper<ManagementOrganizationOauthAuthorizationLogsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'organization_id',
+          'redirect_uri',
+          'client_ip',
+          [
             'oauth_application',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              accessLevel: mtMap.objectField(
+            1,
+            [
+              1,
+              [
                 'access_level',
-                mtMap.passthrough()
-              ),
-              allowTokenExchangeWithoutClientSecret: mtMap.objectField(
                 'allow_token_exchange_without_client_secret',
-                mtMap.passthrough()
-              ),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              scopes: mtMap.objectField(
-                'scopes',
-                mtMap.array(
-                  mtMap.object({
-                    identifier: mtMap.objectField(
-                      'identifier',
-                      mtMap.passthrough()
-                    ),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    )
-                  })
-                )
-              ),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              websiteUrl: mtMap.objectField('website_url', mtMap.passthrough()),
-              privacyPolicyUrl: mtMap.objectField(
+                'image_url',
+                'website_url',
                 'privacy_policy_url',
-                mtMap.passthrough()
-              ),
-              termsOfServiceUrl: mtMap.objectField(
                 'terms_of_service_url',
-                mtMap.passthrough()
-              ),
-              redirectUris: mtMap.objectField(
                 'redirect_uris',
-                mtMap.array(mtMap.passthrough())
-              ),
-              clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-              clientSecrets: mtMap.objectField(
-                'client_secrets',
-                mtMap.array(
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    preview: mtMap.objectField('preview', mtMap.passthrough()),
-                    secret: mtMap.objectField('secret', mtMap.passthrough()),
-                    createdAt: mtMap.objectField('created_at', mtMap.date()),
-                    deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-                  })
-                )
-              ),
-              organizationId: mtMap.objectField(
+                'client_id',
+                ['client_secrets', 1, [2, [1, ['created_at', 'deleted_at']]]],
                 'organization_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          actor: mtMap.objectField(
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ],
+          [
             'actor',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              organizationId: mtMap.objectField(
+            0,
+            [
+              1,
+              [
                 'organization_id',
-                mtMap.passthrough()
-              ),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough()),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              member: mtMap.objectField(
-                'member',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  role: mtMap.objectField('role', mtMap.passthrough())
-                })
-              ),
-              teams: mtMap.objectField(
-                'teams',
-                mtMap.array(
-                  mtMap.object({
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    slug: mtMap.objectField('slug', mtMap.passthrough()),
-                    assignmentId: mtMap.objectField(
-                      'assignment_id',
-                      mtMap.passthrough()
-                    ),
-                    createdAt: mtMap.objectField('created_at', mtMap.date()),
-                    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                  })
-                )
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          user: mtMap.objectField(
+                'image_url',
+                [
+                  'teams',
+                  0,
+                  [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                ],
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ],
+          [
             'user',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              firstName: mtMap.objectField('first_name', mtMap.passthrough()),
-              lastName: mtMap.objectField('last_name', mtMap.passthrough()),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          acceptedAt: mtMap.objectField('accepted_at', mtMap.date()),
-          deniedAt: mtMap.objectField('denied_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            0,
+            [
+              1,
+              [
+                'first_name',
+                'last_name',
+                'image_url',
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ],
+          'created_at',
+          'accepted_at',
+          'denied_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementOrganizationOauthAuthorizationLogsListQuery = {
   limit?: number | undefined;
@@ -275,36 +167,6 @@ export type ManagementOrganizationOauthAuthorizationLogsListQuery = {
 };
 
 export let mapManagementOrganizationOauthAuthorizationLogsListQuery =
-  mtMap.union([
-    mtMap.unionOption(
-      'object',
-      mtMap.object({
-        limit: mtMap.objectField('limit', mtMap.passthrough()),
-        after: mtMap.objectField('after', mtMap.passthrough()),
-        before: mtMap.objectField('before', mtMap.passthrough()),
-        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-        order: mtMap.objectField('order', mtMap.passthrough()),
-        appId: mtMap.objectField(
-          'app_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        userId: mtMap.objectField(
-          'user_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        )
-      })
-    )
-  ]);
-
+  /* @__PURE__ */ createMapper<ManagementOrganizationOauthAuthorizationLogsListQuery>(
+    [3, [[0, [1, ['app_id', 'user_id']]]]]
+  );

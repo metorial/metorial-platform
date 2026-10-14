@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceIdentitiesDelegationConfigsListOutput = {
   items: {
@@ -18,42 +18,22 @@ export type DashboardInstanceIdentitiesDelegationConfigsListOutput = {
 };
 
 export let mapDashboardInstanceIdentitiesDelegationConfigsListOutput =
-  mtMap.object<DashboardInstanceIdentitiesDelegationConfigsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          subDelegationBehavior: mtMap.objectField(
-            'sub_delegation_behavior',
-            mtMap.passthrough()
-          ),
-          subDelegationDepth: mtMap.objectField(
-            'sub_delegation_depth',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceIdentitiesDelegationConfigsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'is_default',
+          'sub_delegation_behavior',
+          'sub_delegation_depth',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceIdentitiesDelegationConfigsListQuery = {
   limit?: number | undefined;
@@ -75,45 +55,20 @@ export type DashboardInstanceIdentitiesDelegationConfigsListQuery = {
 };
 
 export let mapDashboardInstanceIdentitiesDelegationConfigsListQuery =
-  mtMap.union([
-    mtMap.unionOption(
-      'object',
-      mtMap.object({
-        limit: mtMap.objectField('limit', mtMap.passthrough()),
-        after: mtMap.objectField('after', mtMap.passthrough()),
-        before: mtMap.objectField('before', mtMap.passthrough()),
-        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-        order: mtMap.objectField('order', mtMap.passthrough()),
-        search: mtMap.objectField('search', mtMap.passthrough()),
-        status: mtMap.objectField(
-          'status',
-          mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-        ),
-        id: mtMap.objectField(
-          'id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        createdAt: mtMap.objectField(
-          'created_at',
-          mtMap.object({
-            gt: mtMap.objectField('gt', mtMap.date()),
-            lt: mtMap.objectField('lt', mtMap.date())
-          })
-        ),
-        updatedAt: mtMap.objectField(
-          'updated_at',
-          mtMap.object({
-            gt: mtMap.objectField('gt', mtMap.date()),
-            lt: mtMap.objectField('lt', mtMap.date())
-          })
-        )
-      })
-    )
-  ]);
-
+  /* @__PURE__ */ createMapper<DashboardInstanceIdentitiesDelegationConfigsListQuery>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              ['created_at', 1, 5],
+              ['updated_at', 1, 5]
+            ]
+          ]
+        ]
+      ]
+    ]
+  );

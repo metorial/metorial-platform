@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type PortalsConsumerGroupsListOutput = {
   items: ({
@@ -15,46 +15,30 @@ export type PortalsConsumerGroupsListOutput = {
 };
 
 export let mapPortalsConsumerGroupsListOutput =
-  mtMap.object<PortalsConsumerGroupsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-              isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
-              isDefaultEveryoneGroup: mtMap.objectField(
-                'is_default_everyone_group',
-                mtMap.passthrough()
-              )
-            })
-          )
-        ])
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<PortalsConsumerGroupsListOutput>(
+    [
+      7,
+      [
+        3,
+        [
+          [
+            0,
+            [
+              1,
+              [
+                'is_default',
+                'created_at',
+                'updated_at',
+                'is_managed',
+                'is_default_everyone_group'
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type PortalsConsumerGroupsListQuery = {
   limit?: number | undefined;
@@ -72,21 +56,5 @@ export type PortalsConsumerGroupsListQuery = {
   search?: string | undefined;
 };
 
-export let mapPortalsConsumerGroupsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      search: mtMap.objectField('search', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapPortalsConsumerGroupsListQuery =
+  /* @__PURE__ */ createMapper<PortalsConsumerGroupsListQuery>(0);

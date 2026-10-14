@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxSpecsListOutput = {
   items: {
@@ -14,35 +14,10 @@ export type ManagementInstanceSandboxSpecsListOutput = {
 };
 
 export let mapManagementInstanceSandboxSpecsListOutput =
-  mtMap.object<ManagementInstanceSandboxSpecsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          memoryMib: mtMap.objectField('memory_mib', mtMap.passthrough()),
-          vcpus: mtMap.objectField('vcpus', mtMap.passthrough()),
-          regions: mtMap.objectField(
-            'regions',
-            mtMap.array(mtMap.passthrough())
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceSandboxSpecsListOutput>(
+    [7, [1, ['memory_mib', 'created_at']]],
+    1
+  );
 
 export type ManagementInstanceSandboxSpecsListQuery = {
   limit?: number | undefined;
@@ -52,16 +27,5 @@ export type ManagementInstanceSandboxSpecsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapManagementInstanceSandboxSpecsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapManagementInstanceSandboxSpecsListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceSandboxSpecsListQuery>(0);

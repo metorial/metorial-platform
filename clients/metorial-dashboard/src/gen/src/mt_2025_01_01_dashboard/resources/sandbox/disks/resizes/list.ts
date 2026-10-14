@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxDisksResizesListOutput = {
   items: {
@@ -36,51 +36,24 @@ export type SandboxDisksResizesListOutput = {
 };
 
 export let mapSandboxDisksResizesListOutput =
-  mtMap.object<SandboxDisksResizesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          diskId: mtMap.objectField('disk_id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          originalSizeBytes: mtMap.objectField(
-            'original_size_bytes',
-            mtMap.passthrough()
-          ),
-          targetSizeBytes: mtMap.objectField(
-            'target_size_bytes',
-            mtMap.passthrough()
-          ),
-          machineIds: mtMap.objectField(
-            'machine_ids',
-            mtMap.array(mtMap.passthrough())
-          ),
-          failure: mtMap.objectField(
-            'failure',
-            mtMap.object({
-              code: mtMap.objectField('code', mtMap.passthrough()),
-              message: mtMap.objectField('message', mtMap.passthrough())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          completedAt: mtMap.objectField('completed_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<SandboxDisksResizesListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'disk_id',
+          'original_size_bytes',
+          'target_size_bytes',
+          'machine_ids',
+          'created_at',
+          'updated_at',
+          'completed_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type SandboxDisksResizesListQuery = {
   limit?: number | undefined;
@@ -109,20 +82,5 @@ export type SandboxDisksResizesListQuery = {
     | undefined;
 };
 
-export let mapSandboxDisksResizesListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
-    })
-  )
-]);
-
+export let mapSandboxDisksResizesListQuery =
+  /* @__PURE__ */ createMapper<SandboxDisksResizesListQuery>(0);

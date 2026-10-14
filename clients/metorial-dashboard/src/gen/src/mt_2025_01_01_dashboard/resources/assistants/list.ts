@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type AssistantsListOutput = {
   items: {
@@ -42,81 +42,32 @@ export type AssistantsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapAssistantsListOutput = mtMap.object<AssistantsListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        ownerType: mtMap.objectField('owner_type', mtMap.passthrough()),
-        organizationId: mtMap.objectField(
+export let mapAssistantsListOutput =
+  /* @__PURE__ */ createMapper<AssistantsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'owner_type',
           'organization_id',
-          mtMap.passthrough()
-        ),
-        defaultModel: mtMap.objectField(
-          'default_model',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            contextWindow: mtMap.objectField(
-              'context_window',
-              mtMap.passthrough()
-            ),
-            provider: mtMap.objectField(
-              'provider',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-              })
-            )
-          })
-        ),
-        availableModels: mtMap.objectField(
-          'available_models',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              contextWindow: mtMap.objectField(
-                'context_window',
-                mtMap.passthrough()
-              ),
-              provider: mtMap.objectField(
-                'provider',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  slug: mtMap.objectField('slug', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-                })
-              )
-            })
-          )
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+          [
+            'default_model',
+            1,
+            [1, ['context_window', ['provider', 0, [1, ['image_url']]]]]
+          ],
+          [
+            'available_models',
+            1,
+            [2, [1, ['context_window', ['provider', 0, [1, ['image_url']]]]]]
+          ],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type AssistantsListQuery = {
   limit?: number | undefined;
@@ -126,16 +77,5 @@ export type AssistantsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapAssistantsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapAssistantsListQuery =
+  /* @__PURE__ */ createMapper<AssistantsListQuery>(0);

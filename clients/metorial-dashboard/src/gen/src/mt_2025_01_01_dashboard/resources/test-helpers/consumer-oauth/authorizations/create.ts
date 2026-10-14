@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type TestHelpersConsumerOauthAuthorizationsCreateOutput = {
   object: 'test_helper.consumer_oauth_authorization';
@@ -9,13 +9,10 @@ export type TestHelpersConsumerOauthAuthorizationsCreateOutput = {
 };
 
 export let mapTestHelpersConsumerOauthAuthorizationsCreateOutput =
-  mtMap.object<TestHelpersConsumerOauthAuthorizationsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<TestHelpersConsumerOauthAuthorizationsCreateOutput>(
+    ['expires_at', 'created_at'],
+    1
+  );
 
 export type TestHelpersConsumerOauthAuthorizationsCreateBody = {
   instanceId: string;
@@ -25,16 +22,8 @@ export type TestHelpersConsumerOauthAuthorizationsCreateBody = {
 };
 
 export let mapTestHelpersConsumerOauthAuthorizationsCreateBody =
-  mtMap.object<TestHelpersConsumerOauthAuthorizationsCreateBody>({
-    instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    consumerProfileId: mtMap.objectField(
-      'consumer_profile_id',
-      mtMap.passthrough()
-    ),
-    magicMcpEndpointId: mtMap.objectField(
-      'magic_mcp_endpoint_id',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<TestHelpersConsumerOauthAuthorizationsCreateBody>([
+    'instance_id',
+    'consumer_profile_id',
+    'magic_mcp_endpoint_id'
+  ]);

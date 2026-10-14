@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxImagesVersionsGetOutput = {
   object: 'sandbox.image.version';
@@ -11,13 +11,7 @@ export type ManagementInstanceSandboxImagesVersionsGetOutput = {
 };
 
 export let mapManagementInstanceSandboxImagesVersionsGetOutput =
-  mtMap.object<ManagementInstanceSandboxImagesVersionsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    imageId: mtMap.objectField('image_id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    regions: mtMap.objectField('regions', mtMap.array(mtMap.passthrough())),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceSandboxImagesVersionsGetOutput>(
+    ['image_id', 'created_at', 'updated_at'],
+    1
+  );

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceChatConnectionsDeleteOutput = {
   object: 'chat.connection';
@@ -61,103 +61,39 @@ export type DashboardInstanceChatConnectionsDeleteOutput = {
 };
 
 export let mapDashboardInstanceChatConnectionsDeleteOutput =
-  mtMap.object<DashboardInstanceChatConnectionsDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providers: mtMap.objectField(
-      'providers',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          provider: mtMap.objectField(
-            'provider',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          deployment: mtMap.objectField(
-            'deployment',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          config: mtMap.objectField(
-            'config',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          authMethodId: mtMap.objectField(
-            'auth_method_id',
-            mtMap.passthrough()
-          ),
-          authCredentialsId: mtMap.objectField(
-            'auth_credentials_id',
-            mtMap.passthrough()
-          ),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          authCredentialsIsManaged: mtMap.objectField(
-            'auth_credentials_is_managed',
-            mtMap.passthrough()
-          ),
-          manualWebhookTriggerGroups: mtMap.objectField(
-            'manual_webhook_trigger_groups',
-            mtMap.array(
-              mtMap.object({
-                key: mtMap.objectField('key', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            )
-          )
-        })
-      )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceChatConnectionsDeleteOutput>(
+    [
+      [
+        'providers',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              ['provider', 0, 8],
+              [
+                'deployment',
+                0,
+                [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+              ],
+              [
+                'config',
+                0,
+                [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+              ],
+              'auth_method_id',
+              'auth_credentials_id',
+              'created_at',
+              'updated_at',
+              'auth_credentials_is_managed',
+              'manual_webhook_trigger_groups'
+            ]
+          ]
+        ]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

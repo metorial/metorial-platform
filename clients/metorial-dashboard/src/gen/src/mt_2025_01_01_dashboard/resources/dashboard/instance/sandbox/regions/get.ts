@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSandboxRegionsGetOutput = {
   object: 'sandbox.region';
@@ -8,16 +8,4 @@ export type DashboardInstanceSandboxRegionsGetOutput = {
 };
 
 export let mapDashboardInstanceSandboxRegionsGetOutput =
-  mtMap.object<DashboardInstanceSandboxRegionsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    area: mtMap.objectField(
-      'area',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough())
-      })
-    )
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstanceSandboxRegionsGetOutput>(0);

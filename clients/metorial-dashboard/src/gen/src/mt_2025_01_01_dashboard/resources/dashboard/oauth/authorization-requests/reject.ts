@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOauthAuthorizationRequestsRejectOutput = {
   object: 'machine_access.oauth_authorization_request';
@@ -41,93 +41,42 @@ export type DashboardOauthAuthorizationRequestsRejectOutput = {
 };
 
 export let mapDashboardOauthAuthorizationRequestsRejectOutput =
-  mtMap.object<DashboardOauthAuthorizationRequestsRejectOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    userCode: mtMap.objectField('user_code', mtMap.passthrough()),
-    redirectUri: mtMap.objectField('redirect_uri', mtMap.passthrough()),
-    scopes: mtMap.objectField(
-      'scopes',
-      mtMap.array(
-        mtMap.object({
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough())
-        })
-      )
-    ),
-    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    oauthApplication: mtMap.objectField(
-      'oauth_application',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
-        allowTokenExchangeWithoutClientSecret: mtMap.objectField(
-          'allow_token_exchange_without_client_secret',
-          mtMap.passthrough()
-        ),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        scopes: mtMap.objectField(
-          'scopes',
-          mtMap.array(
-            mtMap.object({
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough())
-            })
-          )
-        ),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        websiteUrl: mtMap.objectField('website_url', mtMap.passthrough()),
-        privacyPolicyUrl: mtMap.objectField(
-          'privacy_policy_url',
-          mtMap.passthrough()
-        ),
-        termsOfServiceUrl: mtMap.objectField(
-          'terms_of_service_url',
-          mtMap.passthrough()
-        ),
-        redirectUris: mtMap.objectField(
-          'redirect_uris',
-          mtMap.array(mtMap.passthrough())
-        ),
-        clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-        clientSecrets: mtMap.objectField(
-          'client_secrets',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              preview: mtMap.objectField('preview', mtMap.passthrough()),
-              secret: mtMap.objectField('secret', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-            })
-          )
-        ),
-        organizationId: mtMap.objectField(
-          'organization_id',
-          mtMap.passthrough()
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    )
-  });
+  /* @__PURE__ */ mapObject<DashboardOauthAuthorizationRequestsRejectOutput>(
+    [
+      'user_code',
+      'redirect_uri',
+      'redirect_url',
+      'created_at',
+      [
+        'oauth_application',
+        1,
+        [
+          1,
+          [
+            'access_level',
+            'allow_token_exchange_without_client_secret',
+            'image_url',
+            'website_url',
+            'privacy_policy_url',
+            'terms_of_service_url',
+            'redirect_uris',
+            'client_id',
+            ['client_secrets', 1, [2, [1, ['created_at', 'deleted_at']]]],
+            'organization_id',
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardOauthAuthorizationRequestsRejectBody = {
   organizationId?: string | undefined;
 };
 
 export let mapDashboardOauthAuthorizationRequestsRejectBody =
-  mtMap.object<DashboardOauthAuthorizationRequestsRejectBody>({
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardOauthAuthorizationRequestsRejectBody>([
+    'organization_id'
+  ]);

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsConfigurationsUpdateOutput = {
   object: 'skill.configuration';
@@ -13,23 +13,18 @@ export type ManagementInstanceSkillsConfigurationsUpdateOutput = {
 };
 
 export let mapManagementInstanceSkillsConfigurationsUpdateOutput =
-  mtMap.object<ManagementInstanceSkillsConfigurationsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-    allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),
-    allowedFileExtensions: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsConfigurationsUpdateOutput>(
+    [
+      'is_default',
+      'allow_scripts',
       'allowed_file_extensions',
-      mtMap.array(mtMap.passthrough())
-    ),
-    allowNonStandardDirectories: mtMap.objectField(
       'allow_non_standard_directories',
-      mtMap.passthrough()
-    ),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'deleted_at',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ManagementInstanceSkillsConfigurationsUpdateBody = {
   allowScripts?: boolean | undefined;
@@ -38,15 +33,8 @@ export type ManagementInstanceSkillsConfigurationsUpdateBody = {
 };
 
 export let mapManagementInstanceSkillsConfigurationsUpdateBody =
-  mtMap.object<ManagementInstanceSkillsConfigurationsUpdateBody>({
-    allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),
-    allowedFileExtensions: mtMap.objectField(
-      'allowed_file_extensions',
-      mtMap.array(mtMap.passthrough())
-    ),
-    allowNonStandardDirectories: mtMap.objectField(
-      'allow_non_standard_directories',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsConfigurationsUpdateBody>([
+    'allow_scripts',
+    'allowed_file_extensions',
+    'allow_non_standard_directories'
+  ]);

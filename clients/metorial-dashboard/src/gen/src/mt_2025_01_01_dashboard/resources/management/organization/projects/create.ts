@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationProjectsCreateOutput = {
   object: 'organization.project';
@@ -12,16 +12,10 @@ export type ManagementOrganizationProjectsCreateOutput = {
 };
 
 export let mapManagementOrganizationProjectsCreateOutput =
-  mtMap.object<ManagementOrganizationProjectsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementOrganizationProjectsCreateOutput>(
+    ['organization_id', 'created_at', 'updated_at'],
+    1
+  );
 
 export type ManagementOrganizationProjectsCreateBody = {
   name: string;
@@ -29,11 +23,6 @@ export type ManagementOrganizationProjectsCreateBody = {
 };
 
 export let mapManagementOrganizationProjectsCreateBody =
-  mtMap.object<ManagementOrganizationProjectsCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    magicMcpSessionDurationMinutes: mtMap.objectField(
-      'magic_mcp_session_duration_minutes',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<ManagementOrganizationProjectsCreateBody>([
+    'magic_mcp_session_duration_minutes'
+  ]);

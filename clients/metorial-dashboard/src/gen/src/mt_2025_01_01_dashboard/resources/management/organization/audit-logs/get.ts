@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationAuditLogsGetOutput = {
   object: 'organization.audit_log';
@@ -22,39 +22,14 @@ export type ManagementOrganizationAuditLogsGetOutput = {
 };
 
 export let mapManagementOrganizationAuditLogsGetOutput =
-  mtMap.object<ManagementOrganizationAuditLogsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    eventId: mtMap.objectField('event_id', mtMap.passthrough()),
-    resource: mtMap.objectField('resource', mtMap.passthrough()),
-    action: mtMap.objectField('action', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-    organizationActorId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementOrganizationAuditLogsGetOutput>(
+    [
+      'event_id',
+      'organization_id',
+      'instance_id',
       'organization_actor_id',
-      mtMap.passthrough()
-    ),
-    actor: mtMap.objectField(
-      'actor',
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        record: mtMap.objectField('record', mtMap.passthrough())
-      })
-    ),
-    context: mtMap.objectField(
-      'context',
-      mtMap.object({
-        ip: mtMap.objectField('ip', mtMap.passthrough()),
-        ua: mtMap.objectField('ua', mtMap.passthrough())
-      })
-    ),
-    payload: mtMap.objectField('payload', mtMap.passthrough()),
-    previousAttributes: mtMap.objectField(
       'previous_attributes',
-      mtMap.passthrough()
-    ),
-    recordedAt: mtMap.objectField('recorded_at', mtMap.date())
-  });
-
+      'recorded_at'
+    ],
+    1
+  );

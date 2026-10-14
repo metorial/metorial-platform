@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSessionsErrorsGetOutput = {
   object: 'session.error';
@@ -16,21 +16,14 @@ export type ManagementInstanceSessionsErrorsGetOutput = {
 };
 
 export let mapManagementInstanceSessionsErrorsGetOutput =
-  mtMap.object<ManagementInstanceSessionsErrorsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    code: mtMap.objectField('code', mtMap.passthrough()),
-    message: mtMap.objectField('message', mtMap.passthrough()),
-    data: mtMap.objectField('data', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
-    connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
-    groupId: mtMap.objectField('group_id', mtMap.passthrough()),
-    similarErrorCount: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSessionsErrorsGetOutput>(
+    [
+      'session_id',
+      'provider_run_id',
+      'connection_id',
+      'group_id',
       'similar_error_count',
-      mtMap.passthrough()
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+      'created_at'
+    ],
+    1
+  );

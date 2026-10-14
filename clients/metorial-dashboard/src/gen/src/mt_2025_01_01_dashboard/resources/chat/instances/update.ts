@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ChatInstancesUpdateOutput = {
   object: 'chat.instance';
@@ -22,32 +22,15 @@ export type ChatInstancesUpdateOutput = {
 };
 
 export let mapChatInstancesUpdateOutput =
-  mtMap.object<ChatInstancesUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    chatConnectionId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ChatInstancesUpdateOutput>(
+    [
       'chat_connection_id',
-      mtMap.passthrough()
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    identity: mtMap.objectField(
-      'identity',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        userId: mtMap.objectField('user_id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        username: mtMap.objectField('username', mtMap.passthrough()),
-        providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      ['identity', 0, [1, ['user_id', 'provider_type', 'image_url']]],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ChatInstancesUpdateBody = {
   name?: string | undefined;
@@ -56,10 +39,5 @@ export type ChatInstancesUpdateBody = {
   privateMetadata?: Record<string, any> | null | undefined;
 };
 
-export let mapChatInstancesUpdateBody = mtMap.object<ChatInstancesUpdateBody>({
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-  privateMetadata: mtMap.objectField('private_metadata', mtMap.passthrough())
-});
-
+export let mapChatInstancesUpdateBody =
+  /* @__PURE__ */ mapObject<ChatInstancesUpdateBody>(['private_metadata']);

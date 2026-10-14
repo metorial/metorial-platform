@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type IntegrationInternetGatewayListNetworkLogsOutput = {
   object: 'integration.internet_gateway.network_logs';
@@ -20,32 +20,25 @@ export type IntegrationInternetGatewayListNetworkLogsOutput = {
 };
 
 export let mapIntegrationInternetGatewayListNetworkLogsOutput =
-  mtMap.object<IntegrationInternetGatewayListNetworkLogsOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    direction: mtMap.objectField('direction', mtMap.passthrough()),
-    enclaveIds: mtMap.objectField(
-      'enclave_ids',
-      mtMap.array(mtMap.passthrough())
-    ),
-    records: mtMap.objectField(
+  /* @__PURE__ */ mapObject<IntegrationInternetGatewayListNetworkLogsOutput>([
+    'enclave_ids',
+    [
       'records',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          direction: mtMap.objectField('direction', mtMap.passthrough()),
-          enclaveId: mtMap.objectField('enclave_id', mtMap.passthrough()),
-          bucketStart: mtMap.objectField('bucket_start', mtMap.passthrough()),
-          hostname: mtMap.objectField('hostname', mtMap.passthrough()),
-          ip: mtMap.objectField('ip', mtMap.passthrough()),
-          port: mtMap.objectField('port', mtMap.passthrough()),
-          count: mtMap.objectField('count', mtMap.passthrough()),
-          result: mtMap.objectField('result', mtMap.passthrough()),
-          firstSeenAt: mtMap.objectField('first_seen_at', mtMap.passthrough()),
-          lastSeenAt: mtMap.objectField('last_seen_at', mtMap.passthrough())
-        })
-      )
-    )
-  });
+      0,
+      [
+        2,
+        [
+          1,
+          [
+            'enclave_id',
+            'bucket_start',
+            ['first_seen_at', 1, 0],
+            ['last_seen_at', 1, 0]
+          ]
+        ]
+      ]
+    ]
+  ]);
 
 export type IntegrationInternetGatewayListNetworkLogsQuery = {
   direction: 'ingress' | 'egress';
@@ -58,40 +51,7 @@ export type IntegrationInternetGatewayListNetworkLogsQuery = {
 };
 
 export let mapIntegrationInternetGatewayListNetworkLogsQuery =
-  mtMap.object<IntegrationInternetGatewayListNetworkLogsQuery>({
-    direction: mtMap.objectField('direction', mtMap.passthrough()),
-    enclaveId: mtMap.objectField(
-      'enclave_id',
-      mtMap.union([
-        mtMap.unionOption('string', mtMap.passthrough()),
-        mtMap.unionOption(
-          'array',
-          mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-        )
-      ])
-    ),
-    hostname: mtMap.objectField(
-      'hostname',
-      mtMap.union([
-        mtMap.unionOption('string', mtMap.passthrough()),
-        mtMap.unionOption(
-          'array',
-          mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-        )
-      ])
-    ),
-    ip: mtMap.objectField(
-      'ip',
-      mtMap.union([
-        mtMap.unionOption('string', mtMap.passthrough()),
-        mtMap.unionOption(
-          'array',
-          mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-        )
-      ])
-    ),
-    from: mtMap.objectField('from', mtMap.passthrough()),
-    to: mtMap.objectField('to', mtMap.passthrough()),
-    intervalMinutes: mtMap.objectField('interval_minutes', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<IntegrationInternetGatewayListNetworkLogsQuery>([
+    'enclave_id',
+    'interval_minutes'
+  ]);

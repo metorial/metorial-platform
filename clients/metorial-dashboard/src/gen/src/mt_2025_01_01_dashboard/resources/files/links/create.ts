@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type FilesLinksCreateOutput = {
   object: 'file.file_link';
@@ -9,22 +9,16 @@ export type FilesLinksCreateOutput = {
   expiresAt: Date | null;
 };
 
-export let mapFilesLinksCreateOutput = mtMap.object<FilesLinksCreateOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-  url: mtMap.objectField('url', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  expiresAt: mtMap.objectField('expires_at', mtMap.date())
-});
+export let mapFilesLinksCreateOutput =
+  /* @__PURE__ */ mapObject<FilesLinksCreateOutput>(
+    ['file_id', 'created_at', 'expires_at'],
+    1
+  );
 
 export type FilesLinksCreateBody = {
   fileId: string;
   expiresAt?: Date | undefined;
 };
 
-export let mapFilesLinksCreateBody = mtMap.object<FilesLinksCreateBody>({
-  fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-  expiresAt: mtMap.objectField('expires_at', mtMap.date())
-});
-
+export let mapFilesLinksCreateBody =
+  /* @__PURE__ */ mapObject<FilesLinksCreateBody>(['file_id', 'expires_at'], 1);

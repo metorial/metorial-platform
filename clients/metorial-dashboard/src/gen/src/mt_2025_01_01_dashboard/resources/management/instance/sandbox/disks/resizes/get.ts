@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxDisksResizesGetOutput = {
   object: 'sandbox.disk.resize';
@@ -33,32 +33,15 @@ export type ManagementInstanceSandboxDisksResizesGetOutput = {
 };
 
 export let mapManagementInstanceSandboxDisksResizesGetOutput =
-  mtMap.object<ManagementInstanceSandboxDisksResizesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    diskId: mtMap.objectField('disk_id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    originalSizeBytes: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSandboxDisksResizesGetOutput>(
+    [
+      'disk_id',
       'original_size_bytes',
-      mtMap.passthrough()
-    ),
-    targetSizeBytes: mtMap.objectField(
       'target_size_bytes',
-      mtMap.passthrough()
-    ),
-    machineIds: mtMap.objectField(
       'machine_ids',
-      mtMap.array(mtMap.passthrough())
-    ),
-    failure: mtMap.objectField(
-      'failure',
-      mtMap.object({
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        message: mtMap.objectField('message', mtMap.passthrough())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    completedAt: mtMap.objectField('completed_at', mtMap.date())
-  });
-
+      'created_at',
+      'updated_at',
+      'completed_at'
+    ],
+    1
+  );

@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type IntegrationFirewallAssignmentsCreateOutput = {
   object: 'integration.firewall_assignment';
@@ -20,30 +23,10 @@ export type IntegrationFirewallAssignmentsCreateOutput = {
 };
 
 export let mapIntegrationFirewallAssignmentsCreateOutput =
-  mtMap.object<IntegrationFirewallAssignmentsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    targetType: mtMap.objectField('target_type', mtMap.passthrough()),
-    firewall: mtMap.objectField(
-      'firewall',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough())
-      })
-    ),
-    target: mtMap.objectField(
-      'target',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<IntegrationFirewallAssignmentsCreateOutput>(
+    ['target_type', 'created_at'],
+    1
+  );
 
 export type IntegrationFirewallAssignmentsCreateBody = {
   firewallId: string;
@@ -53,15 +36,8 @@ export type IntegrationFirewallAssignmentsCreateBody = {
   providerId?: string | undefined;
 };
 
-export let mapIntegrationFirewallAssignmentsCreateBody = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      firewallId: mtMap.objectField('firewall_id', mtMap.passthrough()),
-      targetType: mtMap.objectField('target_type', mtMap.passthrough()),
-      enclaveId: mtMap.objectField('enclave_id', mtMap.passthrough()),
-      providerId: mtMap.objectField('provider_id', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapIntegrationFirewallAssignmentsCreateBody =
+  /* @__PURE__ */ createMapper<IntegrationFirewallAssignmentsCreateBody>([
+    3,
+    [[0, [1, ['firewall_id', 'target_type', 'enclave_id', 'provider_id']]]]
+  ]);

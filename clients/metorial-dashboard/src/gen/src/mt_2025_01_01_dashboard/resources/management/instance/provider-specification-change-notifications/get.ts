@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProviderSpecificationChangeNotificationsGetOutput =
   {
@@ -44,62 +44,15 @@ export type ManagementInstanceProviderSpecificationChangeNotificationsGetOutput 
   };
 
 export let mapManagementInstanceProviderSpecificationChangeNotificationsGetOutput =
-  mtMap.object<ManagementInstanceProviderSpecificationChangeNotificationsGetOutput>(
-    {
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-      providerVersionId: mtMap.objectField(
-        'provider_version_id',
-        mtMap.passthrough()
-      ),
-      fromSpecification: mtMap.objectField(
-        'from_specification',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      ),
-      toSpecification: mtMap.objectField(
-        'to_specification',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      ),
-      fromProviderVersion: mtMap.objectField(
-        'from_provider_version',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          version: mtMap.objectField('version', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      ),
-      toProviderVersion: mtMap.objectField(
-        'to_provider_version',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          version: mtMap.objectField('version', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      ),
-      createdAt: mtMap.objectField('created_at', mtMap.date())
-    }
+  /* @__PURE__ */ mapObject<ManagementInstanceProviderSpecificationChangeNotificationsGetOutput>(
+    [
+      'provider_id',
+      'provider_version_id',
+      ['from_specification', 1, 8],
+      ['to_specification', 1, 8],
+      ['from_provider_version', 1, 8],
+      ['to_provider_version', 1, 8],
+      'created_at'
+    ],
+    1
   );
-

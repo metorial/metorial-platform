@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type AssistantsGetOutput = {
   object: 'assistant';
@@ -39,56 +39,23 @@ export type AssistantsGetOutput = {
   updatedAt: Date;
 };
 
-export let mapAssistantsGetOutput = mtMap.object<AssistantsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  slug: mtMap.objectField('slug', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  ownerType: mtMap.objectField('owner_type', mtMap.passthrough()),
-  organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-  defaultModel: mtMap.objectField(
-    'default_model',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      slug: mtMap.objectField('slug', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      contextWindow: mtMap.objectField('context_window', mtMap.passthrough()),
-      provider: mtMap.objectField(
-        'provider',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-        })
-      )
-    })
-  ),
-  availableModels: mtMap.objectField(
-    'available_models',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        contextWindow: mtMap.objectField('context_window', mtMap.passthrough()),
-        provider: mtMap.objectField(
-          'provider',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-          })
-        )
-      })
-    )
-  ),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
-
+export let mapAssistantsGetOutput =
+  /* @__PURE__ */ mapObject<AssistantsGetOutput>(
+    [
+      'owner_type',
+      'organization_id',
+      [
+        'default_model',
+        1,
+        [1, ['context_window', ['provider', 0, [1, ['image_url']]]]]
+      ],
+      [
+        'available_models',
+        1,
+        [2, [1, ['context_window', ['provider', 0, [1, ['image_url']]]]]]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

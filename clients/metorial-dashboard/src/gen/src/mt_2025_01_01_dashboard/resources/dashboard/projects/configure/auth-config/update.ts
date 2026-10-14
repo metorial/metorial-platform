@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureAuthConfigUpdateOutput = {
   object: 'organization.project.auth_config_configuration';
@@ -12,31 +12,18 @@ export type DashboardProjectsConfigureAuthConfigUpdateOutput = {
 };
 
 export let mapDashboardProjectsConfigureAuthConfigUpdateOutput =
-  mtMap.object<DashboardProjectsConfigureAuthConfigUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    allowAuthConfigExport: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureAuthConfigUpdateOutput>(
+    [
+      'project_id',
       'allow_auth_config_export',
-      mtMap.passthrough()
-    ),
-    allowAuthConfigImport: mtMap.objectField(
       'allow_auth_config_import',
-      mtMap.passthrough()
-    ),
-    onlyAllowOauthAuthMethods: mtMap.objectField(
       'only_allow_oauth_auth_methods',
-      mtMap.passthrough()
-    ),
-    consumerAuthClientRegistrationsPerHourLimit: mtMap.objectField(
       'consumer_auth_client_registrations_per_hour_limit',
-      mtMap.passthrough()
-    ),
-    consumerAuthClientRegistrationsPerMinuteLimit: mtMap.objectField(
       'consumer_auth_client_registrations_per_minute_limit',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardProjectsConfigureAuthConfigUpdateBody = {
   allowAuthConfigExport?: boolean | undefined;
@@ -47,26 +34,10 @@ export type DashboardProjectsConfigureAuthConfigUpdateBody = {
 };
 
 export let mapDashboardProjectsConfigureAuthConfigUpdateBody =
-  mtMap.object<DashboardProjectsConfigureAuthConfigUpdateBody>({
-    allowAuthConfigExport: mtMap.objectField(
-      'allow_auth_config_export',
-      mtMap.passthrough()
-    ),
-    allowAuthConfigImport: mtMap.objectField(
-      'allow_auth_config_import',
-      mtMap.passthrough()
-    ),
-    onlyAllowOauthAuthMethods: mtMap.objectField(
-      'only_allow_oauth_auth_methods',
-      mtMap.passthrough()
-    ),
-    consumerAuthClientRegistrationsPerHourLimit: mtMap.objectField(
-      'consumer_auth_client_registrations_per_hour_limit',
-      mtMap.passthrough()
-    ),
-    consumerAuthClientRegistrationsPerMinuteLimit: mtMap.objectField(
-      'consumer_auth_client_registrations_per_minute_limit',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureAuthConfigUpdateBody>([
+    'allow_auth_config_export',
+    'allow_auth_config_import',
+    'only_allow_oauth_auth_methods',
+    'consumer_auth_client_registrations_per_hour_limit',
+    'consumer_auth_client_registrations_per_minute_limit'
+  ]);

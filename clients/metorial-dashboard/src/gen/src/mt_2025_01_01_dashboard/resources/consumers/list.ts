@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumersListOutput = {
   items: ({
@@ -14,43 +14,32 @@ export type ConsumersListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapConsumersListOutput = mtMap.object<ConsumersListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            email: mtMap.objectField('email', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            userId: mtMap.objectField('user_id', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-            isPortalConsumer: mtMap.objectField(
-              'is_portal_consumer',
-              mtMap.passthrough()
-            ),
-            isOrganizationMember: mtMap.objectField(
-              'is_organization_member',
-              mtMap.passthrough()
-            )
-          })
-        )
-      ])
-    )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+export let mapConsumersListOutput =
+  /* @__PURE__ */ createMapper<ConsumersListOutput>(
+    [
+      7,
+      [
+        3,
+        [
+          [
+            0,
+            [
+              1,
+              [
+                'image_url',
+                'user_id',
+                'created_at',
+                'updated_at',
+                'is_portal_consumer',
+                'is_organization_member'
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ConsumersListQuery = {
   limit?: number | undefined;
@@ -64,28 +53,5 @@ export type ConsumersListQuery = {
   id?: string | undefined;
 };
 
-export let mapConsumersListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      email: mtMap.objectField(
-        'email',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      id: mtMap.objectField('id', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapConsumersListQuery =
+  /* @__PURE__ */ createMapper<ConsumersListQuery>(0);

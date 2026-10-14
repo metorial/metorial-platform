@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type StoresUpdateOutput = {
   object: 'store';
@@ -10,23 +13,16 @@ export type StoresUpdateOutput = {
   updatedAt: Date;
 };
 
-export let mapStoresUpdateOutput = mtMap.object<StoresUpdateOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  access: mtMap.objectField('access', mtMap.passthrough()),
-  itemCount: mtMap.objectField('item_count', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapStoresUpdateOutput =
+  /* @__PURE__ */ mapObject<StoresUpdateOutput>(
+    ['item_count', 'created_at', 'updated_at'],
+    1
+  );
 
 export type StoresUpdateBody = {
   name?: string | undefined;
   access?: 'private' | 'public_read' | 'public_write' | undefined;
 };
 
-export let mapStoresUpdateBody = mtMap.object<StoresUpdateBody>({
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  access: mtMap.objectField('access', mtMap.passthrough())
-});
-
+export let mapStoresUpdateBody =
+  /* @__PURE__ */ createMapper<StoresUpdateBody>(0);

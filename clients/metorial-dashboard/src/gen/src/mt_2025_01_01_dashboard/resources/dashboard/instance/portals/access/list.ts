@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancePortalsAccessListOutput = {
   items: {
@@ -98,157 +98,52 @@ export type DashboardInstancePortalsAccessListOutput = {
 };
 
 export let mapDashboardInstancePortalsAccessListOutput =
-  mtMap.object<DashboardInstancePortalsAccessListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          readme: mtMap.objectField('readme', mtMap.passthrough()),
-          listing: mtMap.objectField(
-            'listing',
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough())
-            })
-          ),
-          access: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardInstancePortalsAccessListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'access_level',
+          [
             'access',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  providerTemplate: mtMap.objectField(
-                    'provider_template',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      ),
-                      metadata: mtMap.objectField(
-                        'metadata',
-                        mtMap.passthrough()
-                      ),
-                      integrationId: mtMap.objectField(
-                        'integration_id',
-                        mtMap.passthrough()
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  magicMcpServer: mtMap.objectField(
-                    'magic_mcp_server',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      )
-                    })
-                  ),
-                  skill: mtMap.objectField(
-                    'skill',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough())
-                    })
-                  ),
-                  skillTemplate: mtMap.objectField(
-                    'skill_template',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      owner: mtMap.objectField('owner', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      )
-                    })
-                  ),
-                  skillGroup: mtMap.objectField(
-                    'skill_group',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      )
-                    })
-                  ),
-                  skillMarketplace: mtMap.objectField(
-                    'skill_marketplace',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  ),
-                  skillPlugin: mtMap.objectField(
-                    'skill_plugin',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough())
-                    })
-                  )
-                })
-              )
-            ])
-          ),
-          consumerGroup: mtMap.objectField(
+            0,
+            [
+              3,
+              [
+                [
+                  0,
+                  [
+                    1,
+                    [
+                      [
+                        'provider_template',
+                        1,
+                        [1, ['integration_id', 'created_at', 'updated_at']]
+                      ],
+                      'magic_mcp_server',
+                      'skill_template',
+                      'skill_group',
+                      'skill_marketplace',
+                      'skill_plugin'
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
             'consumer_group',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            1,
+            [1, ['is_default', 'created_at', 'updated_at']]
+          ],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstancePortalsAccessListQuery = {
   limit?: number | undefined;
@@ -287,111 +182,26 @@ export type DashboardInstancePortalsAccessListQuery = {
     | undefined;
 };
 
-export let mapDashboardInstancePortalsAccessListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      consumerGroupId: mtMap.objectField(
-        'consumer_group_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerTemplateId: mtMap.objectField(
-        'provider_template_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      magicMcpServerId: mtMap.objectField(
-        'magic_mcp_server_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      skillId: mtMap.objectField(
-        'skill_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      skillTemplateId: mtMap.objectField(
-        'skill_template_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      skillGroupId: mtMap.objectField(
-        'skill_group_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      skillMarketplaceId: mtMap.objectField(
-        'skill_marketplace_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      skillPluginId: mtMap.objectField(
-        'skill_plugin_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      consumerAccessListingId: mtMap.objectField(
-        'consumer_access_listing_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      type: mtMap.objectField(
-        'type',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
-    })
-  )
-]);
-
+export let mapDashboardInstancePortalsAccessListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstancePortalsAccessListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'consumer_group_id',
+            'provider_template_id',
+            'magic_mcp_server_id',
+            'skill_id',
+            'skill_template_id',
+            'skill_group_id',
+            'skill_marketplace_id',
+            'skill_plugin_id',
+            'consumer_access_listing_id'
+          ]
+        ]
+      ]
+    ]
+  ]);

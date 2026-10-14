@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DocumentsEditTokenGetOutput = {
   object: 'document.edit_token';
@@ -8,10 +8,7 @@ export type DocumentsEditTokenGetOutput = {
 };
 
 export let mapDocumentsEditTokenGetOutput =
-  mtMap.object<DocumentsEditTokenGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    token: mtMap.objectField('token', mtMap.passthrough()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    documentId: mtMap.objectField('document_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DocumentsEditTokenGetOutput>(
+    ['expires_at', 'document_id'],
+    1
+  );

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProvidersListOutput = {
   items: {
@@ -45,89 +45,35 @@ export type DashboardInstanceProvidersListOutput = {
 };
 
 export let mapDashboardInstanceProvidersListOutput =
-  mtMap.object<DashboardInstanceProvidersListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          access: mtMap.objectField('access', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          publisher: mtMap.objectField(
-            'publisher',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          currentVersion: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardInstanceProvidersListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          ['publisher', 0, [1, ['image_url', 'created_at', 'updated_at']]],
+          [
             'current_version',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              version: mtMap.objectField('version', mtMap.passthrough()),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              specificationId: mtMap.objectField(
+            1,
+            [
+              1,
+              [
+                'provider_id',
+                'is_current',
                 'specification_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          oauth: mtMap.objectField(
-            'oauth',
-            mtMap.object({
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              callbackUrl: mtMap.objectField(
-                'callback_url',
-                mtMap.passthrough()
-              ),
-              autoRegistration: mtMap.objectField(
-                'auto_registration',
-                mtMap.object({
-                  status: mtMap.objectField('status', mtMap.passthrough())
-                })
-              )
-            })
-          ),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ],
+          ['oauth', 0, [1, ['callback_url', 'auto_registration']]],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceProvidersListQuery = {
   limit?: number | undefined;
@@ -137,26 +83,5 @@ export type DashboardInstanceProvidersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { id?: string | string[] | undefined };
 
-export let mapDashboardInstanceProvidersListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      )
-    })
-  )
-]);
-
+export let mapDashboardInstanceProvidersListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceProvidersListQuery>(0);

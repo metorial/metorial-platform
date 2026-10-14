@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type OrganizationsFlagsGetOutput = {
   object: 'flags';
@@ -6,23 +9,9 @@ export type OrganizationsFlagsGetOutput = {
 };
 
 export let mapOrganizationsFlagsGetOutput =
-  mtMap.object<OrganizationsFlagsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    flags: mtMap.objectField(
-      'flags',
-      mtMap.array(
-        mtMap.object({
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          value: mtMap.objectField('value', mtMap.passthrough())
-        })
-      )
-    )
-  });
+  /* @__PURE__ */ createMapper<OrganizationsFlagsGetOutput>(0);
 
 export type OrganizationsFlagsGetQuery = { projectId?: string | undefined };
 
 export let mapOrganizationsFlagsGetQuery =
-  mtMap.object<OrganizationsFlagsGetQuery>({
-    projectId: mtMap.objectField('project_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<OrganizationsFlagsGetQuery>(['project_id']);

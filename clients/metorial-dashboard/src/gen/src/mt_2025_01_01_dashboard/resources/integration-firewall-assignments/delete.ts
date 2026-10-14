@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type IntegrationFirewallAssignmentsDeleteOutput = {
   object: 'integration.firewall_assignment';
@@ -20,28 +20,7 @@ export type IntegrationFirewallAssignmentsDeleteOutput = {
 };
 
 export let mapIntegrationFirewallAssignmentsDeleteOutput =
-  mtMap.object<IntegrationFirewallAssignmentsDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    targetType: mtMap.objectField('target_type', mtMap.passthrough()),
-    firewall: mtMap.objectField(
-      'firewall',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough())
-      })
-    ),
-    target: mtMap.objectField(
-      'target',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<IntegrationFirewallAssignmentsDeleteOutput>(
+    ['target_type', 'created_at'],
+    1
+  );

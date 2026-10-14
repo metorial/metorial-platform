@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceStoresGetOutput = {
   object: 'store';
@@ -11,13 +11,7 @@ export type DashboardInstanceStoresGetOutput = {
 };
 
 export let mapDashboardInstanceStoresGetOutput =
-  mtMap.object<DashboardInstanceStoresGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    access: mtMap.objectField('access', mtMap.passthrough()),
-    itemCount: mtMap.objectField('item_count', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceStoresGetOutput>(
+    ['item_count', 'created_at', 'updated_at'],
+    1
+  );

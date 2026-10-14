@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxSpecsGetOutput = {
   object: 'sandbox.spec';
@@ -10,13 +10,8 @@ export type SandboxSpecsGetOutput = {
   createdAt: Date;
 };
 
-export let mapSandboxSpecsGetOutput = mtMap.object<SandboxSpecsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-  memoryMib: mtMap.objectField('memory_mib', mtMap.passthrough()),
-  vcpus: mtMap.objectField('vcpus', mtMap.passthrough()),
-  regions: mtMap.objectField('regions', mtMap.array(mtMap.passthrough())),
-  createdAt: mtMap.objectField('created_at', mtMap.date())
-});
-
+export let mapSandboxSpecsGetOutput =
+  /* @__PURE__ */ mapObject<SandboxSpecsGetOutput>(
+    ['memory_mib', 'created_at'],
+    1
+  );

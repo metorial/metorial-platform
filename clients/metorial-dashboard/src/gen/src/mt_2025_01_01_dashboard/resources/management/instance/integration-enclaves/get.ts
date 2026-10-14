@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceIntegrationEnclavesGetOutput = {
   object: 'integration.enclave';
@@ -20,31 +20,13 @@ export type ManagementInstanceIntegrationEnclavesGetOutput = {
 };
 
 export let mapManagementInstanceIntegrationEnclavesGetOutput =
-  mtMap.object<ManagementInstanceIntegrationEnclavesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    internetGatewayId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceIntegrationEnclavesGetOutput>(
+    [
       'internet_gateway_id',
-      mtMap.passthrough()
-    ),
-    providerDeploymentId: mtMap.objectField(
       'provider_deployment_id',
-      mtMap.passthrough()
-    ),
-    enclaveEnvironment: mtMap.objectField(
-      'enclave_environment',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    lastUsedAt: mtMap.objectField('last_used_at', mtMap.date())
-  });
-
+      ['enclave_environment', 1, [1, ['created_at']]],
+      'created_at',
+      'last_used_at'
+    ],
+    1
+  );

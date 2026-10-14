@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceScmAccountsPreviewOutput = {
   object: 'scm.account.list#preview';
@@ -13,29 +13,15 @@ export type DashboardInstanceScmAccountsPreviewOutput = {
 };
 
 export let mapDashboardInstanceScmAccountsPreviewOutput =
-  mtMap.object<DashboardInstanceScmAccountsPreviewOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    accounts: mtMap.objectField(
-      'accounts',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          provider: mtMap.objectField('provider', mtMap.passthrough()),
-          externalId: mtMap.objectField('external_id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-        })
-      )
-    )
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceScmAccountsPreviewOutput>([
+    ['accounts', 0, [2, [1, ['external_id', 'image_url']]]]
+  ]);
 
 export type DashboardInstanceScmAccountsPreviewBody = {
   installationId: string;
 };
 
 export let mapDashboardInstanceScmAccountsPreviewBody =
-  mtMap.object<DashboardInstanceScmAccountsPreviewBody>({
-    installationId: mtMap.objectField('installation_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceScmAccountsPreviewBody>([
+    'installation_id'
+  ]);
