@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SessionsConnectionsGetOutput = {
   object: 'session.connection';
@@ -41,79 +41,46 @@ export type SessionsConnectionsGetOutput = {
 };
 
 export let mapSessionsConnectionsGetOutput =
-  mtMap.object<SessionsConnectionsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    connectionState: mtMap.objectField('connection_state', mtMap.passthrough()),
-    transport: mtMap.objectField('transport', mtMap.passthrough()),
-    usage: mtMap.objectField(
-      'usage',
-      mtMap.object({
-        totalProductiveClientMessageCount: mtMap.objectField(
-          'total_productive_client_message_count',
-          mtMap.passthrough()
-        ),
-        totalProductiveProviderMessageCount: mtMap.objectField(
-          'total_productive_provider_message_count',
-          mtMap.passthrough()
-        )
-      })
-    ),
-    mcp: mtMap.objectField(
-      'mcp',
-      mtMap.object({
-        capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
-        protocolVersion: mtMap.objectField(
-          'protocol_version',
-          mtMap.passthrough()
-        ),
-        transport: mtMap.objectField('transport', mtMap.passthrough())
-      })
-    ),
-    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-    participant: mtMap.objectField(
-      'participant',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        data: mtMap.objectField(
-          'data',
-          mtMap.object({
-            identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough())
-          })
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        connectionType: mtMap.objectField(
-          'connection_type',
-          mtMap.passthrough()
-        ),
-        agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-        agentInstanceId: mtMap.objectField(
-          'agent_instance_id',
-          mtMap.passthrough()
-        ),
-        identityActorId: mtMap.objectField(
-          'identity_actor_id',
-          mtMap.passthrough()
-        ),
-        identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-        agentActorId: mtMap.objectField('agent_actor_id', mtMap.passthrough()),
-        agentClientId: mtMap.objectField(
-          'agent_client_id',
-          mtMap.passthrough()
-        ),
-        consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date())
-      })
-    ),
-    hasErrors: mtMap.objectField('has_errors', mtMap.passthrough()),
-    hasWarnings: mtMap.objectField('has_warnings', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    lastMessageAt: mtMap.objectField('last_message_at', mtMap.date()),
-    lastActiveAt: mtMap.objectField('last_active_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<SessionsConnectionsGetOutput>(
+    [
+      'connection_state',
+      [
+        'usage',
+        0,
+        [
+          1,
+          [
+            'total_productive_client_message_count',
+            'total_productive_provider_message_count'
+          ]
+        ]
+      ],
+      ['mcp', 0, [1, ['protocol_version']]],
+      'session_id',
+      [
+        'participant',
+        0,
+        [
+          1,
+          [
+            'provider_id',
+            'connection_type',
+            'agent_id',
+            'agent_instance_id',
+            'identity_actor_id',
+            'identity_id',
+            'agent_actor_id',
+            'agent_client_id',
+            'consumer_id',
+            'created_at'
+          ]
+        ]
+      ],
+      'has_errors',
+      'has_warnings',
+      'created_at',
+      'last_message_at',
+      'last_active_at'
+    ],
+    1
+  );

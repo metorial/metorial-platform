@@ -5,9 +5,9 @@ import { useNetworkManagementAccess } from '../../(network)/_gate';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
-  useDeleteFirewallBinding,
-  useEnclaves,
-  useFirewallBindings,
+  useDeleteIntegrationFirewallAssignment,
+  useIntegrationEnclaves,
+  useIntegrationFirewallAssignments,
   useNetworkLogs,
   useProviderDeployment
 } from '@metorial/state';
@@ -20,17 +20,20 @@ export let ConfigurationsDeploymentNetworkPage = () => {
   let instance = useCurrentInstance();
   let { providerDeploymentId } = useParams();
   let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
-  let enclaves = useEnclaves(instance.data?.id, {
+  let enclaves = useIntegrationEnclaves(instance.data?.id, {
     providerDeploymentId,
     limit: 50,
     order: 'desc'
   });
-  let firewallBindings = useFirewallBindings(instance.data?.id, { limit: 100, order: 'desc' });
+  let firewallBindings = useIntegrationFirewallAssignments(instance.data?.id, {
+    limit: 100,
+    order: 'desc'
+  });
   let networkLogs = useNetworkLogs(instance.data?.id, {
     direction: 'egress',
     intervalMinutes: 60
   });
-  let deleteBinding = useDeleteFirewallBinding();
+  let deleteBinding = useDeleteIntegrationFirewallAssignment();
   let { canWrite } = useNetworkManagementAccess();
 
   return renderWithLoader({ deployment, enclaves, firewallBindings, networkLogs })(
@@ -115,7 +118,7 @@ export let ConfigurationsDeploymentNetworkPage = () => {
 
                                   await deleteBinding.mutate({
                                     instanceId: instance.data!.id,
-                                    firewallBindingId: binding.id
+                                    integrationFirewallAssignmentId: binding.id
                                   });
                                   firewallBindings.refetch();
                                 }}

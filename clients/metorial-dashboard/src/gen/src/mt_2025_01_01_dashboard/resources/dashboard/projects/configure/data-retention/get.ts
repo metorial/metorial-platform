@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureDataRetentionGetOutput = {
   object: 'organization.project.data_retention_configuration';
@@ -11,22 +11,14 @@ export type DashboardProjectsConfigureDataRetentionGetOutput = {
 };
 
 export let mapDashboardProjectsConfigureDataRetentionGetOutput =
-  mtMap.object<DashboardProjectsConfigureDataRetentionGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    dataRetentionLevel: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureDataRetentionGetOutput>(
+    [
+      'project_id',
       'data_retention_level',
-      mtMap.passthrough()
-    ),
-    storeToolCallAttachments: mtMap.objectField(
       'store_tool_call_attachments',
-      mtMap.passthrough()
-    ),
-    collectErrors: mtMap.objectField('collect_errors', mtMap.passthrough()),
-    disableCallbacks: mtMap.objectField(
+      'collect_errors',
       'disable_callbacks',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'updated_at'
+    ],
+    1
+  );

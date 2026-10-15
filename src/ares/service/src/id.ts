@@ -23,6 +23,7 @@ export let ID = createIdGenerator({
   authDeviceUserSession: idType.sorted('ads_'),
 
   user: idType.sorted('usr_'),
+  userPassword: idType.sorted('upw_'),
   userEmail: idType.sorted('ume_'),
   userEmailVerification: idType.sorted('uev_'),
   userIdentity: idType.sorted('uid_'),

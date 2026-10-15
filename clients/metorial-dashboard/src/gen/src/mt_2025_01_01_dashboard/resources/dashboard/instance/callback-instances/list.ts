@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCallbackInstancesListOutput = {
   items: {
@@ -25,55 +25,23 @@ export type DashboardInstanceCallbackInstancesListOutput = {
 };
 
 export let mapDashboardInstanceCallbackInstancesListOutput =
-  mtMap.object<DashboardInstanceCallbackInstancesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
-          integrationInstanceId: mtMap.objectField(
-            'integration_instance_id',
-            mtMap.passthrough()
-          ),
-          integrationInstanceProviderId: mtMap.objectField(
-            'integration_instance_provider_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          sync: mtMap.objectField(
-            'sync',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              error: mtMap.objectField(
-                'error',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  code: mtMap.objectField('code', mtMap.passthrough()),
-                  message: mtMap.objectField('message', mtMap.passthrough())
-                })
-              ),
-              syncedAt: mtMap.objectField('synced_at', mtMap.date())
-            })
-          )
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceCallbackInstancesListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'callback_id',
+          'integration_instance_id',
+          'integration_instance_provider_id',
+          'created_at',
+          'updated_at',
+          ['sync', 0, [1, ['synced_at']]]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceCallbackInstancesListQuery = {
   limit?: number | undefined;
@@ -97,84 +65,23 @@ export type DashboardInstanceCallbackInstancesListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapDashboardInstanceCallbackInstancesListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      callbackId: mtMap.objectField(
-        'callback_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      integrationId: mtMap.objectField(
-        'integration_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      integrationInstanceId: mtMap.objectField(
-        'integration_instance_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      integrationInstanceProviderId: mtMap.objectField(
-        'integration_instance_provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapDashboardInstanceCallbackInstancesListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceCallbackInstancesListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'callback_id',
+            'integration_id',
+            'integration_instance_id',
+            'integration_instance_provider_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

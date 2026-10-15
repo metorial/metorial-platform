@@ -32,8 +32,8 @@ vi.mock('@metorial-subspace/db', () => ({
   db: mockDb
 }));
 
-vi.mock('../../services/enclaveInternal', () => ({
-  enclaveInternalService: {
+vi.mock('../../services/integrationEnclaveInternal', () => ({
+  integrationEnclaveInternalService: {
     ensureEnclaveForProviderDeployment
   }
 }));

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type StoresCreateOutput = {
   object: 'store';
@@ -10,15 +10,11 @@ export type StoresCreateOutput = {
   updatedAt: Date;
 };
 
-export let mapStoresCreateOutput = mtMap.object<StoresCreateOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  access: mtMap.objectField('access', mtMap.passthrough()),
-  itemCount: mtMap.objectField('item_count', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapStoresCreateOutput =
+  /* @__PURE__ */ mapObject<StoresCreateOutput>(
+    ['item_count', 'created_at', 'updated_at'],
+    1
+  );
 
 export type StoresCreateBody = {
   name: string;
@@ -27,10 +23,7 @@ export type StoresCreateBody = {
   parentId?: string | undefined;
 };
 
-export let mapStoresCreateBody = mtMap.object<StoresCreateBody>({
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  access: mtMap.objectField('access', mtMap.passthrough()),
-  templateId: mtMap.objectField('template_id', mtMap.passthrough()),
-  parentId: mtMap.objectField('parent_id', mtMap.passthrough())
-});
-
+export let mapStoresCreateBody = /* @__PURE__ */ mapObject<StoresCreateBody>([
+  'template_id',
+  'parent_id'
+]);

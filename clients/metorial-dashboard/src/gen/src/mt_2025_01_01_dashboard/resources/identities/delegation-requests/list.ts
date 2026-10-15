@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type IdentitiesDelegationRequestsListOutput = {
   items: {
@@ -121,210 +121,79 @@ export type IdentitiesDelegationRequestsListOutput = {
 };
 
 export let mapIdentitiesDelegationRequestsListOutput =
-  mtMap.object<IdentitiesDelegationRequestsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          deniedReason: mtMap.objectField('denied_reason', mtMap.passthrough()),
-          requester: mtMap.objectField(
-            'requester',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-          delegation: mtMap.objectField(
+  /* @__PURE__ */ createMapper<IdentitiesDelegationRequestsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'denied_reason',
+          ['requester', 0, [1, ['agent_id', 'created_at', 'updated_at']]],
+          'identity_id',
+          [
             'delegation',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              deniedReason: mtMap.objectField(
+            0,
+            [
+              1,
+              [
                 'denied_reason',
-                mtMap.passthrough()
-              ),
-              delegationLevel: mtMap.objectField(
                 'delegation_level',
-                mtMap.passthrough()
-              ),
-              permissions: mtMap.objectField(
-                'permissions',
-                mtMap.array(mtMap.passthrough())
-              ),
-              attestation: mtMap.objectField(
-                'attestation',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  createdAt: mtMap.objectField('created_at', mtMap.date())
-                })
-              ),
-              note: mtMap.objectField('note', mtMap.passthrough()),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              identity: mtMap.objectField(
-                'identity',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
-                  metadata: mtMap.objectField('metadata', mtMap.passthrough())
-                })
-              ),
-              delegationConfigId: mtMap.objectField(
+                ['attestation', 0, [1, ['created_at']]],
                 'delegation_config_id',
-                mtMap.passthrough()
-              ),
-              parties: mtMap.objectField(
-                'parties',
-                mtMap.array(
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    roles: mtMap.objectField(
-                      'roles',
-                      mtMap.array(mtMap.passthrough())
-                    ),
-                    actor: mtMap.objectField(
-                      'actor',
-                      mtMap.object({
-                        object: mtMap.objectField(
-                          'object',
-                          mtMap.passthrough()
-                        ),
-                        id: mtMap.objectField('id', mtMap.passthrough()),
-                        type: mtMap.objectField('type', mtMap.passthrough()),
-                        status: mtMap.objectField(
-                          'status',
-                          mtMap.passthrough()
-                        ),
-                        name: mtMap.objectField('name', mtMap.passthrough()),
-                        description: mtMap.objectField(
-                          'description',
-                          mtMap.passthrough()
-                        ),
-                        metadata: mtMap.objectField(
-                          'metadata',
-                          mtMap.passthrough()
-                        ),
-                        agentId: mtMap.objectField(
-                          'agent_id',
-                          mtMap.passthrough()
-                        ),
-                        createdAt: mtMap.objectField(
-                          'created_at',
-                          mtMap.date()
-                        ),
-                        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                      })
-                    ),
-                    createdAt: mtMap.objectField('created_at', mtMap.date())
-                  })
-                )
-              ),
-              request: mtMap.objectField(
-                'request',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  deniedReason: mtMap.objectField(
-                    'denied_reason',
-                    mtMap.passthrough()
-                  ),
-                  requester: mtMap.objectField(
-                    'requester',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      ),
-                      metadata: mtMap.objectField(
-                        'metadata',
-                        mtMap.passthrough()
-                      ),
-                      agentId: mtMap.objectField(
-                        'agent_id',
-                        mtMap.passthrough()
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  identityId: mtMap.objectField(
-                    'identity_id',
-                    mtMap.passthrough()
-                  ),
-                  expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-                  createdAt: mtMap.objectField('created_at', mtMap.date())
-                })
-              ),
-              credentialOverrides: mtMap.objectField(
-                'credential_overrides',
-                mtMap.array(
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    status: mtMap.objectField('status', mtMap.passthrough()),
-                    permissions: mtMap.objectField(
-                      'permissions',
-                      mtMap.array(mtMap.passthrough())
-                    ),
-                    credentialId: mtMap.objectField(
-                      'credential_id',
-                      mtMap.passthrough()
-                    ),
-                    createdAt: mtMap.objectField('created_at', mtMap.date()),
-                    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-                  })
-                )
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-              revokedAt: mtMap.objectField('revoked_at', mtMap.date())
-            })
-          ),
-          expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+                [
+                  'parties',
+                  0,
+                  [
+                    2,
+                    [
+                      1,
+                      [
+                        [
+                          'actor',
+                          0,
+                          [1, ['agent_id', 'created_at', 'updated_at']]
+                        ],
+                        'created_at'
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  'request',
+                  0,
+                  [
+                    1,
+                    [
+                      'denied_reason',
+                      [
+                        'requester',
+                        0,
+                        [1, ['agent_id', 'created_at', 'updated_at']]
+                      ],
+                      'identity_id',
+                      'expires_at',
+                      'created_at'
+                    ]
+                  ]
+                ],
+                [
+                  'credential_overrides',
+                  1,
+                  [2, [1, ['credential_id', 'created_at', 'expires_at']]]
+                ],
+                'created_at',
+                'expires_at',
+                'revoked_at'
+              ]
+            ]
+          ],
+          'expires_at',
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type IdentitiesDelegationRequestsListQuery = {
   limit?: number | undefined;
@@ -347,64 +216,21 @@ export type IdentitiesDelegationRequestsListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapIdentitiesDelegationRequestsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      actorId: mtMap.objectField(
-        'actor_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      identityId: mtMap.objectField(
-        'identity_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapIdentitiesDelegationRequestsListQuery =
+  /* @__PURE__ */ createMapper<IdentitiesDelegationRequestsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'actor_id',
+            'identity_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

@@ -24,14 +24,14 @@ let rule = (id: string, priority: number) => ({
 
 let firewall = (
   oid: bigint,
-  networkOid: bigint,
+  internetGatewayOid: bigint,
   policies: {
     position: number;
     rules: ReturnType<typeof rule>[];
   }[]
 ) => ({
   oid,
-  networkOid,
+  internetGatewayOid,
   networkPolicyLinks: policies.map(policy => ({
     position: policy.position,
     networkPolicy: {
@@ -74,7 +74,7 @@ describe('compileNetworkRulesFromFirewalls', () => {
 describe('compileNetworkRulesForEnclave', () => {
   it('only includes firewalls on the enclave network', () => {
     let rules = compileNetworkRulesForEnclave({
-      enclaveNetworkOid: BigInt(100),
+      enclaveInternetGatewayOid: BigInt(100),
       firewalls: [
         firewall(BigInt(1), BigInt(100), [{ position: 0, rules: [rule('npr_a', 10)] }]),
         firewall(BigInt(2), BigInt(200), [{ position: 0, rules: [rule('npr_b', 20)] }])
@@ -90,7 +90,7 @@ describe('compileNetworkRulesForEnclave', () => {
     ]);
 
     let rules = compileNetworkRulesForEnclave({
-      enclaveNetworkOid: BigInt(100),
+      enclaveInternetGatewayOid: BigInt(100),
       firewalls: [sharedFirewall, sharedFirewall]
     });
 

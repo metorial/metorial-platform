@@ -1,0 +1,59 @@
+enum FirewallStatus {
+  active
+  archived
+  deleted
+}
+
+model Firewall {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status FirewallStatus @default(active)
+
+  name        String
+  description String?
+  slug        String
+
+  revision               Int     @default(1)
+  needsSubspaceSync      Boolean @default(true)
+  subspaceSyncedRevision Int     @default(0)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  networkPolicyLinks FirewallNetworkPolicy[]
+  machineLinks       SandboxMachineFirewall[]
+  egressPolicyLinks  SandboxEgressPolicyFirewall[]
+
+  @@unique([instanceOid, slug])
+  @@index([instanceOid, status])
+  @@index([needsSubspaceSync, oid])
+}
+
+model FirewallNetworkPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  position Int @default(0)
+
+  firewallOid BigInt
+  firewall    Firewall @relation(fields: [firewallOid], references: [oid], onDelete: Cascade)
+
+  networkPolicyOid BigInt
+  networkPolicy    NetworkPolicy @relation(fields: [networkPolicyOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([firewallOid, networkPolicyOid])
+  @@index([networkPolicyOid])
+}

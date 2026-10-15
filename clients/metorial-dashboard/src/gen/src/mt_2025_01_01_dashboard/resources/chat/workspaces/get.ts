@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ChatWorkspacesGetOutput = {
   object: 'chat.workspace';
@@ -12,24 +12,19 @@ export type ChatWorkspacesGetOutput = {
   updatedAt: Date;
 };
 
-export let mapChatWorkspacesGetOutput = mtMap.object<ChatWorkspacesGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-  providerWorkspaceId: mtMap.objectField(
-    'provider_workspace_id',
-    mtMap.passthrough()
-  ),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  domain: mtMap.objectField('domain', mtMap.passthrough()),
-  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
+export let mapChatWorkspacesGetOutput =
+  /* @__PURE__ */ mapObject<ChatWorkspacesGetOutput>(
+    [
+      'chat_id',
+      'provider_workspace_id',
+      'image_url',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ChatWorkspacesGetQuery = { chatInstanceId: string };
 
-export let mapChatWorkspacesGetQuery = mtMap.object<ChatWorkspacesGetQuery>({
-  chatInstanceId: mtMap.objectField('chat_instance_id', mtMap.passthrough())
-});
-
+export let mapChatWorkspacesGetQuery =
+  /* @__PURE__ */ mapObject<ChatWorkspacesGetQuery>(['chat_instance_id']);

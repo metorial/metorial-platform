@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceScmReposListOutput = {
   items: {
@@ -20,44 +20,10 @@ export type ManagementInstanceScmReposListOutput = {
 };
 
 export let mapManagementInstanceScmReposListOutput =
-  mtMap.object<ManagementInstanceScmReposListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          provider: mtMap.objectField(
-            'provider',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              owner: mtMap.objectField('owner', mtMap.passthrough())
-            })
-          ),
-          url: mtMap.objectField('url', mtMap.passthrough()),
-          isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-          defaultBranch: mtMap.objectField(
-            'default_branch',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceScmReposListOutput>(
+    [7, [1, ['is_private', 'default_branch', 'created_at']]],
+    1
+  );
 
 export type ManagementInstanceScmReposListQuery = {
   limit?: number | undefined;
@@ -72,50 +38,8 @@ export type ManagementInstanceScmReposListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapManagementInstanceScmReposListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapManagementInstanceScmReposListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceScmReposListQuery>([
+    3,
+    [[0, [1, ['provider_id', ['created_at', 1, 5], ['updated_at', 1, 5]]]]]
+  ]);

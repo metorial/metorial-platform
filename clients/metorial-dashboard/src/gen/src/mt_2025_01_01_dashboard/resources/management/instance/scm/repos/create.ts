@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceScmReposCreateOutput = {
   object: 'scm.repository';
@@ -17,24 +20,10 @@ export type ManagementInstanceScmReposCreateOutput = {
 };
 
 export let mapManagementInstanceScmReposCreateOutput =
-  mtMap.object<ManagementInstanceScmReposCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        owner: mtMap.objectField('owner', mtMap.passthrough())
-      })
-    ),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-    defaultBranch: mtMap.objectField('default_branch', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementInstanceScmReposCreateOutput>(
+    ['is_private', 'default_branch', 'created_at'],
+    1
+  );
 
 export type ManagementInstanceScmReposCreateBody = {
   installationId: string;
@@ -43,22 +32,21 @@ export type ManagementInstanceScmReposCreateBody = {
   | { externalAccountId: string; name: string; isPrivate?: boolean | undefined }
 );
 
-export let mapManagementInstanceScmReposCreateBody = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      installationId: mtMap.objectField('installation_id', mtMap.passthrough()),
-      externalRepoId: mtMap.objectField(
-        'external_repo_id',
-        mtMap.passthrough()
-      ),
-      externalAccountId: mtMap.objectField(
-        'external_account_id',
-        mtMap.passthrough()
-      ),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      isPrivate: mtMap.objectField('is_private', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapManagementInstanceScmReposCreateBody =
+  /* @__PURE__ */ createMapper<ManagementInstanceScmReposCreateBody>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'installation_id',
+            'external_repo_id',
+            'external_account_id',
+            'is_private'
+          ]
+        ]
+      ]
+    ]
+  ]);

@@ -45,9 +45,20 @@ export type CalloutSize = keyof typeof sizes;
 export type CalloutStyleProps = {
   color: ColorType;
   size?: CalloutSize;
+  variant?: 'default' | 'inline';
 };
 
-export let getCalloutStyles = ({ color, size = '2' }: CalloutStyleProps) => ({
+export let getCalloutStyles = ({
+  color,
+  size = '2',
+  variant = 'default'
+}: CalloutStyleProps) => ({
   ...calloutColor(color),
-  ...sizes[size]
+  ...sizes[size],
+  ...(variant === 'inline' && {
+    color: `color-mix(in srgb, ${calloutColor(color).color} 80%, ${theme.colors.black900})`,
+    padding: 0,
+    backgroundColor: 'transparent',
+    fontWeight: 600
+  })
 });

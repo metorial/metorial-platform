@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ProtoGuardConfigSetAlertFilterCountThresholdOutput = {
   object: 'protoguard.filter_config';
@@ -30,48 +33,34 @@ export type ProtoGuardConfigSetAlertFilterCountThresholdOutput = {
 };
 
 export let mapProtoGuardConfigSetAlertFilterCountThresholdOutput =
-  mtMap.object<ProtoGuardConfigSetAlertFilterCountThresholdOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    alertFilterCountThreshold: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ProtoGuardConfigSetAlertFilterCountThresholdOutput>(
+    [
       'alert_filter_count_threshold',
-      mtMap.passthrough()
-    ),
-    filters: mtMap.objectField(
-      'filters',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          key: mtMap.objectField('key', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          issueType: mtMap.objectField('issue_type', mtMap.passthrough()),
-          severity: mtMap.objectField('severity', mtMap.passthrough()),
-          scoreWeight: mtMap.objectField('score_weight', mtMap.passthrough()),
-          defaultEnabled: mtMap.objectField(
-            'default_enabled',
-            mtMap.passthrough()
-          ),
-          enabled: mtMap.objectField('enabled', mtMap.passthrough()),
-          defaultAlertConfidenceThreshold: mtMap.objectField(
-            'default_alert_confidence_threshold',
-            mtMap.passthrough()
-          ),
-          alertConfidenceThreshold: mtMap.objectField(
-            'alert_confidence_threshold',
-            mtMap.passthrough()
-          )
-        })
-      )
-    )
-  });
+      [
+        'filters',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'issue_type',
+              'score_weight',
+              'default_enabled',
+              'default_alert_confidence_threshold',
+              'alert_confidence_threshold'
+            ]
+          ]
+        ]
+      ]
+    ]
+  );
 
 export type ProtoGuardConfigSetAlertFilterCountThresholdBody = {
   threshold: number | null;
 };
 
 export let mapProtoGuardConfigSetAlertFilterCountThresholdBody =
-  mtMap.object<ProtoGuardConfigSetAlertFilterCountThresholdBody>({
-    threshold: mtMap.objectField('threshold', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<ProtoGuardConfigSetAlertFilterCountThresholdBody>(
+    0
+  );

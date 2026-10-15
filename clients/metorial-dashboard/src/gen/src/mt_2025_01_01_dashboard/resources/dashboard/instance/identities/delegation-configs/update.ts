@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceIdentitiesDelegationConfigsUpdateOutput = {
   object: 'identity.delegation_config';
@@ -15,25 +15,16 @@ export type DashboardInstanceIdentitiesDelegationConfigsUpdateOutput = {
 };
 
 export let mapDashboardInstanceIdentitiesDelegationConfigsUpdateOutput =
-  mtMap.object<DashboardInstanceIdentitiesDelegationConfigsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    subDelegationBehavior: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceIdentitiesDelegationConfigsUpdateOutput>(
+    [
+      'is_default',
       'sub_delegation_behavior',
-      mtMap.passthrough()
-    ),
-    subDelegationDepth: mtMap.objectField(
       'sub_delegation_depth',
-      mtMap.passthrough()
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardInstanceIdentitiesDelegationConfigsUpdateBody = {
   name?: string | undefined;
@@ -44,17 +35,6 @@ export type DashboardInstanceIdentitiesDelegationConfigsUpdateBody = {
 };
 
 export let mapDashboardInstanceIdentitiesDelegationConfigsUpdateBody =
-  mtMap.object<DashboardInstanceIdentitiesDelegationConfigsUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    subDelegationBehavior: mtMap.objectField(
-      'sub_delegation_behavior',
-      mtMap.passthrough()
-    ),
-    subDelegationDepth: mtMap.objectField(
-      'sub_delegation_depth',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceIdentitiesDelegationConfigsUpdateBody>(
+    ['sub_delegation_behavior', 'sub_delegation_depth']
+  );

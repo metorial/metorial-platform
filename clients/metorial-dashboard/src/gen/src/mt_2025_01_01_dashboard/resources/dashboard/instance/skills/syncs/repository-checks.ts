@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsSyncsRepositoryChecksOutput = {
   object: 'skill.sync_repository_checks';
@@ -46,83 +46,37 @@ export type DashboardInstanceSkillsSyncsRepositoryChecksOutput = {
 };
 
 export let mapDashboardInstanceSkillsSyncsRepositoryChecksOutput =
-  mtMap.object<DashboardInstanceSkillsSyncsRepositoryChecksOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          propagationId: mtMap.objectField(
-            'propagation_id',
-            mtMap.passthrough()
-          ),
-          repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
-          provider: mtMap.objectField('provider', mtMap.passthrough()),
-          repositoryName: mtMap.objectField(
-            'repository_name',
-            mtMap.passthrough()
-          ),
-          repositoryUrl: mtMap.objectField(
-            'repository_url',
-            mtMap.passthrough()
-          ),
-          pullRequestUrl: mtMap.objectField(
-            'pull_request_url',
-            mtMap.passthrough()
-          ),
-          repositoryAccessMode: mtMap.objectField(
-            'repository_access_mode',
-            mtMap.passthrough()
-          ),
-          forceMergeOrPush: mtMap.objectField(
-            'force_merge_or_push',
-            mtMap.passthrough()
-          ),
-          mergeBeforeChecksPass: mtMap.objectField(
-            'merge_before_checks_pass',
-            mtMap.passthrough()
-          ),
-          overrideAttemptStatus: mtMap.objectField(
-            'override_attempt_status',
-            mtMap.passthrough()
-          ),
-          overrideRefusalReason: mtMap.objectField(
-            'override_refusal_reason',
-            mtMap.passthrough()
-          ),
-          targetBranch: mtMap.objectField('target_branch', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          originStatus: mtMap.objectField('origin_status', mtMap.passthrough()),
-          blockers: mtMap.objectField(
-            'blockers',
-            mtMap.array(mtMap.passthrough())
-          ),
-          checks: mtMap.objectField(
-            'checks',
-            mtMap.array(
-              mtMap.object({
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                url: mtMap.objectField('url', mtMap.passthrough()),
-                summary: mtMap.objectField('summary', mtMap.passthrough())
-              })
-            )
-          ),
-          reviewStatus: mtMap.objectField('review_status', mtMap.passthrough()),
-          requiredReviewCount: mtMap.objectField(
-            'required_review_count',
-            mtMap.passthrough()
-          ),
-          approvedReviewCount: mtMap.objectField(
-            'approved_review_count',
-            mtMap.passthrough()
-          ),
-          mergeability: mtMap.objectField('mergeability', mtMap.passthrough()),
-          lastCheckedAt: mtMap.objectField('last_checked_at', mtMap.date()),
-          errorMessage: mtMap.objectField('error_message', mtMap.passthrough())
-        })
-      )
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceSkillsSyncsRepositoryChecksOutput>(
+    [
+      [
+        'items',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'propagation_id',
+              'repo_id',
+              'repository_name',
+              'repository_url',
+              'pull_request_url',
+              'repository_access_mode',
+              'force_merge_or_push',
+              'merge_before_checks_pass',
+              'override_attempt_status',
+              'override_refusal_reason',
+              'target_branch',
+              'origin_status',
+              'review_status',
+              'required_review_count',
+              'approved_review_count',
+              'last_checked_at',
+              'error_message'
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );

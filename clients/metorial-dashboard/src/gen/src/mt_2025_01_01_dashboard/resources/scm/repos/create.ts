@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ScmReposCreateOutput = {
   object: 'scm.repository';
@@ -16,46 +19,32 @@ export type ScmReposCreateOutput = {
   createdAt: Date;
 };
 
-export let mapScmReposCreateOutput = mtMap.object<ScmReposCreateOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  provider: mtMap.objectField(
-    'provider',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      type: mtMap.objectField('type', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      owner: mtMap.objectField('owner', mtMap.passthrough())
-    })
-  ),
-  url: mtMap.objectField('url', mtMap.passthrough()),
-  isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-  defaultBranch: mtMap.objectField('default_branch', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date())
-});
+export let mapScmReposCreateOutput =
+  /* @__PURE__ */ mapObject<ScmReposCreateOutput>(
+    ['is_private', 'default_branch', 'created_at'],
+    1
+  );
 
 export type ScmReposCreateBody = { installationId: string } & (
   | { externalRepoId: string }
   | { externalAccountId: string; name: string; isPrivate?: boolean | undefined }
 );
 
-export let mapScmReposCreateBody = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      installationId: mtMap.objectField('installation_id', mtMap.passthrough()),
-      externalRepoId: mtMap.objectField(
-        'external_repo_id',
-        mtMap.passthrough()
-      ),
-      externalAccountId: mtMap.objectField(
-        'external_account_id',
-        mtMap.passthrough()
-      ),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      isPrivate: mtMap.objectField('is_private', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapScmReposCreateBody =
+  /* @__PURE__ */ createMapper<ScmReposCreateBody>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'installation_id',
+            'external_repo_id',
+            'external_account_id',
+            'is_private'
+          ]
+        ]
+      ]
+    ]
+  ]);

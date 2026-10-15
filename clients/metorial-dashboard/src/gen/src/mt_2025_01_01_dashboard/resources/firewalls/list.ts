@@ -1,21 +1,20 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type FirewallsListOutput = {
   items: {
-    object: 'network.firewall';
+    object: 'networking.firewall';
     id: string;
     slug: string;
     name: string;
     description: string | null;
     status: 'active' | 'archived' | 'deleted';
-    networkId: string;
     networkPolicies: {
-      object: 'network.policy#preview';
+      object: 'networking.network_policy#preview';
       id: string;
       name: string;
       version: number;
       rules: {
-        object: 'network.policy.rule';
+        object: 'networking.network_policy.rule';
         id: string;
         effect: 'allow' | 'deny';
         direction: 'ingress' | 'egress';
@@ -24,7 +23,11 @@ export type FirewallsListOutput = {
         enabled: boolean;
         priority: number;
         ports:
-          | { object: 'network.policy.port_range'; from: number; to: number }[]
+          | {
+              object: 'networking.network_policy.port_range';
+              from: number;
+              to: number;
+            }[]
           | null;
       }[];
     }[];
@@ -35,83 +38,11 @@ export type FirewallsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapFirewallsListOutput = mtMap.object<FirewallsListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        networkId: mtMap.objectField('network_id', mtMap.passthrough()),
-        networkPolicies: mtMap.objectField(
-          'network_policies',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              version: mtMap.objectField('version', mtMap.passthrough()),
-              rules: mtMap.objectField(
-                'rules',
-                mtMap.array(
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    effect: mtMap.objectField('effect', mtMap.passthrough()),
-                    direction: mtMap.objectField(
-                      'direction',
-                      mtMap.passthrough()
-                    ),
-                    cidrs: mtMap.objectField(
-                      'cidrs',
-                      mtMap.array(mtMap.passthrough())
-                    ),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    ),
-                    enabled: mtMap.objectField('enabled', mtMap.passthrough()),
-                    priority: mtMap.objectField(
-                      'priority',
-                      mtMap.passthrough()
-                    ),
-                    ports: mtMap.objectField(
-                      'ports',
-                      mtMap.array(
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          from: mtMap.objectField('from', mtMap.passthrough()),
-                          to: mtMap.objectField('to', mtMap.passthrough())
-                        })
-                      )
-                    )
-                  })
-                )
-              )
-            })
-          )
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        archivedAt: mtMap.objectField('archived_at', mtMap.date())
-      })
-    )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+export let mapFirewallsListOutput =
+  /* @__PURE__ */ createMapper<FirewallsListOutput>(
+    [7, [1, ['network_policies', 'created_at', 'updated_at', 'archived_at']]],
+    1
+  );
 
 export type FirewallsListQuery = {
   limit?: number | undefined;
@@ -120,6 +51,7 @@ export type FirewallsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  search?: string | undefined;
   id?: string | string[] | undefined;
   slug?: string | string[] | undefined;
   status?:
@@ -128,102 +60,31 @@ export type FirewallsListQuery = {
     | 'deleted'
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
-  networkId?: string | string[] | undefined;
   enclaveId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   networkPolicyId?: string | string[] | undefined;
+  machineId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapFirewallsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      slug: mtMap.objectField(
-        'slug',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      networkId: mtMap.objectField(
-        'network_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      enclaveId: mtMap.objectField(
-        'enclave_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      networkPolicyId: mtMap.objectField(
-        'network_policy_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapFirewallsListQuery =
+  /* @__PURE__ */ createMapper<FirewallsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'enclave_id',
+            'provider_id',
+            'network_policy_id',
+            'machine_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

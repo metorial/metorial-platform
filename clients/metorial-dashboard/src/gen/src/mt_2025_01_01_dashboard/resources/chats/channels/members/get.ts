@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ChatsChannelsMembersGetOutput = {
   object: 'chat.author';
@@ -19,24 +19,18 @@ export type ChatsChannelsMembersGetOutput = {
 };
 
 export let mapChatsChannelsMembersGetOutput =
-  mtMap.object<ChatsChannelsMembersGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    role: mtMap.objectField('role', mtMap.passthrough()),
-    providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-    providerAuthorId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ChatsChannelsMembersGetOutput>(
+    [
+      'chat_id',
+      'provider_type',
       'provider_author_id',
-      mtMap.passthrough()
-    ),
-    userName: mtMap.objectField('user_name', mtMap.passthrough()),
-    fullName: mtMap.objectField('full_name', mtMap.passthrough()),
-    email: mtMap.objectField('email', mtMap.passthrough()),
-    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-    isSelf: mtMap.objectField('is_self', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    lastInteractionAt: mtMap.objectField('last_interaction_at', mtMap.date())
-  });
-
+      'user_name',
+      'full_name',
+      'image_url',
+      'is_self',
+      'created_at',
+      'updated_at',
+      'last_interaction_at'
+    ],
+    1
+  );

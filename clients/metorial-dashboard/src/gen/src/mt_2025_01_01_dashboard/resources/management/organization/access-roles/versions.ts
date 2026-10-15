@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationAccessRolesVersionsOutput = {
   items: {
@@ -16,43 +16,13 @@ export type ManagementOrganizationAccessRolesVersionsOutput = {
 };
 
 export let mapManagementOrganizationAccessRolesVersionsOutput =
-  mtMap.object<ManagementOrganizationAccessRolesVersionsOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          accessRoleId: mtMap.objectField(
-            'access_role_id',
-            mtMap.passthrough()
-          ),
-          index: mtMap.objectField('index', mtMap.passthrough()),
-          scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
-          scopesAdded: mtMap.objectField(
-            'scopes_added',
-            mtMap.array(mtMap.passthrough())
-          ),
-          scopesRemoved: mtMap.objectField(
-            'scopes_removed',
-            mtMap.array(mtMap.passthrough())
-          ),
-          message: mtMap.objectField('message', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementOrganizationAccessRolesVersionsOutput>(
+    [
+      7,
+      [1, ['access_role_id', 'scopes_added', 'scopes_removed', 'created_at']]
+    ],
+    1
+  );
 
 export type ManagementOrganizationAccessRolesVersionsQuery = {
   limit?: number | undefined;
@@ -62,16 +32,7 @@ export type ManagementOrganizationAccessRolesVersionsQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapManagementOrganizationAccessRolesVersionsQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapManagementOrganizationAccessRolesVersionsQuery =
+  /* @__PURE__ */ createMapper<ManagementOrganizationAccessRolesVersionsQuery>(
+    0
+  );

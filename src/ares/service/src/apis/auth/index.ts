@@ -19,7 +19,8 @@ let authMux = rpcMux(
               ...(process.env.CORS_DOMAINS?.split(',').map(d => d.trim()) ?? [])
             ]
           },
-    path: '/metorial-ares/auth-api'
+    path: '/metorial-ares/auth-api',
+    captureRequestBody: false
   },
   [authRPC]
 );

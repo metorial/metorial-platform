@@ -42,7 +42,7 @@ import {
   normalizeToolFilters,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
-import { enclaveInternalService } from '@metorial-subspace/module-enclave';
+import { integrationEnclaveInternalService } from '@metorial-subspace/module-enclave';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
   checkTenant,
@@ -548,7 +548,7 @@ class providerDeploymentServiceImpl {
         });
       }
 
-      await enclaveInternalService.ensureEnclaveForProviderDeployment({
+      await integrationEnclaveInternalService.ensureEnclaveForProviderDeployment({
         tenant: d.tenant,
         environment: d.environment,
         provider: d.provider,

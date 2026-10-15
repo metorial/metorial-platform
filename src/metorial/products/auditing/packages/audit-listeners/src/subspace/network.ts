@@ -1,7 +1,7 @@
 import {
   Fabric,
   type AuditSubspaceFirewall,
-  type AuditSubspaceFirewallBinding,
+  type AuditSubspaceIntegrationFirewallAssignment,
   type AuditSubspaceNetworkPolicy,
   type FabricEvents
 } from '@metorial/fabric';
@@ -14,7 +14,7 @@ let firewallPayload = (firewall: AuditSubspaceFirewall) => ({
   slug: firewall.slug,
   name: firewall.name,
   description: firewall.description,
-  network: { id: firewall.network.id, name: firewall.network.name },
+  internetGateway: { id: firewall.internetGateway.id, name: firewall.internetGateway.name },
   networkPolicies: (firewall.networkPolicyLinks ?? []).map(link => ({
     position: link.position,
     networkPolicy: { id: link.networkPolicy.id, name: link.networkPolicy.name }
@@ -22,19 +22,27 @@ let firewallPayload = (firewall: AuditSubspaceFirewall) => ({
   archivedAt: firewall.archivedAt
 });
 
-let firewallBindingPayload = (binding: AuditSubspaceFirewallBinding) => ({
-  id: binding.id,
-  targetType: binding.targetType,
+let firewallAssignmentPayload = (assignment: AuditSubspaceIntegrationFirewallAssignment) => ({
+  id: assignment.id,
+  targetType: assignment.targetType,
   firewall: {
-    id: binding.firewall.id,
-    slug: binding.firewall.slug,
-    name: binding.firewall.name
+    id: assignment.firewall.id,
+    slug: assignment.firewall.slug,
+    name: assignment.firewall.name
   },
-  enclave: binding.enclave
-    ? { id: binding.enclave.id, slug: binding.enclave.slug, name: binding.enclave.name }
+  enclave: assignment.enclave
+    ? {
+        id: assignment.enclave.id,
+        slug: assignment.enclave.slug,
+        name: assignment.enclave.name
+      }
     : null,
-  provider: binding.provider ? { id: binding.provider.id, name: binding.provider.name } : null,
-  network: binding.network ? { id: binding.network.id, name: binding.network.name } : null
+  provider: assignment.provider
+    ? { id: assignment.provider.id, name: assignment.provider.name }
+    : null,
+  internetGateway: assignment.internetGateway
+    ? { id: assignment.internetGateway.id, name: assignment.internetGateway.name }
+    : null
 });
 
 let networkPolicyPayload = (
@@ -94,28 +102,28 @@ export let recordFirewallDeleted = async (
   );
 };
 
-export let recordFirewallBindingCreated = async (
-  event: FabricEvents['instance.network.firewall_binding.created:after']
+export let recordFirewallAssignmentCreated = async (
+  event: FabricEvents['instance.network.integration_firewall_assignment.created:after']
 ) => {
   let scope = getSubspaceAuditScope(event);
   if (!scope) return;
 
   await recordSubspaceAuditEvent(() =>
-    auditTrackerService.recordEvent(scope, 'firewall_binding', 'create', {
-      payload: firewallBindingPayload(event.firewallBinding)
+    auditTrackerService.recordEvent(scope, 'integration_firewall_assignment', 'create', {
+      payload: firewallAssignmentPayload(event.firewallAssignment)
     })
   );
 };
 
-export let recordFirewallBindingDeleted = async (
-  event: FabricEvents['instance.network.firewall_binding.deleted:after']
+export let recordFirewallAssignmentDeleted = async (
+  event: FabricEvents['instance.network.integration_firewall_assignment.deleted:after']
 ) => {
   let scope = getSubspaceAuditScope(event);
   if (!scope) return;
 
   await recordSubspaceAuditEvent(() =>
-    auditTrackerService.recordEvent(scope, 'firewall_binding', 'delete', {
-      payload: firewallBindingPayload(event.firewallBinding)
+    auditTrackerService.recordEvent(scope, 'integration_firewall_assignment', 'delete', {
+      payload: firewallAssignmentPayload(event.firewallAssignment)
     })
   );
 };
@@ -191,8 +199,14 @@ Fabric.listen(
   recordFirewallUpdated
 );
 
-Fabric.listen('instance.network.firewall_binding.created:after', recordFirewallBindingCreated);
-Fabric.listen('instance.network.firewall_binding.deleted:after', recordFirewallBindingDeleted);
+Fabric.listen(
+  'instance.network.integration_firewall_assignment.created:after',
+  recordFirewallAssignmentCreated
+);
+Fabric.listen(
+  'instance.network.integration_firewall_assignment.deleted:after',
+  recordFirewallAssignmentDeleted
+);
 
 Fabric.listen('instance.network.network_policy.created:after', recordNetworkPolicyCreated);
 Fabric.listen('instance.network.network_policy.updated:after', recordNetworkPolicyUpdated);

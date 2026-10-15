@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancesResourceCountsGetOutput = {
   object: 'resource_counts';
@@ -10,9 +10,9 @@ export type DashboardInstancesResourceCountsGetOutput = {
       | 'provider_auth_configs'
       | 'provider_auth_credentials'
       | 'session_templates'
-      | 'networks'
+      | 'integration_internet_gateways'
       | 'firewalls'
-      | 'enclaves'
+      | 'integration_enclaves'
       | 'accounts'
       | 'agents'
       | 'identity_actors'
@@ -24,18 +24,7 @@ export type DashboardInstancesResourceCountsGetOutput = {
 };
 
 export let mapDashboardInstancesResourceCountsGetOutput =
-  mtMap.object<DashboardInstancesResourceCountsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    resources: mtMap.objectField(
-      'resources',
-      mtMap.array(
-        mtMap.object({
-          resource: mtMap.objectField('resource', mtMap.passthrough()),
-          count: mtMap.objectField('count', mtMap.passthrough())
-        })
-      )
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstancesResourceCountsGetOutput>(0);
 
 export type DashboardInstancesResourceCountsGetQuery = {
   resource:
@@ -45,9 +34,9 @@ export type DashboardInstancesResourceCountsGetQuery = {
     | 'provider_auth_configs'
     | 'provider_auth_credentials'
     | 'session_templates'
-    | 'networks'
+    | 'integration_internet_gateways'
     | 'firewalls'
-    | 'enclaves'
+    | 'integration_enclaves'
     | 'accounts'
     | 'agents'
     | 'identity_actors'
@@ -61,9 +50,9 @@ export type DashboardInstancesResourceCountsGetQuery = {
         | 'provider_auth_configs'
         | 'provider_auth_credentials'
         | 'session_templates'
-        | 'networks'
+        | 'integration_internet_gateways'
         | 'firewalls'
-        | 'enclaves'
+        | 'integration_enclaves'
         | 'accounts'
         | 'agents'
         | 'identity_actors'
@@ -74,10 +63,4 @@ export type DashboardInstancesResourceCountsGetQuery = {
 };
 
 export let mapDashboardInstancesResourceCountsGetQuery =
-  mtMap.object<DashboardInstancesResourceCountsGetQuery>({
-    resource: mtMap.objectField(
-      'resource',
-      mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-    )
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstancesResourceCountsGetQuery>(0);

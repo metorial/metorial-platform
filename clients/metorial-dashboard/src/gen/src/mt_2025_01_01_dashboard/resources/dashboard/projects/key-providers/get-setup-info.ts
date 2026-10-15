@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsKeyProvidersGetSetupInfoOutput = {
   object: 'key_provider_setup_info';
@@ -18,33 +21,9 @@ export type DashboardProjectsKeyProvidersGetSetupInfoOutput = {
 };
 
 export let mapDashboardProjectsKeyProvidersGetSetupInfoOutput =
-  mtMap.object<DashboardProjectsKeyProvidersGetSetupInfoOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    steps: mtMap.objectField(
-      'steps',
-      mtMap.array(
-        mtMap.object({
-          title: mtMap.objectField('title', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          markdown: mtMap.objectField('markdown', mtMap.passthrough()),
-          inputs: mtMap.objectField(
-            'inputs',
-            mtMap.array(
-              mtMap.object({
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                key: mtMap.objectField('key', mtMap.passthrough()),
-                label: mtMap.objectField('label', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            )
-          )
-        })
-      )
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardProjectsKeyProvidersGetSetupInfoOutput>(
+    0
+  );
 
 export type DashboardProjectsKeyProvidersGetSetupInfoQuery = {
   region?: string | undefined;
@@ -52,8 +31,6 @@ export type DashboardProjectsKeyProvidersGetSetupInfoQuery = {
 };
 
 export let mapDashboardProjectsKeyProvidersGetSetupInfoQuery =
-  mtMap.object<DashboardProjectsKeyProvidersGetSetupInfoQuery>({
-    region: mtMap.objectField('region', mtMap.passthrough()),
-    keyId: mtMap.objectField('key_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsKeyProvidersGetSetupInfoQuery>([
+    'key_id'
+  ]);

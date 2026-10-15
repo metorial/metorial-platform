@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsMergeRequestsPlanGetOutput = {
   object: 'skill.merge_plan';
@@ -241,497 +241,298 @@ export type ManagementInstanceSkillsMergeRequestsPlanGetOutput = {
 };
 
 export let mapManagementInstanceSkillsMergeRequestsPlanGetOutput =
-  mtMap.object<ManagementInstanceSkillsMergeRequestsPlanGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    mergeRequest: mtMap.objectField(
-      'merge_request',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        direction: mtMap.objectField('direction', mtMap.passthrough()),
-        baseStrategy: mtMap.objectField('base_strategy', mtMap.passthrough()),
-        title: mtMap.objectField('title', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        mergeError: mtMap.objectField('merge_error', mtMap.passthrough()),
-        mergeErrorCode: mtMap.objectField(
-          'merge_error_code',
-          mtMap.passthrough()
-        ),
-        sourceSkillId: mtMap.objectField(
-          'source_skill_id',
-          mtMap.passthrough()
-        ),
-        targetSkillId: mtMap.objectField(
-          'target_skill_id',
-          mtMap.passthrough()
-        ),
-        baseTargetSkillVersionId: mtMap.objectField(
-          'base_target_skill_version_id',
-          mtMap.passthrough()
-        ),
-        requestedSourceSkillVersionId: mtMap.objectField(
-          'requested_source_skill_version_id',
-          mtMap.passthrough()
-        ),
-        requestedTargetSkillVersionId: mtMap.objectField(
-          'requested_target_skill_version_id',
-          mtMap.passthrough()
-        ),
-        preMergeTargetSkillVersionId: mtMap.objectField(
-          'pre_merge_target_skill_version_id',
-          mtMap.passthrough()
-        ),
-        mergedTargetSkillVersionId: mtMap.objectField(
-          'merged_target_skill_version_id',
-          mtMap.passthrough()
-        ),
-        rollbackTargetSkillVersionId: mtMap.objectField(
-          'rollback_target_skill_version_id',
-          mtMap.passthrough()
-        ),
-        createdBy: mtMap.objectField(
-          'created_by',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            email: mtMap.objectField('email', mtMap.passthrough()),
-            organizationActor: mtMap.objectField(
-              'organization_actor',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                organizationId: mtMap.objectField(
-                  'organization_id',
-                  mtMap.passthrough()
-                ),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                email: mtMap.objectField('email', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                member: mtMap.objectField(
-                  'member',
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    status: mtMap.objectField('status', mtMap.passthrough()),
-                    role: mtMap.objectField('role', mtMap.passthrough())
-                  })
-                ),
-                teams: mtMap.objectField(
-                  'teams',
-                  mtMap.array(
-                    mtMap.object({
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      slug: mtMap.objectField('slug', mtMap.passthrough()),
-                      assignmentId: mtMap.objectField(
-                        'assignment_id',
-                        mtMap.passthrough()
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  )
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            consumer: mtMap.objectField(
-              'consumer',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                email: mtMap.objectField('email', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                userId: mtMap.objectField('user_id', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            consumerProfile: mtMap.objectField(
-              'consumer_profile',
-              mtMap.union([
-                mtMap.unionOption(
-                  'object',
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    email: mtMap.objectField('email', mtMap.passthrough()),
-                    imageUrl: mtMap.objectField(
-                      'image_url',
-                      mtMap.passthrough()
-                    ),
-                    consumerId: mtMap.objectField(
-                      'consumer_id',
-                      mtMap.passthrough()
-                    ),
-                    userId: mtMap.objectField('user_id', mtMap.passthrough()),
-                    status: mtMap.objectField('status', mtMap.passthrough()),
-                    createdAt: mtMap.objectField('created_at', mtMap.date()),
-                    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-                    groups: mtMap.objectField(
-                      'groups',
-                      mtMap.array(
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          group: mtMap.objectField(
-                            'group',
-                            mtMap.object({
-                              object: mtMap.objectField(
-                                'object',
-                                mtMap.passthrough()
-                              ),
-                              id: mtMap.objectField('id', mtMap.passthrough()),
-                              status: mtMap.objectField(
-                                'status',
-                                mtMap.passthrough()
-                              ),
-                              name: mtMap.objectField(
-                                'name',
-                                mtMap.passthrough()
-                              ),
-                              description: mtMap.objectField(
-                                'description',
-                                mtMap.passthrough()
-                              ),
-                              isDefault: mtMap.objectField(
-                                'is_default',
-                                mtMap.passthrough()
-                              ),
-                              createdAt: mtMap.objectField(
-                                'created_at',
-                                mtMap.date()
-                              ),
-                              updatedAt: mtMap.objectField(
-                                'updated_at',
-                                mtMap.date()
-                              )
-                            })
-                          ),
-                          assignedVia: mtMap.objectField(
-                            'assigned_via',
-                            mtMap.passthrough()
-                          )
-                        })
-                      )
-                    )
-                  })
-                )
-              ])
-            )
-          })
-        ),
-        itemCount: mtMap.objectField('item_count', mtMap.passthrough()),
-        commentCount: mtMap.objectField('comment_count', mtMap.passthrough()),
-        mergeStartedAt: mtMap.objectField('merge_started_at', mtMap.date()),
-        mergedAt: mtMap.objectField('merged_at', mtMap.date()),
-        closedAt: mtMap.objectField('closed_at', mtMap.date()),
-        rolledBackAt: mtMap.objectField('rolled_back_at', mtMap.date()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          item: mtMap.objectField(
-            'item',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              skillMergeRequestId: mtMap.objectField(
-                'skill_merge_request_id',
-                mtMap.passthrough()
-              ),
-              path: mtMap.objectField('path', mtMap.passthrough()),
-              kind: mtMap.objectField('kind', mtMap.passthrough()),
-              changeType: mtMap.objectField('change_type', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              resolutionType: mtMap.objectField(
-                'resolution_type',
-                mtMap.passthrough()
-              ),
-              conflictReason: mtMap.objectField(
-                'conflict_reason',
-                mtMap.passthrough()
-              ),
-              resolution: mtMap.objectField('resolution', mtMap.passthrough()),
-              resolvedBy: mtMap.objectField(
-                'resolved_by',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                  email: mtMap.objectField('email', mtMap.passthrough()),
-                  organizationActor: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsMergeRequestsPlanGetOutput>(
+    [
+      [
+        'merge_request',
+        1,
+        [
+          1,
+          [
+            'base_strategy',
+            'merge_error',
+            'merge_error_code',
+            'source_skill_id',
+            'target_skill_id',
+            'base_target_skill_version_id',
+            'requested_source_skill_version_id',
+            'requested_target_skill_version_id',
+            'pre_merge_target_skill_version_id',
+            'merged_target_skill_version_id',
+            'rollback_target_skill_version_id',
+            [
+              'created_by',
+              1,
+              [
+                1,
+                [
+                  'image_url',
+                  [
                     'organization_actor',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      organizationId: mtMap.objectField(
+                    1,
+                    [
+                      1,
+                      [
                         'organization_id',
-                        mtMap.passthrough()
-                      ),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
                         'image_url',
-                        mtMap.passthrough()
-                      ),
-                      member: mtMap.objectField(
-                        'member',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          ),
-                          role: mtMap.objectField('role', mtMap.passthrough())
-                        })
-                      ),
-                      teams: mtMap.objectField(
-                        'teams',
-                        mtMap.array(
-                          mtMap.object({
-                            id: mtMap.objectField('id', mtMap.passthrough()),
-                            name: mtMap.objectField(
-                              'name',
-                              mtMap.passthrough()
-                            ),
-                            slug: mtMap.objectField(
-                              'slug',
-                              mtMap.passthrough()
-                            ),
-                            assignmentId: mtMap.objectField(
-                              'assignment_id',
-                              mtMap.passthrough()
-                            ),
-                            createdAt: mtMap.objectField(
-                              'created_at',
-                              mtMap.date()
-                            ),
-                            updatedAt: mtMap.objectField(
-                              'updated_at',
-                              mtMap.date()
-                            )
-                          })
-                        )
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  consumer: mtMap.objectField(
+                        [
+                          'teams',
+                          0,
+                          [
+                            2,
+                            [1, ['assignment_id', 'created_at', 'updated_at']]
+                          ]
+                        ],
+                        'created_at',
+                        'updated_at'
+                      ]
+                    ]
+                  ],
+                  [
                     'consumer',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      userId: mtMap.objectField('user_id', mtMap.passthrough()),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  consumerProfile: mtMap.objectField(
+                    0,
+                    [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+                  ],
+                  [
                     'consumer_profile',
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          email: mtMap.objectField(
-                            'email',
-                            mtMap.passthrough()
-                          ),
-                          imageUrl: mtMap.objectField(
-                            'image_url',
-                            mtMap.passthrough()
-                          ),
-                          consumerId: mtMap.objectField(
-                            'consumer_id',
-                            mtMap.passthrough()
-                          ),
-                          userId: mtMap.objectField(
-                            'user_id',
-                            mtMap.passthrough()
-                          ),
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          ),
-                          groups: mtMap.objectField(
-                            'groups',
-                            mtMap.array(
-                              mtMap.object({
-                                object: mtMap.objectField(
-                                  'object',
-                                  mtMap.passthrough()
-                                ),
-                                group: mtMap.objectField(
-                                  'group',
-                                  mtMap.object({
-                                    object: mtMap.objectField(
-                                      'object',
-                                      mtMap.passthrough()
-                                    ),
-                                    id: mtMap.objectField(
-                                      'id',
-                                      mtMap.passthrough()
-                                    ),
-                                    status: mtMap.objectField(
-                                      'status',
-                                      mtMap.passthrough()
-                                    ),
-                                    name: mtMap.objectField(
-                                      'name',
-                                      mtMap.passthrough()
-                                    ),
-                                    description: mtMap.objectField(
-                                      'description',
-                                      mtMap.passthrough()
-                                    ),
-                                    isDefault: mtMap.objectField(
-                                      'is_default',
-                                      mtMap.passthrough()
-                                    ),
-                                    createdAt: mtMap.objectField(
+                    1,
+                    [
+                      3,
+                      [
+                        [
+                          0,
+                          [
+                            1,
+                            [
+                              'image_url',
+                              'consumer_id',
+                              'user_id',
+                              'created_at',
+                              'updated_at',
+                              [
+                                'groups',
+                                0,
+                                [
+                                  2,
+                                  [
+                                    1,
+                                    [
+                                      [
+                                        'group',
+                                        0,
+                                        [
+                                          1,
+                                          [
+                                            'is_default',
+                                            'created_at',
+                                            'updated_at'
+                                          ]
+                                        ]
+                                      ],
+                                      'assigned_via'
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            'item_count',
+            'comment_count',
+            'merge_started_at',
+            'merged_at',
+            'closed_at',
+            'rolled_back_at',
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      [
+        'items',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              [
+                'item',
+                0,
+                [
+                  1,
+                  [
+                    'skill_merge_request_id',
+                    'change_type',
+                    'resolution_type',
+                    'conflict_reason',
+                    [
+                      'resolved_by',
+                      1,
+                      [
+                        1,
+                        [
+                          'image_url',
+                          [
+                            'organization_actor',
+                            1,
+                            [
+                              1,
+                              [
+                                'organization_id',
+                                'image_url',
+                                [
+                                  'teams',
+                                  0,
+                                  [
+                                    2,
+                                    [
+                                      1,
+                                      [
+                                        'assignment_id',
+                                        'created_at',
+                                        'updated_at'
+                                      ]
+                                    ]
+                                  ]
+                                ],
+                                'created_at',
+                                'updated_at'
+                              ]
+                            ]
+                          ],
+                          [
+                            'consumer',
+                            0,
+                            [
+                              1,
+                              [
+                                'image_url',
+                                'user_id',
+                                'created_at',
+                                'updated_at'
+                              ]
+                            ]
+                          ],
+                          [
+                            'consumer_profile',
+                            1,
+                            [
+                              3,
+                              [
+                                [
+                                  0,
+                                  [
+                                    1,
+                                    [
+                                      'image_url',
+                                      'consumer_id',
+                                      'user_id',
                                       'created_at',
-                                      mtMap.date()
-                                    ),
-                                    updatedAt: mtMap.objectField(
                                       'updated_at',
-                                      mtMap.date()
-                                    )
-                                  })
-                                ),
-                                assignedVia: mtMap.objectField(
-                                  'assigned_via',
-                                  mtMap.passthrough()
-                                )
-                              })
-                            )
-                          )
-                        })
-                      )
-                    ])
-                  )
-                })
-              ),
-              resolvedAt: mtMap.objectField('resolved_at', mtMap.date()),
-              appliedAt: mtMap.objectField('applied_at', mtMap.date()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          base: mtMap.objectField(
-            'base',
-            mtMap.object({
-              kind: mtMap.objectField('kind', mtMap.passthrough()),
-              path: mtMap.objectField('path', mtMap.passthrough()),
-              fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-              documentId: mtMap.objectField('document_id', mtMap.passthrough()),
-              documentTitle: mtMap.objectField(
-                'document_title',
-                mtMap.passthrough()
-              ),
-              documentVersionId: mtMap.objectField(
-                'document_version_id',
-                mtMap.passthrough()
-              ),
-              content: mtMap.objectField('content', mtMap.passthrough())
-            })
-          ),
-          source: mtMap.objectField(
-            'source',
-            mtMap.object({
-              kind: mtMap.objectField('kind', mtMap.passthrough()),
-              path: mtMap.objectField('path', mtMap.passthrough()),
-              fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-              documentId: mtMap.objectField('document_id', mtMap.passthrough()),
-              documentTitle: mtMap.objectField(
-                'document_title',
-                mtMap.passthrough()
-              ),
-              documentVersionId: mtMap.objectField(
-                'document_version_id',
-                mtMap.passthrough()
-              ),
-              content: mtMap.objectField('content', mtMap.passthrough())
-            })
-          ),
-          target: mtMap.objectField(
-            'target',
-            mtMap.object({
-              kind: mtMap.objectField('kind', mtMap.passthrough()),
-              path: mtMap.objectField('path', mtMap.passthrough()),
-              fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-              documentId: mtMap.objectField('document_id', mtMap.passthrough()),
-              documentTitle: mtMap.objectField(
-                'document_title',
-                mtMap.passthrough()
-              ),
-              documentVersionId: mtMap.objectField(
-                'document_version_id',
-                mtMap.passthrough()
-              ),
-              content: mtMap.objectField('content', mtMap.passthrough())
-            })
-          ),
-          documentMerge: mtMap.objectField(
-            'document_merge',
-            mtMap.object({
-              baseContent: mtMap.objectField(
-                'base_content',
-                mtMap.passthrough()
-              ),
-              sourceContent: mtMap.objectField(
-                'source_content',
-                mtMap.passthrough()
-              ),
-              targetContent: mtMap.objectField(
-                'target_content',
-                mtMap.passthrough()
-              ),
-              hasConflict: mtMap.objectField(
-                'has_conflict',
-                mtMap.passthrough()
-              )
-            })
-          )
-        })
-      )
-    )
-  });
-
+                                      [
+                                        'groups',
+                                        0,
+                                        [
+                                          2,
+                                          [
+                                            1,
+                                            [
+                                              [
+                                                'group',
+                                                0,
+                                                [
+                                                  1,
+                                                  [
+                                                    'is_default',
+                                                    'created_at',
+                                                    'updated_at'
+                                                  ]
+                                                ]
+                                              ],
+                                              'assigned_via'
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ],
+                    'resolved_at',
+                    'applied_at',
+                    'created_at',
+                    'updated_at'
+                  ]
+                ]
+              ],
+              [
+                'base',
+                0,
+                [
+                  1,
+                  [
+                    'file_id',
+                    'document_id',
+                    'document_title',
+                    'document_version_id'
+                  ]
+                ]
+              ],
+              [
+                'source',
+                0,
+                [
+                  1,
+                  [
+                    'file_id',
+                    'document_id',
+                    'document_title',
+                    'document_version_id'
+                  ]
+                ]
+              ],
+              [
+                'target',
+                0,
+                [
+                  1,
+                  [
+                    'file_id',
+                    'document_id',
+                    'document_title',
+                    'document_version_id'
+                  ]
+                ]
+              ],
+              [
+                'document_merge',
+                1,
+                [
+                  1,
+                  [
+                    'base_content',
+                    'source_content',
+                    'target_content',
+                    'has_conflict'
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );

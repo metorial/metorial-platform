@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsAccessRolesCreateOutput = {
   object: 'management.access_role';
@@ -14,18 +17,10 @@ export type DashboardOrganizationsAccessRolesCreateOutput = {
 };
 
 export let mapDashboardOrganizationsAccessRolesCreateOutput =
-  mtMap.object<DashboardOrganizationsAccessRolesCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    isAdmin: mtMap.objectField('is_admin', mtMap.passthrough()),
-    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardOrganizationsAccessRolesCreateOutput>(
+    ['organization_id', 'is_admin', 'created_at', 'updated_at'],
+    1
+  );
 
 export type DashboardOrganizationsAccessRolesCreateBody = {
   name: string;
@@ -35,10 +30,4 @@ export type DashboardOrganizationsAccessRolesCreateBody = {
 };
 
 export let mapDashboardOrganizationsAccessRolesCreateBody =
-  mtMap.object<DashboardOrganizationsAccessRolesCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
-    message: mtMap.objectField('message', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardOrganizationsAccessRolesCreateBody>(0);

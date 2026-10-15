@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceCustomProvidersEnvironmentsGetOutput = {
   object: 'custom_provider.environment';
@@ -12,20 +12,14 @@ export type ManagementInstanceCustomProvidersEnvironmentsGetOutput = {
 };
 
 export let mapManagementInstanceCustomProvidersEnvironmentsGetOutput =
-  mtMap.object<ManagementInstanceCustomProvidersEnvironmentsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    customProviderId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceCustomProvidersEnvironmentsGetOutput>(
+    [
       'custom_provider_id',
-      mtMap.passthrough()
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    currentProviderVersionId: mtMap.objectField(
+      'provider_id',
       'current_provider_version_id',
-      mtMap.passthrough()
-    ),
-    instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'instance_id',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

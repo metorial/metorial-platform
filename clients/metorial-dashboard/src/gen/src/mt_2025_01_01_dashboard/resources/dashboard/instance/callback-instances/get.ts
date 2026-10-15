@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCallbackInstancesGetOutput = {
   object: 'callback.instance';
@@ -22,36 +22,14 @@ export type DashboardInstanceCallbackInstancesGetOutput = {
 };
 
 export let mapDashboardInstanceCallbackInstancesGetOutput =
-  mtMap.object<DashboardInstanceCallbackInstancesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    callbackId: mtMap.objectField('callback_id', mtMap.passthrough()),
-    integrationInstanceId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceCallbackInstancesGetOutput>(
+    [
+      'callback_id',
       'integration_instance_id',
-      mtMap.passthrough()
-    ),
-    integrationInstanceProviderId: mtMap.objectField(
       'integration_instance_provider_id',
-      mtMap.passthrough()
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    sync: mtMap.objectField(
-      'sync',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        error: mtMap.objectField(
-          'error',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            code: mtMap.objectField('code', mtMap.passthrough()),
-            message: mtMap.objectField('message', mtMap.passthrough())
-          })
-        ),
-        syncedAt: mtMap.objectField('synced_at', mtMap.date())
-      })
-    )
-  });
-
+      'created_at',
+      'updated_at',
+      ['sync', 0, [1, ['synced_at']]]
+    ],
+    1
+  );

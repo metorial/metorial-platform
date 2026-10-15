@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsKeyProvidersSetDefaultOutput = {
   object: 'key_provider';
@@ -16,24 +16,14 @@ export type DashboardProjectsKeyProvidersSetDefaultOutput = {
 };
 
 export let mapDashboardProjectsKeyProvidersSetDefaultOutput =
-  mtMap.object<DashboardProjectsKeyProvidersSetDefaultOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    owner: mtMap.objectField('owner', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    isMetorialManaged: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardProjectsKeyProvidersSetDefaultOutput>(
+    [
       'is_metorial_managed',
-      mtMap.passthrough()
-    ),
-    keyReuseTimeSeconds: mtMap.objectField(
       'key_reuse_time_seconds',
-      mtMap.passthrough()
-    ),
-    keyInfo: mtMap.objectField('key_info', mtMap.passthrough()),
-    isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'key_info',
+      'is_default',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

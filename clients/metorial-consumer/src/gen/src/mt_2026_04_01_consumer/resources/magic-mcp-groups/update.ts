@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type MagicMcpGroupsUpdateOutput = {
   object: 'magic_mcp.group';
@@ -13,17 +13,7 @@ export type MagicMcpGroupsUpdateOutput = {
 };
 
 export let mapMagicMcpGroupsUpdateOutput =
-  mtMap.object<MagicMcpGroupsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ createMapper<MagicMcpGroupsUpdateOutput>(8);
 
 export type MagicMcpGroupsUpdateBody = {
   name?: string | undefined;
@@ -31,11 +21,5 @@ export type MagicMcpGroupsUpdateBody = {
   metadata?: Record<string, any> | undefined;
 };
 
-export let mapMagicMcpGroupsUpdateBody = mtMap.object<MagicMcpGroupsUpdateBody>(
-  {
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
-  }
-);
-
+export let mapMagicMcpGroupsUpdateBody =
+  /* @__PURE__ */ createMapper<MagicMcpGroupsUpdateBody>(0);

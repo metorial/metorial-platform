@@ -15,7 +15,7 @@ let {
     app: { findUnique: vi.fn() },
     appOAuthProvider: { findFirst: vi.fn() },
     authDevice: { findUnique: vi.fn() },
-    authIntent: { create: vi.fn(), update: vi.fn() },
+    authIntent: { create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     authIntentCode: { create: vi.fn() },
     authIntentStep: { create: vi.fn() },
     ssoConnection: { findMany: vi.fn() },
@@ -83,6 +83,7 @@ describe('authService.authWithSocialProviderToken', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    db.authIntent.updateMany.mockResolvedValue({ count: 1 });
     db.appOAuthProvider.findFirst.mockResolvedValue({
       oid: 1n,
       clientId: 'client',

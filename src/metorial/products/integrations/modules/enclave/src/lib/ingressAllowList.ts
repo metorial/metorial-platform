@@ -1,5 +1,5 @@
 import ipaddr from 'ipaddr.js';
-import type { CompiledNetworkAllowList } from './compileNetworkAllowList';
+import type { CompiledNetworkAllowList } from '@metorial/module-networking/src/lib/compileNetworkAllowList';
 
 export let isIpAllowedByIngressAllowList = (d: {
   sourceIp: string;

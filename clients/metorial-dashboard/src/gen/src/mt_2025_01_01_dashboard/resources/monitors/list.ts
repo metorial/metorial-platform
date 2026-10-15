@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type MonitorsListOutput = {
   items: {
@@ -19,38 +19,24 @@ export type MonitorsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapMonitorsListOutput = mtMap.object<MonitorsListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        target: mtMap.objectField('target', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        owner: mtMap.objectField('owner', mtMap.passthrough()),
-        protoGuardFilterId: mtMap.objectField(
+export let mapMonitorsListOutput =
+  /* @__PURE__ */ createMapper<MonitorsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
           'proto_guard_filter_id',
-          mtMap.passthrough()
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        firstAlertAt: mtMap.objectField('first_alert_at', mtMap.date()),
-        lastAlertAt: mtMap.objectField('last_alert_at', mtMap.date())
-      })
-    )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+          'provider_id',
+          'created_at',
+          'updated_at',
+          'first_alert_at',
+          'last_alert_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type MonitorsListQuery = {
   limit?: number | undefined;
@@ -75,83 +61,23 @@ export type MonitorsListQuery = {
   lastAlertAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapMonitorsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      target: mtMap.objectField(
-        'target',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      protoGuardFilterId: mtMap.objectField(
-        'proto_guard_filter_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      firstAlertAt: mtMap.objectField(
-        'first_alert_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      lastAlertAt: mtMap.objectField(
-        'last_alert_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapMonitorsListQuery =
+  /* @__PURE__ */ createMapper<MonitorsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'provider_id',
+            'proto_guard_filter_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5],
+            ['first_alert_at', 1, 5],
+            ['last_alert_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

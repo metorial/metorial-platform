@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationProjectsListOutput = {
   items: {
@@ -15,36 +15,10 @@ export type ManagementOrganizationProjectsListOutput = {
 };
 
 export let mapManagementOrganizationProjectsListOutput =
-  mtMap.object<ManagementOrganizationProjectsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementOrganizationProjectsListOutput>(
+    [7, [1, ['organization_id', 'created_at', 'updated_at']]],
+    1
+  );
 
 export type ManagementOrganizationProjectsListQuery = {
   limit?: number | undefined;
@@ -54,26 +28,8 @@ export type ManagementOrganizationProjectsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { teamId?: string | string[] | undefined };
 
-export let mapManagementOrganizationProjectsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      teamId: mtMap.objectField(
-        'team_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      )
-    })
-  )
-]);
-
+export let mapManagementOrganizationProjectsListQuery =
+  /* @__PURE__ */ createMapper<ManagementOrganizationProjectsListQuery>([
+    3,
+    [[0, [1, ['team_id']]]]
+  ]);

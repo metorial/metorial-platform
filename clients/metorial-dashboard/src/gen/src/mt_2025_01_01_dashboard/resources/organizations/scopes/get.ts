@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type OrganizationsScopesGetOutput = {
   object: 'organization_scopes';
@@ -6,8 +6,4 @@ export type OrganizationsScopesGetOutput = {
 };
 
 export let mapOrganizationsScopesGetOutput =
-  mtMap.object<OrganizationsScopesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough()))
-  });
-
+  /* @__PURE__ */ createMapper<OrganizationsScopesGetOutput>(0);

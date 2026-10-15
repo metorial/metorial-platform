@@ -1,0 +1,41 @@
+enum SandboxDiskType {
+  standard
+  root_fs
+}
+
+model SandboxDisk {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type   SandboxDiskType       @default(standard)
+  status SandboxResourceStatus @default(active)
+
+  name      String?
+  sizeBytes BigInt?
+
+  tenantOid BigInt
+  tenant    SandboxTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  /// [Record]
+  metadata Json @default("{}")
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  machineOid BigInt?
+  machine    SandboxMachine? @relation(fields: [machineOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  @@index([instanceOid, type, status])
+  @@index([machineOid, type, status])
+  @@index([tenantOid, status])
+}

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceStoresPermissionsGetOutput = {
   object: 'store.permissions';
@@ -11,25 +11,10 @@ export type DashboardInstanceStoresPermissionsGetOutput = {
 };
 
 export let mapDashboardInstanceStoresPermissionsGetOutput =
-  mtMap.object<DashboardInstanceStoresPermissionsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    storeId: mtMap.objectField('store_id', mtMap.passthrough()),
-    hasFullAccess: mtMap.objectField('has_full_access', mtMap.passthrough()),
-    permissions: mtMap.objectField(
-      'permissions',
-      mtMap.array(mtMap.passthrough())
-    ),
-    relevantStoreIds: mtMap.objectField(
-      'relevant_store_ids',
-      mtMap.array(mtMap.passthrough())
-    ),
-    readableStoreIds: mtMap.objectField(
-      'readable_store_ids',
-      mtMap.array(mtMap.passthrough())
-    ),
-    writableStoreIds: mtMap.objectField(
-      'writable_store_ids',
-      mtMap.array(mtMap.passthrough())
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceStoresPermissionsGetOutput>([
+    'store_id',
+    'has_full_access',
+    'relevant_store_ids',
+    'readable_store_ids',
+    'writable_store_ids'
+  ]);

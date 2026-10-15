@@ -1,8 +1,8 @@
 import {
-  DashboardInstanceEnclavesGetLastUsedQuery,
-  DashboardInstanceEnclavesListQuery,
-  DashboardInstanceFirewallBindingsCreateBody,
-  DashboardInstanceFirewallBindingsListQuery,
+  DashboardInstanceIntegrationEnclavesGetLastUsedQuery,
+  DashboardInstanceIntegrationEnclavesListQuery,
+  DashboardInstanceIntegrationFirewallAssignmentsCreateBody,
+  DashboardInstanceIntegrationFirewallAssignmentsListQuery,
   DashboardInstanceFirewallsCreateBody,
   DashboardInstanceFirewallsListQuery,
   DashboardInstanceFirewallsNetworkPoliciesAttachBody,
@@ -11,129 +11,102 @@ import {
   DashboardInstanceNetworkPoliciesListQuery,
   DashboardInstanceNetworkPoliciesRulesCreateBody,
   DashboardInstanceNetworkPoliciesUpdateBody,
-  DashboardInstanceNetworksListNetworkLogsQuery,
-  DashboardInstanceNetworksListQuery
+  DashboardInstanceIntegrationInternetGatewayListNetworkLogsQuery
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-export let networksLoader = createLoader({
-  name: 'networks',
+export let integrationInternetGatewayLoader = createLoader({
+  name: 'integrationInternetGateway',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceNetworksListQuery) =>
-    withAuth(sdk => sdk.networks.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string }) =>
+    withAuth(sdk => sdk.integrationInternetGateway.get(i.instanceId)),
   mutators: {}
 });
 
-export let useNetworks = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceNetworksListQuery | null
-) => {
-  return usePaginator(pagination =>
-    networksLoader.use(
-      instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
-    )
-  );
-};
-
-export let useDefaultNetwork = (instanceId: string | null | undefined) => {
-  let networks = networksLoader.use(instanceId ? { instanceId, limit: 1 } : null);
-
-  return {
-    ...networks,
-    data: networks.data?.items[0] ?? null
-  };
-};
-
-export let networkLoader = createLoader({
-  name: 'network',
-  parents: [networksLoader],
-  fetch: (i: { instanceId: string; networkId: string }) =>
-    withAuth(sdk => sdk.networks.get(i.instanceId, i.networkId)),
-  mutators: {}
-});
-
-export let useNetwork = (
-  instanceId: string | null | undefined,
-  networkId: string | null | undefined
-) => networkLoader.use(instanceId && networkId ? { instanceId, networkId } : null);
+export let useIntegrationInternetGateway = (instanceId: string | null | undefined) =>
+  integrationInternetGatewayLoader.use(instanceId ? { instanceId } : null);
 
 export let networkLogsLoader = createLoader({
   name: 'networkLogs',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceNetworksListNetworkLogsQuery) =>
-    withAuth(sdk => sdk.networks.listNetworkLogs(i.instanceId, i)),
+  fetch: (
+    i: { instanceId: string } & DashboardInstanceIntegrationInternetGatewayListNetworkLogsQuery
+  ) => withAuth(sdk => sdk.integrationInternetGateway.listNetworkLogs(i.instanceId, i)),
   mutators: {}
 });
 
 export let useNetworkLogs = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceNetworksListNetworkLogsQuery | null
+  query?: DashboardInstanceIntegrationInternetGatewayListNetworkLogsQuery | null
 ) => {
   let queryWithDirection = {
     direction: 'egress',
     ...(query ?? {})
-  } as DashboardInstanceNetworksListNetworkLogsQuery;
+  } as DashboardInstanceIntegrationInternetGatewayListNetworkLogsQuery;
 
   return networkLogsLoader.use(
     instanceId && query !== null ? { instanceId, ...queryWithDirection } : null
   );
 };
 
-export let enclavesLoader = createLoader({
-  name: 'enclaves',
+export let integrationEnclavesLoader = createLoader({
+  name: 'integrationEnclaves',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceEnclavesListQuery) =>
-    withAuth(sdk => sdk.enclaves.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string } & DashboardInstanceIntegrationEnclavesListQuery) =>
+    withAuth(sdk => sdk.integrationEnclaves.list(i.instanceId, i)),
   mutators: {}
 });
 
-export let useEnclaves = (
+export let useIntegrationEnclaves = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceEnclavesListQuery | null
+  query?: DashboardInstanceIntegrationEnclavesListQuery | null
 ) => {
   return usePaginator(
     pagination =>
-      enclavesLoader.use(
+      integrationEnclavesLoader.use(
         instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
       ),
     JSON.stringify(query ?? {})
   );
 };
 
-export let enclaveLoader = createLoader({
-  name: 'enclave',
-  parents: [enclavesLoader],
-  fetch: (i: { instanceId: string; enclaveId: string }) =>
-    withAuth(sdk => sdk.enclaves.get(i.instanceId, i.enclaveId)),
+export let integrationEnclaveLoader = createLoader({
+  name: 'integrationEnclave',
+  parents: [integrationEnclavesLoader],
+  fetch: (i: { instanceId: string; integrationEnclaveId: string }) =>
+    withAuth(sdk => sdk.integrationEnclaves.get(i.instanceId, i.integrationEnclaveId)),
   mutators: {}
 });
 
-export let useEnclave = (
+export let useIntegrationEnclave = (
   instanceId: string | null | undefined,
-  enclaveId: string | null | undefined
-) => enclaveLoader.use(instanceId && enclaveId ? { instanceId, enclaveId } : null);
-
-export let lastUsedEnclavesLoader = createLoader({
-  name: 'lastUsedEnclaves',
-  parents: [enclavesLoader],
-  fetch: (i: { instanceId: string } & DashboardInstanceEnclavesGetLastUsedQuery) =>
-    withAuth(sdk => sdk.enclaves.getLastUsed(i.instanceId, i)),
-  mutators: {}
-});
-
-export let useLastUsedEnclaves = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceEnclavesGetLastUsedQuery | null
+  integrationEnclaveId: string | null | undefined
 ) =>
-  lastUsedEnclavesLoader.use(
+  integrationEnclaveLoader.use(
+    instanceId && integrationEnclaveId ? { instanceId, integrationEnclaveId } : null
+  );
+
+export let lastUsedIntegrationEnclavesLoader = createLoader({
+  name: 'lastUsedIntegrationEnclaves',
+  parents: [integrationEnclavesLoader],
+  fetch: (i: { instanceId: string } & DashboardInstanceIntegrationEnclavesGetLastUsedQuery) =>
+    withAuth(sdk => sdk.integrationEnclaves.getLastUsed(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useLastUsedIntegrationEnclaves = (
+  instanceId: string | null | undefined,
+  query?: DashboardInstanceIntegrationEnclavesGetLastUsedQuery | null
+) =>
+  lastUsedIntegrationEnclavesLoader.use(
     instanceId && query !== null ? { instanceId, ...(query ?? {}) } : null
   );
 
 export let firewallsLoader = createLoader({
   name: 'firewalls',
-  parents: [networksLoader],
+  parents: [integrationInternetGatewayLoader],
   fetch: (i: { instanceId: string } & DashboardInstanceFirewallsListQuery) =>
     withAuth(sdk => sdk.firewalls.list(i.instanceId, i)),
   mutators: {}
@@ -149,10 +122,12 @@ export let useFirewalls = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceFirewallsListQuery | null
 ) => {
-  return usePaginator(pagination =>
-    firewallsLoader.use(
-      instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
-    )
+  return usePaginator(
+    pagination =>
+      firewallsLoader.use(
+        instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
+      ),
+    JSON.stringify([instanceId, query?.search?.trim() || ''])
   );
 };
 
@@ -201,32 +176,40 @@ export let useDetachNetworkPolicyFromFirewall = firewallLoader.createExternalMut
     )
 );
 
-export let firewallBindingsLoader = createLoader({
-  name: 'firewallBindings',
-  parents: [firewallsLoader, enclavesLoader, networksLoader],
-  fetch: (i: { instanceId: string } & DashboardInstanceFirewallBindingsListQuery) =>
-    withAuth(sdk => sdk.firewallBindings.list(i.instanceId, i)),
+export let integrationFirewallAssignmentsLoader = createLoader({
+  name: 'integrationFirewallAssignments',
+  parents: [firewallsLoader, integrationEnclavesLoader, integrationInternetGatewayLoader],
+  fetch: (
+    i: { instanceId: string } & DashboardInstanceIntegrationFirewallAssignmentsListQuery
+  ) => withAuth(sdk => sdk.integrationFirewallAssignments.list(i.instanceId, i)),
   mutators: {}
 });
 
-export let useCreateFirewallBinding = firewallBindingsLoader.createExternalMutator(
-  (i: DashboardInstanceFirewallBindingsCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.firewallBindings.create(i.instanceId, i)),
-  { disableToast: true }
-);
+export let useCreateIntegrationFirewallAssignment =
+  integrationFirewallAssignmentsLoader.createExternalMutator(
+    (i: DashboardInstanceIntegrationFirewallAssignmentsCreateBody & { instanceId: string }) =>
+      withAuth(sdk => sdk.integrationFirewallAssignments.create(i.instanceId, i)),
+    { disableToast: true }
+  );
 
-export let useDeleteFirewallBinding = firewallBindingsLoader.createExternalMutator(
-  (i: { instanceId: string; firewallBindingId: string }) =>
-    withAuth(sdk => sdk.firewallBindings.delete(i.instanceId, i.firewallBindingId))
-);
+export let useDeleteIntegrationFirewallAssignment =
+  integrationFirewallAssignmentsLoader.createExternalMutator(
+    (i: { instanceId: string; integrationFirewallAssignmentId: string }) =>
+      withAuth(sdk =>
+        sdk.integrationFirewallAssignments.delete(
+          i.instanceId,
+          i.integrationFirewallAssignmentId
+        )
+      )
+  );
 
-export let useFirewallBindings = (
+export let useIntegrationFirewallAssignments = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceFirewallBindingsListQuery | null
+  query?: DashboardInstanceIntegrationFirewallAssignmentsListQuery | null
 ) => {
   return usePaginator(
     pagination =>
-      firewallBindingsLoader.use(
+      integrationFirewallAssignmentsLoader.use(
         instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
       ),
     JSON.stringify(query ?? {})

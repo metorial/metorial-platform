@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureWorkforceGetOutput = {
   object: 'organization.project.workforce_configuration';
@@ -8,13 +8,7 @@ export type DashboardProjectsConfigureWorkforceGetOutput = {
 };
 
 export let mapDashboardProjectsConfigureWorkforceGetOutput =
-  mtMap.object<DashboardProjectsConfigureWorkforceGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    autoAddOrganizationMembersToPortals: mtMap.objectField(
-      'auto_add_organization_members_to_portals',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureWorkforceGetOutput>(
+    ['project_id', 'auto_add_organization_members_to_portals', 'updated_at'],
+    1
+  );

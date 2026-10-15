@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsPluginsGetEditorUrlOutput = {
   object: 'bucket.editor_token';
@@ -8,15 +11,14 @@ export type DashboardInstanceSkillsPluginsGetEditorUrlOutput = {
 };
 
 export let mapDashboardInstanceSkillsPluginsGetEditorUrlOutput =
-  mtMap.object<DashboardInstanceSkillsPluginsGetEditorUrlOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceSkillsPluginsGetEditorUrlOutput>(
+    ['expires_at'],
+    1
+  );
 
 export type DashboardInstanceSkillsPluginsGetEditorUrlBody = {};
 
 export let mapDashboardInstanceSkillsPluginsGetEditorUrlBody =
-  mtMap.object<DashboardInstanceSkillsPluginsGetEditorUrlBody>({});
-
+  /* @__PURE__ */ createMapper<DashboardInstanceSkillsPluginsGetEditorUrlBody>(
+    0
+  );

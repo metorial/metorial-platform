@@ -17,7 +17,7 @@ COPY --from=pruner /app/out/ /
 FROM base AS dependencies
 
 COPY --from=pruned /json/ ./
-RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile --linker=hoisted
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --linker=hoisted
 
 FROM dependencies AS builder
 

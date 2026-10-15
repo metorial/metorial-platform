@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SkillsPluginsRepositoriesGetOutput = {
   object: 'skill.plugin_repository';
@@ -21,26 +21,17 @@ export type SkillsPluginsRepositoriesGetOutput = {
 };
 
 export let mapSkillsPluginsRepositoriesGetOutput =
-  mtMap.object<SkillsPluginsRepositoriesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    skillPluginId: mtMap.objectField('skill_plugin_id', mtMap.passthrough()),
-    repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
-    repository: mtMap.objectField(
-      'repository',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        provider: mtMap.objectField('provider', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough()),
-        isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-        defaultBranch: mtMap.objectField('default_branch', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<SkillsPluginsRepositoriesGetOutput>(
+    [
+      'skill_plugin_id',
+      'repo_id',
+      [
+        'repository',
+        0,
+        [1, ['is_private', 'default_branch', 'created_at', 'updated_at']]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

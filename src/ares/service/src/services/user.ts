@@ -521,7 +521,9 @@ class UserServiceImpl {
       data: {
         lastLoginAt: new Date(),
         hasLoggedIn: true,
-        ...(d.method && d.user.signupMethod === 'unknown' ? { signupMethod: d.method } : {})
+        ...(d.method && d.user.signupMethod === 'unknown'
+          ? { signupMethod: d.method == 'password' ? 'email' : d.method }
+          : {})
       }
     });
 

@@ -14,11 +14,16 @@ import {
   RiFileCopyLine,
   RiFolderLine,
   RiGroupLine,
+  RiHardDrive3Line,
   RiHome6Line,
+  RiInstanceLine,
   RiListCheck2,
   RiPlugLine,
   RiRssLine,
+  RiShieldKeyholeLine,
+  RiFlowChart,
   RiSparkling2Line,
+  RiStackLine,
   RiStore2Line,
   RiCompassDiscoverLine,
   RiUploadCloud2Line,
@@ -58,6 +63,8 @@ export let ProjectPageLayout = () => {
   let skillsEnabled = !!dashboardFlags.data?.flags['skills-enabled'];
   let webhooksEnabled = !!dashboardFlags.data?.flags['webhooks-enabled'];
   let chatEnabled = !!dashboardFlags.data?.flags['chat-enabled'];
+  let sandboxEnabled = !!dashboardFlags.data?.flags['sandbox-enabled'];
+  let networkingEnabled = !!dashboardFlags.data?.flags['networking-enabled'];
 
   return (
     <AppLayout
@@ -207,6 +214,70 @@ export let ProjectPageLayout = () => {
                     icon: <RiFolderLine />,
                     label: 'Groups',
                     to: Paths.instance.skillGroups(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  }
+                ]
+              }
+            ]
+          : []),
+
+        ...(sandboxEnabled
+          ? [
+              {
+                label: 'Sandboxes',
+                collapsible: true,
+                items: [
+                  {
+                    icon: <RiInstanceLine />,
+                    label: 'Machines',
+                    to: Paths.instance.sandboxMachines(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i)
+                    })
+                  },
+                  {
+                    icon: <RiStackLine />,
+                    label: 'Machine Images',
+                    to: Paths.instance.sandboxImages(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i)
+                    })
+                  },
+                  {
+                    icon: <RiHardDrive3Line />,
+                    label: 'Disks',
+                    to: Paths.instance.sandboxDisks(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i)
+                    })
+                  }
+                ]
+              }
+            ]
+          : []),
+
+        ...(networkingEnabled
+          ? [
+              {
+                label: 'Networking',
+                collapsible: true,
+                items: [
+                  {
+                    icon: <RiShieldKeyholeLine />,
+                    label: 'Firewalls',
+                    to: Paths.instance.networkFirewalls(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive:
+                        checkPath(i) ||
+                        checkPath({ ...i, to: Paths.instance.network(...params, 'firewall') })
+                    })
+                  },
+                  {
+                    icon: <RiFlowChart />,
+                    label: 'Internet Gateway',
+                    to: Paths.instance.networkSettings(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
                       isActive: checkPath(i, { exact: true })
                     })

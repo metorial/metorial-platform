@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationEventDeliveriesRetryOutput = {
   object: 'event.delivery';
@@ -53,118 +53,46 @@ export type ManagementOrganizationEventDeliveriesRetryOutput = {
 };
 
 export let mapManagementOrganizationEventDeliveriesRetryOutput =
-  mtMap.object<ManagementOrganizationEventDeliveriesRetryOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-    eventId: mtMap.objectField('event_id', mtMap.passthrough()),
-    eventType: mtMap.objectField('event_type', mtMap.passthrough()),
-    eventDestinationId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementOrganizationEventDeliveriesRetryOutput>(
+    [
+      'organization_id',
+      'instance_id',
+      'event_id',
+      'event_type',
       'event_destination_id',
-      mtMap.passthrough()
-    ),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    attemptCount: mtMap.objectField('attempt_count', mtMap.passthrough()),
-    error: mtMap.objectField(
-      'error',
-      mtMap.object({
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        message: mtMap.objectField('message', mtMap.passthrough())
-      })
-    ),
-    retry: mtMap.objectField(
-      'retry',
-      mtMap.object({
-        strategy: mtMap.objectField('strategy', mtMap.passthrough()),
-        maxAttempts: mtMap.objectField('max_attempts', mtMap.passthrough()),
-        baseDelaySeconds: mtMap.objectField(
-          'base_delay_seconds',
-          mtMap.passthrough()
-        ),
-        maxDelaySeconds: mtMap.objectField(
-          'max_delay_seconds',
-          mtMap.passthrough()
-        )
-      })
-    ),
-    attempts: mtMap.objectField(
-      'attempts',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          eventDeliveryId: mtMap.objectField(
-            'event_delivery_id',
-            mtMap.passthrough()
-          ),
-          eventId: mtMap.objectField('event_id', mtMap.passthrough()),
-          eventDestinationId: mtMap.objectField(
-            'event_destination_id',
-            mtMap.passthrough()
-          ),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          attemptNumber: mtMap.objectField(
-            'attempt_number',
-            mtMap.passthrough()
-          ),
-          durationMs: mtMap.objectField('duration_ms', mtMap.passthrough()),
-          isRetryable: mtMap.objectField('is_retryable', mtMap.passthrough()),
-          error: mtMap.objectField(
-            'error',
-            mtMap.object({
-              code: mtMap.objectField('code', mtMap.passthrough()),
-              message: mtMap.objectField('message', mtMap.passthrough())
-            })
-          ),
-          request: mtMap.objectField(
-            'request',
-            mtMap.object({
-              url: mtMap.objectField('url', mtMap.passthrough()),
-              method: mtMap.objectField('method', mtMap.passthrough()),
-              headers: mtMap.objectField(
-                'headers',
-                mtMap.array(
-                  mtMap.object({
-                    key: mtMap.objectField('key', mtMap.passthrough()),
-                    value: mtMap.objectField('value', mtMap.passthrough())
-                  })
-                )
-              ),
-              body: mtMap.objectField('body', mtMap.passthrough())
-            })
-          ),
-          response: mtMap.objectField(
-            'response',
-            mtMap.object({
-              statusCode: mtMap.objectField('status_code', mtMap.passthrough()),
-              headers: mtMap.objectField(
-                'headers',
-                mtMap.array(
-                  mtMap.object({
-                    key: mtMap.objectField('key', mtMap.passthrough()),
-                    value: mtMap.objectField('value', mtMap.passthrough())
-                  })
-                )
-              ),
-              body: mtMap.objectField('body', mtMap.passthrough()),
-              isBodyTruncated: mtMap.objectField(
-                'is_body_truncated',
-                mtMap.passthrough()
-              )
-            })
-          ),
-          startedAt: mtMap.objectField('started_at', mtMap.date()),
-          completedAt: mtMap.objectField('completed_at', mtMap.date()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    lastAttemptAt: mtMap.objectField('last_attempt_at', mtMap.date()),
-    nextAttemptAt: mtMap.objectField('next_attempt_at', mtMap.date()),
-    completedAt: mtMap.objectField('completed_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'attempt_count',
+      [
+        'retry',
+        0,
+        [1, ['max_attempts', 'base_delay_seconds', 'max_delay_seconds']]
+      ],
+      [
+        'attempts',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'event_delivery_id',
+              'event_id',
+              'event_destination_id',
+              'attempt_number',
+              'duration_ms',
+              'is_retryable',
+              ['response', 0, [1, ['status_code', 'is_body_truncated']]],
+              'started_at',
+              'completed_at',
+              'created_at'
+            ]
+          ]
+        ]
+      ],
+      'last_attempt_at',
+      'next_attempt_at',
+      'completed_at',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

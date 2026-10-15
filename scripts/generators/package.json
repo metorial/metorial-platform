@@ -12,10 +12,14 @@
     "generate:client:consumer": "bun start ${API_URL:-http://metorial-root.localhost:4310} ../../clients/metorial-consumer/src/gen typescript && cd ../../clients/metorial-consumer && bun run build",
     "generate:client:python": "bun start ${API_URL:-http://metorial-root.localhost:4310} ../../clients/metorial-python/src/metorial/_generated python",
     "generate:client:python_": "bun start ${API_URL:-http://metorial-root.localhost:4310} ../../clients/metorial-python/packages/metorial-generated python",
-    "generate:client:go": "bun start ${API_URL:-http://metorial-root.localhost:4310} ../../clients/metorial-go/v1 go"
+    "generate:client:go": "bun start ${API_URL:-http://metorial-root.localhost:4310} ../../clients/metorial-go/v1 go",
+    "test": "bun test src/languages/typescript/*.test.ts",
+    "benchmark:mappers": "bun src/languages/typescript/benchmark.ts",
+    "benchmark:mapper-patterns": "bun src/languages/typescript/patterns.benchmark.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "esbuild": "^0.25.12"
   },
   "peerDependencies": {
     "typescript": "^5"

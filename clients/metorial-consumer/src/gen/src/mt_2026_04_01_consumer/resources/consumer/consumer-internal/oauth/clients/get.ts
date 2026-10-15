@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumerConsumerInternalOauthClientsGetOutput = {
   object: 'portal.oauth_client';
@@ -20,41 +20,18 @@ export type ConsumerConsumerInternalOauthClientsGetOutput = {
 };
 
 export let mapConsumerConsumerInternalOauthClientsGetOutput =
-  mtMap.object<ConsumerConsumerInternalOauthClientsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-    redirectUris: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ConsumerConsumerInternalOauthClientsGetOutput>(
+    [
+      'client_id',
       'redirect_uris',
-      mtMap.array(mtMap.passthrough())
-    ),
-    tokenEndpointAuthMethod: mtMap.objectField(
       'token_endpoint_auth_method',
-      mtMap.passthrough()
-    ),
-    portalId: mtMap.objectField('portal_id', mtMap.passthrough()),
-    consumerSurfaceId: mtMap.objectField(
+      'portal_id',
       'consumer_surface_id',
-      mtMap.passthrough()
-    ),
-    skillPlugin: mtMap.objectField(
       'skill_plugin',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough())
-      })
-    ),
-    magicMcpServerId: mtMap.objectField(
       'magic_mcp_server_id',
-      mtMap.passthrough()
-    ),
-    magicMcpEndpointId: mtMap.objectField(
       'magic_mcp_endpoint_id',
-      mtMap.passthrough()
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-  });
-
+      'created_at',
+      'expires_at'
+    ],
+    1
+  );

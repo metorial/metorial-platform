@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceScmProvidersListOutput = {
   items: {
@@ -23,35 +23,10 @@ export type DashboardInstanceScmProvidersListOutput = {
 };
 
 export let mapDashboardInstanceScmProvidersListOutput =
-  mtMap.object<DashboardInstanceScmProvidersListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          apiUrl: mtMap.objectField('api_url', mtMap.passthrough()),
-          webUrl: mtMap.objectField('web_url', mtMap.passthrough()),
-          isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceScmProvidersListOutput>(
+    [7, [1, ['api_url', 'web_url', 'is_default', 'created_at', 'updated_at']]],
+    1
+  );
 
 export type DashboardInstanceScmProvidersListQuery = {
   limit?: number | undefined;
@@ -61,16 +36,5 @@ export type DashboardInstanceScmProvidersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardInstanceScmProvidersListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardInstanceScmProvidersListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceScmProvidersListQuery>(0);

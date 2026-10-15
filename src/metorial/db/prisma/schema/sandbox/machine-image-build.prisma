@@ -1,0 +1,105 @@
+enum SandboxMachineImageBuildStatus {
+  preparing
+  queued
+  building
+  processing
+  replicating
+  succeeded
+  failed
+  cancelled
+  timed_out
+}
+
+enum SandboxMachineImageBuildRegionKind {
+  builder
+  replica
+}
+
+enum SandboxMachineImageBuildRegionStatus {
+  pending
+  preparing
+  queued
+  building
+  copying
+  awaiting_source
+  processing
+  succeeded
+  failed
+  cancelled
+  timed_out
+}
+
+model SandboxMachineImageBuild {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxMachineImageBuildStatus @default(preparing)
+
+  diskSizeBytes BigInt
+
+  /// [SandboxImageBuildOptions]
+  options Json?
+
+  failureCode    String?
+  failureMessage String?
+
+  lastCheckedAt     DateTime  @default(now())
+  contextUploadedAt DateTime?
+  builtAt           DateTime?
+  endedAt           DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  sourceFileOid BigInt?
+  sourceFile    File?   @relation(fields: [sourceFileOid], references: [oid], onDelete: SetNull)
+
+  imageOid BigInt
+  image    SandboxMachineImage @relation(fields: [imageOid], references: [oid], onDelete: Cascade)
+
+  versionOid BigInt
+  version    SandboxMachineImageVersion @relation(fields: [versionOid], references: [oid], onDelete: Cascade)
+
+  regions SandboxMachineImageBuildRegion[]
+
+  @@index([instanceOid, status])
+  @@index([status, oid])
+  @@index([status, lastCheckedAt])
+  @@index([imageOid, createdAt])
+}
+
+model SandboxMachineImageBuildRegion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  kind   SandboxMachineImageBuildRegionKind
+  status SandboxMachineImageBuildRegionStatus @default(pending)
+
+  attempt       Int       @default(0)
+  nextAttemptAt DateTime?
+
+  genesisImageId String?
+  genesisBuildId String?
+  logStreamId    String?
+
+  failureCode    String?
+  failureMessage String?
+
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  buildOid BigInt
+  build    SandboxMachineImageBuild @relation(fields: [buildOid], references: [oid], onDelete: Cascade)
+
+  regionOid BigInt
+  region    SandboxRegion @relation(fields: [regionOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    SandboxTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  @@unique([buildOid, regionOid])
+  @@index([status, oid])
+}

@@ -17,6 +17,7 @@ import {
   describeInvalidUploadSize,
   doesUploadedObjectMatch,
   getPendingUploadExpiresAt,
+  getPurposeUploadSizeError,
   getUploadUrlExpiresAt,
   isValidUploadSize,
   maxUploadSize,
@@ -184,6 +185,14 @@ class FileUploadServiceImpl {
           message: 'Document purpose cannot be used for normal file creation'
         })
       );
+    }
+
+    let purposeSizeError = getPurposeUploadSizeError({
+      purposeSlug: purpose.slug,
+      size: d.input.size
+    });
+    if (purposeSizeError) {
+      throw new ServiceError(badRequestError({ message: purposeSizeError }));
     }
 
     if (d.input.store) {

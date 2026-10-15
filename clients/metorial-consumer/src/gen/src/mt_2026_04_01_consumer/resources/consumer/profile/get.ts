@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumerProfileGetOutput = {
   object: 'consumer.profile';
@@ -30,46 +30,43 @@ export type ConsumerProfileGetOutput = {
     | null;
 };
 
-export let mapConsumerProfileGetOutput = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      email: mtMap.objectField('email', mtMap.passthrough()),
-      imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-      consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-      userId: mtMap.objectField('user_id', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-      groups: mtMap.objectField(
-        'groups',
-        mtMap.array(
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            group: mtMap.objectField(
-              'group',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            assignedVia: mtMap.objectField('assigned_via', mtMap.passthrough())
-          })
-        )
-      )
-    })
-  )
-]);
-
+export let mapConsumerProfileGetOutput =
+  /* @__PURE__ */ createMapper<ConsumerProfileGetOutput>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              'image_url',
+              'consumer_id',
+              'user_id',
+              'created_at',
+              'updated_at',
+              [
+                'groups',
+                0,
+                [
+                  2,
+                  [
+                    1,
+                    [
+                      [
+                        'group',
+                        0,
+                        [1, ['is_default', 'created_at', 'updated_at']]
+                      ],
+                      'assigned_via'
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );

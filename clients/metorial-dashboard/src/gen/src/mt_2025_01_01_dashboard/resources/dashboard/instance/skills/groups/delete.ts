@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsGroupsDeleteOutput = {
   object: 'skill.group';
@@ -30,49 +30,29 @@ export type DashboardInstanceSkillsGroupsDeleteOutput = {
 };
 
 export let mapDashboardInstanceSkillsGroupsDeleteOutput =
-  mtMap.object<DashboardInstanceSkillsGroupsDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    allowConsumerSkillAssignment: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceSkillsGroupsDeleteOutput>(
+    [
       'allow_consumer_skill_assignment',
-      mtMap.passthrough()
-    ),
-    skills: mtMap.objectField(
-      'skills',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-          clientName: mtMap.objectField('client_name', mtMap.passthrough()),
-          clientDescription: mtMap.objectField(
-            'client_description',
-            mtMap.passthrough()
-          ),
-          clientMetadata: mtMap.objectField(
-            'client_metadata',
-            mtMap.passthrough()
-          ),
-          license: mtMap.objectField('license', mtMap.passthrough()),
-          compatibility: mtMap.objectField(
-            'compatibility',
-            mtMap.passthrough()
-          ),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      [
+        'skills',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'image_url',
+              'client_name',
+              'client_description',
+              'client_metadata',
+              'created_at',
+              'updated_at'
+            ]
+          ]
+        ]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

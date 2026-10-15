@@ -1,28 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { mockDb, mockEnclaveService, mockRecordIngressNetworkLog, mockGetMetorialSolution } =
-  vi.hoisted(() => ({
-    mockDb: {
-      session: {
-        findMany: vi.fn()
-      },
-      ephemeralManagedSession: {
-        findMany: vi.fn()
-      }
+let {
+  mockDb,
+  mockIntegrationEnclaveService,
+  mockRecordIngressNetworkLog,
+  mockGetMetorialSolution
+} = vi.hoisted(() => ({
+  mockDb: {
+    session: {
+      findMany: vi.fn()
     },
-    mockEnclaveService: {
-      getCompiledNetworkRulesInternal: vi.fn()
-    },
-    mockRecordIngressNetworkLog: vi.fn(),
-    mockGetMetorialSolution: vi.fn()
-  }));
+    ephemeralManagedSession: {
+      findMany: vi.fn()
+    }
+  },
+  mockIntegrationEnclaveService: {
+    getCompiledNetworkRulesInternal: vi.fn()
+  },
+  mockRecordIngressNetworkLog: vi.fn(),
+  mockGetMetorialSolution: vi.fn()
+}));
 
 vi.mock('@metorial-subspace/db', async () => ({
   db: mockDb
 }));
 
-vi.mock('./enclave', () => ({
-  enclaveService: mockEnclaveService
+vi.mock('./integrationEnclave', () => ({
+  integrationEnclaveService: mockIntegrationEnclaveService
 }));
 
 vi.mock('../lib/ingressNetworkLogBuffer', () => ({
@@ -58,7 +62,7 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccessInternal', () => 
         providers: [{ deployment: { enclave } }]
       }
     ]);
-    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
+    mockIntegrationEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
       ingress: { direction: 'ingress', entries: [{ cidr: '203.0.113.0/24' }] },
       egress: { direction: 'egress', entries: [] }
     });
@@ -88,7 +92,7 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccessInternal', () => 
         providers: [{ deployment: { enclave } }]
       }
     ]);
-    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
+    mockIntegrationEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
       ingress: { direction: 'ingress', entries: [{ cidr: '198.51.100.0/24' }] },
       egress: { direction: 'egress', entries: [] }
     });
@@ -131,7 +135,7 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccessInternal', () => 
         providers: [{ deployment: { enclave } }]
       }
     ]);
-    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
+    mockIntegrationEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
       ingress: { direction: 'ingress', entries: [{ cidr: '203.0.113.0/24' }] },
       egress: { direction: 'egress', entries: [] }
     });

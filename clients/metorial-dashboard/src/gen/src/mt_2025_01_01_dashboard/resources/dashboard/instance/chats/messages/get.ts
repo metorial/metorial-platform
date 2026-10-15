@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceChatsMessagesGetOutput = {
   object: 'chat.message';
@@ -89,140 +89,63 @@ export type DashboardInstanceChatsMessagesGetOutput = {
 };
 
 export let mapDashboardInstanceChatsMessagesGetOutput =
-  mtMap.object<DashboardInstanceChatsMessagesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-    channelId: mtMap.objectField('channel_id', mtMap.passthrough()),
-    threadId: mtMap.objectField('thread_id', mtMap.passthrough()),
-    providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-    providerMessageId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceChatsMessagesGetOutput>(
+    [
+      'chat_id',
+      'channel_id',
+      'thread_id',
+      'provider_type',
       'provider_message_id',
-      mtMap.passthrough()
-    ),
-    providerReplyToMessageId: mtMap.objectField(
       'provider_reply_to_message_id',
-      mtMap.passthrough()
-    ),
-    author: mtMap.objectField(
-      'author',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        role: mtMap.objectField('role', mtMap.passthrough()),
-        providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-        providerAuthorId: mtMap.objectField(
-          'provider_author_id',
-          mtMap.passthrough()
-        ),
-        userName: mtMap.objectField('user_name', mtMap.passthrough()),
-        fullName: mtMap.objectField('full_name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        isSelf: mtMap.objectField('is_self', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        lastInteractionAt: mtMap.objectField(
-          'last_interaction_at',
-          mtMap.date()
-        )
-      })
-    ),
-    body: mtMap.objectField('body', mtMap.passthrough()),
-    reactions: mtMap.objectField(
-      'reactions',
-      mtMap.array(
-        mtMap.object({
-          emoji: mtMap.objectField(
-            'emoji',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  value: mtMap.objectField('value', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  url: mtMap.objectField('url', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough())
-                })
-              )
-            ])
-          ),
-          count: mtMap.objectField('count', mtMap.passthrough()),
-          authors: mtMap.objectField(
-            'authors',
-            mtMap.array(
-              mtMap.object({
-                userId: mtMap.objectField('userId', mtMap.passthrough()),
-                userName: mtMap.objectField('userName', mtMap.passthrough()),
-                fullName: mtMap.objectField('fullName', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                role: mtMap.objectField('role', mtMap.passthrough()),
-                providerType: mtMap.objectField(
-                  'providerType',
-                  mtMap.passthrough()
-                ),
-                isMe: mtMap.objectField('isMe', mtMap.passthrough()),
-                email: mtMap.objectField('email', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('imageUrl', mtMap.passthrough()),
-                raw: mtMap.objectField('raw', mtMap.passthrough())
-              })
-            )
-          )
-        })
-      )
-    ),
-    unfurls: mtMap.objectField(
-      'unfurls',
-      mtMap.array(
-        mtMap.object({
-          url: mtMap.objectField('url', mtMap.passthrough()),
-          title: mtMap.objectField('title', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('imageUrl', mtMap.passthrough()),
-          siteName: mtMap.objectField('siteName', mtMap.passthrough()),
-          messageId: mtMap.objectField('messageId', mtMap.passthrough())
-        })
-      )
-    ),
-    attachments: mtMap.objectField(
-      'attachments',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          providerAttachmentId: mtMap.objectField(
-            'provider_attachment_id',
-            mtMap.passthrough()
-          ),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          mimeType: mtMap.objectField('mime_type', mtMap.passthrough()),
-          size: mtMap.objectField('size', mtMap.passthrough()),
-          width: mtMap.objectField('width', mtMap.passthrough()),
-          height: mtMap.objectField('height', mtMap.passthrough()),
-          position: mtMap.objectField('position', mtMap.passthrough()),
-          fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-          downloadUrl: mtMap.objectField('download_url', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    sentAt: mtMap.objectField('sent_at', mtMap.date()),
-    edited: mtMap.objectField('edited', mtMap.passthrough()),
-    editedAt: mtMap.objectField('edited_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    lastInteractionAt: mtMap.objectField('last_interaction_at', mtMap.date()),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-  });
+      [
+        'author',
+        0,
+        [
+          1,
+          [
+            'chat_id',
+            'provider_type',
+            'provider_author_id',
+            'user_name',
+            'full_name',
+            'image_url',
+            'is_self',
+            'created_at',
+            'updated_at',
+            'last_interaction_at'
+          ]
+        ]
+      ],
+      [
+        'attachments',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'provider_attachment_id',
+              'mime_type',
+              'file_id',
+              'download_url',
+              'created_at'
+            ]
+          ]
+        ]
+      ],
+      'sent_at',
+      'edited_at',
+      'created_at',
+      'updated_at',
+      'last_interaction_at',
+      'deleted_at'
+    ],
+    1
+  );
 
 export type DashboardInstanceChatsMessagesGetQuery = { channelId: string };
 
 export let mapDashboardInstanceChatsMessagesGetQuery =
-  mtMap.object<DashboardInstanceChatsMessagesGetQuery>({
-    channelId: mtMap.objectField('channel_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceChatsMessagesGetQuery>([
+    'channel_id'
+  ]);

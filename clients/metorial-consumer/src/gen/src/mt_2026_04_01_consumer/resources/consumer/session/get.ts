@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumerSessionGetOutput = {
   object: 'consumer.session';
@@ -8,13 +8,8 @@ export type ConsumerSessionGetOutput = {
   lastUsedAt: Date;
 };
 
-export let mapConsumerSessionGetOutput = mtMap.object<ConsumerSessionGetOutput>(
-  {
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    lastUsedAt: mtMap.objectField('last_used_at', mtMap.date())
-  }
-);
-
+export let mapConsumerSessionGetOutput =
+  /* @__PURE__ */ mapObject<ConsumerSessionGetOutput>(
+    ['created_at', 'expires_at', 'last_used_at'],
+    1
+  );

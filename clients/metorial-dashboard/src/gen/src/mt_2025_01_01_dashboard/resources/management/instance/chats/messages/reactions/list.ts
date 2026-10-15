@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceChatsMessagesReactionsListOutput = {
   object: 'chat.reaction_list';
@@ -30,59 +33,15 @@ export type ManagementInstanceChatsMessagesReactionsListOutput = {
 };
 
 export let mapManagementInstanceChatsMessagesReactionsListOutput =
-  mtMap.object<ManagementInstanceChatsMessagesReactionsListOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    reactions: mtMap.objectField(
-      'reactions',
-      mtMap.array(
-        mtMap.object({
-          emoji: mtMap.objectField(
-            'emoji',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  value: mtMap.objectField('value', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  url: mtMap.objectField('url', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough())
-                })
-              )
-            ])
-          ),
-          count: mtMap.objectField('count', mtMap.passthrough()),
-          authors: mtMap.objectField(
-            'authors',
-            mtMap.array(
-              mtMap.object({
-                userId: mtMap.objectField('userId', mtMap.passthrough()),
-                userName: mtMap.objectField('userName', mtMap.passthrough()),
-                fullName: mtMap.objectField('fullName', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                role: mtMap.objectField('role', mtMap.passthrough()),
-                providerType: mtMap.objectField(
-                  'providerType',
-                  mtMap.passthrough()
-                ),
-                isMe: mtMap.objectField('isMe', mtMap.passthrough()),
-                email: mtMap.objectField('email', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('imageUrl', mtMap.passthrough()),
-                raw: mtMap.objectField('raw', mtMap.passthrough())
-              })
-            )
-          )
-        })
-      )
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceChatsMessagesReactionsListOutput>(
+    0
+  );
 
 export type ManagementInstanceChatsMessagesReactionsListQuery = {
   channelId: string;
 };
 
 export let mapManagementInstanceChatsMessagesReactionsListQuery =
-  mtMap.object<ManagementInstanceChatsMessagesReactionsListQuery>({
-    channelId: mtMap.objectField('channel_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceChatsMessagesReactionsListQuery>([
+    'channel_id'
+  ]);

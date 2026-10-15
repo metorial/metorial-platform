@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceIncomingWebhooksListOutput = {
   items: {
@@ -14,35 +14,21 @@ export type ManagementInstanceIncomingWebhooksListOutput = {
 };
 
 export let mapManagementInstanceIncomingWebhooksListOutput =
-  mtMap.object<ManagementInstanceIncomingWebhooksListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          attemptCount: mtMap.objectField('attempt_count', mtMap.passthrough()),
-          webhookRegistrationId: mtMap.objectField(
-            'webhook_registration_id',
-            mtMap.passthrough()
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          receivedAt: mtMap.objectField('received_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceIncomingWebhooksListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'attempt_count',
+          'webhook_registration_id',
+          'provider_id',
+          'received_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstanceIncomingWebhooksListQuery = {
   limit?: number | undefined;
@@ -62,40 +48,8 @@ export type ManagementInstanceIncomingWebhooksListQuery = {
     | undefined;
 };
 
-export let mapManagementInstanceIncomingWebhooksListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      webhookRegistrationId: mtMap.objectField(
-        'webhook_registration_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
-    })
-  )
-]);
-
+export let mapManagementInstanceIncomingWebhooksListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceIncomingWebhooksListQuery>([
+    3,
+    [[0, [1, ['webhook_registration_id', 'provider_id']]]]
+  ]);

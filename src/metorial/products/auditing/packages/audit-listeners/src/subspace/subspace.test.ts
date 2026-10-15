@@ -246,14 +246,14 @@ describe('subspace audit listeners', () => {
   });
 
   it('records a firewall policy attach as a diff of its policy list', async () => {
-    let network = { id: 'net_1', name: 'Default' };
+    let internetGateway = { id: 'net_1', name: 'Default' };
     let before = {
       id: 'fwl_1',
       status: 'active',
       slug: 'prod',
       name: 'Production',
       description: null,
-      network,
+      internetGateway,
       networkPolicyLinks: [],
       archivedAt: null
     };

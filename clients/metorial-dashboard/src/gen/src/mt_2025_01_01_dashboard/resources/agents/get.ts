@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type AgentsGetOutput = {
   object: 'agent';
@@ -15,18 +15,7 @@ export type AgentsGetOutput = {
   archivedAt: Date | null;
 };
 
-export let mapAgentsGetOutput = mtMap.object<AgentsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  type: mtMap.objectField('type', mtMap.passthrough()),
-  status: mtMap.objectField('status', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  slug: mtMap.objectField('slug', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-  actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-  archivedAt: mtMap.objectField('archived_at', mtMap.date())
-});
-
+export let mapAgentsGetOutput = /* @__PURE__ */ mapObject<AgentsGetOutput>(
+  ['actor_id', 'created_at', 'updated_at', 'archived_at'],
+  1
+);

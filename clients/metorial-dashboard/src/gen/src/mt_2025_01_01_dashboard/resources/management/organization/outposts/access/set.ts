@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationOutpostsAccessSetOutput = {
   items: {
@@ -15,39 +18,22 @@ export type ManagementOrganizationOutpostsAccessSetOutput = {
 };
 
 export let mapManagementOrganizationOutpostsAccessSetOutput =
-  mtMap.object<ManagementOrganizationOutpostsAccessSetOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          outpostId: mtMap.objectField('outpost_id', mtMap.passthrough()),
-          projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-          instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          services: mtMap.objectField(
-            'services',
-            mtMap.array(mtMap.passthrough())
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementOrganizationOutpostsAccessSetOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'outpost_id',
+          'project_id',
+          'instance_id',
+          'organization_id',
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementOrganizationOutpostsAccessSetBody = {
   grants: {
@@ -57,18 +43,6 @@ export type ManagementOrganizationOutpostsAccessSetBody = {
 };
 
 export let mapManagementOrganizationOutpostsAccessSetBody =
-  mtMap.object<ManagementOrganizationOutpostsAccessSetBody>({
-    grants: mtMap.objectField(
-      'grants',
-      mtMap.array(
-        mtMap.object({
-          instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-          services: mtMap.objectField(
-            'services',
-            mtMap.array(mtMap.passthrough())
-          )
-        })
-      )
-    )
-  });
-
+  /* @__PURE__ */ mapObject<ManagementOrganizationOutpostsAccessSetBody>([
+    ['grants', 0, [2, [1, ['instance_id']]]]
+  ]);

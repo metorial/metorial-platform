@@ -1,0 +1,116 @@
+enum SandboxMachineImageStatus {
+  pending
+  active
+  deleted
+}
+
+model SandboxMachineImage {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxMachineImageStatus @default(pending)
+
+  identifier String? @unique
+  name       String?
+
+  /// [Record]
+  metadata Json @default("{}")
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  deletedAt    DateTime?
+
+  regions  SandboxMachineImageRegion[]
+  versions SandboxMachineImageVersion[]
+  builds   SandboxMachineImageBuild[]
+  machines SandboxMachine[]
+
+  @@index([instanceOid, status])
+}
+
+model SandboxMachineImageRegion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxResourceStatus @default(active)
+
+  genesisId String
+
+  imageOid BigInt
+  image    SandboxMachineImage @relation(fields: [imageOid], references: [oid], onDelete: Cascade)
+
+  regionOid BigInt
+  region    SandboxRegion @relation(fields: [regionOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt?
+  tenant    SandboxTenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  versionRegions SandboxMachineImageVersionRegion[]
+
+  @@unique([imageOid, regionOid])
+  @@unique([regionOid, genesisId])
+}
+
+model SandboxMachineImageVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxMachineImageStatus @default(pending)
+
+  releaseKey    String?
+  versionNumber Int?
+
+  imageOid BigInt
+  image    SandboxMachineImage @relation(fields: [imageOid], references: [oid], onDelete: Cascade)
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  regions SandboxMachineImageVersionRegion[]
+  builds  SandboxMachineImageBuild[]
+
+  @@unique([imageOid, releaseKey])
+  @@unique([imageOid, versionNumber])
+  @@index([imageOid, status])
+}
+
+model SandboxMachineImageVersionRegion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxResourceStatus @default(active)
+
+  genesisId String
+  digest    String?
+
+  versionOid BigInt
+  version    SandboxMachineImageVersion @relation(fields: [versionOid], references: [oid], onDelete: Cascade)
+
+  imageRegionOid BigInt
+  imageRegion    SandboxMachineImageRegion @relation(fields: [imageRegionOid], references: [oid], onDelete: Cascade)
+
+  regionOid BigInt
+  region    SandboxRegion @relation(fields: [regionOid], references: [oid], onDelete: Cascade)
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  @@unique([versionOid, regionOid])
+  @@unique([regionOid, genesisId])
+}

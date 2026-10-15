@@ -8,11 +8,13 @@ import { ssoV2Controller } from './ssoV2';
 import { syncListenerController } from './syncListener';
 import { tenantController } from './tenant';
 import { userController } from './user';
+import { userPasswordController } from './userPassword';
 
 let rootController = internalApp.controller({
   app: appController,
   tenant: tenantController,
   user: userController,
+  userPassword: userPasswordController,
   syncListener: syncListenerController,
   sso: ssoController,
   ssoV2: ssoV2Controller,

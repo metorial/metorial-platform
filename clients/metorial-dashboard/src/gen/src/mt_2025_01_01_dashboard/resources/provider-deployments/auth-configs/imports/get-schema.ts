@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderDeploymentsAuthConfigsImportsGetSchemaOutput = {
   object: 'provider.capabilities.auth_config.schema';
@@ -11,21 +11,10 @@ export type ProviderDeploymentsAuthConfigsImportsGetSchemaOutput = {
 };
 
 export let mapProviderDeploymentsAuthConfigsImportsGetSchemaOutput =
-  mtMap.object<ProviderDeploymentsAuthConfigsImportsGetSchemaOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    schema: mtMap.objectField(
-      'schema',
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        schema: mtMap.objectField('schema', mtMap.passthrough())
-      })
-    ),
-    visibility: mtMap.objectField('visibility', mtMap.passthrough()),
-    specificationId: mtMap.objectField('specification_id', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ProviderDeploymentsAuthConfigsImportsGetSchemaOutput>(
+    ['specification_id', 'provider_id', 'created_at', 'updated_at'],
+    1
+  );
 
 export type ProviderDeploymentsAuthConfigsImportsGetSchemaQuery = {
   providerId?: string | undefined;
@@ -35,19 +24,11 @@ export type ProviderDeploymentsAuthConfigsImportsGetSchemaQuery = {
 };
 
 export let mapProviderDeploymentsAuthConfigsImportsGetSchemaQuery =
-  mtMap.object<ProviderDeploymentsAuthConfigsImportsGetSchemaQuery>({
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ProviderDeploymentsAuthConfigsImportsGetSchemaQuery>(
+    [
+      'provider_id',
       'provider_deployment_id',
-      mtMap.passthrough()
-    ),
-    providerAuthConfigId: mtMap.objectField(
       'provider_auth_config_id',
-      mtMap.passthrough()
-    ),
-    providerAuthMethodId: mtMap.objectField(
-      'provider_auth_method_id',
-      mtMap.passthrough()
-    )
-  });
-
+      'provider_auth_method_id'
+    ]
+  );

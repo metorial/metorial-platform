@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
-  type Enclave,
+  type IntegrationEnclave,
   type Environment,
   db,
   type Session,
@@ -14,12 +14,12 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { isIpAllowedByIngressAllowList } from '../lib/ingressAllowList';
 import { recordIngressNetworkLog } from '../lib/ingressNetworkLogBuffer';
-import { enclaveService } from './enclave';
+import { integrationEnclaveService } from './integrationEnclave';
 
 type SessionWithProviders = Session & {
   providers: {
     deployment: {
-      enclave: Enclave | null;
+      enclave: IntegrationEnclave | null;
     };
   }[];
 };
@@ -48,9 +48,9 @@ type AssertSessionIngressAccessParams = {
   recordLog?: boolean;
 };
 
-let dedupeEnclaves = (enclaves: (Enclave | null)[]) => {
+let dedupeEnclaves = (enclaves: (IntegrationEnclave | null)[]) => {
   let seen = new Set<bigint>();
-  let result: Enclave[] = [];
+  let result: IntegrationEnclave[] = [];
 
   for (let enclave of enclaves) {
     if (!enclave) continue;
@@ -151,7 +151,7 @@ class enclaveIngressPolicyServiceImpl {
 
     let results: EnclaveIngressCheckResult[] = [];
     let logRecords: {
-      enclave: Enclave;
+      enclave: IntegrationEnclave;
       sessionId: string;
       result: 'allowed' | 'denied';
     }[] = [];
@@ -171,14 +171,15 @@ class enclaveIngressPolicyServiceImpl {
       let enclaves = dedupeEnclaves(
         session.providers.map(provider => provider.deployment.enclave)
       );
-      let deniedEnclaves: Enclave[] = [];
+      let deniedEnclaves: IntegrationEnclave[] = [];
 
       for (let enclave of enclaves) {
-        let compiledNetworkRules = await enclaveService.getCompiledNetworkRulesInternal({
-          tenant: d.tenant,
-          environment: d.environment,
-          enclave
-        });
+        let compiledNetworkRules =
+          await integrationEnclaveService.getCompiledNetworkRulesInternal({
+            tenant: d.tenant,
+            environment: d.environment,
+            enclave
+          });
 
         let allowed = isIpAllowedByIngressAllowList({
           sourceIp: d.sourceIp,

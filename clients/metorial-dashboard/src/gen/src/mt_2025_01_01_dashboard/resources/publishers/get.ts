@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type PublishersGetOutput = {
   object: 'provider.publisher';
@@ -10,13 +10,8 @@ export type PublishersGetOutput = {
   updatedAt: Date;
 };
 
-export let mapPublishersGetOutput = mtMap.object<PublishersGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
-
+export let mapPublishersGetOutput =
+  /* @__PURE__ */ mapObject<PublishersGetOutput>(
+    ['image_url', 'created_at', 'updated_at'],
+    1
+  );

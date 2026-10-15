@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceChatEventsGetOutput = {
   object: 'chat.event';
@@ -31,54 +31,22 @@ export type DashboardInstanceChatEventsGetOutput = {
 };
 
 export let mapDashboardInstanceChatEventsGetOutput =
-  mtMap.object<DashboardInstanceChatEventsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    source: mtMap.objectField('source', mtMap.passthrough()),
-    chatConnectionId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceChatEventsGetOutput>(
+    [
       'chat_connection_id',
-      mtMap.passthrough()
-    ),
-    chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-    channelId: mtMap.objectField('channel_id', mtMap.passthrough()),
-    threadId: mtMap.objectField('thread_id', mtMap.passthrough()),
-    messageId: mtMap.objectField('message_id', mtMap.passthrough()),
-    authorId: mtMap.objectField('author_id', mtMap.passthrough()),
-    providerEventId: mtMap.objectField(
+      'chat_id',
+      'channel_id',
+      'thread_id',
+      'message_id',
+      'author_id',
       'provider_event_id',
-      mtMap.passthrough()
-    ),
-    providerChannelId: mtMap.objectField(
       'provider_channel_id',
-      mtMap.passthrough()
-    ),
-    providerThreadId: mtMap.objectField(
       'provider_thread_id',
-      mtMap.passthrough()
-    ),
-    providerMessageId: mtMap.objectField(
       'provider_message_id',
-      mtMap.passthrough()
-    ),
-    providerAuthorId: mtMap.objectField(
       'provider_author_id',
-      mtMap.passthrough()
-    ),
-    payload: mtMap.objectField('payload', mtMap.passthrough()),
-    occurredAt: mtMap.objectField('occurred_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    error: mtMap.objectField(
-      'error',
-      mtMap.object({
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        message: mtMap.objectField('message', mtMap.passthrough()),
-        providerCode: mtMap.objectField('provider_code', mtMap.passthrough()),
-        operation: mtMap.objectField('operation', mtMap.passthrough()),
-        retryable: mtMap.objectField('retryable', mtMap.passthrough()),
-        retryAfterMs: mtMap.objectField('retry_after_ms', mtMap.passthrough()),
-        target: mtMap.objectField('target', mtMap.passthrough())
-      })
-    )
-  });
-
+      'occurred_at',
+      'created_at',
+      ['error', 0, [1, ['provider_code', 'retry_after_ms']]]
+    ],
+    1
+  );

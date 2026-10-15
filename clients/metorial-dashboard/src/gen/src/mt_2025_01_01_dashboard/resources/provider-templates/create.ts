@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderTemplatesCreateOutput = {
   object: 'provider.template';
@@ -13,17 +13,10 @@ export type ProviderTemplatesCreateOutput = {
 };
 
 export let mapProviderTemplatesCreateOutput =
-  mtMap.object<ProviderTemplatesCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ProviderTemplatesCreateOutput>(
+    ['integration_id', 'created_at', 'updated_at'],
+    1
+  );
 
 export type ProviderTemplatesCreateBody = {
   name: string;
@@ -33,10 +26,4 @@ export type ProviderTemplatesCreateBody = {
 };
 
 export let mapProviderTemplatesCreateBody =
-  mtMap.object<ProviderTemplatesCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    integrationId: mtMap.objectField('integration_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<ProviderTemplatesCreateBody>(['integration_id']);

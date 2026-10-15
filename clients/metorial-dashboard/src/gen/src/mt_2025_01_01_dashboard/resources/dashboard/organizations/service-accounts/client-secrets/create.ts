@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsServiceAccountsClientSecretsCreateOutput = {
   object: 'machine_access.oauth_application_client_secret';
@@ -10,12 +10,7 @@ export type DashboardOrganizationsServiceAccountsClientSecretsCreateOutput = {
 };
 
 export let mapDashboardOrganizationsServiceAccountsClientSecretsCreateOutput =
-  mtMap.object<DashboardOrganizationsServiceAccountsClientSecretsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    preview: mtMap.objectField('preview', mtMap.passthrough()),
-    secret: mtMap.objectField('secret', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardOrganizationsServiceAccountsClientSecretsCreateOutput>(
+    ['created_at', 'deleted_at'],
+    1
+  );

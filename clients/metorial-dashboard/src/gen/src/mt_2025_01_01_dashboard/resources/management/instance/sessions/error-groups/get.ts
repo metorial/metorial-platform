@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSessionsErrorGroupsGetOutput = {
   object: 'session.error_group';
@@ -12,14 +12,7 @@ export type ManagementInstanceSessionsErrorGroupsGetOutput = {
 };
 
 export let mapManagementInstanceSessionsErrorGroupsGetOutput =
-  mtMap.object<ManagementInstanceSessionsErrorGroupsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    code: mtMap.objectField('code', mtMap.passthrough()),
-    message: mtMap.objectField('message', mtMap.passthrough()),
-    data: mtMap.objectField('data', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    occurrenceCount: mtMap.objectField('occurrence_count', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceSessionsErrorGroupsGetOutput>(
+    ['provider_id', 'occurrence_count', 'created_at'],
+    1
+  );

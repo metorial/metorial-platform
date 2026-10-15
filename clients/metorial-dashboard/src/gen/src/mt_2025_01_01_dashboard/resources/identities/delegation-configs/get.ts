@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type IdentitiesDelegationConfigsGetOutput = {
   object: 'identity.delegation_config';
@@ -15,23 +15,13 @@ export type IdentitiesDelegationConfigsGetOutput = {
 };
 
 export let mapIdentitiesDelegationConfigsGetOutput =
-  mtMap.object<IdentitiesDelegationConfigsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    subDelegationBehavior: mtMap.objectField(
+  /* @__PURE__ */ mapObject<IdentitiesDelegationConfigsGetOutput>(
+    [
+      'is_default',
       'sub_delegation_behavior',
-      mtMap.passthrough()
-    ),
-    subDelegationDepth: mtMap.objectField(
       'sub_delegation_depth',
-      mtMap.passthrough()
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

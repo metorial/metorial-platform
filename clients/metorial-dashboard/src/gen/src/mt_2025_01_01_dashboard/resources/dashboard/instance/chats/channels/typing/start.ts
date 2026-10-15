@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceChatsChannelsTypingStartOutput = {
   object: 'chat.typing_indicator';
@@ -6,10 +9,9 @@ export type DashboardInstanceChatsChannelsTypingStartOutput = {
 };
 
 export let mapDashboardInstanceChatsChannelsTypingStartOutput =
-  mtMap.object<DashboardInstanceChatsChannelsTypingStartOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    started: mtMap.objectField('started', mtMap.passthrough())
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceChatsChannelsTypingStartOutput>(
+    0
+  );
 
 export type DashboardInstanceChatsChannelsTypingStartBody = {
   threadId?: string | undefined;
@@ -17,8 +19,6 @@ export type DashboardInstanceChatsChannelsTypingStartBody = {
 };
 
 export let mapDashboardInstanceChatsChannelsTypingStartBody =
-  mtMap.object<DashboardInstanceChatsChannelsTypingStartBody>({
-    threadId: mtMap.objectField('thread_id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceChatsChannelsTypingStartBody>([
+    'thread_id'
+  ]);

@@ -7,12 +7,10 @@ export let NetworkListLayout = () => {
   let location = useLocation();
   let isFirewallsPage = location.pathname.endsWith('/firewalls');
   let isSettingsPage = location.pathname.endsWith('/settings');
-  let title = isFirewallsPage ? 'Firewalls' : isSettingsPage ? 'Network Settings' : 'Network';
+  let title = isFirewallsPage ? 'Firewalls' : 'Integration Internet Gateway';
   let description = isFirewallsPage
     ? 'Manage network firewalls and their policies.'
-    : isSettingsPage
-      ? 'Manage the default network and its firewall bindings.'
-      : 'Monitor network activity and connections for this instance.';
+    : `All network traffic to and from your integrations flows through your integration internet gateway. You can apply firewalls to control what traffic is allowed.`;
 
   return (
     <ContentLayout>

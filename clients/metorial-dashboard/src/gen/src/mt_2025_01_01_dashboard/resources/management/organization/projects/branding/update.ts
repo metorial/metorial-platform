@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationProjectsBrandingUpdateOutput = {
   object: 'project.brand';
@@ -12,16 +12,10 @@ export type ManagementOrganizationProjectsBrandingUpdateOutput = {
 };
 
 export let mapManagementOrganizationProjectsBrandingUpdateOutput =
-  mtMap.object<ManagementOrganizationProjectsBrandingUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementOrganizationProjectsBrandingUpdateOutput>(
+    ['image_url', 'project_id', 'created_at', 'updated_at'],
+    1
+  );
 
 export type ManagementOrganizationProjectsBrandingUpdateBody = {
   name?: string | undefined;
@@ -29,8 +23,6 @@ export type ManagementOrganizationProjectsBrandingUpdateBody = {
 };
 
 export let mapManagementOrganizationProjectsBrandingUpdateBody =
-  mtMap.object<ManagementOrganizationProjectsBrandingUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementOrganizationProjectsBrandingUpdateBody>([
+    'image_file_id'
+  ]);

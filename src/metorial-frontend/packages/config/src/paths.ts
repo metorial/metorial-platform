@@ -236,7 +236,15 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'network', 'settings', ...subPages),
+    ) =>
+      InstancePaths(
+        organization,
+        project,
+        instance,
+        'network',
+        'internet-gateway',
+        ...subPages
+      ),
     providers: (
       organization: EntityParam,
       project: EntityParam,
@@ -872,6 +880,102 @@ let InstancePaths = Object.assign(
         project,
         instance,
         'custom-provider',
+        id,
+        ...subPages
+      );
+    },
+
+    sandboxMachines: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'sandbox', 'machines', ...subPages),
+    sandboxMachine: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'sandbox',
+        'machines',
+        id,
+        ...subPages
+      );
+    },
+
+    sandboxImages: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'sandbox', 'images', ...subPages),
+    sandboxImage: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'sandbox',
+        'images',
+        id,
+        ...subPages
+      );
+    },
+    sandboxImageVersion: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      imageId?: string,
+      versionId?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!imageId || !versionId) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'sandbox',
+        'images',
+        imageId,
+        'versions',
+        versionId,
+        ...subPages
+      );
+    },
+
+    sandboxDisks: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'sandbox', 'disks', ...subPages),
+    sandboxDisk: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'sandbox',
+        'disks',
         id,
         ...subPages
       );

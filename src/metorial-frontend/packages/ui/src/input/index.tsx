@@ -1,7 +1,7 @@
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import React, { useId } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
-import { styled } from 'styled-components';
+import { css, styled } from 'styled-components';
 import { ButtonSize, getButtonSize } from '../button/constants';
 import { Error } from '../error';
 import { theme } from '../theme';
@@ -57,7 +57,7 @@ let LabelHelp = styled('div')`
   text-overflow: ellipsis;
 `;
 
-let InputWrapper = styled('div')`
+export let inputSurfaceStyles = css`
   outline: 1px solid transparent;
   background: ${theme.colors.gray300};
   color: ${theme.colors.foreground};
@@ -73,17 +73,24 @@ let InputWrapper = styled('div')`
   }
 `;
 
-let InputField = styled('input')`
+export let inputFieldStyles = css`
   flex-grow: 1;
   border: none;
   background: transparent;
   height: 100%;
-  /* width: 100%; */
   outline: none;
 
   &::placeholder {
     color: ${theme.colors.gray700};
   }
+`;
+
+let InputWrapper = styled('div')`
+  ${inputSurfaceStyles}
+`;
+
+let InputField = styled('input')`
+  ${inputFieldStyles}
 
   &[type='number'] {
     -moz-appearance: textfield;
@@ -130,6 +137,35 @@ let ColorSwatchInput = styled('input')`
   }
 `;
 
+export let InputHeader = ({
+  id,
+  label,
+  hideLabel,
+  help,
+  description
+}: {
+  id: string;
+  label: React.ReactNode;
+  hideLabel?: boolean;
+  help?: React.ReactNode;
+  description?: React.ReactNode;
+}) => (
+  <>
+    {hideLabel ? (
+      <VisuallyHidden>
+        <InputLabel htmlFor={id}>{label}</InputLabel>
+      </VisuallyHidden>
+    ) : (
+      <LabelRow>
+        <InputLabel htmlFor={id}>{label}</InputLabel>
+        {help && <LabelHelp>{help}</LabelHelp>}
+      </LabelRow>
+    )}
+
+    {description && <InputDescription>{description}</InputDescription>}
+  </>
+);
+
 export let Input = ({
   style,
   size = '3',
@@ -162,18 +198,14 @@ export let Input = ({
 
   return (
     <Wrapper style={style}>
-      {hideLabel ? (
-        <VisuallyHidden>
-          <InputLabel htmlFor={id}>{label}</InputLabel>
-        </VisuallyHidden>
-      ) : (
-        <LabelRow>
-          <InputLabel htmlFor={id}>{label}</InputLabel>
-          {help && <LabelHelp>{help}</LabelHelp>}
-        </LabelRow>
-      )}
+      <InputHeader
+        id={id}
+        label={label}
+        hideLabel={hideLabel}
+        help={help}
+        description={description}
+      />
 
-      {description && <InputDescription>{description}</InputDescription>}
       <InputWrapper
         style={{
           height: as == 'textarea' ? undefined : sizeStyles.height,

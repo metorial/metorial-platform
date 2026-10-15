@@ -247,17 +247,21 @@ class InstanceService {
   }
 
   async generateInstanceSlug(d: {
+    organization: Organization;
     project: Project;
     input: {
       name: string;
       type: InstanceType;
+      isInitial?: boolean;
     };
   }) {
     return await getInstanceSlug({
       input:
         d.input.type === 'development'
           ? `${d.project.name}-${d.input.name}-${generateCode(5)}`
-          : `${d.project.name}`
+          : d.input.isInitial
+            ? d.organization.slug
+            : `${d.project.name}`
     });
   }
 
@@ -309,6 +313,7 @@ class InstanceService {
     input: {
       name: string;
       type: InstanceType;
+      isInitial?: boolean;
     };
   }) {
     return await withTransaction(async db => {

@@ -1,0 +1,27 @@
+model SandboxTenant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  slug String
+
+  regionOid BigInt
+  region    SandboxRegion @relation(fields: [regionOid], references: [oid])
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  machines          SandboxMachine[]
+  imageRegions      SandboxMachineImageRegion[]
+  imageBuildRegions SandboxMachineImageBuildRegion[]
+  disks             SandboxDisk[]
+  egressRegions     SandboxEgressPolicyRegion[]
+
+  @@unique([projectOid, regionOid])
+  @@unique([regionOid, slug])
+}

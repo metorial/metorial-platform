@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsSandboxesUpdateOutput = {
   object: 'organization.sandbox';
@@ -56,96 +59,50 @@ export type DashboardOrganizationsSandboxesUpdateOutput = {
 };
 
 export let mapDashboardOrganizationsSandboxesUpdateOutput =
-  mtMap.object<DashboardOrganizationsSandboxesUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    instance: mtMap.objectField(
-      'instance',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        organizationId: mtMap.objectField(
-          'organization_id',
-          mtMap.passthrough()
-        ),
-        sandboxId: mtMap.objectField('sandbox_id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        project: mtMap.objectField(
-          'project',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            organizationId: mtMap.objectField(
-              'organization_id',
-              mtMap.passthrough()
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        )
-      })
-    ),
-    creatorActor: mtMap.objectField(
-      'creator_actor',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        organizationId: mtMap.objectField(
-          'organization_id',
-          mtMap.passthrough()
-        ),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        member: mtMap.objectField(
-          'member',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            role: mtMap.objectField('role', mtMap.passthrough())
-          })
-        ),
-        teams: mtMap.objectField(
-          'teams',
-          mtMap.array(
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              assignmentId: mtMap.objectField(
-                'assignment_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          )
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardOrganizationsSandboxesUpdateOutput>(
+    [
+      'organization_id',
+      [
+        'instance',
+        0,
+        [
+          1,
+          [
+            'organization_id',
+            'sandbox_id',
+            'created_at',
+            'updated_at',
+            ['project', 0, [1, ['organization_id', 'created_at', 'updated_at']]]
+          ]
+        ]
+      ],
+      [
+        'creator_actor',
+        1,
+        [
+          1,
+          [
+            'organization_id',
+            'image_url',
+            [
+              'teams',
+              0,
+              [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+            ],
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardOrganizationsSandboxesUpdateBody = {
   name?: string | undefined;
 };
 
 export let mapDashboardOrganizationsSandboxesUpdateBody =
-  mtMap.object<DashboardOrganizationsSandboxesUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardOrganizationsSandboxesUpdateBody>(0);

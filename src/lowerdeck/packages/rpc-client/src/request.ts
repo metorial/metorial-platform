@@ -375,7 +375,7 @@ let requesterInternal = async (
           signal: deadline.signal
         }).then(
           res => {
-            if (!isServer) {
+            if (!isServer && call.logResponses !== false) {
               log(`[call:${call.name.replace(':', '-')}:${id}] Success`, res);
             }
 

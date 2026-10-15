@@ -95,7 +95,7 @@ import {
   v1DocumentPermissionsPresenter,
   v1DocumentPresenter,
   v1DocumentVersionPresenter,
-  v1EnclavePresenter,
+  v1IntegrationEnclavePresenter,
   v1EventDeliveryAttemptPresenter,
   v1EventDeliveryPresenter,
   v1EventDestinationListenerPresenter,
@@ -104,7 +104,7 @@ import {
   v1SystemEventPresenter,
   v1FileLinkPresenter,
   v1FilePresenter,
-  v1FirewallBindingPresenter,
+  v1IntegrationFirewallAssignmentPresenter,
   v1FirewallPresenter,
   v1FlagsPresenter,
   v1IdentityActorPresenter,
@@ -138,10 +138,10 @@ import {
   v1MonitorPresenter,
   v1NamespacePresenter,
   v1NamespacePropertyPresenter,
-  v1NetworkLogsPresenter,
+  v1IntegrationInternetGatewayNetworkLogsPresenter,
   v1NetworkPolicyPresenter,
   v1NetworkPolicyRulePresenter,
-  v1NetworkPresenter,
+  v1IntegrationInternetGatewayPresenter,
   v1OAuthApplicationClientSecretPresenter,
   v1OAuthApplicationPresenter,
   v1OAuthAuthorizationLogPresenter,
@@ -212,6 +212,24 @@ import {
   v1PublisherPresenter,
   v1ResourceCountsPresenter,
   v1SandboxPresenter,
+  v1SandboxRegionPresenter,
+  v1SandboxSpecPresenter,
+  v1SandboxMachinePresenter,
+  v1SandboxMachineInstancePresenter,
+  v1SandboxMachineOperationPresenter,
+  v1SandboxMachineEventPresenter,
+  v1SandboxMachineErrorPresenter,
+  v1SandboxMachineUsagePresenter,
+  v1SandboxMachineUsageTimelinePresenter,
+  v1SandboxMachineUsageSummaryPresenter,
+  v1SandboxMachineAccessPresenter,
+  v1SandboxDiskPresenter,
+  v1SandboxDiskMountPresenter,
+  v1SandboxDiskResizePresenter,
+  v1SandboxImagePresenter,
+  v1SandboxImageVersionPresenter,
+  v1SandboxImageBuildPresenter,
+  v1SandboxLogLinesPresenter,
   v1ScmAccountPreviewPresenter,
   v1ScmConnectionPresenter,
   v1ScmConnectionSetupPresenter,
@@ -328,14 +346,14 @@ import {
   documentPermissionsType,
   documentType,
   documentVersionType,
-  enclaveType,
+  integrationEnclaveType,
   eventDeliveryAttemptType,
   eventDeliveryType,
   eventDestinationListenerType,
   eventDestinationType,
   fileLinkType,
   fileType,
-  firewallBindingType,
+  integrationFirewallAssignmentType,
   firewallType,
   flagsType,
   identityActorType,
@@ -368,10 +386,10 @@ import {
   monitorType,
   namespacePropertyType,
   namespaceType,
-  networkLogsType,
+  integrationInternetGatewayNetworkLogsType,
   networkPolicyRuleType,
   networkPolicyType,
-  networkType,
+  integrationInternetGatewayType,
   oauthApplicationClientSecretType,
   oauthApplicationType,
   oauthAuthorizationLogType,
@@ -439,6 +457,24 @@ import {
   publisherType,
   resourceCountsType,
   sandboxType,
+  sandboxRegionType,
+  sandboxSpecType,
+  sandboxMachineType,
+  sandboxMachineInstanceType,
+  sandboxMachineOperationType,
+  sandboxMachineEventType,
+  sandboxMachineErrorType,
+  sandboxMachineUsageType,
+  sandboxMachineUsageTimelineType,
+  sandboxMachineUsageSummaryType,
+  sandboxMachineAccessType,
+  sandboxDiskType,
+  sandboxDiskMountType,
+  sandboxDiskResizeType,
+  sandboxImageType,
+  sandboxImageVersionType,
+  sandboxImageBuildType,
+  sandboxLogLinesType,
   scmAccountPreviewType,
   scmConnectionSetupType,
   scmConnectionType,
@@ -1596,24 +1632,30 @@ export let skillPresenter = declarePresenter(skillType, {
   mt_2026_01_01_magnetar: v1SkillPresenter
 });
 
-export let networkPresenter = declarePresenter(networkType, {
-  mt_2025_01_01_dashboard: v1NetworkPresenter,
-  mt_2026_01_01_magnetar: v1NetworkPresenter
-});
+export let integrationInternetGatewayPresenter = declarePresenter(
+  integrationInternetGatewayType,
+  {
+    mt_2025_01_01_dashboard: v1IntegrationInternetGatewayPresenter,
+    mt_2026_01_01_magnetar: v1IntegrationInternetGatewayPresenter
+  }
+);
 
-export let networkLogsPresenter = declarePresenter(networkLogsType, {
-  mt_2025_01_01_dashboard: v1NetworkLogsPresenter,
-  mt_2026_01_01_magnetar: v1NetworkLogsPresenter
-});
+export let integrationInternetGatewayNetworkLogsPresenter = declarePresenter(
+  integrationInternetGatewayNetworkLogsType,
+  {
+    mt_2025_01_01_dashboard: v1IntegrationInternetGatewayNetworkLogsPresenter,
+    mt_2026_01_01_magnetar: v1IntegrationInternetGatewayNetworkLogsPresenter
+  }
+);
 
 export let resourceCountsPresenter = declarePresenter(resourceCountsType, {
   mt_2025_01_01_dashboard: v1ResourceCountsPresenter,
   mt_2026_01_01_magnetar: v1ResourceCountsPresenter
 });
 
-export let enclavePresenter = declarePresenter(enclaveType, {
-  mt_2025_01_01_dashboard: v1EnclavePresenter,
-  mt_2026_01_01_magnetar: v1EnclavePresenter
+export let integrationEnclavePresenter = declarePresenter(integrationEnclaveType, {
+  mt_2025_01_01_dashboard: v1IntegrationEnclavePresenter,
+  mt_2026_01_01_magnetar: v1IntegrationEnclavePresenter
 });
 
 export let firewallPresenter = declarePresenter(firewallType, {
@@ -1621,10 +1663,13 @@ export let firewallPresenter = declarePresenter(firewallType, {
   mt_2026_01_01_magnetar: v1FirewallPresenter
 });
 
-export let firewallBindingPresenter = declarePresenter(firewallBindingType, {
-  mt_2025_01_01_dashboard: v1FirewallBindingPresenter,
-  mt_2026_01_01_magnetar: v1FirewallBindingPresenter
-});
+export let integrationFirewallAssignmentPresenter = declarePresenter(
+  integrationFirewallAssignmentType,
+  {
+    mt_2025_01_01_dashboard: v1IntegrationFirewallAssignmentPresenter,
+    mt_2026_01_01_magnetar: v1IntegrationFirewallAssignmentPresenter
+  }
+);
 
 export let networkPolicyPresenter = declarePresenter(networkPolicyType, {
   mt_2025_01_01_dashboard: v1NetworkPolicyPresenter,
@@ -1829,4 +1874,100 @@ export let scmProviderPresenter = declarePresenter(scmProviderType, {
 export let scmProviderSetupPresenter = declarePresenter(scmProviderSetupType, {
   mt_2025_01_01_dashboard: v1ScmProviderSetupPresenter,
   mt_2026_01_01_magnetar: v1ScmProviderSetupPresenter
+});
+
+export let sandboxRegionPresenter = declarePresenter(sandboxRegionType, {
+  mt_2025_01_01_dashboard: v1SandboxRegionPresenter,
+  mt_2026_01_01_magnetar: v1SandboxRegionPresenter
+});
+
+export let sandboxSpecPresenter = declarePresenter(sandboxSpecType, {
+  mt_2025_01_01_dashboard: v1SandboxSpecPresenter,
+  mt_2026_01_01_magnetar: v1SandboxSpecPresenter
+});
+
+export let sandboxMachinePresenter = declarePresenter(sandboxMachineType, {
+  mt_2025_01_01_dashboard: v1SandboxMachinePresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachinePresenter
+});
+
+export let sandboxMachineInstancePresenter = declarePresenter(sandboxMachineInstanceType, {
+  mt_2025_01_01_dashboard: v1SandboxMachineInstancePresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachineInstancePresenter
+});
+
+export let sandboxMachineOperationPresenter = declarePresenter(sandboxMachineOperationType, {
+  mt_2025_01_01_dashboard: v1SandboxMachineOperationPresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachineOperationPresenter
+});
+
+export let sandboxMachineEventPresenter = declarePresenter(sandboxMachineEventType, {
+  mt_2025_01_01_dashboard: v1SandboxMachineEventPresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachineEventPresenter
+});
+
+export let sandboxMachineErrorPresenter = declarePresenter(sandboxMachineErrorType, {
+  mt_2025_01_01_dashboard: v1SandboxMachineErrorPresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachineErrorPresenter
+});
+
+export let sandboxMachineUsagePresenter = declarePresenter(sandboxMachineUsageType, {
+  mt_2025_01_01_dashboard: v1SandboxMachineUsagePresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachineUsagePresenter
+});
+
+export let sandboxMachineUsageTimelinePresenter = declarePresenter(
+  sandboxMachineUsageTimelineType,
+  {
+    mt_2025_01_01_dashboard: v1SandboxMachineUsageTimelinePresenter,
+    mt_2026_01_01_magnetar: v1SandboxMachineUsageTimelinePresenter
+  }
+);
+
+export let sandboxMachineUsageSummaryPresenter = declarePresenter(
+  sandboxMachineUsageSummaryType,
+  {
+    mt_2025_01_01_dashboard: v1SandboxMachineUsageSummaryPresenter,
+    mt_2026_01_01_magnetar: v1SandboxMachineUsageSummaryPresenter
+  }
+);
+
+export let sandboxMachineAccessPresenter = declarePresenter(sandboxMachineAccessType, {
+  mt_2025_01_01_dashboard: v1SandboxMachineAccessPresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachineAccessPresenter
+});
+
+export let sandboxDiskPresenter = declarePresenter(sandboxDiskType, {
+  mt_2025_01_01_dashboard: v1SandboxDiskPresenter,
+  mt_2026_01_01_magnetar: v1SandboxDiskPresenter
+});
+
+export let sandboxDiskMountPresenter = declarePresenter(sandboxDiskMountType, {
+  mt_2025_01_01_dashboard: v1SandboxDiskMountPresenter,
+  mt_2026_01_01_magnetar: v1SandboxDiskMountPresenter
+});
+
+export let sandboxDiskResizePresenter = declarePresenter(sandboxDiskResizeType, {
+  mt_2025_01_01_dashboard: v1SandboxDiskResizePresenter,
+  mt_2026_01_01_magnetar: v1SandboxDiskResizePresenter
+});
+
+export let sandboxImagePresenter = declarePresenter(sandboxImageType, {
+  mt_2025_01_01_dashboard: v1SandboxImagePresenter,
+  mt_2026_01_01_magnetar: v1SandboxImagePresenter
+});
+
+export let sandboxImageVersionPresenter = declarePresenter(sandboxImageVersionType, {
+  mt_2025_01_01_dashboard: v1SandboxImageVersionPresenter,
+  mt_2026_01_01_magnetar: v1SandboxImageVersionPresenter
+});
+
+export let sandboxImageBuildPresenter = declarePresenter(sandboxImageBuildType, {
+  mt_2025_01_01_dashboard: v1SandboxImageBuildPresenter,
+  mt_2026_01_01_magnetar: v1SandboxImageBuildPresenter
+});
+
+export let sandboxLogLinesPresenter = declarePresenter(sandboxLogLinesType, {
+  mt_2025_01_01_dashboard: v1SandboxLogLinesPresenter,
+  mt_2026_01_01_magnetar: v1SandboxLogLinesPresenter
 });

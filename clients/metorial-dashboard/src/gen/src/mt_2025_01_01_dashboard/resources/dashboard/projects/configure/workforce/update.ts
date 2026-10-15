@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureWorkforceUpdateOutput = {
   object: 'organization.project.workforce_configuration';
@@ -8,25 +8,16 @@ export type DashboardProjectsConfigureWorkforceUpdateOutput = {
 };
 
 export let mapDashboardProjectsConfigureWorkforceUpdateOutput =
-  mtMap.object<DashboardProjectsConfigureWorkforceUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    autoAddOrganizationMembersToPortals: mtMap.objectField(
-      'auto_add_organization_members_to_portals',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureWorkforceUpdateOutput>(
+    ['project_id', 'auto_add_organization_members_to_portals', 'updated_at'],
+    1
+  );
 
 export type DashboardProjectsConfigureWorkforceUpdateBody = {
   autoAddOrganizationMembersToPortals?: boolean | undefined;
 };
 
 export let mapDashboardProjectsConfigureWorkforceUpdateBody =
-  mtMap.object<DashboardProjectsConfigureWorkforceUpdateBody>({
-    autoAddOrganizationMembersToPortals: mtMap.objectField(
-      'auto_add_organization_members_to_portals',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureWorkforceUpdateBody>([
+    'auto_add_organization_members_to_portals'
+  ]);

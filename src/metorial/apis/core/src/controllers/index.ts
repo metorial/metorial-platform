@@ -7,11 +7,13 @@ import {
   fileCollectionDocsCategory,
   identityDocsCategory,
   integrationDocsCategory,
+  integrationNetworkDocsCategory,
   magicMcpDocsCategory,
   monitoringDocsCategory,
   networkDocsCategory,
   portalDocsCategory,
   providerDocsCategory,
+  sandboxDocsCategory,
   sessionDocsCategory,
   skillDocsCategory
 } from './_categories';
@@ -66,14 +68,12 @@ import {
   customProviderDeploymentController,
   customProviderEnvironmentController,
   customProviderVersionController,
-  dashboardEnclaveController,
+  dashboardIntegrationEnclaveController,
   documentController,
   documentParticipantController,
   documentVersionController,
-  enclaveController,
   fileController,
   fileLinkController,
-  firewallBindingController,
   firewallController,
   identityActorController,
   identityController,
@@ -85,6 +85,9 @@ import {
   instanceController,
   instancesController,
   integrationController,
+  integrationEnclaveController,
+  integrationFirewallAssignmentController,
+  integrationInternetGatewayController,
   integrationInstanceController,
   integrationInstanceGroupController,
   integrationInstanceGroupProviderController,
@@ -99,7 +102,6 @@ import {
   magicMcpTokenController,
   monitorAlertController,
   monitorController,
-  networkController,
   networkPolicyController,
   portalConsumerAccessController,
   portalConsumerAccessListingController,
@@ -179,7 +181,19 @@ import {
   storeParticipantController,
   tokenController,
   toolCallController,
-  webhookRegistrationController
+  webhookRegistrationController,
+  sandboxRegionController,
+  sandboxSpecController,
+  sandboxMachineController,
+  sandboxMachineUsageController,
+  sandboxMachineInstanceController,
+  sandboxMachineOperationController,
+  sandboxMachineEventController,
+  sandboxMachineErrorController,
+  sandboxDiskController,
+  sandboxDiskResizeController,
+  sandboxImageController,
+  sandboxImageBuildController
 } from './instance';
 import {
   accessPolicyManagementController,
@@ -314,15 +328,38 @@ let setControllerDocsMetadata = <
   })
 );
 
-[
-  networkController,
-  enclaveController,
-  firewallController,
-  firewallBindingController,
-  networkPolicyController
-].forEach(controller =>
+[firewallController, networkPolicyController].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: networkDocsCategory
+  })
+);
+
+[
+  sandboxRegionController,
+  sandboxSpecController,
+  sandboxMachineController,
+  sandboxMachineUsageController,
+  sandboxMachineInstanceController,
+  sandboxMachineOperationController,
+  sandboxMachineEventController,
+  sandboxMachineErrorController,
+  sandboxDiskController,
+  sandboxDiskResizeController,
+  sandboxImageController,
+  sandboxImageBuildController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: sandboxDocsCategory
+  })
+);
+
+[
+  integrationInternetGatewayController,
+  integrationEnclaveController,
+  integrationFirewallAssignmentController
+].forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: integrationNetworkDocsCategory
   })
 );
 
@@ -510,11 +547,24 @@ export let magnetarController = Controller.create<any>(
     eventDeliveryManagementController,
     eventDeliveryAttemptManagementController,
 
-    networkController,
-    enclaveController,
+    integrationInternetGatewayController,
+    integrationEnclaveController,
     firewallController,
-    firewallBindingController,
+    integrationFirewallAssignmentController,
     networkPolicyController,
+
+    sandboxRegionController,
+    sandboxSpecController,
+    sandboxMachineController,
+    sandboxMachineUsageController,
+    sandboxMachineInstanceController,
+    sandboxMachineOperationController,
+    sandboxMachineEventController,
+    sandboxMachineErrorController,
+    sandboxDiskController,
+    sandboxDiskResizeController,
+    sandboxImageController,
+    sandboxImageBuildController,
 
     sessionController,
     sessionTemplateController,
@@ -784,12 +834,25 @@ export let dashboardController = Controller.create<any>(
     providerAuthImportController,
     providerAuthExportController,
 
-    networkController,
-    dashboardEnclaveController,
-    enclaveController,
+    integrationInternetGatewayController,
+    dashboardIntegrationEnclaveController,
+    integrationEnclaveController,
     firewallController,
-    firewallBindingController,
+    integrationFirewallAssignmentController,
     networkPolicyController,
+
+    sandboxRegionController,
+    sandboxSpecController,
+    sandboxMachineController,
+    sandboxMachineUsageController,
+    sandboxMachineInstanceController,
+    sandboxMachineOperationController,
+    sandboxMachineEventController,
+    sandboxMachineErrorController,
+    sandboxDiskController,
+    sandboxDiskResizeController,
+    sandboxImageController,
+    sandboxImageBuildController,
 
     sessionTemplateController,
     sessionTemplateProviderController,

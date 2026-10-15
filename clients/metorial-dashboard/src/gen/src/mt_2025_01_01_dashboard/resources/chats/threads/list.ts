@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ChatsThreadsListOutput = {
   items: {
@@ -38,74 +38,28 @@ export type ChatsThreadsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapChatsThreadsListOutput = mtMap.object<ChatsThreadsListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-        channelId: mtMap.objectField('channel_id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-        providerThreadId: mtMap.objectField(
+export let mapChatsThreadsListOutput =
+  /* @__PURE__ */ createMapper<ChatsThreadsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'chat_id',
+          'channel_id',
+          'provider_type',
           'provider_thread_id',
-          mtMap.passthrough()
-        ),
-        providerRootMessageId: mtMap.objectField(
           'provider_root_message_id',
-          mtMap.passthrough()
-        ),
-        subject: mtMap.objectField('subject', mtMap.passthrough()),
-        permalink: mtMap.objectField('permalink', mtMap.passthrough()),
-        context: mtMap.objectField(
-          'context',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            url: mtMap.objectField('url', mtMap.passthrough()),
-            author: mtMap.objectField(
-              'author',
-              mtMap.object({
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough())
-              })
-            ),
-            assignee: mtMap.objectField(
-              'assignee',
-              mtMap.object({
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough())
-              })
-            ),
-            labels: mtMap.objectField(
-              'labels',
-              mtMap.array(mtMap.passthrough())
-            )
-          })
-        ),
-        replyCount: mtMap.objectField('reply_count', mtMap.passthrough()),
-        lastReplyAt: mtMap.objectField('last_reply_at', mtMap.date()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        lastInteractionAt: mtMap.objectField(
-          'last_interaction_at',
-          mtMap.date()
-        )
-      })
-    )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+          'reply_count',
+          'last_reply_at',
+          'created_at',
+          'updated_at',
+          'last_interaction_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ChatsThreadsListQuery = {
   limit?: number | undefined;
@@ -115,18 +69,8 @@ export type ChatsThreadsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { channelId: string; type?: 'conversation' | 'dm' | 'post' | undefined };
 
-export let mapChatsThreadsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      channelId: mtMap.objectField('channel_id', mtMap.passthrough()),
-      type: mtMap.objectField('type', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapChatsThreadsListQuery =
+  /* @__PURE__ */ createMapper<ChatsThreadsListQuery>([
+    3,
+    [[0, [1, ['channel_id']]]]
+  ]);

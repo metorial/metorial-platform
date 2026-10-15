@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationProjectsBrandingGetOutput = {
   object: 'project.brand';
@@ -12,14 +12,7 @@ export type ManagementOrganizationProjectsBrandingGetOutput = {
 };
 
 export let mapManagementOrganizationProjectsBrandingGetOutput =
-  mtMap.object<ManagementOrganizationProjectsBrandingGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementOrganizationProjectsBrandingGetOutput>(
+    ['image_url', 'project_id', 'created_at', 'updated_at'],
+    1
+  );

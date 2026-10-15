@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceAgentsInstancesGetOutput = {
   object: 'agent.instance';
@@ -23,28 +23,17 @@ export type ManagementInstanceAgentsInstancesGetOutput = {
 };
 
 export let mapManagementInstanceAgentsInstancesGetOutput =
-  mtMap.object<ManagementInstanceAgentsInstancesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    version: mtMap.objectField('version', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-    agentClient: mtMap.objectField(
-      'agent_client',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        lastConnectedAt: mtMap.objectField('last_connected_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    lastConnectedAt: mtMap.objectField('last_connected_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceAgentsInstancesGetOutput>(
+    [
+      'agent_id',
+      [
+        'agent_client',
+        1,
+        [1, ['created_at', 'updated_at', 'last_connected_at']]
+      ],
+      'created_at',
+      'updated_at',
+      'last_connected_at'
+    ],
+    1
+  );

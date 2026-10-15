@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsSyncsGetOutput = {
   object: 'skill.sync';
@@ -41,56 +41,37 @@ export type DashboardInstanceSkillsSyncsGetOutput = {
 };
 
 export let mapDashboardInstanceSkillsSyncsGetOutput =
-  mtMap.object<DashboardInstanceSkillsSyncsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    skillMarketplaceId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceSkillsSyncsGetOutput>(
+    [
       'skill_marketplace_id',
-      mtMap.passthrough()
-    ),
-    skillPluginId: mtMap.objectField('skill_plugin_id', mtMap.passthrough()),
-    logs: mtMap.objectField(
-      'logs',
-      mtMap.array(
-        mtMap.object({
-          timestamp: mtMap.objectField('timestamp', mtMap.date()),
-          message: mtMap.objectField('message', mtMap.passthrough())
-        })
-      )
-    ),
-    repositoryPropagations: mtMap.objectField(
-      'repository_propagations',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
-          repositoryAccessMode: mtMap.objectField(
-            'repository_access_mode',
-            mtMap.passthrough()
-          ),
-          branchName: mtMap.objectField('branch_name', mtMap.passthrough()),
-          prName: mtMap.objectField('pr_name', mtMap.passthrough()),
-          prDescription: mtMap.objectField(
-            'pr_description',
-            mtMap.passthrough()
-          ),
-          commitMessage: mtMap.objectField(
-            'commit_message',
-            mtMap.passthrough()
-          ),
-          errorMessage: mtMap.objectField('error_message', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          startedAt: mtMap.objectField('started_at', mtMap.date()),
-          completedAt: mtMap.objectField('completed_at', mtMap.date())
-        })
-      )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    startedAt: mtMap.objectField('started_at', mtMap.date()),
-    completedAt: mtMap.objectField('completed_at', mtMap.date())
-  });
-
+      'skill_plugin_id',
+      ['logs', 0, [2, [1, [['timestamp', 0, 4]]]]],
+      [
+        'repository_propagations',
+        1,
+        [
+          2,
+          [
+            1,
+            [
+              'repo_id',
+              'repository_access_mode',
+              'branch_name',
+              'pr_name',
+              'pr_description',
+              'commit_message',
+              'error_message',
+              'created_at',
+              'updated_at',
+              'started_at',
+              'completed_at'
+            ]
+          ]
+        ]
+      ],
+      'created_at',
+      'started_at',
+      'completed_at'
+    ],
+    1
+  );

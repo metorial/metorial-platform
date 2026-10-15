@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ProvidersGetOutput = {
   object: 'provider';
@@ -78,161 +78,85 @@ export type ProvidersGetOutput = {
   tag: string;
 };
 
-export let mapProvidersGetOutput = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      access: mtMap.objectField('access', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      publisher: mtMap.objectField(
-        'publisher',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      ),
-      currentVersion: mtMap.objectField(
-        'current_version',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          version: mtMap.objectField('version', mtMap.passthrough()),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          specificationId: mtMap.objectField(
-            'specification_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      ),
-      oauth: mtMap.objectField(
-        'oauth',
-        mtMap.object({
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          callbackUrl: mtMap.objectField('callback_url', mtMap.passthrough()),
-          autoRegistration: mtMap.objectField(
-            'auto_registration',
-            mtMap.object({
-              status: mtMap.objectField('status', mtMap.passthrough())
-            })
-          )
-        })
-      ),
-      identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      slug: mtMap.objectField('slug', mtMap.passthrough()),
-      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-      type: mtMap.objectField(
-        'type',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          backend: mtMap.objectField('backend', mtMap.passthrough()),
-          triggers: mtMap.objectField(
-            'triggers',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  webhookRegistration: mtMap.objectField(
-                    'webhook_registration',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  )
-                })
-              )
-            ])
-          ),
-          config: mtMap.objectField(
-            'config',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  read: mtMap.objectField(
-                    'read',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  )
-                })
-              )
-            ])
-          ),
-          auth: mtMap.objectField(
-            'auth',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  oauth: mtMap.objectField(
-                    'oauth',
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          ),
-                          oauthCallbackUrl: mtMap.objectField(
-                            'oauth_callback_url',
-                            mtMap.passthrough()
-                          ),
-                          oauthAutoRegistration: mtMap.objectField(
-                            'oauth_auto_registration',
-                            mtMap.object({
-                              status: mtMap.objectField(
-                                'status',
-                                mtMap.passthrough()
-                              )
-                            })
-                          )
-                        })
-                      )
-                    ])
-                  ),
-                  export: mtMap.objectField(
-                    'export',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  ),
-                  import: mtMap.objectField(
-                    'import',
-                    mtMap.object({
-                      status: mtMap.objectField('status', mtMap.passthrough())
-                    })
-                  )
-                })
-              )
-            ])
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      ),
-      tag: mtMap.objectField('tag', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapProvidersGetOutput =
+  /* @__PURE__ */ createMapper<ProvidersGetOutput>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              ['publisher', 0, [1, ['image_url', 'created_at', 'updated_at']]],
+              [
+                'current_version',
+                1,
+                [
+                  1,
+                  [
+                    'provider_id',
+                    'is_current',
+                    'specification_id',
+                    'created_at',
+                    'updated_at'
+                  ]
+                ]
+              ],
+              ['oauth', 0, [1, ['callback_url', 'auto_registration']]],
+              'created_at',
+              'updated_at',
+              [
+                'type',
+                0,
+                [
+                  1,
+                  [
+                    ['triggers', 0, [3, [[0, [1, ['webhook_registration']]]]]],
+                    [
+                      'auth',
+                      0,
+                      [
+                        3,
+                        [
+                          [
+                            0,
+                            [
+                              1,
+                              [
+                                [
+                                  'oauth',
+                                  0,
+                                  [
+                                    3,
+                                    [
+                                      [
+                                        0,
+                                        [
+                                          1,
+                                          [
+                                            'oauth_callback_url',
+                                            'oauth_auto_registration'
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ],
+                    'created_at'
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );

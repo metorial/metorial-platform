@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCustomProvidersEnvironmentsListOutput = {
   items: {
@@ -15,39 +15,23 @@ export type DashboardInstanceCustomProvidersEnvironmentsListOutput = {
 };
 
 export let mapDashboardInstanceCustomProvidersEnvironmentsListOutput =
-  mtMap.object<DashboardInstanceCustomProvidersEnvironmentsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          customProviderId: mtMap.objectField(
-            'custom_provider_id',
-            mtMap.passthrough()
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          currentProviderVersionId: mtMap.objectField(
-            'current_provider_version_id',
-            mtMap.passthrough()
-          ),
-          instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceCustomProvidersEnvironmentsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'custom_provider_id',
+          'provider_id',
+          'current_provider_version_id',
+          'instance_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceCustomProvidersEnvironmentsListQuery = {
   limit?: number | undefined;
@@ -64,60 +48,22 @@ export type DashboardInstanceCustomProvidersEnvironmentsListQuery = {
 };
 
 export let mapDashboardInstanceCustomProvidersEnvironmentsListQuery =
-  mtMap.union([
-    mtMap.unionOption(
-      'object',
-      mtMap.object({
-        limit: mtMap.objectField('limit', mtMap.passthrough()),
-        after: mtMap.objectField('after', mtMap.passthrough()),
-        before: mtMap.objectField('before', mtMap.passthrough()),
-        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-        order: mtMap.objectField('order', mtMap.passthrough()),
-        id: mtMap.objectField(
-          'id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        customProviderVersionId: mtMap.objectField(
-          'custom_provider_version_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        customProviderId: mtMap.objectField(
-          'custom_provider_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        createdAt: mtMap.objectField(
-          'created_at',
-          mtMap.object({
-            gt: mtMap.objectField('gt', mtMap.date()),
-            lt: mtMap.objectField('lt', mtMap.date())
-          })
-        ),
-        updatedAt: mtMap.objectField(
-          'updated_at',
-          mtMap.object({
-            gt: mtMap.objectField('gt', mtMap.date()),
-            lt: mtMap.objectField('lt', mtMap.date())
-          })
-        )
-      })
-    )
-  ]);
-
+  /* @__PURE__ */ createMapper<DashboardInstanceCustomProvidersEnvironmentsListQuery>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              'custom_provider_version_id',
+              'custom_provider_id',
+              ['created_at', 1, 5],
+              ['updated_at', 1, 5]
+            ]
+          ]
+        ]
+      ]
+    ]
+  );

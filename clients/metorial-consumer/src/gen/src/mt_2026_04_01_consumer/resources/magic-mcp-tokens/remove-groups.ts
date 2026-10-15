@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type MagicMcpTokensRemoveGroupsOutput = {
   object: 'magic_mcp.token';
@@ -47,83 +50,46 @@ export type MagicMcpTokensRemoveGroupsOutput = {
   }[];
 };
 
-export let mapMagicMcpTokensRemoveGroupsOutput = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      secret: mtMap.objectField('secret', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      server: mtMap.objectField(
-        'server',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough())
-        })
-      ),
-      endpoint: mtMap.objectField(
-        'endpoint',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough())
-        })
-      ),
-      groups: mtMap.objectField(
-        'groups',
-        mtMap.array(
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        )
-      ),
-      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-      consumerTokens: mtMap.objectField(
-        'consumer_tokens',
-        mtMap.array(
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-            consumerProfileId: mtMap.objectField(
-              'consumer_profile_id',
-              mtMap.passthrough()
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        )
-      )
-    })
-  )
-]);
+export let mapMagicMcpTokensRemoveGroupsOutput =
+  /* @__PURE__ */ createMapper<MagicMcpTokensRemoveGroupsOutput>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              ['groups', 0, [2, 8]],
+              'created_at',
+              'updated_at',
+              [
+                'consumer_tokens',
+                1,
+                [
+                  2,
+                  [
+                    1,
+                    [
+                      'consumer_id',
+                      'consumer_profile_id',
+                      'created_at',
+                      'updated_at'
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type MagicMcpTokensRemoveGroupsBody = { magicMcpGroupIds: string[] };
 
 export let mapMagicMcpTokensRemoveGroupsBody =
-  mtMap.object<MagicMcpTokensRemoveGroupsBody>({
-    magicMcpGroupIds: mtMap.objectField(
-      'magic_mcp_group_ids',
-      mtMap.array(mtMap.passthrough())
-    )
-  });
-
+  /* @__PURE__ */ mapObject<MagicMcpTokensRemoveGroupsBody>([
+    'magic_mcp_group_ids'
+  ]);

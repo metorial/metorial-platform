@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceFilesLinksListOutput = {
   items: {
@@ -13,31 +13,10 @@ export type DashboardInstanceFilesLinksListOutput = {
 };
 
 export let mapDashboardInstanceFilesLinksListOutput =
-  mtMap.object<DashboardInstanceFilesLinksListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-          url: mtMap.objectField('url', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          expiresAt: mtMap.objectField('expires_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceFilesLinksListOutput>(
+    [7, [1, ['file_id', 'created_at', 'expires_at']]],
+    1
+  );
 
 export type DashboardInstanceFilesLinksListQuery = {
   limit?: number | undefined;
@@ -47,17 +26,8 @@ export type DashboardInstanceFilesLinksListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { fileId?: string | undefined };
 
-export let mapDashboardInstanceFilesLinksListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      fileId: mtMap.objectField('file_id', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardInstanceFilesLinksListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceFilesLinksListQuery>([
+    3,
+    [[0, [1, ['file_id']]]]
+  ]);

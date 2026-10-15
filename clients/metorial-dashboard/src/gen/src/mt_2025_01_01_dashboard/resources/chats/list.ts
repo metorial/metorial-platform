@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ChatsListOutput = {
   items: {
@@ -17,42 +17,24 @@ export type ChatsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapChatsListOutput = mtMap.object<ChatsListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        chatConnectionId: mtMap.objectField(
-          'chat_connection_id',
-          mtMap.passthrough()
-        ),
-        chatInstanceId: mtMap.objectField(
-          'chat_instance_id',
-          mtMap.passthrough()
-        ),
-        chatInstanceProviderId: mtMap.objectField(
-          'chat_instance_provider_id',
-          mtMap.passthrough()
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        workspaceId: mtMap.objectField('workspace_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+export let mapChatsListOutput = /* @__PURE__ */ createMapper<ChatsListOutput>(
+  [
+    7,
+    [
+      1,
+      [
+        'chat_connection_id',
+        'chat_instance_id',
+        'chat_instance_provider_id',
+        'provider_id',
+        'workspace_id',
+        'created_at',
+        'updated_at'
+      ]
+    ]
+  ],
+  1
+);
 
 export type ChatsListQuery = {
   limit?: number | undefined;
@@ -76,75 +58,21 @@ export type ChatsListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapChatsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      chatConnectionId: mtMap.objectField(
-        'chat_connection_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      chatInstanceId: mtMap.objectField(
-        'chat_instance_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      chatInstanceProviderId: mtMap.objectField(
-        'chat_instance_provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
+export let mapChatsListQuery = /* @__PURE__ */ createMapper<ChatsListQuery>([
+  3,
+  [
+    [
+      0,
+      [
+        1,
+        [
+          'chat_connection_id',
+          'chat_instance_id',
+          'chat_instance_provider_id',
+          ['created_at', 1, 5],
+          ['updated_at', 1, 5]
+        ]
+      ]
+    ]
+  ]
 ]);
-

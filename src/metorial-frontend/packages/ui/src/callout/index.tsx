@@ -19,22 +19,28 @@ let Icon = styled('div')`
   }
 `;
 
-let Content = styled('p')`
+let Content = styled('div')`
   display: flex;
   align-items: center;
   flex-grow: 1;
+`;
+
+let ContentInner = styled('p')`
+  flex-grow: 1;
+  width: 100%;
 `;
 
 export let Callout = ({
   children,
   color,
   size,
+  variant,
   style
 }: {
   children: React.ReactNode;
   style?: React.CSSProperties;
 } & CalloutStyleProps) => {
-  let { icon, ...styles } = getCalloutStyles({ color, size });
+  let { icon, ...styles } = getCalloutStyles({ color, size, variant });
 
   return (
     <Wrapper style={{ ...styles, ...style, display: 'flex', alignItems: 'center' }}>
@@ -46,7 +52,9 @@ export let Callout = ({
       >
         <RiAlertLine />
       </Icon>
-      <Content>{children}</Content>
+      <Content>
+        <ContentInner>{children}</ContentInner>
+      </Content>
     </Wrapper>
   );
 };

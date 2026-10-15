@@ -17,7 +17,8 @@ let purposeSlugs = [
   'skill_image',
   'skill_export',
   'generic',
-  'chat_message_attachment'
+  'chat_message_attachment',
+  'sandbox_image_build_context'
 ] as const;
 
 export let fileGroup = instanceGroup.use(async ctx => {

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsVersionsListOutput = {
   items: {
@@ -14,38 +14,22 @@ export type ManagementInstanceSkillsVersionsListOutput = {
 };
 
 export let mapManagementInstanceSkillsVersionsListOutput =
-  mtMap.object<ManagementInstanceSkillsVersionsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
-          storeId: mtMap.objectField('store_id', mtMap.passthrough()),
-          storeVersionId: mtMap.objectField(
-            'store_version_id',
-            mtMap.passthrough()
-          ),
-          versionNumber: mtMap.objectField(
-            'version_number',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsVersionsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'skill_id',
+          'store_id',
+          'store_version_id',
+          'version_number',
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstanceSkillsVersionsListQuery = {
   limit?: number | undefined;
@@ -55,16 +39,5 @@ export type ManagementInstanceSkillsVersionsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapManagementInstanceSkillsVersionsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapManagementInstanceSkillsVersionsListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsVersionsListQuery>(0);

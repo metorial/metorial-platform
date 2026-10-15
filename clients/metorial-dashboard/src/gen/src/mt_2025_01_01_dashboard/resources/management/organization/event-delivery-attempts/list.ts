@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationEventDeliveryAttemptsListOutput = {
   items: {
@@ -32,90 +32,27 @@ export type ManagementOrganizationEventDeliveryAttemptsListOutput = {
 };
 
 export let mapManagementOrganizationEventDeliveryAttemptsListOutput =
-  mtMap.object<ManagementOrganizationEventDeliveryAttemptsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          eventDeliveryId: mtMap.objectField(
-            'event_delivery_id',
-            mtMap.passthrough()
-          ),
-          eventId: mtMap.objectField('event_id', mtMap.passthrough()),
-          eventDestinationId: mtMap.objectField(
-            'event_destination_id',
-            mtMap.passthrough()
-          ),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          attemptNumber: mtMap.objectField(
-            'attempt_number',
-            mtMap.passthrough()
-          ),
-          durationMs: mtMap.objectField('duration_ms', mtMap.passthrough()),
-          isRetryable: mtMap.objectField('is_retryable', mtMap.passthrough()),
-          error: mtMap.objectField(
-            'error',
-            mtMap.object({
-              code: mtMap.objectField('code', mtMap.passthrough()),
-              message: mtMap.objectField('message', mtMap.passthrough())
-            })
-          ),
-          request: mtMap.objectField(
-            'request',
-            mtMap.object({
-              url: mtMap.objectField('url', mtMap.passthrough()),
-              method: mtMap.objectField('method', mtMap.passthrough()),
-              headers: mtMap.objectField(
-                'headers',
-                mtMap.array(
-                  mtMap.object({
-                    key: mtMap.objectField('key', mtMap.passthrough()),
-                    value: mtMap.objectField('value', mtMap.passthrough())
-                  })
-                )
-              ),
-              body: mtMap.objectField('body', mtMap.passthrough())
-            })
-          ),
-          response: mtMap.objectField(
-            'response',
-            mtMap.object({
-              statusCode: mtMap.objectField('status_code', mtMap.passthrough()),
-              headers: mtMap.objectField(
-                'headers',
-                mtMap.array(
-                  mtMap.object({
-                    key: mtMap.objectField('key', mtMap.passthrough()),
-                    value: mtMap.objectField('value', mtMap.passthrough())
-                  })
-                )
-              ),
-              body: mtMap.objectField('body', mtMap.passthrough()),
-              isBodyTruncated: mtMap.objectField(
-                'is_body_truncated',
-                mtMap.passthrough()
-              )
-            })
-          ),
-          startedAt: mtMap.objectField('started_at', mtMap.date()),
-          completedAt: mtMap.objectField('completed_at', mtMap.date()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementOrganizationEventDeliveryAttemptsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'event_delivery_id',
+          'event_id',
+          'event_destination_id',
+          'attempt_number',
+          'duration_ms',
+          'is_retryable',
+          ['response', 0, [1, ['status_code', 'is_body_truncated']]],
+          'started_at',
+          'completed_at',
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementOrganizationEventDeliveryAttemptsListQuery = {
   limit?: number | undefined;
@@ -131,50 +68,6 @@ export type ManagementOrganizationEventDeliveryAttemptsListQuery = {
 };
 
 export let mapManagementOrganizationEventDeliveryAttemptsListQuery =
-  mtMap.union([
-    mtMap.unionOption(
-      'object',
-      mtMap.object({
-        limit: mtMap.objectField('limit', mtMap.passthrough()),
-        after: mtMap.objectField('after', mtMap.passthrough()),
-        before: mtMap.objectField('before', mtMap.passthrough()),
-        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-        order: mtMap.objectField('order', mtMap.passthrough()),
-        status: mtMap.objectField(
-          'status',
-          mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-        ),
-        eventDeliveryId: mtMap.objectField(
-          'event_delivery_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        eventId: mtMap.objectField(
-          'event_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        eventDestinationId: mtMap.objectField(
-          'event_destination_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        )
-      })
-    )
-  ]);
-
+  /* @__PURE__ */ createMapper<ManagementOrganizationEventDeliveryAttemptsListQuery>(
+    [3, [[0, [1, ['event_delivery_id', 'event_id', 'event_destination_id']]]]]
+  );

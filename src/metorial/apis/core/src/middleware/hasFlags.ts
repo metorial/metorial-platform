@@ -1,6 +1,6 @@
 import { forbiddenError, paymentRequiredError, ServiceError } from '@lowerdeck/error';
 import {
-  Flags,
+  BooleanFlagKey,
   flagService,
   getFlagDisabledReason,
   isFlagEnabled
@@ -8,7 +8,7 @@ import {
 import { apiGroup } from './apiGroup';
 
 export let hasFlags = apiGroup.createMiddleware(
-  async (ctx, expectedFlags: (keyof Flags)[]) => {
+  async (ctx, expectedFlags: BooleanFlagKey[]) => {
     if (!('organization' in ctx)) {
       throw new ServiceError(
         forbiddenError({

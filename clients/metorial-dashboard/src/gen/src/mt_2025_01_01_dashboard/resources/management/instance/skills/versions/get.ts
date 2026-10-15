@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsVersionsGetOutput = {
   object: 'skill.version';
@@ -11,13 +11,13 @@ export type ManagementInstanceSkillsVersionsGetOutput = {
 };
 
 export let mapManagementInstanceSkillsVersionsGetOutput =
-  mtMap.object<ManagementInstanceSkillsVersionsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
-    storeId: mtMap.objectField('store_id', mtMap.passthrough()),
-    storeVersionId: mtMap.objectField('store_version_id', mtMap.passthrough()),
-    versionNumber: mtMap.objectField('version_number', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsVersionsGetOutput>(
+    [
+      'skill_id',
+      'store_id',
+      'store_version_id',
+      'version_number',
+      'created_at'
+    ],
+    1
+  );

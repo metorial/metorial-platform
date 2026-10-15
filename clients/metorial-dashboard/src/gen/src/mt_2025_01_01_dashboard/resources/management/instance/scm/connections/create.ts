@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceScmConnectionsCreateOutput = {
   object: 'scm.connection.setup_session';
@@ -26,46 +26,33 @@ export type ManagementInstanceScmConnectionsCreateOutput = {
 };
 
 export let mapManagementInstanceScmConnectionsCreateOutput =
-  mtMap.object<ManagementInstanceScmConnectionsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    connection: mtMap.objectField(
-      'connection',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        provider: mtMap.objectField('provider', mtMap.passthrough()),
-        externalInstallationId: mtMap.objectField(
-          'external_installation_id',
-          mtMap.passthrough()
-        ),
-        accountType: mtMap.objectField('account_type', mtMap.passthrough()),
-        externalAccount: mtMap.objectField(
-          'external_account',
-          mtMap.object({
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            login: mtMap.objectField('login', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            email: mtMap.objectField('email', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementInstanceScmConnectionsCreateOutput>(
+    [
+      [
+        'connection',
+        0,
+        [
+          1,
+          [
+            'external_installation_id',
+            'account_type',
+            ['external_account', 1, [1, ['image_url']]],
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      'created_at',
+      'expires_at'
+    ],
+    1
+  );
 
 export type ManagementInstanceScmConnectionsCreateBody = {
   redirectUrl?: string | undefined;
 };
 
 export let mapManagementInstanceScmConnectionsCreateBody =
-  mtMap.object<ManagementInstanceScmConnectionsCreateBody>({
-    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceScmConnectionsCreateBody>([
+    'redirect_url'
+  ]);

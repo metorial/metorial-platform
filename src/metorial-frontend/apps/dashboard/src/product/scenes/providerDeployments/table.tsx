@@ -11,12 +11,8 @@ import {
   useProviderDeployments,
   useProviders
 } from '@metorial/state';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
-import { Table as DashboardTable } from '@metorial/table';
 import {
+  Table as DashboardTable,
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
@@ -24,6 +20,10 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 
 type ProviderDeployment = DashboardInstanceProviderDeploymentsListOutput['items'][number];
 
@@ -201,7 +201,7 @@ let providerDeploymentsTable = new DashboardTable<
     },
     {
       id: 'createdAt',
-      isDefault: true,
+      isDefault: false,
       header: 'Created',
       render: deployment => <RenderDate date={deployment.createdAt} />
     },

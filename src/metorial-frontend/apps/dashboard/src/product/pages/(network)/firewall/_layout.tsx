@@ -1,81 +1,64 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
+import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
-import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useFirewall
 } from '@metorial/state';
-import { LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { RenderDate } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiShieldKeyholeLine } from '@remixicon/react';
+import { Outlet, useParams } from 'react-router-dom';
+import { NetworkManagedPage } from '../_gate';
 
-export let NetworkFirewallPageLayout = () => {
+let FirewallDetailsLayout = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
-  let location = useLocation();
   let { firewallId } = useParams();
   let firewall = useFirewall(instance.data?.id, firewallId);
+  let params = [organization.data, project.data, instance.data] as const;
 
   return (
-    <ContentLayout>
-      {renderWithLoader({ firewall })(({ firewall }) => (
-        <>
-          <PageHeader
-            title={firewall.data.name}
-            description="Manage this firewall's network policies and settings."
-            pagination={[
-              {
-                label: 'Firewalls',
-                href: Paths.organization.instance.networkFirewalls(
-                  organization.data,
-                  project.data,
-                  instance.data
-                )
-              },
-              {
-                label: firewall.data.name,
-                href: Paths.organization.instance.networkFirewall(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  firewall.data.id
-                )
-              }
-            ]}
-          />
-
-          <LinkTabs
-            current={location.pathname}
-            links={[
-              {
-                label: 'Overview',
-                to: Paths.organization.instance.networkFirewall(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  firewall.data.id
-                )
-              },
-              {
-                label: 'Settings',
-                to: Paths.organization.instance.networkFirewall(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  firewall.data.id,
-                  'settings'
-                )
-              }
-            ]}
-          />
-
-          <InitialLoadBoundary>
-            <Outlet />
-          </InitialLoadBoundary>
-        </>
-      ))}
-    </ContentLayout>
+    <DetailsLayout
+      entity={firewall.data}
+      icon={<RiShieldKeyholeLine />}
+      breadcrumbs={[
+        { label: 'Firewalls', to: Paths.instance.networkFirewalls(...params) },
+        {
+          label: firewall.data?.name,
+          to: Paths.instance.networkFirewall(...params, firewallId)
+        }
+      ]}
+      tabs={[
+        { label: 'Overview', to: Paths.instance.networkFirewall(...params, firewallId) },
+        {
+          label: 'Settings',
+          to: Paths.instance.networkFirewall(...params, firewallId, 'settings')
+        }
+      ]}
+      attributes={
+        firewall.data
+          ? [
+              { label: 'ID', value: <ID id={firewall.data.id} /> },
+              { label: 'Created', value: <RenderDate date={firewall.data.createdAt} /> }
+            ]
+          : []
+      }
+    >
+      <InitialLoadBoundary>
+        {renderWithLoader({ firewall })(() => (
+          <Outlet />
+        ))}
+      </InitialLoadBoundary>
+    </DetailsLayout>
   );
 };
+
+export let NetworkFirewallPageLayout = () => (
+  <NetworkManagedPage fallbackWithLayout>
+    <FirewallDetailsLayout />
+  </NetworkManagedPage>
+);

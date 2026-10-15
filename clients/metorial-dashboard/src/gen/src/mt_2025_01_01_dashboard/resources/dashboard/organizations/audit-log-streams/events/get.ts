@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsAuditLogStreamsEventsGetOutput = {
   object: 'organization.audit_log_stream.event';
@@ -32,48 +32,30 @@ export type DashboardOrganizationsAuditLogStreamsEventsGetOutput = {
 };
 
 export let mapDashboardOrganizationsAuditLogStreamsEventsGetOutput =
-  mtMap.object<DashboardOrganizationsAuditLogStreamsEventsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    auditLogStreamId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardOrganizationsAuditLogStreamsEventsGetOutput>(
+    [
       'audit_log_stream_id',
-      mtMap.passthrough()
-    ),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    message: mtMap.objectField('message', mtMap.passthrough()),
-    errorDetails: mtMap.objectField(
-      'error_details',
-      mtMap.object({
-        provider: mtMap.objectField('provider', mtMap.passthrough()),
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        errorName: mtMap.objectField('error_name', mtMap.passthrough()),
-        httpStatusCode: mtMap.objectField(
-          'http_status_code',
-          mtMap.passthrough()
-        ),
-        httpStatusText: mtMap.objectField(
-          'http_status_text',
-          mtMap.passthrough()
-        ),
-        providerErrorCode: mtMap.objectField(
-          'provider_error_code',
-          mtMap.passthrough()
-        ),
-        responseBody: mtMap.objectField('response_body', mtMap.passthrough()),
-        batchIdentifier: mtMap.objectField(
-          'batch_identifier',
-          mtMap.passthrough()
-        ),
-        batchNumber: mtMap.objectField('batch_number', mtMap.passthrough()),
-        successfulBatchCount: mtMap.objectField(
-          'successful_batch_count',
-          mtMap.passthrough()
-        ),
-        eventCount: mtMap.objectField('event_count', mtMap.passthrough()),
-        firstEventId: mtMap.objectField('first_event_id', mtMap.passthrough()),
-        lastEventId: mtMap.objectField('last_event_id', mtMap.passthrough())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+      [
+        'error_details',
+        1,
+        [
+          1,
+          [
+            'error_name',
+            'http_status_code',
+            'http_status_text',
+            'provider_error_code',
+            'response_body',
+            'batch_identifier',
+            'batch_number',
+            'successful_batch_count',
+            'event_count',
+            'first_event_id',
+            'last_event_id'
+          ]
+        ]
+      ],
+      'created_at'
+    ],
+    1
+  );

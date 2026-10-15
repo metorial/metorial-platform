@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceConsumersUpdateOutput = {
   object: 'consumer';
@@ -11,29 +11,29 @@ export type ManagementInstanceConsumersUpdateOutput = {
   updatedAt: Date;
 } & { isPortalConsumer: boolean; isOrganizationMember: boolean };
 
-export let mapManagementInstanceConsumersUpdateOutput = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      email: mtMap.objectField('email', mtMap.passthrough()),
-      imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-      userId: mtMap.objectField('user_id', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-      isPortalConsumer: mtMap.objectField(
-        'is_portal_consumer',
-        mtMap.passthrough()
-      ),
-      isOrganizationMember: mtMap.objectField(
-        'is_organization_member',
-        mtMap.passthrough()
-      )
-    })
-  )
-]);
+export let mapManagementInstanceConsumersUpdateOutput =
+  /* @__PURE__ */ createMapper<ManagementInstanceConsumersUpdateOutput>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              'image_url',
+              'user_id',
+              'created_at',
+              'updated_at',
+              'is_portal_consumer',
+              'is_organization_member'
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstanceConsumersUpdateBody = {
   name?: string | undefined;
@@ -41,8 +41,4 @@ export type ManagementInstanceConsumersUpdateBody = {
 };
 
 export let mapManagementInstanceConsumersUpdateBody =
-  mtMap.object<ManagementInstanceConsumersUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    email: mtMap.objectField('email', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<ManagementInstanceConsumersUpdateBody>(0);

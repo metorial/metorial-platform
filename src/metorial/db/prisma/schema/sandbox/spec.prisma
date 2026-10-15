@@ -1,0 +1,40 @@
+model SandboxSpec {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxResourceStatus @default(active)
+
+  identifier String @unique
+
+  memoryMiB Int
+  vcpus     Float
+  diskBytes BigInt?
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  regions SandboxSpecRegion[]
+}
+
+model SandboxSpecRegion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxResourceStatus @default(active)
+
+  genesisId String
+
+  specOid BigInt
+  spec    SandboxSpec @relation(fields: [specOid], references: [oid], onDelete: Cascade)
+
+  regionOid BigInt
+  region    SandboxRegion @relation(fields: [regionOid], references: [oid], onDelete: Cascade)
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  @@unique([specOid, regionOid])
+  @@unique([regionOid, genesisId])
+}

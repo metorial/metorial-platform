@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { isFlagEnabled } from '@metorial/module-flags';
+import { isFlagEnabled, type FlagValue } from '@metorial/module-flags';
 import { Presenter } from '@metorial/presenter';
 import { flagsType } from '../../types';
 
@@ -7,10 +7,12 @@ export let v1FlagsPresenter = Presenter.create(flagsType)
   .presenter(async ({ flags }, opts) => ({
     object: 'flags',
 
-    flags: Object.entries(flags).map(([slug, value]) => ({
-      slug,
-      value: isFlagEnabled(value)
-    }))
+    flags: Object.entries(flags)
+      .filter((entry): entry is [string, FlagValue] => typeof entry[1] != 'number')
+      .map(([slug, value]) => ({
+        slug,
+        value: isFlagEnabled(value)
+      }))
   }))
   .schema(
     v.object({

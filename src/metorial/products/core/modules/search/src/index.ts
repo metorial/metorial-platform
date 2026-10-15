@@ -2,12 +2,16 @@ import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
 import { env } from './env';
 
 type VoyagerIndex =
+  | 'firewall'
   | 'consumer'
   | 'consumerGroup'
   | 'consumerAccessRequest'
   | 'providerTemplate'
   | 'magicMcpGroup'
-  | 'magicMcpServer';
+  | 'magicMcpServer'
+  | 'sandboxImage'
+  | 'sandboxMachine'
+  | 'sandboxDisk';
 
 type VoyagerSearchInput = {
   index: VoyagerIndex;
@@ -80,6 +84,28 @@ type MagicMcpServerIndexInput = {
   description?: string | null;
 };
 
+type SandboxImageIndexInput = {
+  id: string;
+  tenantId: string;
+  name?: string | null;
+  identifier?: string | null;
+};
+
+type SandboxMachineIndexInput = {
+  id: string;
+  instanceId: string;
+  name?: string | null;
+  slug: string;
+};
+
+type SandboxDiskIndexInput = {
+  id: string;
+  instanceId: string;
+  name?: string | null;
+};
+
+export let sandboxGlobalSearchTenantId = 'sandbox_global';
+
 let getIndexName = (suffix: string) =>
   [env.service.VOYAGER_INDEX_PREFIX, 'metorial', suffix].filter(Boolean).join('_');
 
@@ -93,6 +119,10 @@ let voyagerSourcePromise: Promise<any> | null = null;
 let voyagerIndexPromises: Partial<Record<VoyagerIndex, Promise<any>>> = {};
 
 let voyagerIndexes = {
+  firewall: {
+    identifier: 'firewall',
+    name: 'Firewalls'
+  },
   consumer: {
     identifier: 'consumer',
     name: 'Consumers'
@@ -116,6 +146,18 @@ let voyagerIndexes = {
   magicMcpServer: {
     identifier: 'magic_mcp_server',
     name: 'Magic MCP Servers'
+  },
+  sandboxImage: {
+    identifier: 'sandbox_image',
+    name: 'Sandbox Images'
+  },
+  sandboxDisk: {
+    identifier: 'sandbox_disk',
+    name: 'Sandbox Disks'
+  },
+  sandboxMachine: {
+    identifier: 'sandbox_machine',
+    name: 'Sandbox Machines'
   }
 } satisfies Record<VoyagerIndex, { identifier: string; name: string }>;
 
@@ -224,6 +266,8 @@ let deleteByType = async (d: VoyagerDeleteInput) => {
   }
 };
 
+export let isSearchEnabled = () => !!voyager;
+
 export let searchConsumerIds = async (d: { instanceId: string; query: string }) =>
   await searchByIndex({
     index: 'consumer',
@@ -262,6 +306,20 @@ export let searchMagicMcpGroupIds = async (d: { instanceId: string; query: strin
 export let searchMagicMcpServerIds = async (d: { instanceId: string; query: string }) =>
   await searchByIndex({
     index: 'magicMcpServer',
+    instanceId: d.instanceId,
+    query: d.query
+  });
+
+export let searchSandboxImageIds = async (d: { tenantId: string; query: string }) =>
+  await searchByIndex({
+    index: 'sandboxImage',
+    instanceId: d.tenantId,
+    query: d.query
+  });
+
+export let searchSandboxMachineIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({
+    index: 'sandboxMachine',
     instanceId: d.instanceId,
     query: d.query
   });
@@ -404,3 +462,80 @@ export let deleteMagicMcpServerDocument = async (d: { id: string }) =>
     index: 'magicMcpServer',
     id: d.id
   });
+
+export let indexSandboxImageDocument = async (d: SandboxImageIndexInput) =>
+  await indexByType({
+    index: 'sandboxImage',
+    id: d.id,
+    instanceId: d.tenantId,
+    fields: {
+      sandboxImageId: d.id
+    },
+    body: {
+      id: d.id,
+      name: d.name ?? undefined,
+      identifier: d.identifier ?? undefined
+    }
+  });
+
+export let indexSandboxMachineDocument = async (d: SandboxMachineIndexInput) =>
+  await indexByType({
+    index: 'sandboxMachine',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: {
+      sandboxMachineId: d.id
+    },
+    body: {
+      id: d.id,
+      name: d.name ?? undefined,
+      slug: d.slug
+    }
+  });
+
+export let deleteSandboxImageDocument = async (d: { id: string }) =>
+  await deleteByType({
+    index: 'sandboxImage',
+    id: d.id
+  });
+
+export let deleteSandboxMachineDocument = async (d: { id: string }) =>
+  await deleteByType({
+    index: 'sandboxMachine',
+    id: d.id
+  });
+
+export let searchSandboxDiskIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({ index: 'sandboxDisk', instanceId: d.instanceId, query: d.query });
+
+export let indexSandboxDiskDocument = async (d: SandboxDiskIndexInput) =>
+  await indexByType({
+    index: 'sandboxDisk',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: { sandboxDiskId: d.id },
+    body: { id: d.id, name: d.name ?? undefined }
+  });
+
+export let deleteSandboxDiskDocument = async (d: { id: string }) =>
+  await deleteByType({ index: 'sandboxDisk', id: d.id });
+
+export let searchFirewallIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({ index: 'firewall', instanceId: d.instanceId, query: d.query });
+
+export let indexFirewallDocument = async (d: {
+  id: string;
+  instanceId: string;
+  name: string;
+  description?: string | null;
+}) =>
+  await indexByType({
+    index: 'firewall',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: { firewallId: d.id },
+    body: { name: d.name, description: d.description ?? undefined }
+  });
+
+export let deleteFirewallDocument = async (d: { id: string }) =>
+  await deleteByType({ index: 'firewall', id: d.id });

@@ -1,8 +1,10 @@
-import { Cases } from '../../case';
+import { getObjectProperties, validateTypeProperties } from './properties';
 import type { IntrospectedType } from '../../fetch';
 import { format } from '../../format';
 
 export let generateTypeFromIntrospectedType = async (name: string, type: IntrospectedType) => {
+  validateTypeProperties(type, name);
+
   return (await format(`export type ${name} = ${processType(type)};\n\n`)) + '\n';
 };
 
@@ -69,20 +71,12 @@ let recordType = (type: IntrospectedType): string =>
 let arrayType = (type: IntrospectedType): string =>
   `${addParenthesesIfNeeded(type, processType(type.items![0]))}[]`;
 let objectType = (type: IntrospectedType): string => {
-  let props = new Set<string>();
-
-  let properties = Object.entries(type.properties!)
-    .map(([key, value]) => {
-      key = Cases.toCamelCase(key);
-
-      if (props.has(key) || props.has(`${key}s`) || props.has(key.slice(0, -1)))
-        return undefined!;
-
-      props.add(key);
-
+  let properties = getObjectProperties(type, type.name ?? 'object').map(
+    ({ target, value }) => {
+      let key = /^[a-zA-Z_$][\w$]*$/.test(target) ? target : JSON.stringify(target);
       return `${key}${value.optional ? '?' : ''}: ${processType(value)}`;
-    })
-    .filter(Boolean);
+    }
+  );
 
   return `{ ${properties.join(', ')} }`;
 };

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderDeploymentsConfigVaultsCreateOutput = {
   object: 'provider.config_vault';
@@ -24,31 +24,19 @@ export type ProviderDeploymentsConfigVaultsCreateOutput = {
 };
 
 export let mapProviderDeploymentsConfigVaultsCreateOutput =
-  mtMap.object<ProviderDeploymentsConfigVaultsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    deployment: mtMap.objectField(
-      'deployment',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ProviderDeploymentsConfigVaultsCreateOutput>(
+    [
+      'provider_id',
+      [
+        'deployment',
+        0,
+        [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ProviderDeploymentsConfigVaultsCreateBody = {
   providerId: string;
@@ -60,15 +48,7 @@ export type ProviderDeploymentsConfigVaultsCreateBody = {
 };
 
 export let mapProviderDeploymentsConfigVaultsCreateBody =
-  mtMap.object<ProviderDeploymentsConfigVaultsCreateBody>({
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
-      'provider_deployment_id',
-      mtMap.passthrough()
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    value: mtMap.objectField('value', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<ProviderDeploymentsConfigVaultsCreateBody>([
+    'provider_id',
+    'provider_deployment_id'
+  ]);

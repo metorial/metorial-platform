@@ -1,3 +1,4 @@
+import { sandboxImageBuildContextFilePurposeSlug } from './lib/uploadPolicy';
 import { filePurposeService } from './services/filePurpose';
 
 let ensureFilePurpose = async (d: {
@@ -60,6 +61,13 @@ export let purposes = {
     slug: chatMessageAttachmentFilePurposeSlug,
     ownerType: 'instance',
     canHaveLinks: true
+  }),
+
+  sandbox_image_build_context: ensureFilePurpose({
+    name: 'Sandbox Image Build Context',
+    slug: sandboxImageBuildContextFilePurposeSlug,
+    ownerType: 'instance',
+    canHaveLinks: false
   })
 };
 
