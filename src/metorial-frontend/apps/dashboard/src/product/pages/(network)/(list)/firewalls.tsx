@@ -11,10 +11,14 @@ import {
   useCurrentProject,
   useFirewalls
 } from '@metorial/state';
+import {
+  Table as DashboardTable,
+  TableStateProvider,
+  TableStateProviderResult
+} from '@metorial/table';
 import { Button, Dialog, Input, RenderDate, Spacer, Text, showModal } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
-import { Table as DashboardTable } from '@metorial/table';
-import { TableStateProvider, TableStateProviderResult } from '@metorial/table';
 import { statusBadge } from '../_common';
 import { useNetworkManagementAccess } from '../_gate';
 
@@ -29,9 +33,10 @@ let firewallsTableState: TableStateProvider<
   FirewallsTableProps,
   Firewall,
   TableStateProviderResult<Firewall>
-> = props => {
+> = (props, { search }) => {
   let firewalls = useFirewalls(props.instance.data?.id, {
-    order: props.order ?? 'desc'
+    order: props.order ?? 'desc',
+    search: search || undefined
   });
 
   return {
@@ -47,6 +52,7 @@ let firewallsTableState: TableStateProvider<
 
 let firewallsTable = new DashboardTable<FirewallsTableProps, Firewall>('network-firewalls')
   .state(firewallsTableState)
+  .search('Search firewalls…')
   .columns([
     {
       id: 'name',
@@ -67,13 +73,13 @@ let firewallsTable = new DashboardTable<FirewallsTableProps, Firewall>('network-
     },
     {
       id: 'status',
-      isDefault: true,
+      isDefault: false,
       header: 'Status',
       render: firewall => statusBadge(firewall.status)
     },
     {
       id: 'policies',
-      isDefault: true,
+      isDefault: false,
       header: 'Policies',
       render: firewall => <Text size="2">{firewall.networkPolicies.length}</Text>
     },
@@ -82,6 +88,12 @@ let firewallsTable = new DashboardTable<FirewallsTableProps, Firewall>('network-
       isDefault: true,
       header: 'Updated',
       render: firewall => <RenderDate date={firewall.updatedAt} />
+    },
+    {
+      id: 'id',
+      isDefault: true,
+      header: 'ID',
+      render: firewall => <ID id={firewall.id} />
     }
   ])
   .link((firewall, props) => props.firewallPath(firewall.id))
@@ -94,12 +106,7 @@ let FirewallsTable = () => {
   let navigate = useNavigate();
   let { canWrite } = useNetworkManagementAccess();
   let firewallPath = (firewallId: string) =>
-    Paths.organization.instance.networkFirewall(
-      organization.data,
-      project.data,
-      instance.data,
-      firewallId
-    );
+    Paths.instance.networkFirewall(organization.data, project.data, instance.data, firewallId);
 
   return firewallsTable({
     instance,

@@ -172,7 +172,7 @@ export let FirewallLink = (p: { firewall: { id: string; name: string } }) => {
 
   return (
     <Link
-      to={Paths.organization.instance.networkFirewall(
+      to={Paths.instance.networkFirewall(
         organization.data,
         project.data,
         instance.data,
