@@ -14,11 +14,15 @@ import { theme } from '..';
 import { ButtonSize, getButtonSize } from '../button/constants';
 import { InputDescription, InputLabel } from '../input';
 import type { ColorKey } from '../theme/colors';
+import { Tooltip } from '../tooltip';
 
 export type OptionToggleItem = {
   id: string;
   label: React.ReactNode;
   disabled?: boolean;
+  tooltip?: React.ReactNode;
+  iconLeft?: React.ReactNode;
+  iconRight?: React.ReactNode;
 };
 
 let Wrapper = styled('div')`
@@ -68,16 +72,35 @@ let Indicator = styled('div')<{ $borderRadius: string }>`
   z-index: 0;
 `;
 
+let ItemTooltipTrigger = styled('span')<{ $fullWidth?: boolean }>`
+  display: inline-flex;
+  flex: ${({ $fullWidth }) => ($fullWidth ? '1 1 0' : '0 0 auto')};
+`;
+
+let ItemIcon = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
 let Item = styled(RadixToggleGroup.Item)<{
   $fullWidth?: boolean;
   $size: ButtonSize;
   $borderRadius: string;
+  $minWidth: number;
 }>`
   position: relative;
   z-index: 1;
   display: inline-flex;
   flex: ${({ $fullWidth }) => ($fullWidth ? '1 1 0' : '0 0 auto')};
-  min-width: 92px;
+  gap: 6px;
+  min-width: ${({ $minWidth }) => $minWidth}px;
   min-height: ${({ $size }) => getButtonSize($size).height};
   align-items: center;
   justify-content: center;
@@ -102,9 +125,14 @@ let Item = styled(RadixToggleGroup.Item)<{
     color: ${theme.colors.gray900};
   }
 
-  &:disabled {
+  &:disabled,
+  &[aria-disabled='true'] {
     cursor: not-allowed;
     opacity: 0.5;
+  }
+
+  &[aria-disabled='true']:hover {
+    color: ${theme.colors.gray700};
   }
 `;
 
@@ -119,7 +147,8 @@ export let OptionToggle = ({
   disabled,
   fullWidth,
   background = 'gray300',
-  size = '3'
+  size = '3',
+  itemMinWidth = 92
 }: {
   items: OptionToggleItem[];
   value: string;
@@ -132,6 +161,7 @@ export let OptionToggle = ({
   fullWidth?: boolean;
   background?: ColorKey;
   size?: ButtonSize;
+  itemMinWidth?: number;
 }) => {
   let id = useId();
   let labelId = `${id}-label`;
@@ -144,18 +174,21 @@ export let OptionToggle = ({
 
   let selectedItem = useMemo(() => items.find(item => item.id == value), [items, value]);
   let itemIds = useMemo(() => items.map(item => item.id).join('\0'), [items]);
-  let updateIndicator = useCallback((nextIndicator: { width: number; left: number } | null) => {
-    setIndicator(current => {
-      if (current === null && nextIndicator === null) return current;
-      if (current && nextIndicator) {
-        if (current.width === nextIndicator.width && current.left === nextIndicator.left) {
-          return current;
+  let updateIndicator = useCallback(
+    (nextIndicator: { width: number; left: number } | null) => {
+      setIndicator(current => {
+        if (current === null && nextIndicator === null) return current;
+        if (current && nextIndicator) {
+          if (current.width === nextIndicator.width && current.left === nextIndicator.left) {
+            return current;
+          }
         }
-      }
 
-      return nextIndicator;
-    });
-  }, []);
+        return nextIndicator;
+      });
+    },
+    []
+  );
 
   let measureIndicator = useCallback(() => {
     let root = rootRef.current;
@@ -236,6 +269,8 @@ export let OptionToggle = ({
         value={value}
         onValueChange={nextValue => {
           if (!nextValue || nextValue == value) return;
+          if (items.find(item => item.id == nextValue)?.disabled) return;
+
           onChange?.(nextValue);
         }}
         disabled={disabled}
@@ -255,21 +290,38 @@ export let OptionToggle = ({
           }}
         />
 
-        {items.map(item => (
-          <Item
-            key={item.id}
-            value={item.id}
-            disabled={disabled || item.disabled}
-            ref={element => {
-              itemRefs.current[item.id] = element;
-            }}
-            $fullWidth={fullWidth}
-            $size={size}
-            $borderRadius={itemBorderRadius}
-          >
-            {item.label}
-          </Item>
-        ))}
+        {items.map(item => {
+          let isItemDisabled = !!(disabled || item.disabled);
+          let explainsDisabled = isItemDisabled && !disabled && !!item.tooltip;
+
+          let toggleItem = (
+            <Item
+              key={item.id}
+              value={item.id}
+              disabled={isItemDisabled && !explainsDisabled}
+              aria-disabled={explainsDisabled || undefined}
+              ref={element => {
+                itemRefs.current[item.id] = element;
+              }}
+              $fullWidth={fullWidth}
+              $size={size}
+              $borderRadius={itemBorderRadius}
+              $minWidth={itemMinWidth}
+            >
+              {item.iconLeft && <ItemIcon>{item.iconLeft}</ItemIcon>}
+              {item.label}
+              {item.iconRight && <ItemIcon>{item.iconRight}</ItemIcon>}
+            </Item>
+          );
+
+          if (!item.tooltip) return toggleItem;
+
+          return (
+            <Tooltip key={item.id} content={item.tooltip}>
+              <ItemTooltipTrigger $fullWidth={fullWidth}>{toggleItem}</ItemTooltipTrigger>
+            </Tooltip>
+          );
+        })}
       </Root>
     </Wrapper>
   );
