@@ -2,13 +2,19 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxDisksGetOutput = {
   object: 'sandbox.disk';
+  metadata: Record<string, any>;
   id: string;
   type: 'standard' | 'root_fs';
   name: string | null;
   status: 'active' | 'cloning' | 'deleting' | 'deleted' | 'sealed';
   region: string;
-  sizeBytes: number;
-  machine: { id: string; mountPath: string } | null;
+  sizeBytes: number | null;
+  machine: {
+    id: string;
+    name: string | null;
+    slug: string | null;
+    mountPath: string;
+  } | null;
   activeResize: { id: string; status: string; targetSizeBytes: number } | null;
   createdAt: Date;
   updatedAt: Date;

@@ -6,6 +6,7 @@ export type ManagementInstanceSandboxImagesBuildsListOutput = {
     id: string;
     imageId: string;
     versionId: string;
+    versionNumber: number | null;
     fileId: string | null;
     status:
       | 'preparing'
@@ -28,6 +29,11 @@ export type ManagementInstanceSandboxImagesBuildsListOutput = {
         | 'internal_error';
       message: string;
     } | null;
+    dockerfilePath: string | null;
+    contextPath: string | null;
+    target: string | null;
+    buildArgNames: string[] | null;
+    timeoutSeconds: number | null;
     diskSizeBytes: number;
     regions: {
       region: string;
@@ -62,7 +68,12 @@ export let mapManagementInstanceSandboxImagesBuildsListOutput =
         [
           'image_id',
           'version_id',
+          'version_number',
           'file_id',
+          'dockerfile_path',
+          'context_path',
+          'build_arg_names',
+          'timeout_seconds',
           'disk_size_bytes',
           'has_logs',
           'context_uploaded_at',
@@ -82,6 +93,7 @@ export type ManagementInstanceSandboxImagesBuildsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  imageVersionId?: string | string[] | undefined;
   status?:
     | 'preparing'
     | 'queued'
@@ -107,6 +119,7 @@ export type ManagementInstanceSandboxImagesBuildsListQuery = {
 };
 
 export let mapManagementInstanceSandboxImagesBuildsListQuery =
-  /* @__PURE__ */ createMapper<ManagementInstanceSandboxImagesBuildsListQuery>(
-    0
-  );
+  /* @__PURE__ */ createMapper<ManagementInstanceSandboxImagesBuildsListQuery>([
+    3,
+    [[0, [1, ['image_version_id']]]]
+  ]);

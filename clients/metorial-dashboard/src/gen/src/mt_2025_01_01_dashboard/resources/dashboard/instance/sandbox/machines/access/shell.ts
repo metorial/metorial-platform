@@ -5,7 +5,12 @@ export type DashboardInstanceSandboxMachinesAccessShellOutput = {
   token: string;
   scope: 'shell' | 'files' | 'port';
   ports: number[] | '*' | null;
-  urls: { shell: string; files: string; ports: Record<string, string> };
+  urls: {
+    type: 'shell' | 'files' | 'port';
+    shell: string | null;
+    files: string | null;
+    ports: Record<string, string> | null;
+  };
   expiresAt: Date;
 };
 

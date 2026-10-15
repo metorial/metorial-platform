@@ -6,13 +6,16 @@ export type DashboardInstanceSandboxRegionsListOutput = {
     id: string;
     name: string;
     area: { id: string; name: string };
+    isDefault: boolean;
+    availability: 'available' | 'unavailable';
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceSandboxRegionsListOutput =
   /* @__PURE__ */ createMapper<DashboardInstanceSandboxRegionsListOutput>([
-    7, 0
+    7,
+    [1, ['is_default']]
   ]);
 
 export type DashboardInstanceSandboxRegionsListQuery = {

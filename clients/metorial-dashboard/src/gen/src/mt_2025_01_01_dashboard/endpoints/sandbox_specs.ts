@@ -41,7 +41,7 @@ export class MetorialSandboxSpecsEndpoint {
 
   /**
    * @name List sandbox specs
-   * @description Returns a paginated list of available machine specs.
+   * @description Returns a paginated list of machine specs. The available field shows whether your plan allows creating machines of that size.
    *
    * @param `query` - DashboardInstanceSandboxSpecsListQuery
    * @param `opts` - { headers?: Record<string, string> }

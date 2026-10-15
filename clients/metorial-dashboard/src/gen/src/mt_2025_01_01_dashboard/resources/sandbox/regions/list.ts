@@ -6,12 +6,17 @@ export type SandboxRegionsListOutput = {
     id: string;
     name: string;
     area: { id: string; name: string };
+    isDefault: boolean;
+    availability: 'available' | 'unavailable';
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapSandboxRegionsListOutput =
-  /* @__PURE__ */ createMapper<SandboxRegionsListOutput>([7, 0]);
+  /* @__PURE__ */ createMapper<SandboxRegionsListOutput>([
+    7,
+    [1, ['is_default']]
+  ]);
 
 export type SandboxRegionsListQuery = {
   limit?: number | undefined;

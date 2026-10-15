@@ -33,43 +33,45 @@ export type DashboardInstanceSandboxMachinesUsageTimelineOutput = {
 };
 
 export let mapDashboardInstanceSandboxMachinesUsageTimelineOutput =
-  /* @__PURE__ */ mapObject<DashboardInstanceSandboxMachinesUsageTimelineOutput>([
-    'machine_id',
-    ['from', 0, 4],
-    ['to', 0, 4],
-    'group_by',
+  /* @__PURE__ */ mapObject<DashboardInstanceSandboxMachinesUsageTimelineOutput>(
     [
-      'series',
-      0,
+      'machine_id',
+      ['from', 0, 4],
+      ['to', 0, 4],
+      'group_by',
       [
-        2,
+        'series',
+        0,
         [
-          1,
+          2,
           [
-            ['group', 0, [1, ['machine_instance_id']]],
+            1,
             [
-              'points',
-              0,
+              ['group', 0, [1, ['machine_instance_id']]],
               [
-                2,
+                'points',
+                0,
                 [
-                  1,
+                  2,
                   [
-                    ['timestamp', 0, 4],
-                    'runtime_seconds',
-                    'cpu_core_seconds',
-                    'average_cores_used',
-                    'cpu_percent',
-                    'peak_cores_used',
-                    'memory_byte_seconds',
-                    'average_memory_used_bytes',
-                    'peak_memory_used_bytes',
-                    'allocated_memory_byte_seconds',
-                    'average_memory_allocated_bytes',
-                    'network_rx_bytes',
-                    'network_tx_bytes',
-                    'disk_read_bytes',
-                    'disk_write_bytes'
+                    1,
+                    [
+                      ['timestamp', 0, 4],
+                      'runtime_seconds',
+                      'cpu_core_seconds',
+                      'average_cores_used',
+                      'cpu_percent',
+                      'peak_cores_used',
+                      'memory_byte_seconds',
+                      'average_memory_used_bytes',
+                      'peak_memory_used_bytes',
+                      'allocated_memory_byte_seconds',
+                      'average_memory_allocated_bytes',
+                      'network_rx_bytes',
+                      'network_tx_bytes',
+                      'disk_read_bytes',
+                      'disk_write_bytes'
+                    ]
                   ]
                 ]
               ]
@@ -78,7 +80,7 @@ export let mapDashboardInstanceSandboxMachinesUsageTimelineOutput =
         ]
       ]
     ]
-  ]);
+  );
 
 export type DashboardInstanceSandboxMachinesUsageTimelineQuery = {
   from: Date;
@@ -86,14 +88,25 @@ export type DashboardInstanceSandboxMachinesUsageTimelineQuery = {
   machineInstanceId?: string | string[] | undefined;
   groupBy?: 'machine_instance' | undefined;
   maxSeries?: number | undefined;
-  interval?: '1m' | '5m' | '15m' | '30m' | '1h' | '6h' | '12h' | '1d' | undefined;
+  interval?:
+    | '1m'
+    | '5m'
+    | '15m'
+    | '30m'
+    | '1h'
+    | '6h'
+    | '12h'
+    | '1d'
+    | undefined;
 };
 
 export let mapDashboardInstanceSandboxMachinesUsageTimelineQuery =
-  /* @__PURE__ */ mapObject<DashboardInstanceSandboxMachinesUsageTimelineQuery>([
-    ['from', 0, 4],
-    ['to', 0, 4],
-    'machine_instance_id',
-    'group_by',
-    'max_series'
-  ]);
+  /* @__PURE__ */ mapObject<DashboardInstanceSandboxMachinesUsageTimelineQuery>(
+    [
+      ['from', 0, 4],
+      ['to', 0, 4],
+      'machine_instance_id',
+      'group_by',
+      'max_series'
+    ]
+  );

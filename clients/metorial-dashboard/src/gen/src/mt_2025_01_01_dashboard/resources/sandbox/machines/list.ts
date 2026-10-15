@@ -3,6 +3,7 @@ import { createMapper } from '@metorial/util-resource-mapper/compact';
 export type SandboxMachinesListOutput = {
   items: {
     object: 'sandbox.machine';
+    metadata: Record<string, any>;
     id: string;
     status:
       | 'starting'
@@ -18,10 +19,20 @@ export type SandboxMachinesListOutput = {
       | 'terminated'
       | 'failed';
     name: string | null;
-    slug: string;
+    slug: string | null;
     region: string;
-    image: { id: string | null; versionId: string | null };
-    spec: { id: string | null; memoryMib: number; vcpus: number };
+    image: {
+      id: string | null;
+      name: string | null;
+      identifier: string | null;
+      versionId: string | null;
+    };
+    spec: {
+      id: string | null;
+      identifier: string;
+      memoryGib: number;
+      cpus: number;
+    } | null;
     rootDisk: { id: string; sizeBytes: number | null } | null;
     mounts: {
       diskId: string;
@@ -66,7 +77,14 @@ export type SandboxMachinesListOutput = {
     entrypointWaitSeconds: number | null;
     operation: {
       id: string;
-      kind: 'start' | 'pause' | 'hibernate' | 'restart' | 'terminate';
+      kind:
+        | 'start'
+        | 'pause'
+        | 'hibernate'
+        | 'restart'
+        | 'terminate'
+        | 'update'
+        | 'upgrade';
       trigger:
         | 'api'
         | 'access'
@@ -92,6 +110,7 @@ export type SandboxMachinesListOutput = {
         | 'terminated'
         | 'failed';
     } | null;
+    restartRequired: boolean;
     lastActivityAt: Date | null;
     pauseAt: Date | null;
     hibernatesAt: Date | null;
@@ -128,7 +147,7 @@ export let mapSandboxMachinesListOutput =
         1,
         [
           ['image', 0, [1, ['version_id']]],
-          ['spec', 0, [1, ['memory_mib']]],
+          ['spec', 0, [1, ['memory_gib']]],
           ['root_disk', 1, [1, ['size_bytes']]],
           ['mounts', 0, [2, [1, ['disk_id', 'mount_path']]]],
           'firewall_ids',
@@ -151,6 +170,7 @@ export let mapSandboxMachinesListOutput =
           'entrypoint_wait_seconds',
           ['operation', 0, [1, ['requested_at']]],
           'current_instance',
+          'restart_required',
           'last_activity_at',
           'pause_at',
           'hibernates_at',
@@ -172,7 +192,44 @@ export type SandboxMachinesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { status?: 'active' | 'deleted' | ('active' | 'deleted')[] | undefined };
+} & {
+  id?: string | string[] | undefined;
+  status?: 'active' | 'deleted' | ('active' | 'deleted')[] | undefined;
+  state?:
+    | 'starting'
+    | 'running'
+    | 'pausing'
+    | 'paused'
+    | 'resuming'
+    | 'hibernating'
+    | 'hibernated'
+    | 'restarting'
+    | 'upgrading'
+    | 'terminating'
+    | 'terminated'
+    | 'failed'
+    | (
+        | 'starting'
+        | 'running'
+        | 'pausing'
+        | 'paused'
+        | 'resuming'
+        | 'hibernating'
+        | 'hibernated'
+        | 'restarting'
+        | 'upgrading'
+        | 'terminating'
+        | 'terminated'
+        | 'failed'
+      )[]
+    | undefined;
+  imageId?: string | string[] | undefined;
+  region?: string | string[] | undefined;
+  search?: string | undefined;
+};
 
 export let mapSandboxMachinesListQuery =
-  /* @__PURE__ */ createMapper<SandboxMachinesListQuery>(0);
+  /* @__PURE__ */ createMapper<SandboxMachinesListQuery>([
+    3,
+    [[0, [1, ['image_id']]]]
+  ]);

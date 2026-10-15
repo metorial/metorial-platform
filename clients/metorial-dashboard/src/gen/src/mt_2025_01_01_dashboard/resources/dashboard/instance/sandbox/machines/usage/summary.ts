@@ -31,40 +31,42 @@ export type DashboardInstanceSandboxMachinesUsageSummaryOutput = {
 };
 
 export let mapDashboardInstanceSandboxMachinesUsageSummaryOutput =
-  /* @__PURE__ */ mapObject<DashboardInstanceSandboxMachinesUsageSummaryOutput>([
-    'machine_id',
-    ['from', 0, 4],
-    ['to', 0, 4],
-    'group_by',
+  /* @__PURE__ */ mapObject<DashboardInstanceSandboxMachinesUsageSummaryOutput>(
     [
-      'groups',
-      0,
+      'machine_id',
+      ['from', 0, 4],
+      ['to', 0, 4],
+      'group_by',
       [
-        2,
+        'groups',
+        0,
         [
-          1,
+          2,
           [
-            ['group', 0, [1, ['machine_instance_id']]],
+            1,
             [
-              'totals',
-              0,
+              ['group', 0, [1, ['machine_instance_id']]],
               [
-                1,
+                'totals',
+                0,
                 [
-                  'runtime_seconds',
-                  'cpu_core_seconds',
-                  'average_cores_used',
-                  'cpu_percent',
-                  'peak_cores_used',
-                  'memory_byte_seconds',
-                  'average_memory_used_bytes',
-                  'peak_memory_used_bytes',
-                  'allocated_memory_byte_seconds',
-                  'average_memory_allocated_bytes',
-                  'network_rx_bytes',
-                  'network_tx_bytes',
-                  'disk_read_bytes',
-                  'disk_write_bytes'
+                  1,
+                  [
+                    'runtime_seconds',
+                    'cpu_core_seconds',
+                    'average_cores_used',
+                    'cpu_percent',
+                    'peak_cores_used',
+                    'memory_byte_seconds',
+                    'average_memory_used_bytes',
+                    'peak_memory_used_bytes',
+                    'allocated_memory_byte_seconds',
+                    'average_memory_allocated_bytes',
+                    'network_rx_bytes',
+                    'network_tx_bytes',
+                    'disk_read_bytes',
+                    'disk_write_bytes'
+                  ]
                 ]
               ]
             ]
@@ -72,7 +74,7 @@ export let mapDashboardInstanceSandboxMachinesUsageSummaryOutput =
         ]
       ]
     ]
-  ]);
+  );
 
 export type DashboardInstanceSandboxMachinesUsageSummaryQuery = {
   from: Date;

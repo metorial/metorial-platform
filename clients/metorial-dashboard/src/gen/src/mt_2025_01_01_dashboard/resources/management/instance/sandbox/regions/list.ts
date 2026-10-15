@@ -6,13 +6,16 @@ export type ManagementInstanceSandboxRegionsListOutput = {
     id: string;
     name: string;
     area: { id: string; name: string };
+    isDefault: boolean;
+    availability: 'available' | 'unavailable';
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceSandboxRegionsListOutput =
   /* @__PURE__ */ createMapper<ManagementInstanceSandboxRegionsListOutput>([
-    7, 0
+    7,
+    [1, ['is_default']]
   ]);
 
 export type ManagementInstanceSandboxRegionsListQuery = {

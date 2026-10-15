@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceSandboxMachinesUsageSummaryOutput,
@@ -62,7 +65,9 @@ export class MetorialDashboardInstanceSandboxMachinesUsageEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceSandboxMachinesUsageTimelineQuery.transformTo(query)
+        ? mapDashboardInstanceSandboxMachinesUsageTimelineQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -96,11 +101,15 @@ export class MetorialDashboardInstanceSandboxMachinesUsageEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceSandboxMachinesUsageSummaryQuery.transformTo(query)
+        ? mapDashboardInstanceSandboxMachinesUsageSummaryQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSandboxMachinesUsageSummaryOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSandboxMachinesUsageSummaryOutput
+    );
   }
 }

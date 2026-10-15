@@ -105,6 +105,22 @@ import {
   MetorialDashboardInstanceProvidersVersionsEndpoint,
   MetorialDashboardInstanceProviderTemplatesEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
+  MetorialDashboardInstanceSandboxDisksEndpoint,
+  MetorialDashboardInstanceSandboxDisksMountsEndpoint,
+  MetorialDashboardInstanceSandboxDisksResizesEndpoint,
+  MetorialDashboardInstanceSandboxImageBuildsEndpoint,
+  MetorialDashboardInstanceSandboxImagesBuildsEndpoint,
+  MetorialDashboardInstanceSandboxImagesEndpoint,
+  MetorialDashboardInstanceSandboxImagesVersionsEndpoint,
+  MetorialDashboardInstanceSandboxMachinesAccessEndpoint,
+  MetorialDashboardInstanceSandboxMachinesEndpoint,
+  MetorialDashboardInstanceSandboxMachinesErrorsEndpoint,
+  MetorialDashboardInstanceSandboxMachinesEventsEndpoint,
+  MetorialDashboardInstanceSandboxMachinesInstancesEndpoint,
+  MetorialDashboardInstanceSandboxMachinesOperationsEndpoint,
+  MetorialDashboardInstanceSandboxMachinesUsageEndpoint,
+  MetorialDashboardInstanceSandboxRegionsEndpoint,
+  MetorialDashboardInstanceSandboxSpecsEndpoint,
   MetorialDashboardInstanceScmAccountsEndpoint,
   MetorialDashboardInstanceScmConnectionsEndpoint,
   MetorialDashboardInstanceScmInstallationEndpoint,
@@ -282,15 +298,27 @@ let notifyUploadProgress = (
   });
 };
 
+let createUploadAbortError = () =>
+  new DOMException('The file upload was aborted', 'AbortError');
+
+let isAbortError = (error: unknown) =>
+  error instanceof Error && (error.name == 'AbortError' || error.name == 'TimeoutError');
+
 let sendWithUploadProgress = (opts: {
   url: string;
   method: string;
   body: Blob | FormData | string;
   headers?: Record<string, string>;
   credentials?: RequestCredentials;
+  signal?: AbortSignal;
   onProgress?: (progress: MetorialFileUploadProgress) => void;
 }) =>
   new Promise<{ ok: boolean; status: number; text: string }>((resolve, reject) => {
+    if (opts.signal?.aborted) {
+      reject(createUploadAbortError());
+      return;
+    }
+
     if (typeof XMLHttpRequest == 'undefined') {
       fetch(opts.url, {
         method: opts.method,
@@ -300,7 +328,8 @@ let sendWithUploadProgress = (opts: {
         redirect: 'follow',
         referrerPolicy: 'no-referrer-when-downgrade',
         cache: 'no-cache',
-        mode: 'cors'
+        mode: 'cors',
+        signal: opts.signal
       })
         .then(async res => {
           resolve({
@@ -338,7 +367,8 @@ let sendWithUploadProgress = (opts: {
       });
     };
     xhr.onerror = () => reject(new Error('Network error during file upload'));
-    xhr.onabort = () => reject(new Error('File upload was aborted'));
+    xhr.onabort = () => reject(createUploadAbortError());
+    opts.signal?.addEventListener('abort', () => xhr.abort(), { once: true });
     xhr.send(opts.body);
   });
 
@@ -533,6 +563,39 @@ let createAssistantRequestDeltaConnection = (
   };
 };
 
+let createSandboxSdk = (manager: MetorialEndpointManager<any>) => {
+  let machines = new MetorialDashboardInstanceSandboxMachinesEndpoint(manager);
+  let machineUsage = new MetorialDashboardInstanceSandboxMachinesUsageEndpoint(manager);
+
+  return {
+    machines: Object.assign(machines, {
+      usage: Object.assign(machines.usage.bind(machines), {
+        timeline: machineUsage.timeline.bind(machineUsage),
+        summary: machineUsage.summary.bind(machineUsage)
+      }),
+      access: new MetorialDashboardInstanceSandboxMachinesAccessEndpoint(manager),
+      errors: new MetorialDashboardInstanceSandboxMachinesErrorsEndpoint(manager),
+      events: new MetorialDashboardInstanceSandboxMachinesEventsEndpoint(manager),
+      instances: new MetorialDashboardInstanceSandboxMachinesInstancesEndpoint(manager),
+      operations: new MetorialDashboardInstanceSandboxMachinesOperationsEndpoint(manager)
+    }),
+
+    images: Object.assign(new MetorialDashboardInstanceSandboxImagesEndpoint(manager), {
+      builds: new MetorialDashboardInstanceSandboxImagesBuildsEndpoint(manager),
+      versions: new MetorialDashboardInstanceSandboxImagesVersionsEndpoint(manager)
+    }),
+    imageBuilds: new MetorialDashboardInstanceSandboxImageBuildsEndpoint(manager),
+
+    disks: Object.assign(new MetorialDashboardInstanceSandboxDisksEndpoint(manager), {
+      mounts: new MetorialDashboardInstanceSandboxDisksMountsEndpoint(manager),
+      resizes: new MetorialDashboardInstanceSandboxDisksResizesEndpoint(manager)
+    }),
+
+    specs: new MetorialDashboardInstanceSandboxSpecsEndpoint(manager),
+    regions: new MetorialDashboardInstanceSandboxRegionsEndpoint(manager)
+  };
+};
+
 export let createMetorialDashboardSDK = sdkBuilder.build(
   (soft: {
     apiVersion?: '2025-01-01-dashboard';
@@ -599,6 +662,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
   instances: new MetorialDashboardOrganizationsInstancesEndpoint(manager),
   sandboxes: new MetorialDashboardOrganizationsSandboxesEndpoint(manager),
+  sandbox: createSandboxSdk(manager),
   projects: Object.assign(new MetorialDashboardOrganizationsProjectsEndpoint(manager), {
     branding: new MetorialDashboardOrganizationsProjectsBrandingEndpoint(manager),
     configureAuthConfig: new MetorialDashboardProjectsConfigureAuthConfigEndpoint(manager),
@@ -636,6 +700,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       };
       storeReplace?: boolean;
       mode?: MetorialFileUploadMode;
+      signal?: AbortSignal;
       onProgress?: (progress: MetorialFileUploadProgress) => void;
     }) => {
       let base = manager.apiHost;
@@ -678,6 +743,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
                 body,
                 headers: requestHeaders,
                 credentials: 'include',
+                signal: input.signal,
                 onProgress
               })
             : await fetch(`${base}files`, {
@@ -691,7 +757,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
                 redirect: 'follow',
                 referrerPolicy: 'no-referrer-when-downgrade',
                 cache: 'no-cache',
-                mode: 'cors'
+                mode: 'cors',
+                signal: input.signal
               }).then(async response => ({
                 ok: response.ok,
                 status: response.status,
@@ -742,6 +809,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
               method: pending.upload.method ?? 'PUT',
               body: input.file,
               headers: input.file.type ? { 'Content-Type': input.file.type } : undefined,
+              signal: input.signal,
               onProgress: input.onProgress
             })
           : await fetch(pending.upload.url, {
@@ -749,7 +817,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
               body: input.file,
               ...(input.file.type ? { headers: { 'Content-Type': input.file.type } } : {}),
               cache: 'no-cache',
-              mode: 'cors'
+              mode: 'cors',
+              signal: input.signal
             }).then(async response => ({
               ok: response.ok,
               status: response.status,
@@ -785,6 +854,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
           return mapDashboardInstanceFilesGetOutput.transformFrom(json);
         } catch (error) {
+          if (input.signal?.aborted || isAbortError(error)) throw error;
+
           if (!(error instanceof MetorialSDKError) && attempt < 2) {
             console.warn('File upload failed, retrying...', error);
             attempt++;

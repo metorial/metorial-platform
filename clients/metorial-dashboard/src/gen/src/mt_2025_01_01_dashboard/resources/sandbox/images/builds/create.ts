@@ -5,6 +5,7 @@ export type SandboxImagesBuildsCreateOutput = {
   id: string;
   imageId: string;
   versionId: string;
+  versionNumber: number | null;
   fileId: string | null;
   status:
     | 'preparing'
@@ -27,6 +28,11 @@ export type SandboxImagesBuildsCreateOutput = {
       | 'internal_error';
     message: string;
   } | null;
+  dockerfilePath: string | null;
+  contextPath: string | null;
+  target: string | null;
+  buildArgNames: string[] | null;
+  timeoutSeconds: number | null;
   diskSizeBytes: number;
   regions: {
     region: string;
@@ -55,7 +61,12 @@ export let mapSandboxImagesBuildsCreateOutput =
     [
       'image_id',
       'version_id',
+      'version_number',
       'file_id',
+      'dockerfile_path',
+      'context_path',
+      'build_arg_names',
+      'timeout_seconds',
       'disk_size_bytes',
       'has_logs',
       'context_uploaded_at',
@@ -74,7 +85,6 @@ export type SandboxImagesBuildsCreateBody = {
   buildArgs?: Record<string, string> | undefined;
   timeoutSeconds?: number | undefined;
   diskSizeBytes?: number | undefined;
-  builderMemoryMib?: number | undefined;
 };
 
 export let mapSandboxImagesBuildsCreateBody =
@@ -84,6 +94,5 @@ export let mapSandboxImagesBuildsCreateBody =
     'context_path',
     'build_args',
     'timeout_seconds',
-    'disk_size_bytes',
-    'builder_memory_mib'
+    'disk_size_bytes'
   ]);

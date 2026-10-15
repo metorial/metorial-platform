@@ -86,7 +86,16 @@ export type SandboxMachinesUsageTimelineQuery = {
   machineInstanceId?: string | string[] | undefined;
   groupBy?: 'machine_instance' | undefined;
   maxSeries?: number | undefined;
-  interval?: '1m' | '5m' | '15m' | '30m' | '1h' | '6h' | '12h' | '1d' | undefined;
+  interval?:
+    | '1m'
+    | '5m'
+    | '15m'
+    | '30m'
+    | '1h'
+    | '6h'
+    | '12h'
+    | '1d'
+    | undefined;
 };
 
 export let mapSandboxMachinesUsageTimelineQuery =

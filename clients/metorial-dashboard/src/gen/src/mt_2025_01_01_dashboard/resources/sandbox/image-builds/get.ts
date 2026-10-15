@@ -5,6 +5,7 @@ export type SandboxImageBuildsGetOutput = {
   id: string;
   imageId: string;
   versionId: string;
+  versionNumber: number | null;
   fileId: string | null;
   status:
     | 'preparing'
@@ -27,6 +28,11 @@ export type SandboxImageBuildsGetOutput = {
       | 'internal_error';
     message: string;
   } | null;
+  dockerfilePath: string | null;
+  contextPath: string | null;
+  target: string | null;
+  buildArgNames: string[] | null;
+  timeoutSeconds: number | null;
   diskSizeBytes: number;
   regions: {
     region: string;
@@ -55,7 +61,12 @@ export let mapSandboxImageBuildsGetOutput =
     [
       'image_id',
       'version_id',
+      'version_number',
       'file_id',
+      'dockerfile_path',
+      'context_path',
+      'build_arg_names',
+      'timeout_seconds',
       'disk_size_bytes',
       'has_logs',
       'context_uploaded_at',

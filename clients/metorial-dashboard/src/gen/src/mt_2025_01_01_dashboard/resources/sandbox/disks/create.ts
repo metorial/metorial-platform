@@ -2,13 +2,19 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxDisksCreateOutput = {
   object: 'sandbox.disk';
+  metadata: Record<string, any>;
   id: string;
   type: 'standard' | 'root_fs';
   name: string | null;
   status: 'active' | 'cloning' | 'deleting' | 'deleted' | 'sealed';
   region: string;
-  sizeBytes: number;
-  machine: { id: string; mountPath: string } | null;
+  sizeBytes: number | null;
+  machine: {
+    id: string;
+    name: string | null;
+    slug: string | null;
+    mountPath: string;
+  } | null;
   activeResize: { id: string; status: string; targetSizeBytes: number } | null;
   createdAt: Date;
   updatedAt: Date;
@@ -30,13 +36,10 @@ export let mapSandboxDisksCreateOutput =
 
 export type SandboxDisksCreateBody = {
   region: string;
+  metadata?: Record<string, any> | undefined;
   name?: string | undefined;
   sizeBytes?: number | undefined;
-  idempotencyKey?: string | undefined;
 };
 
 export let mapSandboxDisksCreateBody =
-  /* @__PURE__ */ mapObject<SandboxDisksCreateBody>([
-    'size_bytes',
-    'idempotency_key'
-  ]);
+  /* @__PURE__ */ mapObject<SandboxDisksCreateBody>(['size_bytes']);

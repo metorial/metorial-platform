@@ -43,7 +43,7 @@ export class MetorialManagementInstanceSandboxDisksResizesEndpoint {
 
   /**
    * @name List disk resizes
-   * @description Returns a paginated list of the resizes of a disk, newest first.
+   * @description Returns a paginated list of the resizes of a disk.
    *
    * @param `instanceId` - string
    * @param `diskId` - string

@@ -142,7 +142,7 @@ export class MetorialManagementInstanceSandboxImagesEndpoint {
 
   /**
    * @name Update sandbox image
-   * @description Renames one of your images.
+   * @description Updates the name and metadata of one of your images.
    *
    * @param `instanceId` - string
    * @param `imageId` - string

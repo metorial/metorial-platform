@@ -2,6 +2,7 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSandboxMachinesCreateOutput = {
   object: 'sandbox.machine';
+  metadata: Record<string, any>;
   id: string;
   status:
     | 'starting'
@@ -17,10 +18,20 @@ export type DashboardInstanceSandboxMachinesCreateOutput = {
     | 'terminated'
     | 'failed';
   name: string | null;
-  slug: string;
+  slug: string | null;
   region: string;
-  image: { id: string | null; versionId: string | null };
-  spec: { id: string | null; memoryMib: number; vcpus: number };
+  image: {
+    id: string | null;
+    name: string | null;
+    identifier: string | null;
+    versionId: string | null;
+  };
+  spec: {
+    id: string | null;
+    identifier: string;
+    memoryGib: number;
+    cpus: number;
+  } | null;
   rootDisk: { id: string; sizeBytes: number | null } | null;
   mounts: {
     diskId: string;
@@ -65,7 +76,14 @@ export type DashboardInstanceSandboxMachinesCreateOutput = {
   entrypointWaitSeconds: number | null;
   operation: {
     id: string;
-    kind: 'start' | 'pause' | 'hibernate' | 'restart' | 'terminate';
+    kind:
+      | 'start'
+      | 'pause'
+      | 'hibernate'
+      | 'restart'
+      | 'terminate'
+      | 'update'
+      | 'upgrade';
     trigger:
       | 'api'
       | 'access'
@@ -91,6 +109,7 @@ export type DashboardInstanceSandboxMachinesCreateOutput = {
       | 'terminated'
       | 'failed';
   } | null;
+  restartRequired: boolean;
   lastActivityAt: Date | null;
   pauseAt: Date | null;
   hibernatesAt: Date | null;
@@ -121,7 +140,7 @@ export let mapDashboardInstanceSandboxMachinesCreateOutput =
   /* @__PURE__ */ mapObject<DashboardInstanceSandboxMachinesCreateOutput>(
     [
       ['image', 0, [1, ['version_id']]],
-      ['spec', 0, [1, ['memory_mib']]],
+      ['spec', 0, [1, ['memory_gib']]],
       ['root_disk', 1, [1, ['size_bytes']]],
       ['mounts', 0, [2, [1, ['disk_id', 'mount_path']]]],
       'firewall_ids',
@@ -144,6 +163,7 @@ export let mapDashboardInstanceSandboxMachinesCreateOutput =
       'entrypoint_wait_seconds',
       ['operation', 0, [1, ['requested_at']]],
       'current_instance',
+      'restart_required',
       'last_activity_at',
       'pause_at',
       'hibernates_at',
@@ -159,9 +179,13 @@ export let mapDashboardInstanceSandboxMachinesCreateOutput =
 
 export type DashboardInstanceSandboxMachinesCreateBody = {
   region: string;
+  metadata?: Record<string, any> | undefined;
   name?: string | undefined;
   imageId: string;
-  specId: string;
+  specId?: string | undefined;
+  specIdentifier?: string | undefined;
+  memoryGib?: number | undefined;
+  cpus?: number | undefined;
   lifecyclePolicy?:
     | {
         pauseAfterIdleSeconds?: number | null | undefined;
@@ -239,7 +263,6 @@ export type DashboardInstanceSandboxMachinesCreateBody = {
   mounts?: { diskId: string; mountPath: string }[] | undefined;
   firewallIds?: string[] | undefined;
   publicPorts?: number[] | undefined;
-  idempotencyKey?: string | undefined;
   start?: boolean | undefined;
 };
 
@@ -247,6 +270,8 @@ export let mapDashboardInstanceSandboxMachinesCreateBody =
   /* @__PURE__ */ mapObject<DashboardInstanceSandboxMachinesCreateBody>([
     'image_id',
     'spec_id',
+    'spec_identifier',
+    'memory_gib',
     [
       'lifecycle_policy',
       1,
@@ -265,6 +290,5 @@ export let mapDashboardInstanceSandboxMachinesCreateBody =
     'entrypoint_wait_seconds',
     ['mounts', 0, [2, [1, ['disk_id', 'mount_path']]]],
     'firewall_ids',
-    'public_ports',
-    'idempotency_key'
+    'public_ports'
   ]);

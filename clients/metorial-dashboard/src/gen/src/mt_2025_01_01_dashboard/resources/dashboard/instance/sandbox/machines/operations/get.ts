@@ -4,7 +4,14 @@ export type DashboardInstanceSandboxMachinesOperationsGetOutput = {
   object: 'sandbox.machine.operation';
   id: string;
   machineId: string;
-  kind: 'start' | 'pause' | 'hibernate' | 'restart' | 'terminate';
+  kind:
+    | 'start'
+    | 'pause'
+    | 'hibernate'
+    | 'restart'
+    | 'terminate'
+    | 'update'
+    | 'upgrade';
   trigger:
     | 'api'
     | 'access'

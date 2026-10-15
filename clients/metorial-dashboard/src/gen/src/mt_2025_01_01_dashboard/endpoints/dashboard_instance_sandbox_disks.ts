@@ -14,6 +14,8 @@ import {
   mapDashboardInstanceSandboxDisksListQuery,
   mapDashboardInstanceSandboxDisksResizeBody,
   mapDashboardInstanceSandboxDisksResizeOutput,
+  mapDashboardInstanceSandboxDisksUpdateBody,
+  mapDashboardInstanceSandboxDisksUpdateOutput,
   type DashboardInstanceSandboxDisksCloneBody,
   type DashboardInstanceSandboxDisksCloneOutput,
   type DashboardInstanceSandboxDisksCreateBody,
@@ -23,7 +25,9 @@ import {
   type DashboardInstanceSandboxDisksListOutput,
   type DashboardInstanceSandboxDisksListQuery,
   type DashboardInstanceSandboxDisksResizeBody,
-  type DashboardInstanceSandboxDisksResizeOutput
+  type DashboardInstanceSandboxDisksResizeOutput,
+  type DashboardInstanceSandboxDisksUpdateBody,
+  type DashboardInstanceSandboxDisksUpdateOutput
 } from '../resources';
 
 /**
@@ -141,6 +145,38 @@ export class MetorialDashboardInstanceSandboxDisksEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceSandboxDisksCreateOutput
+    );
+  }
+
+  /**
+   * @name Update sandbox disk
+   * @description Updates a disk name and metadata. Only metadata can be updated for root filesystem disks.
+   *
+   * @param `instanceId` - string
+   * @param `diskId` - string
+   * @param `body` - DashboardInstanceSandboxDisksUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSandboxDisksUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    instanceId: string,
+    diskId: string,
+    body: DashboardInstanceSandboxDisksUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSandboxDisksUpdateOutput> {
+    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSandboxDisksUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstanceSandboxDisksUpdateOutput
     );
   }
 

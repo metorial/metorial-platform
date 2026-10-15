@@ -17,7 +17,12 @@ export type SandboxMachinesInstancesGetOutput = {
     | 'failed';
   creationReason: string | null;
   image: { id: string | null; versionId: string | null };
-  spec: { id: string | null; memoryMib: number; vcpus: number };
+  spec: {
+    id: string | null;
+    identifier: string;
+    memoryGib: number;
+    cpus: number;
+  };
   operation: { id: string; kind: string; requestedAt: Date } | null;
   mounts: {
     diskId: string;
@@ -68,7 +73,7 @@ export let mapSandboxMachinesInstancesGetOutput =
       'machine_id',
       'creation_reason',
       ['image', 0, [1, ['version_id']]],
-      ['spec', 0, [1, ['memory_mib']]],
+      ['spec', 0, [1, ['memory_gib']]],
       ['operation', 0, [1, ['requested_at']]],
       ['mounts', 0, [2, [1, ['disk_id', 'mount_path']]]],
       'disks_ready',

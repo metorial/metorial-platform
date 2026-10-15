@@ -51,6 +51,7 @@ export type ManagementInstanceFirewallsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  search?: string | undefined;
   id?: string | string[] | undefined;
   slug?: string | string[] | undefined;
   status?:

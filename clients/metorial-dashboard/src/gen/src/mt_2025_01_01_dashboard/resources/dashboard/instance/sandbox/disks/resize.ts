@@ -46,13 +46,9 @@ export let mapDashboardInstanceSandboxDisksResizeOutput =
     1
   );
 
-export type DashboardInstanceSandboxDisksResizeBody = {
-  sizeBytes: number;
-  idempotencyKey: string;
-};
+export type DashboardInstanceSandboxDisksResizeBody = { sizeBytes: number };
 
 export let mapDashboardInstanceSandboxDisksResizeBody =
   /* @__PURE__ */ mapObject<DashboardInstanceSandboxDisksResizeBody>([
-    'size_bytes',
-    'idempotency_key'
+    'size_bytes'
   ]);

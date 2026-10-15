@@ -3,6 +3,7 @@ import { createMapper } from '@metorial/util-resource-mapper/compact';
 export type ManagementInstanceSandboxImagesListOutput = {
   items: {
     object: 'sandbox.image';
+    metadata: Record<string, any>;
     id: string;
     owner: 'own' | 'global';
     status: 'pending' | 'active' | 'deleted';
@@ -10,6 +11,7 @@ export type ManagementInstanceSandboxImagesListOutput = {
     identifier: string | null;
     regions: string[];
     latestVersionId: string | null;
+    latestVersionNumber: number | null;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
@@ -19,7 +21,19 @@ export type ManagementInstanceSandboxImagesListOutput = {
 
 export let mapManagementInstanceSandboxImagesListOutput =
   /* @__PURE__ */ createMapper<ManagementInstanceSandboxImagesListOutput>(
-    [7, [1, ['latest_version_id', 'created_at', 'updated_at', 'deleted_at']]],
+    [
+      7,
+      [
+        1,
+        [
+          'latest_version_id',
+          'latest_version_number',
+          'created_at',
+          'updated_at',
+          'deleted_at'
+        ]
+      ]
+    ],
     1
   );
 
@@ -30,6 +44,7 @@ export type ManagementInstanceSandboxImagesListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  id?: string | string[] | undefined;
   owner?: 'own' | 'global' | ('own' | 'global')[] | undefined;
   status?:
     | 'pending'

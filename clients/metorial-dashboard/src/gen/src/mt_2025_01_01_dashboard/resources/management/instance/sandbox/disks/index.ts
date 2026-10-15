@@ -6,3 +6,4 @@ export * from './list';
 export * from './mounts';
 export * from './resize';
 export * from './resizes';
+export * from './update';

@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Sandbox machine operations controller
- * @description Operations record each start, pause, hibernate, restart, or terminate a machine went through.
+ * @description Operations record each start, pause, hibernate, restart, terminate, update, or upgrade a machine went through.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialSandboxMachinesOperationsEndpoint {
 
   /**
    * @name List machine operations
-   * @description Returns a paginated list of the operations of a machine, newest first.
+   * @description Returns a paginated list of the operations of a machine.
    *
    * @param `machineId` - string
    * @param `query` - DashboardInstanceSandboxMachinesOperationsListQuery

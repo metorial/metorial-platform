@@ -156,7 +156,7 @@ export class MetorialDashboardInstanceSandboxMachinesEndpoint {
 
   /**
    * @name Update sandbox machine
-   * @description Updates a machine. Changes that need a restart apply on its next start.
+   * @description Updates a machine. Changes to its size, runtime, or mounts take effect once the machine restarts, which happens on its own for a running machine, and the machine reports restart_required until then.
    *
    * @param `instanceId` - string
    * @param `machineId` - string

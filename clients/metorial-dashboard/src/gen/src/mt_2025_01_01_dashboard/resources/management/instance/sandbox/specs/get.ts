@@ -4,14 +4,15 @@ export type ManagementInstanceSandboxSpecsGetOutput = {
   object: 'sandbox.spec';
   id: string;
   identifier: string;
-  memoryMib: number;
-  vcpus: number;
+  memoryGib: number;
+  cpus: number;
+  available: boolean;
   regions: string[];
   createdAt: Date;
 };
 
 export let mapManagementInstanceSandboxSpecsGetOutput =
   /* @__PURE__ */ mapObject<ManagementInstanceSandboxSpecsGetOutput>(
-    ['memory_mib', 'created_at'],
+    ['memory_gib', 'created_at'],
     1
   );

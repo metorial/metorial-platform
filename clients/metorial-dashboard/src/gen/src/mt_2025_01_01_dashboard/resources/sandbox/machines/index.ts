@@ -13,5 +13,5 @@ export * from './restart';
 export * from './start';
 export * from './touch';
 export * from './update';
-export * from './usage';
 export * from './usage/index';
+export * from './usage';

@@ -1,14 +1,23 @@
-import { mapObject } from '@metorial/util-resource-mapper/compact';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSandboxDisksCloneOutput = {
   object: 'sandbox.disk';
+  metadata: Record<string, any>;
   id: string;
   type: 'standard' | 'root_fs';
   name: string | null;
   status: 'active' | 'cloning' | 'deleting' | 'deleted' | 'sealed';
   region: string;
-  sizeBytes: number;
-  machine: { id: string; mountPath: string } | null;
+  sizeBytes: number | null;
+  machine: {
+    id: string;
+    name: string | null;
+    slug: string | null;
+    mountPath: string;
+  } | null;
   activeResize: { id: string; status: string; targetSizeBytes: number } | null;
   createdAt: Date;
   updatedAt: Date;
@@ -29,11 +38,9 @@ export let mapDashboardInstanceSandboxDisksCloneOutput =
   );
 
 export type DashboardInstanceSandboxDisksCloneBody = {
+  metadata?: Record<string, any> | undefined;
   name?: string | undefined;
-  idempotencyKey?: string | undefined;
 };
 
 export let mapDashboardInstanceSandboxDisksCloneBody =
-  /* @__PURE__ */ mapObject<DashboardInstanceSandboxDisksCloneBody>([
-    'idempotency_key'
-  ]);
+  /* @__PURE__ */ createMapper<DashboardInstanceSandboxDisksCloneBody>(0);

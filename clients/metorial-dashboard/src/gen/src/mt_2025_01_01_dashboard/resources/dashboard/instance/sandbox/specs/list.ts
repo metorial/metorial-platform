@@ -5,8 +5,9 @@ export type DashboardInstanceSandboxSpecsListOutput = {
     object: 'sandbox.spec';
     id: string;
     identifier: string;
-    memoryMib: number;
-    vcpus: number;
+    memoryGib: number;
+    cpus: number;
+    available: boolean;
     regions: string[];
     createdAt: Date;
   }[];
@@ -15,7 +16,7 @@ export type DashboardInstanceSandboxSpecsListOutput = {
 
 export let mapDashboardInstanceSandboxSpecsListOutput =
   /* @__PURE__ */ createMapper<DashboardInstanceSandboxSpecsListOutput>(
-    [7, [1, ['memory_mib', 'created_at']]],
+    [7, [1, ['memory_gib', 'created_at']]],
     1
   );
 
