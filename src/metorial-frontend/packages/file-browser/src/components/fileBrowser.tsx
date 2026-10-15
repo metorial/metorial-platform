@@ -11,7 +11,7 @@ import {
   type CSSProperties,
   type ReactNode
 } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { getEntryActions, isDownloadable } from '../lib/actions';
 import { FileSystemError } from '../lib/errors';
 import {
@@ -48,10 +48,11 @@ import {
 } from './stateViews';
 import { FileBrowserToolbar } from './toolbar';
 
+let FULLSCREEN_Z_INDEX = 900;
 let TREE_HIDE_BELOW_WIDTH = 640;
 let TRAY_WIDTH = 340;
 
-let Root = styled.section`
+let Root = styled.section<{ $fullscreen: boolean }>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -63,6 +64,18 @@ let Root = styled.section`
   background: ${theme.colors.background};
   container-type: inline-size;
   overflow: hidden;
+
+  ${({ $fullscreen }) =>
+    $fullscreen &&
+    css`
+      position: fixed;
+      inset: 0;
+      z-index: ${FULLSCREEN_Z_INDEX};
+      height: auto !important;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    `}
 `;
 
 let Main = styled.div`
@@ -154,6 +167,7 @@ export let FileBrowser = (props: FileBrowserProps) => {
   let dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
 
+  let [isFullscreen, setIsFullscreen] = useState(false);
   let fileInput = useRef<HTMLInputElement | null>(null);
   let wasReady = useRef(ready);
 
@@ -480,11 +494,14 @@ export let FileBrowser = (props: FileBrowserProps) => {
 
   return (
     <Root
+      $fullscreen={isFullscreen}
       aria-label="File browser"
       className={props.className}
       style={{ height: props.height ?? '100%', ...props.style }}
     >
       <FileBrowserToolbar
+        isFullscreen={isFullscreen}
+        onFullscreenChange={setIsFullscreen}
         path={path}
         rootPath={rootPath}
         disabled={!ready}

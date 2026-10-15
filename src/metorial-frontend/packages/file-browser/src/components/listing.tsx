@@ -58,7 +58,7 @@ let Grid = styled.div`
 `;
 
 let rowColumns = (showPermissions: boolean) =>
-  showPermissions ? 'minmax(0, 1fr) 90px 130px 110px 40px' : 'minmax(0, 1fr) 90px 130px 40px';
+  showPermissions ? 'minmax(0, 1fr) 90px 210px 110px 40px' : 'minmax(0, 1fr) 90px 210px 40px';
 
 let HeaderRow = styled.div<{ $columns: string }>`
   display: grid;
@@ -152,6 +152,16 @@ let Cell = styled.div<{ $align?: 'right'; $muted?: boolean; $mono?: boolean }>`
     p.$mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : 'inherit'};
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+`;
+
+let ModifiedCell = styled(Cell)`
+  overflow: hidden;
+
+  > * {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 let Name = styled.span`
@@ -444,9 +454,9 @@ export let Listing = (p: ListingProps) => {
             {directory ? '—' : formatFileSize(entry.size)}
           </Cell>
 
-          <Cell role="gridcell" $muted>
+          <ModifiedCell role="gridcell" $muted>
             {entry.modifiedAt ? <RenderDate date={entry.modifiedAt} /> : '—'}
-          </Cell>
+          </ModifiedCell>
 
           {p.showPermissions ? (
             <Cell role="gridcell" $muted $mono>

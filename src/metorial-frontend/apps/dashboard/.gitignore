@@ -25,3 +25,6 @@ dist-ssr
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+!src/product/scenes/sandbox/logs/
+!src/product/scenes/sandbox/logs/**

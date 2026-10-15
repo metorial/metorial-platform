@@ -3,6 +3,8 @@ import {
   RiArrowDownSLine,
   RiArrowUpLine,
   RiDownload2Line,
+  RiFullscreenLine,
+  RiFullscreenExitLine,
   RiLayoutLeftLine,
   RiMore2Line,
   RiRefreshLine,
@@ -49,6 +51,8 @@ let SpinWrap = styled.span`
 `;
 
 export interface FileBrowserToolbarProps {
+  isFullscreen: boolean;
+  onFullscreenChange: (fullscreen: boolean) => void;
   path: string;
   rootPath: string;
   disabled?: boolean;
@@ -178,6 +182,18 @@ export let FileBrowserToolbar = (p: FileBrowserToolbarProps) => {
               </SpinWrap>
             }
             onClick={p.onRefresh}
+          />
+        </Tooltip>
+
+        <Tooltip content={p.isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+          <Button
+            type="button"
+            size="2"
+            variant="outline"
+            aria-label={p.isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            aria-pressed={p.isFullscreen}
+            iconLeft={p.isFullscreen ? <RiFullscreenExitLine /> : <RiFullscreenLine />}
+            onClick={() => p.onFullscreenChange(!p.isFullscreen)}
           />
         </Tooltip>
 
