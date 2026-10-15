@@ -23,7 +23,7 @@ import {
 import { SandboxDisk, useSandboxDiskPaths } from '../../../scenes/sandbox/disks/common';
 import { formatBytes } from '../../../scenes/sandbox/lib/format';
 import { SandboxDiskStatusBadge } from '../../../scenes/sandbox/shared/statusBadges';
-import { SandboxManagedPage } from '../_gate';
+import { SandboxManagedPage, useSandboxAccess } from '../_gate';
 
 type Props = {
   instanceId?: string;
@@ -233,16 +233,7 @@ let SandboxDisksContent = () => {
   ];
 
   return (
-    <ContentLayout>
-      <PageHeader
-        title="Disks"
-        description="Persistent storage that can be attached to machines."
-        actions={
-          <Button size="2" onClick={showSandboxCreateDiskDialog}>
-            Create Disk
-          </Button>
-        }
-      />
+    <>
       {table({
         instanceId: instance.data?.id,
         diskPath: paths.disk,
@@ -264,12 +255,27 @@ let SandboxDisksContent = () => {
           />
         )
       })}
-    </ContentLayout>
+    </>
   );
 };
 
-export let SandboxDisksPage = () => (
-  <SandboxManagedPage>
-    <SandboxDisksContent />
-  </SandboxManagedPage>
-);
+export let SandboxDisksPage = () => {
+  let access = useSandboxAccess();
+
+  return (
+    <ContentLayout>
+      <PageHeader
+        title="Disks"
+        description="Persistent storage that can be attached to machines."
+        actions={
+          <Button size="2" disabled={!access.canWrite} onClick={showSandboxCreateDiskDialog}>
+            Create Disk
+          </Button>
+        }
+      />
+      <SandboxManagedPage>
+        <SandboxDisksContent />
+      </SandboxManagedPage>
+    </ContentLayout>
+  );
+};

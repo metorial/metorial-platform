@@ -28,7 +28,7 @@ import {
   useSandboxImagePaths
 } from '../../../scenes/sandbox/images/common';
 import { SandboxImageLogo } from '../../../scenes/sandbox/shared/imageLogo';
-import { SandboxManagedPage } from '../_gate';
+import { SandboxManagedPage, useSandboxAccess } from '../_gate';
 
 type Image = DashboardInstanceSandboxImagesListOutput['items'][number];
 let ownerValues = ['own', 'global'] as const;
@@ -193,21 +193,29 @@ let ImagesContent = () => {
   );
 };
 
-export let SandboxImagesPage = () => (
-  <SandboxManagedPage withLayout>
+export let SandboxImagesPage = () => {
+  let access = useSandboxAccess();
+
+  return (
     <ContentLayout>
       <PageHeader
         title="Machine Images"
         description="The operating system and tools a machine boots with."
         actions={
-          <Button size="2" onClick={() => showSandboxImageBuildPanel({})}>
+          <Button
+            size="2"
+            disabled={!access.canWrite}
+            onClick={() => showSandboxImageBuildPanel({})}
+          >
             Create Image
           </Button>
         }
       />
-      <PaginationSearchParamsProvider enabled={false}>
-        <ImagesContent />
-      </PaginationSearchParamsProvider>
+      <SandboxManagedPage>
+        <PaginationSearchParamsProvider enabled={false}>
+          <ImagesContent />
+        </PaginationSearchParamsProvider>
+      </SandboxManagedPage>
     </ContentLayout>
-  </SandboxManagedPage>
-);
+  );
+};

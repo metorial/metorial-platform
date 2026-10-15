@@ -31,7 +31,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { showSandboxCreateMachinePanel } from '../../../scenes/sandbox/createMachinePanel';
 import { SandboxImageLogo } from '../../../scenes/sandbox/shared/imageLogo';
 import { SandboxMachineStatusBadge } from '../../../scenes/sandbox/shared/statusBadges';
-import { SandboxManagedPage } from '../_gate';
+import { SandboxManagedPage, useSandboxAccess } from '../_gate';
 
 type Machine = DashboardInstanceSandboxMachinesListOutput['items'][number];
 
@@ -278,12 +278,7 @@ let MachinesContent = () => {
       ...parts
     );
   return (
-    <ContentLayout>
-      <PageHeader
-        title="Machines"
-        description="Isolated virtual machines that run code, programs, and agents."
-      />
-
+    <>
       <start.RenderError />
       <pause.RenderError />
       <remove.RenderError />
@@ -363,19 +358,33 @@ let MachinesContent = () => {
             }
           }
         ]}
-        headerActions={() => (
-          <Button size="2" onClick={() => showSandboxCreateMachinePanel()}>
-            Create Machine
-          </Button>
-        )}
         emptyState={() => <MachinesEmptyState />}
       />
-    </ContentLayout>
+    </>
   );
 };
 
-export let SandboxMachinesPage = () => (
-  <SandboxManagedPage>
-    <MachinesContent />
-  </SandboxManagedPage>
-);
+export let SandboxMachinesPage = () => {
+  let access = useSandboxAccess();
+
+  return (
+    <ContentLayout>
+      <PageHeader
+        title="Machines"
+        description="Isolated virtual machines that run code, programs, and agents."
+        actions={
+          <Button
+            size="2"
+            disabled={!access.canWrite}
+            onClick={() => showSandboxCreateMachinePanel()}
+          >
+            Create Machine
+          </Button>
+        }
+      />
+      <SandboxManagedPage>
+        <MachinesContent />
+      </SandboxManagedPage>
+    </ContentLayout>
+  );
+};
