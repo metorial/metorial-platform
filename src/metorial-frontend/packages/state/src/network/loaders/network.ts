@@ -122,10 +122,12 @@ export let useFirewalls = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceFirewallsListQuery | null
 ) => {
-  return usePaginator(pagination =>
-    firewallsLoader.use(
-      instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
-    )
+  return usePaginator(
+    pagination =>
+      firewallsLoader.use(
+        instanceId && query !== null ? { instanceId, ...pagination, ...(query ?? {}) } : null
+      ),
+    JSON.stringify([instanceId, query?.search?.trim() || ''])
   );
 };
 
