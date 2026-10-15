@@ -67,7 +67,7 @@ export let showSandboxImageBuildPanel = ({ image, previousBuild }: BuildPanelInp
         contextPath: '.',
         target: '',
         timeout: 30,
-        disk: 128
+        disk: 16
       },
       onSubmit: async values => {
         if (!paths.instanceId || busy) return;

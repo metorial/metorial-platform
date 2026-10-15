@@ -131,6 +131,7 @@ describe('reconcileProjectInstances queues', () => {
       id: 'instance-1',
       slug: 'old-slug',
       oldSlug: null,
+      organization: { id: 'organization-1', slug: 'organization-one' },
       project: { id: 'project-1', name: 'Project One' }
     };
 
@@ -143,9 +144,10 @@ describe('reconcileProjectInstances queues', () => {
 
     expect(db.instance.findUnique).toHaveBeenCalledWith({
       where: { id: 'instance-1' },
-      include: { project: true }
+      include: { project: true, organization: true }
     });
     expect(instanceService.generateInstanceSlug).toHaveBeenCalledWith({
+      organization: instance.organization,
       project: instance.project,
       input: instance
     });
