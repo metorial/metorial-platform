@@ -56,13 +56,14 @@ export let reconcileProjectInstancesQueueProcessor = reconcileProjectInstancesQu
   async data => {
     let instance = await db.instance.findUnique({
       where: { id: data.instanceId },
-      include: { project: true }
+      include: { project: { include: { organization: true } } }
     });
     if (!instance) throw new QueueRetryError();
 
     if (instance.oldSlug) return;
 
     let slug = await instanceService.generateInstanceSlug({
+      organization: instance.project.organization,
       project: instance.project,
       input: instance
     });
