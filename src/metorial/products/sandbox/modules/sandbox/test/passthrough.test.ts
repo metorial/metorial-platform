@@ -20,7 +20,12 @@ let genesis = {
 };
 
 let db = {
-  sandboxMachineImage: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+  sandboxMachineImage: {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn()
+  },
   sandboxDisk: { create: vi.fn() },
   sandboxMachineImageRegion: { findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
   sandboxMachineImageVersionRegion: { findFirst: vi.fn() },
@@ -40,6 +45,7 @@ vi.mock('@metorial/module-search', () => ({
   searchSandboxImageIds: search.searchSandboxImageIds
 }));
 vi.mock('../src/queues/search', () => ({
+  indexSandboxDiskQueue: { add: vi.fn() },
   indexSandboxImageQueue: { add: vi.fn() },
   indexSandboxMachineQueue: { add: vi.fn() }
 }));
@@ -370,6 +376,49 @@ describe('sandboxMachineErrorService', () => {
 });
 
 describe('sandboxImageService', () => {
+  it('stores metadata on image creation', async () => {
+    db.sandboxMachineImage.create.mockImplementation(async ({ data }) => ({
+      oid: 10n,
+      ...data
+    }));
+
+    let result = await sandboxImageService.create({
+      instance,
+      input: { metadata: { app: 'test' } }
+    });
+
+    expect(result.metadata).toEqual({ app: 'test' });
+    expect(imageRemoteRootQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('updates metadata without queuing a Genesis update', async () => {
+    await sandboxImageService.update({ instance, image: own, input: { metadata: {} } });
+
+    expect(db.sandboxMachineImage.update).toHaveBeenCalledWith({
+      where: { oid: 10n },
+      data: { name: undefined, metadata: {} }
+    });
+    expect(imageRemoteRootQueue.add).not.toHaveBeenCalled();
+  });
+
+  it.each([{ imageIds: ['sbi_own'] }, { imageIds: [] }])(
+    'filters image IDs while retaining visibility and search',
+    async ({ imageIds }) => {
+      db.sandboxMachineImage.findMany.mockResolvedValue([]);
+
+      await (
+        await sandboxImageService.list({ instance, imageIds, owners: ['own'], search: 'node' })
+      ).run({});
+
+      let { AND } = db.sandboxMachineImage.findMany.mock.calls[0]![0].where;
+      expect(AND).toContainEqual({ id: { in: imageIds } });
+      expect(AND).toContainEqual({
+        OR: [{ instanceOid: 7n, status: { in: ['active', 'pending'] } }]
+      });
+      expect(AND).toHaveLength(3);
+    }
+  );
+
   let own = { oid: 10n, id: 'sbi_own', instanceOid: 7n, status: 'active' } as any;
   let global = { oid: 11n, id: 'sbi_global', instanceOid: null, status: 'active' } as any;
 
@@ -392,8 +441,16 @@ describe('sandboxImageService', () => {
       (sandboxTenantService.ensure as any).mockResolvedValue(tenant);
       db.sandboxMachineImageRegion.findFirst.mockResolvedValue({ genesisId: 'gi_1' });
       db.sandboxMachineImageVersionRegion.findFirst.mockResolvedValue({ genesisId: 'gv_1' });
-      db.sandboxDisk.create.mockImplementation(async (a: any) => ({ ...a.data, tenant }));
-      genesis.machineImage.createDisk.mockResolvedValue({ id: 'sbd_new' });
+      db.sandboxDisk.create.mockImplementation(async (a: any) => ({
+        oid: 20n,
+        ...a.data,
+        tenant
+      }));
+      genesis.machineImage.createDisk.mockResolvedValue({
+        id: 'sbd_new',
+        name: 'seed',
+        sizeBytes: '4096'
+      });
     });
 
     it('creates a disk from the regional image and version and records it', async () => {
@@ -413,10 +470,15 @@ describe('sandboxImageService', () => {
       });
       expect(db.sandboxDisk.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ id: 'sbd_new', instanceOid: 7n })
+          data: expect.objectContaining({
+            id: 'sbd_new',
+            name: 'seed',
+            sizeBytes: 4096n,
+            instanceOid: 7n
+          })
         })
       );
-      expect(result.remote).toEqual({ id: 'sbd_new' });
+      expect(result.remote).toMatchObject({ id: 'sbd_new' });
     });
 
     it('uses the current version when none is given', async () => {
@@ -614,6 +676,17 @@ describe('sandboxImageVersionService', () => {
     expect(db.sandboxMachineImageVersion.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'sbiv_1', imageOid: 10n } })
     );
+  });
+
+  it('loads the latest build of a version next to its regions', async () => {
+    db.sandboxMachineImageVersion.findFirst.mockResolvedValue({ id: 'sbiv_1' });
+
+    await sandboxImageVersionService.get({ image: own, versionId: 'sbiv_1' });
+
+    expect(db.sandboxMachineImageVersion.findFirst.mock.calls[0]![0].include).toEqual({
+      regions: { where: { status: 'active' }, include: { region: true } },
+      builds: { select: { id: true }, orderBy: { oid: 'desc' }, take: 1 }
+    });
   });
 
   it('throws when the version is not on the image', async () => {

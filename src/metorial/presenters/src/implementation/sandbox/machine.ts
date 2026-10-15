@@ -42,7 +42,15 @@ let mountStates = [
   'released'
 ] as const;
 
-let operationKinds = ['start', 'pause', 'hibernate', 'restart', 'terminate'] as const;
+export let sandboxMachineOperationKinds = [
+  'start',
+  'pause',
+  'hibernate',
+  'restart',
+  'terminate',
+  'update',
+  'upgrade'
+] as const;
 
 let operationTriggers = [
   'api',
@@ -174,41 +182,49 @@ export let getSandboxUpcomingEvents = (
 export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
   .presenter(async ({ machine }) => {
     let remote = machine.remote;
-    if (!remote) throw new Error(`Sandbox machine ${machine.id} is unavailable in its region`);
-
     let regionOid = machine.tenant.region.oid;
 
-    let [image, specId] = await Promise.all([
-      resolveSandboxImageRef({
-        regionOid,
-        genesisImageId: remote.image.imageId,
-        genesisVersionId: remote.image.versionId
-      }),
-      resolveSandboxSpecId({ regionOid, genesisSpecId: remote.spec.id })
-    ]);
+    let [image, specId] = remote
+      ? await Promise.all([
+          resolveSandboxImageRef({
+            regionOid,
+            genesisImageId: remote.image.imageId,
+            genesisVersionId: remote.image.versionId
+          }),
+          resolveSandboxSpecId({ regionOid, genesisSpecId: remote.spec.id })
+        ])
+      : [null, null];
 
-    let rootFs = remote.rootFs.current ?? remote.rootFs.desired;
+    let rootFs = remote ? (remote.rootFs.current ?? remote.rootFs.desired) : null;
 
     return {
       object: 'sandbox.machine' as const,
 
       id: machine.id,
-      status: remote.status,
-      name: remote.name,
-      slug: remote.slug,
+      metadata: machine.metadata ?? {},
+      status: remote?.status ?? ('terminated' as const),
+      name: remote?.name ?? null,
+      slug: remote?.slug ?? null,
       region: machine.tenant.region.identifier,
 
-      image: { id: image.imageId, version_id: image.versionId },
-      spec: {
-        id: specId,
-        identifier: remote.spec.identifier,
-        memory_gib: remote.spec.memoryMiB / 1024,
-        cpus: remote.spec.vcpus
+      image: {
+        id: image ? image.imageId : (machine.image?.id ?? null),
+        name: machine.image?.name ?? null,
+        identifier: machine.image?.identifier ?? null,
+        version_id: image?.versionId ?? null
       },
+      spec: remote
+        ? {
+            id: specId,
+            identifier: remote.spec.identifier,
+            memory_gib: remote.spec.memoryMiB / 1024,
+            cpus: remote.spec.vcpus
+          }
+        : null,
       root_disk: rootFs
         ? { id: rootFs.diskId, size_bytes: toNullableNumber(rootFs.diskSizeBytes) }
         : null,
-      mounts: remote.disks
+      mounts: (remote?.disks ?? [])
         .filter(disk => disk.purpose != 'root_fs')
         .map(disk => ({
           disk_id: disk.diskId,
@@ -216,19 +232,20 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
           state: disk.state
         })),
       firewall_ids: machine.firewallLinks.map(link => link.firewall.id),
-      public_ports: remote.publicPorts,
+      public_ports: remote?.publicPorts ?? [],
 
       lifecycle_policy: {
-        pause_after_idle_seconds: remote.lifecyclePolicy.pauseAfterIdleSeconds,
-        hibernate_after_paused_seconds: remote.lifecyclePolicy.hibernateAfterPausedSeconds,
-        connection_idle_seconds: remote.lifecyclePolicy.connectionIdleSeconds
+        pause_after_idle_seconds: remote?.lifecyclePolicy.pauseAfterIdleSeconds ?? null,
+        hibernate_after_paused_seconds:
+          remote?.lifecyclePolicy.hibernateAfterPausedSeconds ?? null,
+        connection_idle_seconds: remote?.lifecyclePolicy.connectionIdleSeconds ?? null
       },
-      runtime: presentSandboxRuntime(remote.runtime),
-      lifecycle_hooks: remote.lifecycleHooks.map(presentSandboxLifecycleHook),
-      ignore_image_hooks: remote.ignoreImageHooks,
-      entrypoint_wait_seconds: remote.entrypointWaitSeconds,
+      runtime: remote ? presentSandboxRuntime(remote.runtime) : null,
+      lifecycle_hooks: (remote?.lifecycleHooks ?? []).map(presentSandboxLifecycleHook),
+      ignore_image_hooks: remote?.ignoreImageHooks ?? false,
+      entrypoint_wait_seconds: remote?.entrypointWaitSeconds ?? null,
 
-      operation: remote.operation
+      operation: remote?.operation
         ? {
             id: remote.operation.id,
             kind: remote.operation.kind,
@@ -236,7 +253,7 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
             requested_at: remote.operation.requestedAt
           }
         : null,
-      current_instance: remote.currentInstance
+      current_instance: remote?.currentInstance
         ? {
             id: remote.currentInstance.id,
             generation: remote.currentInstance.generation,
@@ -244,19 +261,20 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
             phase: remote.currentInstance.phase
           }
         : null,
+      restart_required: remote?.currentInstance?.stale ?? false,
 
-      last_activity_at: remote.schedule.lastActivityAt,
-      pause_at: remote.schedule.pauseAt,
-      hibernates_at: remote.schedule.hibernateAt,
-      upcoming_events: getSandboxUpcomingEvents(remote.schedule),
+      last_activity_at: remote?.schedule.lastActivityAt ?? null,
+      pause_at: remote?.schedule.pauseAt ?? null,
+      hibernates_at: remote?.schedule.hibernateAt ?? null,
+      upcoming_events: remote ? getSandboxUpcomingEvents(remote.schedule) : [],
 
-      failure: mapSandboxFailure(toRawFailure(remote.failure)),
+      failure: remote ? mapSandboxFailure(toRawFailure(remote.failure)) : null,
 
-      created_at: remote.createdAt,
-      running_at: remote.runningAt,
-      paused_at: remote.pausedAt,
-      hibernated_at: remote.hibernatedAt,
-      terminated_at: remote.terminatedAt
+      created_at: remote?.createdAt ?? machine.createdAt,
+      running_at: remote?.runningAt ?? null,
+      paused_at: remote?.pausedAt ?? null,
+      hibernated_at: remote?.hibernatedAt ?? null,
+      terminated_at: remote ? remote.terminatedAt : machine.deletedAt
     };
   })
   .schema(
@@ -265,25 +283,41 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
         description: "String representing the object's type"
       }),
 
+      metadata: v.record(v.any(), { description: 'User-defined metadata stored in Metorial' }),
       id: v.string({ description: "The machine's unique identifier" }),
       status: v.enumOf([...machineStatuses], { description: "The machine's current status" }),
       name: v.nullable(v.string({ description: "The machine's name" })),
-      slug: v.string({ description: "The machine's URL-safe slug, used in access hostnames" }),
+      slug: v.nullable(
+        v.string({
+          description:
+            "The machine's URL-safe slug, used in access hostnames. Null once a terminated machine's details expired."
+        })
+      ),
       region: v.string({ description: 'The identifier of the region the machine runs in' }),
 
       image: v.object({
         id: sandboxReferenceSchema('The image the machine boots from'),
+        name: v.nullable(v.string({ description: 'The image name' })),
+        identifier: v.nullable(v.string({ description: 'The global image identifier' })),
         version_id: sandboxReferenceSchema('The image version the machine boots from')
       }),
-      spec: v.object({
-        id: sandboxReferenceSchema('The spec the machine was created with'),
-        identifier: v.string({
-          description: "The spec's human-readable identifier",
-          examples: ['m3072-c3000']
-        }),
-        memory_gib: v.number({ description: "The machine's memory in GiB" }),
-        cpus: v.number({ description: "The machine's CPU count" })
-      }),
+      spec: v.nullable(
+        v.object(
+          {
+            id: sandboxReferenceSchema('The spec the machine was created with'),
+            identifier: v.string({
+              description: "The spec's human-readable identifier",
+              examples: ['m3072-c3000']
+            }),
+            memory_gib: v.number({ description: "The machine's memory in GiB" }),
+            cpus: v.number({ description: "The machine's CPU count" })
+          },
+          {
+            description:
+              "The machine's size. Null once a terminated machine's details expired, about 30 days after termination."
+          }
+        )
+      ),
       root_disk: v.nullable(
         v.object(
           {
@@ -338,7 +372,7 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
         v.object(
           {
             id: v.string(),
-            kind: v.enumOf([...operationKinds]),
+            kind: v.enumOf([...sandboxMachineOperationKinds]),
             trigger: v.enumOf([...operationTriggers]),
             requested_at: v.date()
           },
@@ -356,6 +390,10 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
           { description: 'The instance currently backing the machine, if any' }
         )
       ),
+      restart_required: v.boolean({
+        description:
+          'Whether the running instance still uses an older configuration than the machine was last updated to. Metorial replaces such an instance on its own, restarting a running machine and hibernating a paused one, and the update is live once the machine starts again.'
+      }),
 
       last_activity_at: v.nullable(
         v.date({ description: 'When the machine was last active' })

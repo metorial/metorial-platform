@@ -4,6 +4,9 @@ model SandboxMachine {
 
   status SandboxResourceStatus @default(active)
 
+  /// [Record]
+  metadata Json @default("{}")
+
   tenantOid BigInt
   tenant    SandboxTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 

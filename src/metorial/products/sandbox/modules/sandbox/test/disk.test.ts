@@ -20,6 +20,13 @@ let db = {
   sandboxMachine: { findMany: vi.fn() }
 };
 
+let indexDisk = vi.fn();
+
+let search = { isSearchEnabled: vi.fn(), searchSandboxDiskIds: vi.fn() };
+
+vi.mock('../src/queues/search', () => ({ indexSandboxDiskQueue: { add: indexDisk } }));
+vi.mock('@metorial/module-search', () => search);
+
 vi.mock('../src/lib/regions', () => ({ getRegionClient: vi.fn(() => genesis) }));
 vi.mock('@metorial/db', () => ({ db }));
 vi.mock('../src/services/region', () => ({
@@ -40,7 +47,7 @@ let tenant = {
   projectOid: 6n,
   region
 } as any;
-let instance = { oid: 7n } as any;
+let instance = { oid: 7n, id: 'ins_1' } as any;
 
 let disk = { oid: 20n, id: 'sbd_1', type: 'standard', status: 'active', tenant } as any;
 let deleted = { ...disk, status: 'deleted' } as any;
@@ -56,16 +63,26 @@ beforeEach(() => {
   (sandboxRegionService.getByIdentifier as any).mockResolvedValue(region);
   (sandboxTenantService.ensure as any).mockResolvedValue(tenant);
   db.sandboxDisk.create.mockImplementation(async (a: any) => ({
+    oid: 20n,
     type: 'standard',
     ...a.data,
     tenant
   }));
-  genesis.disk.delete.mockResolvedValue({ id: 'sbd_1', status: 'deleting' });
+  genesis.disk.delete.mockResolvedValue({
+    id: 'sbd_1',
+    status: 'deleting',
+    sizeBytes: '1073741824'
+  });
 });
 
 describe('sandboxDiskService.create', () => {
   it('creates the disk in the region and records it for the instance', async () => {
-    genesis.disk.create.mockResolvedValue({ id: 'sbd_new', status: 'active' });
+    genesis.disk.create.mockResolvedValue({
+      id: 'sbd_new',
+      status: 'active',
+      name: 'data',
+      sizeBytes: '1073741824'
+    });
 
     let result = await sandboxDiskService.create({
       instance,
@@ -83,6 +100,9 @@ describe('sandboxDiskService.create', () => {
       expect.objectContaining({
         data: {
           id: 'sbd_new',
+          metadata: {},
+          name: 'data',
+          sizeBytes: 1073741824n,
           tenantOid: 100n,
           organizationOid: 5n,
           projectOid: 6n,
@@ -90,12 +110,13 @@ describe('sandboxDiskService.create', () => {
         }
       })
     );
-    expect(result.remote).toEqual({ id: 'sbd_new', status: 'active' });
+    expect(result.remote).toMatchObject({ id: 'sbd_new', status: 'active' });
     expect(result.type).toBe('standard');
+    expect(indexDisk).toHaveBeenCalledWith({ diskOid: '20' });
   });
 
   it('deletes the Genesis disk when it cannot be recorded', async () => {
-    genesis.disk.create.mockResolvedValue({ id: 'sbd_new' });
+    genesis.disk.create.mockResolvedValue({ id: 'sbd_new', name: null, sizeBytes: '1' });
     db.sandboxDisk.create.mockRejectedValue(new Error('db down'));
 
     await expect(
@@ -108,7 +129,7 @@ describe('sandboxDiskService.create', () => {
 
 describe('sandboxDiskService.clone', () => {
   it('clones inside the source disk tenant', async () => {
-    genesis.disk.clone.mockResolvedValue({ id: 'sbd_copy' });
+    genesis.disk.clone.mockResolvedValue({ id: 'sbd_copy', name: 'copy', sizeBytes: '1' });
 
     let result = await sandboxDiskService.clone({
       instance,
@@ -122,6 +143,7 @@ describe('sandboxDiskService.clone', () => {
       name: 'copy'
     });
     expect(result.id).toBe('sbd_copy');
+    expect(indexDisk).toHaveBeenCalledWith({ diskOid: '20' });
   });
 
   it('refuses to clone a deleted disk', async () => {
@@ -133,6 +155,26 @@ describe('sandboxDiskService.clone', () => {
 });
 
 describe('sandboxDiskService.get and list', () => {
+  it('resolves attached machine labels once per tenant for the whole page', async () => {
+    db.sandboxDisk.findMany.mockResolvedValue([disk, { ...disk, oid: 21n, id: 'sbd_2' }]);
+    genesis.disk.getMany.mockResolvedValue([
+      { id: 'sbd_1', machine: { machineId: 'sbm_1', mountPath: '/data' } },
+      { id: 'sbd_2', machine: { machineId: 'sbm_1', mountPath: '/other' } }
+    ]);
+    genesis.machine.getMany.mockResolvedValue([
+      { id: 'sbm_1', name: 'Worker', slug: 'worker' }
+    ]);
+
+    let list = await sandboxDiskService.list({ instance }).run({});
+
+    expect(genesis.machine.getMany).toHaveBeenCalledTimes(1);
+    expect(genesis.machine.getMany).toHaveBeenCalledWith({
+      tenantId: tenant.id,
+      ids: ['sbm_1']
+    });
+    expect(list.items.map(item => item.attachedMachine?.name)).toEqual(['Worker', 'Worker']);
+  });
+
   it('returns a deleted disk from get, without a remote once Genesis dropped it', async () => {
     db.sandboxDisk.findFirst.mockResolvedValue(deleted);
     genesis.disk.getMany.mockResolvedValue([]);
@@ -211,6 +253,226 @@ describe('sandboxDiskService.get and list', () => {
     );
   });
 
+  it('searches the name and id of the disks, ignoring case and surrounding spaces', async () => {
+    db.sandboxDisk.findMany.mockResolvedValue([]);
+
+    await sandboxDiskService.list({ instance, search: '  Data ' }).run({});
+
+    expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          OR: [
+            { name: { contains: 'Data', mode: 'insensitive' } },
+            { id: { contains: 'Data', mode: 'insensitive' } }
+          ]
+        }
+      })
+    );
+  });
+
+  it('searches Voyager and intersects results with the other disk filters', async () => {
+    search.isSearchEnabled.mockReturnValue(true);
+    search.searchSandboxDiskIds.mockResolvedValue(['sbd_1', 'sbd_2']);
+    db.sandboxDisk.findMany.mockResolvedValue([]);
+    db.sandboxMachine.findMany.mockResolvedValue([{ id: 'sbm_1', tenant }]);
+    genesis.machine.getMany.mockResolvedValue([
+      {
+        id: 'sbm_1',
+        rootFs: { current: null, desired: null },
+        disks: [{ diskId: 'sbd_1', state: 'mounted' }]
+      }
+    ]);
+
+    await sandboxDiskService
+      .list({
+        instance,
+        search: '  Data ',
+        diskIds: ['sbd_1', 'sbd_other'],
+        machineIds: ['sbm_1'],
+        attached: true
+      })
+      .run({});
+
+    expect(search.searchSandboxDiskIds).toHaveBeenCalledWith({
+      instanceId: 'ins_1',
+      query: 'Data'
+    });
+    expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { instanceOid: 7n, status: 'active', id: { in: ['sbd_1'] } }
+      })
+    );
+  });
+
+  it('returns no matches when Voyager finds no disks', async () => {
+    search.isSearchEnabled.mockReturnValue(true);
+    search.searchSandboxDiskIds.mockResolvedValue([]);
+    db.sandboxDisk.findMany.mockResolvedValue([]);
+
+    await sandboxDiskService.list({ instance, search: 'missing' }).run({});
+
+    expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { instanceOid: 7n, status: 'active', id: { in: [] } }
+      })
+    );
+  });
+
+  it('ignores a search of only spaces', async () => {
+    db.sandboxDisk.findMany.mockResolvedValue([]);
+
+    await sandboxDiskService.list({ instance, search: '   ' }).run({});
+
+    expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { instanceOid: 7n, status: 'active' } })
+    );
+  });
+
+  it('filters the list by the regions the disks live in', async () => {
+    db.sandboxDisk.findMany.mockResolvedValue([]);
+
+    await sandboxDiskService
+      .list({ instance, regionIdentifiers: ['us-east-1', 'eu-west-1'] })
+      .run({});
+
+    expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          tenant: { region: { identifier: { in: ['us-east-1', 'eu-west-1'] } } }
+        }
+      })
+    );
+  });
+
+  describe('attached filter', () => {
+    let activeMachines = () => {
+      db.sandboxMachine.findMany.mockResolvedValue([
+        { oid: 3n, id: 'sbm_1', tenant },
+        { oid: 4n, id: 'sbm_2', tenant }
+      ]);
+      genesis.machine.getMany.mockResolvedValue([
+        {
+          id: 'sbm_1',
+          rootFs: { current: { diskId: 'sbd_root1' }, desired: null },
+          disks: [
+            { diskId: 'sbd_1', state: 'mounted' },
+            { diskId: 'sbd_old', state: 'released' }
+          ]
+        },
+        {
+          id: 'sbm_2',
+          rootFs: { current: { diskId: 'sbd_root2' }, desired: { diskId: 'sbd_root3' } },
+          disks: []
+        }
+      ]);
+      db.sandboxDisk.findMany.mockResolvedValue([]);
+    };
+
+    it('lists only the disks an active machine uses', async () => {
+      activeMachines();
+
+      await sandboxDiskService.list({ instance, attached: true }).run({});
+
+      expect(db.sandboxMachine.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { instanceOid: 7n, status: 'active' },
+          orderBy: { oid: 'asc' },
+          take: 500
+        })
+      );
+      expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            instanceOid: 7n,
+            status: 'active',
+            id: { in: ['sbd_root1', 'sbd_1', 'sbd_root2', 'sbd_root3'] }
+          }
+        })
+      );
+    });
+
+    it('lists only the disks no active machine uses', async () => {
+      activeMachines();
+
+      await sandboxDiskService.list({ instance, attached: false }).run({});
+
+      expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            instanceOid: 7n,
+            status: 'active',
+            id: { notIn: ['sbd_root1', 'sbd_1', 'sbd_root2', 'sbd_root3'] }
+          }
+        })
+      );
+    });
+
+    it('does not look at the machines when the attachment is not filtered', async () => {
+      db.sandboxDisk.findMany.mockResolvedValue([]);
+
+      await sandboxDiskService.list({ instance }).run({});
+
+      expect(db.sandboxMachine.findMany).not.toHaveBeenCalled();
+    });
+
+    it('narrows the disks of the given machines to the ones that are attached', async () => {
+      db.sandboxMachine.findMany.mockResolvedValue([{ oid: 3n, id: 'sbm_1', tenant }]);
+      genesis.machine.getMany.mockResolvedValue([
+        {
+          id: 'sbm_1',
+          rootFs: { current: { diskId: 'sbd_root1' }, desired: null },
+          disks: [{ diskId: 'sbd_1', state: 'mounted' }]
+        }
+      ]);
+      db.sandboxDisk.findMany.mockResolvedValue([]);
+
+      await sandboxDiskService
+        .list({ instance, machineIds: ['sbm_1'], attached: true })
+        .run({});
+
+      expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            instanceOid: 7n,
+            status: 'active',
+            id: { in: ['sbd_root1', 'sbd_1'] }
+          }
+        })
+      );
+    });
+
+    it('reads the machines page by page', async () => {
+      let machine = (oid: bigint) => ({ oid, id: `sbm_${oid}`, tenant });
+      let firstPage = Array.from({ length: 500 }, (_, index) => machine(BigInt(index + 1)));
+
+      db.sandboxMachine.findMany
+        .mockResolvedValueOnce(firstPage)
+        .mockResolvedValueOnce([machine(501n)]);
+      genesis.machine.getMany.mockImplementation(async ({ ids }: { ids: string[] }) =>
+        ids.map(id => ({
+          id,
+          rootFs: { current: { diskId: `disk_of_${id}` }, desired: null },
+          disks: []
+        }))
+      );
+      db.sandboxDisk.findMany.mockResolvedValue([]);
+
+      await sandboxDiskService.list({ instance, attached: true }).run({});
+
+      expect(db.sandboxMachine.findMany).toHaveBeenCalledTimes(2);
+      expect(db.sandboxMachine.findMany.mock.calls[1]![0].where).toEqual({
+        instanceOid: 7n,
+        status: 'active',
+        oid: { gt: 500n }
+      });
+      expect(db.sandboxDisk.findMany.mock.calls[0]![0].where.id.in).toHaveLength(501);
+    });
+  });
+
   it('returns a root filesystem disk from get with its machine link', async () => {
     db.sandboxDisk.findFirst.mockResolvedValue({
       ...disk,
@@ -224,6 +486,48 @@ describe('sandboxDiskService.get and list', () => {
 
     expect(result).toMatchObject({ id: 'sbd_root1', type: 'root_fs', machineOid: 3n });
     expect(result.remote).toBeNull();
+  });
+});
+
+describe('sandboxDiskService.update', () => {
+  it('renames the disk in the local table and returns it with its remote', async () => {
+    db.sandboxDisk.update.mockResolvedValue({ ...disk, name: 'renamed', tenant });
+    genesis.disk.getMany.mockResolvedValue([{ id: 'sbd_1', status: 'active' }]);
+
+    let result = await sandboxDiskService.update({ disk, input: { name: 'renamed' } });
+
+    expect(db.sandboxDisk.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { oid: 20n }, data: { name: 'renamed' } })
+    );
+    expect(genesis.disk.getMany).toHaveBeenCalledWith({ tenantId: 'sbt_1', ids: ['sbd_1'] });
+    expect(indexDisk).toHaveBeenCalledWith({ diskOid: '20' });
+    expect(result.name).toBe('renamed');
+    expect(result.remote).toEqual({ id: 'sbd_1', status: 'active' });
+  });
+
+  it('clears the name when given null', async () => {
+    db.sandboxDisk.update.mockResolvedValue({ ...disk, name: null, tenant });
+    genesis.disk.getMany.mockResolvedValue([]);
+
+    await sandboxDiskService.update({ disk, input: { name: null } });
+
+    expect(db.sandboxDisk.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { name: null } })
+    );
+  });
+
+  it('refuses root filesystem disks and deleted disks', async () => {
+    await expect(
+      sandboxDiskService.update({
+        disk: { ...disk, type: 'root_fs' } as any,
+        input: { name: 'x' }
+      })
+    ).rejects.toThrow();
+    await expect(
+      sandboxDiskService.update({ disk: deleted, input: { name: 'x' } })
+    ).rejects.toThrow();
+
+    expect(db.sandboxDisk.update).not.toHaveBeenCalled();
   });
 });
 
@@ -249,10 +553,11 @@ describe('sandboxDiskService actions', () => {
     expect(db.sandboxDisk.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { oid: 20n },
-        data: { status: 'deleted', deletedAt: expect.any(Date) }
+        data: { status: 'deleted', deletedAt: expect.any(Date), sizeBytes: 1073741824n }
       })
     );
-    expect(result.remote).toEqual({ id: 'sbd_1', status: 'deleting' });
+    expect(indexDisk).toHaveBeenCalledWith({ diskOid: '20' });
+    expect(result.remote).toMatchObject({ id: 'sbd_1', status: 'deleting' });
   });
 
   it('leaves the disk alone when Genesis refuses the delete', async () => {
@@ -353,5 +658,78 @@ describe('sandboxDiskResizeService', () => {
       tenantId: 'sbt_1',
       resizeId: 'r1'
     });
+  });
+});
+
+describe('sandbox disk metadata and IDs', () => {
+  it('stores metadata on create without passing it to Genesis', async () => {
+    genesis.disk.create.mockResolvedValue({ id: 'sbd_new', name: null, sizeBytes: '1' });
+
+    let result = await sandboxDiskService.create({
+      instance,
+      regionIdentifier: 'us-east-1',
+      input: { metadata: { app: 'test' } }
+    });
+
+    expect(result.metadata).toEqual({ app: 'test' });
+    expect(genesis.disk.create.mock.calls[0]![0]).not.toHaveProperty('metadata');
+  });
+
+  it.each([{ type: 'standard' }, { type: 'root_fs' }])(
+    'updates metadata on a $type disk',
+    async ({ type }) => {
+      db.sandboxDisk.update.mockImplementation(async ({ data }) => ({
+        ...disk,
+        ...data,
+        type
+      }));
+      genesis.disk.getMany.mockResolvedValue([]);
+
+      let result = await sandboxDiskService.update({
+        disk: { ...disk, type },
+        input: { metadata: {} }
+      });
+
+      expect(result.metadata).toEqual({});
+      expect(indexDisk).toHaveBeenCalledTimes(type == 'standard' ? 1 : 0);
+      expect(db.sandboxDisk.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { name: undefined, metadata: {} } })
+      );
+    }
+  );
+
+  it('intersects IDs with machine and attached filters', async () => {
+    db.sandboxDisk.findMany.mockResolvedValue([]);
+    db.sandboxMachine.findMany.mockResolvedValue([{ id: 'sbm_1', tenant }]);
+    genesis.machine.getMany.mockResolvedValue([
+      {
+        id: 'sbm_1',
+        rootFs: { current: null, desired: null },
+        disks: [{ diskId: 'sbd_1', state: 'mounted' }]
+      }
+    ]);
+
+    await sandboxDiskService
+      .list({
+        instance,
+        diskIds: ['sbd_1', 'sbd_other'],
+        machineIds: ['sbm_1'],
+        attached: true
+      })
+      .run({});
+
+    expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ id: { in: ['sbd_1'] } }) })
+    );
+  });
+
+  it('keeps an empty ID filter', async () => {
+    db.sandboxDisk.findMany.mockResolvedValue([]);
+
+    await sandboxDiskService.list({ instance, diskIds: [] }).run({});
+
+    expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ id: { in: [] } }) })
+    );
   });
 });

@@ -12,6 +12,7 @@ export let v1SandboxImagePresenter = Presenter.create(sandboxImageType)
       object: 'sandbox.image' as const,
 
       id: image.id,
+      metadata: image.metadata ?? {},
       owner: image.instanceOid === null ? ('global' as const) : ('own' as const),
       status: image.status,
       name: image.name,
@@ -19,6 +20,7 @@ export let v1SandboxImagePresenter = Presenter.create(sandboxImageType)
 
       regions: image.regions.map(regional => regional.region.identifier),
       latest_version_id: latestVersion?.id ?? null,
+      latest_version_number: latestVersion?.versionNumber ?? null,
 
       created_at: image.createdAt,
       updated_at: image.updatedAt,
@@ -31,6 +33,7 @@ export let v1SandboxImagePresenter = Presenter.create(sandboxImageType)
         description: "String representing the object's type"
       }),
 
+      metadata: v.record(v.any(), { description: 'User-defined metadata stored in Metorial' }),
       id: v.string({ description: "The image's unique identifier" }),
       owner: v.enumOf(['own', 'global'], {
         description: 'Whether you built the image or Metorial provides it to everyone'
@@ -50,6 +53,10 @@ export let v1SandboxImagePresenter = Presenter.create(sandboxImageType)
       }),
       latest_version_id: v.nullable(
         v.string({ description: 'The most recent version of the image' })
+      ),
+
+      latest_version_number: v.nullable(
+        v.number({ description: 'The version number of the most recent active image version' })
       ),
 
       created_at: v.date(),

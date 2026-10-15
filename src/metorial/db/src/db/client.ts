@@ -305,6 +305,14 @@ declare global {
       ports?: [number, number];
     };
     type SandboxEgressRules = SandboxEgressRule[];
+
+    type SandboxImageBuildOptions = {
+      dockerfilePath: string;
+      contextPath: string;
+      target: string | null;
+      buildArgNames: string[];
+      timeoutSeconds: number;
+    };
     type OrganizationLayoutValue = any;
 
     type OrganizationNotificationPayload = { [key: string]: any };

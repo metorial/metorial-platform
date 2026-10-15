@@ -8,6 +8,7 @@ import {
   type SandboxResourceStatus
 } from '@metorial/db';
 import type { GenesisInternalClient } from '@metorial/genesis-client';
+import { isSearchEnabled, searchSandboxDiskIds } from '@metorial/module-search';
 import {
   sandboxDiskInclude,
   sandboxDiskInternalService,
@@ -15,10 +16,13 @@ import {
 } from '../internal/diskInternal';
 import { getRegional, hydrateByTenant } from '../lib/regional';
 import { createRemotePaginator } from '../lib/remotePaginator';
+import { indexSandboxDiskQueue } from '../queues/search';
 import { sandboxRegionService } from './region';
 import { sandboxTenantService } from './tenant';
 
 type CreateDiskInput = Parameters<GenesisInternalClient['disk']['create']>[0];
+
+let MACHINE_PAGE_SIZE = 500;
 
 class SandboxDiskServiceImpl {
   private async hydrate(disks: SandboxDiskWithTenant[]) {
@@ -26,33 +30,92 @@ class SandboxDiskServiceImpl {
       genesis.disk.getMany({ tenantId, ids })
     );
 
-    return hydrated;
+    let attached = hydrated.flatMap(disk =>
+      disk.remote?.machine ? [{ id: disk.remote.machine.machineId, tenant: disk.tenant }] : []
+    );
+    let machines = await hydrateByTenant(attached, ({ genesis, tenantId, ids }) =>
+      genesis.machine.getMany({ tenantId, ids: [...new Set(ids)] })
+    );
+    let names = new Map(machines.map(machine => [machine.id, machine.remote]));
+
+    return hydrated.map(disk => {
+      let attachedMachine = disk.remote?.machine
+        ? names.get(disk.remote.machine.machineId)
+        : null;
+
+      return { ...disk, ...(attachedMachine ? { attachedMachine } : {}) };
+    });
   }
 
-  private async resolveMachineDiskIds(d: { instance: Instance; machineIds: string[] }) {
-    let machines = await db.sandboxMachine.findMany({
-      where: { id: { in: d.machineIds }, instanceOid: d.instance.oid },
-      include: sandboxDiskInclude
-    });
+  private async resolveMachineDiskIds(d: { instance: Instance; machineIds?: string[] }) {
+    let diskIds = new Set<string>();
+    let cursor: bigint | undefined;
 
-    let hydrated = await hydrateByTenant(machines, ({ genesis, tenantId, ids }) =>
-      genesis.machine.getMany({ tenantId, ids })
-    );
+    while (true) {
+      let machines = await db.sandboxMachine.findMany({
+        where: {
+          instanceOid: d.instance.oid,
+          ...(d.machineIds ? { id: { in: d.machineIds } } : { status: 'active' as const }),
+          ...(cursor !== undefined ? { oid: { gt: cursor } } : {})
+        },
+        orderBy: { oid: 'asc' },
+        take: MACHINE_PAGE_SIZE,
+        include: sandboxDiskInclude
+      });
 
-    return [
-      ...new Set(
-        hydrated.flatMap(machine => {
-          let remote = machine.remote;
-          if (!remote) return [];
+      let hydrated = await hydrateByTenant(machines, ({ genesis, tenantId, ids }) =>
+        genesis.machine.getMany({ tenantId, ids })
+      );
 
-          return [
-            remote.rootFs.current?.diskId,
-            remote.rootFs.desired?.diskId,
-            ...remote.disks.filter(disk => disk.state != 'released').map(disk => disk.diskId)
-          ].filter((diskId): diskId is string => !!diskId);
-        })
-      )
-    ];
+      for (let machine of hydrated) {
+        let remote = machine.remote;
+        if (!remote) continue;
+
+        for (let diskId of [
+          remote.rootFs.current?.diskId,
+          remote.rootFs.desired?.diskId,
+          ...remote.disks.filter(disk => disk.state != 'released').map(disk => disk.diskId)
+        ]) {
+          if (diskId) diskIds.add(diskId);
+        }
+      }
+
+      if (machines.length < MACHINE_PAGE_SIZE) break;
+      cursor = machines[machines.length - 1]!.oid;
+    }
+
+    return [...diskIds];
+  }
+
+  private toIdFilter(d: {
+    diskIds?: string[];
+    searchIds?: string[];
+    machineDiskIds?: string[];
+    attachedDiskIds?: string[];
+    attached?: boolean;
+  }) {
+    let filter: { in?: string[]; notIn?: string[] } = {};
+
+    if (d.diskIds) filter.in = d.diskIds;
+
+    if (d.searchIds) {
+      let matches = new Set(d.searchIds);
+      filter.in = filter.in ? filter.in.filter(id => matches.has(id)) : d.searchIds;
+    }
+
+    if (d.machineDiskIds) {
+      let machineDisks = new Set(d.machineDiskIds);
+      filter.in = filter.in ? filter.in.filter(id => machineDisks.has(id)) : d.machineDiskIds;
+    }
+
+    if (d.attachedDiskIds && d.attached) {
+      let attached = new Set(d.attachedDiskIds);
+      filter.in = filter.in ? filter.in.filter(id => attached.has(id)) : d.attachedDiskIds;
+    }
+
+    if (d.attachedDiskIds && d.attached === false) filter.notIn = d.attachedDiskIds;
+
+    return Object.keys(filter).length ? { id: filter } : {};
   }
 
   async create(d: {
@@ -60,6 +123,7 @@ class SandboxDiskServiceImpl {
     regionIdentifier: string;
     input: {
       name?: CreateDiskInput['name'];
+      metadata?: Record<string, any>;
       sizeBytes?: CreateDiskInput['sizeBytes'];
       idempotencyKey?: string;
     };
@@ -70,25 +134,33 @@ class SandboxDiskServiceImpl {
     let tenant = await sandboxTenantService.ensure({ instance: d.instance, region });
     let { genesis, tenantId } = getRegional(tenant);
 
-    let remote = await genesis.disk.create({ tenantId, ...d.input });
+    let { metadata, ...input } = d.input;
+    let remote = await genesis.disk.create({ tenantId, ...input });
 
-    return await sandboxDiskInternalService.record({ instance: d.instance, tenant, remote });
+    return await sandboxDiskInternalService.record({
+      instance: d.instance,
+      tenant,
+      remote,
+      metadata
+    });
   }
 
   async clone(d: {
     instance: Instance;
     disk: SandboxDiskWithTenant;
-    input: { name?: string; idempotencyKey?: string };
+    input: { name?: string; idempotencyKey?: string; metadata?: Record<string, any> };
   }) {
     sandboxDiskInternalService.assertStandard(d.disk);
     sandboxDiskInternalService.assertActive(d.disk);
 
     let { genesis, tenantId } = getRegional(d.disk.tenant);
-    let remote = await genesis.disk.clone({ tenantId, diskId: d.disk.id, ...d.input });
+    let { metadata, ...input } = d.input;
+    let remote = await genesis.disk.clone({ tenantId, diskId: d.disk.id, ...input });
 
     return await sandboxDiskInternalService.record({
       instance: d.instance,
       tenant: d.disk.tenant,
+      metadata,
       remote
     });
   }
@@ -109,19 +181,43 @@ class SandboxDiskServiceImpl {
     return hydrated!;
   }
 
-  list(d: { instance: Instance; types?: SandboxDiskType[]; machineIds?: string[] }) {
+  list(d: {
+    instance: Instance;
+    diskIds?: string[];
+    types?: SandboxDiskType[];
+    machineIds?: string[];
+    regionIdentifiers?: string[];
+    attached?: boolean;
+    search?: string;
+  }) {
     let machineDiskIds: Promise<string[]> | undefined;
+    let attachedDiskIds: Promise<string[]> | undefined;
+    let search = d.search?.trim();
+    let searchIds: Promise<string[] | undefined> | undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        if (d.machineIds && !machineDiskIds) {
-          machineDiskIds = this.resolveMachineDiskIds({
+        searchIds ??= this.resolveSearchIds({ instance: d.instance, search });
+
+        if (d.machineIds) {
+          machineDiskIds ??= this.resolveMachineDiskIds({
             instance: d.instance,
             machineIds: d.machineIds
           });
         }
+        if (d.attached !== undefined) {
+          attachedDiskIds ??= this.resolveMachineDiskIds({ instance: d.instance });
+        }
 
-        let diskIds = await machineDiskIds;
+        let ids = await searchIds;
+
+        let idFilter = this.toIdFilter({
+          diskIds: d.diskIds,
+          searchIds: ids,
+          machineDiskIds: await machineDiskIds,
+          attachedDiskIds: await attachedDiskIds,
+          attached: d.attached
+        });
 
         return await db.sandboxDisk.findMany({
           ...opts,
@@ -129,12 +225,51 @@ class SandboxDiskServiceImpl {
             instanceOid: d.instance.oid,
             status: 'active',
             ...(d.types ? { type: { in: d.types } } : {}),
-            ...(diskIds ? { id: { in: diskIds } } : {})
+            ...(d.regionIdentifiers
+              ? { tenant: { region: { identifier: { in: d.regionIdentifiers } } } }
+              : {}),
+            ...(search && !ids
+              ? {
+                  OR: [
+                    { name: { contains: search, mode: 'insensitive' as const } },
+                    { id: { contains: search, mode: 'insensitive' as const } }
+                  ]
+                }
+              : {}),
+            ...idFilter
           },
           include: sandboxDiskInclude
         });
       })
     ).mapAll(disks => this.hydrate(disks));
+  }
+
+  private async resolveSearchIds(d: { instance: Instance; search?: string }) {
+    if (!d.search || !isSearchEnabled()) return undefined;
+
+    return await searchSandboxDiskIds({ instanceId: d.instance.id, query: d.search });
+  }
+
+  async update(d: {
+    disk: SandboxDiskWithTenant;
+    input: { name?: string | null; metadata?: Record<string, any> };
+  }) {
+    if (d.input.name !== undefined) sandboxDiskInternalService.assertStandard(d.disk);
+    sandboxDiskInternalService.assertActive(d.disk);
+
+    let disk = await db.sandboxDisk.update({
+      where: { oid: d.disk.oid },
+      data: { name: d.input.name, metadata: d.input.metadata },
+      include: sandboxDiskInclude
+    });
+
+    if (disk.type == 'standard') {
+      await indexSandboxDiskQueue.add({ diskOid: disk.oid.toString() });
+    }
+
+    let [hydrated] = await this.hydrate([disk]);
+
+    return hydrated!;
   }
 
   async delete(d: { disk: SandboxDiskWithTenant }) {
@@ -146,9 +281,11 @@ class SandboxDiskServiceImpl {
 
     let disk = await db.sandboxDisk.update({
       where: { oid: d.disk.oid },
-      data: { status: 'deleted', deletedAt: new Date() },
+      data: { status: 'deleted', deletedAt: new Date(), sizeBytes: BigInt(remote.sizeBytes) },
       include: sandboxDiskInclude
     });
+
+    await indexSandboxDiskQueue.add({ diskOid: disk.oid.toString() });
 
     return { ...disk, remote };
   }

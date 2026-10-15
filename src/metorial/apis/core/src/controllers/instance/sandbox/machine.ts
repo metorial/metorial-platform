@@ -38,12 +38,29 @@ export let sandboxMachineGroup = sandboxInstanceGroup.use(async ctx => {
 
 let machineStatusValidator = v.enumOf(['active', 'deleted']);
 
+let machineStateValidator = v.enumOf([
+  'starting',
+  'running',
+  'pausing',
+  'paused',
+  'resuming',
+  'hibernating',
+  'hibernated',
+  'restarting',
+  'upgrading',
+  'terminating',
+  'terminated',
+  'failed'
+]);
+
 let accessTtlValidator = v.optional(
   v.number({ description: 'How long the token stays valid, in seconds' })
 );
 
 let specFields = {
-  spec_id: v.optional(v.string({ description: 'The ID of the spec that sets the size of the machine' })),
+  spec_id: v.optional(
+    v.string({ description: 'The ID of the spec that sets the size of the machine' })
+  ),
   spec_identifier: v.optional(
     v.string({
       description: 'The identifier of the spec that sets the size of the machine',
@@ -107,11 +124,28 @@ export let sandboxMachineController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by resource IDs'
+            }),
             status: v.optional(
-              v.union([machineStatusValidator, v.array(machineStatusValidator)])
+              v.union([machineStatusValidator, v.array(machineStatusValidator)]),
+              {
+                description:
+                  'Filter by whether the machine still exists (active) or was terminated (deleted). Defaults to active.'
+              }
+            ),
+            state: v.optional(
+              v.union([machineStateValidator, v.array(machineStateValidator)]),
+              {
+                description:
+                  "Filter by the machine's current runtime status, the status field of the machine. Terminated machines are only listed together with status=deleted."
+              }
             ),
             image_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by the image the machines boot from'
+            }),
+            region: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by the identifiers of the regions the machines run in'
             }),
             search: v.optional(
               v.string({ description: 'Search machines by name, slug, or ID' })
@@ -122,8 +156,12 @@ export let sandboxMachineController = Controller.create(
       .do(async ctx => {
         let paginator = await sandboxMachineService.list({
           instance: ctx.instance,
+          machineIds:
+            ctx.query.id === undefined ? undefined : (normalizeArrayParam(ctx.query.id) ?? []),
           statuses: normalizeArrayParam(ctx.query.status),
+          states: normalizeArrayParam(ctx.query.state),
           imageIds: normalizeArrayParam(ctx.query.image_id),
+          regionIdentifiers: normalizeArrayParam(ctx.query.region),
           search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
@@ -154,6 +192,12 @@ export let sandboxMachineController = Controller.create(
           region: v.string({
             description: 'The identifier of the region to create the machine in'
           }),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'User-defined metadata stored in Metorial. Replaces existing metadata when updated.'
+            })
+          ),
           name: v.optional(v.string({ description: 'A name for the machine' })),
           image_id: v.string({ description: 'The image to boot the machine from' }),
           ...specFields,
@@ -185,6 +229,7 @@ export let sandboxMachineController = Controller.create(
           organization: ctx.organization,
           regionIdentifier: ctx.body.region,
           input: {
+            metadata: ctx.body.metadata,
             name: ctx.body.name,
             imageId: ctx.body.image_id,
             spec: toSpecSelector(ctx.body),
@@ -192,7 +237,7 @@ export let sandboxMachineController = Controller.create(
             runtime: toRuntimeInput(ctx.body.runtime),
             lifecycleHooks: toLifecycleHooksInput(ctx.body.lifecycle_hooks),
             ignoreImageHooks: ctx.body.ignore_image_hooks,
-            entrypointWaitSeconds: ctx.body.entrypoint_wait_seconds,
+            entrypointWaitSeconds: ctx.body.entrypoint_wait_seconds ?? 0,
             mounts: toMountsInput(ctx.body.mounts),
             firewallIds: ctx.body.firewall_ids,
             publicPorts: ctx.body.public_ports,
@@ -206,16 +251,20 @@ export let sandboxMachineController = Controller.create(
     update: sandboxMachineGroup
       .patch(instancePath('sandbox/machines/:machineId', 'sandbox.machines.update'), {
         name: 'Update sandbox machine',
-        description: 'Updates a machine. Changes that need a restart apply on its next start.'
+        description:
+          'Updates a machine. Changes to its size, runtime, or mounts take effect once the machine restarts, which happens on its own for a running machine, and the machine reports restart_required until then.'
       })
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ description: 'A name for the machine' })),
-          image_id: v.optional(
-            v.string({ description: 'The image to boot the machine from' })
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'User-defined metadata stored in Metorial. Replaces existing metadata when updated.'
+            })
           ),
+          name: v.optional(v.string({ description: 'A name for the machine' })),
           ...specFields,
           lifecycle_policy: v.optional(lifecyclePolicyValidator),
           runtime: v.optional(v.nullable(runtimeValidator)),
@@ -241,8 +290,8 @@ export let sandboxMachineController = Controller.create(
           machine: ctx.machine,
           organization: ctx.organization,
           input: {
+            metadata: ctx.body.metadata,
             name: ctx.body.name,
-            imageId: ctx.body.image_id,
             spec: hasSpecSelector(ctx.body) ? toSpecSelector(ctx.body) : undefined,
             lifecyclePolicy: toLifecyclePolicyInput(ctx.body.lifecycle_policy),
             runtime: toRuntimeInput(ctx.body.runtime),
@@ -250,7 +299,8 @@ export let sandboxMachineController = Controller.create(
             ignoreImageHooks: ctx.body.ignore_image_hooks,
             entrypointWaitSeconds: ctx.body.entrypoint_wait_seconds,
             mounts: toMountsInput(ctx.body.mounts),
-            firewallIds: ctx.body.firewall_ids
+            firewallIds: ctx.body.firewall_ids,
+            publicPorts: ctx.body.public_ports
           }
         });
 

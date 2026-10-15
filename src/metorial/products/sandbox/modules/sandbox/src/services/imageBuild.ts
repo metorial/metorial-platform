@@ -16,6 +16,7 @@ import {
   sandboxImageBuildContextMaxBytes
 } from '@metorial/module-file';
 import { flagService } from '@metorial/module-flags';
+import { sandboxImageVersionInternalService } from '../internal/imageVersionInternal';
 import { resolveBuildRegion } from '../lib/buildRegion';
 import { endImageBuild } from '../lib/imageBuildEnd';
 import { getRegional } from '../lib/regional';
@@ -131,10 +132,19 @@ class SandboxImageBuildServiceImpl {
           }
         });
 
+        await sandboxImageVersionInternalService.assignNumbers({ imageOid: d.image.oid });
+
         let created = await db.sandboxMachineImageBuild.create({
           data: {
             id: buildId,
             diskSizeBytes: BigInt(remote.options.diskSizeBytes),
+            options: {
+              dockerfilePath: remote.options.dockerfilePath,
+              contextPath: remote.options.contextPath,
+              target: remote.options.target,
+              buildArgNames: remote.options.buildArgNames,
+              timeoutSeconds: remote.options.timeoutSeconds
+            },
             instanceOid: d.instance.oid,
             imageOid: d.image.oid,
             versionOid: version.oid,

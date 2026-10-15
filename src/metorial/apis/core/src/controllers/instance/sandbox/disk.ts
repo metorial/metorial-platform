@@ -42,20 +42,38 @@ export let sandboxDiskController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by resource IDs'
+            }),
             type: v.optional(v.union([diskTypeValidator, v.array(diskTypeValidator)]), {
               description: 'Filter by disk type'
             }),
             machine_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by the machines the disks are mounted into'
-            })
+            }),
+            region: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by the identifiers of the regions the disks live in'
+            }),
+            attached: v.optional(
+              v.boolean({
+                description:
+                  'Only disks used by an active machine (true), as its root filesystem or a mount, or only disks no machine uses (false)'
+              })
+            ),
+            search: v.optional(v.string({ description: 'Search disks by name or ID' }))
           })
         )
       )
       .do(async ctx => {
         let paginator = sandboxDiskService.list({
           instance: ctx.instance,
+          diskIds:
+            ctx.query.id === undefined ? undefined : (normalizeArrayParam(ctx.query.id) ?? []),
           types: normalizeArrayParam(ctx.query.type),
-          machineIds: normalizeArrayParam(ctx.query.machine_id)
+          machineIds: normalizeArrayParam(ctx.query.machine_id),
+          regionIdentifiers: normalizeArrayParam(ctx.query.region),
+          attached: ctx.query.attached,
+          search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
 
@@ -83,6 +101,12 @@ export let sandboxDiskController = Controller.create(
           region: v.string({
             description: 'The identifier of the region to create the disk in'
           }),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'User-defined metadata stored in Metorial. Replaces existing metadata when updated.'
+            })
+          ),
           name: v.optional(v.string({ description: 'A name for the disk' })),
           size_bytes: v.optional(
             v.number({ description: 'The capacity of the disk in bytes' })
@@ -95,9 +119,46 @@ export let sandboxDiskController = Controller.create(
           instance: ctx.instance,
           regionIdentifier: ctx.body.region,
           input: {
+            metadata: ctx.body.metadata,
             name: ctx.body.name,
             sizeBytes: ctx.body.size_bytes
           }
+        });
+
+        return sandboxDiskPresenter.present({ disk });
+      }),
+
+    update: sandboxDiskGroup
+      .patch(instancePath('sandbox/disks/:diskId', 'sandbox.disks.update'), {
+        name: 'Update sandbox disk',
+        description:
+          'Updates a disk name and metadata. Only metadata can be updated for root filesystem disks.'
+      })
+      .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
+      .body(
+        'default',
+        v.object({
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'User-defined metadata stored in Metorial. Replaces existing metadata when updated.'
+            })
+          ),
+          name: v.optional(
+            v.nullable(
+              v.string({
+                description: 'A name for the disk. Pass null to remove it.',
+                modifiers: [v.minLength(1), v.maxLength(128)]
+              })
+            )
+          )
+        })
+      )
+      .output(sandboxDiskPresenter)
+      .do(async ctx => {
+        let disk = await sandboxDiskService.update({
+          disk: ctx.disk,
+          input: { metadata: ctx.body.metadata, name: ctx.body.name }
         });
 
         return sandboxDiskPresenter.present({ disk });
@@ -126,6 +187,12 @@ export let sandboxDiskController = Controller.create(
       .body(
         'default',
         v.object({
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'User-defined metadata stored in Metorial. Replaces existing metadata when updated.'
+            })
+          ),
           name: v.optional(v.string({ description: 'A name for the new disk' }))
         })
       )
@@ -134,7 +201,7 @@ export let sandboxDiskController = Controller.create(
         let disk = await sandboxDiskService.clone({
           instance: ctx.instance,
           disk: ctx.disk,
-          input: { name: ctx.body.name }
+          input: { metadata: ctx.body.metadata, name: ctx.body.name }
         });
 
         return sandboxDiskPresenter.present({ disk });

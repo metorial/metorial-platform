@@ -8,10 +8,13 @@ import {
   type SandboxResourceStatus
 } from '@metorial/db';
 import { getRegional, type SandboxTenantWithRegion } from '../lib/regional';
+import { indexSandboxDiskQueue } from '../queues/search';
 
 export type SandboxDiskWithTenant = SandboxDisk & { tenant: SandboxTenantWithRegion };
 
 export let sandboxDiskInclude = { tenant: { include: { region: true } } } as const;
+
+type RootFsDisk = { diskId: string; diskSizeBytes: string };
 
 class SandboxDiskInternalServiceImpl {
   assertActive(disk: { status: SandboxResourceStatus }) {
@@ -30,50 +33,54 @@ class SandboxDiskInternalServiceImpl {
     }
   }
 
-  async record<Remote extends { id: string }>(d: {
+  async record<Remote extends { id: string; name: string | null; sizeBytes: string }>(d: {
     instance: Instance;
     tenant: SandboxTenantWithRegion;
     remote: Remote;
+    metadata?: Record<string, any>;
   }) {
-    try {
-      let disk = await db.sandboxDisk.create({
+    let disk = await db.sandboxDisk
+      .create({
         data: {
           id: d.remote.id,
+          name: d.remote.name,
+          metadata: d.metadata ?? {},
+          sizeBytes: BigInt(d.remote.sizeBytes),
           tenantOid: d.tenant.oid,
           organizationOid: d.tenant.organizationOid,
           projectOid: d.tenant.projectOid,
           instanceOid: d.instance.oid
         },
         include: sandboxDiskInclude
+      })
+      .catch(async err => {
+        let { genesis, tenantId } = getRegional(d.tenant);
+        await genesis.disk.delete({ tenantId, diskId: d.remote.id }).catch(() => undefined);
+
+        throw err;
       });
 
-      return { ...disk, remote: d.remote };
-    } catch (err) {
-      let { genesis, tenantId } = getRegional(d.tenant);
-      await genesis.disk.delete({ tenantId, diskId: d.remote.id }).catch(() => undefined);
+    await indexSandboxDiskQueue.add({ diskOid: disk.oid.toString() });
 
-      throw err;
-    }
+    return { ...disk, remote: d.remote };
   }
 
   async recordRootFs(d: {
     machine: SandboxMachine;
-    remote: {
-      rootFs: { desired: { diskId: string } | null; current: { diskId: string } | null };
-    };
+    remote: { rootFs: { desired: RootFsDisk | null; current: RootFsDisk | null } };
   }) {
-    let diskIds = [
-      ...new Set(
-        [d.remote.rootFs.desired?.diskId, d.remote.rootFs.current?.diskId].filter(
-          (diskId): diskId is string => !!diskId
-        )
-      )
-    ];
+    let rootDisks = new Map<string, RootFsDisk>();
+    for (let rootFs of [d.remote.rootFs.desired, d.remote.rootFs.current]) {
+      if (rootFs && !rootDisks.has(rootFs.diskId)) rootDisks.set(rootFs.diskId, rootFs);
+    }
+
+    let diskIds = [...rootDisks.keys()];
     if (!diskIds.length) return;
 
     await db.sandboxDisk.createMany({
-      data: diskIds.map(id => ({
-        id,
+      data: [...rootDisks.values()].map(rootFs => ({
+        id: rootFs.diskId,
+        sizeBytes: BigInt(rootFs.diskSizeBytes),
         type: 'root_fs' as const,
         tenantOid: d.machine.tenantOid,
         organizationOid: d.machine.organizationOid,

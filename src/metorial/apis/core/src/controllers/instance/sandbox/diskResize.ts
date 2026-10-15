@@ -54,7 +54,7 @@ export let sandboxDiskResizeController = Controller.create(
     list: sandboxDiskGroup
       .get(instancePath('sandbox/disks/:diskId/resizes', 'sandbox.disks.resizes.list'), {
         name: 'List disk resizes',
-        description: 'Returns a paginated list of the resizes of a disk, newest first.'
+        description: 'Returns a paginated list of the resizes of a disk.'
       })
       .use(checkAccess({ possibleScopes: [...sandboxReadScopes] }))
       .outputList(sandboxDiskResizePresenter)

@@ -1,6 +1,7 @@
 import { Service } from '@lowerdeck/service';
 import { db, ID, type SandboxMachineImageStatus, type SandboxRegion } from '@metorial/db';
 import { getRegionClient } from '../lib/regions';
+import { sandboxImageVersionInternalService } from './imageVersionInternal';
 import { indexSandboxImageQueue } from '../queues/search';
 
 let SYNC_PAGE_SIZE = 100;
@@ -213,6 +214,7 @@ class SandboxImageInternalServiceImpl {
     genesisImageId: string;
   }) {
     let seenGenesisIds: string[] = [];
+    let hasUnnumbered = false;
     let after: string | undefined;
 
     while (true) {
@@ -238,6 +240,7 @@ class SandboxImageInternalServiceImpl {
           },
           update: { lastSyncedAt: d.syncedAt }
         });
+        if (version.versionNumber === null) hasUnnumbered = true;
 
         await db.sandboxMachineImageVersionRegion.upsert({
           where: {
@@ -266,6 +269,10 @@ class SandboxImageInternalServiceImpl {
 
       if (!page.pagination.hasMoreAfter || !page.items.length) break;
       after = page.items[page.items.length - 1]!.id;
+    }
+
+    if (hasUnnumbered) {
+      await sandboxImageVersionInternalService.assignNumbers({ imageOid: d.image.oid });
     }
 
     await db.sandboxMachineImageVersionRegion.updateMany({

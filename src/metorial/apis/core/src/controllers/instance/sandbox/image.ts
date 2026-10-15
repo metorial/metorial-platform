@@ -64,6 +64,9 @@ export let sandboxImageController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by resource IDs'
+            }),
             owner: v.optional(v.union([ownerValidator, v.array(ownerValidator)]), {
               description:
                 'Whether to list your own images, global images, or both (the default)'
@@ -81,6 +84,8 @@ export let sandboxImageController = Controller.create(
       .do(async ctx => {
         let paginator = await sandboxImageService.list({
           instance: ctx.instance,
+          imageIds:
+            ctx.query.id === undefined ? undefined : (normalizeArrayParam(ctx.query.id) ?? []),
           owners: normalizeArrayParam(ctx.query.owner),
           statuses: normalizeArrayParam(ctx.query.status),
           search: ctx.query.search
@@ -108,13 +113,21 @@ export let sandboxImageController = Controller.create(
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .body(
         'default',
-        v.object({ name: v.optional(v.string({ description: 'A name for the image' })) })
+        v.object({
+          name: v.optional(v.string({ description: 'A name for the image' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'User-defined metadata stored in Metorial. Replaces existing metadata when updated.'
+            })
+          )
+        })
       )
       .output(sandboxImagePresenter)
       .do(async ctx => {
         let image = await sandboxImageService.create({
           instance: ctx.instance,
-          input: { name: ctx.body.name }
+          input: { metadata: ctx.body.metadata, name: ctx.body.name }
         });
 
         return sandboxImagePresenter.present({ image });
@@ -123,13 +136,19 @@ export let sandboxImageController = Controller.create(
     update: sandboxImageGroup
       .patch(instancePath('sandbox/images/:imageId', 'sandbox.images.update'), {
         name: 'Update sandbox image',
-        description: 'Renames one of your images.'
+        description: 'Updates the name and metadata of one of your images.'
       })
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.nullable(v.string({ description: 'A name for the image' })))
+          name: v.optional(v.nullable(v.string({ description: 'A name for the image' }))),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'User-defined metadata stored in Metorial. Replaces existing metadata when updated.'
+            })
+          )
         })
       )
       .output(sandboxImagePresenter)
@@ -137,7 +156,7 @@ export let sandboxImageController = Controller.create(
         let image = await sandboxImageService.update({
           instance: ctx.instance,
           image: ctx.image,
-          input: { name: ctx.body.name }
+          input: { metadata: ctx.body.metadata, name: ctx.body.name }
         });
 
         return sandboxImagePresenter.present({ image });

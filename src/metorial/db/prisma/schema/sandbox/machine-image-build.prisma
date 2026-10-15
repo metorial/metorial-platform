@@ -37,6 +37,9 @@ model SandboxMachineImageBuild {
 
   diskSizeBytes BigInt
 
+  /// [SandboxImageBuildOptions]
+  options Json?
+
   failureCode    String?
   failureMessage String?
 

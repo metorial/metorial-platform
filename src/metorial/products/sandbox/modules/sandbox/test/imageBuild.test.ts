@@ -48,6 +48,7 @@ let db = {
 
 let getFlags = vi.fn(async () => ({ 'sandbox-builder-memory-mib': 4096 }));
 let refreshAvailability = vi.fn();
+let assignNumbers = vi.fn();
 let ensureTenant = vi.fn();
 
 vi.mock('../src/env', () => ({ env }));
@@ -57,6 +58,9 @@ vi.mock('../src/lib/regions', () => ({
 }));
 vi.mock('../src/internal/imageInternal', () => ({
   sandboxImageInternalService: { refreshAvailability }
+}));
+vi.mock('../src/internal/imageVersionInternal', () => ({
+  sandboxImageVersionInternalService: { assignNumbers }
 }));
 vi.mock('../src/services/tenant', () => ({ sandboxTenantService: { ensure: ensureTenant } }));
 vi.mock('@metorial/module-file', () => ({
@@ -647,7 +651,14 @@ describe('sandboxImageBuildService', () => {
       client.machineImage.build.create.mockResolvedValue({
         id: 'gbuild',
         logStreamId: 'ls',
-        options: { diskSizeBytes: 16 * 1024 ** 3 },
+        options: {
+          dockerfilePath: 'Dockerfile',
+          contextPath: '.',
+          target: null,
+          buildArgNames: [],
+          timeoutSeconds: 1800,
+          diskSizeBytes: 16 * 1024 ** 3
+        },
         upload: { url: 'u', path: 'p', method: 'PUT', headers: {}, maxBytes: 1, expiresAt: 1 }
       });
     }
@@ -689,6 +700,62 @@ describe('sandboxImageBuildService', () => {
     );
     expect(queues['sbx/image/build/root']!.add).toHaveBeenCalledWith({ buildOid: '50' });
     expect(queues['sbx/image/build/upload']!.add).toHaveBeenCalledWith({ buildOid: '50' });
+  });
+
+  it('records the build settings Genesis resolved, keeping only the names of the build arguments', async () => {
+    for (let client of Object.values(clients)) {
+      client.machineImage.build.create.mockResolvedValue({
+        id: 'gbuild',
+        logStreamId: 'ls',
+        options: {
+          dockerfilePath: 'docker/Dockerfile.prod',
+          contextPath: 'app',
+          target: 'runtime',
+          buildArgNames: ['TOKEN', 'MODE'],
+          timeoutSeconds: 600,
+          diskSizeBytes: 32 * 1024 ** 3
+        }
+      });
+    }
+
+    await sandboxImageBuildService.create({
+      instance,
+      organization,
+      image,
+      file,
+      input: { buildArgs: { TOKEN: 'secret', MODE: 'prod' } }
+    });
+
+    let data = db.sandboxMachineImageBuild.create.mock.calls[0]![0].data;
+
+    expect(data.options).toEqual({
+      dockerfilePath: 'docker/Dockerfile.prod',
+      contextPath: 'app',
+      target: 'runtime',
+      buildArgNames: ['TOKEN', 'MODE'],
+      timeoutSeconds: 600
+    });
+    expect(JSON.stringify(data.options)).not.toContain('secret');
+  });
+
+  it('numbers the version right after creating it, before the build row is written', async () => {
+    let order: string[] = [];
+    db.sandboxMachineImageVersion.create.mockImplementation(async () => {
+      order.push('version');
+      return { oid: 70n };
+    });
+    assignNumbers.mockImplementation(async () => {
+      order.push('number');
+    });
+    db.sandboxMachineImageBuild.create.mockImplementation(async () => {
+      order.push('build');
+      return { oid: 50n, id: 'sandboxMachineImageBuild_new' };
+    });
+
+    await sandboxImageBuildService.create({ instance, organization, image, file, input: {} });
+
+    expect(assignNumbers).toHaveBeenCalledWith({ imageOid: 60n });
+    expect(order).toEqual(['version', 'number', 'build']);
   });
 
   it('filters the list by image and image version ids', async () => {

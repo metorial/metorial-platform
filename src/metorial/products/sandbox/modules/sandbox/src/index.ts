@@ -1,5 +1,6 @@
 import { combineQueueProcessors } from '@metorial/queue';
 import './listeners/networking';
+import { backfillProcessors } from './queues/backfill';
 import { egressProcessors } from './queues/egress';
 import { imageBuildProcessors } from './queues/imageBuild';
 import { imageBuildCancelProcessors } from './queues/imageBuildCancel';
@@ -23,9 +24,11 @@ export {
 export * from './lib/failure';
 export * from './lib/publicRefs';
 export { getRegionClient, isSandboxingEnabled } from './lib/regions';
+export { startSandboxBackfill } from './queues/backfill';
 export * from './services';
 
 export let sandboxQueueProcessor = combineQueueProcessors([
+  backfillProcessors,
   egressProcessors,
   imageBuildProcessors,
   imageBuildCancelProcessors,

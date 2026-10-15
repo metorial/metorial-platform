@@ -3,6 +3,7 @@ import { mapSandboxFailure } from '@metorial/module-sandbox';
 import { Presenter } from '@metorial/presenter';
 import { sandboxMachineOperationType } from '../../types';
 import { sandboxFailureSchema, toRawFailure } from './_shared';
+import { sandboxMachineOperationKinds } from './machine';
 
 export let v1SandboxMachineOperationPresenter = Presenter.create(sandboxMachineOperationType)
   .presenter(async ({ operation }) => ({
@@ -34,8 +35,9 @@ export let v1SandboxMachineOperationPresenter = Presenter.create(sandboxMachineO
 
       id: v.string({ description: "The operation's unique identifier" }),
       machine_id: v.string({ description: 'The machine the operation acts on' }),
-      kind: v.enumOf(['start', 'pause', 'hibernate', 'restart', 'terminate'], {
-        description: 'What the operation does to the machine'
+      kind: v.enumOf([...sandboxMachineOperationKinds], {
+        description:
+          'What the operation does to the machine. Update records a configuration change; upgrade covers the interruption while a disk of the machine is resized.'
       }),
       trigger: v.enumOf(
         [

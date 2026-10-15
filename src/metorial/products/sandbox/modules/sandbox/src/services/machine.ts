@@ -13,6 +13,7 @@ import {
   assertMachineActive,
   getRegional,
   hydrateByTenant,
+  sandboxTenantInclude,
   type SandboxMachineWithTenant,
   type SandboxTenantWithRegion
 } from '../lib/regional';
@@ -28,9 +29,17 @@ import { sandboxTenantService } from './tenant';
 type CreateMachineInput = Parameters<GenesisInternalClient['machine']['create']>[0];
 type UpdateMachineInput = Parameters<GenesisInternalClient['machine']['update']>[0];
 
+export type SandboxMachineState = NonNullable<
+  Parameters<GenesisInternalClient['machine']['list']>[0]['status']
+>[number];
+
+let STATE_PAGE_SIZE = 100;
+let STATE_MAX_PAGES = 50;
+
 export let sandboxMachineInclude = {
   tenant: { include: { region: true } },
   instance: true,
+  image: { select: { id: true, name: true, identifier: true } },
   firewallLinks: { orderBy: { position: 'asc' }, include: { firewall: true } }
 } as const;
 
@@ -99,6 +108,7 @@ class SandboxMachineServiceImpl {
     regionIdentifier: string;
     input: {
       name?: CreateMachineInput['name'];
+      metadata?: Record<string, any>;
       imageId: string;
       spec: SandboxSpecSelector;
       lifecyclePolicy?: CreateMachineInput['lifecyclePolicy'];
@@ -140,7 +150,13 @@ class SandboxMachineServiceImpl {
       firewallIds
     });
 
-    let { imageId: _imageId, spec: _spec, firewallIds: _firewallIds, ...rest } = d.input;
+    let {
+      imageId: _imageId,
+      spec: _spec,
+      firewallIds: _firewallIds,
+      metadata,
+      ...rest
+    } = d.input;
     let { imageOid, ...remoteImage } = image;
     let { genesis, tenantId } = getRegional(tenant);
 
@@ -156,6 +172,7 @@ class SandboxMachineServiceImpl {
       let machine = await db.sandboxMachine.create({
         data: {
           id: remote.id,
+          metadata: metadata ?? {},
           tenantOid: tenant.oid,
           organizationOid: tenant.organizationOid,
           projectOid: tenant.projectOid,
@@ -199,16 +216,29 @@ class SandboxMachineServiceImpl {
 
   async list(d: {
     instance: Instance;
+    machineIds?: string[];
     statuses?: SandboxResourceStatus[];
+    states?: SandboxMachineState[];
     imageIds?: string[];
+    regionIdentifiers?: string[];
     search?: string;
   }) {
     let searchIds: Promise<string[] | undefined> | undefined;
+    let stateIds: Promise<string[]> | undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         searchIds ??= this.resolveSearchIds({ instance: d.instance, search: d.search });
+        if (d.states) {
+          stateIds ??= this.resolveStateIds({
+            instance: d.instance,
+            states: d.states,
+            regionIdentifiers: d.regionIdentifiers
+          });
+        }
+
         let ids = await searchIds;
+        let idsInState = await stateIds;
 
         return await db.sandboxMachine.findMany({
           ...opts,
@@ -216,15 +246,65 @@ class SandboxMachineServiceImpl {
             instanceOid: d.instance.oid,
             status: d.statuses ? { in: d.statuses } : 'active',
             ...(d.imageIds ? { image: { id: { in: d.imageIds } } } : {}),
+            ...(d.regionIdentifiers
+              ? { tenant: { region: { identifier: { in: d.regionIdentifiers } } } }
+              : {}),
             ...(ids ? { id: { in: ids } } : {}),
             ...(d.search && !ids
               ? { id: { contains: d.search.trim(), mode: 'insensitive' as const } }
+              : {}),
+            ...(d.machineIds || idsInState
+              ? {
+                  AND: [
+                    ...(d.machineIds ? [{ id: { in: d.machineIds } }] : []),
+                    ...(idsInState ? [{ id: { in: idsInState } }] : [])
+                  ]
+                }
               : {})
           },
           include: sandboxMachineInclude
         });
       })
     ).mapAll(machines => this.hydrate(machines));
+  }
+
+  private async resolveStateIds(d: {
+    instance: Instance;
+    states: SandboxMachineState[];
+    regionIdentifiers?: string[];
+  }) {
+    let tenants = await db.sandboxTenant.findMany({
+      where: {
+        machines: { some: { instanceOid: d.instance.oid } },
+        ...(d.regionIdentifiers ? { region: { identifier: { in: d.regionIdentifiers } } } : {})
+      },
+      include: sandboxTenantInclude
+    });
+
+    let ids = await Promise.all(
+      tenants.map(async tenant => {
+        let { genesis, tenantId } = getRegional(tenant);
+        let found: string[] = [];
+        let after: string | undefined;
+
+        for (let page = 0; page < STATE_MAX_PAGES; page++) {
+          let result = await genesis.machine.list({
+            tenantId,
+            status: d.states,
+            limit: STATE_PAGE_SIZE,
+            after
+          });
+          found.push(...result.items.map(machine => machine.id));
+
+          if (!result.pagination.hasMoreAfter || !result.items.length) break;
+          after = result.items[result.items.length - 1]!.id;
+        }
+
+        return found;
+      })
+    );
+
+    return ids.flat();
   }
 
   private async resolveSearchIds(d: {
@@ -242,7 +322,7 @@ class SandboxMachineServiceImpl {
     organization: Organization;
     input: {
       name?: UpdateMachineInput['name'];
-      imageId?: string;
+      metadata?: Record<string, any>;
       spec?: SandboxSpecSelector;
       lifecyclePolicy?: UpdateMachineInput['lifecyclePolicy'];
       runtime?: UpdateMachineInput['runtime'];
@@ -251,17 +331,30 @@ class SandboxMachineServiceImpl {
       entrypointWaitSeconds?: UpdateMachineInput['entrypointWaitSeconds'];
       mounts?: { diskId: string; mountPath: string }[];
       firewallIds?: string[];
+      publicPorts?: number[];
     };
   }) {
     assertMachineActive(d.machine);
 
     let { region } = d.machine.tenant;
-    let { imageId, spec: specSelector, firewallIds, ...rest } = d.input;
+    let { metadata, spec: specSelector, firewallIds, publicPorts, ...rest } = d.input;
 
-    let resolvedImage = imageId
-      ? await this.resolveImage({ instance: d.machine.instance, region, imageId })
-      : undefined;
-    let image = resolvedImage ? { imageId: resolvedImage.imageId } : undefined;
+    if (
+      metadata !== undefined &&
+      specSelector === undefined &&
+      firewallIds === undefined &&
+      publicPorts === undefined &&
+      Object.values(rest).every(value => value === undefined)
+    ) {
+      let machine = await db.sandboxMachine.update({
+        where: { oid: d.machine.oid },
+        data: { metadata },
+        include: sandboxMachineInclude
+      });
+      let [hydrated] = await this.hydrate([{ ...d.machine, ...machine }]);
+
+      return hydrated!;
+    }
 
     let spec = specSelector
       ? (
@@ -287,17 +380,26 @@ class SandboxMachineServiceImpl {
       tenantId,
       machineId: d.machine.id,
       ...rest,
-      image,
       spec: spec ? { memoryMiB: spec.memoryMiB, vcpus: spec.vcpus } : undefined
     });
     await sandboxDiskInternalService.recordRootFs({ machine: d.machine, remote });
 
-    if (resolvedImage) {
-      await db.sandboxMachine.update({
-        where: { oid: d.machine.oid },
-        data: { imageOid: resolvedImage.imageOid }
+    if (publicPorts) {
+      remote = await genesis.machine.access.setPublicPorts({
+        tenantId,
+        machineId: d.machine.id,
+        ports: publicPorts
       });
     }
+
+    let machine =
+      metadata !== undefined
+        ? await db.sandboxMachine.update({
+            where: { oid: d.machine.oid },
+            data: { metadata },
+            include: sandboxMachineInclude
+          })
+        : d.machine;
 
     if (firewallIds) {
       await sandboxMachineEgressInternalService.setFirewalls({
@@ -308,7 +410,7 @@ class SandboxMachineServiceImpl {
 
     await indexSandboxMachineQueue.add({ machineOid: d.machine.oid.toString() });
 
-    return { ...d.machine, remote };
+    return { ...machine, remote };
   }
 
   private async act(d: {

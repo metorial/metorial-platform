@@ -6,10 +6,13 @@ let genesis = { machine: { get: vi.fn() } };
 
 let db = {
   sandboxMachineImage: { findUnique: vi.fn() },
-  sandboxMachine: { findUnique: vi.fn() }
+  sandboxMachine: { findUnique: vi.fn() },
+  sandboxDisk: { findUnique: vi.fn() }
 };
 
 let search = {
+  deleteSandboxDiskDocument: vi.fn(),
+  indexSandboxDiskDocument: vi.fn(),
   deleteSandboxImageDocument: vi.fn(),
   deleteSandboxMachineDocument: vi.fn(),
   indexSandboxImageDocument: vi.fn(),
@@ -131,5 +134,49 @@ describe('sandbox machine search indexing', () => {
 
     expect(search.deleteSandboxMachineDocument).toHaveBeenCalledWith({ id: 'sbm_1' });
     expect(genesis.machine.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('sandbox disk search indexing', () => {
+  let run = () => processors['sbx/search/disk']!({ diskOid: '20' });
+
+  it('indexes the local disk name under its instance', async () => {
+    db.sandboxDisk.findUnique.mockResolvedValue({
+      id: 'sbd_1',
+      type: 'standard',
+      status: 'active',
+      name: 'Data',
+      instance: { id: 'ins_1' }
+    });
+
+    await run();
+
+    expect(search.indexSandboxDiskDocument).toHaveBeenCalledWith({
+      id: 'sbd_1',
+      instanceId: 'ins_1',
+      name: 'Data'
+    });
+  });
+
+  it('removes a deleted standard disk', async () => {
+    db.sandboxDisk.findUnique.mockResolvedValue({
+      id: 'sbd_1',
+      type: 'standard',
+      status: 'deleted'
+    });
+
+    await run();
+
+    expect(search.deleteSandboxDiskDocument).toHaveBeenCalledWith({ id: 'sbd_1' });
+    expect(search.indexSandboxDiskDocument).not.toHaveBeenCalled();
+  });
+
+  it.each(['active', 'deleted'])('never indexes a %s root filesystem disk', async status => {
+    db.sandboxDisk.findUnique.mockResolvedValue({ id: 'sbd_root', type: 'root_fs', status });
+
+    await run();
+
+    expect(search.indexSandboxDiskDocument).not.toHaveBeenCalled();
+    expect(search.deleteSandboxDiskDocument).not.toHaveBeenCalled();
   });
 });

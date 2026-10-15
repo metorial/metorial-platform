@@ -8,6 +8,8 @@ export let v1SandboxImageVersionPresenter = Presenter.create(sandboxImageVersion
 
     id: version.id,
     image_id: image.id,
+    version_number: version.versionNumber,
+    build_id: version.builds.at(0)?.id ?? null,
     status: version.status,
     regions: version.regions.map(regional => regional.region.identifier),
 
@@ -22,6 +24,18 @@ export let v1SandboxImageVersionPresenter = Presenter.create(sandboxImageVersion
 
       id: v.string({ description: "The version's unique identifier" }),
       image_id: v.string({ description: 'The image the version belongs to' }),
+      version_number: v.nullable(
+        v.number({
+          description:
+            'The position of the version within its image, starting at 1. Null only briefly for versions that are still being numbered.'
+        })
+      ),
+      build_id: v.nullable(
+        v.string({
+          description:
+            'The build that produced the version. Null for versions of global images.'
+        })
+      ),
       status: v.enumOf(['pending', 'active', 'deleted'], {
         description: "The version's status"
       }),

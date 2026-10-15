@@ -59,7 +59,7 @@ export let imageBuildUploadQueueProcessor = imageBuildUploadQueue.process(
         let content = await fileService.downloadFileContent({ file: build.sourceFile });
 
         let response = await fetch(
-          upload.url ?? new URL(upload.path, getRegionUrl(builder.region.id)).toString(),
+          new URL(upload.path, getRegionUrl(builder.region.id)).toString(),
           {
             method: upload.method,
             headers: { ...upload.headers, 'content-length': String(content.byteLength) },

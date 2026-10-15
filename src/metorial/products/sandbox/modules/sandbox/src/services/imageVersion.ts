@@ -4,7 +4,8 @@ import { Service } from '@lowerdeck/service';
 import { db, type SandboxMachineImage, type SandboxMachineImageStatus } from '@metorial/db';
 
 export let sandboxImageVersionInclude = {
-  regions: { where: { status: 'active' }, include: { region: true } }
+  regions: { where: { status: 'active' }, include: { region: true } },
+  builds: { select: { id: true }, orderBy: { oid: 'desc' }, take: 1 }
 } as const;
 
 class SandboxImageVersionServiceImpl {

@@ -50,6 +50,9 @@ export let firewallController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            search: v.optional(v.string(), {
+              description: 'Search firewalls by name and description'
+            }),
             id: v.optional(v.union([v.string(), v.array(v.string())])),
             slug: v.optional(v.union([v.string(), v.array(v.string())])),
             status: v.optional(
@@ -73,6 +76,7 @@ export let firewallController = Controller.create(
         let paginator = await firewallService.listFirewalls({
           instance: ctx.instance,
           allowDeleted: true,
+          search: ctx.query.search,
           ids: normalizeArrayParam(ctx.query.id),
           slugs: normalizeArrayParam(ctx.query.slug),
           status: normalizeArrayParam(ctx.query.status),

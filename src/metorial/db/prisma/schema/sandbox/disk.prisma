@@ -10,8 +10,14 @@ model SandboxDisk {
   type   SandboxDiskType       @default(standard)
   status SandboxResourceStatus @default(active)
 
+  name      String?
+  sizeBytes BigInt?
+
   tenantOid BigInt
   tenant    SandboxTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  /// [Record]
+  metadata Json @default("{}")
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)

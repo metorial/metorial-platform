@@ -13,6 +13,9 @@ model SandboxMachineImage {
   identifier String? @unique
   name       String?
 
+  /// [Record]
+  metadata Json @default("{}")
+
   organizationOid BigInt?
   organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -68,7 +71,8 @@ model SandboxMachineImageVersion {
 
   status SandboxMachineImageStatus @default(pending)
 
-  releaseKey String?
+  releaseKey    String?
+  versionNumber Int?
 
   imageOid BigInt
   image    SandboxMachineImage @relation(fields: [imageOid], references: [oid], onDelete: Cascade)
@@ -81,6 +85,7 @@ model SandboxMachineImageVersion {
   builds  SandboxMachineImageBuild[]
 
   @@unique([imageOid, releaseKey])
+  @@unique([imageOid, versionNumber])
   @@index([imageOid, status])
 }
 

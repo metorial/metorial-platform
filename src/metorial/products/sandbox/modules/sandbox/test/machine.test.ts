@@ -4,9 +4,11 @@ let makeGenesis = () => ({
   machine: {
     create: vi.fn(),
     getMany: vi.fn(),
+    list: vi.fn(),
     terminate: vi.fn(),
     update: vi.fn(),
-    start: vi.fn()
+    start: vi.fn(),
+    access: { setPublicPorts: vi.fn() }
   }
 });
 
@@ -18,6 +20,7 @@ let genesisByRegion: Record<string, ReturnType<typeof makeGenesis>> = {
 let db = {
   sandboxMachine: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   sandboxMachineImageRegion: { findFirst: vi.fn() },
+  sandboxTenant: { findMany: vi.fn() },
   sandboxDisk: { count: vi.fn(), createMany: vi.fn(), updateMany: vi.fn() }
 };
 
@@ -72,6 +75,24 @@ let organization = { oid: 5n } as any;
 let instance = { oid: 7n, id: 'ins_1', projectOid: 6n, organizationOid: 5n } as any;
 
 describe('sandboxMachineService.create', () => {
+  it('stores metadata locally without sending it to Genesis', async () => {
+    let result = await sandboxMachineService.create({
+      instance,
+      organization,
+      regionIdentifier: 'us-east-1',
+      input: {
+        imageId: 'sbi_global',
+        spec: { specId: 'sbs_global' },
+        metadata: { app: 'test' }
+      }
+    });
+
+    expect(result.metadata).toEqual({ app: 'test' });
+    expect(
+      genesisByRegion['aws:us-east-1']!.machine.create.mock.calls[0]![0]
+    ).not.toHaveProperty('metadata');
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -148,7 +169,7 @@ describe('sandboxMachineService.create', () => {
   it('records the root filesystem disks the machine reports, right away', async () => {
     genesisByRegion['aws:us-east-1']!.machine.create.mockResolvedValue({
       id: 'sbm_1',
-      rootFs: { desired: { diskId: 'sbd_root1' }, current: null }
+      rootFs: { desired: { diskId: 'sbd_root1', diskSizeBytes: '17179869184' }, current: null }
     });
 
     await sandboxMachineService.create({
@@ -163,6 +184,7 @@ describe('sandboxMachineService.create', () => {
         expect.objectContaining({
           id: 'sbd_root1',
           type: 'root_fs',
+          sizeBytes: 17179869184n,
           instanceOid: 7n
         })
       ],
@@ -307,6 +329,31 @@ describe('sandboxMachineService.list', () => {
 });
 
 describe('sandboxMachineService.list filters', () => {
+  it('combines IDs with the search filter', async () => {
+    await (
+      await sandboxMachineService.list({ instance, machineIds: ['sbm_1'], search: 'sbm' })
+    ).run({});
+
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { contains: 'sbm', mode: 'insensitive' },
+          AND: [{ id: { in: ['sbm_1'] } }]
+        })
+      })
+    );
+  });
+
+  it('keeps an empty ID filter', async () => {
+    await (await sandboxMachineService.list({ instance, machineIds: [] })).run({});
+
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ AND: [{ id: { in: [] } }] })
+      })
+    );
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     search.enabled = false;
@@ -363,6 +410,146 @@ describe('sandboxMachineService.list filters', () => {
       })
     );
   });
+
+  it('filters by the regions the machines run in', async () => {
+    let paginator = await sandboxMachineService.list({
+      instance,
+      regionIdentifiers: ['us-east-1', 'eu-west-1']
+    });
+    await paginator.run({});
+
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          tenant: { region: { identifier: { in: ['us-east-1', 'eu-west-1'] } } }
+        }
+      })
+    );
+  });
+
+  it('filters by runtime status using the ids every regional tenant reports', async () => {
+    let us = tenant('sbt_us', useast);
+    let eu = tenant('sbt_eu', euwest);
+    db.sandboxTenant.findMany.mockResolvedValue([us, eu]);
+    genesisByRegion['aws:us-east-1']!.machine.list.mockResolvedValue({
+      items: [{ id: 'sbm_a' }, { id: 'sbm_b' }],
+      pagination: { hasMoreAfter: false, hasMoreBefore: false }
+    });
+    genesisByRegion['aws:eu-west-1']!.machine.list.mockResolvedValue({
+      items: [{ id: 'sbm_c' }],
+      pagination: { hasMoreAfter: false, hasMoreBefore: false }
+    });
+
+    let paginator = await sandboxMachineService.list({
+      instance,
+      states: ['running', 'paused']
+    });
+    await paginator.run({});
+
+    expect(db.sandboxTenant.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { machines: { some: { instanceOid: 7n } } } })
+    );
+    expect(genesisByRegion['aws:us-east-1']!.machine.list).toHaveBeenCalledWith({
+      tenantId: 'sbt_us',
+      status: ['running', 'paused'],
+      limit: 100,
+      after: undefined
+    });
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          AND: [{ id: { in: ['sbm_a', 'sbm_b', 'sbm_c'] } }]
+        }
+      })
+    );
+  });
+
+  it('pages through the regional machines of a runtime status and limits the tenants to the region', async () => {
+    db.sandboxTenant.findMany.mockResolvedValue([tenant('sbt_us', useast)]);
+    genesisByRegion['aws:us-east-1']!.machine.list.mockResolvedValueOnce({
+      items: [{ id: 'sbm_a' }, { id: 'sbm_b' }],
+      pagination: { hasMoreAfter: true, hasMoreBefore: false }
+    }).mockResolvedValueOnce({
+      items: [{ id: 'sbm_c' }],
+      pagination: { hasMoreAfter: false, hasMoreBefore: true }
+    });
+
+    let paginator = await sandboxMachineService.list({
+      instance,
+      states: ['failed'],
+      regionIdentifiers: ['us-east-1']
+    });
+    await paginator.run({});
+
+    expect(db.sandboxTenant.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          machines: { some: { instanceOid: 7n } },
+          region: { identifier: { in: ['us-east-1'] } }
+        }
+      })
+    );
+    expect(genesisByRegion['aws:us-east-1']!.machine.list).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ after: 'sbm_b' })
+    );
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [{ id: { in: ['sbm_a', 'sbm_b', 'sbm_c'] } }]
+        })
+      })
+    );
+  });
+
+  it('matches nothing when no machine has the requested runtime status', async () => {
+    db.sandboxTenant.findMany.mockResolvedValue([tenant('sbt_us', useast)]);
+    genesisByRegion['aws:us-east-1']!.machine.list.mockResolvedValue({
+      items: [],
+      pagination: { hasMoreAfter: false, hasMoreBefore: false }
+    });
+
+    let paginator = await sandboxMachineService.list({ instance, states: ['hibernated'] });
+    await paginator.run({});
+
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ AND: [{ id: { in: [] } }] })
+      })
+    );
+  });
+
+  it('combines the runtime status with a search', async () => {
+    search.enabled = true;
+    search.searchSandboxMachineIds.mockResolvedValue(['sbm_a', 'sbm_z']);
+    db.sandboxTenant.findMany.mockResolvedValue([tenant('sbt_us', useast)]);
+    genesisByRegion['aws:us-east-1']!.machine.list.mockResolvedValue({
+      items: [{ id: 'sbm_a' }],
+      pagination: { hasMoreAfter: false, hasMoreBefore: false }
+    });
+
+    let paginator = await sandboxMachineService.list({
+      instance,
+      states: ['running'],
+      search: 'web'
+    });
+    await paginator.run({});
+
+    expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          id: { in: ['sbm_a', 'sbm_z'] },
+          AND: [{ id: { in: ['sbm_a'] } }]
+        }
+      })
+    );
+  });
 });
 
 describe('sandboxMachineService.update', () => {
@@ -380,10 +567,31 @@ describe('sandboxMachineService.update', () => {
     tenant: tenant('sbt_us', useast)
   } as any;
 
+  it('returns updated local metadata without sending it or an image to Genesis', async () => {
+    let regional = genesisByRegion['aws:us-east-1']!.machine;
+    regional.update.mockResolvedValue({
+      id: row.id,
+      rootFs: { desired: null, current: null }
+    });
+    db.sandboxMachine.update.mockImplementation(async ({ data }) => ({ ...row, ...data }));
+
+    let result = await sandboxMachineService.update({
+      machine: row,
+      organization,
+      input: { metadata: {} }
+    });
+
+    expect(result.metadata).toEqual({});
+    expect(regional.update).not.toHaveBeenCalled();
+  });
+
   it('records the new root filesystem and retires the ones the machine dropped', async () => {
     genesisByRegion['aws:us-east-1']!.machine.update.mockResolvedValue({
       id: 'sbm_1',
-      rootFs: { desired: { diskId: 'sbd_new' }, current: { diskId: 'sbd_old' } }
+      rootFs: {
+        desired: { diskId: 'sbd_new', diskSizeBytes: '32' },
+        current: { diskId: 'sbd_old', diskSizeBytes: '16' }
+      }
     });
 
     await sandboxMachineService.update({ machine: row, input: { name: 'renamed' } });
@@ -391,8 +599,8 @@ describe('sandboxMachineService.update', () => {
     expect(db.sandboxDisk.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: [
-          expect.objectContaining({ id: 'sbd_new', machineOid: 1n }),
-          expect.objectContaining({ id: 'sbd_old', machineOid: 1n })
+          expect.objectContaining({ id: 'sbd_new', sizeBytes: 32n, machineOid: 1n }),
+          expect.objectContaining({ id: 'sbd_old', sizeBytes: 16n, machineOid: 1n })
         ]
       })
     );
@@ -416,6 +624,60 @@ describe('sandboxMachineService.update', () => {
     await sandboxMachineService.update({ machine: row, input: { name: 'renamed' } });
 
     expect(db.sandboxDisk.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('sets the public ports after updating the machine and returns the refreshed machine', async () => {
+    let regional = genesisByRegion['aws:us-east-1']!.machine;
+    regional.update.mockResolvedValue({
+      id: 'sbm_1',
+      publicPorts: [],
+      rootFs: { desired: null, current: null }
+    });
+    regional.access.setPublicPorts.mockResolvedValue({
+      id: 'sbm_1',
+      publicPorts: [3000, 8080]
+    });
+
+    let result = await sandboxMachineService.update({
+      machine: row,
+      input: { publicPorts: [3000, 8080] }
+    });
+
+    expect(regional.update.mock.calls[0]![0]).not.toHaveProperty('publicPorts');
+    expect(regional.access.setPublicPorts).toHaveBeenCalledWith({
+      tenantId: 'sbt_us',
+      machineId: 'sbm_1',
+      ports: [3000, 8080]
+    });
+    expect(result.remote).toEqual({ id: 'sbm_1', publicPorts: [3000, 8080] });
+  });
+
+  it('closes every public port when given an empty list', async () => {
+    let regional = genesisByRegion['aws:us-east-1']!.machine;
+    regional.update.mockResolvedValue({
+      id: 'sbm_1',
+      rootFs: { desired: null, current: null }
+    });
+    regional.access.setPublicPorts.mockResolvedValue({ id: 'sbm_1', publicPorts: [] });
+
+    await sandboxMachineService.update({ machine: row, input: { publicPorts: [] } });
+
+    expect(regional.access.setPublicPorts).toHaveBeenCalledWith(
+      expect.objectContaining({ ports: [] })
+    );
+  });
+
+  it('leaves the public ports alone when none are given', async () => {
+    let regional = genesisByRegion['aws:us-east-1']!.machine;
+    regional.access.setPublicPorts.mockClear();
+    regional.update.mockResolvedValue({
+      id: 'sbm_1',
+      rootFs: { desired: null, current: null }
+    });
+
+    await sandboxMachineService.update({ machine: row, input: { name: 'renamed' } });
+
+    expect(regional.access.setPublicPorts).not.toHaveBeenCalled();
   });
 });
 

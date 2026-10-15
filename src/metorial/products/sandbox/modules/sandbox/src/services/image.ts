@@ -33,11 +33,15 @@ export let sandboxImageInclude = {
 } as const;
 
 class SandboxImageServiceImpl {
-  async create(d: { instance: Instance; input: { name?: string } }) {
+  async create(d: {
+    instance: Instance;
+    input: { name?: string; metadata?: Record<string, any> };
+  }) {
     let image = await db.sandboxMachineImage.create({
       data: {
         id: await ID.generateId('sandboxMachineImage'),
         name: d.input.name ?? null,
+        metadata: d.input.metadata ?? {},
         organizationOid: d.instance.organizationOid,
         projectOid: d.instance.projectOid,
         instanceOid: d.instance.oid
@@ -52,6 +56,7 @@ class SandboxImageServiceImpl {
 
   async list(d: {
     instance: Instance;
+    imageIds?: string[];
     owners?: SandboxImageOwner[];
     statuses?: SandboxMachineImageStatus[];
     search?: string;
@@ -66,6 +71,7 @@ class SandboxImageServiceImpl {
           ...opts,
           where: this.visibleTo({
             instance: d.instance,
+            imageIds: d.imageIds,
             owners: d.owners,
             statuses: d.statuses,
             search: d.search,
@@ -155,16 +161,18 @@ class SandboxImageServiceImpl {
   async update(d: {
     instance: Instance;
     image: SandboxMachineImage;
-    input: { name?: string | null };
+    input: { name?: string | null; metadata?: Record<string, any> };
   }) {
     this.assertOwned(d);
 
-    if (d.input.name !== undefined) {
+    if (d.input.name !== undefined || d.input.metadata !== undefined) {
       await db.sandboxMachineImage.update({
         where: { oid: d.image.oid },
-        data: { name: d.input.name }
+        data: { name: d.input.name, metadata: d.input.metadata }
       });
+    }
 
+    if (d.input.name !== undefined) {
       await imageRemoteRootQueue.add({ imageOid: d.image.oid.toString() });
       await indexSandboxImageQueue.add({ imageOid: d.image.oid.toString() });
     }
@@ -229,6 +237,7 @@ class SandboxImageServiceImpl {
 
   private visibleTo(d: {
     instance: Instance;
+    imageIds?: string[];
     owners?: SandboxImageOwner[];
     statuses?: SandboxMachineImageStatus[];
     search?: string;
@@ -244,6 +253,7 @@ class SandboxImageServiceImpl {
 
     return {
       AND: [
+        ...(d.imageIds ? [{ id: { in: d.imageIds } }] : []),
         {
           OR: [
             ...(owners.includes('global') ? [global] : []),

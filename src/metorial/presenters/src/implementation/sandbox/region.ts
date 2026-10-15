@@ -2,6 +2,12 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { sandboxRegionType } from '../../types';
 
+let defaultRegionIds: Record<string, string> = {
+  dev: 'dev',
+  us1: 'aws:us-east-1',
+  eu1: 'aws:eu-west-1'
+};
+
 export let v1SandboxRegionPresenter = Presenter.create(sandboxRegionType)
   .presenter(async ({ region }) => ({
     object: 'sandbox.region' as const,
@@ -10,6 +16,7 @@ export let v1SandboxRegionPresenter = Presenter.create(sandboxRegionType)
     name: region.name,
     area: { id: region.areaId, name: region.areaName },
 
+    is_default: region.id === defaultRegionIds[process.env.METORIAL_REGION ?? 'dev'],
     availability: 'available'
   }))
   .schema(
@@ -29,6 +36,9 @@ export let v1SandboxRegionPresenter = Presenter.create(sandboxRegionType)
           description: "The geographic area's name",
           examples: ['United States']
         })
+      }),
+      is_default: v.boolean({
+        description: 'Whether this is the default sandbox region for this Metorial region'
       }),
       availability: v.enumOf(['available', 'unavailable'], {
         description: 'Whether the region is currently available for new machines'

@@ -37,7 +37,7 @@ export let ID = createIdGenerator({
 
   integrationEnclave: idType.sorted('enc'),
   integrationEnclaveEnvironment: idType.sorted('een'),
-  integrationInternetGateway: idType.sorted('net'),
+  integrationInternetGateway: idType.sorted('iing'),
   firewall: idType.sorted('fwl'),
   integrationFirewallAssignment: idType.sorted('fwb'),
   networkPolicy: idType.sorted('npo'),

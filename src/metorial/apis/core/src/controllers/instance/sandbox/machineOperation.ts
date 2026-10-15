@@ -31,7 +31,7 @@ export let sandboxMachineOperationController = Controller.create(
   {
     name: 'Sandbox machine operations',
     description:
-      'Operations record each start, pause, hibernate, restart, or terminate a machine went through.'
+      'Operations record each start, pause, hibernate, restart, terminate, update, or upgrade a machine went through.'
   },
   {
     list: sandboxMachineGroup
@@ -42,7 +42,7 @@ export let sandboxMachineOperationController = Controller.create(
         ),
         {
           name: 'List machine operations',
-          description: 'Returns a paginated list of the operations of a machine, newest first.'
+          description: 'Returns a paginated list of the operations of a machine.'
         }
       )
       .use(checkAccess({ possibleScopes: [...sandboxReadScopes] }))

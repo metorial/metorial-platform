@@ -21,7 +21,12 @@ let db = {
   }
 };
 
+let assignNumbers = vi.fn();
+
 vi.mock('../src/lib/regions', () => ({ getRegionClient: vi.fn(() => genesis) }));
+vi.mock('../src/internal/imageVersionInternal', () => ({
+  sandboxImageVersionInternalService: { assignNumbers }
+}));
 vi.mock('../src/queues/search', () => ({
   indexSandboxImageQueue: { add: vi.fn() },
   indexSandboxMachineQueue: { add: vi.fn() }
@@ -106,6 +111,43 @@ describe('sandboxImageInternalService.syncRegion', () => {
       digest: 'sha256:ver_1',
       imageRegionOid: 20n
     });
+  });
+
+  it('numbers the versions of an image once, after all of them were synced', async () => {
+    db.sandboxMachineImageVersion.upsert.mockImplementation(async (a: any) => ({
+      oid: 30n,
+      versionNumber: null,
+      ...a.create
+    }));
+    genesis.globalMachineImage.list.mockResolvedValueOnce(
+      page([image('img_1', 'alpine-3.23', 'ver_1')])
+    );
+    genesis.globalMachineImage.version.list.mockResolvedValueOnce(
+      page([version('ver_1', 'rk1'), version('ver_0', 'rk0')])
+    );
+
+    await sandboxImageInternalService.syncRegion({ region });
+
+    expect(assignNumbers).toHaveBeenCalledTimes(1);
+    expect(assignNumbers).toHaveBeenCalledWith({ imageOid: 10n });
+  });
+
+  it('leaves versions that already have a number alone', async () => {
+    db.sandboxMachineImageVersion.upsert.mockImplementation(async (a: any) => ({
+      oid: 30n,
+      versionNumber: 3,
+      ...a.create
+    }));
+    genesis.globalMachineImage.list.mockResolvedValueOnce(
+      page([image('img_1', 'alpine-3.23', 'ver_1')])
+    );
+    genesis.globalMachineImage.version.list.mockResolvedValueOnce(
+      page([version('ver_1', 'rk1')])
+    );
+
+    await sandboxImageInternalService.syncRegion({ region });
+
+    expect(assignNumbers).not.toHaveBeenCalled();
   });
 
   it('skips images without an identifier or current version', async () => {

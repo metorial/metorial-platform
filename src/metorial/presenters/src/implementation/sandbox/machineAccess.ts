@@ -11,9 +11,10 @@ export let v1SandboxMachineAccessPresenter = Presenter.create(sandboxMachineAcce
     ports,
 
     urls: {
-      shell: access.urls.shell,
-      files: access.urls.files,
-      ports: access.urls.ports
+      type: scope,
+      shell: scope === 'shell' ? access.urls.shell : null,
+      files: scope === 'files' ? access.urls.files : null,
+      ports: scope === 'port' ? access.urls.ports : null
     },
 
     expires_at: access.expiresAt
@@ -32,11 +33,16 @@ export let v1SandboxMachineAccessPresenter = Presenter.create(sandboxMachineAcce
       }),
       ports: v.nullable(v.union([v.array(v.number()), v.literal('*')])),
       urls: v.object({
-        shell: v.string({ description: 'The WebSocket URL of the shell' }),
-        files: v.string({ description: 'The WebSocket URL of the file service' }),
-        ports: v.record(v.string(), {
-          description: 'The URL of each requested port, keyed by port number'
-        })
+        type: v.enumOf(['shell', 'files', 'port'], {
+          description: 'What the token grants access to'
+        }),
+        shell: v.nullable(v.string({ description: 'The WebSocket URL of the shell' })),
+        files: v.nullable(v.string({ description: 'The WebSocket URL of the file service' })),
+        ports: v.nullable(
+          v.record(v.string(), {
+            description: 'The URL of each requested port, keyed by port number'
+          })
+        )
       }),
       expires_at: v.date({ description: 'When the token expires' })
     })

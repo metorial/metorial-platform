@@ -1,7 +1,9 @@
 import { db } from '@metorial/db';
 import {
+  deleteSandboxDiskDocument,
   deleteSandboxImageDocument,
   deleteSandboxMachineDocument,
+  indexSandboxDiskDocument,
   indexSandboxImageDocument,
   indexSandboxMachineDocument,
   sandboxGlobalSearchTenantId
@@ -62,7 +64,32 @@ export let indexSandboxMachineQueueProcessor = indexSandboxMachineQueue.process(
   });
 });
 
+export let indexSandboxDiskQueue = createQueue<{ diskOid: string }>({
+  name: 'sbx/search/disk',
+  workerOpts: { concurrency: 20 }
+});
+
+export let indexSandboxDiskQueueProcessor = indexSandboxDiskQueue.process(async data => {
+  let disk = await db.sandboxDisk.findUnique({
+    where: { oid: BigInt(data.diskOid) },
+    include: { instance: true }
+  });
+  if (!disk || disk.type == 'root_fs') return;
+
+  if (disk.status == 'deleted') {
+    await deleteSandboxDiskDocument({ id: disk.id });
+    return;
+  }
+
+  await indexSandboxDiskDocument({
+    id: disk.id,
+    instanceId: disk.instance.id,
+    name: disk.name
+  });
+});
+
 export let searchProcessors = combineQueueProcessors([
+  indexSandboxDiskQueueProcessor,
   indexSandboxImageQueueProcessor,
   indexSandboxMachineQueueProcessor
 ]);
