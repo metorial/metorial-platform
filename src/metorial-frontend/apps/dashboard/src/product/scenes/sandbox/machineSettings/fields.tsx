@@ -179,6 +179,7 @@ export let SandboxMountsField = (p: {
         size="2"
         type="button"
         variant="outline"
+        disabled={p.value.length >= 3}
         onClick={() => p.onChange([...p.value, { diskId: '', mountPath: '/data' }])}
       >
         Add Disk

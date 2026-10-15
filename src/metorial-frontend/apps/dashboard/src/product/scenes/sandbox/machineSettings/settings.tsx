@@ -252,6 +252,7 @@ export let SandboxStorageSettings = () => {
       yup.object({
         mounts: yup
           .array()
+          .max(3, 'A machine can have at most 3 disk mounts.')
           .required()
           .test(
             'complete-mounts',
@@ -302,7 +303,7 @@ export let SandboxStorageSettings = () => {
                   size="2"
                   type="button"
                   variant="outline"
-                  disabled={update.isLoading}
+                  disabled={update.isLoading || form.values.mounts.length >= 3}
                   onClick={() =>
                     form.setFieldValue('mounts', [
                       ...form.values.mounts,
