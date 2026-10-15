@@ -49,12 +49,12 @@ let requestAccess = (input: SandboxMachineAccessInput) =>
   });
 
 let resolveUrl = (input: SandboxMachineAccessInput, urls: SandboxMachineAccess['urls']) => {
-  if (input.scope == 'shell') return urls.shell;
-  if (input.scope == 'files') return urls.files;
+  if (input.scope == 'shell') return urls.shell ?? '';
+  if (input.scope == 'files') return urls.files ?? '';
 
   let port = input.port ?? (Array.isArray(input.ports) ? input.ports[0] : undefined);
 
-  return port === undefined ? '' : (urls.ports[String(port)] ?? '');
+  return port === undefined ? '' : (urls.ports?.[String(port)] ?? '');
 };
 
 export let createSandboxMachineAccess = async (
