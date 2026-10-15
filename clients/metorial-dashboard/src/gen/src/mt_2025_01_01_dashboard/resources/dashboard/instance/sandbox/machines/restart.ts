@@ -32,6 +32,7 @@ export type DashboardInstanceSandboxMachinesRestartOutput = {
     memoryGib: number;
     cpus: number;
   } | null;
+  maxBoost: { memoryGib: number; cpus: number } | null;
   rootDisk: { id: string; sizeBytes: number | null } | null;
   mounts: {
     diskId: string;
@@ -141,6 +142,7 @@ export let mapDashboardInstanceSandboxMachinesRestartOutput =
     [
       ['image', 0, [1, ['version_id']]],
       ['spec', 0, [1, ['memory_gib']]],
+      ['max_boost', 1, [1, ['memory_gib']]],
       ['root_disk', 1, [1, ['size_bytes']]],
       ['mounts', 0, [2, [1, ['disk_id', 'mount_path']]]],
       'firewall_ids',
