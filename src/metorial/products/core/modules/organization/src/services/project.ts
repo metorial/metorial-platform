@@ -8,6 +8,7 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
@@ -22,7 +23,6 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
-import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { syncBrandQueue } from '../queues/syncBrand';
 import { instanceService } from './instance';
 
@@ -109,11 +109,15 @@ class ProjectService {
     return await withTransaction(async db => {
       await Fabric.fire('organization.project.created:before', d);
 
+      let isInitial = d.input.name === d.organization.name;
+
       let project = await db.project.create({
         data: {
           id: await ID.generateId('project'),
           status: 'active',
-          slug: await getProjectSlug({ input: `${d.input.name}-${generateCode(5)}` }),
+          slug: await getProjectSlug({
+            input: isInitial ? d.organization.slug : `${d.input.name}-${generateCode(3)}`
+          }),
           name: d.input.name,
           magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes,
           autoAddOrganizationMembersToPortals: true,
@@ -131,7 +135,8 @@ class ProjectService {
         auditScope: d.auditScope,
         input: {
           name: `Production`,
-          type: 'production'
+          type: 'production',
+          isInitial
         }
       });
 
