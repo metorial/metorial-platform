@@ -2,6 +2,7 @@ import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
 import { env } from './env';
 
 type VoyagerIndex =
+  | 'firewall'
   | 'consumer'
   | 'consumerGroup'
   | 'consumerAccessRequest'
@@ -9,7 +10,8 @@ type VoyagerIndex =
   | 'magicMcpGroup'
   | 'magicMcpServer'
   | 'sandboxImage'
-  | 'sandboxMachine';
+  | 'sandboxMachine'
+  | 'sandboxDisk';
 
 type VoyagerSearchInput = {
   index: VoyagerIndex;
@@ -96,6 +98,12 @@ type SandboxMachineIndexInput = {
   slug: string;
 };
 
+type SandboxDiskIndexInput = {
+  id: string;
+  instanceId: string;
+  name?: string | null;
+};
+
 export let sandboxGlobalSearchTenantId = 'sandbox_global';
 
 let getIndexName = (suffix: string) =>
@@ -111,6 +119,10 @@ let voyagerSourcePromise: Promise<any> | null = null;
 let voyagerIndexPromises: Partial<Record<VoyagerIndex, Promise<any>>> = {};
 
 let voyagerIndexes = {
+  firewall: {
+    identifier: 'firewall',
+    name: 'Firewalls'
+  },
   consumer: {
     identifier: 'consumer',
     name: 'Consumers'
@@ -138,6 +150,10 @@ let voyagerIndexes = {
   sandboxImage: {
     identifier: 'sandbox_image',
     name: 'Sandbox Images'
+  },
+  sandboxDisk: {
+    identifier: 'sandbox_disk',
+    name: 'Sandbox Disks'
   },
   sandboxMachine: {
     identifier: 'sandbox_machine',
@@ -488,3 +504,38 @@ export let deleteSandboxMachineDocument = async (d: { id: string }) =>
     index: 'sandboxMachine',
     id: d.id
   });
+
+export let searchSandboxDiskIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({ index: 'sandboxDisk', instanceId: d.instanceId, query: d.query });
+
+export let indexSandboxDiskDocument = async (d: SandboxDiskIndexInput) =>
+  await indexByType({
+    index: 'sandboxDisk',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: { sandboxDiskId: d.id },
+    body: { id: d.id, name: d.name ?? undefined }
+  });
+
+export let deleteSandboxDiskDocument = async (d: { id: string }) =>
+  await deleteByType({ index: 'sandboxDisk', id: d.id });
+
+export let searchFirewallIds = async (d: { instanceId: string; query: string }) =>
+  await searchByIndex({ index: 'firewall', instanceId: d.instanceId, query: d.query });
+
+export let indexFirewallDocument = async (d: {
+  id: string;
+  instanceId: string;
+  name: string;
+  description?: string | null;
+}) =>
+  await indexByType({
+    index: 'firewall',
+    id: d.id,
+    instanceId: d.instanceId,
+    fields: { firewallId: d.id },
+    body: { name: d.name, description: d.description ?? undefined }
+  });
+
+export let deleteFirewallDocument = async (d: { id: string }) =>
+  await deleteByType({ index: 'firewall', id: d.id });

@@ -16,6 +16,7 @@ import {
   type Environment,
   type NetworkPolicy,
   type NetworkPolicyStatus,
+  type Prisma,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -57,7 +58,7 @@ let include = {
           id: true,
           slug: true,
           name: true,
-          network: {
+          internetGateway: {
             select: {
               id: true,
               name: true
@@ -67,7 +68,7 @@ let include = {
       }
     }
   }
-};
+} satisfies Prisma.NetworkPolicyInclude;
 
 let ruleChangeLock = createLock({ name: 'net/networkPolicy/rules' });
 
