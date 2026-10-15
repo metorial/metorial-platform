@@ -95,8 +95,10 @@ export let SandboxImageOverviewPage = () => {
           <>
             {latest && ['failed', 'timed_out'].includes(latest.status) ? (
               <Callout color="red">
-                <span>
-                  {latest.failure?.message || 'The latest image build failed.'}{' '}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}>
+                  <span style={{ flex: 1 }}>
+                    {latest.failure?.message || 'The latest image build failed.'}{' '}
+                  </span>
                   <Button
                     size="1"
                     variant="outline"
@@ -114,12 +116,14 @@ export let SandboxImageOverviewPage = () => {
               </Callout>
             ) : latest && isSandboxBuildActive(latest.status) ? (
               <Callout color="orange">
-                <span>
-                  {imageVersionLabel({
-                    id: latest.versionId,
-                    versionNumber: latest.versionNumber
-                  })}{' '}
-                  is building. Started <RenderDate date={latest.createdAt} />.{' '}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}>
+                  <span style={{ flex: 1 }}>
+                    {imageVersionLabel({
+                      id: latest.versionId,
+                      versionNumber: latest.versionNumber
+                    })}{' '}
+                    is building. Started <RenderDate date={latest.createdAt} />.{' '}
+                  </span>
                   <Button
                     size="1"
                     variant="outline"

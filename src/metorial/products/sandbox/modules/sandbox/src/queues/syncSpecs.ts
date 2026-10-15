@@ -5,7 +5,7 @@ import { sandboxRegionInternalService } from '../internal/regionInternal';
 import { sandboxSpecInternalService } from '../internal/specInternal';
 import { isSandboxingEnabled } from '../lib/regions';
 
-let SYNC_CRON = '0 3 * * *';
+let SYNC_CRON = '*/15 * * * *';
 let STARTUP_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 
 let enqueueRegionSyncs = async () => {
@@ -39,9 +39,7 @@ export let syncSpecsStartupQueue = createQueue<{}>({
   workerOpts: { concurrency: 1, limiter: { max: 1, duration: STARTUP_SYNC_INTERVAL_MS } }
 });
 
-export let syncSpecsStartupQueueProcessor = syncSpecsStartupQueue.process(
-  enqueueRegionSyncs
-);
+export let syncSpecsStartupQueueProcessor = syncSpecsStartupQueue.process(enqueueRegionSyncs);
 
 export let syncSpecsStartupTrigger: IQueueProcessor = {
   start: async () => {
