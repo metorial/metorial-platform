@@ -14,6 +14,7 @@ export type ManagementInstanceProviderDeploymentsConfigsUpdateOutput = {
         type: 'filter';
         filters: (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -165,6 +166,7 @@ export type ManagementInstanceProviderDeploymentsConfigsUpdateBody = {
   toolFilters?:
     | (
         | { type: 'tool_keys'; keys: string[] }
+        | { type: 'tool_categories'; keys: string[] }
         | { type: 'tool_regex'; pattern: string }
         | { type: 'resource_regex'; pattern: string }
         | { type: 'resource_uris'; uris: string[] }
@@ -173,6 +175,7 @@ export type ManagementInstanceProviderDeploymentsConfigsUpdateBody = {
       )
     | (
         | { type: 'tool_keys'; keys: string[] }
+        | { type: 'tool_categories'; keys: string[] }
         | { type: 'tool_regex'; pattern: string }
         | { type: 'resource_regex'; pattern: string }
         | { type: 'resource_uris'; uris: string[] }

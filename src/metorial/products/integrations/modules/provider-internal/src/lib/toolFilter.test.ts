@@ -235,3 +235,164 @@ describe('buildIntegrationProviderToolFilterChain', () => {
     });
   });
 });
+
+describe('tool_categories filter rule', () => {
+  let createCategorizedTool = (
+    key: string,
+    categories?: string[],
+    mcpToolType: Record<string, any> = { type: 'tool.callable' }
+  ) =>
+    ({
+      id: `ptl_${key}`,
+      key: `${key}_67228`,
+      callableId: key,
+      value: {
+        key,
+        mcpToolType,
+        ...(categories ? { categories } : {})
+      }
+    }) as any;
+
+  let crmTool = createCategorizedTool('crm_get_records', ['crm']);
+  let booksTool = createCategorizedTool('books_get_invoice', ['books']);
+  let sharedTool = createCategorizedTool('search_contacts', ['crm', 'bigin']);
+  let uncategorizedTool = createCategorizedTool('who_am_i');
+
+  let categoriesFilter = (keys: string[]): PrismaJson.ToolFilter => ({
+    type: 'v1.filter',
+    filters: [{ type: 'tool_categories', keys }]
+  });
+
+  it('allows tools in a selected category and denies others', () => {
+    let filters = [categoriesFilter(['crm'])];
+
+    expect(checkToolAccess(crmTool, filters, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(booksTool, filters, 'call')).toEqual({ allowed: false });
+    expect(checkToolAccess(uncategorizedTool, filters, 'list')).toEqual({ allowed: false });
+  });
+
+  it('allows a tool in several categories when any of them is selected', () => {
+    expect(checkToolAccess(sharedTool, [categoriesFilter(['bigin'])], 'list')).toEqual({
+      allowed: true
+    });
+    expect(checkToolAccess(sharedTool, [categoriesFilter(['crm'])], 'list')).toEqual({
+      allowed: true
+    });
+    expect(checkToolAccess(sharedTool, [categoriesFilter(['books'])], 'list')).toEqual({
+      allowed: false
+    });
+  });
+
+  it('ORs category rules with tool_keys rules inside one filter', () => {
+    let filters: PrismaJson.ToolFilter[] = [
+      {
+        type: 'v1.filter',
+        filters: [
+          { type: 'tool_categories', keys: ['crm'] },
+          { type: 'tool_keys', keys: ['books_get_invoice'] }
+        ]
+      }
+    ];
+    let otherBooksTool = createCategorizedTool('books_list_invoices', ['books']);
+
+    expect(checkToolAccess(crmTool, filters, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(booksTool, filters, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(otherBooksTool, filters, 'list')).toEqual({ allowed: false });
+  });
+
+  it('ANDs category rules across filter layers', () => {
+    let filters = [categoriesFilter(['crm', 'bigin']), toolKeysFilter(['search_contacts'])];
+
+    expect(checkToolAccess(sharedTool, filters, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(crmTool, filters, 'list')).toEqual({ allowed: false });
+
+    let chain = buildIntegrationProviderToolFilterChain({
+      integrationProviderToolFilter: categoriesFilter(['crm']),
+      integrationInstanceProviderToolFilter: categoriesFilter(['bigin'])
+    });
+
+    expect(checkToolAccess(sharedTool, chain as PrismaJson.ToolFilter[], 'list')).toEqual({
+      allowed: true
+    });
+    expect(checkToolAccess(crmTool, chain as PrismaJson.ToolFilter[], 'list')).toEqual({
+      allowed: false
+    });
+  });
+
+  it('allows nothing for unknown category keys', () => {
+    let filters = [categoriesFilter(['does_not_exist'])];
+
+    expect(checkToolAccess(crmTool, filters, 'list')).toEqual({ allowed: false });
+    expect(checkToolAccess(uncategorizedTool, filters, 'list')).toEqual({ allowed: false });
+  });
+
+  it('allows nothing for an empty key list', () => {
+    expect(checkToolAccess(crmTool, [categoriesFilter([])], 'list')).toEqual({
+      allowed: false
+    });
+  });
+
+  it('matches nothing for tools of old specifications without categories', () => {
+    let oldTool = createTool('add');
+
+    expect(checkToolAccess(oldTool, [categoriesFilter(['crm'])], 'list')).toEqual({
+      allowed: false
+    });
+    expect(checkToolAccess(oldTool, sessionProvider, 'list')).toEqual({ allowed: true });
+    expect(
+      checkToolAccess(
+        oldTool,
+        [
+          {
+            type: 'v1.filter',
+            filters: [
+              { type: 'tool_categories', keys: ['crm'] },
+              { type: 'tool_keys', keys: ['add'] }
+            ]
+          }
+        ],
+        'list'
+      )
+    ).toEqual({ allowed: true });
+  });
+
+  it('applies to mcp tools', () => {
+    let mcpTool = createCategorizedTool('remote_tool', ['crm'], {
+      type: 'mcp.tool',
+      key: 'remote_tool'
+    });
+
+    expect(checkToolAccess(mcpTool, [categoriesFilter(['crm'])], 'list')).toEqual({
+      allowed: true
+    });
+    expect(checkToolAccess(mcpTool, [categoriesFilter(['books'])], 'list')).toEqual({
+      allowed: false
+    });
+  });
+
+  it('is ignored by prompts and resources', () => {
+    let prompt = createCategorizedTool('summarize', undefined, {
+      type: 'mcp.prompt',
+      key: 'summarize'
+    });
+    let resourceTemplate = createCategorizedTool('file', undefined, {
+      type: 'mcp.resource_template',
+      uriTemplate: 'file:///{path}'
+    });
+    let resourcesList = createCategorizedTool('resources_list', undefined, {
+      type: 'mcp.resources_list'
+    });
+    let filters = [categoriesFilter(['crm'])];
+
+    expect(checkToolAccess(prompt, filters, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(resourceTemplate, filters, 'list')).toEqual({ allowed: true });
+    expect(checkToolAccess(resourcesList, filters, 'list')).toEqual({ allowed: true });
+  });
+
+  it('denies every tool with tool_keys: []', () => {
+    let filters = [toolKeysFilter([])];
+
+    expect(checkToolAccess(crmTool, filters, 'list')).toEqual({ allowed: false });
+    expect(checkToolAccess(uncategorizedTool, filters, 'list')).toEqual({ allowed: false });
+  });
+});

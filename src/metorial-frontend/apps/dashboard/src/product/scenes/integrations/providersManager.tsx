@@ -142,7 +142,7 @@ let IntegrationProvidersTable = (p: {
               ) : (
                 <CallbackSyncBadge sync={provider.callbacks.callback.sync} />
               ),
-              <Flex style={{ width: '100%' }} justify="end">
+              <Flex style={{ width: '100%' }} justify="end" onClick={e => e.stopPropagation()}>
                 <Menu
                   items={[
                     { id: 'configure', label: 'Configure' },

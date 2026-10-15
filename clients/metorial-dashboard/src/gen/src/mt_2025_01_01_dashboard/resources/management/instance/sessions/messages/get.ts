@@ -93,6 +93,7 @@ export type ManagementInstanceSessionsMessagesGetOutput = {
       inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
       outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
       tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+      toolCategoryKeys: string[];
       specificationId: string;
       providerId: string;
       createdAt: Date;
@@ -386,6 +387,10 @@ export let mapManagementInstanceSessionsMessagesGetOutput =
                 ),
                 readOnly: mtMap.objectField('read_only', mtMap.passthrough())
               })
+            ),
+            toolCategoryKeys: mtMap.objectField(
+              'tool_category_keys',
+              mtMap.array(mtMap.passthrough())
             ),
             specificationId: mtMap.objectField(
               'specification_id',

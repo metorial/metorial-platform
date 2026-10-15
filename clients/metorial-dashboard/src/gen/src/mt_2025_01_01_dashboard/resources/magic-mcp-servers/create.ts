@@ -11,7 +11,6 @@ export type MagicMcpServersCreateOutput = {
     | 'inherited_from_integration';
   endpoints: { id: string; alias: string; url: string }[];
   providerTemplateId: string | null;
-  backingStatus: 'healthy' | 'needs_reconnect';
   providers: {
     object: 'magic_mcp.server.provider';
     id: string;
@@ -30,6 +29,7 @@ export type MagicMcpServersCreateOutput = {
           type: 'filter';
           filters: (
             | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_categories'; keys: string[] }
             | { type: 'tool_regex'; pattern: string }
             | { type: 'resource_regex'; pattern: string }
             | { type: 'resource_uris'; uris: string[] }
@@ -133,6 +133,7 @@ export type MagicMcpServersCreateOutput = {
 } & {
   integrationId: string | null;
   integrationInstanceId: string | null;
+  backingStatus: 'healthy' | 'needs_reconnect';
   consumerOwners: {
     consumerIntegrationId: string | null;
     consumerId: string;
@@ -160,6 +161,7 @@ export type MagicMcpServersCreateOutput = {
           type: 'filter';
           filters: (
             | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_categories'; keys: string[] }
             | { type: 'tool_regex'; pattern: string }
             | { type: 'resource_regex'; pattern: string }
             | { type: 'resource_uris'; uris: string[] }
@@ -281,10 +283,6 @@ export let mapMagicMcpServersCreateOutput = mtMap.union([
       ),
       providerTemplateId: mtMap.objectField(
         'provider_template_id',
-        mtMap.passthrough()
-      ),
-      backingStatus: mtMap.objectField(
-        'backing_status',
         mtMap.passthrough()
       ),
       providers: mtMap.objectField(
@@ -570,6 +568,7 @@ export let mapMagicMcpServersCreateOutput = mtMap.union([
         'integration_instance_id',
         mtMap.passthrough()
       ),
+      backingStatus: mtMap.objectField('backing_status', mtMap.passthrough()),
       consumerOwners: mtMap.objectField(
         'consumer_owners',
         mtMap.array(

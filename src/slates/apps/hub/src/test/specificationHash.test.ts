@@ -1,11 +1,20 @@
-import type { SlateAuthenticationMethod, SlatesAction, SlatesTriggerGroup } from '@slates/proto';
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { Hash } from '@lowerdeck/hash';
+import type {
+  SlateAuthenticationMethod,
+  SlatesAction,
+  SlatesTriggerGroup
+} from '@slates/proto';
 import { describe, expect, it } from 'vitest';
 import {
   buildDiscoveredSpecificationHashes,
   dedupeDiscoveredItems,
   hashDiscoveredAction,
   hashDiscoveredAuthMethod,
-  hashDiscoveredTriggerGroup
+  hashDiscoveredConfigSchema,
+  hashDiscoveredProviderInfo,
+  hashDiscoveredTriggerGroup,
+  normalizeDiscoveredToolCategories
 } from '../lib/specificationHash';
 
 let baseProviderInfo = {
@@ -101,6 +110,7 @@ let build = (
     authMethods?: SlateAuthenticationMethod[];
     actions?: SlatesAction[];
     triggerGroups?: SlatesTriggerGroup[];
+    toolCategories?: PrismaJson.SlateToolCategories;
   } = {}
 ) =>
   buildDiscoveredSpecificationHashes({
@@ -108,8 +118,24 @@ let build = (
     configSchema: baseConfigSchema,
     authMethods: overrides.authMethods ?? [createAuthMethod()],
     actions: overrides.actions ?? [createAction()],
-    triggerGroups: overrides.triggerGroups ?? [createTriggerGroup()]
+    triggerGroups: overrides.triggerGroups ?? [createTriggerGroup()],
+    ...(overrides.toolCategories ? { toolCategories: overrides.toolCategories } : {})
   });
+
+// The specification hash formula used before tool categories existed
+let legacySpecificationHash = async () =>
+  await Hash.sha256(
+    canonicalize({
+      providerInfoHash: await hashDiscoveredProviderInfo(baseProviderInfo),
+      configSchemaHash: await hashDiscoveredConfigSchema(baseConfigSchema),
+      authMethodHashes: [await hashDiscoveredAuthMethod(createAuthMethod())],
+      actionHashes: [await hashDiscoveredAction(createAction())],
+      triggerGroupHashes: [await hashDiscoveredTriggerGroup(createTriggerGroup())]
+    })
+  );
+
+let crmCategory = { key: 'crm', name: 'Zoho CRM', description: 'Zoho CRM tools' };
+let booksCategory = { key: 'books', name: 'Zoho Books' };
 
 describe('specificationHash', () => {
   it('changes specification hash when auth method content changes', async () => {
@@ -210,6 +236,62 @@ describe('specificationHash', () => {
     expect(result.triggerGroupHashes).toEqual([
       await hashDiscoveredTriggerGroup(groupB),
       await hashDiscoveredTriggerGroup(groupA)
+    ]);
+  });
+
+  it('keeps the existing specification hash for slates without tool categories', async () => {
+    let legacy = await legacySpecificationHash();
+
+    let withoutCategories = await build();
+    let withEmptyCategories = await build({ toolCategories: [] });
+
+    expect(withoutCategories.specificationHash).toBe(legacy);
+    expect(withEmptyCategories.specificationHash).toBe(legacy);
+    expect(withoutCategories.toolCategoriesHash).toBeNull();
+    expect(withEmptyCategories.toolCategoriesHash).toBeNull();
+  });
+
+  it('changes specification hash when tool categories are declared or changed', async () => {
+    let base = await build();
+    let withCategories = await build({ toolCategories: [crmCategory] });
+    let renamed = await build({
+      toolCategories: [{ ...crmCategory, name: 'CRM' }]
+    });
+    let reordered = await build({ toolCategories: [booksCategory, crmCategory] });
+    let ordered = await build({ toolCategories: [crmCategory, booksCategory] });
+
+    expect(withCategories.toolCategoriesHash).not.toBeNull();
+    expect(withCategories.specificationHash).not.toBe(base.specificationHash);
+    expect(renamed.specificationHash).not.toBe(withCategories.specificationHash);
+    expect(reordered.specificationHash).not.toBe(ordered.specificationHash);
+  });
+
+  it('changes specification hash when tool category membership changes', async () => {
+    let base = await build({
+      toolCategories: [crmCategory],
+      actions: [createAction()]
+    });
+    let member = await build({
+      toolCategories: [crmCategory],
+      actions: [createAction({ toolCategoryIds: ['crm'] })]
+    });
+
+    expect(member.specificationHash).not.toBe(base.specificationHash);
+  });
+
+  it('normalizes discovered tool categories from id to key and deduplicates them', () => {
+    let normalized = normalizeDiscoveredToolCategories(
+      [
+        { id: 'crm', name: 'Zoho CRM', description: 'Zoho CRM tools' },
+        { id: 'crm', name: 'Duplicate CRM' },
+        { id: 'books', name: 'Zoho Books', imageUrl: '' }
+      ],
+      { slateId: 'slate_123', versionId: 'version_123' }
+    );
+
+    expect(normalized).toEqual([
+      { key: 'crm', name: 'Zoho CRM', description: 'Zoho CRM tools' },
+      { key: 'books', name: 'Zoho Books' }
     ]);
   });
 

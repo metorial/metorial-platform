@@ -74,6 +74,12 @@ class providerVersionSpecificationMergeServiceImpl {
         currentValue.triggerGroups ?? [],
         d.discovered.triggerGroups
       );
+      // Only newly added tools can reference new categories, so category additions
+      // alone do not count as a change
+      let toolCategories = unionByKey(
+        currentValue.specification.toolCategories ?? [],
+        d.discovered.specification.toolCategories ?? []
+      );
 
       let hasChanges =
         tools.addedKeys.length > 0 ||
@@ -88,7 +94,13 @@ class providerVersionSpecificationMergeServiceImpl {
 
         type: current.type,
 
-        specification: currentValue.specification,
+        // Omitted when empty so specifications without categories keep their hash
+        specification: {
+          ...currentValue.specification,
+          ...(toolCategories.merged.length > 0
+            ? { toolCategories: toolCategories.merged }
+            : {})
+        },
         features: currentValue.features,
 
         tools: tools.merged,

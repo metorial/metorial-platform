@@ -16,6 +16,7 @@ export type DashboardInstanceMagicMcpEndpointsAddServersOutput = {
     toolFilters:
       | (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -24,6 +25,7 @@ export type DashboardInstanceMagicMcpEndpointsAddServersOutput = {
         )
       | (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -160,6 +162,7 @@ export type DashboardInstanceMagicMcpEndpointsAddServersBody = {
         toolFilters?:
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -168,6 +171,7 @@ export type DashboardInstanceMagicMcpEndpointsAddServersBody = {
             )
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }

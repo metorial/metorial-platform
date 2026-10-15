@@ -41,6 +41,8 @@ export let slateActionPresenter = (
     tags: method.spec.tags,
     scopes: method.spec.scopes,
     authMethods: spec.authMethods,
+    toolCategoryIds:
+      method.spec.type === 'action.tool' ? (method.spec.toolCategoryIds ?? []) : [],
     adapter: method.slateAdapter
       ? adapterPresenter(method.slateAdapter.adapter, method.slateAdapter.identifier)
       : null,

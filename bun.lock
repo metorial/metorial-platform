@@ -1231,6 +1231,7 @@
         "@metorial/state": "^1.0.0",
         "@metorial/storage": "^1.0.0",
         "@metorial/table": "^1.0.0",
+        "@metorial/tool-selection": "^1.0.0",
         "@metorial/ui": "^1.0.0",
         "@metorial/ui-product": "^1.0.0",
         "@metorial/use-debounced": "^1.0.0",
@@ -1314,6 +1315,7 @@
         "@metorial-io/ui": "^1.0.0",
         "@metorial/api-integrations": "^1.0.0",
         "@metorial/data-hooks": "^1.0.0",
+        "@metorial/tool-selection": "^1.0.0",
         "@metorial/ui": "workspace:*",
         "@remixicon/react": "^4.8.0",
         "framer-motion": "^12.9.4",
@@ -1754,6 +1756,21 @@
         "framer-motion": "^12.12.1",
         "react": "19.1.1",
         "react-router-dom": "^6.26.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/tool-selection": {
+      "name": "@metorial/tool-selection",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
         "styled-components": "^6.1.13",
       },
       "devDependencies": {
@@ -7615,6 +7632,8 @@
     "@metorial/table": ["@metorial/table@workspace:src/metorial-frontend/packages/table"],
 
     "@metorial/tsconfig": ["@metorial/tsconfig@workspace:src/metorial/packages/tsconfig"],
+
+    "@metorial/tool-selection": ["@metorial/tool-selection@workspace:src/metorial-frontend/packages/tool-selection"],
 
     "@metorial/ui": ["@metorial/ui@workspace:src/metorial-frontend/packages/ui"],
 

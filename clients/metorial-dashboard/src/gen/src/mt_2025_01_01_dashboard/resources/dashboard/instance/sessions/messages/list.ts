@@ -100,6 +100,7 @@ export type DashboardInstanceSessionsMessagesListOutput = {
           schema: Record<string, any>;
         } | null;
         tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+        toolCategoryKeys: string[];
         specificationId: string;
         providerId: string;
         createdAt: Date;
@@ -435,6 +436,10 @@ export let mapDashboardInstanceSessionsMessagesListOutput =
                         mtMap.passthrough()
                       )
                     })
+                  ),
+                  toolCategoryKeys: mtMap.objectField(
+                    'tool_category_keys',
+                    mtMap.array(mtMap.passthrough())
                   ),
                   specificationId: mtMap.objectField(
                     'specification_id',

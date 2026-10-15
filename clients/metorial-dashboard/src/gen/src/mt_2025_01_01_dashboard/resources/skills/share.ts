@@ -262,6 +262,7 @@ export type SkillsShareOutput = {
       canAttachCustomToolFilters: boolean;
       canAttachCustomProviderConfig: boolean;
       canOverrideToolFilters: boolean;
+      enableCallbackTools: boolean;
       useIntegrationNameInToolNames: boolean | null;
     };
     createdAt: Date;
@@ -783,6 +784,10 @@ export let mapSkillsShareOutput = mtMap.object<SkillsShareOutput>({
             ),
             canOverrideToolFilters: mtMap.objectField(
               'can_override_tool_filters',
+              mtMap.passthrough()
+            ),
+            enableCallbackTools: mtMap.objectField(
+              'enable_callback_tools',
               mtMap.passthrough()
             ),
             useIntegrationNameInToolNames: mtMap.objectField(

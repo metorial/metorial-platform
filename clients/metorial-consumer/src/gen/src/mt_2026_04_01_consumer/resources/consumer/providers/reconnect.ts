@@ -29,6 +29,7 @@ export type ConsumerProvidersReconnectOutput = {
           type: 'filter';
           filters: (
             | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_categories'; keys: string[] }
             | { type: 'tool_regex'; pattern: string }
             | { type: 'resource_regex'; pattern: string }
             | { type: 'resource_uris'; uris: string[] }
@@ -430,9 +431,13 @@ export type ConsumerProvidersReconnectBody = {
 
 export let mapConsumerProvidersReconnectBody =
   mtMap.object<ConsumerProvidersReconnectBody>({
-    magicMcpServerId: mtMap.objectField('magic_mcp_server_id', mtMap.passthrough()),
+    magicMcpServerId: mtMap.objectField(
+      'magic_mcp_server_id',
+      mtMap.passthrough()
+    ),
     integrationSetupSessionId: mtMap.objectField(
       'integration_setup_session_id',
       mtMap.passthrough()
     )
   });
+

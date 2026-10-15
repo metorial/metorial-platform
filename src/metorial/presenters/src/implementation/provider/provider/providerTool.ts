@@ -35,6 +35,8 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
         }
       : null,
 
+    tool_category_keys: tool.value.categories ?? [],
+
     specification_id: tool.specification.id,
     provider_id: tool.provider.id,
 
@@ -108,6 +110,11 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
           )
         })
       ),
+      tool_category_keys: v.array(v.string(), {
+        name: 'tool_category_keys',
+        description: 'Keys of the tool categories this tool belongs to',
+        examples: [['crm']]
+      }),
       specification_id: v.string({
         name: 'specification_id',
         description: 'Specification ID',

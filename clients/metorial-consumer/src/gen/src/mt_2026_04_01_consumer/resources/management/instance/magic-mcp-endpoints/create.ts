@@ -16,6 +16,7 @@ export type ManagementInstanceMagicMcpEndpointsCreateOutput = {
     toolFilters:
       | (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -24,6 +25,7 @@ export type ManagementInstanceMagicMcpEndpointsCreateOutput = {
         )
       | (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -165,6 +167,7 @@ export type ManagementInstanceMagicMcpEndpointsCreateBody = {
         toolFilters?:
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -173,6 +176,7 @@ export type ManagementInstanceMagicMcpEndpointsCreateBody = {
             )
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }

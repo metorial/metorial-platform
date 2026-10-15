@@ -711,24 +711,47 @@ class providerSetupSessionUiServiceImpl {
       session.deployment?.currentVersion?.lockedVersion?.specificationOid ??
       session.provider.defaultVariant?.currentVersion?.specificationOid;
 
-    if (!specificationOid) return [];
+    if (!specificationOid) return { items: [], toolCategories: [] };
 
-    let tools = await db.providerTool.findMany({
-      where: {
-        specificationOid,
-        adapterOid: null
-      },
-      orderBy: {
-        name: 'asc'
-      }
-    });
+    let [specification, tools] = await Promise.all([
+      db.providerSpecification.findUnique({
+        where: { oid: specificationOid },
+        select: { value: true }
+      }),
+      db.providerTool.findMany({
+        where: {
+          specificationOid,
+          adapterOid: null
+        },
+        orderBy: {
+          name: 'asc'
+        }
+      })
+    ]);
 
-    return tools.map(tool => ({
-      id: tool.id,
-      key: tool.key,
-      name: tool.name,
-      description: tool.description
-    }));
+    let toolCategories = (specification?.value.specification.toolCategories ?? []).map(
+      category => ({
+        key: category.key,
+        name: category.name,
+        description: category.description ?? null,
+        imageUrl: category.imageUrl ?? null
+      })
+    );
+
+    return {
+      items: tools.map(tool => ({
+        id: tool.id,
+        key: tool.key,
+        name: tool.name,
+        description: tool.description,
+        tags: {
+          readOnly: tool.value.tags?.readOnly,
+          destructive: tool.value.tags?.destructive
+        },
+        toolCategoryKeys: tool.value.categories ?? []
+      })),
+      toolCategories
+    };
   }
 
   private async checkEditable(d: { providerSetupSession: ProviderSetupSession }) {

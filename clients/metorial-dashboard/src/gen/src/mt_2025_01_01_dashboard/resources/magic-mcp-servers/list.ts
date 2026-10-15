@@ -12,7 +12,6 @@ export type MagicMcpServersListOutput = {
       | 'inherited_from_integration';
     endpoints: { id: string; alias: string; url: string }[];
     providerTemplateId: string | null;
-    backingStatus: 'healthy' | 'needs_reconnect';
     providers: {
       object: 'magic_mcp.server.provider';
       id: string;
@@ -31,6 +30,7 @@ export type MagicMcpServersListOutput = {
             type: 'filter';
             filters: (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -140,6 +140,7 @@ export type MagicMcpServersListOutput = {
   } & {
     integrationId: string | null;
     integrationInstanceId: string | null;
+    backingStatus: 'healthy' | 'needs_reconnect';
     consumerOwners: {
       consumerIntegrationId: string | null;
       consumerId: string;
@@ -167,6 +168,7 @@ export type MagicMcpServersListOutput = {
             type: 'filter';
             filters: (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -301,10 +303,6 @@ export let mapMagicMcpServersListOutput =
               ),
               providerTemplateId: mtMap.objectField(
                 'provider_template_id',
-                mtMap.passthrough()
-              ),
-              backingStatus: mtMap.objectField(
-                'backing_status',
                 mtMap.passthrough()
               ),
               providers: mtMap.objectField(
@@ -723,6 +721,10 @@ export let mapMagicMcpServersListOutput =
               ),
               integrationInstanceId: mtMap.objectField(
                 'integration_instance_id',
+                mtMap.passthrough()
+              ),
+              backingStatus: mtMap.objectField(
+                'backing_status',
                 mtMap.passthrough()
               ),
               consumerOwners: mtMap.objectField(

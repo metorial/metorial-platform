@@ -9,6 +9,7 @@ import {
   useProviderAuthMethod,
   useProviderConfigSchemaTarget,
   useProviderListing,
+  useProviderToolCategories,
   useProviderTools
 } from '@metorial/state';
 import {
@@ -17,13 +18,11 @@ import {
   Button,
   Callout,
   CenteredSpinner,
-  Checkbox,
   Combobox,
   Dialog,
   Entity,
   Flex,
   Menu,
-  OptionToggle,
   Text,
   theme,
   Tooltip,
@@ -34,6 +33,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { TableFilterState } from '@metorial/table';
 import {
+  createToolSelection,
+  hydrateToolSelection,
+  ToolSelectionEditor,
+  type ToolSelection
+} from '@metorial/tool-selection';
+import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
@@ -41,6 +46,7 @@ import {
   getProviderConfigSchemaCapabilities,
   useProviderAuthCreationCapabilities
 } from '../../lib/providerCreationCapabilities';
+import { type SdkToolFilterRule, toSdkToolFilterRules } from '../../lib/toolFilterRules';
 import {
   ProviderAuthConfigCreateFlowContent,
   showProviderAuthConfigCreateModal
@@ -68,16 +74,9 @@ type AddProviderPanelFormValues = {
   selectedDeploymentId: string;
   selectedConfiguration: ConfigurationSelection;
   selectedAuthConfigId: string;
-  toolFilterMode: 'all' | 'select';
-  selectedToolKeys: string[];
+  toolSelection: ToolSelection;
 };
 
-type ToolPermissionMode = 'allow' | 'reject' | 'mixed';
-let toolPermissionModeItems: { id: ToolPermissionMode; label: string }[] = [
-  { id: 'allow', label: 'Allow' },
-  { id: 'reject', label: 'Reject' },
-  { id: 'mixed', label: 'Mixed' }
-];
 type InitialToolFilter =
   | {
       type: 'allow_all';
@@ -99,15 +98,7 @@ export type ProviderPanelSubmitInput = {
   providerConfigId?: string;
   providerConfigVaultId?: string;
   providerAuthConfigId?: string;
-  toolFilters?:
-    | {
-        type: 'tool_keys';
-        keys: string[];
-      }
-    | {
-        type: 'tool_keys';
-        keys: string[];
-      }[];
+  toolFilters?: SdkToolFilterRule | SdkToolFilterRule[];
 };
 
 type AddProviderPanelFlowProps = {
@@ -159,14 +150,11 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   let [step, setStep] = useState(p.hideProviderStep ? 0 : p.providerId ? 1 : 0);
   let initialSelectionHydrationKeyRef = useRef<string | null>(null);
   let toolFilterHydrationKeyRef = useRef<string | null>(null);
-  let initialSelectedToolKeys =
-    p.initialToolFilter?.type === 'filter'
-      ? p.initialToolFilter.filters
-          .filter(filter => filter.type === 'tool_keys' && Array.isArray(filter.keys))
-          .flatMap(filter => filter.keys ?? [])
-      : [];
-  let initialToolFilterMode: 'all' | 'select' =
-    p.initialToolFilter?.type === 'filter' ? 'select' : 'all';
+  let initialToolFilterKey = JSON.stringify(p.initialToolFilter ?? null);
+  let initialToolSelection = useMemo(
+    () => hydrateToolSelection(p.initialToolFilter),
+    [initialToolFilterKey]
+  );
 
   useEffect(() => {
     if (p.hideProviderStep || step === 1) {
@@ -187,8 +175,7 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
         ? { kind: 'config', id: p.initialConfigId }
         : emptyConfigurationSelection(),
       selectedAuthConfigId: p.initialAuthConfigId ?? '',
-      toolFilterMode: initialToolFilterMode,
-      selectedToolKeys: initialSelectedToolKeys
+      toolSelection: initialToolSelection
     },
     onSubmit: async values => {
       setSubmitError(null);
@@ -244,13 +231,7 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
               providerAuthConfigId: values.selectedAuthConfigId
             }
           : {}),
-        toolFilters:
-          values.toolFilterMode === 'select'
-            ? {
-                type: 'tool_keys' as const,
-                keys: values.selectedToolKeys
-              }
-            : []
+        toolFilters: toSdkToolFilterRules(values.toolSelection) ?? []
       };
 
       if (p.onSubmitProvider) {
@@ -315,8 +296,7 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
         selectedDeploymentId: yup.string().optional().default(''),
         selectedConfiguration: yup.mixed<ConfigurationSelection>().defined(),
         selectedAuthConfigId: yup.string().optional().default(''),
-        toolFilterMode: yup.mixed<'all' | 'select'>().oneOf(['all', 'select']).required(),
-        selectedToolKeys: yup.array().of(yup.string().required()).defined()
+        toolSelection: yup.mixed<ToolSelection>().defined()
       })
   });
 
@@ -465,29 +445,26 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     let hydrationKey = [
       p.sessionTemplateProviderId ?? '',
       p.providerId ?? '',
-      initialToolFilterMode,
-      ...initialSelectedToolKeys
+      initialToolFilterKey
     ].join('::');
 
     if (toolFilterHydrationKeyRef.current === hydrationKey) return;
 
     toolFilterHydrationKeyRef.current = hydrationKey;
-    form.setFieldValue('toolFilterMode', initialToolFilterMode);
-    form.setFieldValue('selectedToolKeys', initialSelectedToolKeys);
+    form.setFieldValue('toolSelection', initialToolSelection);
   }, [
     p.hideProviderStep,
     p.sessionTemplateProviderId,
     p.providerId,
-    initialToolFilterMode,
-    initialSelectedToolKeys,
+    initialToolFilterKey,
+    initialToolSelection,
     form
   ]);
 
   let resetConfigurationState = () => {
     form.setFieldValue('selectedConfiguration', emptyConfigurationSelection());
     form.setFieldValue('selectedAuthConfigId', '');
-    form.setFieldValue('toolFilterMode', 'all');
-    form.setFieldValue('selectedToolKeys', []);
+    form.setFieldValue('toolSelection', createToolSelection('all'));
     form.setFieldTouched('selectedConfiguration', false, false);
     form.setFieldTouched('selectedAuthConfigId', false, false);
     form.setFieldError('selectedConfiguration', undefined);
@@ -668,20 +645,6 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   );
 };
 
-let getToolAccessGroup = (
-  tool: {
-    tags?: {
-      readOnly?: boolean | null;
-      read_only?: boolean | null;
-      destructive?: boolean | null;
-    } | null;
-  } & Record<string, unknown>
-) => {
-  if (tool.tags?.destructive) return 'destructive';
-  if (tool.tags?.readOnly || tool.tags?.read_only) return 'read';
-  return 'write';
-};
-
 let ConfigureSectionCard = (p: {
   title: string;
   description: string;
@@ -826,10 +789,8 @@ export type ProviderSetupSectionsProps = {
   onSelectedConfigurationChange: (value: ConfigurationSelection) => void;
   selectedAuthConfigId: string;
   onSelectedAuthConfigIdChange: (value: string) => void;
-  toolFilterMode?: 'all' | 'select';
-  onToolFilterModeChange?: (value: 'all' | 'select') => void;
-  selectedToolKeys?: string[];
-  onSelectedToolKeysChange?: (keys: string[]) => void;
+  toolSelection?: ToolSelection;
+  onToolSelectionChange?: (value: ToolSelection) => void;
   configError?: ReactNode;
   authError?: ReactNode;
   showToolFilters?: boolean;
@@ -850,11 +811,6 @@ export type ProviderSetupSectionsProps = {
 };
 
 export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
-  let [sectionModeOverrides, setSectionModeOverrides] = useState<{
-    read?: ToolPermissionMode;
-    write?: ToolPermissionMode;
-    destructive?: ToolPermissionMode;
-  }>({});
   let [createdAuthConfigSelection, setCreatedAuthConfigSelection] = useState<{
     id: string;
     label: string;
@@ -899,26 +855,18 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     hasLoadedToolsRef.current = true;
   }
   let toolItems = tools.data?.items ?? retainedToolItemsRef.current;
+  let toolCategories = useProviderToolCategories(
+    p.instanceId,
+    showToolFilters ? toolItems : null
+  );
+
   let requiresProviderConfig =
     showConfigSection &&
     (p.forceConfigSectionVisible || provider.data?.type.config.status == 'enabled');
-  let normalizedTools = toolItems.map(tool => ({
-    key: tool.key ?? tool.name,
-    name: tool.name,
-    description: tool.description ?? null,
-    group: getToolAccessGroup(
-      tool as { name: string; description?: string | null } & Record<string, unknown>
-    )
-  }));
-  let readOnlyTools = normalizedTools.filter(tool => tool.group === 'read');
-  let writeTools = normalizedTools.filter(tool => tool.group === 'write');
-  let destructiveTools = normalizedTools.filter(tool => tool.group === 'destructive');
   let requiresAuthConfig = showAuthSection && provider.data?.type.auth.status == 'enabled';
   let pendingCreatedAuthConfigIdRef = useRef<string | null>(null);
   let previousProviderAuthMethodIdRef = useRef<string | undefined>(providerAuthMethodId);
   let isCreatingInlineAuthConfig = !!inlineAuthMethodId;
-  let selectedToolKeys = p.selectedToolKeys ?? [];
-  let toolFilterMode = p.toolFilterMode ?? 'all';
   let selectedAuthConfigForMethod = useProviderAuthConfigs(
     requiresAuthConfig && providerAuthMethodId && p.selectedAuthConfigId ? p.instanceId : null,
     {
@@ -1053,30 +1001,6 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   }, [p.providerId, p.providerDeploymentId, p.fixedAuthMethodId, p.providerAuthMethodId]);
 
   useEffect(() => {
-    if (!showToolFilters || toolItems.length === 0) return;
-    if (!p.onSelectedToolKeysChange || !p.onToolFilterModeChange) return;
-    if (toolFilterMode !== 'all') return;
-
-    let allToolKeys = toolItems.map(tool => tool.key ?? tool.name);
-    let selectedSet = new Set(selectedToolKeys);
-    let alreadyAllSelected =
-      allToolKeys.length > 0 &&
-      allToolKeys.every(key => selectedSet.has(key)) &&
-      selectedSet.size === allToolKeys.length;
-
-    if (!alreadyAllSelected) {
-      p.onSelectedToolKeysChange(allToolKeys);
-    }
-  }, [
-    showToolFilters,
-    p.onSelectedToolKeysChange,
-    p.onToolFilterModeChange,
-    selectedToolKeys,
-    toolFilterMode,
-    toolItems
-  ]);
-
-  useEffect(() => {
     let container = scrollContainerRef.current;
     if (!container) return;
 
@@ -1103,7 +1027,11 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
 
   if (
     provider.isLoading ||
-    (showToolFilters && !!providerVersionId && tools.isLoading && !hasLoadedToolsRef.current)
+    (showToolFilters &&
+      !!providerVersionId &&
+      tools.isLoading &&
+      !hasLoadedToolsRef.current) ||
+    toolCategories.isLoading
   ) {
     return <CenteredSpinner />;
   }
@@ -1111,7 +1039,6 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let sectionItems: ReactNode[] = [];
   let isConfigCompleted = p.selectedConfiguration.kind !== 'none';
   let isAuthCompleted = Boolean(p.selectedAuthConfigId);
-  let isToolsCompleted = toolFilterMode === 'all' || toolFilterMode === 'select';
   let providerDisplayName =
     providerListing.data?.name ??
     provider.data?.name ??
@@ -1327,89 +1254,14 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     sectionItems.push(authSection);
   }
 
-  if (
-    showToolFilters &&
-    toolItems.length > 0 &&
-    p.onSelectedToolKeysChange &&
-    p.onToolFilterModeChange
-  ) {
-    let selectedKeys = new Set(selectedToolKeys);
-    let allToolKeys = normalizedTools.map(tool => tool.key);
-    let allToolKeySet = new Set(allToolKeys);
-    let readOnlyToolKeySet = new Set(readOnlyTools.map(tool => tool.key));
-    let writeToolKeySet = new Set(writeTools.map(tool => tool.key));
-    let destructiveToolKeySet = new Set(destructiveTools.map(tool => tool.key));
-    let updateSelectedToolKeys = (nextKeys: string[]) => {
-      p.onSelectedToolKeysChange?.(nextKeys);
-    };
-    let setToolChecked = (toolKey: string, checked: boolean) => {
-      setSectionModeOverrides(prev => ({
-        ...prev,
-        ...(readOnlyToolKeySet.has(toolKey) ? { read: undefined } : {}),
-        ...(writeToolKeySet.has(toolKey) ? { write: undefined } : {}),
-        ...(destructiveToolKeySet.has(toolKey) ? { destructive: undefined } : {})
-      }));
-
-      let nextKeys = checked
-        ? [...new Set([...selectedToolKeys, toolKey])]
-        : selectedToolKeys.filter(key => key !== toolKey);
-      let isAllSelected =
-        normalizedTools.length > 0 &&
-        normalizedTools.every(tool => nextKeys.includes(tool.key)) &&
-        nextKeys.length === allToolKeySet.size;
-
-      p.onToolFilterModeChange?.(isAllSelected ? 'all' : 'select');
-      updateSelectedToolKeys(nextKeys);
-    };
-    let getSectionMode = (sectionTools: { key: string }[]): ToolPermissionMode => {
-      if (sectionTools.length === 0) return 'reject';
-      let selectedCount = sectionTools.filter(tool => selectedKeys.has(tool.key)).length;
-      if (selectedCount === 0) return 'reject';
-      if (selectedCount === sectionTools.length) return 'allow';
-      return 'mixed';
-    };
-    let getDisplayedSectionMode = (
-      sectionId: 'read' | 'write' | 'destructive',
-      sectionTools: { key: string }[]
-    ): ToolPermissionMode => {
-      return sectionModeOverrides[sectionId] ?? getSectionMode(sectionTools);
-    };
-    let setSectionMode = (
-      sectionId: 'read' | 'write' | 'destructive',
-      sectionTools: { key: string }[],
-      mode: ToolPermissionMode
-    ) => {
-      if (sectionTools.length === 0) return;
-      if (mode === 'mixed') {
-        setSectionModeOverrides(prev => ({ ...prev, [sectionId]: 'mixed' }));
-        return;
-      }
-
-      setSectionModeOverrides(prev => ({ ...prev, [sectionId]: undefined }));
-      let sectionToolKeySet = new Set(sectionTools.map(tool => tool.key));
-      if (mode === 'allow') {
-        let nextKeys = [
-          ...new Set([...selectedToolKeys, ...sectionTools.map(tool => tool.key)])
-        ];
-        let isAllSelected =
-          normalizedTools.length > 0 &&
-          normalizedTools.every(tool => nextKeys.includes(tool.key)) &&
-          nextKeys.length === allToolKeySet.size;
-        p.onToolFilterModeChange?.(isAllSelected ? 'all' : 'select');
-        updateSelectedToolKeys(nextKeys);
-        return;
-      }
-      p.onToolFilterModeChange?.('select');
-      updateSelectedToolKeys(selectedToolKeys.filter(key => !sectionToolKeySet.has(key)));
-    };
-
+  if (showToolFilters && toolItems.length > 0 && p.onToolSelectionChange) {
     sectionItems.push(
       <ConfigureSectionCard
         key="tools"
         title="Tool Filters"
         description="Limit which tools this provider setup is allowed to use."
         requirement="optional"
-        completed={isToolsCompleted}
+        completed
       >
         <div
           style={{
@@ -1417,72 +1269,13 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             paddingRight: 20
           }}
         >
-          <Flex direction="column" gap={12}>
-            {[
-              { id: 'read', title: 'Read-Only Tools', tools: readOnlyTools },
-              { id: 'write', title: 'Write Tools', tools: writeTools },
-              { id: 'destructive', title: 'Destructive Tools', tools: destructiveTools }
-            ]
-              .filter(section => section.tools.length > 0)
-              .map(section => (
-                <div
-                  key={section.id}
-                  style={{
-                    padding: '6px 0 8px'
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'minmax(120px, 1fr) auto',
-                      gap: 10,
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Text size="2" style={{ fontWeight: 600, lineHeight: 1.2 }}>
-                      {section.title} ({section.tools.length})
-                    </Text>
-                    <OptionToggle
-                      size="1"
-                      value={getDisplayedSectionMode(
-                        section.id as 'read' | 'write' | 'destructive',
-                        section.tools
-                      )}
-                      onChange={value => {
-                        if (value !== 'allow' && value !== 'reject' && value !== 'mixed') {
-                          return;
-                        }
-                        setSectionMode(
-                          section.id as 'read' | 'write' | 'destructive',
-                          section.tools,
-                          value
-                        );
-                      }}
-                      items={toolPermissionModeItems}
-                    />
-                  </div>
-
-                  <Flex direction="column" gap={0} style={{ marginTop: 12 }}>
-                    {section.tools.map((tool, idx) => (
-                      <div
-                        key={tool.key}
-                        style={{
-                          padding: '9px 2px',
-                          borderBottom:
-                            idx === section.tools.length - 1 ? 'none' : '1px solid #f1f1f1'
-                        }}
-                      >
-                        <Checkbox
-                          checked={selectedKeys.has(tool.key)}
-                          onCheckedChange={checked => setToolChecked(tool.key, !!checked)}
-                          label={tool.name}
-                        />
-                      </div>
-                    ))}
-                  </Flex>
-                </div>
-              ))}
-          </Flex>
+          <ToolSelectionEditor
+            tools={toolItems}
+            categories={toolCategories.getCategories(toolItems)}
+            value={p.toolSelection ?? createToolSelection('all')}
+            onChange={p.onToolSelectionChange}
+            disabled={p.disabled}
+          />
         </div>
       </ConfigureSectionCard>
     );
@@ -1864,15 +1657,11 @@ let ConfigureStep = (p: {
         p.form.setFieldTouched('selectedAuthConfigId', false, false);
         p.form.setFieldError('selectedAuthConfigId', undefined);
       }}
-      toolFilterMode={p.form.values.toolFilterMode}
-      onToolFilterModeChange={value => {
-        p.form.setFieldValue('toolFilterMode', value);
-      }}
-      selectedToolKeys={p.form.values.selectedToolKeys}
-      onSelectedToolKeysChange={keys => {
-        p.form.setFieldValue('selectedToolKeys', keys);
-        p.form.setFieldTouched('selectedToolKeys', false, false);
-        p.form.setFieldError('selectedToolKeys', undefined);
+      toolSelection={p.form.values.toolSelection}
+      onToolSelectionChange={value => {
+        p.form.setFieldValue('toolSelection', value);
+        p.form.setFieldTouched('toolSelection', false, false);
+        p.form.setFieldError('toolSelection', undefined);
       }}
       configError={<p.form.RenderError field="selectedConfiguration" />}
       authError={<p.form.RenderError field="selectedAuthConfigId" />}

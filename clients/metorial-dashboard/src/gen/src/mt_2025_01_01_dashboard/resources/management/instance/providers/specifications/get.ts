@@ -20,10 +20,19 @@ export type ManagementInstanceProvidersSpecificationsGetOutput = {
     inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
     outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
     tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+    toolCategoryKeys: string[];
     specificationId: string;
     providerId: string;
     createdAt: Date;
     updatedAt: Date;
+  }[];
+  toolCategories: {
+    object: 'provider.tool_category';
+    key: string;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    toolCount: number;
   }[];
   authMethods: {
     object: 'provider.capabilities.auth_method';
@@ -109,6 +118,10 @@ export let mapManagementInstanceProvidersSpecificationsGetOutput =
               readOnly: mtMap.objectField('read_only', mtMap.passthrough())
             })
           ),
+          toolCategoryKeys: mtMap.objectField(
+            'tool_category_keys',
+            mtMap.array(mtMap.passthrough())
+          ),
           specificationId: mtMap.objectField(
             'specification_id',
             mtMap.passthrough()
@@ -116,6 +129,19 @@ export let mapManagementInstanceProvidersSpecificationsGetOutput =
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    ),
+    toolCategories: mtMap.objectField(
+      'tool_categories',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          key: mtMap.objectField('key', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+          toolCount: mtMap.objectField('tool_count', mtMap.passthrough())
         })
       )
     ),

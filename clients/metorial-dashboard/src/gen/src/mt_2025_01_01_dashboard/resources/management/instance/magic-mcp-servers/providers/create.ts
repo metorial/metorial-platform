@@ -18,6 +18,7 @@ export type ManagementInstanceMagicMcpServersProvidersCreateOutput = {
         type: 'filter';
         filters: (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -320,6 +321,7 @@ export type ManagementInstanceMagicMcpServersProvidersCreateBody = {
   toolFilters?:
     | (
         | { type: 'tool_keys'; keys: string[] }
+        | { type: 'tool_categories'; keys: string[] }
         | { type: 'tool_regex'; pattern: string }
         | { type: 'resource_regex'; pattern: string }
         | { type: 'resource_uris'; uris: string[] }
@@ -328,6 +330,7 @@ export type ManagementInstanceMagicMcpServersProvidersCreateBody = {
       )
     | (
         | { type: 'tool_keys'; keys: string[] }
+        | { type: 'tool_categories'; keys: string[] }
         | { type: 'tool_regex'; pattern: string }
         | { type: 'resource_regex'; pattern: string }
         | { type: 'resource_uris'; uris: string[] }

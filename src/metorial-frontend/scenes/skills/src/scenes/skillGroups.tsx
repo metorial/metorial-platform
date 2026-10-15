@@ -411,7 +411,7 @@ let getSkillTableRow = (p: {
         </SkillText>
       </SkillName>,
       p.onRemove ? (
-        <Actions>
+        <Actions onClick={e => e.stopPropagation()}>
           <Menu
             items={[{ id: 'remove', label: 'Remove' }]}
             onItemClick={item => {

@@ -13,6 +13,7 @@ export type ManagementInstanceIntegrationsListOutput = {
       canAttachCustomToolFilters: boolean;
       canAttachCustomProviderConfig: boolean;
       canOverrideToolFilters: boolean;
+      enableCallbackTools: boolean;
       useIntegrationNameInToolNames: boolean | null;
     };
     implementation:
@@ -33,6 +34,7 @@ export type ManagementInstanceIntegrationsListOutput = {
             type: 'filter';
             filters: (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -197,6 +199,10 @@ export let mapManagementInstanceIntegrationsListOutput =
               ),
               canOverrideToolFilters: mtMap.objectField(
                 'can_override_tool_filters',
+                mtMap.passthrough()
+              ),
+              enableCallbackTools: mtMap.objectField(
+                'enable_callback_tools',
                 mtMap.passthrough()
               ),
               useIntegrationNameInToolNames: mtMap.objectField(

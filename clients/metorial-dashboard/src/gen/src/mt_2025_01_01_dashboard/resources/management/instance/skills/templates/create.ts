@@ -25,6 +25,7 @@ export type ManagementInstanceSkillsTemplatesCreateOutput = {
         canAttachCustomToolFilters: boolean;
         canAttachCustomProviderConfig: boolean;
         canOverrideToolFilters: boolean;
+        enableCallbackTools: boolean;
         useIntegrationNameInToolNames: boolean | null;
       };
       createdAt: Date;
@@ -90,6 +91,10 @@ export let mapManagementInstanceSkillsTemplatesCreateOutput =
                   ),
                   canOverrideToolFilters: mtMap.objectField(
                     'can_override_tool_filters',
+                    mtMap.passthrough()
+                  ),
+                  enableCallbackTools: mtMap.objectField(
+                    'enable_callback_tools',
                     mtMap.passthrough()
                   ),
                   useIntegrationNameInToolNames: mtMap.objectField(

@@ -171,6 +171,7 @@ export type SessionsEventsListOutput = {
             destructive: boolean | null;
             readOnly: boolean | null;
           } | null;
+          toolCategoryKeys: string[];
           specificationId: string;
           providerId: string;
           createdAt: Date;
@@ -692,6 +693,10 @@ export let mapSessionsEventsListOutput = mtMap.object<SessionsEventsListOutput>(
                             mtMap.passthrough()
                           )
                         })
+                      ),
+                      toolCategoryKeys: mtMap.objectField(
+                        'tool_category_keys',
+                        mtMap.array(mtMap.passthrough())
                       ),
                       specificationId: mtMap.objectField(
                         'specification_id',

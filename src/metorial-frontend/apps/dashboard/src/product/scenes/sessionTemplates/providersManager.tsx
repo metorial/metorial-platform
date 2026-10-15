@@ -23,6 +23,7 @@ import { type ReactNode, useMemo, useState } from 'react';
 import { EmptyState } from '@metorial/empty-state';
 import { Table as DashboardTable } from '@metorial/table';
 import { TableStateProvider, TableStateProviderResult } from '@metorial/table';
+import { ToolFilterSummaryText } from '../../lib/toolFilterSummary';
 import {
   type ProviderPanelSubmitInput,
   showAddProviderPanelFlow
@@ -48,56 +49,6 @@ type SessionTemplateProvidersTableHookState = {
   sessionTemplateId: string;
   providers: ReturnType<typeof useSessionTemplateProviders>;
   listingLookup: Record<string, { name: string; imageUrl: string }>;
-};
-
-type ToolFilterSummaryState = {
-  selectedToolKeys: string[];
-  hasUnsupportedFilters: boolean;
-};
-
-let getToolFilterSummaryState = (
-  toolFilter: SessionTemplateProviderToolFilter
-): ToolFilterSummaryState => {
-  if (!toolFilter || toolFilter.type === 'allow_all') {
-    return {
-      selectedToolKeys: [],
-      hasUnsupportedFilters: false
-    };
-  }
-
-  let selectedToolKeySet = new Set<string>();
-  let hasUnsupportedFilters = false;
-
-  for (let filter of toolFilter.filters) {
-    if (filter.type === 'tool_keys') {
-      for (let key of filter.keys) {
-        selectedToolKeySet.add(key);
-      }
-      continue;
-    }
-
-    hasUnsupportedFilters = true;
-  }
-
-  return {
-    selectedToolKeys: Array.from(selectedToolKeySet),
-    hasUnsupportedFilters
-  };
-};
-
-let getToolFilterSummary = (toolFilter: SessionTemplateProviderToolFilter) => {
-  if (!toolFilter || toolFilter.type === 'allow_all') return 'All tools';
-
-  let summary = getToolFilterSummaryState(toolFilter);
-  if (summary.hasUnsupportedFilters && summary.selectedToolKeys.length > 0) {
-    return `Custom + ${summary.selectedToolKeys.length} selected`;
-  }
-
-  if (summary.hasUnsupportedFilters) return 'Custom filter';
-  if (summary.selectedToolKeys.length === 0) return 'No tools';
-  if (summary.selectedToolKeys.length === 1) return '1 selected';
-
-  return `${summary.selectedToolKeys.length} selected`;
 };
 
 let getProviderId = (provider: SessionTemplateProviderRow) =>
@@ -408,7 +359,13 @@ let sessionTemplateProvidersTable = new DashboardTable<
       id: 'toolFilters',
       isDefault: true,
       header: 'Tool Filters',
-      render: provider => <Text size="2">{getToolFilterSummary(provider.toolFilter)}</Text>
+      render: (provider, props) => (
+        <ToolFilterSummaryText
+          instanceId={props.instanceId}
+          providerId={getProviderId(provider)}
+          toolFilter={provider.toolFilter}
+        />
+      )
     },
     {
       id: 'status',
