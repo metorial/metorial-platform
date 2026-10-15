@@ -17,7 +17,7 @@ let toolPermissionModeItems: { id: ToolSectionMode; label: string }[] = [
   { id: 'mixed', label: 'Mixed' }
 ];
 
-let groupByItems: { id: ToolSelectionGroupBy; label: string }[] = [
+export let toolSelectionGroupByItems: { id: ToolSelectionGroupBy; label: string }[] = [
   { id: 'category', label: 'Category' },
   { id: 'access', label: 'Access' }
 ];
@@ -180,7 +180,7 @@ export let ToolSelectionSections = ({
                 <Chevron size={16} aria-hidden="true" $expanded={expanded} />
 
                 {showImages ? (
-                  <CategoryImage imageUrl={section.imageUrl} name={section.title} />
+                  <ToolCategoryImage imageUrl={section.imageUrl} name={section.title} />
                 ) : null}
 
                 <SectionText>
@@ -271,6 +271,7 @@ let SectionCard = styled.div`
   border: 1px solid ${theme.colors.gray300};
   border-radius: 10px;
   background: ${theme.colors.background};
+  container-type: inline-size;
 `;
 
 let SectionHeader = styled.div`
@@ -279,6 +280,16 @@ let SectionHeader = styled.div`
   gap: 10px;
   align-items: center;
   padding: 8px 12px 8px 4px;
+
+  @container (max-width: 520px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+
+    & > :last-child {
+      justify-self: start;
+      margin-left: 6px;
+    }
+  }
 `;
 
 let SectionTrigger = styled.button`
@@ -354,7 +365,13 @@ let ImageTile = styled.span`
 
 // Falls back to the category's initial so rows stay aligned when only some categories have
 // an image, or an image fails to load.
-let CategoryImage = ({ imageUrl, name }: { imageUrl: string | null; name: string }) => {
+export let ToolCategoryImage = ({
+  imageUrl,
+  name
+}: {
+  imageUrl: string | null;
+  name: string;
+}) => {
   let [failed, setFailed] = useState(false);
 
   return (
@@ -439,7 +456,7 @@ export let ToolSelectionEditor = ({ disabled, ...input }: ToolSelectionEditorPro
                 onChange={value => {
                   if (value === 'category' || value === 'access') setGroupBy(value);
                 }}
-                items={groupByItems}
+                items={toolSelectionGroupByItems}
               />
             </Flex>
           ) : null

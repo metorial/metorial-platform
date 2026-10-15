@@ -219,14 +219,7 @@ class MagicMcpServerImpl {
         key: tool.key,
         name: tool.name,
         description: tool.description,
-        value: {
-          capabilities: tool.capabilities,
-          constraints: tool.constraints,
-          inputJsonSchema: tool.inputJsonSchema,
-          instructions: tool.instructions,
-          outputJsonSchema: tool.outputJsonSchema,
-          tags: tool.tags
-        },
+        value: tool.value,
         specification: { id: tool.specification.id },
         provider: { id: tool.provider.id },
         createdAt: tool.createdAt,
