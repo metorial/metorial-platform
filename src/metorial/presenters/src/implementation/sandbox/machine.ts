@@ -14,6 +14,7 @@ import {
 } from './_shared';
 
 let UPCOMING_EVENT_WINDOW_MS = 60 * 60 * 1000;
+let MAX_BOOST_MULTIPLIER = 4;
 
 let machineStatuses = [
   'starting',
@@ -221,6 +222,12 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
             cpus: remote.spec.vcpus
           }
         : null,
+      max_boost: remote
+        ? {
+            memory_gib: (remote.physicalSpec.memoryMiB / 1024) * MAX_BOOST_MULTIPLIER,
+            cpus: remote.physicalSpec.vcpus * MAX_BOOST_MULTIPLIER
+          }
+        : null,
       root_disk: rootFs
         ? { id: rootFs.diskId, size_bytes: toNullableNumber(rootFs.diskSizeBytes) }
         : null,
@@ -315,6 +322,24 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
           {
             description:
               "The machine's size. Null once a terminated machine's details expired, about 30 days after termination."
+          }
+        )
+      ),
+      max_boost: v.nullable(
+        v.object(
+          {
+            memory_gib: v.number({
+              description: 'The maximum memory the machine can boost to, in GiB',
+              examples: [16]
+            }),
+            cpus: v.number({
+              description: 'The maximum CPU count the machine can boost to',
+              examples: [8]
+            })
+          },
+          {
+            description:
+              'The maximum resources the machine can boost to, based on four times its backing size. Null once the remote machine details expire.'
           }
         )
       ),

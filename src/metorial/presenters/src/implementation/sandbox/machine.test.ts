@@ -80,6 +80,7 @@ let remoteMachine = (overrides: Record<string, unknown> = {}) => ({
   slug: 'api-1',
   image: { imageId: 'gen_img', versionId: 'gen_ver' },
   spec: { id: 'gen_spec', identifier: 'standard-2', memoryMiB: 2048, vcpus: 2 },
+  physicalSpec: { id: 'gen_physical', identifier: 'm1024-c1000', memoryMiB: 1024, vcpus: 1 },
   rootFs: {
     current: { diskId: 'sbd_root', diskSizeBytes: '1024' },
     desired: { diskId: 'sbd_root', diskSizeBytes: '2048' }
@@ -171,6 +172,30 @@ describe('v1SandboxMachinePresenter', () => {
     expect(result.current_instance).toBeNull();
   });
 
+  it('reports maximum boost from the backing size rather than the requested size', async () => {
+    let result = await v1SandboxMachinePresenter
+      .present(
+        {
+          machine: localMachine({
+            remote: remoteMachine({
+              spec: { id: 'gen_spec', identifier: 'm3072-c3000', memoryMiB: 3072, vcpus: 3 },
+              physicalSpec: {
+                id: 'gen_physical',
+                identifier: 'm4096-c2000',
+                memoryMiB: 4096,
+                vcpus: 2
+              }
+            })
+          })
+        },
+        context
+      )
+      .run();
+
+    expect(result.spec).toMatchObject({ memory_gib: 3, cpus: 3 });
+    expect(result.max_boost).toEqual({ memory_gib: 16, cpus: 8 });
+  });
+
   it('falls back to the local record when the remote machine is gone', async () => {
     let deletedAt = new Date('2026-02-01T00:00:00Z');
 
@@ -187,6 +212,7 @@ describe('v1SandboxMachinePresenter', () => {
       region: 'us-east-1',
       image: { id: 'img_1', version_id: null },
       spec: null,
+      max_boost: null,
       root_disk: null,
       mounts: [],
       firewall_ids: ['fwl_1'],

@@ -160,6 +160,12 @@ let SandboxMachineDetailsLayout = () => {
                 value: m.spec ? `${m.spec.cpus} vCPU · ${m.spec.memoryGib} GiB` : '—'
               },
               {
+                label: 'Max Boost',
+                value: m.maxBoost
+                  ? `${m.maxBoost.cpus} vCPU · ${m.maxBoost.memoryGib} GiB`
+                  : '—'
+              },
+              {
                 label: 'Region',
                 value:
                   regions.data?.items.find(region => region.id === m.region)?.name || m.region

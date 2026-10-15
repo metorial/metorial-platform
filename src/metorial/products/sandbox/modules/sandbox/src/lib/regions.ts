@@ -13,11 +13,41 @@ let regionConfigSchema = v.array(
     name: v.string(),
     cloud: v.string(),
     area: v.object({ id: v.string(), name: v.string() }),
-    genesisUrl: v.string()
+    genesisUrl: v.string(),
+    auth: v.optional(v.object({ audience: v.string() }))
   })
 );
 
 export type SandboxRegionConfig = ValidationTypeValue<typeof regionConfigSchema>[number];
+
+let signatureCredentialsSchema = v.object({
+  keyId: v.string(),
+  privateKey: v.object({
+    kty: v.literal('OKP'),
+    crv: v.literal('Ed25519'),
+    x: v.string(),
+    d: v.string()
+  })
+});
+
+let getSignatureCredentials = (audience: string) => {
+  let result = signatureCredentialsSchema.validate(
+    JSON.parse(env.genesis.SANDBOX_SIGNATURE_CREDENTIALS ?? '{}')
+  );
+  if (
+    !result.success ||
+    !/^[A-Za-z0-9_.:/-]{1,256}$/.test(result.value.keyId) ||
+    !/^[A-Za-z0-9_.:/-]{1,256}$/.test(audience) ||
+    !/^[A-Za-z0-9_-]{43}$/.test(result.value.privateKey.x) ||
+    !/^[A-Za-z0-9_-]{43}$/.test(result.value.privateKey.d)
+  ) {
+    throw new Error(
+      'Authenticated sandbox regions require valid SANDBOX_SIGNATURE_CREDENTIALS'
+    );
+  }
+
+  return { algorithm: 'ed25519' as const, audience, ...result.value };
+};
 
 let configs: SandboxRegionConfig[] | undefined;
 let clients = new Map<string, GenesisInternalClient>();
@@ -31,6 +61,15 @@ let loadConfigs = (): SandboxRegionConfig[] => {
     let identifiers = new Set(validation.value.map(region => region.identifier));
     if (ids.size != validation.value.length || identifiers.size != validation.value.length) {
       throw new Error('SANDBOX_REGIONS contains duplicate ids or identifiers');
+    }
+
+    for (let region of validation.value) {
+      if (region.auth) {
+        if (new URL(region.genesisUrl).protocol !== 'https:') {
+          throw new Error('Authenticated sandbox regions require HTTPS');
+        }
+        getSignatureCredentials(region.auth.audience);
+      }
     }
 
     return validation.value;
@@ -77,7 +116,11 @@ export let getRegionClient = (regionId: string): GenesisInternalClient => {
 
   let client = clients.get(regionId);
   if (!client) {
-    client = createGenesisInternalClient(config.genesisUrl);
+    client = createGenesisInternalClient(config.genesisUrl, {
+      getSignatureCredentials: config.auth
+        ? () => getSignatureCredentials(config.auth!.audience)
+        : undefined
+    });
     clients.set(regionId, client);
   }
 

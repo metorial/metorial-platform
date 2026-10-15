@@ -59,6 +59,8 @@ FUNCTION_BAY_API_URL = "http://{{HOSTNAME}}:52030/metorial-function-bay"
 SYNTHESIS_API_URL = "http://{{HOSTNAME}}:52160/metorial-synthesis"
 PROVIDER_OAUTH_TICKET_SECRET = "provider-oauth-ticket-secret"
 GENESIS_INTERNAL_URL = true
+SANDBOX_REGIONS = { from = "SANDBOX_REGIONS", required = false }
+SANDBOX_SIGNATURE_CREDENTIALS = { from = "SANDBOX_SIGNATURE_CREDENTIALS", required = false }
 AUTH_TICKET_SECRET = "auth-ticket-secret"
 ENCRYPTION_SECRET = "encryption-secret"
 OUTPOST_KEY_ENCRYPTION_SECRET = "outpost-key-encryption-secret"

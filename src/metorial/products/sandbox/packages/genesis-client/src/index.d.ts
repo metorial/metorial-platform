@@ -7,6 +7,7 @@ import * as _metorial_genesis_db from './shared';
 import * as _metorial_genesis_module_tenant from './shared';
 import * as _lowerdeck_validation from '@lowerdeck/validation';
 import * as _lowerdeck_rpc_server from '@lowerdeck/rpc-server';
+import { ClientOpts } from '@lowerdeck/rpc-client';
 
 declare function Decimal(n: Decimal.Value): Decimal;
 
@@ -277,7 +278,7 @@ declare class Decimal {
     static readonly EUCLID: 9;
 }
 
-declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_server.InferClient<{
+declare let createGenesisInternalClient: (endpoint: string, options?: Pick<ClientOpts, "getSignatureCredentials">) => _lowerdeck_rpc_server.InferClient<{
     spec: {
         list: _lowerdeck_rpc_server.Handler<object & {
             limit?: number;
@@ -1439,6 +1440,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -1461,7 +1463,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -1519,6 +1520,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -1541,7 +1543,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -2458,6 +2459,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -2480,7 +2482,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -2538,6 +2539,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -2560,7 +2562,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -3281,6 +3282,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -3303,7 +3305,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -3361,6 +3362,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -3383,7 +3385,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -4104,6 +4105,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -4126,7 +4128,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -4184,6 +4185,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -4206,7 +4208,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -4927,6 +4928,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -4949,7 +4951,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -5007,6 +5008,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -5029,7 +5031,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -5750,6 +5751,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -5772,7 +5774,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -5830,6 +5831,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -5852,7 +5854,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -6573,6 +6574,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -6595,7 +6597,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -6653,6 +6654,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -6675,7 +6677,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -7400,6 +7401,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -7422,7 +7424,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -7480,6 +7481,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -7502,7 +7504,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -8143,6 +8144,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -8165,7 +8167,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -8223,6 +8224,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -8245,7 +8247,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -8903,6 +8904,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -8925,7 +8927,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -8983,6 +8984,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -9005,7 +9007,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -9689,6 +9690,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -9711,7 +9713,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -9769,6 +9770,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -9791,7 +9793,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -10442,6 +10443,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -10464,7 +10466,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -10522,6 +10523,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -10544,7 +10546,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -11214,6 +11215,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -11236,7 +11238,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -11294,6 +11295,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -11316,7 +11318,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -12001,6 +12002,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -12023,7 +12025,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -12081,6 +12082,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -12103,7 +12105,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -12728,6 +12729,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -12750,7 +12752,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -12808,6 +12809,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -12830,7 +12832,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -13552,6 +13553,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -13574,7 +13576,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -13632,6 +13633,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -13654,7 +13656,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -14378,6 +14379,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -14400,7 +14402,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -14458,6 +14459,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -14480,7 +14482,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -15302,6 +15303,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -15324,7 +15326,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -15382,6 +15383,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -15404,7 +15406,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -15655,6 +15656,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -15677,7 +15679,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -15735,6 +15736,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -15757,7 +15759,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -16350,6 +16351,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -16372,7 +16374,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -16430,6 +16431,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -16452,7 +16454,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -16703,6 +16704,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             activeResizeOid: bigint | null;
                         };
                         instance: {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -16725,7 +16727,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -16783,6 +16784,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         } | null;
                     }[];
                 } & {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -16805,7 +16807,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -17462,6 +17463,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     activeResizeOid: bigint | null;
                                 };
                                 instance: {
+                                    endpoint: string | null;
                                     oid: bigint;
                                     id: string;
                                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -17484,7 +17486,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     rootFsOid: bigint;
                                     generation: number;
                                     microvmId: string | null;
-                                    endpoint: string | null;
                                     genesisdVersion: string | null;
                                     bootId: string | null;
                                     publicKey: string | null;
@@ -17542,6 +17543,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 } | null;
                             }[];
                         } & {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -17564,7 +17566,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -17815,6 +17816,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -17837,7 +17839,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -17895,6 +17896,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -17917,7 +17919,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -18519,6 +18520,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     activeResizeOid: bigint | null;
                                 };
                                 instance: {
+                                    endpoint: string | null;
                                     oid: bigint;
                                     id: string;
                                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -18541,7 +18543,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     rootFsOid: bigint;
                                     generation: number;
                                     microvmId: string | null;
-                                    endpoint: string | null;
                                     genesisdVersion: string | null;
                                     bootId: string | null;
                                     publicKey: string | null;
@@ -18599,6 +18600,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 } | null;
                             }[];
                         } & {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -18621,7 +18623,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -18872,6 +18873,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -18894,7 +18896,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -18952,6 +18953,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -18974,7 +18976,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -19593,6 +19594,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     activeResizeOid: bigint | null;
                                 };
                                 instance: {
+                                    endpoint: string | null;
                                     oid: bigint;
                                     id: string;
                                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -19615,7 +19617,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     rootFsOid: bigint;
                                     generation: number;
                                     microvmId: string | null;
-                                    endpoint: string | null;
                                     genesisdVersion: string | null;
                                     bootId: string | null;
                                     publicKey: string | null;
@@ -19673,6 +19674,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 } | null;
                             }[];
                         } & {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -19695,7 +19697,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -19946,6 +19947,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -19968,7 +19970,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -20026,6 +20027,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -20048,7 +20050,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -20647,6 +20648,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     activeResizeOid: bigint | null;
                                 };
                                 instance: {
+                                    endpoint: string | null;
                                     oid: bigint;
                                     id: string;
                                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -20669,7 +20671,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     rootFsOid: bigint;
                                     generation: number;
                                     microvmId: string | null;
-                                    endpoint: string | null;
                                     genesisdVersion: string | null;
                                     bootId: string | null;
                                     publicKey: string | null;
@@ -20727,6 +20728,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 } | null;
                             }[];
                         } & {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -20749,7 +20751,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -21000,6 +21001,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -21022,7 +21024,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -21080,6 +21081,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -21102,7 +21104,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -21721,6 +21722,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     activeResizeOid: bigint | null;
                                 };
                                 instance: {
+                                    endpoint: string | null;
                                     oid: bigint;
                                     id: string;
                                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -21743,7 +21745,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     rootFsOid: bigint;
                                     generation: number;
                                     microvmId: string | null;
-                                    endpoint: string | null;
                                     genesisdVersion: string | null;
                                     bootId: string | null;
                                     publicKey: string | null;
@@ -21801,6 +21802,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 } | null;
                             }[];
                         } & {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -21823,7 +21825,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -22074,6 +22075,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -22096,7 +22098,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -22154,6 +22155,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -22176,7 +22178,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -22775,6 +22776,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     activeResizeOid: bigint | null;
                                 };
                                 instance: {
+                                    endpoint: string | null;
                                     oid: bigint;
                                     id: string;
                                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -22797,7 +22799,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     rootFsOid: bigint;
                                     generation: number;
                                     microvmId: string | null;
-                                    endpoint: string | null;
                                     genesisdVersion: string | null;
                                     bootId: string | null;
                                     publicKey: string | null;
@@ -22855,6 +22856,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 } | null;
                             }[];
                         } & {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -22877,7 +22879,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -23128,6 +23129,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -23150,7 +23152,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -23208,6 +23209,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -23230,7 +23232,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -23849,6 +23850,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     activeResizeOid: bigint | null;
                                 };
                                 instance: {
+                                    endpoint: string | null;
                                     oid: bigint;
                                     id: string;
                                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -23871,7 +23873,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                     rootFsOid: bigint;
                                     generation: number;
                                     microvmId: string | null;
-                                    endpoint: string | null;
                                     genesisdVersion: string | null;
                                     bootId: string | null;
                                     publicKey: string | null;
@@ -23929,6 +23930,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 } | null;
                             }[];
                         } & {
+                            endpoint: string | null;
                             oid: bigint;
                             id: string;
                             status: _metorial_genesis_db.MachineInstanceStatus;
@@ -23951,7 +23953,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             rootFsOid: bigint;
                             generation: number;
                             microvmId: string | null;
-                            endpoint: string | null;
                             genesisdVersion: string | null;
                             bootId: string | null;
                             publicKey: string | null;
@@ -24202,6 +24203,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -24224,7 +24226,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -24282,6 +24283,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -24304,7 +24306,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -24902,6 +24903,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -24924,7 +24926,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -24982,6 +24983,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -25004,7 +25006,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -25670,6 +25671,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -25692,7 +25694,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -25750,6 +25751,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -25772,7 +25774,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -26418,6 +26419,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -26440,7 +26442,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -26498,6 +26499,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -26520,7 +26522,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -27186,6 +27187,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -27208,7 +27210,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -27266,6 +27267,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -27288,7 +27290,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -28012,6 +28013,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 activeResizeOid: bigint | null;
                             };
                             instance: {
+                                endpoint: string | null;
                                 oid: bigint;
                                 id: string;
                                 status: _metorial_genesis_db.MachineInstanceStatus;
@@ -28034,7 +28036,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                                 rootFsOid: bigint;
                                 generation: number;
                                 microvmId: string | null;
-                                endpoint: string | null;
                                 genesisdVersion: string | null;
                                 bootId: string | null;
                                 publicKey: string | null;
@@ -28092,6 +28093,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                             } | null;
                         }[];
                     } & {
+                        endpoint: string | null;
                         oid: bigint;
                         id: string;
                         status: _metorial_genesis_db.MachineInstanceStatus;
@@ -28114,7 +28116,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                         rootFsOid: bigint;
                         generation: number;
                         microvmId: string | null;
-                        endpoint: string | null;
                         genesisdVersion: string | null;
                         bootId: string | null;
                         publicKey: string | null;
@@ -28536,6 +28537,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     lastMachineAt: Date | null;
                 };
                 attachedInstance: {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -28558,7 +28560,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -28786,6 +28787,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     lastMachineAt: Date | null;
                 };
                 attachedInstance: {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -28808,7 +28810,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -29051,6 +29052,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     lastMachineAt: Date | null;
                 };
                 attachedInstance: {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -29073,7 +29075,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -29703,6 +29704,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     lastMachineAt: Date | null;
                 };
                 attachedInstance: {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -29725,7 +29727,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -30078,6 +30079,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     lastMachineAt: Date | null;
                 };
                 attachedInstance: {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -30100,7 +30102,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
@@ -30368,6 +30369,7 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     lastMachineAt: Date | null;
                 };
                 attachedInstance: {
+                    endpoint: string | null;
                     oid: bigint;
                     id: string;
                     status: _metorial_genesis_db.MachineInstanceStatus;
@@ -30390,7 +30392,6 @@ declare let createGenesisInternalClient: (endpoint: string) => _lowerdeck_rpc_se
                     rootFsOid: bigint;
                     generation: number;
                     microvmId: string | null;
-                    endpoint: string | null;
                     genesisdVersion: string | null;
                     bootId: string | null;
                     publicKey: string | null;
