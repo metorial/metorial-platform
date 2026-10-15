@@ -17,7 +17,8 @@ import type { InvocationError, InvocationResult } from '../../lib/invocation/typ
 import { isReservedActionId } from '../../lib/reservedActions';
 import {
   buildDiscoveredSpecificationHashes,
-  dedupeDiscoveredItems
+  dedupeDiscoveredItems,
+  normalizeDiscoveredToolCategories
 } from '../../lib/specificationHash';
 import { slateInvocationService } from '../../services';
 import { discoverSlateCapabilities } from './discoverCapabilities';
@@ -560,6 +561,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
       });
 
       let supportsTriggerGroups = !!capabilities?.provider?.triggerGroups;
+      let supportsToolCategories = !!capabilities?.provider?.toolCategories;
 
       let [
         providerInfoResult,
@@ -567,7 +569,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         authMethodsResult,
         actionsResult,
         rawAdaptersResult,
-        rawTriggerGroupsResult
+        rawTriggerGroupsResult,
+        rawToolCategoriesResult
       ] = await Promise.all([
         slateInvocationService.getProviderInfo({ stack }),
         slateInvocationService.getConfigSchema({ stack }),
@@ -579,6 +582,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           : Promise.resolve(null),
         supportsTriggerGroups
           ? slateInvocationService.listTriggerGroups({ stack })
+          : Promise.resolve(null),
+        supportsToolCategories
+          ? slateInvocationService.listToolCategories({ stack })
           : Promise.resolve(null)
       ]);
 
@@ -587,6 +593,13 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           status: 'success',
           invocation: providerInfoResult.invocation,
           data: { triggerGroups: [] }
+        };
+
+      let toolCategoriesResult: InvocationResult<'slates/tool_categories.list'> =
+        rawToolCategoriesResult ?? {
+          status: 'success',
+          invocation: providerInfoResult.invocation,
+          data: { toolCategories: [] }
         };
 
       let adaptersResult: InvocationResult<'slates/adapters.list'> = rawAdaptersResult ?? {
@@ -601,14 +614,16 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         typeof authMethodsResult,
         typeof actionsResult,
         typeof adaptersResult,
-        typeof triggerGroupsResult
+        typeof triggerGroupsResult,
+        typeof toolCategoriesResult
       ] = [
         providerInfoResult,
         configSchemaResult,
         authMethodsResult,
         actionsResult,
         adaptersResult,
-        triggerGroupsResult
+        triggerGroupsResult,
+        toolCategoriesResult
       ];
 
       let invocation = stackResult[0].invocation;
@@ -625,8 +640,15 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         return;
       }
 
-      let [providerInfo, configSchema, authMethods, actions, adapters, triggerGroups] =
-        getStackResultsOrThrow(stackResult);
+      let [
+        providerInfo,
+        configSchema,
+        authMethods,
+        actions,
+        adapters,
+        triggerGroups,
+        toolCategories
+      ] = getStackResultsOrThrow(stackResult);
 
       let discoveredAuthMethods = dedupeDiscoveredItems(authMethods.authenticationMethods, {
         entity: 'auth_methods',
@@ -650,6 +672,14 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         versionId: version.id
       });
 
+      let discoveredToolCategories = normalizeDiscoveredToolCategories(
+        toolCategories.toolCategories ?? [],
+        {
+          slateId: slate.id,
+          versionId: version.id
+        }
+      );
+
       let providerDocs = normalizeDiscoveredDocs(providerInfo.docs);
       let configSchemaDocs = normalizeDiscoveredDocs(configSchema.docs);
 
@@ -665,7 +695,8 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         },
         authMethods: discoveredAuthMethods,
         actions: discoveredActions,
-        triggerGroups: discoveredTriggerGroups
+        triggerGroups: discoveredTriggerGroups,
+        toolCategories: discoveredToolCategories
       });
       let identifierBase = `slate::spec::${slate.id}`;
       let specificationIdentifier = `${identifierBase}::${discoveryHashes.specificationHash}`;
@@ -682,6 +713,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         authMethods: discoveredAuthMethods,
         actions: discoveredActions,
         triggerGroups: discoveredTriggerGroups,
+        toolCategories: discoveredToolCategories,
         capabilities
       };
       let specification = await db.slateSpecification.upsert({

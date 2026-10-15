@@ -3,6 +3,8 @@ export let setupSessionToolPresenter = (tool: {
   key: string;
   name: string;
   description: string | null;
+  tags: { readOnly?: boolean; destructive?: boolean };
+  toolCategoryKeys: string[];
 }) => ({
   object: 'provider.capabilities.tool',
 
@@ -10,5 +12,22 @@ export let setupSessionToolPresenter = (tool: {
   key: tool.key,
 
   name: tool.name,
-  description: tool.description
+  description: tool.description,
+
+  tags: tool.tags,
+  toolCategoryKeys: tool.toolCategoryKeys
+});
+
+export let setupSessionToolCategoryPresenter = (category: {
+  key: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+}) => ({
+  object: 'provider.capabilities.tool_category',
+
+  key: category.key,
+  name: category.name,
+  description: category.description,
+  imageUrl: category.imageUrl
 });

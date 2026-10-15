@@ -45,6 +45,10 @@ type MagicMcpEndpointToolFilter =
       keys: string[];
     }
   | {
+      type: 'tool_categories';
+      keys: string[];
+    }
+  | {
       type: 'tool_regex';
       pattern: string;
     }

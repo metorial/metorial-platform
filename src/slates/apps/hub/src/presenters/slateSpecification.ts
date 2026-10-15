@@ -58,6 +58,12 @@ export let slateSpecificationPresenter = (
   triggerGroups: spec.slateTriggerGroups.map(stg =>
     slateTriggerGroupPresenter({ ...stg.triggerGroup, slate: spec.slate })
   ),
+  toolCategories: (spec.toolCategories ?? []).map(category => ({
+    key: category.key,
+    name: category.name,
+    description: category.description ?? null,
+    imageUrl: category.imageUrl ?? null
+  })),
 
   createdAt: spec.createdAt
 });

@@ -26,6 +26,7 @@ export type ManagementInstanceIntegrationsInstancesCreateOutput = {
           type: 'filter';
           filters: (
             | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_categories'; keys: string[] }
             | { type: 'tool_regex'; pattern: string }
             | { type: 'resource_regex'; pattern: string }
             | { type: 'resource_uris'; uris: string[] }
@@ -63,6 +64,7 @@ export type ManagementInstanceIntegrationsInstancesCreateOutput = {
             type: 'filter';
             filters: (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -220,6 +222,7 @@ export type ManagementInstanceIntegrationsInstancesCreateBody = {
         toolFilters?:
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -228,6 +231,7 @@ export type ManagementInstanceIntegrationsInstancesCreateBody = {
             )
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }

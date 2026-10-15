@@ -245,6 +245,10 @@ class slateInvocationServiceImpl {
     return await d.stack.invoke('slates/trigger_groups.list', {});
   }
 
+  async listToolCategories(d: { stack: SlateInvocationStack }) {
+    return await d.stack.invoke('slates/tool_categories.list', {});
+  }
+
   async getRoutingMatchers(d: { stack: SlateInvocationStack; triggerGroupId: string }) {
     return await d.stack.invoke('slates/trigger_group.routing_matchers.get', {
       triggerGroupId: d.triggerGroupId

@@ -19,6 +19,7 @@ export type MagicMcpEndpointsCreateOutput = {
     toolFilters:
       | (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -27,6 +28,7 @@ export type MagicMcpEndpointsCreateOutput = {
         )
       | (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -102,6 +104,7 @@ export type MagicMcpEndpointsCreateBody = {
         toolFilters?:
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -110,6 +113,7 @@ export type MagicMcpEndpointsCreateBody = {
             )
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }

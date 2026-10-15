@@ -100,6 +100,7 @@ export type DashboardInstanceSessionsMessagesListOutput = {
           schema: Record<string, any>;
         } | null;
         tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+        toolCategoryKeys: string[];
         specificationId: string;
         providerId: string;
         createdAt: Date;
@@ -254,6 +255,7 @@ export let mapDashboardInstanceSessionsMessagesListOutput =
                       'input_schema',
                       'output_schema',
                       ['tags', 0, [1, ['read_only']]],
+                      'tool_category_keys',
                       'specification_id',
                       'provider_id',
                       'created_at',

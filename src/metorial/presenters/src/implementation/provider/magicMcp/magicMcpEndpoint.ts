@@ -12,6 +12,10 @@ let endpointToolFilterSchema = v.union([
     keys: v.array(v.string())
   }),
   v.object({
+    type: v.literal('tool_categories'),
+    keys: v.array(v.string())
+  }),
+  v.object({
     type: v.literal('tool_regex'),
     pattern: v.string()
   }),

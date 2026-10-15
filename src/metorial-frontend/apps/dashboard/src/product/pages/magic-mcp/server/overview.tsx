@@ -27,23 +27,12 @@ import {
   type TokenRow
 } from '../../../scenes/magicMcp/tokensTable';
 import { McpConnectionInstructionsScene } from '../../../scenes/mcpConnectionInstructions';
+import { ToolFilterSummaryText } from '../../../lib/toolFilterSummary';
 import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
 
 type MagicMcpServerProviderRow =
   DashboardInstanceMagicMcpServersProvidersListOutput['items'][number];
 type MagicMcpServer = NonNullable<ReturnType<typeof useMagicMcpServer>['data']>;
-
-let getToolFilterSummary = (toolFilter: MagicMcpServerProviderRow['toolFilter']) => {
-  if (!toolFilter || toolFilter.type === 'allow_all') return 'All tools';
-
-  let selectedToolKeys = toolFilter.filters
-    .filter(filter => filter.type === 'tool_keys')
-    .flatMap(filter => filter.keys ?? []);
-
-  if (selectedToolKeys.length === 0) return 'No tools';
-  if (selectedToolKeys.length === 1) return '1 selected';
-  return `${selectedToolKeys.length} selected`;
-};
 
 let MagicMcpServerProvidersBox = (p: { instanceId: string; server: MagicMcpServer }) => {
   let providers = useMagicMcpServerProviders(p.instanceId, p.server.id, {
@@ -170,6 +159,7 @@ let MagicMcpServerProvidersBox = (p: { instanceId: string; server: MagicMcpServe
     >
       {renderWithLoader({ providers, deployments, listings })(() => (
         <MagicMcpServerProvidersTable
+          instanceId={p.instanceId}
           providers={providers}
           listingLookup={listingLookup}
           openProviderPanel={openProviderPanel}
@@ -181,6 +171,7 @@ let MagicMcpServerProvidersBox = (p: { instanceId: string; server: MagicMcpServe
 };
 
 let MagicMcpServerProvidersTable = (p: {
+  instanceId: string;
   providers: ReturnType<typeof useMagicMcpServerProviders>;
   listingLookup: Record<string, { name: string; imageUrl: string }>;
   openProviderPanel: (row?: MagicMcpServerProviderRow) => void;
@@ -205,8 +196,12 @@ let MagicMcpServerProvidersTable = (p: {
                   {provider.provider.slug ?? provider.provider.id}
                 </Text>
               </div>,
-              <Text size="2">{getToolFilterSummary(provider.toolFilter)}</Text>,
-              <Flex style={{ width: '100%' }} justify="end">
+              <ToolFilterSummaryText
+                instanceId={p.instanceId}
+                providerId={provider.provider.id}
+                toolFilter={provider.toolFilter}
+              />,
+              <Flex style={{ width: '100%' }} justify="end" onClick={e => e.stopPropagation()}>
                 <Menu
                   items={[
                     ...(provider.canUpdate

@@ -21,10 +21,19 @@ export type ProvidersSpecificationsListOutput = {
       inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
       outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
       tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+      toolCategoryKeys: string[];
       specificationId: string;
       providerId: string;
       createdAt: Date;
       updatedAt: Date;
+    }[];
+    toolCategories: {
+      object: 'provider.tool_category';
+      key: string;
+      name: string;
+      description: string | null;
+      imageUrl: string | null;
+      toolCount: number;
     }[];
     authMethods: {
       object: 'provider.capabilities.auth_method';
@@ -78,6 +87,7 @@ export let mapProvidersSpecificationsListOutput =
                   'input_schema',
                   'output_schema',
                   ['tags', 0, [1, ['read_only']]],
+                  'tool_category_keys',
                   'specification_id',
                   'provider_id',
                   'created_at',
@@ -86,6 +96,7 @@ export let mapProvidersSpecificationsListOutput =
               ]
             ]
           ],
+          ['tool_categories', 1, [2, [1, ['image_url', 'tool_count']]]],
           [
             'auth_methods',
             1,

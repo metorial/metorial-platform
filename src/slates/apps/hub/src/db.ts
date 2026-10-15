@@ -96,6 +96,15 @@ declare global {
     type SlateAdapters = ProtoSlateAdapter[];
     type SlateTriggerGroups = SlatesTriggerGroup[];
 
+    // Normalized from the protocol's `id` to `key` during discovery
+    type SlateToolCategory = {
+      key: string;
+      name: string;
+      description?: string;
+      imageUrl?: string;
+    };
+    type SlateToolCategories = SlateToolCategory[];
+
     type AnyRecord = Record<string, any>;
 
     type SlateProviderInfo = SlatesMessageProviderIdentifyResponse['result']['provider'];
@@ -111,6 +120,8 @@ declare global {
         // Implements slates/trigger_groups.list and the rest of the
         // trigger_group.* protocol
         triggerGroups?: boolean;
+        // Implements slates/tool_categories.list
+        toolCategories?: boolean;
       };
     };
 

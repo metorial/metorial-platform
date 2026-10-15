@@ -1240,6 +1240,7 @@
         "@metorial/storage": "^1.0.0",
         "@metorial/table": "^1.0.0",
         "@metorial/terminal": "^1.0.0",
+        "@metorial/tool-selection": "^1.0.0",
         "@metorial/ui": "^1.0.0",
         "@metorial/ui-product": "^1.0.0",
         "@metorial/use-debounced": "^1.0.0",
@@ -1324,6 +1325,7 @@
         "@metorial-io/ui": "^1.0.0",
         "@metorial/api-integrations": "^1.0.0",
         "@metorial/data-hooks": "^1.0.0",
+        "@metorial/tool-selection": "^1.0.0",
         "@metorial/ui": "workspace:*",
         "@remixicon/react": "^4.8.0",
         "framer-motion": "^12.9.4",
@@ -1874,6 +1876,21 @@
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "@types/react": "^19.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/tool-selection": {
+      "name": "@metorial/tool-selection",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -6146,7 +6163,7 @@
         "@remixicon/react": "^4.0.0",
         "@sentry/bun": "^10.36.0",
         "@sentry/cli": "^3.2.0",
-        "@slates/proto": "^1.0.0-rc.24",
+        "@slates/proto": "^1.0.0-rc.25",
         "@types/semver": "^7.7.1",
         "@types/unzipper": "^0.10.11",
         "date-fns": "^4.1.0",
@@ -7826,6 +7843,8 @@
 
     "@metorial/terminal": ["@metorial/terminal@workspace:src/metorial-frontend/packages/terminal"],
 
+    "@metorial/tool-selection": ["@metorial/tool-selection@workspace:src/metorial-frontend/packages/tool-selection"],
+
     "@metorial/tsconfig": ["@metorial/tsconfig@workspace:src/metorial/packages/tsconfig"],
 
     "@metorial/ui": ["@metorial/ui@workspace:src/metorial-frontend/packages/ui"],
@@ -8374,7 +8393,7 @@
 
     "@slates/adapter-chat": ["@slates/adapter-chat@1.0.0-rc.10", "", { "dependencies": { "@slates/adapter": "1.0.0-rc.9", "@slates/provider": "1.0.0-rc.25", "mdast-util-to-string": "^4.0.0", "remark-gfm": "^4.0.0", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "unified": "^11.0.5", "zod": "^4.2.1" } }, "sha512-0T7OAx8fAXD8pLggUhGc16dJedgg5oEM2oth+Ghwa/hsP/c/C6/PZv01avGKLDhroIhyrS0LcUlUvdtUqh9KNA=="],
 
-    "@slates/proto": ["@slates/proto@1.0.0-rc.24", "", { "dependencies": { "@lowerdeck/emitter": "^1.0.4", "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "zod": "^4.2.1" } }, "sha512-g9PAoSrJNmaMzXhvFp+LkYCLhfva0RcdWv3X7aeBegEakl+yOX9pQuNXv96MOQBNuuf7D4DQPzvUqgv+UfItVQ=="],
+    "@slates/proto": ["@slates/proto@1.0.0-rc.25", "", { "dependencies": { "@lowerdeck/emitter": "^1.0.4", "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "zod": "^4.2.1" } }, "sha512-karZODCHM8orE7UlcYYWjt4sSLrzkX3Mz/JKvqQRxBePHiEtV9aN5gUCH9MUbL9vqkGXXPZ+yGV14KbQ5JE9pA=="],
 
     "@slates/provider": ["@slates/provider@1.0.0-rc.25", "", { "dependencies": { "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "p-queue": "^6.6.2", "zod": "^4.2.1" } }, "sha512-g8WUUgk/Oun52P3uppukOAelxDRP5oI/aWkNVld2geRSAplZl6+cjoeFUUaHQQqb3EkI9yo2odu5EQxBWD8Fzw=="],
 

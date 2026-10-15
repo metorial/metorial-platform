@@ -239,6 +239,10 @@ let matchesToolRule = (tool: ProviderTool, filter: ToolFilterRule) => {
         (mcpToolName ? filter.keys.includes(mcpToolName) : false)
       );
 
+    case 'tool_categories':
+      // Unknown keys and tools without categories simply match nothing
+      return (tool.value.categories ?? []).some(key => filter.keys.includes(key));
+
     case 'tool_regex': {
       let regex = validateAndUseRegex(filter.pattern, 'i');
       return (
@@ -274,7 +278,11 @@ let getRelevantToolRules = (tool: ProviderTool, filter: ToolFilter) => {
       return false;
     }
 
-    if (rule.type === 'tool_keys' || rule.type === 'tool_regex') {
+    if (
+      rule.type === 'tool_keys' ||
+      rule.type === 'tool_categories' ||
+      rule.type === 'tool_regex'
+    ) {
       return mcpType === 'tool.callable' || mcpType === 'mcp.tool';
     }
 
