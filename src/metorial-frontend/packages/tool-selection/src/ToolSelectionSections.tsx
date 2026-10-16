@@ -446,7 +446,7 @@ export let ToolSelectionEditor = ({ disabled, ...input }: ToolSelectionEditorPro
           state.index.hasCategories ? (
             <Flex align="center" gap={10}>
               <Text size="2" color="gray700" wrap="nowrap" style={{ flexShrink: 0 }}>
-                Group by
+                Filter by
               </Text>
               <OptionToggle
                 size="1"
