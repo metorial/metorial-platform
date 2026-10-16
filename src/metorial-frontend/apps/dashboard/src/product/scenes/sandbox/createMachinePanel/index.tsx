@@ -136,8 +136,8 @@ let ConfigureMachine = (p: { imageId: string; close: () => void; back: () => voi
       mounts: [] as DiskMount[],
       env: [] as KeyValueEntry[],
       lifecyclePolicy: {
-        pauseAfterIdleSeconds: 300,
-        hibernateAfterPausedSeconds: 3600,
+        pauseAfterIdleSeconds: null,
+        hibernateAfterPausedSeconds: 600,
         connectionIdleSeconds: 300
       } as LifecyclePolicy,
       firewallIds: [] as string[],
