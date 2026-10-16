@@ -139,9 +139,17 @@ export type GetIdentityActorByIdParams = {
   allowDeleted?: boolean;
 };
 
+export type IdentityActorConsumerOwner = {
+  consumerId: string;
+  instanceConsumerId: string;
+  consumerProfileId: string;
+};
+
 export type CreateIdentityActorParams = {
   tenant: Tenant;
   environment: Environment;
+
+  consumerOwner?: IdentityActorConsumerOwner;
 
   input: {
     name: string;
@@ -171,6 +179,37 @@ export type ArchiveIdentityActorParams = {
   tenant: Tenant;
   environment: Environment;
   identityActor: IdentityActor;
+};
+
+let resolveConsumerOwnerOids = async (owner: IdentityActorConsumerOwner) => {
+  let [consumer, instanceConsumer, consumerProfile] = await Promise.all([
+    db.consumer.findUnique({
+      where: { id: owner.consumerId },
+      select: { oid: true }
+    }),
+    db.instanceConsumer.findUnique({
+      where: { id: owner.instanceConsumerId },
+      select: { oid: true }
+    }),
+    db.consumerProfile.findUnique({
+      where: { id: owner.consumerProfileId },
+      select: { oid: true }
+    })
+  ]);
+
+  if (!consumer) throw new ServiceError(notFoundError('consumer', owner.consumerId));
+  if (!instanceConsumer) {
+    throw new ServiceError(notFoundError('consumer', owner.instanceConsumerId));
+  }
+  if (!consumerProfile) {
+    throw new ServiceError(notFoundError('consumer.profile', owner.consumerProfileId));
+  }
+
+  return {
+    consumerOid: consumer.oid,
+    instanceConsumerOid: instanceConsumer.oid,
+    consumerProfileOid: consumerProfile.oid
+  };
 };
 
 class identityActorServiceImpl {
@@ -291,6 +330,18 @@ class identityActorServiceImpl {
   async createIdentityActorInternal(d: CreateIdentityActorParams) {
     let solution = await getMetorialSolution();
 
+    if ((d.input.type === 'consumer') !== !!d.consumerOwner) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Consumer identity actors must be created with a consumer owner'
+        })
+      );
+    }
+
+    let consumerOwner = d.consumerOwner
+      ? await resolveConsumerOwnerOids(d.consumerOwner)
+      : undefined;
+
     return withTransaction(async db => {
       let identityActor = await db.identityActor.create({
         data: {
@@ -308,7 +359,9 @@ class identityActorServiceImpl {
           projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
-          instanceOid: d.environment.instanceOid
+          instanceOid: d.environment.instanceOid,
+
+          ...consumerOwner
         }
       });
 
@@ -356,6 +409,109 @@ class identityActorServiceImpl {
         where: { id: identityActor.id },
         include
       })!;
+    });
+  }
+
+  async syncConsumerOwnershipInternal(d: {
+    identityActorId: string;
+    owner: IdentityActorConsumerOwner;
+    defaultIdentityId: string | null;
+  }) {
+    let identityActor = await db.identityActor.findUnique({
+      where: { id: d.identityActorId }
+    });
+    if (!identityActor) return null;
+
+    if (identityActor.type === 'agent') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Agent identity actors cannot be owned by a consumer'
+        })
+      );
+    }
+
+    let owner = await resolveConsumerOwnerOids(d.owner);
+
+    let defaultIdentity = d.defaultIdentityId
+      ? await db.identity.findFirst({
+          where: { id: d.defaultIdentityId, actorOid: identityActor.oid },
+          select: { oid: true, id: true }
+        })
+      : null;
+    defaultIdentity ??= await db.identity.findFirst({
+      where: { actorOid: identityActor.oid, status: 'active' },
+      orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],
+      select: { oid: true, id: true }
+    });
+
+    let defaultIdentityOid = defaultIdentity?.oid ?? null;
+    let isInSync =
+      identityActor.type === 'consumer' &&
+      identityActor.consumerOid === owner.consumerOid &&
+      identityActor.instanceConsumerOid === owner.instanceConsumerOid &&
+      identityActor.consumerProfileOid === owner.consumerProfileOid &&
+      identityActor.defaultIdentityOid === defaultIdentityOid;
+
+    if (!isInSync) {
+      identityActor = await db.identityActor.update({
+        where: { oid: identityActor.oid },
+        data: {
+          type: 'consumer',
+          ...owner,
+          defaultIdentityOid
+        }
+      });
+
+      await identityActorUpdatedQueue.add({ identityActorId: identityActor.id });
+    }
+
+    return {
+      identityActor,
+      defaultIdentityId: defaultIdentity?.id ?? null
+    };
+  }
+
+  async setInstanceConsumerDefaultActorInternal(d: {
+    instanceConsumerId: string;
+    identityActorId: string | null;
+  }) {
+    let instanceConsumer = await db.instanceConsumer.findUnique({
+      where: { id: d.instanceConsumerId },
+      select: { oid: true }
+    });
+    if (!instanceConsumer) {
+      if (!d.identityActorId) return;
+      throw new ServiceError(notFoundError('consumer', d.instanceConsumerId));
+    }
+
+    let identityActor = d.identityActorId
+      ? await db.identityActor.findUnique({
+          where: { id: d.identityActorId, instanceConsumerOid: instanceConsumer.oid },
+          select: { oid: true, defaultForInstanceConsumerOid: true }
+        })
+      : null;
+    if (d.identityActorId && !identityActor) {
+      throw new ServiceError(notFoundError('identity.actor', d.identityActorId));
+    }
+
+    await withTransaction(async db => {
+      await db.identityActor.updateMany({
+        where: {
+          defaultForInstanceConsumerOid: instanceConsumer.oid,
+          oid: identityActor ? { not: identityActor.oid } : undefined
+        },
+        data: { defaultForInstanceConsumerOid: null }
+      });
+
+      if (
+        identityActor &&
+        identityActor.defaultForInstanceConsumerOid !== instanceConsumer.oid
+      ) {
+        await db.identityActor.update({
+          where: { oid: identityActor.oid },
+          data: { defaultForInstanceConsumerOid: instanceConsumer.oid }
+        });
+      }
     });
   }
 

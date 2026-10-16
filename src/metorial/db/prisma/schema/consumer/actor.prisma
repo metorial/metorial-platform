@@ -16,12 +16,20 @@ model ConsumerActor {
   consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
 
   instanceConsumerOid BigInt
-  instanceConsumer    InstanceConsumer @relation(fields: [instanceConsumerOid], references: [oid], onDelete: Cascade)
+  instanceConsumer    InstanceConsumer @relation("ConsumerActorInstanceConsumer", fields: [instanceConsumerOid], references: [oid], onDelete: Cascade)
 
   consumerProfileOid BigInt
   consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
 
+  identityActorOid BigInt?        @unique
+  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: SetNull)
+
+  defaultForInstanceConsumerOid BigInt?           @unique
+  defaultForInstanceConsumer    InstanceConsumer? @relation("ConsumerActorDefaultForInstanceConsumer", fields: [defaultForInstanceConsumerOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
   @@index([defaultIdentityId])
+  @@index([instanceConsumerOid])
+  @@index([consumerProfileOid])
 }

@@ -1,0 +1,42 @@
+enum IdentityActorType {
+  person
+  agent
+  consumer
+}
+
+enum IdentityActorStatus {
+  active
+  archived
+  deleted
+}
+
+model IdentityActor {
+  oid BigInt @id
+  id  String @unique
+
+  type   IdentityActorType
+  status IdentityActorStatus
+
+  name String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime
+  updatedAt  DateTime
+  archivedAt DateTime?
+  syncedAt   DateTime  @default(now()) @updatedAt
+
+  agent         Agent?
+  consumerActor ConsumerActor?
+
+  @@index([organizationOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

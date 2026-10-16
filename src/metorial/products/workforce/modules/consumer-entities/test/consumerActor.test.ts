@@ -10,6 +10,11 @@ let mocks = vi.hoisted(() => ({
   getIdentity: vi.fn(),
   createIdentity: vi.fn(),
   deleteIdentity: vi.fn(),
+  syncConsumerProfile: vi.fn(),
+  syncConsumerOwnership: vi.fn(),
+  setInstanceConsumerDefaultActor: vi.fn(),
+  syncMirroredIdentityActor: vi.fn(),
+  enqueueInstanceConsumerSync: vi.fn(),
   consumerActor: {
     findMany: vi.fn(),
     create: vi.fn(),
@@ -20,7 +25,8 @@ let mocks = vi.hoisted(() => ({
     findFirst: vi.fn()
   },
   instanceConsumer: {
-    findUnique: vi.fn()
+    findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn()
   }
 }));
 
@@ -69,12 +75,29 @@ vi.mock('@metorial-subspace/module-identity', () => ({
     getIdentityActorById: mocks.getIdentityActor,
     createIdentityActor: mocks.createIdentityActor,
     updateIdentityActor: mocks.updateIdentityActor,
-    archiveIdentityActor: mocks.deleteIdentityActor
+    archiveIdentityActor: mocks.deleteIdentityActor,
+    syncConsumerOwnershipInternal: mocks.syncConsumerOwnership,
+    setInstanceConsumerDefaultActorInternal: mocks.setInstanceConsumerDefaultActor
+  },
+  identityActorMirrorService: {
+    syncIdentityActor: mocks.syncMirroredIdentityActor
   },
   identityService: {
     getIdentityById: mocks.getIdentity,
     createIdentity: mocks.createIdentity,
     archiveIdentity: mocks.deleteIdentity
+  }
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncConsumerProfile: mocks.syncConsumerProfile
+  }
+}));
+
+vi.mock('../src/queues/consumerActorSync', () => ({
+  syncInstanceConsumerActorsQueue: {
+    add: mocks.enqueueInstanceConsumerSync
   }
 }));
 
@@ -152,10 +175,16 @@ describe('consumerActorService', () => {
     });
 
     expect(mocks.usingLock).toHaveBeenCalledWith('20', expect.any(Function));
+    expect(mocks.syncConsumerProfile).toHaveBeenCalledWith(profile);
     expect(mocks.createIdentityActor).toHaveBeenCalledWith(
       expect.objectContaining({
         instance,
-        input: expect.objectContaining({ name: 'New Consumer', type: 'person' })
+        consumerOwner: {
+          consumerId: 'con_1',
+          instanceConsumerId: 'ico_1',
+          consumerProfileId: 'cop_1'
+        },
+        input: expect.objectContaining({ name: 'New Consumer', type: 'consumer' })
       })
     );
     expect(mocks.createIdentity).toHaveBeenCalledWith(
@@ -173,6 +202,9 @@ describe('consumerActorService', () => {
       })
     });
     expect(result.id).toBe('act_new');
+    expect(mocks.enqueueInstanceConsumerSync).toHaveBeenCalledWith({
+      instanceConsumerId: 'ico_1'
+    });
   });
 
   it('rechecks inside the lock and uses an actor created by a concurrent caller', async () => {
@@ -263,5 +295,177 @@ describe('consumerActorService', () => {
     ).rejects.toBe(provisioningError);
 
     expect(mocks.captureException).toHaveBeenCalledWith(cleanupError);
+  });
+});
+
+describe('consumerActorService.syncInstanceConsumerActors', () => {
+  let buildConsumerActor = (d: {
+    oid: bigint;
+    surfaceType: 'portal' | 'cli' | 'organization_members';
+    createdAt: string;
+    profileStatus?: 'active' | 'deleted';
+    defaultForInstanceConsumerOid?: bigint | null;
+    identityActorOid?: bigint | null;
+  }) => ({
+    oid: d.oid,
+    id: `act_${d.oid}`,
+    defaultIdentityId: `idt_${d.oid}`,
+    identityActorOid: d.identityActorOid ?? null,
+    defaultForInstanceConsumerOid: d.defaultForInstanceConsumerOid ?? null,
+    createdAt: new Date(d.createdAt),
+    consumerProfile: {
+      oid: d.oid + 100n,
+      id: `cop_${d.oid}`,
+      status: d.profileStatus ?? 'active',
+      surface: { type: d.surfaceType }
+    }
+  });
+
+  let syncWith = async (consumerActors: ReturnType<typeof buildConsumerActor>[]) => {
+    mocks.instanceConsumer.findUnique.mockResolvedValue({
+      id: 'ico_1',
+      oid: 60n,
+      consumer: { id: 'con_1' },
+      consumerActors
+    });
+
+    return await consumerActorService.syncInstanceConsumerActors({
+      instanceConsumerId: 'ico_1'
+    });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.consumerActor.updateMany.mockResolvedValue({ count: 0 });
+    mocks.consumerActor.update.mockResolvedValue({});
+    mocks.syncConsumerOwnership.mockImplementation(async ({ defaultIdentityId }) => ({
+      identityActor: { status: 'active' },
+      defaultIdentityId
+    }));
+  });
+
+  it('prefers a portal profile actor over an older organization member actor', async () => {
+    let result = await syncWith([
+      buildConsumerActor({
+        oid: 1n,
+        surfaceType: 'organization_members',
+        createdAt: '2026-01-01'
+      }),
+      buildConsumerActor({ oid: 2n, surfaceType: 'portal', createdAt: '2026-02-01' })
+    ]);
+
+    expect(result?.id).toBe('act_2');
+    expect(mocks.consumerActor.update).toHaveBeenCalledWith({
+      where: { oid: 2n },
+      data: { defaultForInstanceConsumerOid: 60n }
+    });
+    expect(mocks.setInstanceConsumerDefaultActor).toHaveBeenCalledWith({
+      instanceConsumerId: 'ico_1',
+      identityActorId: 'act_2'
+    });
+  });
+
+  it('mirrors identity actors that are not yet linked in the core database', async () => {
+    await syncWith([
+      buildConsumerActor({ oid: 1n, surfaceType: 'portal', createdAt: '2026-01-01' }),
+      buildConsumerActor({
+        oid: 2n,
+        surfaceType: 'cli',
+        createdAt: '2026-01-02',
+        identityActorOid: 900n
+      })
+    ]);
+
+    expect(mocks.syncMirroredIdentityActor).toHaveBeenCalledTimes(1);
+    expect(mocks.syncMirroredIdentityActor).toHaveBeenCalledWith({
+      identityActorId: 'act_1'
+    });
+  });
+
+  it('picks the oldest actor within the same surface type', async () => {
+    let result = await syncWith([
+      buildConsumerActor({ oid: 3n, surfaceType: 'portal', createdAt: '2026-03-01' }),
+      buildConsumerActor({ oid: 4n, surfaceType: 'portal', createdAt: '2026-01-01' })
+    ]);
+
+    expect(result?.id).toBe('act_4');
+  });
+
+  it('links every actor to the instance consumer and its own profile', async () => {
+    await syncWith([
+      buildConsumerActor({ oid: 1n, surfaceType: 'portal', createdAt: '2026-01-01' }),
+      buildConsumerActor({ oid: 2n, surfaceType: 'cli', createdAt: '2026-01-02' })
+    ]);
+
+    expect(mocks.syncConsumerProfile).toHaveBeenCalledTimes(2);
+    expect(mocks.syncConsumerOwnership).toHaveBeenCalledWith({
+      identityActorId: 'act_2',
+      owner: { consumerId: 'con_1', instanceConsumerId: 'ico_1', consumerProfileId: 'cop_2' },
+      defaultIdentityId: 'idt_2'
+    });
+  });
+
+  it('skips deleted profiles and missing identity actors when choosing the default', async () => {
+    mocks.syncConsumerOwnership.mockImplementation(
+      async ({ identityActorId, defaultIdentityId }) =>
+        identityActorId === 'act_2'
+          ? null
+          : { identityActor: { status: 'active' }, defaultIdentityId }
+    );
+
+    let result = await syncWith([
+      buildConsumerActor({
+        oid: 1n,
+        surfaceType: 'portal',
+        createdAt: '2026-01-01',
+        profileStatus: 'deleted'
+      }),
+      buildConsumerActor({ oid: 2n, surfaceType: 'portal', createdAt: '2026-01-02' }),
+      buildConsumerActor({
+        oid: 3n,
+        surfaceType: 'organization_members',
+        createdAt: '2026-01-03'
+      })
+    ]);
+
+    expect(result?.id).toBe('act_3');
+  });
+
+  it('persists a default identity resolved from the integrations database', async () => {
+    mocks.syncConsumerOwnership.mockResolvedValue({
+      identityActor: { status: 'active' },
+      defaultIdentityId: 'idt_oldest'
+    });
+
+    await syncWith([
+      buildConsumerActor({ oid: 1n, surfaceType: 'portal', createdAt: '2026-01-01' })
+    ]);
+
+    expect(mocks.consumerActor.update).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      data: { defaultIdentityId: 'idt_oldest' }
+    });
+  });
+
+  it('clears the default when no actor is eligible', async () => {
+    let result = await syncWith([
+      buildConsumerActor({
+        oid: 1n,
+        surfaceType: 'portal',
+        createdAt: '2026-01-01',
+        profileStatus: 'deleted',
+        defaultForInstanceConsumerOid: 60n
+      })
+    ]);
+
+    expect(result).toBeNull();
+    expect(mocks.consumerActor.updateMany).toHaveBeenCalledWith({
+      where: { defaultForInstanceConsumerOid: 60n, oid: undefined },
+      data: { defaultForInstanceConsumerOid: null }
+    });
+    expect(mocks.setInstanceConsumerDefaultActor).toHaveBeenCalledWith({
+      instanceConsumerId: 'ico_1',
+      identityActorId: null
+    });
   });
 });

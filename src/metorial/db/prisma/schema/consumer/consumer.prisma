@@ -72,8 +72,9 @@ model InstanceConsumer {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  consumerActors    ConsumerActor[]
-  workspaceProfiles WorkspaceProfile[]
+  consumerActors       ConsumerActor[]    @relation("ConsumerActorInstanceConsumer")
+  defaultConsumerActor ConsumerActor?     @relation("ConsumerActorDefaultForInstanceConsumer")
+  workspaceProfiles    WorkspaceProfile[]
 
   @@unique([instanceOid, consumerOid])
 }

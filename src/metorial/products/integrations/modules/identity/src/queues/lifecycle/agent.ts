@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { env } from '../../../../agent/src/env';
 import { indexAgentQueue } from '../search/agent';
+import { mirrorAgentQueue } from '../mirror';
 import { lcOpts } from './_opts';
 
 export let agentCreatedQueue = createQueue<{ agentId: string }>({
@@ -11,6 +12,7 @@ export let agentCreatedQueue = createQueue<{ agentId: string }>({
 
 export let agentCreatedQueueProcessor = agentCreatedQueue.process(async data => {
   await indexAgentQueue.add({ agentId: data.agentId });
+  await mirrorAgentQueue.add({ agentId: data.agentId });
 });
 
 export let agentUpdatedQueue = createQueue<{ agentId: string }>({
@@ -21,6 +23,7 @@ export let agentUpdatedQueue = createQueue<{ agentId: string }>({
 
 export let agentUpdatedQueueProcessor = agentUpdatedQueue.process(async data => {
   await indexAgentQueue.add({ agentId: data.agentId });
+  await mirrorAgentQueue.add({ agentId: data.agentId });
 });
 
 export let agentDeletedQueue = createQueue<{ agentId: string }>({
@@ -31,4 +34,5 @@ export let agentDeletedQueue = createQueue<{ agentId: string }>({
 
 export let agentDeletedQueueProcessor = agentDeletedQueue.process(async data => {
   await indexAgentQueue.add({ agentId: data.agentId });
+  await mirrorAgentQueue.add({ agentId: data.agentId });
 });

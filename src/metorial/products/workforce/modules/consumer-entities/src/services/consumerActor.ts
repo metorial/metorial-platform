@@ -1,14 +1,37 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
-import { ConsumerActor, ConsumerProfile, db, Instance, withTransaction } from '@metorial/db';
+import {
+  ConsumerActor,
+  ConsumerProfile,
+  ConsumerSurfaceType,
+  db,
+  Instance,
+  withTransaction
+} from '@metorial/db';
 import { createLock } from '@metorial/lock';
-import { identityActorService, identityService } from '@metorial-subspace/module-identity';
+import {
+  identityActorMirrorService,
+  identityActorService,
+  identityService
+} from '@metorial-subspace/module-identity';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
+import { syncInstanceConsumerActorsQueue } from '../queues/consumerActorSync';
+
+let defaultActorSurfacePriority: Record<ConsumerSurfaceType, number> = {
+  portal: 0,
+  cli: 1,
+  organization_members: 2
+};
 
 let Sentry = getSentry();
 
 let consumerActorLock = createLock({
   name: 'cons/ident/sync/actor'
+});
+
+let instanceConsumerActorLock = createLock({
+  name: 'cons/ident/sync/instance-consumer'
 });
 
 let cleanupSubspaceResources = async (d: {
@@ -213,20 +236,31 @@ class ConsumerActorServiceImpl {
       if (actor) {
         if (actor.defaultIdentityId) return actor;
 
-        return await this.createDefaultIdentity({
+        let actorWithIdentity = await this.createDefaultIdentity({
           instance: profile.instance,
           consumerProfile: profile,
           actor,
           name: instanceConsumer.name,
           privateMetadata
         });
+
+        await syncInstanceConsumerActorsQueue.add({ instanceConsumerId: instanceConsumer.id });
+
+        return actorWithIdentity;
       }
+
+      await metorialResourceService.syncConsumerProfile(profile);
 
       let identityActor = await identityActorService.createIdentityActor({
         instance: profile.instance,
+        consumerOwner: {
+          consumerId: profile.consumer.id,
+          instanceConsumerId: instanceConsumer.id,
+          consumerProfileId: profile.id
+        },
         input: {
           name: instanceConsumer.name,
-          type: 'person',
+          type: 'consumer',
           privateMetadata
         }
       });
@@ -250,8 +284,9 @@ class ConsumerActorServiceImpl {
         throw error;
       }
 
+      let consumerActor: ConsumerActor;
       try {
-        return await db.consumerActor.create({
+        consumerActor = await db.consumerActor.create({
           data: {
             id: identityActor.id,
             instanceOid: profile.instanceOid,
@@ -278,6 +313,109 @@ class ConsumerActorServiceImpl {
         if (winner) return winner;
         throw error;
       }
+
+      await syncInstanceConsumerActorsQueue.add({ instanceConsumerId: instanceConsumer.id });
+
+      return consumerActor;
+    });
+  }
+
+  async syncInstanceConsumerActors(d: { instanceConsumerId: string }) {
+    return await instanceConsumerActorLock.usingLock(d.instanceConsumerId, async () => {
+      let instanceConsumer = await db.instanceConsumer.findUnique({
+        where: { id: d.instanceConsumerId },
+        include: {
+          consumer: true,
+          consumerActors: {
+            include: {
+              consumerProfile: { include: { surface: true } }
+            },
+            orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
+          }
+        }
+      });
+      if (!instanceConsumer) return null;
+
+      let consumerProfiles = new Map(
+        instanceConsumer.consumerActors.map(actor => [
+          actor.consumerProfile.oid,
+          actor.consumerProfile
+        ])
+      );
+      for (let consumerProfile of consumerProfiles.values()) {
+        await metorialResourceService.syncConsumerProfile(consumerProfile);
+      }
+
+      let linkedActors = [];
+      for (let consumerActor of instanceConsumer.consumerActors) {
+        let linked = await identityActorService.syncConsumerOwnershipInternal({
+          identityActorId: consumerActor.id,
+          owner: {
+            consumerId: instanceConsumer.consumer.id,
+            instanceConsumerId: instanceConsumer.id,
+            consumerProfileId: consumerActor.consumerProfile.id
+          },
+          defaultIdentityId: consumerActor.defaultIdentityId
+        });
+        if (!linked) continue;
+
+        if (linked.defaultIdentityId !== consumerActor.defaultIdentityId) {
+          await db.consumerActor.update({
+            where: { oid: consumerActor.oid },
+            data: { defaultIdentityId: linked.defaultIdentityId }
+          });
+        }
+
+        if (!consumerActor.identityActorOid) {
+          await identityActorMirrorService.syncIdentityActor({
+            identityActorId: consumerActor.id
+          });
+        }
+
+        linkedActors.push({ consumerActor, identityActor: linked.identityActor });
+      }
+
+      let defaultActor = linkedActors
+        .filter(
+          ({ consumerActor, identityActor }) =>
+            consumerActor.consumerProfile.status === 'active' &&
+            identityActor.status === 'active'
+        )
+        .map(({ consumerActor }) => consumerActor)
+        .sort(
+          (a, b) =>
+            defaultActorSurfacePriority[a.consumerProfile.surface.type] -
+              defaultActorSurfacePriority[b.consumerProfile.surface.type] ||
+            a.createdAt.getTime() - b.createdAt.getTime() ||
+            (a.oid < b.oid ? -1 : 1)
+        )[0];
+
+      await withTransaction(async database => {
+        await database.consumerActor.updateMany({
+          where: {
+            defaultForInstanceConsumerOid: instanceConsumer.oid,
+            oid: defaultActor ? { not: defaultActor.oid } : undefined
+          },
+          data: { defaultForInstanceConsumerOid: null }
+        });
+
+        if (
+          defaultActor &&
+          defaultActor.defaultForInstanceConsumerOid !== instanceConsumer.oid
+        ) {
+          await database.consumerActor.update({
+            where: { oid: defaultActor.oid },
+            data: { defaultForInstanceConsumerOid: instanceConsumer.oid }
+          });
+        }
+      });
+
+      await identityActorService.setInstanceConsumerDefaultActorInternal({
+        instanceConsumerId: instanceConsumer.id,
+        identityActorId: defaultActor?.id ?? null
+      });
+
+      return defaultActor ?? null;
     });
   }
 
@@ -287,6 +425,13 @@ class ConsumerActorServiceImpl {
     name: string;
   }) {
     let defaultActor = await this.ensureDefaultConsumerActor(d);
+
+    let instanceConsumer = await db.instanceConsumer.findUniqueOrThrow({
+      where: { oid: defaultActor.instanceConsumerOid },
+      select: { id: true }
+    });
+    await syncInstanceConsumerActorsQueue.add({ instanceConsumerId: instanceConsumer.id });
+
     let actors = await withTransaction(async database =>
       database.consumerActor.findMany({
         where: {

@@ -3,6 +3,7 @@ import { db, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { metorialResourceService } from '@metorial-subspace/module-tenant';
+import { syncInstanceConsumerActorsQueue } from '@metorial/module-consumer-entities';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { consumerEmailEquals, normalizeConsumerEmail } from '../lib/consumerEmail';
 import { consumerUpdatedQueue } from './lifecycle/consumer';
@@ -365,6 +366,19 @@ export let reconcileUserConsumerQueueProcessor = reconcileUserConsumerQueue.proc
 
       if (reconciliation) {
         await consumerUpdatedQueue.add({ consumerId: reconciliation.consumer.id });
+      }
+
+      if (reconciliation && deletedConsumerIds.length) {
+        let instanceConsumers = await db.instanceConsumer.findMany({
+          where: { consumerOid: reconciliation.consumer.oid },
+          select: { id: true }
+        });
+
+        await syncInstanceConsumerActorsQueue.addMany(
+          instanceConsumers.map(instanceConsumer => ({
+            instanceConsumerId: instanceConsumer.id
+          }))
+        );
       }
     })
 );

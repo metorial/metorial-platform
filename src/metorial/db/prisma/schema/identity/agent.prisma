@@ -1,0 +1,42 @@
+enum AgentStatus {
+  active
+  archived
+  deleted
+}
+
+enum AgentType {
+  mcp_client
+  custom
+  tool_call
+}
+
+model Agent {
+  oid BigInt @id
+  id  String @unique
+
+  type   AgentType
+  status AgentStatus
+
+  name String
+
+  actorOid BigInt        @unique
+  actor    IdentityActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime
+  updatedAt  DateTime
+  archivedAt DateTime?
+  syncedAt   DateTime  @default(now()) @updatedAt
+
+  @@index([organizationOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

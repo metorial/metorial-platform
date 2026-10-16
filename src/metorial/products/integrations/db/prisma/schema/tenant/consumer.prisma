@@ -24,6 +24,7 @@ model Consumer {
 
   profiles          ConsumerProfile[]
   instanceConsumers InstanceConsumer[]
+  identityActors    IdentityActor[]
 
   @@unique([email, organizationOid])
   @@index([organizationMemberOid])
@@ -53,6 +54,9 @@ model InstanceConsumer {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  identityActors       IdentityActor[] @relation("IdentityActorInstanceConsumer")
+  defaultIdentityActor IdentityActor?  @relation("IdentityActorDefaultForInstanceConsumer")
 
   @@unique([instanceOid, consumerOid])
   @@index([organizationMemberOid])
@@ -99,6 +103,8 @@ model ConsumerProfile {
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
+
+  identityActors IdentityActor[]
 
   @@index([organizationOid])
   @@index([instanceOid])

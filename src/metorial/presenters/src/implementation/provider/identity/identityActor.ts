@@ -30,7 +30,7 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
         description: 'Unique identity actor identifier.',
         examples: ['iac_6wQpLk2mZa8nYx4b']
       }),
-      type: v.enumOf(['person', 'agent'], {
+      type: v.enumOf(['person', 'agent', 'consumer'], {
         name: 'type',
         description: 'Type of actor that owns or participates in identities.'
       }),
