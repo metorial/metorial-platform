@@ -84,6 +84,7 @@ describe('integration instance actor backfill', () => {
 
     expect(metorialDb.consumerActor.findFirst).toHaveBeenCalledWith({
       where: { consumerProfileOid: 77n, isDefault: true, instance: { id: 'ins_1' } },
+      orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],
       select: { id: true }
     });
     expect(db.integrationInstance.updateMany).toHaveBeenCalledWith({
@@ -105,9 +106,36 @@ describe('integration instance actor backfill', () => {
 
     expect(metorialDb.consumerActor.findFirst).toHaveBeenCalledWith({
       where: { defaultForInstanceConsumer: { id: 'con_1' }, instance: { id: 'ins_1' } },
+      orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],
       select: { id: true }
     });
+    expect(metorialDb.consumerActor.findFirst).toHaveBeenCalledTimes(1);
     expect(db.integrationInstance.updateMany).toHaveBeenCalled();
+  });
+
+  it('falls back to a profile default before the instance consumer default is synced', async () => {
+    db.integrationInstance.findUnique.mockResolvedValue(
+      buildInstance({
+        integrationSetupSessions: [
+          { instanceOid: 40n, privateMetadata: { $owner: 'consumer', consumerId: 'con_1' } }
+        ]
+      })
+    );
+    metorialDb.consumerActor.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'act_consumer' });
+
+    await runInstanceActor('ii_1');
+
+    expect(metorialDb.consumerActor.findFirst).toHaveBeenLastCalledWith({
+      where: { instanceConsumer: { id: 'con_1' }, isDefault: true, instance: { id: 'ins_1' } },
+      orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],
+      select: { id: true }
+    });
+    expect(db.integrationInstance.updateMany).toHaveBeenCalledWith({
+      where: { oid: 10n, identityActorOid: null },
+      data: { identityActorOid: 500n }
+    });
   });
 
   it('keeps an identity that already belongs to the consumer actor', async () => {

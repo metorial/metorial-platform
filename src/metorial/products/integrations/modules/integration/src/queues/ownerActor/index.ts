@@ -15,14 +15,17 @@ let resolveConsumerOwnerActorOid = async (d: {
   let metadata = d.privateMetadata as Record<string, unknown> | null;
   if (metadata?.$owner !== 'consumer' || !d.instanceOid) return null;
 
-  let consumerFilter =
+  let consumerFilters =
     typeof metadata.consumerId === 'string'
-      ? { defaultForInstanceConsumer: { id: metadata.consumerId } }
+      ? [
+          { defaultForInstanceConsumer: { id: metadata.consumerId } },
+          { instanceConsumer: { id: metadata.consumerId }, isDefault: true }
+        ]
       : typeof metadata.consumerProfileOid === 'string' &&
           /^\d+$/.test(metadata.consumerProfileOid)
-        ? { consumerProfileOid: BigInt(metadata.consumerProfileOid), isDefault: true }
-        : null;
-  if (!consumerFilter) return null;
+        ? [{ consumerProfileOid: BigInt(metadata.consumerProfileOid), isDefault: true }]
+        : [];
+  if (!consumerFilters.length) return null;
 
   let instance = await db.instance.findUnique({
     where: { oid: d.instanceOid },
@@ -30,13 +33,15 @@ let resolveConsumerOwnerActorOid = async (d: {
   });
   if (!instance) return null;
 
-  let consumerActor = await metorialDb.consumerActor.findFirst({
-    where: {
-      ...consumerFilter,
-      instance: { id: instance.id }
-    },
-    select: { id: true }
-  });
+  let consumerActor: { id: string } | null = null;
+  for (let consumerFilter of consumerFilters) {
+    consumerActor = await metorialDb.consumerActor.findFirst({
+      where: { ...consumerFilter, instance: { id: instance.id } },
+      orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],
+      select: { id: true }
+    });
+    if (consumerActor) break;
+  }
   if (!consumerActor) return null;
 
   let identityActor = await db.identityActor.findUnique({
