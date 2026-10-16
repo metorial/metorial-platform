@@ -14,12 +14,15 @@ type Lockfile = {
 
 export let restoreNestedResolutions = (source: Lockfile, pruned: Lockfile) => {
   let result = structuredClone(pruned);
-  let lookup = { ...source.packages, ...pruned.packages };
-  let names = Object.values(pruned.workspaces).flatMap(workspace =>
-    workspace.name ? [workspace.name] : []
-  );
-  for (let [path, value] of Object.entries(source.packages)) {
-    if (names.some(name => path.startsWith(name + '/'))) lookup[path] = value;
+  result.packages = {};
+  let lookup = source.packages;
+  for (let [directory, workspace] of Object.entries(pruned.workspaces)) {
+    if (!directory || !workspace.name) continue;
+    let resolution = lookup[workspace.name];
+    if (!resolution?.[0].includes('@workspace:')) {
+      throw new Error(`Missing workspace resolution: ${workspace.name}`);
+    }
+    result.packages[workspace.name] = resolution;
   }
   let parent = (path: string) => {
     let segments = path.split('/');

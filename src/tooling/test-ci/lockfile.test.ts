@@ -8,6 +8,7 @@ test('restores nested package resolutions omitted by Turbo pruning without resto
       'apps/service': { name: '@example/service', devDependencies: { vitest: '^4' } }
     },
     packages: {
+      '@example/service': ['@example/service@workspace:apps/service'],
       '@example/service/vitest': [
         'vitest@4',
         '',
@@ -38,4 +39,38 @@ test('restores nested package resolutions omitted by Turbo pruning without resto
   expect(result.packages.esbuild).toEqual(source.packages.esbuild);
   expect(result.packages.unrelated).toBeUndefined();
   expect(pruned.packages['@example/service/vitest/vite']).toBeUndefined();
+});
+
+test('preserves workspace identities and nested published versions when Turbo rehoists a registry package over a workspace', () => {
+  let source = {
+    workspaces: {
+      '': {},
+      'apps/service': { name: '@example/service', dependencies: { generated: '1' } },
+      'clients/mapper': { name: '@example/mapper' }
+    },
+    packages: {
+      '@example/service': ['@example/service@workspace:apps/service'],
+      '@example/mapper': ['@example/mapper@workspace:clients/mapper'],
+      generated: [
+        'generated@1',
+        '',
+        { dependencies: { '@example/mapper': '1' } },
+        'generated-integrity'
+      ],
+      'generated/@example/mapper': ['@example/mapper@1', '', {}, 'mapper-integrity']
+    }
+  };
+  let pruned = {
+    ...source,
+    packages: {
+      generated: source.packages.generated,
+      '@example/mapper': source.packages['generated/@example/mapper']
+    }
+  };
+  let result = restoreNestedResolutions(source, pruned);
+  expect(result.packages['@example/mapper']).toEqual(source.packages['@example/mapper']);
+  expect(result.packages['generated/@example/mapper']).toEqual(
+    source.packages['generated/@example/mapper']
+  );
+  expect(result.packages.generated).toEqual(source.packages.generated);
 });
