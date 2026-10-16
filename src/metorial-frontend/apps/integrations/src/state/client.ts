@@ -62,7 +62,7 @@ export let getIntegrationsClient = (clientSecret: string) => {
   if (existing) return existing;
 
   let client = createClient<IntegrationsClient>({
-    endpoint: `${apiUrl}/subspace-public/internal-api`,
+    endpoint: `${apiUrl}/integrations-api`,
     disableBatching: true,
     useDirectMethodRoute: true
   });

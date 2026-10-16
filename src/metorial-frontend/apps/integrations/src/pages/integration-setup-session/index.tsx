@@ -1,21 +1,17 @@
 import { Avatar, Button, Entity, Text, theme } from '@metorial/ui';
 import { RiCheckLine } from '@remixicon/react';
-import { useEffect } from 'react';
-import styled from 'styled-components';
-import { useHideBootSpinner } from '../../hooks/useHideBootSpinner';
-import { useIntegrationSetupSession } from '../../state/setupSession';
+import styled, { css } from 'styled-components';
+import { ElementsLayout } from '../../components/elementsLayout';
 import {
-  PublicSetupLoadingPage,
-  PublicSetupStatusPage
-} from '../setupSession/components/publicSetupChrome';
-import { ErrorIcon, SuccessIcon, WarningIcon } from '../setupSession/components/statusIcons';
-import { MetorialElementsLayout } from '../setupSession/layouts/metorialElementsLayout';
-
-let Entities = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
+  PublicErrorPage,
+  PublicLoadingPage,
+  PublicStatusPage,
+  Redirect
+} from '../../components/publicStatusPage';
+import { SuccessIcon, WarningIcon } from '../../components/statusIcon';
+import { useHideBootSpinner } from '../../lib/bootSpinner';
+import { useIntegrationSetupSession } from '../../state/loaders';
+import { useSessionCredentials } from '../../state/useSessionCredentials';
 
 let Content = styled.div`
   display: flex;
@@ -30,14 +26,18 @@ let Description = styled(Text)`
   text-wrap: balance;
 `;
 
-let ProviderStepButton = styled.button.withConfig({
-  shouldForwardProp: prop => prop !== '$clickable'
-})<{ $clickable?: boolean }>`
+let Steps = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+let StepButton = styled.button<{ $clickable: boolean }>`
   appearance: none;
   background: transparent;
   border: 0;
   color: inherit;
-  cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
+  cursor: ${p => (p.$clickable ? 'pointer' : 'default')};
   font: inherit;
   padding: 0;
   text-align: left;
@@ -52,7 +52,7 @@ let StepCard = styled(Entity.Wrapper)<{ $clickable: boolean }>`
 
   ${p =>
     p.$clickable &&
-    `
+    css`
       &:hover {
         border-color: ${theme.colors.gray400};
         box-shadow: ${theme.shadows.small};
@@ -61,35 +61,27 @@ let StepCard = styled(Entity.Wrapper)<{ $clickable: boolean }>`
     `}
 `;
 
+let ConfiguredIcon = styled(RiCheckLine)`
+  color: ${theme.colors.gray700};
+`;
+
 export let IntegrationSetupSessionPage = () => {
-  let setupSession = useIntegrationSetupSession();
+  let credentials = useSessionCredentials();
+  let setupSession = useIntegrationSetupSession(credentials);
+
   useHideBootSpinner(!!setupSession.data || !!setupSession.error);
 
-  if (setupSession.error) {
-    return (
-      <PublicSetupStatusPage
-        icon={<ErrorIcon />}
-        title="Something went wrong"
-        description={(setupSession.error as Error).message}
-      />
-    );
-  }
-
-  if (!setupSession.data) {
-    return <PublicSetupLoadingPage />;
-  }
+  if (setupSession.error) return <PublicErrorPage error={setupSession.error} />;
+  if (!setupSession.data) return <PublicLoadingPage />;
 
   let { session, brand, isWhitelabel } = setupSession.data;
   let pendingSteps = session.steps.filter(step => step.status !== 'configured');
 
-  if (session.status === 'successful' || pendingSteps.length === 0) {
-    if (session.redirectUrl) {
-      window.location.href = session.redirectUrl;
-      return <PublicSetupLoadingPage />;
-    }
+  if (session.status === 'successful' || !pendingSteps.length) {
+    if (session.redirectUrl) return <Redirect url={session.redirectUrl} />;
 
     return (
-      <PublicSetupStatusPage
+      <PublicStatusPage
         icon={<SuccessIcon />}
         title="Setup Complete"
         description="All providers have been configured successfully."
@@ -100,7 +92,7 @@ export let IntegrationSetupSessionPage = () => {
 
   if (session.status === 'expired') {
     return (
-      <PublicSetupStatusPage
+      <PublicStatusPage
         icon={<WarningIcon />}
         title="Session Expired"
         description="This integration setup session has expired. Please request a new setup link."
@@ -109,12 +101,10 @@ export let IntegrationSetupSessionPage = () => {
     );
   }
 
-  if (pendingSteps.length === 1) {
-    return <SingleStepRedirect url={pendingSteps[0]!.url} />;
-  }
+  if (pendingSteps.length === 1) return <Redirect url={pendingSteps[0]!.url} />;
 
   return (
-    <MetorialElementsLayout
+    <ElementsLayout
       brand={brand}
       headerTitle={session.name ?? 'Configure Providers'}
       variant="box"
@@ -125,38 +115,29 @@ export let IntegrationSetupSessionPage = () => {
           Configure the following providers to complete the setup.
         </Description>
 
-        <Entities>
+        <Steps>
           {session.steps.map(step => {
             let isConfigured = step.status === 'configured';
 
             return (
-              <ProviderStepButton
-                onClick={() => {
-                  if (isConfigured) return;
-                  window.location.href = step.url;
-                }}
+              <StepButton
+                key={step.id}
                 type="button"
                 $clickable={!isConfigured}
-                key={step.id}
+                onClick={() => {
+                  if (!isConfigured) window.location.href = step.url;
+                }}
               >
                 <StepCard $clickable={!isConfigured}>
                   <Entity.Content>
                     <Entity.Field
                       title={step.provider.name}
-                      prefix={
-                        <Avatar
-                          entity={{
-                            name: step.provider.name,
-                            imageUrl: step.provider.imageUrl
-                          }}
-                          size={28}
-                        />
-                      }
+                      prefix={<Avatar entity={step.provider} size={28} />}
                     />
 
                     <Entity.Field title="Actions" right>
                       {isConfigured ? (
-                        <RiCheckLine size={16} color="#555" />
+                        <ConfiguredIcon size={16} />
                       ) : (
                         <Button variant="outline" size="2" as="span">
                           Configure
@@ -165,19 +146,11 @@ export let IntegrationSetupSessionPage = () => {
                     </Entity.Field>
                   </Entity.Content>
                 </StepCard>
-              </ProviderStepButton>
+              </StepButton>
             );
           })}
-        </Entities>
+        </Steps>
       </Content>
-    </MetorialElementsLayout>
+    </ElementsLayout>
   );
-};
-
-let SingleStepRedirect = ({ url }: { url: string }) => {
-  useEffect(() => {
-    window.location.href = url;
-  }, [url]);
-
-  return <PublicSetupLoadingPage />;
 };

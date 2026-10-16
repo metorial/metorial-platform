@@ -87,7 +87,9 @@ let arrayPropertyToYup = (prop: JsonSchemaProperty): yup.Schema => {
   return yup.array().of(itemSchema);
 };
 
-let objectPropertyToYup = (prop: JsonSchemaProperty): yup.ObjectSchema<Record<string, unknown>> => {
+let objectPropertyToYup = (
+  prop: JsonSchemaProperty
+): yup.ObjectSchema<Record<string, unknown>> => {
   if (!prop.properties) {
     return yup.object();
   }
