@@ -17,6 +17,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCustomId } from '@metorial/id';
+import { cliAuthScopes, normalizeScopes } from '../lib/oauthAuthorizationScopes';
 import { validateOAuthScopes } from '../lib/oauthScopeValidation';
 import { validateUri } from '../lib/oauthUrls';
 import { machineAccessService } from './machineAccess';
@@ -839,9 +840,20 @@ class OAuthApplicationService {
     });
   }
 
-  async upsertCliAuthOAuthApplication(d: { scopes: string[] }) {
-    let scopes = validateOAuthScopes(d.scopes);
+  async syncCliAuthOAuthApplicationScopes() {
+    let existing = await this.getCliAuthOAuthApplication();
+    if (!existing || existing.isImportedFromOtherInstance) return;
 
+    let storedScopes = normalizeScopes(existing.scopes);
+    let isInSync =
+      storedScopes.length == cliAuthScopes.length &&
+      storedScopes.every((scope, i) => scope == cliAuthScopes[i]);
+    if (isInSync) return;
+
+    await this.upsertCliAuthOAuthApplication();
+  }
+
+  async upsertCliAuthOAuthApplication() {
     let existing = await db.oAuthApplication.findFirst({
       where: {
         type: 'cli_auth'
@@ -857,7 +869,7 @@ class OAuthApplicationService {
       name: 'Metorial CLI',
       description: 'Authenticate the Metorial CLI',
       redirectUris: [],
-      scopes,
+      scopes: cliAuthScopes,
       image: {
         type: 'url' as const,
         url: 'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg'

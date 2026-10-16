@@ -27,6 +27,7 @@ import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
 import { matchesUpdate } from '../lib/matches';
+import { getOAuthApplicationScopes } from '../lib/oauthAuthorizationScopes';
 import { machineAccessService } from './machineAccess';
 import { machineAccessInclude } from './machineAccessAuth';
 import { authorizationInclude, OAuthAuthorizationWithRelations } from './oauthAuthorization';
@@ -72,7 +73,7 @@ class OAuthAuthorizationInstallationService {
       let inner = {
         status: 'active' as const,
         revokedAt: null,
-        scopes: d.oauthApplication.scopes,
+        scopes: getOAuthApplicationScopes(d.oauthApplication),
         organizationOid: d.organization.oid,
         oauthApplicationOid: d.oauthApplication.oid,
         serverSideMachineAccessOid: d.oauthApplication.serverSideMachineAccessOid,

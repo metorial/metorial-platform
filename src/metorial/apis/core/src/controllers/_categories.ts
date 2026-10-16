@@ -24,21 +24,15 @@ export let sessionDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
-export let monitoringDocsCategory = createCategory({
-  id: 'monitoring',
-  name: 'Monitoring',
-  indexHint: getIndexHint()
-});
-
-export let configurationDocsCategory = createCategory({
-  id: 'configuration',
-  name: 'Configurations',
-  indexHint: getIndexHint()
-});
-
 export let skillDocsCategory = createCategory({
   id: 'skill',
   name: 'Skills',
+  indexHint: getIndexHint()
+});
+
+export let sandboxDocsCategory = createCategory({
+  id: 'sandbox',
+  name: 'Sandboxes',
   indexHint: getIndexHint()
 });
 
@@ -48,15 +42,21 @@ export let magicMcpDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
-export let networkDocsCategory = createCategory({
-  id: 'network',
-  name: 'Network Access',
+export let chatDocsCategory = createCategory({
+  id: 'chat',
+  name: 'Chat',
   indexHint: getIndexHint()
 });
 
-export let sandboxDocsCategory = createCategory({
-  id: 'sandbox',
-  name: 'Sandboxes',
+export let configurationDocsCategory = createCategory({
+  id: 'configuration',
+  name: 'Configurations',
+  indexHint: getIndexHint()
+});
+
+export let networkDocsCategory = createCategory({
+  id: 'network',
+  name: 'Network Access',
   indexHint: getIndexHint()
 });
 
@@ -96,8 +96,8 @@ export let fileCollectionDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
-export let chatDocsCategory = createCategory({
-  id: 'chat',
-  name: 'Chat',
+export let monitoringDocsCategory = createCategory({
+  id: 'monitoring',
+  name: 'Monitoring',
   indexHint: getIndexHint()
 });

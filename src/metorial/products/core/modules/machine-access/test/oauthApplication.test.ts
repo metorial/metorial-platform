@@ -56,6 +56,7 @@ vi.mock('@lowerdeck/pagination', () => ({
   }
 }));
 
+import { cliAuthScopes } from '../src/lib/oauthAuthorizationScopes';
 import { oauthApplicationService } from '../src/services/oauthApplication';
 
 let baseContext = {} as any;
@@ -67,7 +68,6 @@ let testAuditScope = {
   actor: { type: 'org_actor' as const, id: (baseActor as any).id ?? 'actor-id' },
   context: baseContext
 } as any;
-
 
 describe('oauthApplicationService', () => {
   beforeEach(() => {
@@ -492,5 +492,63 @@ describe('oauthApplicationService', () => {
     );
     expect(mockDb.oAuthInstallation.updateMany).toHaveBeenCalled();
     expect(result.status).toBe('archived');
+  });
+
+  describe('syncCliAuthOAuthApplicationScopes', () => {
+    let cliAuthApp = (overrides: Record<string, any> = {}) =>
+      ({
+        oid: 'cli-app-oid',
+        type: 'cli_auth',
+        status: 'active',
+        isImportedFromOtherInstance: false,
+        scopes: ['instance.server:read'],
+        ...overrides
+      }) as any;
+
+    it('materializes the full scope set on a stale locally owned cli app', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(cliAuthApp());
+      mockDb.oAuthApplication.update.mockImplementation(async ({ data }: any) => ({
+        ...cliAuthApp(),
+        ...data
+      }));
+
+      await oauthApplicationService.syncCliAuthOAuthApplicationScopes();
+
+      expect(mockDb.oAuthApplication.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { oid: 'cli-app-oid' },
+          data: expect.objectContaining({ scopes: cliAuthScopes })
+        })
+      );
+    });
+
+    it('does nothing when the stored scopes are already in sync', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(
+        cliAuthApp({ scopes: [...cliAuthScopes].reverse() })
+      );
+
+      await oauthApplicationService.syncCliAuthOAuthApplicationScopes();
+
+      expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
+    });
+
+    it('leaves cli apps imported from another deployment to their owner', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(
+        cliAuthApp({ isImportedFromOtherInstance: true })
+      );
+
+      await oauthApplicationService.syncCliAuthOAuthApplicationScopes();
+
+      expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
+    });
+
+    it('does not enable cli auth when no cli app exists', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(null);
+
+      await oauthApplicationService.syncCliAuthOAuthApplicationScopes();
+
+      expect(mockDb.oAuthApplication.create).not.toHaveBeenCalled();
+      expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
+    });
   });
 });
