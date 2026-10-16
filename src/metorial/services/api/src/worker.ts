@@ -18,7 +18,10 @@ import { emailQueueProcessor } from '@metorial/module-email';
 import { eventDeliveryQueueProcessor } from '@metorial/module-event-delivery';
 import { eventDestinationQueueProcessor } from '@metorial/module-event-destination';
 import { eventTrackerQueueProcessor } from '@metorial/module-event-tracker';
-import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
+import {
+  machineAccessQueueProcessor,
+  startCliAuthScopesSync
+} from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import {
   networkingQueueProcessor,
@@ -82,3 +85,7 @@ startNetworkingBackfill().catch(err =>
 );
 
 startSandboxBackfill().catch(err => console.error('Failed to start sandbox backfill', err));
+
+startCliAuthScopesSync().catch(err =>
+  console.error('Failed to start CLI auth scopes sync', err)
+);

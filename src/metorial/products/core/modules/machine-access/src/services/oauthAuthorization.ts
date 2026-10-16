@@ -43,6 +43,8 @@ import {
 } from '../lib/oauthAuthorizationGuards';
 import { createCodeChallenge } from '../lib/oauthAuthorizationPkce';
 import {
+  cliAuthScopes,
+  getOAuthApplicationScopes,
   getServiceAccountEffectiveScopes,
   getUserEffectiveScopes
 } from '../lib/oauthAuthorizationScopes';
@@ -994,7 +996,7 @@ class OAuthAuthorizationService {
 
     let requestedScopes = splitOAuthAndOidcScopes(d.input.scopes);
     let scopes = ensureScopesAllowed({
-      allowedScopes: oauthApplication.scopes,
+      allowedScopes: getOAuthApplicationScopes(oauthApplication),
       requestedScopes: requestedScopes.accessScopes
     });
 
@@ -1053,7 +1055,7 @@ class OAuthAuthorizationService {
         type: 'device_code',
         clientId: cliAuthApplication.clientId,
         clientIp: d.context.ip,
-        scopes: cliAuthApplication.scopes,
+        scopes: cliAuthScopes,
         allowCliAuth: true
       }
     });

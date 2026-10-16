@@ -6,8 +6,10 @@ import { sendApiKeyCreatedEmailQueueProcessor } from './queues/created/sendApiKe
 import { sendApiKeyCreatedEmailToMemberQueueProcessor } from './queues/created/sendApiKeyCreatedEmailToMember';
 import { notifyExpiredApiKeyAdminsQueueProcessor } from './queues/expired/notifyExpiredApiKeyAdmins';
 import { sendExpiredApiKeyEmailQueueProcessor } from './queues/expired/sendExpiredApiKeyEmail';
+import { syncCliAuthScopesQueueProcessor } from './queues/syncCliAuthScopes';
 
 export * from './lib/apiKeyIpFilters';
+export { startCliAuthScopesSync } from './queues/syncCliAuthScopes';
 export * from './services';
 
 export let machineAccessQueueProcessor = combineQueueProcessors([
@@ -16,6 +18,7 @@ export let machineAccessQueueProcessor = combineQueueProcessors([
   sendApiKeyCreatedEmailToMemberQueueProcessor,
   notifyExpiredApiKeyAdminsQueueProcessor,
   sendExpiredApiKeyEmailQueueProcessor,
+  syncCliAuthScopesQueueProcessor,
   cleanupCron,
   oauthJwkRotationCron
 ]);
