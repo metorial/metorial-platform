@@ -26,6 +26,7 @@ import {
   identityDelegationInternalService,
   type CreateDelegationInput
 } from './identityDelegationInternal';
+import { identityActorInclude } from '../lib/identityActorInclude';
 
 let include = {
   identity: true,
@@ -33,21 +34,13 @@ let include = {
   attestation: true,
   request: {
     include: {
-      requester: {
-        include: {
-          agent: true
-        }
-      },
+      requester: { include: identityActorInclude },
       identity: true
     }
   },
   parties: {
     include: {
-      actor: {
-        include: {
-          agent: true
-        }
-      }
+      actor: { include: identityActorInclude }
     }
   },
   credentials: {
@@ -201,7 +194,11 @@ class identityDelegationServiceImpl {
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('identity.delegation.created:before', eventBase);
 
-    let identityDelegation = await this.createIdentityDelegationInternal({ ...rest, tenant, environment });
+    let identityDelegation = await this.createIdentityDelegationInternal({
+      ...rest,
+      tenant,
+      environment
+    });
 
     await Fabric.fire('identity.delegation.created:after', {
       ...eventBase,
@@ -226,7 +223,11 @@ class identityDelegationServiceImpl {
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('identity.delegation.revoked:before', eventBase);
 
-    let identityDelegation = await this.revokeIdentityDelegationInternal({ ...rest, tenant, environment });
+    let identityDelegation = await this.revokeIdentityDelegationInternal({
+      ...rest,
+      tenant,
+      environment
+    });
 
     await Fabric.fire('identity.delegation.revoked:after', {
       ...eventBase,

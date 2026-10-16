@@ -48,6 +48,7 @@ import {
   identityUpdatedQueue
 } from '../queues/lifecycle/identity';
 import { type IdentityCredentialInput, identityCredentialService } from './identityCredential';
+import { identityActorInclude } from '../lib/identityActorInclude';
 
 let include = {
   ownedByIntegrationInstance: {
@@ -55,11 +56,7 @@ let include = {
       id: true
     }
   },
-  actor: {
-    include: {
-      agent: true
-    }
-  },
+  actor: { include: identityActorInclude },
   delegationConfig: true,
   credentials: {
     include: {

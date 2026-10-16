@@ -38,6 +38,9 @@ model MagicMcpServerBacking {
   actorOid BigInt?
   actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
 
+  identityOid BigInt?
+  identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
   endpoints               MagicMcpEndpointServerBacking[]

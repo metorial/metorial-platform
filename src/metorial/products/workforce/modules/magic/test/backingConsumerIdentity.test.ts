@@ -8,6 +8,9 @@ vi.mock('@metorial/db', () => {
     consumerActor: {
       findFirst: vi.fn()
     },
+    identityActor: {
+      findUnique: vi.fn()
+    },
     consumerIntegration: {
       findFirst: vi.fn()
     },

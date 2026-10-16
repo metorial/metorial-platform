@@ -49,7 +49,8 @@ import {
   resolveConsumerActorIds,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
-  toProviderEventBase
+  toProviderEventBase,
+  ownerActorSelect
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceProviderAuthConfig, Fabric } from '@metorial/fabric';
 import {
@@ -63,7 +64,8 @@ let include = {
   provider: true,
   deployment: true,
   authCredentials: true,
-  authMethod: { include: { specification: { omit: { value: true } } } }
+  authMethod: { include: { specification: { omit: { value: true } } } },
+  ownerActor: ownerActorSelect
 };
 
 export let providerAuthConfigInclude = include;
@@ -81,6 +83,7 @@ export type CreateProviderAuthConfigParams = {
   };
   source: ProviderAuthConfigSource;
   credentials?: ProviderAuthCredentials;
+  ownerActorOid?: bigint | null;
   input: {
     name?: string;
     description?: string;
@@ -589,6 +592,7 @@ class providerAuthConfigServiceImpl {
           import: d.import,
           authMethod,
           credentials,
+          ownerActorOid: d.ownerActorOid,
           backend: backendRes.backend,
           backendProviderAuthConfig: backendRes.backendProviderAuthConfig,
           type: authMethod.type === 'oauth' ? 'oauth_manual' : 'manual'

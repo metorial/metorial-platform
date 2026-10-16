@@ -46,7 +46,8 @@ import {
   type MetorialFacing,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
-  toProviderEventBase
+  toProviderEventBase,
+  ownerActorSelect
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceProviderSetupSession } from '@metorial/fabric';
 import { addMinutes } from 'date-fns';
@@ -69,9 +70,11 @@ let include = {
     include: {
       deployment: true,
       specification: { omit: { value: true } },
-      fromVault: { include: { deployment: true } }
+      fromVault: { include: { deployment: true } },
+      ownerActor: ownerActorSelect
     }
-  }
+  },
+  ownerActor: ownerActorSelect
 };
 
 export let providerSetupSessionInclude = include;
@@ -107,6 +110,7 @@ export type CreateProviderSetupSessionParams = {
   };
   providerConfig?: ProviderConfig;
   identity?: Identity;
+  ownerActorOid?: bigint | null;
   credentials?: ProviderAuthCredentials;
   brand?: Brand;
   input: {
@@ -275,6 +279,7 @@ class providerSetupSessionServiceImpl {
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let identity = rest.identity;
+    let ownerActorOid = rest.ownerActorOid;
     let privateMetadata = rest.input.privateMetadata;
 
     if (consumerId) {
@@ -313,6 +318,12 @@ class providerSetupSessionServiceImpl {
       }
       identity = consumerIdentity;
 
+      let ownerActor = await db.identityActor.findFirst({
+        where: { id: actor.id },
+        select: { oid: true }
+      });
+      ownerActorOid = ownerActor?.oid ?? null;
+
       privateMetadata = {
         $owner: 'consumer',
         ...privateMetadata,
@@ -326,6 +337,7 @@ class providerSetupSessionServiceImpl {
     let setupSession = await this.createProviderSetupSessionInternal({
       ...rest,
       identity,
+      ownerActorOid,
       input: {
         ...rest.input,
         privateMetadata
@@ -384,6 +396,8 @@ class providerSetupSessionServiceImpl {
       );
     }
 
+    let ownerActorOid = d.ownerActorOid ?? d.identity?.actorOid ?? null;
+
     return withTransaction(async db => {
       let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
       let inner: {
@@ -408,6 +422,7 @@ class providerSetupSessionServiceImpl {
             provider: d.provider,
             providerDeployment: d.providerDeployment,
             credentials: d.credentials,
+            ownerActorOid,
             expiresAt,
             input: {
               name: d.input.name,
@@ -469,6 +484,7 @@ class providerSetupSessionServiceImpl {
           providerOid: d.provider?.oid,
           deploymentOid: d.providerDeployment?.oid ?? d.providerConfig?.deploymentOid,
           identityOid: d.identity?.oid ?? null,
+          ownerActorOid,
           brandOid: d.brand?.oid,
           authCredentialsOid: inner.authCredentialsOid ?? d.credentials?.oid,
           integrationSetupSessionProviderOid: d.internal?.integrationSetupSessionProviderOid,

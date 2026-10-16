@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import { db, Instance, Prisma } from '@metorial/db';
 import { consumerMagicMcpReadRoles, type AnyAccessTagSelector } from '@metorial/module-access';
 import { getAccessTagFilter } from './consumerAccess';
+import { magicMcpServerOwnerActorSelect } from '../lib/ownerActor';
 
 let include = {
   magicMcpServer: {
@@ -15,7 +16,8 @@ let include = {
           consumerProfile: true
         }
       },
-      subspaceSession: true
+      subspaceSession: true,
+      ownerActor: magicMcpServerOwnerActorSelect
     }
   },
   magicMcpEndpoint: {
@@ -38,7 +40,8 @@ let include = {
                   consumerProfile: true
                 }
               },
-              subspaceSession: true
+              subspaceSession: true,
+              ownerActor: magicMcpServerOwnerActorSelect
             }
           }
         }

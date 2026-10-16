@@ -57,21 +57,25 @@ model IdentityActor {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  agent                      Agent?
-  identities                 Identity[]                  @relation("IdentityActorIdentities")
-  identityDelegationParties  IdentityDelegationParty[]
-  identityDelegationRequests IdentityDelegationRequest[]
-  delegatedIdentities        DelegatedIdentity[]
-  identityDelegations        IdentityDelegation[]        @relation("delegations")
-  subDelegations             IdentityDelegation[]        @relation("subDelegatedTo")
-  integrationInstances       IntegrationInstance[]
-  integrationInstanceGroups  IntegrationInstanceGroup[]
-  sessionTemplates           SessionTemplate[]
-  sessions                   Session[]
-  magicMcpEndpointBackings   MagicMcpEndpointBacking[]
-  magicMcpServerBackings     MagicMcpServerBacking[]
-  ephemeralManagedSessions   EphemeralManagedSession[]
-  sessionParticipants        SessionParticipant[]
+  agent                         Agent?
+  identities                    Identity[]                  @relation("IdentityActorIdentities")
+  identityDelegationParties     IdentityDelegationParty[]
+  identityDelegationRequests    IdentityDelegationRequest[]
+  delegatedIdentities           DelegatedIdentity[]
+  identityDelegations           IdentityDelegation[]        @relation("delegations")
+  subDelegations                IdentityDelegation[]        @relation("subDelegatedTo")
+  integrationInstances          IntegrationInstance[]
+  integrationInstanceGroups     IntegrationInstanceGroup[]
+  sessionTemplates              SessionTemplate[]
+  sessions                      Session[]
+  magicMcpEndpointBackings      MagicMcpEndpointBacking[]
+  magicMcpServerBackings        MagicMcpServerBacking[]
+  ephemeralManagedSessions      EphemeralManagedSession[]
+  ownedProviderConfigs          ProviderConfig[]
+  ownedProviderAuthConfigs      ProviderAuthConfig[]
+  ownedProviderSetupSessions    ProviderSetupSession[]
+  ownedIntegrationSetupSessions IntegrationSetupSession[]
+  sessionParticipants           SessionParticipant[]
 
   @@index([createdAt])
   @@index([updatedAt])

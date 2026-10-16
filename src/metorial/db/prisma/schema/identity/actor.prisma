@@ -33,8 +33,9 @@ model IdentityActor {
   archivedAt DateTime?
   syncedAt   DateTime  @default(now()) @updatedAt
 
-  agent         Agent?
-  consumerActor ConsumerActor?
+  agent                Agent?
+  consumerActor        ConsumerActor?
+  ownedMagicMcpServers MagicMcpServer[]
 
   @@index([organizationOid])
   @@index([projectOid])

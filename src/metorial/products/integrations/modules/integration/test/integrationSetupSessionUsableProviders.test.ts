@@ -23,7 +23,7 @@ vi.mock('@metorial-subspace/module-auth', () => ({
   providerSetupSessionInclude: {},
   providerSetupSessionService: {}
 }));
-vi.mock('@metorial-subspace/module-tenant', () => ({}));
+vi.mock('@metorial-subspace/module-tenant', () => ({ ownerActorSelect: {} }));
 vi.mock('../src/lib/versions', () => ({}));
 vi.mock('../src/lib/integrationIncludes', () => ({ integrationProviderVersionInclude: {} }));
 vi.mock('../src/services/integration', () => ({}));

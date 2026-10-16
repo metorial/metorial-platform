@@ -71,6 +71,7 @@ vi.mock('@metorial-subspace/module-search', () => ({
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn(),
+  ownerActorSelect: { select: { id: true } },
   getMetorialSolution: vi.fn(async () => ({ oid: 7, id: 'sol_1' })),
   resolveConsumerActorIds: vi.fn(),
   resolveMetorialFacing: vi.fn(),

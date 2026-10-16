@@ -59,6 +59,7 @@ model Identity {
   sessions                   Session[]
   ephemeralManagedSessions   EphemeralManagedSession[]
   sessionParticipants        SessionParticipant[]
+  magicMcpServerBackings     MagicMcpServerBacking[]
 
   @@index([createdAt])
   @@index([updatedAt])

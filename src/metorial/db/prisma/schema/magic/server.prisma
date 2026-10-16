@@ -34,6 +34,9 @@ model MagicMcpServer {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
+
   name        String?
   description String?
   metadata    Json
@@ -55,6 +58,8 @@ model MagicMcpServer {
   consumerAuthClients    ConsumerAuthClient[]
   consumerAccessListings ConsumerAccessListing[]
   consumerIntegrations   ConsumerIntegration[]
+
+  @@index([ownerActorOid])
 }
 
 model MagicMcpServerAlias {

@@ -52,10 +52,9 @@ import {
   agentDeletedQueue,
   agentUpdatedQueue
 } from '../queues/lifecycle/agent';
+import { identityActorInclude } from '../lib/identityActorInclude';
 
-let include = {
-  agent: true
-};
+let include = identityActorInclude;
 
 let getAgentSlug = createSlugGenerator(
   async (slug, d: { environment: Environment }) =>

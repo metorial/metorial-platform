@@ -54,7 +54,8 @@ import {
   resolveConsumerActorIds,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
-  toProviderEventBase
+  toProviderEventBase,
+  ownerActorSelect
 } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import { Fabric, type AuditSubspaceProviderConfig } from '@metorial/fabric';
@@ -73,7 +74,8 @@ let include = {
     include: {
       deployment: true
     }
-  }
+  },
+  ownerActor: ownerActorSelect
 };
 
 let defaultLock = createLock({
@@ -92,6 +94,7 @@ export type CreateProviderConfigParams = {
       | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
       | null;
   };
+  ownerActorOid?: bigint | null;
   input: {
     name?: string;
     description?: string;
@@ -536,7 +539,8 @@ class providerConfigServiceImpl {
         environmentOid: d.environment.oid,
         instanceOid: d.environment.instanceOid,
 
-        deploymentOid: d.providerDeployment?.oid
+        deploymentOid: d.providerDeployment?.oid,
+        ownerActorOid: d.ownerActorOid
       };
 
       let config = await (async () => {
