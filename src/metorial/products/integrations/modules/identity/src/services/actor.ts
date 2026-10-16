@@ -433,7 +433,7 @@ class identityActorServiceImpl {
 
     let defaultIdentity = d.defaultIdentityId
       ? await db.identity.findFirst({
-          where: { id: d.defaultIdentityId, actorOid: identityActor.oid },
+          where: { id: d.defaultIdentityId, actorOid: identityActor.oid, status: 'active' },
           select: { oid: true, id: true }
         })
       : null;

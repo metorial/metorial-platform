@@ -17,10 +17,10 @@ let resolveConsumerOwnerActorOid = async (d: {
 
   let consumerFilter =
     typeof metadata.consumerId === 'string'
-      ? { instanceConsumer: { id: metadata.consumerId } }
+      ? { defaultForInstanceConsumer: { id: metadata.consumerId } }
       : typeof metadata.consumerProfileOid === 'string' &&
           /^\d+$/.test(metadata.consumerProfileOid)
-        ? { consumerProfileOid: BigInt(metadata.consumerProfileOid) }
+        ? { consumerProfileOid: BigInt(metadata.consumerProfileOid), isDefault: true }
         : null;
   if (!consumerFilter) return null;
 
@@ -33,8 +33,7 @@ let resolveConsumerOwnerActorOid = async (d: {
   let consumerActor = await metorialDb.consumerActor.findFirst({
     where: {
       ...consumerFilter,
-      instance: { id: instance.id },
-      isDefault: true
+      instance: { id: instance.id }
     },
     select: { id: true }
   });

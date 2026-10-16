@@ -71,7 +71,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   getMetorialSolution: vi.fn(async () => ({ oid: 7, id: 'sol_1' })),
   metorialDb: {
     instanceConsumer: { findFirst: vi.fn() },
-    consumerActor: { findFirst: vi.fn() }
+    consumerActor: { findFirst: vi.fn(), findUnique: vi.fn() }
   },
   resolveMetorialFacing: vi.fn(),
   resolveMetorialFacingWithOptionalActor: vi.fn(),

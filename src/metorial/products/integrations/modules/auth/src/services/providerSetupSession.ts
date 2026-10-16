@@ -291,13 +291,18 @@ class providerSetupSessionServiceImpl {
       });
       if (!instanceConsumer) throw new ServiceError(notFoundError('consumer'));
 
-      let actor = await metorialDb.consumerActor.findFirst({
-        where: {
-          instanceOid: instance.oid,
-          instanceConsumerOid: instanceConsumer.oid,
-          isDefault: true
-        }
-      });
+      let actor =
+        (await metorialDb.consumerActor.findUnique({
+          where: { defaultForInstanceConsumerOid: instanceConsumer.oid }
+        })) ??
+        (await metorialDb.consumerActor.findFirst({
+          where: {
+            instanceOid: instance.oid,
+            instanceConsumerOid: instanceConsumer.oid,
+            isDefault: true
+          },
+          orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
+        }));
       if (!actor || !actor.defaultIdentityId) {
         throw new ServiceError(
           badRequestError({
@@ -318,7 +323,7 @@ class providerSetupSessionServiceImpl {
       }
       identity = consumerIdentity;
 
-      let ownerActor = await db.identityActor.findFirst({
+      let ownerActor = await db.identityActor.findUnique({
         where: { id: actor.id },
         select: { oid: true }
       });

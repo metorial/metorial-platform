@@ -83,13 +83,31 @@ describe('integration instance actor backfill', () => {
     await runInstanceActor('ii_1');
 
     expect(metorialDb.consumerActor.findFirst).toHaveBeenCalledWith({
-      where: { consumerProfileOid: 77n, instance: { id: 'ins_1' }, isDefault: true },
+      where: { consumerProfileOid: 77n, isDefault: true, instance: { id: 'ins_1' } },
       select: { id: true }
     });
     expect(db.integrationInstance.updateMany).toHaveBeenCalledWith({
       where: { oid: 10n, identityActorOid: null },
       data: { identityActorOid: 500n }
     });
+  });
+
+  it("uses the instance consumer's default actor for consumer id bindings", async () => {
+    db.integrationInstance.findUnique.mockResolvedValue(
+      buildInstance({
+        integrationSetupSessions: [
+          { instanceOid: 40n, privateMetadata: { $owner: 'consumer', consumerId: 'con_1' } }
+        ]
+      })
+    );
+
+    await runInstanceActor('ii_1');
+
+    expect(metorialDb.consumerActor.findFirst).toHaveBeenCalledWith({
+      where: { defaultForInstanceConsumer: { id: 'con_1' }, instance: { id: 'ins_1' } },
+      select: { id: true }
+    });
+    expect(db.integrationInstance.updateMany).toHaveBeenCalled();
   });
 
   it('keeps an identity that already belongs to the consumer actor', async () => {
