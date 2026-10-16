@@ -409,6 +409,14 @@ let createEndpoint = (i: {
     }
   }
 
+  let pathParamNames = new Set(pathParams.map(p => Cases.toSnakeCase(p)));
+  for (let field of queryFields) {
+    if (pathParamNames.has(field.pyName)) field.pyName = `query_${field.pyName}`;
+  }
+  for (let field of bodyFields) {
+    if (pathParamNames.has(field.pyName)) field.pyName = `body_${field.pyName}`;
+  }
+
   if (bodyType) {
     inputs.push({
       type: bodyType.typeName,

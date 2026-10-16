@@ -519,6 +519,19 @@ for (let version of filteredVersions) {
     await generateFileTypes(file, types);
   }
 
+  // Python can't have `usage.py` next to a `usage/` package (the package shadows
+  // the module), so the module moves into the package and gets re-exported there.
+  if (language === 'python') {
+    for (let folder of resourceFolders) {
+      let moduleFile = `${folder}${fileExtension}`;
+      if (await fs.pathExists(moduleFile)) {
+        await fs.move(moduleFile, path.join(folder, `_index${fileExtension}`), {
+          overwrite: true
+        });
+      }
+    }
+  }
+
   // Generate index files for TypeScript and Python (Go doesn't need them)
   if (language !== 'go') {
     for (let folder of [...resourceFolders, resourcesFolder]) {
