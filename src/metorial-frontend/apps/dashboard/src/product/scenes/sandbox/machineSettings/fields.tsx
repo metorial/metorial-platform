@@ -212,6 +212,12 @@ export let SandboxLifecycleField = (p: {
       value={p.value.hibernateAfterPausedSeconds}
       onChange={value => p.onChange({ ...p.value, hibernateAfterPausedSeconds: value })}
     />
+    {!p.value.pauseAfterIdleSeconds && !!p.value.hibernateAfterPausedSeconds && (
+      <Callout color="gray" variant="inline">
+        Pausing is disabled, so the machine will hibernate directly once it has been idle for
+        the hibernate time.
+      </Callout>
+    )}
     {p.value.hibernateAfterPausedSeconds === null && (
       <Callout color="orange" variant="inline">
         Machines may require a mandatory restart after 8 hours or more.

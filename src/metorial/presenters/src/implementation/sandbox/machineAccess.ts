@@ -13,6 +13,7 @@ export let v1SandboxMachineAccessPresenter = Presenter.create(sandboxMachineAcce
     urls: {
       type: scope,
       shell: scope === 'shell' ? access.urls.shell : null,
+      exec: scope === 'shell' ? access.urls.exec : null,
       files: scope === 'files' ? access.urls.files : null,
       ports: scope === 'port' ? access.urls.ports : null
     },
@@ -37,6 +38,12 @@ export let v1SandboxMachineAccessPresenter = Presenter.create(sandboxMachineAcce
           description: 'What the token grants access to'
         }),
         shell: v.nullable(v.string({ description: 'The WebSocket URL of the shell' })),
+        exec: v.nullable(
+          v.string({
+            description:
+              'The WebSocket URL for running commands. Shell tokens authorize it alongside the shell.'
+          })
+        ),
         files: v.nullable(v.string({ description: 'The WebSocket URL of the file service' })),
         ports: v.nullable(
           v.record(v.string(), {

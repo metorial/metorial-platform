@@ -12183,6 +12183,7 @@ declare let createGenesisInternalClient: (endpoint: string, options?: Pick<Clien
                 expiresAt: Date;
                 urls: {
                     shell: string;
+                    exec: string;
                     files: string;
                     ports: {
                         [k: string]: string;

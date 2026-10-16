@@ -20,6 +20,19 @@ describe('sandbox request conversion', () => {
     });
   });
 
+  it('preserves null lifecycle values as never, rather than mapping them to 0', () => {
+    expect(
+      toLifecyclePolicyInput({
+        pause_after_idle_seconds: null,
+        hibernate_after_paused_seconds: 600
+      })
+    ).toEqual({
+      pauseAfterIdleSeconds: null,
+      hibernateAfterPausedSeconds: 600,
+      connectionIdleSeconds: undefined
+    });
+  });
+
   it('leaves an omitted lifecycle policy omitted', () => {
     expect(toLifecyclePolicyInput(undefined)).toBeUndefined();
   });

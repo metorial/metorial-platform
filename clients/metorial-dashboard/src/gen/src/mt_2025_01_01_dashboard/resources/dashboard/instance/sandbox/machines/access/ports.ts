@@ -8,6 +8,7 @@ export type DashboardInstanceSandboxMachinesAccessPortsOutput = {
   urls: {
     type: 'shell' | 'files' | 'port';
     shell: string | null;
+    exec: string | null;
     files: string | null;
     ports: Record<string, string> | null;
   };
