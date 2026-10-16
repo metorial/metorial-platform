@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
+import { ownerActorSchema, presentOwnerActor } from '../../_shared';
 import type { Prisma as SubspacePrisma } from '@metorial-subspace/db';
 import { env } from '@metorial-subspace/module-auth/src/env';
 import type { integrationSetupSessionInclude } from '@metorial-subspace/module-integration';
@@ -91,6 +92,7 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
     ) as any,
     redirect_url: integrationSetupSession.redirectUrl,
     integration_id: integrationSetupSession.integration.id,
+    owner_actor: presentOwnerActor(integrationSetupSession.ownerActor),
     integration_instance: await v1IntegrationInstancePresenter
       .present({ integrationInstance: integrationSetupSession.integrationInstance }, opts)
       .run(),
@@ -110,6 +112,7 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
       configuration: v.nullable(v.record(v.any())),
       redirect_url: v.nullable(v.string()),
       integration_id: v.string(),
+      owner_actor: ownerActorSchema,
       integration_instance: v1IntegrationInstancePresenter.schema,
       created_at: v.date(),
       updated_at: v.date(),

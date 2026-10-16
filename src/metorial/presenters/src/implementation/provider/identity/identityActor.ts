@@ -12,6 +12,8 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
     status: identityActor.status,
 
     agent_id: identityActor.agent?.id ?? null,
+    consumer_id: identityActor.instanceConsumer?.consumer.id ?? null,
+    default_identity_id: identityActor.defaultIdentity?.id ?? null,
 
     name: identityActor.name,
     description: identityActor.description,
@@ -62,6 +64,22 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
           name: 'agent_id',
           description: 'Linked agent identifier when this actor represents an agent.',
           examples: ['agt_4mNoPq8rSt2uVx6y']
+        })
+      ),
+      consumer_id: v.nullable(
+        v.string({
+          name: 'consumer_id',
+          description:
+            'Identifier of the consumer that owns this actor when its type is consumer.',
+          examples: ['con_8kLmNp3qRs7tUv1w']
+        })
+      ),
+      default_identity_id: v.nullable(
+        v.string({
+          name: 'default_identity_id',
+          description:
+            "Identifier of the actor's default identity, which is its oldest active identity.",
+          examples: ['idt_2bCdEf6gHi0jKl4m']
         })
       ),
       created_at: v.date({
