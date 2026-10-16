@@ -2,6 +2,7 @@ import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
+import { getConfig } from '@metorial/config';
 import {
   addAfterTransactionHook,
   db,
@@ -842,7 +843,11 @@ class OAuthApplicationService {
 
   async syncCliAuthOAuthApplicationScopes() {
     let existing = await this.getCliAuthOAuthApplication();
-    if (!existing || existing.isImportedFromOtherInstance) return;
+    if (!existing) {
+      if (getConfig().env == 'development') await this.upsertCliAuthOAuthApplication();
+      return;
+    }
+    if (existing.isImportedFromOtherInstance) return;
 
     let storedScopes = normalizeScopes(existing.scopes);
     let isInSync =

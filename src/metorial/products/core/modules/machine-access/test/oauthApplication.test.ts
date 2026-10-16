@@ -1,27 +1,30 @@
 import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { machineAccessCreateMock, machineAccessUpdateMock, mockDb } = vi.hoisted(() => ({
-  machineAccessCreateMock: vi.fn(),
-  machineAccessUpdateMock: vi.fn(),
-  mockDb: {
-    oAuthApplication: {
-      create: vi.fn(),
-      update: vi.fn(),
-      findUniqueOrThrow: vi.fn(),
-      findFirst: vi.fn(),
-      findMany: vi.fn()
-    },
-    oAuthInstallation: {
-      create: vi.fn(),
-      update: vi.fn(),
-      updateMany: vi.fn()
-    },
-    oAuthAuthorization: {
-      updateMany: vi.fn()
+let { machineAccessCreateMock, machineAccessUpdateMock, mockConfig, mockDb } = vi.hoisted(
+  () => ({
+    mockConfig: { env: 'production' },
+    machineAccessCreateMock: vi.fn(),
+    machineAccessUpdateMock: vi.fn(),
+    mockDb: {
+      oAuthApplication: {
+        create: vi.fn(),
+        update: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn()
+      },
+      oAuthInstallation: {
+        create: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn()
+      },
+      oAuthAuthorization: {
+        updateMany: vi.fn()
+      }
     }
-  }
-}));
+  })
+);
 
 vi.mock('@metorial/db', () => ({
   withTransaction: (fn: any) => fn(mockDb),
@@ -30,6 +33,9 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn(async (prefix: string) => `${prefix}-generated-id`)
   }
+}));
+vi.mock('@metorial/config', () => ({
+  getConfig: () => mockConfig
 }));
 vi.mock('@metorial/fabric', () => ({
   Fabric: { fire: vi.fn().mockResolvedValue(undefined) }
@@ -542,13 +548,30 @@ describe('oauthApplicationService', () => {
       expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
     });
 
-    it('does not enable cli auth when no cli app exists', async () => {
+    it('does not enable cli auth outside development when no cli app exists', async () => {
       mockDb.oAuthApplication.findFirst.mockResolvedValue(null);
 
       await oauthApplicationService.syncCliAuthOAuthApplicationScopes();
 
       expect(mockDb.oAuthApplication.create).not.toHaveBeenCalled();
       expect(mockDb.oAuthApplication.update).not.toHaveBeenCalled();
+    });
+
+    it('creates the cli app in development when none exists', async () => {
+      mockConfig.env = 'development';
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(null);
+
+      try {
+        await oauthApplicationService.syncCliAuthOAuthApplicationScopes();
+      } finally {
+        mockConfig.env = 'production';
+      }
+
+      expect(mockDb.oAuthApplication.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ type: 'cli_auth', scopes: cliAuthScopes })
+        })
+      );
     });
   });
 });
