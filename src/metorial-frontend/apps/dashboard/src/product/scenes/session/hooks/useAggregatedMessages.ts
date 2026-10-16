@@ -1,5 +1,6 @@
 import { DashboardInstanceSessionsMessagesGetOutput } from '@metorial/dashboard-sdk';
 import { useMemo } from 'react';
+import { getMessagePayload } from '../../sessionMessages/utils';
 
 export interface AggregatedMessages {
   unifiedId: string;
@@ -22,7 +23,7 @@ export let useAggregatedMessages = (
       let mcpTransport = message.transport?.mcp;
       if (!mcpTransport) continue;
 
-      let payload = (message.input ?? message.output ?? {}) as Record<string, any>;
+      let payload = getMessagePayload(message);
       let msgId = String(payload.id ?? mcpTransport.id);
       let current = (map.get(msgId) ?? {}) as AggregatedMessages;
 

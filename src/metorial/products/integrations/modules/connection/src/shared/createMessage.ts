@@ -1,4 +1,7 @@
-import { sessionMessageBucketRecord } from '@metorial-subspace/connection-utils';
+import {
+  getJsonSizeBytes,
+  sessionMessageBucketRecord
+} from '@metorial-subspace/connection-utils';
 import {
   db,
   getId,
@@ -123,6 +126,8 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
 
       input: retention.storeContent ? data.input : Prisma.DbNull,
       output: retention.storeContent ? data.output : Prisma.DbNull,
+      inputSize: retention.storeContent ? getJsonSizeBytes(data.input) : 0,
+      outputSize: retention.storeContent ? getJsonSizeBytes(data.output) : 0,
 
       methodOrToolKey: retention.storeToolIdentity
         ? (data.tool?.key ?? data.methodOrToolKey ?? null)

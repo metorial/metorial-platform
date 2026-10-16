@@ -1,4 +1,9 @@
 import { v } from '@lowerdeck/validation';
+import {
+  GET_PAYLOAD_LIMIT_BYTES,
+  getJsonSizeBytes,
+  LIST_PAYLOAD_LIMIT_BYTES
+} from '@metorial-subspace/connection-utils';
 import { Presenter } from '@metorial/presenter';
 import { providerInvocationType, providerInvocationsType } from '../../../types';
 
@@ -20,6 +25,25 @@ let invocationLogSchema = v.object({
   )
 });
 
+let limitPayloadEntries = (entries: any[], limitBytes: number) =>
+  entries.map(entry => {
+    let size = getJsonSizeBytes(entry);
+    if (size <= limitBytes) return entry;
+
+    return {
+      object: 'provider.invocation.omitted_payload',
+      reason: 'payload_too_large',
+      size
+    };
+  });
+
+let limitLogMessage = (message: string, limitBytes: number) => {
+  let size = Buffer.byteLength(message);
+  if (size <= limitBytes) return message;
+
+  return `${Buffer.from(message).subarray(0, limitBytes).toString('utf-8')}… [truncated ${size - limitBytes} bytes]`;
+};
+
 let normalizePublicInvocationStatus = (d: {
   status: 'succeeded' | 'failed' | 'processing' | 'unknown';
   error: {
@@ -32,7 +56,7 @@ let normalizePublicInvocationStatus = (d: {
 };
 
 export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationType)
-  .presenter(async ({ providerInvocation }) => {
+  .presenter(async ({ providerInvocation, payloadLimitBytes = GET_PAYLOAD_LIMIT_BYTES }) => {
     let status = normalizePublicInvocationStatus({
       status: providerInvocation.status,
       error: providerInvocation.error
@@ -55,16 +79,16 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
       tool_call_id: providerInvocation.toolCallId,
       action: providerInvocation.action,
 
-      requests: providerInvocation.requests,
-      responses: providerInvocation.responses,
-      request_traces: providerInvocation.requestTraces,
+      requests: limitPayloadEntries(providerInvocation.requests, payloadLimitBytes),
+      responses: limitPayloadEntries(providerInvocation.responses, payloadLimitBytes),
+      request_traces: limitPayloadEntries(providerInvocation.requestTraces, payloadLimitBytes),
       logs: providerInvocation.logs.map(log => ({
         object: 'provider.invocation.log' as const,
         timestamp: log.timestamp instanceof Date ? log.timestamp : new Date(log.timestamp),
-        message: log.message,
+        message: limitLogMessage(log.message, payloadLimitBytes),
         output_type: log.outputType ?? null
       })),
-      attachments: providerInvocation.attachments,
+      attachments: limitPayloadEntries(providerInvocation.attachments, payloadLimitBytes),
 
       error: providerInvocation.error,
 
@@ -139,15 +163,18 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
       ),
       requests: v.array(v.any(), {
         name: 'requests',
-        description: 'Captured outbound request payloads'
+        description:
+          'Captured outbound request payloads. Entries that are too large for this response are replaced with a provider.invocation.omitted_payload object.'
       }),
       responses: v.array(v.any(), {
         name: 'responses',
-        description: 'Captured response payloads'
+        description:
+          'Captured response payloads. Entries that are too large for this response are replaced with a provider.invocation.omitted_payload object.'
       }),
       request_traces: v.array(v.any(), {
         name: 'request_traces',
-        description: 'Request trace data'
+        description:
+          'Request trace data. Entries that are too large for this response are replaced with a provider.invocation.omitted_payload object.'
       }),
       logs: v.array(invocationLogSchema, {
         name: 'logs',
@@ -155,7 +182,8 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
       }),
       attachments: v.array(v.any(), {
         name: 'attachments',
-        description: 'Captured attachments'
+        description:
+          'Captured attachments. Entries that are too large for this response are replaced with a provider.invocation.omitted_payload object.'
       }),
       error: v.nullable(
         v.object({
@@ -188,7 +216,9 @@ export let v1ProviderInvocationsPresenter = Presenter.create(providerInvocations
     object: 'provider.invocations' as const,
     items: await Promise.all(
       items.map(providerInvocation =>
-        v1ProviderInvocationPresenter.present({ providerInvocation }, opts).run()
+        v1ProviderInvocationPresenter
+          .present({ providerInvocation, payloadLimitBytes: LIST_PAYLOAD_LIMIT_BYTES }, opts)
+          .run()
       )
     )
   }))

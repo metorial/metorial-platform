@@ -1,6 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getOffloadedSessionMessage } from '@metorial-subspace/connection-utils';
+import {
+  GET_PAYLOAD_LIMIT_BYTES,
+  getOffloadedSessionMessage
+} from '@metorial-subspace/connection-utils';
 import {
   db,
   type Environment,
@@ -711,7 +714,13 @@ let providerInvocationPresenter = (invocation: ProviderInvocation) => ({
 });
 
 let sessionMessagePresenter = async (message: any) => {
-  if (message.isOffloadedToStorage) {
+  let hasResolvedBodies =
+    message.input != null ||
+    message.output != null ||
+    message.inputOmitted ||
+    message.outputOmitted;
+
+  if (message.isOffloadedToStorage && !hasResolvedBodies) {
     let offloaded = await getOffloadedSessionMessage(message);
     if (offloaded) {
       message.input = offloaded.input;
@@ -1496,7 +1505,8 @@ class adminProviderTelemetryServiceImpl {
       tenant,
       environment,
       sessionIds: [input.sessionId],
-      hierarchy: ['parent', 'child']
+      hierarchy: ['parent', 'child'],
+      bodyLimitBytes: GET_PAYLOAD_LIMIT_BYTES
     });
 
     let list = await paginator.run(input);

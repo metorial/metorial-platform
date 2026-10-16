@@ -15,6 +15,7 @@ import type {
   SessionWarning,
   Prisma as SubspacePrisma
 } from '@metorial-subspace/db';
+import type { SessionMessageBodies } from '@metorial-subspace/connection-utils';
 import type { ReactionCount } from '@slates/adapter-chat';
 import type { GenesisInternalClient } from '@metorial/genesis-client';
 import type {
@@ -3216,14 +3217,19 @@ type RawToolCallBase = SubspacePrisma.ToolCallGetPayload<{
   };
 }>;
 
-type RawSessionMessage = RawSessionMessageBase & {
-  senderParticipant: RawSessionParticipant;
-  responderParticipant: RawSessionParticipant | null;
-  toolCall: RawToolCallBase | null;
-  error: RawSessionError | null;
-  parentMessage: SubspacePrisma.SessionMessageGetPayload<{}> | null;
-  childMessages: SubspacePrisma.SessionMessageGetPayload<{}>[];
-};
+type RawSessionMessageWithoutBodies = SubspacePrisma.SessionMessageGetPayload<{
+  omit: { input: true; output: true };
+}>;
+
+type RawSessionMessage = Omit<RawSessionMessageBase, 'input' | 'output'> &
+  SessionMessageBodies & {
+    senderParticipant: RawSessionParticipant;
+    responderParticipant: RawSessionParticipant | null;
+    toolCall: RawToolCallBase | null;
+    error: RawSessionError | null;
+    parentMessage: RawSessionMessageWithoutBodies | null;
+    childMessages: RawSessionMessageWithoutBodies[];
+  };
 
 type RawToolCall = RawToolCallBase & {
   message: RawSessionMessage;
@@ -3301,6 +3307,7 @@ export let providerRunLogsType = PresentableType.create<{
 
 export let providerInvocationType = PresentableType.create<{
   providerInvocation: RawProviderInvocation;
+  payloadLimitBytes?: number;
 }>()('providerInvocation');
 
 export let providerInvocationsType = PresentableType.create<{

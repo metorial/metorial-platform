@@ -33,6 +33,11 @@ vi.mock('@metorial-subspace/db', () => ({
   replaceToolCallAttachmentsInOutput: mocks.replaceToolCallAttachmentsInOutput
 }));
 
+vi.mock('@metorial-subspace/connection-utils', () => ({
+  getJsonSizeBytes: (value: unknown) =>
+    value == null ? 0 : Buffer.byteLength(JSON.stringify(value))
+}));
+
 vi.mock('../queues/message/finalizeMessage', () => ({
   finalizeMessageQueue: mocks.finalizeMessageQueue
 }));
@@ -108,7 +113,10 @@ describe('completeMessage', () => {
         completedAt: new Date(),
         output: {
           type: 'error',
-          data: { code: 'timeout', message: 'The conduit request timed out before the provider responded.' }
+          data: {
+            code: 'timeout',
+            message: 'The conduit request timed out before the provider responded.'
+          }
         }
       }
     );
@@ -181,7 +189,10 @@ describe('completeMessage', () => {
         providerRun: { oid: 31n } as any,
         output: {
           type: 'error',
-          data: { code: 'timeout', message: 'The conduit request timed out before the provider responded.' }
+          data: {
+            code: 'timeout',
+            message: 'The conduit request timed out before the provider responded.'
+          }
         }
       }
     );
@@ -210,7 +221,9 @@ describe('completeMessage', () => {
         instanceOid: 27n
       })
     });
-    expect(mocks.finalizeMessageQueue.add).toHaveBeenCalledWith({ messageId: 'msg_transition' });
+    expect(mocks.finalizeMessageQueue.add).toHaveBeenCalledWith({
+      messageId: 'msg_transition'
+    });
   });
 
   it('does not run post-transaction side effects after a retried transaction loses the race', async () => {
@@ -279,7 +292,10 @@ describe('completeMessage', () => {
         completedAt: new Date(),
         output: {
           type: 'error',
-          data: { code: 'timeout', message: 'The conduit request timed out before the provider responded.' }
+          data: {
+            code: 'timeout',
+            message: 'The conduit request timed out before the provider responded.'
+          }
         }
       }
     );
@@ -293,13 +309,22 @@ describe('completeMessage', () => {
   });
 
   it('rehosts delegated attachments without persisting their URL', async () => {
-    let rawAttachment = { slateAttachmentId: 'shsa_123', mimeType: 'image/png', expiresAt: null };
+    let rawAttachment = {
+      slateAttachmentId: 'shsa_123',
+      mimeType: 'image/png',
+      expiresAt: null
+    };
     mocks.getRawToolCallAttachmentsFromOutput.mockReturnValueOnce([rawAttachment]);
 
     let currentMessage = {
       id: 'msg_attach_on',
       oid: 4n,
-      session: { oid: 41n, dataRetentionLevel: 'full', storeToolCallAttachments: true, collectErrors: true },
+      session: {
+        oid: 41n,
+        dataRetentionLevel: 'full',
+        storeToolCallAttachments: true,
+        collectErrors: true
+      },
       connection: { oid: 42n },
       toolCall: { oid: 43n }
     };
@@ -339,7 +364,9 @@ describe('completeMessage', () => {
       [expect.objectContaining({ url: null, slateAttachmentId: 'shsa_123', toolCallOid: 43n })]
     );
     expect(tx.toolCallAttachment.createMany).toHaveBeenCalledWith({
-      data: [expect.objectContaining({ url: null, slateAttachmentId: 'shsa_123', toolCallOid: 43n })]
+      data: [
+        expect.objectContaining({ url: null, slateAttachmentId: 'shsa_123', toolCallOid: 43n })
+      ]
     });
   });
 
@@ -354,7 +381,12 @@ describe('completeMessage', () => {
     let currentMessage = {
       id: 'msg_attach_slate',
       oid: 5n,
-      session: { oid: 41n, dataRetentionLevel: 'full', storeToolCallAttachments: true, collectErrors: true },
+      session: {
+        oid: 41n,
+        dataRetentionLevel: 'full',
+        storeToolCallAttachments: true,
+        collectErrors: true
+      },
       connection: { oid: 42n },
       toolCall: { oid: 44n }
     };
@@ -401,13 +433,22 @@ describe('completeMessage', () => {
   });
 
   it('strips $attachments and skips persisting a ToolCallAttachment when storeToolCallAttachments is disabled', async () => {
-    let rawAttachment = { url: 'https://provider.example/raw-file', mimeType: 'image/png', expiresAt: null };
+    let rawAttachment = {
+      url: 'https://provider.example/raw-file',
+      mimeType: 'image/png',
+      expiresAt: null
+    };
     mocks.getRawToolCallAttachmentsFromOutput.mockReturnValueOnce([rawAttachment]);
 
     let currentMessage = {
       id: 'msg_attach_off',
       oid: 5n,
-      session: { oid: 51n, dataRetentionLevel: 'full', storeToolCallAttachments: false, collectErrors: true },
+      session: {
+        oid: 51n,
+        dataRetentionLevel: 'full',
+        storeToolCallAttachments: false,
+        collectErrors: true
+      },
       connection: { oid: 52n },
       toolCall: { oid: 53n }
     };

@@ -53,6 +53,9 @@ model SessionMessage {
   /// [SessionMessageOutput]
   output Json?
 
+  inputSize  Int?
+  outputSize Int?
+
   isProductive Boolean @default(true)
 
   retentionLevel SessionDataRetentionLevel @default(full)
