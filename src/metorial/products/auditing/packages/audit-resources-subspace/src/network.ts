@@ -14,7 +14,7 @@ export let firewallAuditResource = resource({
     slug: string;
     name: string;
     description: string | null;
-    network: { id: string; name: string };
+    internetGateway: { id: string; name: string };
     networkPolicies: SubspaceFirewallPolicyLinkSummary[];
     archivedAt: Date | null;
   }>('firewall'),
@@ -26,16 +26,16 @@ export let firewallAuditResource = resource({
   }
 });
 
-export let firewallBindingAuditResource = resource({
-  name: 'firewall_binding',
+export let integrationFirewallAssignmentAuditResource = resource({
+  name: 'integration_firewall_assignment',
   payload: v.typedAny<{
     id: string;
     targetType: string;
     firewall: { id: string; slug: string; name: string };
     enclave: { id: string; slug: string; name: string } | null;
     provider: { id: string; name: string } | null;
-    network: { id: string; name: string } | null;
-  }>('firewall_binding'),
+    internetGateway: { id: string; name: string } | null;
+  }>('integration_firewall_assignment'),
   presenter: undefined,
   actions: {
     create: true,

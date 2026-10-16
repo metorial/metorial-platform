@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ChatsThreadsGetOutput = {
   object: 'chat.thread';
@@ -35,58 +35,24 @@ export type ChatsThreadsGetOutput = {
   lastInteractionAt: Date | null;
 };
 
-export let mapChatsThreadsGetOutput = mtMap.object<ChatsThreadsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-  channelId: mtMap.objectField('channel_id', mtMap.passthrough()),
-  type: mtMap.objectField('type', mtMap.passthrough()),
-  providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-  providerThreadId: mtMap.objectField(
-    'provider_thread_id',
-    mtMap.passthrough()
-  ),
-  providerRootMessageId: mtMap.objectField(
-    'provider_root_message_id',
-    mtMap.passthrough()
-  ),
-  subject: mtMap.objectField('subject', mtMap.passthrough()),
-  permalink: mtMap.objectField('permalink', mtMap.passthrough()),
-  context: mtMap.objectField(
-    'context',
-    mtMap.object({
-      type: mtMap.objectField('type', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      url: mtMap.objectField('url', mtMap.passthrough()),
-      author: mtMap.objectField(
-        'author',
-        mtMap.object({
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough())
-        })
-      ),
-      assignee: mtMap.objectField(
-        'assignee',
-        mtMap.object({
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough())
-        })
-      ),
-      labels: mtMap.objectField('labels', mtMap.array(mtMap.passthrough()))
-    })
-  ),
-  replyCount: mtMap.objectField('reply_count', mtMap.passthrough()),
-  lastReplyAt: mtMap.objectField('last_reply_at', mtMap.date()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-  lastInteractionAt: mtMap.objectField('last_interaction_at', mtMap.date())
-});
+export let mapChatsThreadsGetOutput =
+  /* @__PURE__ */ mapObject<ChatsThreadsGetOutput>(
+    [
+      'chat_id',
+      'channel_id',
+      'provider_type',
+      'provider_thread_id',
+      'provider_root_message_id',
+      'reply_count',
+      'last_reply_at',
+      'created_at',
+      'updated_at',
+      'last_interaction_at'
+    ],
+    1
+  );
 
 export type ChatsThreadsGetQuery = { channelId: string };
 
-export let mapChatsThreadsGetQuery = mtMap.object<ChatsThreadsGetQuery>({
-  channelId: mtMap.objectField('channel_id', mtMap.passthrough())
-});
-
+export let mapChatsThreadsGetQuery =
+  /* @__PURE__ */ mapObject<ChatsThreadsGetQuery>(['channel_id']);

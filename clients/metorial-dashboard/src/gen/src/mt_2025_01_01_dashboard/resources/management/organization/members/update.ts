@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationMembersUpdateOutput = {
   object: 'organization.member';
@@ -47,80 +50,40 @@ export type ManagementOrganizationMembersUpdateOutput = {
 };
 
 export let mapManagementOrganizationMembersUpdateOutput =
-  mtMap.object<ManagementOrganizationMembersUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    role: mtMap.objectField('role', mtMap.passthrough()),
-    userId: mtMap.objectField('user_id', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
-    policies: mtMap.objectField(
-      'policies',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough())
-        })
-      )
-    ),
-    lastActiveAt: mtMap.objectField('last_active_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
-    actor: mtMap.objectField(
-      'actor',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        organizationId: mtMap.objectField(
-          'organization_id',
-          mtMap.passthrough()
-        ),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        member: mtMap.objectField(
-          'member',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            role: mtMap.objectField('role', mtMap.passthrough())
-          })
-        ),
-        teams: mtMap.objectField(
-          'teams',
-          mtMap.array(
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              assignmentId: mtMap.objectField(
-                'assignment_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          )
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    )
-  });
+  /* @__PURE__ */ mapObject<ManagementOrganizationMembersUpdateOutput>(
+    [
+      'user_id',
+      'organization_id',
+      'actor_id',
+      'last_active_at',
+      'created_at',
+      'updated_at',
+      'deleted_at',
+      [
+        'actor',
+        0,
+        [
+          1,
+          [
+            'organization_id',
+            'image_url',
+            [
+              'teams',
+              0,
+              [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+            ],
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementOrganizationMembersUpdateBody = {
   role: 'member' | 'admin';
 };
 
 export let mapManagementOrganizationMembersUpdateBody =
-  mtMap.object<ManagementOrganizationMembersUpdateBody>({
-    role: mtMap.objectField('role', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<ManagementOrganizationMembersUpdateBody>(0);

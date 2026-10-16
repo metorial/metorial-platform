@@ -2,7 +2,13 @@ import { input } from '@inquirer/prompts';
 import fs from 'fs-extra';
 import path from 'path';
 import { Cases } from './case';
-import { getEndpoints, getEndpointVersions, type IntrospectedType } from './fetch';
+import { format } from './format';
+import {
+  getEndpoints,
+  getEndpointVersions,
+  type IntrospectedType,
+  type IntrospectionSnapshot
+} from './fetch';
 
 // Generate type exports for Python packages
 let generateTypeExports = (
@@ -40,6 +46,30 @@ let url = args[0];
 let rootOutputFolder = args[1];
 let language = args[2];
 
+let snapshotFile = args.slice(3).find(arg => !arg.startsWith('--'));
+
+let snapshot = snapshotFile
+  ? ((await fs.readJson(path.resolve(snapshotFile))) as IntrospectionSnapshot)
+  : undefined;
+
+let patternArg = args.find(arg => arg.startsWith('--mapper-patterns='))?.split('=')[1];
+
+let mapperOptions = {
+  dateDefaults: !args.includes('--mapper-date-defaults=off'),
+  patterns:
+    patternArg === 'none'
+      ? false
+      : patternArg && patternArg !== 'all'
+        ? patternArg.split(',').map(value => {
+            let id = Number(value);
+            if (![5, 6, 7, 8].includes(id))
+              throw new Error(`Unknown mapper pattern ${value}.`);
+
+            return id;
+          })
+        : true
+};
+
 if (!url) url = await input({ message: 'API URL' });
 if (!rootOutputFolder) rootOutputFolder = await input({ message: 'Output folder' });
 if (!language) {
@@ -59,7 +89,13 @@ if (language === 'typescript') {
   throw new Error(`Unsupported language: ${language}`);
 }
 
-rootOutputFolder = path.join(process.cwd(), rootOutputFolder);
+rootOutputFolder = path.resolve(rootOutputFolder);
+
+let writeGeneratedFile = async (file: string, source: string) =>
+  fs.writeFile(
+    file,
+    language === 'typescript' && file.endsWith('.ts') ? await format(source) : source
+  );
 
 // Import language-specific utilities
 let toPyIdentifier: (name: string) => string = (name: string) => name;
@@ -85,8 +121,8 @@ let matchesResourcePath = (sdkPath: string, resource: string) =>
   sdkPath === resource || sdkPath.startsWith(`${resource}.`);
 
 let urls = url.split(',');
-let workingUrl = null;
-for (let u of urls) {
+let workingUrl = snapshot ? url : null;
+for (let u of snapshot ? [] : urls) {
   try {
     await fetch(u);
     workingUrl = u;
@@ -98,7 +134,7 @@ if (!workingUrl) {
   throw new Error('None of the provided URLs are reachable.');
 }
 
-let versions = await getEndpointVersions(workingUrl);
+let versions = await getEndpointVersions(workingUrl, snapshot);
 
 let isDashboardSdkTarget = rootOutputFolder.includes('clients/metorial-dashboard');
 let isConsumerSdkTarget = rootOutputFolder.includes('clients/metorial-consumer');
@@ -117,10 +153,7 @@ let filteredVersions = versions.versions.filter(version => {
   }
 
   if (isGenericSdkTarget) {
-    return (
-      !version.version.includes('dashboard') &&
-      !version.version.includes('consumer')
-    );
+    return !version.version.includes('dashboard') && !version.version.includes('consumer');
   }
 
   return true;
@@ -131,13 +164,24 @@ if (language === 'go') {
   filteredVersions = filteredVersions.filter(v => v.version.includes('magnetar'));
 }
 
-let versionsRoot =
-  language === 'typescript'
-    ? path.join(rootOutputFolder, 'src')
-    : rootOutputFolder;
+let introspections = new Map<string, Awaited<ReturnType<typeof getEndpoints>>>();
 
-let getVersionAlias = (version: string) =>
-  version.replace(/^mt_\d{4}_\d{2}_\d{2}_/, '');
+if (language === 'typescript') {
+  for (let version of filteredVersions) {
+    let data = await getEndpoints(workingUrl, version.version, snapshot);
+
+    for (let type of data.types) {
+      mapperModule.validateMapperType(type.type, type.name);
+    }
+
+    introspections.set(version.version, data);
+  }
+}
+
+let versionsRoot =
+  language === 'typescript' ? path.join(rootOutputFolder, 'src') : rootOutputFolder;
+
+let getVersionAlias = (version: string) => version.replace(/^mt_\d{4}_\d{2}_\d{2}_/, '');
 
 if (language !== 'go') {
   await fs.ensureDir(versionsRoot);
@@ -159,8 +203,12 @@ if (language !== 'go') {
       await fs.remove(legacySrcRoot);
     }
 
-    let keepAliases = new Set(filteredVersions.map(version => getVersionAlias(version.version)));
-    let knownAliases = new Set(versions.versions.map(version => getVersionAlias(version.version)));
+    let keepAliases = new Set(
+      filteredVersions.map(version => getVersionAlias(version.version))
+    );
+    let knownAliases = new Set(
+      versions.versions.map(version => getVersionAlias(version.version))
+    );
     let rootEntries = await fs.readdir(rootOutputFolder);
 
     for (let entry of rootEntries) {
@@ -169,7 +217,7 @@ if (language !== 'go') {
     }
 
     let exportedAliases = Array.from(keepAliases).sort();
-    await fs.writeFile(
+    await writeGeneratedFile(
       path.join(rootOutputFolder, '__init__.py'),
       `"""
 Metorial Generated API Endpoints
@@ -184,7 +232,9 @@ __all__ = [${exportedAliases.map(alias => `"${alias}"`).join(', ')}]
 }
 
 for (let version of filteredVersions) {
-  let { endpoints, types, controllers } = await getEndpoints(url, version.version);
+  let { endpoints, types, controllers } =
+    introspections.get(version.version) ??
+    (await getEndpoints(workingUrl, version.version, snapshot));
 
   // For Go, separate endpoints into public and management groups.
   // Dashboard and consumer endpoints are excluded entirely.
@@ -206,14 +256,13 @@ for (let version of filteredVersions) {
 
     // Keep only public endpoints (not dashboard, management, or consumer)
     let allExcludePrefixes = [...excludePrefixes, 'management.'];
-    endpoints = endpoints.filter(e =>
-      !e.allPaths.every(p =>
-        allExcludePrefixes.some(prefix => p.sdkPath.startsWith(prefix))
-      )
+    endpoints = endpoints.filter(
+      e =>
+        !e.allPaths.every(p => allExcludePrefixes.some(prefix => p.sdkPath.startsWith(prefix)))
     );
     for (let e of endpoints) {
-      e.allPaths = e.allPaths.filter(p =>
-        !allExcludePrefixes.some(prefix => p.sdkPath.startsWith(prefix))
+      e.allPaths = e.allPaths.filter(
+        p => !allExcludePrefixes.some(prefix => p.sdkPath.startsWith(prefix))
       );
     }
     endpoints = endpoints.filter(e => e.allPaths.length > 0);
@@ -319,7 +368,7 @@ for (let version of filteredVersions) {
       fileContent +=
         'from dataclasses import dataclass\nfrom typing import Any, Dict, List, Optional, Union\nfrom datetime import datetime\nimport dataclasses\n\n';
     } else if (language === 'typescript') {
-      fileContent += `import { mtMap } from '@metorial/util-resource-mapper';\n\n`;
+      fileContent += `import { createMapper, mapObject } from '@metorial/util-resource-mapper/compact';\n\n`;
     } else if (language === 'go') {
       // For Go, generate type/mapper code first, then determine imports
       let dir = path.dirname(file);
@@ -353,7 +402,7 @@ for (let version of filteredVersions) {
       }
       fileContent += goBody;
 
-      await fs.writeFile(file, fileContent);
+      await writeGeneratedFile(file, fileContent);
       return;
     }
 
@@ -366,11 +415,22 @@ for (let version of filteredVersions) {
       fileContent += await mapperModule.generateMapper(
         typeInfo.mapperName,
         typeInfo.typeName,
-        typeInfo.object
+        typeInfo.object,
+        language === 'typescript' ? mapperOptions : undefined
       );
     }
 
-    await fs.writeFile(file, fileContent);
+    if (language === 'typescript') {
+      let builders = ['createMapper', 'mapObject'].filter(builder =>
+        fileContent.includes(`${builder}<`)
+      );
+      fileContent = fileContent.replace(
+        "import { createMapper, mapObject } from '@metorial/util-resource-mapper/compact';",
+        `import { ${builders.join(', ')} } from '@metorial/util-resource-mapper/compact';`
+      );
+    }
+
+    await writeGeneratedFile(file, fileContent);
   };
 
   let seenFiles = new Set<string>();
@@ -469,7 +529,11 @@ for (let version of filteredVersions) {
           if (language === 'python') {
             return `from .${toPyIdentifier(name)} import *`;
           } else {
-            return `export * from './${name}';`;
+            let exportPath = files.includes(`${file}${fileExtension}`)
+              ? `${name}/index`
+              : name;
+
+            return `export * from './${exportPath}';`;
           }
         })
         .join('\n');
@@ -483,7 +547,7 @@ for (let version of filteredVersions) {
         throw new Error(`Unsupported language: ${language}`);
       }
 
-      await fs.writeFile(indexFile, imports);
+      await writeGeneratedFile(indexFile, imports);
     }
   }
 
@@ -556,7 +620,7 @@ for (let version of filteredVersions) {
     }
     let file = `${endpointsDir}/${fileNameParts.join('_')}${fileExtension}`;
 
-    await fs.writeFile(file, source);
+    await writeGeneratedFile(file, source);
   }
 
   // For Go, generate management endpoints into a separate package
@@ -615,13 +679,15 @@ for (let version of filteredVersions) {
       let fileNameParts = resourceParts.map(Cases.toSnakeCase);
       let file = `${mgmtEndpointsDir}/${fileNameParts.join('_')}${fileExtension}`;
 
-      await fs.writeFile(file, source);
+      await writeGeneratedFile(file, source);
     }
   }
 
   // Generate index/init files for endpoints
   if (language !== 'go') {
-    let endpointsFiles = (await fs.readdir(endpointsDir)).filter(f => f.endsWith(fileExtension));
+    let endpointsFiles = (await fs.readdir(endpointsDir)).filter(f =>
+      f.endsWith(fileExtension)
+    );
     let endpointsIndexContent = endpointsFiles
       .filter(file => {
         // Exclude index.ts or __init__.py itself
@@ -640,9 +706,9 @@ for (let version of filteredVersions) {
       .join('\n');
 
     if (language === 'typescript') {
-      await fs.writeFile(`${endpointsDir}/index.ts`, endpointsIndexContent);
+      await writeGeneratedFile(`${endpointsDir}/index.ts`, endpointsIndexContent);
     } else if (language === 'python') {
-      await fs.writeFile(path.join(endpointsDir, '__init__.py'), endpointsIndexContent);
+      await writeGeneratedFile(path.join(endpointsDir, '__init__.py'), endpointsIndexContent);
     }
   }
 
@@ -650,12 +716,12 @@ for (let version of filteredVersions) {
     // Generate comprehensive type exports for the generated package
     let typeExports = generateTypeExports(typeIdToName, version.version);
 
-    await fs.writeFile(
+    await writeGeneratedFile(
       `${outputFolder}/__init__.py`,
       `from .resources import *\nfrom .endpoints import *\n\n# Type exports for better discoverability\n${typeExports}`
     );
   } else if (language === 'typescript') {
-    await fs.writeFile(
+    await writeGeneratedFile(
       `${outputFolder}/index.ts`,
       "export * from './resources';\nexport * from './endpoints';\n"
     );

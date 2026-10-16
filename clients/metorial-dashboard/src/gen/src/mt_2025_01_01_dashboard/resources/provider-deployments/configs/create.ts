@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ProviderDeploymentsConfigsCreateOutput = {
   object: 'provider.config';
@@ -14,6 +17,7 @@ export type ProviderDeploymentsConfigsCreateOutput = {
         type: 'filter';
         filters: (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -62,101 +66,39 @@ export type ProviderDeploymentsConfigsCreateOutput = {
 };
 
 export let mapProviderDeploymentsConfigsCreateOutput =
-  mtMap.object<ProviderDeploymentsConfigsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    toolFilter: mtMap.objectField(
-      'tool_filter',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            ignoreParentFilters: mtMap.objectField(
-              'ignore_parent_filters',
-              mtMap.passthrough()
-            ),
-            filters: mtMap.objectField(
-              'filters',
-              mtMap.array(
-                mtMap.union([
-                  mtMap.unionOption(
-                    'object',
-                    mtMap.object({
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      keys: mtMap.objectField(
-                        'keys',
-                        mtMap.array(mtMap.passthrough())
-                      ),
-                      pattern: mtMap.objectField(
-                        'pattern',
-                        mtMap.passthrough()
-                      ),
-                      uris: mtMap.objectField(
-                        'uris',
-                        mtMap.array(mtMap.passthrough())
-                      )
-                    })
-                  )
-                ])
-              )
-            )
-          })
-        )
-      ])
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    specificationId: mtMap.objectField('specification_id', mtMap.passthrough()),
-    deployment: mtMap.objectField(
-      'deployment',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    fromVault: mtMap.objectField(
-      'from_vault',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        deployment: mtMap.objectField(
-          'deployment',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ProviderDeploymentsConfigsCreateOutput>(
+    [
+      'is_default',
+      ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
+      'provider_id',
+      'specification_id',
+      [
+        'deployment',
+        0,
+        [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+      ],
+      [
+        'from_vault',
+        1,
+        [
+          1,
+          [
+            'provider_id',
+            [
+              'deployment',
+              0,
+              [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+            ],
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ProviderDeploymentsConfigsCreateBody = {
   providerId: string;
@@ -167,6 +109,7 @@ export type ProviderDeploymentsConfigsCreateBody = {
   toolFilters?:
     | (
         | { type: 'tool_keys'; keys: string[] }
+        | { type: 'tool_categories'; keys: string[] }
         | { type: 'tool_regex'; pattern: string }
         | { type: 'resource_regex'; pattern: string }
         | { type: 'resource_uris'; uris: string[] }
@@ -175,6 +118,7 @@ export type ProviderDeploymentsConfigsCreateBody = {
       )
     | (
         | { type: 'tool_keys'; keys: string[] }
+        | { type: 'tool_categories'; keys: string[] }
         | { type: 'tool_regex'; pattern: string }
         | { type: 'resource_regex'; pattern: string }
         | { type: 'resource_uris'; uris: string[] }
@@ -185,58 +129,21 @@ export type ProviderDeploymentsConfigsCreateBody = {
     | undefined;
 } & ({ value: Record<string, any> } | { providerConfigVaultId: string });
 
-export let mapProviderDeploymentsConfigsCreateBody = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-      providerDeploymentId: mtMap.objectField(
-        'provider_deployment_id',
-        mtMap.passthrough()
-      ),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-      toolFilters: mtMap.objectField(
-        'tool_filters',
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              keys: mtMap.objectField('keys', mtMap.array(mtMap.passthrough())),
-              pattern: mtMap.objectField('pattern', mtMap.passthrough()),
-              uris: mtMap.objectField('uris', mtMap.array(mtMap.passthrough()))
-            })
-          ),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  keys: mtMap.objectField(
-                    'keys',
-                    mtMap.array(mtMap.passthrough())
-                  ),
-                  pattern: mtMap.objectField('pattern', mtMap.passthrough()),
-                  uris: mtMap.objectField(
-                    'uris',
-                    mtMap.array(mtMap.passthrough())
-                  )
-                })
-              )
-            ])
-          )
-        ])
-      ),
-      value: mtMap.objectField('value', mtMap.passthrough()),
-      providerConfigVaultId: mtMap.objectField(
-        'provider_config_vault_id',
-        mtMap.passthrough()
-      )
-    })
-  )
-]);
-
+export let mapProviderDeploymentsConfigsCreateBody =
+  /* @__PURE__ */ createMapper<ProviderDeploymentsConfigsCreateBody>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'provider_id',
+            'provider_deployment_id',
+            'tool_filters',
+            'provider_config_vault_id'
+          ]
+        ]
+      ]
+    ]
+  ]);

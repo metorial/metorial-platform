@@ -1,7 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type NetworkPoliciesRulesUpdateOutput = {
-  object: 'network.policy.rule';
+  object: 'networking.network_policy.rule';
   id: string;
   effect: 'allow' | 'deny';
   direction: 'ingress' | 'egress';
@@ -10,31 +10,16 @@ export type NetworkPoliciesRulesUpdateOutput = {
   enabled: boolean;
   priority: number;
   ports:
-    | { object: 'network.policy.port_range'; from: number; to: number }[]
+    | {
+        object: 'networking.network_policy.port_range';
+        from: number;
+        to: number;
+      }[]
     | null;
 };
 
 export let mapNetworkPoliciesRulesUpdateOutput =
-  mtMap.object<NetworkPoliciesRulesUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    effect: mtMap.objectField('effect', mtMap.passthrough()),
-    direction: mtMap.objectField('direction', mtMap.passthrough()),
-    cidrs: mtMap.objectField('cidrs', mtMap.array(mtMap.passthrough())),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    enabled: mtMap.objectField('enabled', mtMap.passthrough()),
-    priority: mtMap.objectField('priority', mtMap.passthrough()),
-    ports: mtMap.objectField(
-      'ports',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          from: mtMap.objectField('from', mtMap.passthrough()),
-          to: mtMap.objectField('to', mtMap.passthrough())
-        })
-      )
-    )
-  });
+  /* @__PURE__ */ createMapper<NetworkPoliciesRulesUpdateOutput>(0);
 
 export type NetworkPoliciesRulesUpdateBody = {
   effect: 'allow' | 'deny';
@@ -47,21 +32,4 @@ export type NetworkPoliciesRulesUpdateBody = {
 };
 
 export let mapNetworkPoliciesRulesUpdateBody =
-  mtMap.object<NetworkPoliciesRulesUpdateBody>({
-    effect: mtMap.objectField('effect', mtMap.passthrough()),
-    direction: mtMap.objectField('direction', mtMap.passthrough()),
-    cidrs: mtMap.objectField('cidrs', mtMap.array(mtMap.passthrough())),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    enabled: mtMap.objectField('enabled', mtMap.passthrough()),
-    priority: mtMap.objectField('priority', mtMap.passthrough()),
-    ports: mtMap.objectField(
-      'ports',
-      mtMap.array(
-        mtMap.object({
-          from: mtMap.objectField('from', mtMap.passthrough()),
-          to: mtMap.objectField('to', mtMap.passthrough())
-        })
-      )
-    )
-  });
-
+  /* @__PURE__ */ createMapper<NetworkPoliciesRulesUpdateBody>(0);

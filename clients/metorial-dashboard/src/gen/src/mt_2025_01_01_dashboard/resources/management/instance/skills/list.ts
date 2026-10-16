@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsListOutput = {
   items: {
@@ -263,6 +263,7 @@ export type ManagementInstanceSkillsListOutput = {
         canAttachCustomToolFilters: boolean;
         canAttachCustomProviderConfig: boolean;
         canOverrideToolFilters: boolean;
+        enableCallbackTools: boolean;
         useIntegrationNameInToolNames: boolean | null;
       };
       createdAt: Date;
@@ -285,778 +286,365 @@ export type ManagementInstanceSkillsListOutput = {
 };
 
 export let mapManagementInstanceSkillsListOutput =
-  mtMap.object<ManagementInstanceSkillsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-          clientName: mtMap.objectField('client_name', mtMap.passthrough()),
-          clientDescription: mtMap.objectField(
-            'client_description',
-            mtMap.passthrough()
-          ),
-          clientMetadata: mtMap.objectField(
-            'client_metadata',
-            mtMap.passthrough()
-          ),
-          license: mtMap.objectField('license', mtMap.passthrough()),
-          compatibility: mtMap.objectField(
-            'compatibility',
-            mtMap.passthrough()
-          ),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          storeId: mtMap.objectField('store_id', mtMap.passthrough()),
-          hierarchy: mtMap.objectField(
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'image_url',
+          'client_name',
+          'client_description',
+          'client_metadata',
+          'store_id',
+          [
             'hierarchy',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              parentSkillId: mtMap.objectField(
+            0,
+            [
+              1,
+              [
                 'parent_skill_id',
-                mtMap.passthrough()
-              ),
-              creator: mtMap.objectField(
-                'creator',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                  email: mtMap.objectField('email', mtMap.passthrough()),
-                  organizationActor: mtMap.objectField(
-                    'organization_actor',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      organizationId: mtMap.objectField(
-                        'organization_id',
-                        mtMap.passthrough()
-                      ),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      member: mtMap.objectField(
-                        'member',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          ),
-                          role: mtMap.objectField('role', mtMap.passthrough())
-                        })
-                      ),
-                      teams: mtMap.objectField(
-                        'teams',
-                        mtMap.array(
-                          mtMap.object({
-                            id: mtMap.objectField('id', mtMap.passthrough()),
-                            name: mtMap.objectField(
-                              'name',
-                              mtMap.passthrough()
-                            ),
-                            slug: mtMap.objectField(
-                              'slug',
-                              mtMap.passthrough()
-                            ),
-                            assignmentId: mtMap.objectField(
-                              'assignment_id',
-                              mtMap.passthrough()
-                            ),
-                            createdAt: mtMap.objectField(
-                              'created_at',
-                              mtMap.date()
-                            ),
-                            updatedAt: mtMap.objectField(
-                              'updated_at',
-                              mtMap.date()
-                            )
-                          })
-                        )
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  consumer: mtMap.objectField(
-                    'consumer',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      userId: mtMap.objectField('user_id', mtMap.passthrough()),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  consumerProfile: mtMap.objectField(
-                    'consumer_profile',
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          email: mtMap.objectField(
-                            'email',
-                            mtMap.passthrough()
-                          ),
-                          imageUrl: mtMap.objectField(
-                            'image_url',
-                            mtMap.passthrough()
-                          ),
-                          consumerId: mtMap.objectField(
-                            'consumer_id',
-                            mtMap.passthrough()
-                          ),
-                          userId: mtMap.objectField(
-                            'user_id',
-                            mtMap.passthrough()
-                          ),
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          ),
-                          groups: mtMap.objectField(
-                            'groups',
-                            mtMap.array(
-                              mtMap.object({
-                                object: mtMap.objectField(
-                                  'object',
-                                  mtMap.passthrough()
-                                ),
-                                group: mtMap.objectField(
-                                  'group',
-                                  mtMap.object({
-                                    object: mtMap.objectField(
-                                      'object',
-                                      mtMap.passthrough()
-                                    ),
-                                    id: mtMap.objectField(
-                                      'id',
-                                      mtMap.passthrough()
-                                    ),
-                                    status: mtMap.objectField(
-                                      'status',
-                                      mtMap.passthrough()
-                                    ),
-                                    name: mtMap.objectField(
-                                      'name',
-                                      mtMap.passthrough()
-                                    ),
-                                    description: mtMap.objectField(
-                                      'description',
-                                      mtMap.passthrough()
-                                    ),
-                                    isDefault: mtMap.objectField(
-                                      'is_default',
-                                      mtMap.passthrough()
-                                    ),
-                                    createdAt: mtMap.objectField(
-                                      'created_at',
-                                      mtMap.date()
-                                    ),
-                                    updatedAt: mtMap.objectField(
-                                      'updated_at',
-                                      mtMap.date()
-                                    )
-                                  })
-                                ),
-                                assignedVia: mtMap.objectField(
-                                  'assigned_via',
-                                  mtMap.passthrough()
-                                )
-                              })
-                            )
-                          )
-                        })
-                      )
-                    ])
-                  )
-                })
-              ),
-              fork: mtMap.objectField(
-                'fork',
-                mtMap.object({
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  parentSkillId: mtMap.objectField(
-                    'parent_skill_id',
-                    mtMap.passthrough()
-                  ),
-                  creator: mtMap.objectField(
-                    'creator',
-                    mtMap.object({
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      organizationActor: mtMap.objectField(
+                [
+                  'creator',
+                  0,
+                  [
+                    1,
+                    [
+                      'image_url',
+                      [
                         'organization_actor',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          type: mtMap.objectField('type', mtMap.passthrough()),
-                          organizationId: mtMap.objectField(
+                        1,
+                        [
+                          1,
+                          [
                             'organization_id',
-                            mtMap.passthrough()
-                          ),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          email: mtMap.objectField(
-                            'email',
-                            mtMap.passthrough()
-                          ),
-                          imageUrl: mtMap.objectField(
                             'image_url',
-                            mtMap.passthrough()
-                          ),
-                          member: mtMap.objectField(
-                            'member',
-                            mtMap.object({
-                              object: mtMap.objectField(
-                                'object',
-                                mtMap.passthrough()
-                              ),
-                              id: mtMap.objectField('id', mtMap.passthrough()),
-                              status: mtMap.objectField(
-                                'status',
-                                mtMap.passthrough()
-                              ),
-                              role: mtMap.objectField(
-                                'role',
-                                mtMap.passthrough()
-                              )
-                            })
-                          ),
-                          teams: mtMap.objectField(
-                            'teams',
-                            mtMap.array(
-                              mtMap.object({
-                                id: mtMap.objectField(
-                                  'id',
-                                  mtMap.passthrough()
-                                ),
-                                name: mtMap.objectField(
-                                  'name',
-                                  mtMap.passthrough()
-                                ),
-                                slug: mtMap.objectField(
-                                  'slug',
-                                  mtMap.passthrough()
-                                ),
-                                assignmentId: mtMap.objectField(
-                                  'assignment_id',
-                                  mtMap.passthrough()
-                                ),
-                                createdAt: mtMap.objectField(
-                                  'created_at',
-                                  mtMap.date()
-                                ),
-                                updatedAt: mtMap.objectField(
-                                  'updated_at',
-                                  mtMap.date()
-                                )
-                              })
-                            )
-                          ),
-                          createdAt: mtMap.objectField(
+                            [
+                              'teams',
+                              0,
+                              [
+                                2,
+                                [
+                                  1,
+                                  ['assignment_id', 'created_at', 'updated_at']
+                                ]
+                              ]
+                            ],
                             'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          )
-                        })
-                      ),
-                      consumer: mtMap.objectField(
+                            'updated_at'
+                          ]
+                        ]
+                      ],
+                      [
                         'consumer',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          email: mtMap.objectField(
-                            'email',
-                            mtMap.passthrough()
-                          ),
-                          imageUrl: mtMap.objectField(
-                            'image_url',
-                            mtMap.passthrough()
-                          ),
-                          userId: mtMap.objectField(
-                            'user_id',
-                            mtMap.passthrough()
-                          ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          )
-                        })
-                      ),
-                      consumerProfile: mtMap.objectField(
+                        0,
+                        [
+                          1,
+                          ['image_url', 'user_id', 'created_at', 'updated_at']
+                        ]
+                      ],
+                      [
                         'consumer_profile',
-                        mtMap.union([
-                          mtMap.unionOption(
-                            'object',
-                            mtMap.object({
-                              object: mtMap.objectField(
-                                'object',
-                                mtMap.passthrough()
-                              ),
-                              id: mtMap.objectField('id', mtMap.passthrough()),
-                              name: mtMap.objectField(
-                                'name',
-                                mtMap.passthrough()
-                              ),
-                              email: mtMap.objectField(
-                                'email',
-                                mtMap.passthrough()
-                              ),
-                              imageUrl: mtMap.objectField(
-                                'image_url',
-                                mtMap.passthrough()
-                              ),
-                              consumerId: mtMap.objectField(
-                                'consumer_id',
-                                mtMap.passthrough()
-                              ),
-                              userId: mtMap.objectField(
-                                'user_id',
-                                mtMap.passthrough()
-                              ),
-                              status: mtMap.objectField(
-                                'status',
-                                mtMap.passthrough()
-                              ),
-                              createdAt: mtMap.objectField(
-                                'created_at',
-                                mtMap.date()
-                              ),
-                              updatedAt: mtMap.objectField(
-                                'updated_at',
-                                mtMap.date()
-                              ),
-                              groups: mtMap.objectField(
-                                'groups',
-                                mtMap.array(
-                                  mtMap.object({
-                                    object: mtMap.objectField(
-                                      'object',
-                                      mtMap.passthrough()
-                                    ),
-                                    group: mtMap.objectField(
-                                      'group',
-                                      mtMap.object({
-                                        object: mtMap.objectField(
-                                          'object',
-                                          mtMap.passthrough()
-                                        ),
-                                        id: mtMap.objectField(
-                                          'id',
-                                          mtMap.passthrough()
-                                        ),
-                                        status: mtMap.objectField(
-                                          'status',
-                                          mtMap.passthrough()
-                                        ),
-                                        name: mtMap.objectField(
-                                          'name',
-                                          mtMap.passthrough()
-                                        ),
-                                        description: mtMap.objectField(
-                                          'description',
-                                          mtMap.passthrough()
-                                        ),
-                                        isDefault: mtMap.objectField(
-                                          'is_default',
-                                          mtMap.passthrough()
-                                        ),
-                                        createdAt: mtMap.objectField(
-                                          'created_at',
-                                          mtMap.date()
-                                        ),
-                                        updatedAt: mtMap.objectField(
-                                          'updated_at',
-                                          mtMap.date()
-                                        )
-                                      })
-                                    ),
-                                    assignedVia: mtMap.objectField(
-                                      'assigned_via',
-                                      mtMap.passthrough()
-                                    )
-                                  })
-                                )
-                              )
-                            })
-                          )
-                        ])
-                      )
-                    })
-                  ),
-                  originalCreator: mtMap.objectField(
-                    'original_creator',
-                    mtMap.object({
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      organizationActor: mtMap.objectField(
-                        'organization_actor',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          type: mtMap.objectField('type', mtMap.passthrough()),
-                          organizationId: mtMap.objectField(
-                            'organization_id',
-                            mtMap.passthrough()
-                          ),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          email: mtMap.objectField(
-                            'email',
-                            mtMap.passthrough()
-                          ),
-                          imageUrl: mtMap.objectField(
-                            'image_url',
-                            mtMap.passthrough()
-                          ),
-                          member: mtMap.objectField(
-                            'member',
-                            mtMap.object({
-                              object: mtMap.objectField(
-                                'object',
-                                mtMap.passthrough()
-                              ),
-                              id: mtMap.objectField('id', mtMap.passthrough()),
-                              status: mtMap.objectField(
-                                'status',
-                                mtMap.passthrough()
-                              ),
-                              role: mtMap.objectField(
-                                'role',
-                                mtMap.passthrough()
-                              )
-                            })
-                          ),
-                          teams: mtMap.objectField(
-                            'teams',
-                            mtMap.array(
-                              mtMap.object({
-                                id: mtMap.objectField(
-                                  'id',
-                                  mtMap.passthrough()
-                                ),
-                                name: mtMap.objectField(
-                                  'name',
-                                  mtMap.passthrough()
-                                ),
-                                slug: mtMap.objectField(
-                                  'slug',
-                                  mtMap.passthrough()
-                                ),
-                                assignmentId: mtMap.objectField(
-                                  'assignment_id',
-                                  mtMap.passthrough()
-                                ),
-                                createdAt: mtMap.objectField(
+                        1,
+                        [
+                          3,
+                          [
+                            [
+                              0,
+                              [
+                                1,
+                                [
+                                  'image_url',
+                                  'consumer_id',
+                                  'user_id',
                                   'created_at',
-                                  mtMap.date()
-                                ),
-                                updatedAt: mtMap.objectField(
                                   'updated_at',
-                                  mtMap.date()
-                                )
-                              })
-                            )
-                          ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          )
-                        })
-                      ),
-                      consumer: mtMap.objectField(
-                        'consumer',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          email: mtMap.objectField(
-                            'email',
-                            mtMap.passthrough()
-                          ),
-                          imageUrl: mtMap.objectField(
+                                  [
+                                    'groups',
+                                    0,
+                                    [
+                                      2,
+                                      [
+                                        1,
+                                        [
+                                          [
+                                            'group',
+                                            0,
+                                            [
+                                              1,
+                                              [
+                                                'is_default',
+                                                'created_at',
+                                                'updated_at'
+                                              ]
+                                            ]
+                                          ],
+                                          'assigned_via'
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  'fork',
+                  0,
+                  [
+                    1,
+                    [
+                      'parent_skill_id',
+                      [
+                        'creator',
+                        0,
+                        [
+                          1,
+                          [
                             'image_url',
-                            mtMap.passthrough()
-                          ),
-                          userId: mtMap.objectField(
-                            'user_id',
-                            mtMap.passthrough()
-                          ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          )
-                        })
-                      ),
-                      consumerProfile: mtMap.objectField(
-                        'consumer_profile',
-                        mtMap.union([
-                          mtMap.unionOption(
-                            'object',
-                            mtMap.object({
-                              object: mtMap.objectField(
-                                'object',
-                                mtMap.passthrough()
-                              ),
-                              id: mtMap.objectField('id', mtMap.passthrough()),
-                              name: mtMap.objectField(
-                                'name',
-                                mtMap.passthrough()
-                              ),
-                              email: mtMap.objectField(
-                                'email',
-                                mtMap.passthrough()
-                              ),
-                              imageUrl: mtMap.objectField(
-                                'image_url',
-                                mtMap.passthrough()
-                              ),
-                              consumerId: mtMap.objectField(
-                                'consumer_id',
-                                mtMap.passthrough()
-                              ),
-                              userId: mtMap.objectField(
-                                'user_id',
-                                mtMap.passthrough()
-                              ),
-                              status: mtMap.objectField(
-                                'status',
-                                mtMap.passthrough()
-                              ),
-                              createdAt: mtMap.objectField(
-                                'created_at',
-                                mtMap.date()
-                              ),
-                              updatedAt: mtMap.objectField(
-                                'updated_at',
-                                mtMap.date()
-                              ),
-                              groups: mtMap.objectField(
-                                'groups',
-                                mtMap.array(
-                                  mtMap.object({
-                                    object: mtMap.objectField(
-                                      'object',
-                                      mtMap.passthrough()
-                                    ),
-                                    group: mtMap.objectField(
-                                      'group',
-                                      mtMap.object({
-                                        object: mtMap.objectField(
-                                          'object',
-                                          mtMap.passthrough()
-                                        ),
-                                        id: mtMap.objectField(
-                                          'id',
-                                          mtMap.passthrough()
-                                        ),
-                                        status: mtMap.objectField(
-                                          'status',
-                                          mtMap.passthrough()
-                                        ),
-                                        name: mtMap.objectField(
-                                          'name',
-                                          mtMap.passthrough()
-                                        ),
-                                        description: mtMap.objectField(
-                                          'description',
-                                          mtMap.passthrough()
-                                        ),
-                                        isDefault: mtMap.objectField(
-                                          'is_default',
-                                          mtMap.passthrough()
-                                        ),
-                                        createdAt: mtMap.objectField(
+                            [
+                              'organization_actor',
+                              1,
+                              [
+                                1,
+                                [
+                                  'organization_id',
+                                  'image_url',
+                                  [
+                                    'teams',
+                                    0,
+                                    [
+                                      2,
+                                      [
+                                        1,
+                                        [
+                                          'assignment_id',
                                           'created_at',
-                                          mtMap.date()
-                                        ),
-                                        updatedAt: mtMap.objectField(
-                                          'updated_at',
-                                          mtMap.date()
-                                        )
-                                      })
-                                    ),
-                                    assignedVia: mtMap.objectField(
-                                      'assigned_via',
-                                      mtMap.passthrough()
-                                    )
-                                  })
-                                )
-                              )
-                            })
-                          )
-                        ])
-                      )
-                    })
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date())
-                })
-              ),
-              entity: mtMap.objectField(
-                'entity',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  slug: mtMap.objectField('slug', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
-                  parentSkillId: mtMap.objectField(
-                    'parent_skill_id',
-                    mtMap.passthrough()
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              )
-            })
-          ),
-          integrations: mtMap.objectField(
+                                          'updated_at'
+                                        ]
+                                      ]
+                                    ]
+                                  ],
+                                  'created_at',
+                                  'updated_at'
+                                ]
+                              ]
+                            ],
+                            [
+                              'consumer',
+                              0,
+                              [
+                                1,
+                                [
+                                  'image_url',
+                                  'user_id',
+                                  'created_at',
+                                  'updated_at'
+                                ]
+                              ]
+                            ],
+                            [
+                              'consumer_profile',
+                              1,
+                              [
+                                3,
+                                [
+                                  [
+                                    0,
+                                    [
+                                      1,
+                                      [
+                                        'image_url',
+                                        'consumer_id',
+                                        'user_id',
+                                        'created_at',
+                                        'updated_at',
+                                        [
+                                          'groups',
+                                          0,
+                                          [
+                                            2,
+                                            [
+                                              1,
+                                              [
+                                                [
+                                                  'group',
+                                                  0,
+                                                  [
+                                                    1,
+                                                    [
+                                                      'is_default',
+                                                      'created_at',
+                                                      'updated_at'
+                                                    ]
+                                                  ]
+                                                ],
+                                                'assigned_via'
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      [
+                        'original_creator',
+                        1,
+                        [
+                          1,
+                          [
+                            'image_url',
+                            [
+                              'organization_actor',
+                              1,
+                              [
+                                1,
+                                [
+                                  'organization_id',
+                                  'image_url',
+                                  [
+                                    'teams',
+                                    0,
+                                    [
+                                      2,
+                                      [
+                                        1,
+                                        [
+                                          'assignment_id',
+                                          'created_at',
+                                          'updated_at'
+                                        ]
+                                      ]
+                                    ]
+                                  ],
+                                  'created_at',
+                                  'updated_at'
+                                ]
+                              ]
+                            ],
+                            [
+                              'consumer',
+                              0,
+                              [
+                                1,
+                                [
+                                  'image_url',
+                                  'user_id',
+                                  'created_at',
+                                  'updated_at'
+                                ]
+                              ]
+                            ],
+                            [
+                              'consumer_profile',
+                              1,
+                              [
+                                3,
+                                [
+                                  [
+                                    0,
+                                    [
+                                      1,
+                                      [
+                                        'image_url',
+                                        'consumer_id',
+                                        'user_id',
+                                        'created_at',
+                                        'updated_at',
+                                        [
+                                          'groups',
+                                          0,
+                                          [
+                                            2,
+                                            [
+                                              1,
+                                              [
+                                                [
+                                                  'group',
+                                                  0,
+                                                  [
+                                                    1,
+                                                    [
+                                                      'is_default',
+                                                      'created_at',
+                                                      'updated_at'
+                                                    ]
+                                                  ]
+                                                ],
+                                                'assigned_via'
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      'created_at'
+                    ]
+                  ]
+                ],
+                [
+                  'entity',
+                  0,
+                  [1, ['parent_skill_id', 'created_at', 'updated_at']]
+                ]
+              ]
+            ]
+          ],
+          [
             'integrations',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                configuration: mtMap.objectField(
-                  'configuration',
-                  mtMap.object({
-                    canAttachCustomToolFilters: mtMap.objectField(
-                      'can_attach_custom_tool_filters',
-                      mtMap.passthrough()
-                    ),
-                    canAttachCustomProviderConfig: mtMap.objectField(
-                      'can_attach_custom_provider_config',
-                      mtMap.passthrough()
-                    ),
-                    canOverrideToolFilters: mtMap.objectField(
-                      'can_override_tool_filters',
-                      mtMap.passthrough()
-                    ),
-                    useIntegrationNameInToolNames: mtMap.objectField(
-                      'use_integration_name_in_tool_names',
-                      mtMap.passthrough()
-                    )
-                  })
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-                archivedAt: mtMap.objectField('archived_at', mtMap.date())
-              })
-            )
-          ),
-          providers: mtMap.objectField(
-            'providers',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            0,
+            [
+              2,
+              [
+                1,
+                [
+                  [
+                    'configuration',
+                    0,
+                    [
+                      1,
+                      [
+                        'can_attach_custom_tool_filters',
+                        'can_attach_custom_provider_config',
+                        'can_override_tool_filters',
+                        'enable_callback_tools',
+                        'use_integration_name_in_tool_names'
+                      ]
+                    ]
+                  ],
+                  'created_at',
+                  'updated_at',
+                  'archived_at'
+                ]
+              ]
+            ]
+          ],
+          ['providers', 0, [2, 8]],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstanceSkillsListQuery = {
   limit?: number | undefined;
@@ -1080,75 +668,22 @@ export type ManagementInstanceSkillsListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapManagementInstanceSkillsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      skillGroupId: mtMap.objectField(
-        'skill_group_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      integrationId: mtMap.objectField(
-        'integration_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapManagementInstanceSkillsListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'skill_group_id',
+            'integration_id',
+            'provider_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

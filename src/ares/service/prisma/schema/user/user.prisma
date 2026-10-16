@@ -52,10 +52,11 @@ model User {
   signupMethod UserSignupMethod @default(email)
   hasLoggedIn  Boolean          @default(true)
 
+  syncRevision       BigInt  @default(0)
+  hyperplaneRevision BigInt?
+
   lastLoginAt  DateTime?
   lastActiveAt DateTime?
-  syncRevision BigInt @default(0)
-  hyperplaneRevision BigInt?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now()) @updatedAt
@@ -68,8 +69,23 @@ model User {
   userIdentities         UserIdentity[]
   userTermsAgreements    UserTermsAgreement[]
   auditLogs              AuditLog[]
+  password               UserPassword?
 
   @@unique([appOid, email])
   @@index([accountOid, id])
   @@index([appOid, email])
+}
+
+model UserPassword {
+  oid BigInt @id
+  id  String @unique
+
+  userOid BigInt @unique
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  hash    String
+  version String @default(dbgenerated("(gen_random_uuid())::text"))
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

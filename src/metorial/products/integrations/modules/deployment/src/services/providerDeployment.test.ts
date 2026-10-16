@@ -82,7 +82,7 @@ vi.mock('@metorial-subspace/module-provider-internal', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-enclave', () => ({
-  enclaveInternalService: { ensureEnclaveForProviderDeployment: vi.fn() }
+  integrationEnclaveInternalService: { ensureEnclaveForProviderDeployment: vi.fn() }
 }));
 
 vi.mock('@metorial-subspace/module-search', () => ({

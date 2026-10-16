@@ -1,126 +1,86 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
-import { PageHeader } from '@metorial/layout';
+import { DetailsOverviewLayout } from '@metorial/details-layout';
 import {
   useAttachNetworkPolicyToFirewall,
   useCreateNetworkPolicy,
   useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
   useDetachNetworkPolicyFromFirewall,
   useFirewall,
-  useNetwork,
   useNetworkPolicy
 } from '@metorial/state';
 import {
-  Attributes,
   Badge,
   Button,
   Dialog,
   Input,
   Menu,
-  Select,
   Spacer,
   Text,
+  Title,
   showModal
 } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
-import { RiArrowDownLine, RiArrowUpLine, RiMore2Line } from '@remixicon/react';
-import { Link, useParams } from 'react-router-dom';
-import { EmptyText, Stack } from '../_common';
+import { Box } from '@metorial/ui-product';
+import { RiArrowDownSLine, RiArrowUpSLine, RiMore2Line } from '@remixicon/react';
+import { useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import styled from 'styled-components';
+import { EmptyText } from '../_common';
 import { useNetworkManagementAccess } from '../_gate';
+import {
+  movePolicyRule,
+  nextRulePriority,
+  policyRuleInput,
+  ruleValues,
+  sortRules,
+  summarizeRule,
+  type NetworkRuleInput
+} from './ruleEditor';
+import { RuleWizard } from './ruleWizard';
 
-type PolicyRuleInput = {
-  effect: 'allow' | 'deny';
-  direction: 'ingress' | 'egress';
-  cidrs: string[];
-  description?: string;
-  enabled: boolean;
-  priority: number;
-  ports?: { from: number; to: number }[];
-};
-
-type PolicyRule = {
+type PolicyRule = Omit<NetworkRuleInput, 'description' | 'ports'> & {
   id: string;
-  object: 'network.policy.rule';
-  effect: 'allow' | 'deny';
-  direction: 'ingress' | 'egress';
-  cidrs: string[];
   description: string | null;
-  enabled: boolean;
-  priority: number;
-  ports: { object: 'network.policy.port_range'; from: number; to: number }[] | null;
+  ports: { from: number; to: number }[] | null;
 };
 
-let ipv4AddressRegex = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+let PolicyList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+`;
 
-let ipv6SegmentRegex = /^[0-9a-fA-F]{1,4}$/;
+let PolicySection = styled.section`
+  min-width: 0;
+`;
 
-let isValidIPv6Address = (address: string) => {
-  if (!address.includes(':')) return false;
+let PolicyHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 0px;
+`;
 
-  let compressedParts = address.split('::');
-  if (compressedParts.length > 2) return false;
+let Actions = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
 
-  let [left, right = ''] = compressedParts;
-  let leftSegments = left === '' ? [] : left.split(':');
-  let rightSegments = right === '' ? [] : right.split(':');
-  let segments = [...leftSegments, ...rightSegments];
+let RuleRow = styled.div`
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  padding: 6px 0;
+`;
 
-  if (segments.some(segment => !ipv6SegmentRegex.test(segment))) return false;
-
-  if (compressedParts.length === 1) return segments.length === 8;
-
-  return segments.length < 8;
-};
-
-let isValidCidr = (cidr: string) => {
-  let parts = cidr.split('/');
-  if (parts.length !== 2) return false;
-
-  let [address, prefix] = parts;
-  if (!/^\d+$/.test(prefix)) return false;
-
-  let prefixNumber = Number(prefix);
-
-  if (ipv4AddressRegex.test(address)) return prefixNumber >= 0 && prefixNumber <= 32;
-  if (isValidIPv6Address(address)) return prefixNumber >= 0 && prefixNumber <= 128;
-
-  return false;
-};
-
-let parsePorts = (portFrom: string, portTo: string) =>
-  portFrom !== '' && portTo !== ''
-    ? [{ from: Number(portFrom), to: Number(portTo) }]
-    : undefined;
-
-let getRuleInput = (values: {
-  effect: 'allow' | 'deny';
-  direction: 'ingress' | 'egress';
-  cidrs: string;
-  priority: string | number;
-  portFrom: string;
-  portTo: string;
-  description: string;
-}): PolicyRuleInput => ({
-  effect: values.effect,
-  direction: values.direction,
-  cidrs: values.cidrs
-    .split(',')
-    .map(cidr => cidr.trim())
-    .filter(Boolean),
-  enabled: true,
-  priority: Number(values.priority),
-  description: values.description || undefined,
-  ports: values.direction === 'egress' ? parsePorts(values.portFrom, values.portTo) : undefined
-});
-
-let Direction = ({ direction }: { direction: 'ingress' | 'egress' }) => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-    {direction === 'ingress' ? <RiArrowDownLine size={13} /> : <RiArrowUpLine size={13} />}
-    {direction.toUpperCase()}
-  </span>
-);
+let RuleContent = styled.div`
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+`;
 
 let showCreatePolicyModal = (p: {
   instanceId: string;
@@ -130,311 +90,168 @@ let showCreatePolicyModal = (p: {
   showModal(({ dialogProps, close }) => {
     let createPolicy = useCreateNetworkPolicy();
     let attachPolicy = useAttachNetworkPolicyToFirewall();
-    let form = useForm({
-      initialValues: { name: '', description: '', cidrs: '0.0.0.0/0' },
-      onSubmit: async values => {
-        let [policy] = await createPolicy.mutate({
-          instanceId: p.instanceId,
-          name: values.name.trim(),
-          description: values.description || undefined,
-          rules: [
-            {
-              effect: 'allow',
-              direction: 'egress',
-              cidrs: values.cidrs
-                .split(',')
-                .map(cidr => cidr.trim())
-                .filter(Boolean),
-              enabled: true,
-              priority: 100
-            }
-          ]
-        });
-
-        if (!policy) return;
-
-        await attachPolicy.mutate({
-          instanceId: p.instanceId,
-          firewallId: p.firewallId,
-          networkPolicyId: policy.id
-        });
-        close();
-        p.onComplete();
-      },
-      schema: yup =>
-        yup.object({
-          name: yup.string().trim().required('Name is required'),
-          description: yup.string(),
-          cidrs: yup
-            .string()
-            .trim()
-            .required('At least one CIDR is required')
-            .test('cidrs', 'Enter valid IPv4 or IPv6 CIDRs separated by commas', value => {
-              let cidrs = (value ?? '')
-                .split(',')
-                .map(cidr => cidr.trim())
-                .filter(Boolean);
-              return cidrs.length > 0 && cidrs.every(isValidCidr);
-            })
-        }) as any
-    });
+    let createdPolicyId = useRef<string | null>(null);
+    let [created, setCreated] = useState(false);
 
     return (
       <Dialog.Wrapper {...dialogProps} width={640}>
-        <Dialog.Title>Create Network Policy</Dialog.Title>
+        <Dialog.Title>Add Network Policy</Dialog.Title>
+        <Dialog.Description>Name your policy and configure its first rule.</Dialog.Description>
+        <RuleWizard
+          createPolicy
+          locked={created}
+          loading={createPolicy.isLoading || attachPolicy.isLoading}
+          success={attachPolicy.isSuccess}
+          submitLabel={created ? 'Retry Attachment' : 'Add Policy'}
+          close={close}
+          errors={
+            <>
+              <createPolicy.RenderError />
+              <attachPolicy.RenderError />
+            </>
+          }
+          onSubmit={async (rule, name) => {
+            if (!createdPolicyId.current) {
+              let [policy] = await createPolicy.mutate({
+                instanceId: p.instanceId,
+                name,
+                rules: [rule]
+              });
+              if (!policy) return false;
+
+              createdPolicyId.current = policy.id;
+              setCreated(true);
+            }
+
+            let [attached] = await attachPolicy.mutate({
+              instanceId: p.instanceId,
+              firewallId: p.firewallId,
+              networkPolicyId: createdPolicyId.current
+            });
+            if (!attached) return false;
+
+            p.onComplete();
+            return true;
+          }}
+        />
+      </Dialog.Wrapper>
+    );
+  });
+
+let showRuleModal = (p: {
+  instanceId: string;
+  policyId: string;
+  rule?: PolicyRule;
+  priority: number;
+  onComplete: () => void;
+}) =>
+  showModal(({ dialogProps, close }) => {
+    let policy = useNetworkPolicy(p.instanceId, p.policyId);
+    let createRule = policy.useCreateRuleMutator();
+    let updateRule = policy.useUpdateRuleMutator();
+    let mutator = p.rule ? updateRule : createRule;
+
+    return (
+      <Dialog.Wrapper {...dialogProps} width={640}>
+        <Dialog.Title>{p.rule ? 'Edit Network Rule' : 'Add Network Rule'}</Dialog.Title>
         <Dialog.Description>
-          Create a policy with an initial egress allow rule and attach it to this firewall.
+          Choose the traffic and connections this rule matches.
         </Dialog.Description>
-        <form onSubmit={form.handleSubmit}>
-          <Input label="Name" {...form.getFieldProps('name')} />
-          <form.RenderError field="name" />
-          <Spacer size={12} />
-          <Input label="Description" {...form.getFieldProps('description')} />
-          <Spacer size={12} />
-          <Input label="Allowed CIDRs" {...form.getFieldProps('cidrs')} />
-          <form.RenderError field="cidrs" />
-          <Spacer size={16} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button type="button" variant="outline" size="2" onClick={close}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="2"
-              loading={createPolicy.isLoading || attachPolicy.isLoading}
-            >
-              Create
-            </Button>
-          </div>
-          <createPolicy.RenderError />
-          <attachPolicy.RenderError />
-        </form>
+        <RuleWizard
+          editing={!!p.rule}
+          initialValues={ruleValues(p.rule, p.priority)}
+          loading={mutator.isLoading}
+          success={mutator.isSuccess}
+          submitLabel={p.rule ? 'Save Changes' : 'Add Rule'}
+          close={close}
+          errors={<mutator.RenderError />}
+          onSubmit={async rule => {
+            if (!policy.data) return false;
+
+            let [result] = p.rule
+              ? await updateRule.mutate({
+                  ruleId: p.rule.id,
+                  rule,
+                  currentRules: policy.data.rules
+                })
+              : await createRule.mutate(rule);
+            if (!result) return false;
+
+            p.onComplete();
+            return true;
+          }}
+        />
       </Dialog.Wrapper>
     );
   });
 
 let showEditPolicyModal = (p: {
-  name: string;
-  description: string | null;
-  onSubmit: (values: { name: string; description: string }) => Promise<void>;
+  instanceId: string;
+  policyId: string;
+  onComplete: () => void;
 }) =>
   showModal(({ dialogProps, close }) => {
+    let policy = useNetworkPolicy(p.instanceId, p.policyId);
+    let update = policy.useUpdateMutator();
     let form = useForm({
       initialValues: {
-        name: p.name,
-        description: p.description ?? ''
-      },
-      onSubmit: async values => {
-        await p.onSubmit({
-          name: values.name.trim(),
-          description: values.description
-        });
-        close();
+        name: policy.data?.name ?? '',
+        description: policy.data?.description ?? ''
       },
       schema: yup =>
         yup.object({
           name: yup.string().trim().required('Name is required'),
           description: yup.string()
-        }) as any
+        }),
+      onSubmit: async values => {
+        let [result] = await update.mutate({
+          name: values.name.trim(),
+          description: values.description || undefined
+        });
+        if (!result) return;
+
+        p.onComplete();
+        close();
+      }
     });
 
     return (
       <Dialog.Wrapper {...dialogProps} width={640}>
         <Dialog.Title>Edit Network Policy</Dialog.Title>
         <Dialog.Description>Update the policy name and description.</Dialog.Description>
-
         <form onSubmit={form.handleSubmit}>
           <Input label="Name" {...form.getFieldProps('name')} />
           <form.RenderError field="name" />
           <Spacer size={12} />
           <Input label="Description" {...form.getFieldProps('description')} />
+          <form.RenderError field="description" />
           <Spacer size={16} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button type="button" variant="outline" size="2" onClick={close}>
+          <Dialog.Actions>
+            <Button
+              type="button"
+              variant="outline"
+              size="2"
+              disabled={update.isLoading}
+              onClick={close}
+            >
               Cancel
             </Button>
-            <Button type="submit" size="2">
-              Save
+            <Button
+              type="submit"
+              size="2"
+              loading={update.isLoading}
+              success={update.isSuccess}
+            >
+              Save Changes
             </Button>
-          </div>
+          </Dialog.Actions>
+          <update.RenderError />
         </form>
       </Dialog.Wrapper>
     );
   });
 
-let showRuleModal = (p: {
-  title: string;
-  description: string;
-  initialValues?: {
-    effect: 'allow' | 'deny';
-    direction: 'ingress' | 'egress';
-    cidrs: string;
-    priority: string;
-    portFrom: string;
-    portTo: string;
-    description: string;
-  };
-  onSubmit: (rule: PolicyRuleInput) => Promise<void>;
-}) =>
-  showModal(({ dialogProps, close }) => {
-    let form = useForm({
-      initialValues: p.initialValues ?? {
-        effect: 'allow' as const,
-        direction: 'egress' as const,
-        cidrs: '0.0.0.0/0',
-        priority: '100',
-        portFrom: '',
-        portTo: '',
-        description: ''
-      },
-      onSubmit: async values => {
-        await p.onSubmit(getRuleInput(values));
-        close();
-      },
-      schema: yup =>
-        yup.object({
-          effect: yup.string().oneOf(['allow', 'deny']).required(),
-          direction: yup.string().oneOf(['ingress', 'egress']).required(),
-          cidrs: yup
-            .string()
-            .trim()
-            .required('At least one CIDR is required')
-            .test('cidrs', 'Enter valid IPv4 or IPv6 CIDRs separated by commas', value => {
-              let cidrs = (value ?? '')
-                .split(',')
-                .map(cidr => cidr.trim())
-                .filter(Boolean);
-              return cidrs.length > 0 && cidrs.every(isValidCidr);
-            }),
-          priority: yup
-            .number()
-            .integer('Priority must be a whole number')
-            .min(0, 'Priority must be 0 or higher')
-            .required('Priority is required'),
-          portFrom: yup
-            .number()
-            .integer('Port must be a whole number')
-            .min(1, 'Port must be at least 1')
-            .max(65535, 'Port must be 65535 or lower')
-            .transform((value, originalValue) => (originalValue === '' ? undefined : value))
-            .test('port-pair', 'Port From is required when Port To is set', function (value) {
-              return (
-                this.parent.direction === 'ingress' ||
-                this.parent.portTo === undefined ||
-                value !== undefined
-              );
-            })
-            .optional(),
-          portTo: yup
-            .number()
-            .integer('Port must be a whole number')
-            .min(1, 'Port must be at least 1')
-            .max(65535, 'Port must be 65535 or lower')
-            .transform((value, originalValue) => (originalValue === '' ? undefined : value))
-            .test('port-pair', 'Port To is required when Port From is set', function (value) {
-              return (
-                this.parent.direction === 'ingress' ||
-                this.parent.portFrom === undefined ||
-                value !== undefined
-              );
-            })
-            .test(
-              'port-range',
-              'Port To must be greater than or equal to Port From',
-              function (value) {
-                return (
-                  this.parent.direction === 'ingress' ||
-                  this.parent.portFrom === undefined ||
-                  value === undefined ||
-                  value >= this.parent.portFrom
-                );
-              }
-            )
-            .optional(),
-          description: yup.string()
-        }) as any
-    });
-
-    return (
-      <Dialog.Wrapper {...dialogProps} width={640}>
-        <Dialog.Title>{p.title}</Dialog.Title>
-        <Dialog.Description>{p.description}</Dialog.Description>
-
-        <form onSubmit={form.handleSubmit}>
-          <Select
-            label="Effect"
-            value={form.values.effect}
-            onChange={value => form.setFieldValue('effect', value)}
-            items={[
-              { id: 'allow', label: 'Allow' },
-              { id: 'deny', label: 'Deny' }
-            ]}
-          />
-          <form.RenderError field="effect" />
-          <Spacer size={12} />
-          <Select
-            label="Direction"
-            value={form.values.direction}
-            onChange={value => form.setFieldValue('direction', value)}
-            items={[
-              { id: 'egress', label: 'Egress' },
-              { id: 'ingress', label: 'Ingress' }
-            ]}
-          />
-          <form.RenderError field="direction" />
-          <Spacer size={12} />
-          <Input label="CIDRs" {...form.getFieldProps('cidrs')} />
-          <form.RenderError field="cidrs" />
-          <Spacer size={12} />
-          <Input
-            label="Priority"
-            type="number"
-            min={0}
-            step={1}
-            {...form.getFieldProps('priority')}
-          />
-          <form.RenderError field="priority" />
-          {form.values.direction === 'egress' && (
-            <>
-              <Spacer size={12} />
-              <Input
-                label="Port From"
-                type="number"
-                min={1}
-                max={65535}
-                step={1}
-                {...form.getFieldProps('portFrom')}
-              />
-              <form.RenderError field="portFrom" />
-              <Spacer size={12} />
-              <Input
-                label="Port To"
-                type="number"
-                min={1}
-                max={65535}
-                step={1}
-                {...form.getFieldProps('portTo')}
-              />
-              <form.RenderError field="portTo" />
-            </>
-          )}
-          <Spacer size={12} />
-          <Input label="Description" {...form.getFieldProps('description')} />
-          <Spacer size={16} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button type="button" variant="outline" size="2" onClick={close}>
-              Cancel
-            </Button>
-            <Button type="submit" size="2">
-              Save
-            </Button>
-          </div>
-        </form>
-      </Dialog.Wrapper>
-    );
-  });
-
-let PolicyBox = (p: {
+let PolicyGroup = (p: {
   instanceId: string;
   firewallId: string;
   policyId: string;
@@ -442,217 +259,201 @@ let PolicyBox = (p: {
   canWrite: boolean;
 }) => {
   let policy = useNetworkPolicy(p.instanceId, p.policyId);
-  let updatePolicy = policy.useUpdateMutator();
   let deleteRule = policy.useDeleteRuleMutator();
-  let createRule = policy.useCreateRuleMutator();
-  let updateRule = policy.useUpdateRuleMutator();
   let detachPolicy = useDetachNetworkPolicyFromFirewall();
+  let reorder = policy.useUpdateMutator();
+  let [movingRule, setMovingRule] = useState<string | null>(null);
+  let reordering = useRef(false);
+  let busy =
+    deleteRule.isLoading || detachPolicy.isLoading || reorder.isLoading || !!movingRule;
 
-  return renderWithLoader({ policy })(({ policy }) => (
-    <Box
-      title={policy.data.name}
-      description={`Version ${policy.data.version}`}
-      rightActions={
-        p.canWrite ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Button
-              size="2"
-              onClick={() =>
-                showRuleModal({
-                  title: 'Add Network Rule',
-                  description: 'Add a rule to this network policy.',
-                  initialValues: {
-                    effect: 'allow',
-                    direction: 'egress',
-                    cidrs: '0.0.0.0/0',
-                    priority: String(policy.data.rules.length + 100),
-                    portFrom: '',
-                    portTo: '',
-                    description: ''
-                  },
-                  onSubmit: async rule => {
-                    await createRule.mutate(rule);
-                    p.onComplete();
-                  }
-                })
-              }
-            >
-              Add Rule
-            </Button>
+  return renderWithLoader({ policy })(({ policy }) => {
+    let addRule = () =>
+      showRuleModal({
+        instanceId: p.instanceId,
+        policyId: p.policyId,
+        priority: nextRulePriority(policy.data.rules),
+        onComplete: p.onComplete
+      });
 
-            <Menu
-              items={[
-                { id: 'edit', label: 'Edit' },
-                { id: 'detach', label: 'Detach' }
-              ]}
-              onItemClick={async item => {
-                if (item === 'edit') {
-                  showEditPolicyModal({
-                    name: policy.data.name,
-                    description: policy.data.description,
-                    onSubmit: async values => {
-                      await updatePolicy.mutate({
-                        name: values.name,
-                        description: values.description || undefined
-                      });
-                      p.onComplete();
-                    }
-                  });
-                }
+    let orderedRules = sortRules(policy.data.rules);
+    let moveRule = async (ruleId: string, offset: -1 | 1) => {
+      if (busy || reordering.current) return;
+      reordering.current = true;
+      setMovingRule(ruleId);
 
-                if (item === 'detach') {
-                  await detachPolicy.mutate({
-                    instanceId: p.instanceId,
-                    firewallId: p.firewallId,
-                    networkPolicyId: p.policyId
-                  });
-                  p.onComplete();
-                }
-              }}
-            >
-              <Button
-                size="2"
-                variant="outline"
-                iconLeft={<RiMore2Line />}
-                title="Policy actions"
-              />
-            </Menu>
-          </div>
-        ) : undefined
+      try {
+        let [, error] = await reorder.mutate({
+          rules: movePolicyRule(policy.data.rules, ruleId, offset).map(policyRuleInput)
+        });
+        if (!error) p.onComplete();
+      } finally {
+        reordering.current = false;
+        setMovingRule(null);
       }
-    >
-      {policy.data.rules.length > 0 ? (
-        <Table
-          headers={['Effect', 'Direction', 'CIDRs', 'Ports', 'Priority', '']}
-          data={policy.data.rules.map((rule: PolicyRule) => ({
-            data: [
-              <Badge color={rule.effect === 'allow' ? 'green' : 'red'}>
-                {rule.effect.toUpperCase()}
-              </Badge>,
-              <Direction direction={rule.direction} />,
-              <Text size="2">{rule.cidrs.join(', ')}</Text>,
-              <Text size="2">
-                {rule.ports?.map(port => `${port.from}-${port.to}`).join(', ') ?? 'All'}
-              </Text>,
-              <Text size="2">{rule.priority}</Text>,
-              p.canWrite ? (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-                  <Menu
-                    items={[
-                      { id: 'edit', label: 'Edit' },
-                      { id: 'remove', label: 'Remove' }
-                    ]}
-                    onItemClick={async item => {
-                      if (item === 'edit') {
-                        showRuleModal({
-                          title: 'Edit Network Rule',
-                          description: 'Update this network policy rule.',
-                          initialValues: {
-                            effect: rule.effect,
-                            direction: rule.direction,
-                            cidrs: rule.cidrs.join(', '),
-                            priority: String(rule.priority),
-                            portFrom: rule.ports?.[0] ? String(rule.ports[0].from) : '',
-                            portTo: rule.ports?.[0] ? String(rule.ports[0].to) : '',
-                            description: rule.description ?? ''
-                          },
-                          onSubmit: async nextRule => {
-                            await updateRule.mutate({
-                              ruleId: rule.id,
-                              rule: nextRule,
-                              currentRules: policy.data.rules.map(
-                                (currentRule: PolicyRule) => ({
-                                  id: currentRule.id,
-                                  effect: currentRule.effect,
-                                  direction: currentRule.direction,
-                                  cidrs: currentRule.cidrs,
-                                  description: currentRule.description,
-                                  enabled: currentRule.enabled,
-                                  priority: currentRule.priority,
-                                  ports:
-                                    currentRule.ports?.map(port => ({
-                                      from: port.from,
-                                      to: port.to
-                                    })) ?? null
-                                })
-                              )
-                            });
-                            p.onComplete();
-                          }
-                        });
-                      }
+    };
 
-                      if (item === 'remove') {
-                        await deleteRule.mutate({ ruleId: rule.id });
-                        p.onComplete();
-                      }
-                    }}
-                  >
+    return (
+      <PolicySection>
+        <PolicyHeader>
+          <div>
+            <Title as="h3" size="2" weight="strong">
+              {policy.data.name}
+            </Title>
+            {policy.data.description && (
+              <Text as="p" size="2" color="gray600">
+                {policy.data.description}
+              </Text>
+            )}
+          </div>
+          {p.canWrite && (
+            <Actions>
+              <Button size="1" variant="outline" disabled={busy} onClick={addRule}>
+                Add Rule
+              </Button>
+              <Menu
+                items={[
+                  { id: 'edit', label: 'Edit Policy' },
+                  { id: 'detach', label: 'Remove From Firewall' }
+                ]}
+                onItemClick={async item => {
+                  if (busy) return;
+                  if (item === 'edit')
+                    showEditPolicyModal({
+                      instanceId: p.instanceId,
+                      policyId: p.policyId,
+                      onComplete: p.onComplete
+                    });
+                  if (item === 'detach') {
+                    let [, error] = await detachPolicy.mutate({
+                      instanceId: p.instanceId,
+                      firewallId: p.firewallId,
+                      networkPolicyId: p.policyId
+                    });
+                    if (!error) p.onComplete();
+                  }
+                }}
+              >
+                <Button
+                  size="1"
+                  variant="outline"
+                  disabled={busy}
+                  loading={detachPolicy.isLoading}
+                  success={detachPolicy.isSuccess}
+                  iconLeft={<RiMore2Line />}
+                  title={`Actions for ${policy.data.name}`}
+                />
+              </Menu>
+            </Actions>
+          )}
+        </PolicyHeader>
+        {orderedRules.length > 1 && (
+          <Text as="p" size="1" color="gray600">
+            Rules in this policy are evaluated from top to bottom.
+          </Text>
+        )}
+        {orderedRules.map((rule, index) => (
+          <RuleRow key={rule.id}>
+            <Badge color={rule.effect === 'allow' ? 'green' : 'red'}>
+              {rule.effect === 'allow' ? 'Allow' : 'Block'}
+            </Badge>
+            <RuleContent>
+              <Text size="2">
+                {summarizeRule({ ...rule, ports: rule.ports ?? undefined })}
+              </Text>
+              {!rule.enabled && (
+                <Text as="p" size="1" color="gray600">
+                  Disabled
+                </Text>
+              )}
+              {rule.description && (
+                <Text as="p" size="2" color="gray600">
+                  {rule.description}
+                </Text>
+              )}
+            </RuleContent>
+            {p.canWrite && (
+              <Actions>
+                {orderedRules.length > 1 && (
+                  <>
                     <Button
                       size="1"
                       variant="outline"
-                      iconLeft={<RiMore2Line />}
-                      title="Rule actions"
+                      title="Move Rule Up"
+                      aria-label="Move Rule Up"
+                      disabled={busy || index === 0}
+                      onClick={() => void moveRule(rule.id, -1)}
+                      iconLeft={<RiArrowUpSLine />}
                     />
-                  </Menu>
-                </div>
-              ) : null
-            ]
-          }))}
-        />
-      ) : (
-        <EmptyText>No rules in this policy.</EmptyText>
-      )}
-    </Box>
-  ));
+                    <Button
+                      size="1"
+                      variant="outline"
+                      title="Move Rule Down"
+                      aria-label="Move Rule Down"
+                      disabled={busy || index === orderedRules.length - 1}
+                      onClick={() => void moveRule(rule.id, 1)}
+                      iconLeft={<RiArrowDownSLine />}
+                    />
+                  </>
+                )}
+                <Menu
+                  items={[
+                    { id: 'edit', label: 'Edit Rule' },
+                    { id: 'remove', label: 'Remove Rule' }
+                  ]}
+                  onItemClick={async item => {
+                    if (busy) return;
+                    if (item === 'edit')
+                      showRuleModal({
+                        instanceId: p.instanceId,
+                        policyId: p.policyId,
+                        rule,
+                        priority: rule.priority,
+                        onComplete: p.onComplete
+                      });
+                    if (item === 'remove') {
+                      let [, error] = await deleteRule.mutate({ ruleId: rule.id });
+                      if (!error) p.onComplete();
+                    }
+                  }}
+                >
+                  <Button
+                    size="1"
+                    variant="outline"
+                    disabled={busy}
+                    iconLeft={<RiMore2Line />}
+                    title="Rule Actions"
+                  />
+                </Menu>
+              </Actions>
+            )}
+          </RuleRow>
+        ))}
+        {!policy.data.rules.length && (
+          <Text as="p" size="2" color="gray600">
+            No rules yet. {p.canWrite ? 'Use Add Rule to configure this policy.' : ''}
+          </Text>
+        )}
+        <reorder.RenderError />
+        <deleteRule.RenderError />
+        <detachPolicy.RenderError />
+      </PolicySection>
+    );
+  });
 };
 
 export let NetworkFirewallPage = () => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
   let instance = useCurrentInstance();
   let { firewallId } = useParams();
   let firewall = useFirewall(instance.data?.id, firewallId);
-  let network = useNetwork(instance.data?.id, firewall.data?.networkId);
   let { canWrite } = useNetworkManagementAccess();
 
   return renderWithLoader({ firewall })(({ firewall }) => (
-    <>
-      <Attributes
-        itemWidth="300px"
-        attributes={[
-          {
-            label: 'ID',
-            content: <ID id={firewall.data.id} />
-          },
-          {
-            label: 'Network',
-            content: (
-              <Link
-                to={Paths.organization.instance.networkSettings(
-                  organization.data,
-                  project.data,
-                  instance.data
-                )}
-              >
-                {network.data?.name ?? 'Loading...'}
-              </Link>
-            )
-          },
-          {
-            label: 'Created',
-            content: firewall.data.createdAt.toLocaleString()
-          }
-        ]}
-      />
-
-      <Spacer size={20} />
-
-      <PageHeader
-        size="5"
+    <DetailsOverviewLayout>
+      <Box
         title="Network Policies"
-        description="Network policies define which connections this firewall allows or blocks."
-        actions={
+        description="Choose which incoming and outgoing connections this firewall allows or blocks."
+        rightActions={
           canWrite ? (
             <Button
               size="2"
@@ -664,28 +465,28 @@ export let NetworkFirewallPage = () => {
                 })
               }
             >
-              Create Policy
+              Add Policy
             </Button>
           ) : undefined
         }
-      />
-
-      {firewall.data.networkPolicies.length > 0 ? (
-        <Stack>
-          {firewall.data.networkPolicies.map(policy => (
-            <PolicyBox
-              key={policy.id}
-              instanceId={instance.data!.id}
-              firewallId={firewall.data.id}
-              policyId={policy.id}
-              canWrite={canWrite}
-              onComplete={() => firewall.refetch()}
-            />
-          ))}
-        </Stack>
-      ) : (
-        <EmptyText>No policies attached to this firewall.</EmptyText>
-      )}
-    </>
+      >
+        {firewall.data.networkPolicies.length ? (
+          <PolicyList>
+            {firewall.data.networkPolicies.map(policy => (
+              <PolicyGroup
+                key={policy.id}
+                instanceId={instance.data!.id}
+                firewallId={firewall.data.id}
+                policyId={policy.id}
+                canWrite={canWrite}
+                onComplete={() => firewall.refetch()}
+              />
+            ))}
+          </PolicyList>
+        ) : (
+          <EmptyText>No policies attached to this firewall.</EmptyText>
+        )}
+      </Box>
+    </DetailsOverviewLayout>
   ));
 };

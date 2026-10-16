@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceChatsDmsOpenOutput = {
   object: 'chat.channel';
@@ -62,78 +65,39 @@ export type DashboardInstanceChatsDmsOpenOutput = {
 };
 
 export let mapDashboardInstanceChatsDmsOpenOutput =
-  mtMap.object<DashboardInstanceChatsDmsOpenOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-    workspaceId: mtMap.objectField('workspace_id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-    providerChannelId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceChatsDmsOpenOutput>(
+    [
+      'chat_id',
+      'workspace_id',
+      'provider_type',
       'provider_channel_id',
-      mtMap.passthrough()
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    topic: mtMap.objectField('topic', mtMap.passthrough()),
-    subject: mtMap.objectField('subject', mtMap.passthrough()),
-    hasAccess: mtMap.objectField('has_access', mtMap.passthrough()),
-    recipient: mtMap.objectField(
-      'recipient',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        chatId: mtMap.objectField('chat_id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        role: mtMap.objectField('role', mtMap.passthrough()),
-        providerType: mtMap.objectField('provider_type', mtMap.passthrough()),
-        providerAuthorId: mtMap.objectField(
-          'provider_author_id',
-          mtMap.passthrough()
-        ),
-        userName: mtMap.objectField('user_name', mtMap.passthrough()),
-        fullName: mtMap.objectField('full_name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        isSelf: mtMap.objectField('is_self', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        lastInteractionAt: mtMap.objectField(
-          'last_interaction_at',
-          mtMap.date()
-        )
-      })
-    ),
-    memberCount: mtMap.objectField('member_count', mtMap.passthrough()),
-    permalink: mtMap.objectField('permalink', mtMap.passthrough()),
-    context: mtMap.objectField(
-      'context',
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough()),
-        author: mtMap.objectField(
-          'author',
-          mtMap.object({
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough())
-          })
-        ),
-        assignee: mtMap.objectField(
-          'assignee',
-          mtMap.object({
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough())
-          })
-        ),
-        labels: mtMap.objectField('labels', mtMap.array(mtMap.passthrough()))
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    lastInteractionAt: mtMap.objectField('last_interaction_at', mtMap.date())
-  });
+      'has_access',
+      [
+        'recipient',
+        0,
+        [
+          1,
+          [
+            'chat_id',
+            'provider_type',
+            'provider_author_id',
+            'user_name',
+            'full_name',
+            'image_url',
+            'is_self',
+            'created_at',
+            'updated_at',
+            'last_interaction_at'
+          ]
+        ]
+      ],
+      'member_count',
+      'created_at',
+      'updated_at',
+      'last_interaction_at'
+    ],
+    1
+  );
 
 export type DashboardInstanceChatsDmsOpenBody =
   | {
@@ -151,52 +115,19 @@ export type DashboardInstanceChatsDmsOpenBody =
         | { type: 'generic'; userIds: string[] };
     };
 
-export let mapDashboardInstanceChatsDmsOpenBody = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      type: mtMap.objectField('type', mtMap.passthrough()),
-      user: mtMap.objectField(
-        'user',
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough()),
-              phoneNumber: mtMap.objectField(
-                'phone_number',
-                mtMap.passthrough()
-              ),
-              userId: mtMap.objectField('user_id', mtMap.passthrough())
-            })
-          )
-        ])
-      ),
-      users: mtMap.objectField(
-        'users',
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              emails: mtMap.objectField(
-                'emails',
-                mtMap.array(mtMap.passthrough())
-              ),
-              phoneNumbers: mtMap.objectField(
-                'phone_numbers',
-                mtMap.array(mtMap.passthrough())
-              ),
-              userIds: mtMap.objectField(
-                'user_ids',
-                mtMap.array(mtMap.passthrough())
-              )
-            })
-          )
-        ])
-      )
-    })
-  )
-]);
-
+export let mapDashboardInstanceChatsDmsOpenBody =
+  /* @__PURE__ */ createMapper<DashboardInstanceChatsDmsOpenBody>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            ['user', 0, [3, [[0, [1, ['phone_number', 'user_id']]]]]],
+            ['users', 0, [3, [[0, [1, ['phone_numbers', 'user_ids']]]]]]
+          ]
+        ]
+      ]
+    ]
+  ]);

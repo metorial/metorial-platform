@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SkillsPluginsListOutput = {
   items: ({
@@ -51,130 +51,68 @@ export type SkillsPluginsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapSkillsPluginsListOutput = mtMap.object<SkillsPluginsListOutput>({
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            syncStatus: mtMap.objectField('sync_status', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            longDescription: mtMap.objectField(
-              'long_description',
-              mtMap.passthrough()
-            ),
-            category: mtMap.objectField('category', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            skillConfigurationId: mtMap.objectField(
-              'skill_configuration_id',
-              mtMap.passthrough()
-            ),
-            skills: mtMap.objectField(
-              'skills',
-              mtMap.array(
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  identifier: mtMap.objectField(
-                    'identifier',
-                    mtMap.passthrough()
-                  ),
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  clientName: mtMap.objectField(
-                    'client_name',
-                    mtMap.passthrough()
-                  ),
-                  clientDescription: mtMap.objectField(
-                    'client_description',
-                    mtMap.passthrough()
-                  ),
-                  clientMetadata: mtMap.objectField(
-                    'client_metadata',
-                    mtMap.passthrough()
-                  ),
-                  license: mtMap.objectField('license', mtMap.passthrough()),
-                  compatibility: mtMap.objectField(
-                    'compatibility',
-                    mtMap.passthrough()
-                  ),
-                  skillConfigurationId: mtMap.objectField(
-                    'skill_configuration_id',
-                    mtMap.passthrough()
-                  ),
-                  skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
-                  skill: mtMap.objectField(
-                    'skill',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      status: mtMap.objectField('status', mtMap.passthrough()),
-                      slug: mtMap.objectField('slug', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      description: mtMap.objectField(
-                        'description',
-                        mtMap.passthrough()
-                      ),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      clientName: mtMap.objectField(
+export let mapSkillsPluginsListOutput =
+  /* @__PURE__ */ createMapper<SkillsPluginsListOutput>(
+    [
+      7,
+      [
+        3,
+        [
+          [
+            0,
+            [
+              1,
+              [
+                'sync_status',
+                'image_url',
+                'long_description',
+                'skill_configuration_id',
+                [
+                  'skills',
+                  0,
+                  [
+                    2,
+                    [
+                      1,
+                      [
                         'client_name',
-                        mtMap.passthrough()
-                      ),
-                      clientDescription: mtMap.objectField(
                         'client_description',
-                        mtMap.passthrough()
-                      ),
-                      clientMetadata: mtMap.objectField(
                         'client_metadata',
-                        mtMap.passthrough()
-                      ),
-                      license: mtMap.objectField(
-                        'license',
-                        mtMap.passthrough()
-                      ),
-                      compatibility: mtMap.objectField(
-                        'compatibility',
-                        mtMap.passthrough()
-                      ),
-                      metadata: mtMap.objectField(
-                        'metadata',
-                        mtMap.passthrough()
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              )
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-            canUpdate: mtMap.objectField('can_update', mtMap.passthrough()),
-            canDelete: mtMap.objectField('can_delete', mtMap.passthrough())
-          })
-        )
-      ])
-    )
-  ),
-  pagination: mtMap.objectField(
-    'pagination',
-    mtMap.object({
-      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
-      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-    })
-  )
-});
+                        'skill_configuration_id',
+                        'skill_id',
+                        [
+                          'skill',
+                          0,
+                          [
+                            1,
+                            [
+                              'image_url',
+                              'client_name',
+                              'client_description',
+                              'client_metadata',
+                              'created_at',
+                              'updated_at'
+                            ]
+                          ]
+                        ],
+                        'created_at',
+                        'updated_at'
+                      ]
+                    ]
+                  ]
+                ],
+                'created_at',
+                'updated_at',
+                'can_update',
+                'can_delete'
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type SkillsPluginsListQuery = {
   limit?: number | undefined;
@@ -198,66 +136,21 @@ export type SkillsPluginsListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapSkillsPluginsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      skillMarketplaceId: mtMap.objectField(
-        'skill_marketplace_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      category: mtMap.objectField('category', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      skillConfigurationId: mtMap.objectField(
-        'skill_configuration_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapSkillsPluginsListQuery =
+  /* @__PURE__ */ createMapper<SkillsPluginsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'skill_marketplace_id',
+            'skill_configuration_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

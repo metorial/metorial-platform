@@ -55,6 +55,18 @@ let syncsTokensAcrossConnections = async (authConfig: AuthConfigWithSecret) => {
   return spec?.syncTokensAcrossConnections === true;
 };
 
+type OAuthCredentialsWithSecret = SlateOAuthCredentials & { secret: Secret };
+
+// Input-based methods (e.g. bot tokens) refresh from the config's own input, without an OAuth app.
+type RefreshSource =
+  | { kind: 'oauth'; credentials: OAuthCredentialsWithSecret }
+  | { kind: 'input' };
+
+let refreshesFromInput = (authConfig: AuthConfigWithSecret) =>
+  authConfig.type === 'manual' &&
+  authConfig.authMethod.type !== 'oauth' &&
+  authConfig.authMethod.spec.capabilities.handleTokenRefresh?.enabled === true;
+
 let isExpiring = (tokenExpiresAt: Date | null, minExpirationBuffer: number) =>
   !!tokenExpiresAt && tokenExpiresAt.getTime() < Date.now() + minExpirationBuffer;
 
@@ -141,7 +153,23 @@ class slateAuthHandlerServiceImpl {
     }
 
     if (isExpiring(authConfig.tokenExpiresAt, d.minExpirationBuffer)) {
-      if (authConfig.type !== 'oauth_automated') {
+      let source: RefreshSource;
+
+      if (authConfig.type === 'oauth_automated') {
+        if (!authConfig.oauthCredentialsOid) {
+          throw new Error('WTF - oauthCredentialsOid is missing on oauth_automated config');
+        }
+
+        source = {
+          kind: 'oauth',
+          credentials: await db.slateOAuthCredentials.findFirstOrThrow({
+            where: { oid: authConfig.oauthCredentialsOid },
+            include: { secret: true }
+          })
+        };
+      } else if (refreshesFromInput(authConfig)) {
+        source = { kind: 'input' };
+      } else {
         throw new ServiceError(
           badRequestError({
             code: 'authentication_expired',
@@ -150,21 +178,12 @@ class slateAuthHandlerServiceImpl {
         );
       }
 
-      if (!authConfig.oauthCredentialsOid) {
-        throw new Error('WTF - oauthCredentialsOid is missing on oauth_automated config');
-      }
-
-      let oauthCredentials = await db.slateOAuthCredentials.findFirstOrThrow({
-        where: { oid: authConfig.oauthCredentialsOid },
-        include: { secret: true }
-      });
-
       let refreshed = await this.refreshUnderLock({
         tenant: d.tenant,
         slateInstance: d.slateInstance,
         minExpirationBuffer: d.minExpirationBuffer,
         authConfig,
-        oauthCredentials
+        source
       });
 
       return {
@@ -200,21 +219,47 @@ class slateAuthHandlerServiceImpl {
     });
   }
 
+  // The refresh RPC requires client fields; input-based methods read theirs from the config input.
+  private async resolveRefreshClient(d: {
+    source: RefreshSource;
+    authConfig: AuthConfigWithSecret;
+    tenant: Tenant;
+  }) {
+    if (d.source.kind === 'input') return { clientId: '', clientSecret: '', scopes: [] };
+
+    let secret = await secretService.DANGEROUSLY_decryptSecret({
+      secret: d.source.credentials.secret,
+      purpose: 'slate_oauth_credentials',
+      tenant: d.tenant,
+      note: `oauth-rfr creds:${d.source.credentials.id} cfg:${d.authConfig.id}`
+    });
+    return {
+      clientId: secret.clientId,
+      clientSecret: secret.clientSecret,
+      scopes: d.source.credentials.scopes
+    };
+  }
+
   private async refreshUnderLock(d: {
     tenant: Tenant;
     slateInstance?: SlateInstance;
     minExpirationBuffer: number;
     authConfig: AuthConfigWithSecret;
-    oauthCredentials: SlateOAuthCredentials & { secret: Secret };
+    source: RefreshSource;
   }) {
-    let identity: SharedOAuthIdentity = {
-      authConfigOid: d.authConfig.oid,
-      slateOid: d.authConfig.slateOid,
-      authMethodKey: d.authConfig.authMethod.key,
-      clientId: d.oauthCredentials.clientId,
-      profileUid: d.authConfig.profileUid
-    };
-    let syncsTokens = await syncsTokensAcrossConnections(d.authConfig);
+    let sharedIdentity: SharedOAuthIdentity | null =
+      d.source.kind === 'oauth' && (await syncsTokensAcrossConnections(d.authConfig))
+        ? {
+            authConfigOid: d.authConfig.oid,
+            slateOid: d.authConfig.slateOid,
+            authMethodKey: d.authConfig.authMethod.key,
+            clientId: d.source.credentials.clientId,
+            profileUid: d.authConfig.profileUid
+          }
+        : null;
+    let lockKey = sharedIdentity
+      ? sharedOAuthRefreshLockKey(sharedIdentity, true)
+      : `cfg:${d.authConfig.oid}`;
 
     let reload = async () => {
       let fresh = await db.slateAuthConfig.findFirstOrThrow({
@@ -243,7 +288,7 @@ class slateAuthHandlerServiceImpl {
 
     try {
       await refreshLock.usingLock(
-        sharedOAuthRefreshLockKey(identity, syncsTokens),
+        lockKey,
         async () => {
           try {
             let fresh = await reload();
@@ -254,10 +299,12 @@ class slateAuthHandlerServiceImpl {
                 tenant: d.tenant,
                 slateInstance: d.slateInstance,
                 authConfig: fresh,
-                oauthCredentials: d.oauthCredentials,
+                source: d.source,
                 decrypted,
                 syncSiblingsOf:
-                  syncsTokens && fresh.profileUid === identity.profileUid ? identity : null
+                  sharedIdentity && fresh.profileUid === sharedIdentity.profileUid
+                    ? sharedIdentity
+                    : null
               });
             }
 
@@ -303,18 +350,12 @@ class slateAuthHandlerServiceImpl {
     tenant: Tenant;
     slateInstance?: SlateInstance;
     authConfig: AuthConfigWithSecret;
-    oauthCredentials: SlateOAuthCredentials & { secret: Secret };
+    source: RefreshSource;
     decrypted: SecretSlateAuthConfig;
     syncSiblingsOf: SharedOAuthIdentity | null;
   }) {
-    let { authConfig, oauthCredentials, decrypted } = d;
-
-    let oauthDecrypted = await secretService.DANGEROUSLY_decryptSecret({
-      secret: oauthCredentials.secret,
-      purpose: 'slate_oauth_credentials',
-      tenant: d.tenant,
-      note: `oauth-rfr creds:${oauthCredentials.id} cfg:${authConfig.id}`
-    });
+    let { authConfig, source, decrypted } = d;
+    let client = await this.resolveRefreshClient({ source, authConfig, tenant: d.tenant });
 
     let authMethod = await db.slateAuthMethod.findFirstOrThrow({
       where: { oid: authConfig.authMethodOid },
@@ -344,19 +385,20 @@ class slateAuthHandlerServiceImpl {
       authenticationMethodId: authMethod.key,
       input: decrypted.input ?? {},
       output: decrypted.output ?? {},
-      clientId: oauthDecrypted.clientId,
-      clientSecret: oauthDecrypted.clientSecret,
-      scopes: oauthCredentials.scopes
+      ...client
     });
     if (res.status === 'error') {
-      await db.slateAuthConfig.updateMany({
-        where: { oid: authConfig.oid },
-        data: {
-          errorCode: res.error.code,
-          errorMessage: res.error.message,
-          errorInvocationId: res.invocation.id
-        }
-      });
+      // Only OAuth failures break the config; input-based refreshes retry next time.
+      if (source.kind === 'oauth') {
+        await db.slateAuthConfig.updateMany({
+          where: { oid: authConfig.oid },
+          data: {
+            errorCode: res.error.code,
+            errorMessage: res.error.message,
+            errorInvocationId: res.invocation.id
+          }
+        });
+      }
     } else {
       await db.slateAuthConfig.updateMany({
         where: { oid: authConfig.oid },

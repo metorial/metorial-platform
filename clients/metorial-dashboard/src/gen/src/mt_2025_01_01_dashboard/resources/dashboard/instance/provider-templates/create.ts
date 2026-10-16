@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderTemplatesCreateOutput = {
   object: 'provider.template';
@@ -13,17 +13,10 @@ export type DashboardInstanceProviderTemplatesCreateOutput = {
 };
 
 export let mapDashboardInstanceProviderTemplatesCreateOutput =
-  mtMap.object<DashboardInstanceProviderTemplatesCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceProviderTemplatesCreateOutput>(
+    ['integration_id', 'created_at', 'updated_at'],
+    1
+  );
 
 export type DashboardInstanceProviderTemplatesCreateBody = {
   name: string;
@@ -33,10 +26,6 @@ export type DashboardInstanceProviderTemplatesCreateBody = {
 };
 
 export let mapDashboardInstanceProviderTemplatesCreateBody =
-  mtMap.object<DashboardInstanceProviderTemplatesCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    integrationId: mtMap.objectField('integration_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceProviderTemplatesCreateBody>([
+    'integration_id'
+  ]);

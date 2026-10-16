@@ -1,0 +1,48 @@
+model SandboxMachine {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxResourceStatus @default(active)
+
+  /// [Record]
+  metadata Json @default("{}")
+
+  tenantOid BigInt
+  tenant    SandboxTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  imageOid BigInt?
+  image    SandboxMachineImage? @relation(fields: [imageOid], references: [oid])
+
+  disks SandboxDisk[]
+
+  egressPolicyOid BigInt?
+  egressPolicy    SandboxEgressPolicy? @relation(fields: [egressPolicyOid], references: [oid])
+
+  appliedEgressRegionOid BigInt?
+  appliedEgressRegion    SandboxEgressPolicyRegion? @relation(fields: [appliedEgressRegionOid], references: [oid])
+
+  needsEgressSync   Boolean @default(false)
+  egressSyncAttempt Int     @default(0)
+  egressSyncError   String?
+
+  firewallLinks SandboxMachineFirewall[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  @@index([instanceOid, status])
+  @@index([tenantOid, status])
+  @@index([needsEgressSync, oid])
+  @@index([egressPolicyOid])
+  @@index([instanceOid, imageOid])
+}

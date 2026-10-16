@@ -1,30 +1,30 @@
 import { db, Prisma } from '@metorial-subspace/db';
 
-export type FirewallBindingTarget = {
+export type FirewallAssignmentTarget = {
   enclaveOid: bigint | null;
   providerOid: bigint | null;
-  networkOid: bigint | null;
+  internetGatewayOid: bigint | null;
 };
 
 export let resetCompiledNetworkRulesForBindingTargets = async (d: {
-  networkOid: bigint;
+  internetGatewayOid: bigint;
   tenantOid: bigint;
   environmentOid: bigint;
-  bindings: FirewallBindingTarget[];
+  assignments: FirewallAssignmentTarget[];
 }) => {
-  if (d.bindings.length === 0) return;
+  if (d.assignments.length === 0) return;
 
   let enclaveOids = new Set<bigint>();
   let providerOids = new Set<bigint>();
-  let hasNetworkBinding = false;
+  let hasInternetGatewayAssignment = false;
 
-  for (let binding of d.bindings) {
-    if (binding.enclaveOid) enclaveOids.add(binding.enclaveOid);
-    if (binding.providerOid) providerOids.add(binding.providerOid);
-    if (binding.networkOid) hasNetworkBinding = true;
+  for (let assignment of d.assignments) {
+    if (assignment.enclaveOid) enclaveOids.add(assignment.enclaveOid);
+    if (assignment.providerOid) providerOids.add(assignment.providerOid);
+    if (assignment.internetGatewayOid) hasInternetGatewayAssignment = true;
   }
 
-  let orConditions: Prisma.EnclaveWhereInput[] = [];
+  let orConditions: Prisma.IntegrationEnclaveWhereInput[] = [];
 
   if (enclaveOids.size > 0) {
     orConditions.push({ oid: { in: [...enclaveOids] } });
@@ -34,15 +34,15 @@ export let resetCompiledNetworkRulesForBindingTargets = async (d: {
       providerDeployment: { providerOid: { in: [...providerOids] } }
     });
   }
-  if (hasNetworkBinding) {
-    orConditions.push({ networkOid: d.networkOid });
+  if (hasInternetGatewayAssignment) {
+    orConditions.push({ internetGatewayOid: d.internetGatewayOid });
   }
 
   if (orConditions.length === 0) return;
 
-  await db.enclave.updateMany({
+  await db.integrationEnclave.updateMany({
     where: {
-      networkOid: d.networkOid,
+      internetGatewayOid: d.internetGatewayOid,
       tenantOid: d.tenantOid,
       environmentOid: d.environmentOid,
       OR: orConditions
@@ -55,25 +55,25 @@ export let resetCompiledNetworkRulesForBindingTargets = async (d: {
 };
 
 export let resetCompiledNetworkRulesForFirewall = async (firewall: {
-  networkOid: bigint;
+  internetGatewayOid: bigint;
   tenantOid: bigint;
   environmentOid: bigint;
-  bindings: FirewallBindingTarget[];
+  assignments: FirewallAssignmentTarget[];
 }) => {
-  if (firewall.bindings.length === 0) return;
+  if (firewall.assignments.length === 0) return;
 
   await resetCompiledNetworkRulesForBindingTargets({
-    networkOid: firewall.networkOid,
+    internetGatewayOid: firewall.internetGatewayOid,
     tenantOid: firewall.tenantOid,
     environmentOid: firewall.environmentOid,
-    bindings: firewall.bindings
+    assignments: firewall.assignments
   });
 };
 
 export let resetCompiledNetworkRulesForFirewallId = async (firewallId: string) => {
   let firewall = await db.firewall.findFirst({
     where: { id: firewallId },
-    include: { bindings: true }
+    include: { assignments: true }
   });
   if (!firewall) return false;
 

@@ -9,7 +9,7 @@ vi.mock('../../env', () => ({
 }));
 
 let mockDb = vi.hoisted(() => ({
-  enclave: {
+  integrationEnclave: {
     findFirst: vi.fn(),
     updateMany: vi.fn()
   },
@@ -34,8 +34,8 @@ vi.mock('@metorial-subspace/provider', () => ({
   }))
 }));
 
-vi.mock('../../services/enclave', () => ({
-  enclaveService: {
+vi.mock('../../services/integrationEnclave', () => ({
+  integrationEnclaveService: {
     getCompiledNetworkRulesInternal: vi.fn(async () => ({
       ingress: { direction: 'ingress', entries: [] },
       egress: { direction: 'egress', entries: [{ cidr: '0.0.0.0/0' }] }
@@ -49,11 +49,11 @@ describe('reconcileEnclaveInstanceConfiguration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     syncEnclaveInstanceConfiguration.mockResolvedValue(undefined);
-    mockDb.enclave.updateMany.mockResolvedValue({ count: 1 });
+    mockDb.integrationEnclave.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it('pushes compiled egress policy to slates and clears reconciliation flag', async () => {
-    mockDb.enclave.findFirst.mockResolvedValue({
+    mockDb.integrationEnclave.findFirst.mockResolvedValue({
       oid: 10n,
       id: 'enc_test',
       needsEnclaveReconciliation: true,
@@ -91,7 +91,7 @@ describe('reconcileEnclaveInstanceConfiguration', () => {
       egressPolicy: { direction: 'egress', entries: [{ cidr: '0.0.0.0/0' }] }
     });
 
-    expect(mockDb.enclave.updateMany).toHaveBeenLastCalledWith({
+    expect(mockDb.integrationEnclave.updateMany).toHaveBeenLastCalledWith({
       where: { oid: 10n },
       data: { needsEnclaveReconciliation: false }
     });

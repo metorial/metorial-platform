@@ -15,6 +15,7 @@ import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
 import { markAresUserChanged } from '../queues/syncCallback';
 import { userService } from './user';
+import { userPasswordService } from './userPassword';
 
 class DeviceService {
   async getAllUsersForDevice(d: { device: AuthDevice }) {
@@ -119,6 +120,17 @@ class DeviceService {
     let authorizationCode = generatePlainId(50);
 
     let session = await withTransaction(async db => {
+      if (d.authAttempt.loginMethod == 'password') {
+        if (!d.authAttempt.authIntentOid) {
+          throw new ServiceError(unauthorizedError({ message: 'Invalid auth attempt' }));
+        }
+
+        await userPasswordService.assertVerifiedPassword({
+          userOid: d.authAttempt.userOid,
+          authIntentOid: d.authAttempt.authIntentOid
+        });
+      }
+
       let updateRes = await db.authAttempt.updateMany({
         where: { id: d.authAttempt.id, status: 'pending' },
         data: { status: 'consumed', authorizationCode }

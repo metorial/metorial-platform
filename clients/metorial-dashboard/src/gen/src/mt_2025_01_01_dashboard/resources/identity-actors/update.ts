@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type IdentityActorsUpdateOutput = {
   object: 'identity.actor';
@@ -26,49 +26,49 @@ export type IdentityActorsUpdateOutput = {
     | null;
 };
 
-export let mapIdentityActorsUpdateOutput = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      type: mtMap.objectField('type', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-      agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-      consumer: mtMap.objectField(
-        'consumer',
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough()),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              userId: mtMap.objectField('user_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-              isPortalConsumer: mtMap.objectField(
-                'is_portal_consumer',
-                mtMap.passthrough()
-              ),
-              isOrganizationMember: mtMap.objectField(
-                'is_organization_member',
-                mtMap.passthrough()
-              )
-            })
-          )
-        ])
-      )
-    })
-  )
-]);
+export let mapIdentityActorsUpdateOutput =
+  /* @__PURE__ */ createMapper<IdentityActorsUpdateOutput>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              'agent_id',
+              'created_at',
+              'updated_at',
+              [
+                'consumer',
+                0,
+                [
+                  3,
+                  [
+                    [
+                      0,
+                      [
+                        1,
+                        [
+                          'image_url',
+                          'user_id',
+                          'created_at',
+                          'updated_at',
+                          'is_portal_consumer',
+                          'is_organization_member'
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type IdentityActorsUpdateBody = {
   name?: string | undefined;
@@ -76,11 +76,5 @@ export type IdentityActorsUpdateBody = {
   metadata?: Record<string, any> | undefined;
 };
 
-export let mapIdentityActorsUpdateBody = mtMap.object<IdentityActorsUpdateBody>(
-  {
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
-  }
-);
-
+export let mapIdentityActorsUpdateBody =
+  /* @__PURE__ */ createMapper<IdentityActorsUpdateBody>(0);

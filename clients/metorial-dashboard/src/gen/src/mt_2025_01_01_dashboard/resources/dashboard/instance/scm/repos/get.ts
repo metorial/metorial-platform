@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceScmReposGetOutput = {
   object: 'scm.repository';
@@ -17,22 +17,7 @@ export type DashboardInstanceScmReposGetOutput = {
 };
 
 export let mapDashboardInstanceScmReposGetOutput =
-  mtMap.object<DashboardInstanceScmReposGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        owner: mtMap.objectField('owner', mtMap.passthrough())
-      })
-    ),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-    defaultBranch: mtMap.objectField('default_branch', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceScmReposGetOutput>(
+    ['is_private', 'default_branch', 'created_at'],
+    1
+  );

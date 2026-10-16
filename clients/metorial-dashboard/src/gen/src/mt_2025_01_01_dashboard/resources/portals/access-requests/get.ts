@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type PortalsAccessRequestsGetOutput = {
   object: 'consumer.access_request';
@@ -43,70 +43,36 @@ export type PortalsAccessRequestsGetOutput = {
 };
 
 export let mapPortalsAccessRequestsGetOutput =
-  mtMap.object<PortalsAccessRequestsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    message: mtMap.objectField('message', mtMap.passthrough()),
-    resolutionMessage: mtMap.objectField(
+  /* @__PURE__ */ mapObject<PortalsAccessRequestsGetOutput>(
+    [
       'resolution_message',
-      mtMap.passthrough()
-    ),
-    consumerProfile: mtMap.objectField(
       'consumer_profile',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough())
-      })
-    ),
-    target: mtMap.objectField(
-      'target',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            providerTemplate: mtMap.objectField(
-              'provider_template',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                integrationId: mtMap.objectField(
-                  'integration_id',
-                  mtMap.passthrough()
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            magicMcpServer: mtMap.objectField(
-              'magic_mcp_server',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            )
-          })
-        )
-      ])
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    reviewedAt: mtMap.objectField('reviewed_at', mtMap.date())
-  });
-
+      [
+        'target',
+        0,
+        [
+          3,
+          [
+            [
+              0,
+              [
+                1,
+                [
+                  [
+                    'provider_template',
+                    1,
+                    [1, ['integration_id', 'created_at', 'updated_at']]
+                  ],
+                  'magic_mcp_server'
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
+      'created_at',
+      'updated_at',
+      'reviewed_at'
+    ],
+    1
+  );

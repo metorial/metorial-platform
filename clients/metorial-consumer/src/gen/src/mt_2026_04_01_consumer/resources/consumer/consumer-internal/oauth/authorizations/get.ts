@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumerConsumerInternalOauthAuthorizationsGetOutput = {
   object: 'portal.oauth_authorization';
@@ -40,76 +40,38 @@ export type ConsumerConsumerInternalOauthAuthorizationsGetOutput = {
 };
 
 export let mapConsumerConsumerInternalOauthAuthorizationsGetOutput =
-  mtMap.object<ConsumerConsumerInternalOauthAuthorizationsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    redirectUri: mtMap.objectField('redirect_uri', mtMap.passthrough()),
-    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
-    consumerProfileId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ConsumerConsumerInternalOauthAuthorizationsGetOutput>(
+    [
+      'redirect_uri',
+      'redirect_url',
       'consumer_profile_id',
-      mtMap.passthrough()
-    ),
-    magicMcpEndpointId: mtMap.objectField(
       'magic_mcp_endpoint_id',
-      mtMap.passthrough()
-    ),
-    skillPlugin: mtMap.objectField(
       'skill_plugin',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough())
-      })
-    ),
-    skillPluginSupportedProviderIds: mtMap.objectField(
       'skill_plugin_supported_provider_ids',
-      mtMap.array(mtMap.passthrough())
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    authorizedAt: mtMap.objectField('authorized_at', mtMap.date()),
-    deniedAt: mtMap.objectField('denied_at', mtMap.date()),
-    oauthClient: mtMap.objectField(
-      'oauth_client',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-        redirectUris: mtMap.objectField(
-          'redirect_uris',
-          mtMap.array(mtMap.passthrough())
-        ),
-        tokenEndpointAuthMethod: mtMap.objectField(
-          'token_endpoint_auth_method',
-          mtMap.passthrough()
-        ),
-        portalId: mtMap.objectField('portal_id', mtMap.passthrough()),
-        consumerSurfaceId: mtMap.objectField(
-          'consumer_surface_id',
-          mtMap.passthrough()
-        ),
-        skillPlugin: mtMap.objectField(
-          'skill_plugin',
-          mtMap.object({
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough())
-          })
-        ),
-        magicMcpServerId: mtMap.objectField(
-          'magic_mcp_server_id',
-          mtMap.passthrough()
-        ),
-        magicMcpEndpointId: mtMap.objectField(
-          'magic_mcp_endpoint_id',
-          mtMap.passthrough()
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        expiresAt: mtMap.objectField('expires_at', mtMap.date())
-      })
-    )
-  });
-
+      'created_at',
+      'updated_at',
+      'expires_at',
+      'authorized_at',
+      'denied_at',
+      [
+        'oauth_client',
+        1,
+        [
+          1,
+          [
+            'client_id',
+            'redirect_uris',
+            'token_endpoint_auth_method',
+            'portal_id',
+            'consumer_surface_id',
+            'skill_plugin',
+            'magic_mcp_server_id',
+            'magic_mcp_endpoint_id',
+            'created_at',
+            'expires_at'
+          ]
+        ]
+      ]
+    ],
+    1
+  );

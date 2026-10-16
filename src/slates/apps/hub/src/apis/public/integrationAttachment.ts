@@ -191,14 +191,21 @@ export let integrationAttachmentApp = createHono().get(
         throw new ServiceError(notFoundError('slate.integration_attachment'));
       }
 
+      let targetUrl = attachment.targetUrl;
       let headers = (attachment.headers as Record<string, string> | null) ?? {};
       let query = (attachment.query as Record<string, string> | null) ?? {};
-      let needsHeaderOrQueryProxy =
-        Object.keys(headers).length > 0 || Object.keys(query).length > 0;
+      // A credential in the URL itself (e.g. Telegram's /bot<token>/ path) must never reach the client.
+      let needsProxy =
+        Object.keys(headers).length > 0 ||
+        Object.keys(query).length > 0 ||
+        containsSecretPlaceholder(targetUrl);
+      let serializer: AuthConfigSecretSerializer | undefined;
 
       if (
         attachment.authConfigOid &&
-        (containsSecretPlaceholder(headers) || containsSecretPlaceholder(query))
+        (containsSecretPlaceholder(targetUrl) ||
+          containsSecretPlaceholder(headers) ||
+          containsSecretPlaceholder(query))
       ) {
         let freshAuth = await slateAuthHandlerService.getSlateInstanceAuth({
           tenant: attachment.tenant!,
@@ -206,32 +213,33 @@ export let integrationAttachmentApp = createHono().get(
           minExpirationBuffer: 30 * 1000
         });
 
-        let serializer = new AuthConfigSecretSerializer(freshAuth.output ?? {});
+        serializer = new AuthConfigSecretSerializer(freshAuth.output ?? {});
+        targetUrl = serializer.deserialize(targetUrl);
         headers = serializer.deserialize(headers);
         query = serializer.deserialize(query);
       }
 
-      if (preferUrl && !needsHeaderOrQueryProxy) {
+      if (preferUrl && !needsProxy) {
         setResultHeader('url');
         return c.json({
-          url: attachment.targetUrl,
+          url: targetUrl,
           headers: attachmentUrlResponseHeaders(attachmentContentType(attachment))
         });
       }
 
-      let url = new URL(attachment.targetUrl);
+      let url = new URL(targetUrl);
       for (let [key, value] of Object.entries(query)) url.searchParams.set(key, value);
 
       let upstream: Response;
       try {
         upstream = await safeFetch(url.toString(), { headers, maxRedirects: MAX_REDIRECTS });
       } catch (err) {
+        let reason = err instanceof Error ? err.message : String(err);
         throw new ServiceError(
           badRequestError({
             code: 'integration_attachment_fetch_failed',
-            message: `Failed to fetch the integration attachment: ${
-              err instanceof Error ? err.message : String(err)
-            }`
+            // The resolved URL and headers hold live credentials; never echo them back.
+            message: `Failed to fetch the integration attachment: ${serializer?.serialize(reason) ?? reason}`
           })
         );
       }

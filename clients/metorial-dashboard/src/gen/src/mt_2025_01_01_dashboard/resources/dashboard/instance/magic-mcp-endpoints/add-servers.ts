@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceMagicMcpEndpointsAddServersOutput = {
   object: 'magic_mcp.endpoint';
@@ -16,6 +16,7 @@ export type DashboardInstanceMagicMcpEndpointsAddServersOutput = {
     toolFilters:
       | (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -24,6 +25,7 @@ export type DashboardInstanceMagicMcpEndpointsAddServersOutput = {
         )
       | (
           | { type: 'tool_keys'; keys: string[] }
+          | { type: 'tool_categories'; keys: string[] }
           | { type: 'tool_regex'; pattern: string }
           | { type: 'resource_regex'; pattern: string }
           | { type: 'resource_uris'; uris: string[] }
@@ -40,84 +42,14 @@ export type DashboardInstanceMagicMcpEndpointsAddServersOutput = {
 };
 
 export let mapDashboardInstanceMagicMcpEndpointsAddServersOutput =
-  mtMap.object<DashboardInstanceMagicMcpEndpointsAddServersOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    servers: mtMap.objectField(
-      'servers',
-      mtMap.array(
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              toolFilters: mtMap.objectField(
-                'tool_filters',
-                mtMap.union([
-                  mtMap.unionOption(
-                    'object',
-                    mtMap.object({
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      keys: mtMap.objectField(
-                        'keys',
-                        mtMap.array(mtMap.passthrough())
-                      ),
-                      pattern: mtMap.objectField(
-                        'pattern',
-                        mtMap.passthrough()
-                      ),
-                      uris: mtMap.objectField(
-                        'uris',
-                        mtMap.array(mtMap.passthrough())
-                      )
-                    })
-                  ),
-                  mtMap.unionOption(
-                    'array',
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          type: mtMap.objectField('type', mtMap.passthrough()),
-                          keys: mtMap.objectField(
-                            'keys',
-                            mtMap.array(mtMap.passthrough())
-                          ),
-                          pattern: mtMap.objectField(
-                            'pattern',
-                            mtMap.passthrough()
-                          ),
-                          uris: mtMap.objectField(
-                            'uris',
-                            mtMap.array(mtMap.passthrough())
-                          )
-                        })
-                      )
-                    ])
-                  )
-                ])
-              )
-            })
-          )
-        ])
-      )
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceMagicMcpEndpointsAddServersOutput>(
+    [
+      ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardInstanceMagicMcpEndpointsAddServersBody = {
   magicMcpServers?:
@@ -126,6 +58,7 @@ export type DashboardInstanceMagicMcpEndpointsAddServersBody = {
         toolFilters?:
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -134,6 +67,7 @@ export type DashboardInstanceMagicMcpEndpointsAddServersBody = {
             )
           | (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -147,60 +81,6 @@ export type DashboardInstanceMagicMcpEndpointsAddServersBody = {
 };
 
 export let mapDashboardInstanceMagicMcpEndpointsAddServersBody =
-  mtMap.object<DashboardInstanceMagicMcpEndpointsAddServersBody>({
-    magicMcpServers: mtMap.objectField(
-      'magic_mcp_servers',
-      mtMap.array(
-        mtMap.object({
-          magicMcpServerId: mtMap.objectField(
-            'magic_mcp_server_id',
-            mtMap.passthrough()
-          ),
-          toolFilters: mtMap.objectField(
-            'tool_filters',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  keys: mtMap.objectField(
-                    'keys',
-                    mtMap.array(mtMap.passthrough())
-                  ),
-                  pattern: mtMap.objectField('pattern', mtMap.passthrough()),
-                  uris: mtMap.objectField(
-                    'uris',
-                    mtMap.array(mtMap.passthrough())
-                  )
-                })
-              ),
-              mtMap.unionOption(
-                'array',
-                mtMap.union([
-                  mtMap.unionOption(
-                    'object',
-                    mtMap.object({
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      keys: mtMap.objectField(
-                        'keys',
-                        mtMap.array(mtMap.passthrough())
-                      ),
-                      pattern: mtMap.objectField(
-                        'pattern',
-                        mtMap.passthrough()
-                      ),
-                      uris: mtMap.objectField(
-                        'uris',
-                        mtMap.array(mtMap.passthrough())
-                      )
-                    })
-                  )
-                ])
-              )
-            ])
-          )
-        })
-      )
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceMagicMcpEndpointsAddServersBody>([
+    ['magic_mcp_servers', 1, [2, [1, ['magic_mcp_server_id', 'tool_filters']]]]
+  ]);

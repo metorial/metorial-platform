@@ -351,4 +351,82 @@ describe('getSlateInstanceAuth refresh coordination', () => {
     expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
     expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
   });
+
+  describe('non-OAuth configs', () => {
+    let botSpec = (refresh: boolean, type = 'custom') => ({
+      key: 'bot_framework',
+      type,
+      spec: { capabilities: { handleTokenRefresh: { enabled: refresh } } }
+    });
+    let botConfig = (overrides: Record<string, unknown> = {}) =>
+      config({
+        type: 'manual',
+        oauthCredentialsOid: null,
+        profileUid: 'UBOT',
+        authMethod: botSpec(true),
+        ...overrides
+      });
+    let botSecret = () => ({
+      input: { appId: 'app-1', clientSecret: 'bot-secret' },
+      output: { token: 'bot-old', expiresAt: oldExpiresAt }
+    });
+
+    beforeEach(() => {
+      mocks.findFirst.mockResolvedValue(botConfig());
+      mocks.findFirstOrThrow.mockResolvedValue(botConfig());
+      mocks.decrypt.mockImplementation(async () => botSecret());
+    });
+
+    it('refreshes an expiring custom token from its stored input', async () => {
+      let result = await call();
+
+      expect(mocks.usingLock.mock.calls[0]![0]).toBe('cfg:1');
+      expect(mocks.currentMethods).not.toHaveBeenCalled();
+      expect(mocks.refreshOAuthToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authenticationMethodId: 'oauth',
+          input: botSecret().input,
+          output: botSecret().output,
+          clientId: '',
+          clientSecret: '',
+          scopes: []
+        })
+      );
+      expect(mocks.decrypt).not.toHaveBeenCalledWith(
+        expect.objectContaining({ purpose: 'slate_oauth_credentials' })
+      );
+      expect(mocks.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ tokenExpiresAt: new Date(newOutput.expiresAt) })
+        })
+      );
+      expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
+      expect(result.output).toEqual(newOutput);
+    });
+
+    it('keeps the config usable when a custom refresh fails', async () => {
+      refreshFails();
+
+      await expect(call()).rejects.toThrow(/Failed to refresh authentication token/);
+      expect(mocks.updateMany).not.toHaveBeenCalled();
+      expect(mocks.eventCreateMany).toHaveBeenCalledWith({
+        data: expect.objectContaining({ type: 'oauth_token_refresh_failed' })
+      });
+    });
+
+    it.each([
+      { label: 'a method without token refresh', overrides: { authMethod: botSpec(false) } },
+      {
+        label: 'an OAuth method entered manually',
+        overrides: { authMethod: botSpec(true, 'oauth') }
+      },
+      { label: 'an oauth_manual config', overrides: { type: 'oauth_manual' } }
+    ])('reports an expired token for $label', async ({ overrides }) => {
+      mocks.findFirst.mockResolvedValue(botConfig(overrides));
+
+      await expect(call()).rejects.toThrow(/Authentication configuration has expired/);
+      expect(mocks.usingLock).not.toHaveBeenCalled();
+      expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    });
+  });
 });

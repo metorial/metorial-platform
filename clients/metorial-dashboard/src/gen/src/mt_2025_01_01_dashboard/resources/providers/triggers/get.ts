@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ProvidersTriggersGetOutput = {
   object: 'provider.capabilities.trigger';
@@ -22,59 +22,30 @@ export type ProvidersTriggersGetOutput = {
 };
 
 export let mapProvidersTriggersGetOutput =
-  mtMap.object<ProvidersTriggersGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    key: mtMap.objectField('key', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    inputSchema: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ProvidersTriggersGetOutput>(
+    [
       'input_schema',
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        schema: mtMap.objectField('schema', mtMap.passthrough())
-      })
-    ),
-    outputSchema: mtMap.objectField(
       'output_schema',
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        schema: mtMap.objectField('schema', mtMap.passthrough())
-      })
-    ),
-    invocation: mtMap.objectField(
-      'invocation',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            intervalSeconds: mtMap.objectField(
-              'interval_seconds',
-              mtMap.passthrough()
-            ),
-            autoRegistration: mtMap.objectField(
-              'auto_registration',
-              mtMap.object({
-                status: mtMap.objectField('status', mtMap.passthrough())
-              })
-            ),
-            autoUnregistration: mtMap.objectField(
-              'auto_unregistration',
-              mtMap.object({
-                status: mtMap.objectField('status', mtMap.passthrough())
-              })
-            )
-          })
-        )
-      ])
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerSpecificationId: mtMap.objectField(
+      [
+        'invocation',
+        0,
+        [
+          3,
+          [
+            [
+              0,
+              [
+                1,
+                ['interval_seconds', 'auto_registration', 'auto_unregistration']
+              ]
+            ]
+          ]
+        ]
+      ],
+      'provider_id',
       'provider_specification_id',
-      mtMap.passthrough()
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

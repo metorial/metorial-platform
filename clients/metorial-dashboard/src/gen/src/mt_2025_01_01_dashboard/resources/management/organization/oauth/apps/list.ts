@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationOauthAppsListOutput = {
   items: {
@@ -33,86 +33,29 @@ export type ManagementOrganizationOauthAppsListOutput = {
 };
 
 export let mapManagementOrganizationOauthAppsListOutput =
-  mtMap.object<ManagementOrganizationOauthAppsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
-          allowTokenExchangeWithoutClientSecret: mtMap.objectField(
-            'allow_token_exchange_without_client_secret',
-            mtMap.passthrough()
-          ),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          scopes: mtMap.objectField(
-            'scopes',
-            mtMap.array(
-              mtMap.object({
-                identifier: mtMap.objectField(
-                  'identifier',
-                  mtMap.passthrough()
-                ),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            )
-          ),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-          websiteUrl: mtMap.objectField('website_url', mtMap.passthrough()),
-          privacyPolicyUrl: mtMap.objectField(
-            'privacy_policy_url',
-            mtMap.passthrough()
-          ),
-          termsOfServiceUrl: mtMap.objectField(
-            'terms_of_service_url',
-            mtMap.passthrough()
-          ),
-          redirectUris: mtMap.objectField(
-            'redirect_uris',
-            mtMap.array(mtMap.passthrough())
-          ),
-          clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-          clientSecrets: mtMap.objectField(
-            'client_secrets',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                preview: mtMap.objectField('preview', mtMap.passthrough()),
-                secret: mtMap.objectField('secret', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-              })
-            )
-          ),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementOrganizationOauthAppsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'access_level',
+          'allow_token_exchange_without_client_secret',
+          'image_url',
+          'website_url',
+          'privacy_policy_url',
+          'terms_of_service_url',
+          'redirect_uris',
+          'client_id',
+          ['client_secrets', 1, [2, [1, ['created_at', 'deleted_at']]]],
+          'organization_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementOrganizationOauthAppsListQuery = {
   limit?: number | undefined;
@@ -122,20 +65,5 @@ export type ManagementOrganizationOauthAppsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined };
 
-export let mapManagementOrganizationOauthAppsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
-    })
-  )
-]);
-
+export let mapManagementOrganizationOauthAppsListQuery =
+  /* @__PURE__ */ createMapper<ManagementOrganizationOauthAppsListQuery>(0);

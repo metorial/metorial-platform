@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProviderDeploymentsSetupSessionsCreateOutput = {
   object: 'provider.setup_session';
@@ -87,6 +87,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsCreateOutput = {
           type: 'filter';
           filters: (
             | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_categories'; keys: string[] }
             | { type: 'tool_regex'; pattern: string }
             | { type: 'resource_regex'; pattern: string }
             | { type: 'resource_uris'; uris: string[] }
@@ -163,6 +164,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsCreateOutput = {
           type: 'filter';
           filters: (
             | { type: 'tool_keys'; keys: string[] }
+            | { type: 'tool_categories'; keys: string[] }
             | { type: 'tool_regex'; pattern: string }
             | { type: 'resource_regex'; pattern: string }
             | { type: 'resource_uris'; uris: string[] }
@@ -217,363 +219,141 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsCreateOutput = {
 };
 
 export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateOutput =
-  mtMap.object<ManagementInstanceProviderDeploymentsSetupSessionsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    configuration: mtMap.objectField('configuration', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-    identityCredentialId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceProviderDeploymentsSetupSessionsCreateOutput>(
+    [
+      'provider_id',
+      'identity_id',
       'identity_credential_id',
-      mtMap.passthrough()
-    ),
-    authMethod: mtMap.objectField(
-      'auth_method',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        key: mtMap.objectField('key', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
-        inputSchema: mtMap.objectField(
-          'input_schema',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            schema: mtMap.objectField('schema', mtMap.passthrough())
-          })
-        ),
-        outputSchema: mtMap.objectField(
-          'output_schema',
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            schema: mtMap.objectField('schema', mtMap.passthrough())
-          })
-        ),
-        scopes: mtMap.objectField(
-          'scopes',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              scope: mtMap.objectField('scope', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough())
-            })
-          )
-        ),
-        adapters: mtMap.objectField(
-          'adapters',
-          mtMap.array(mtMap.passthrough())
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        providerSpecificationId: mtMap.objectField(
-          'provider_specification_id',
-          mtMap.passthrough()
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    deployment: mtMap.objectField(
-      'deployment',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    credentials: mtMap.objectField(
-      'credentials',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    authConfig: mtMap.objectField(
-      'auth_config',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        source: mtMap.objectField('source', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        toolFilter: mtMap.objectField(
-          'tool_filter',
-          mtMap.union([
-            mtMap.unionOption(
-              'object',
-              mtMap.object({
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                ignoreParentFilters: mtMap.objectField(
-                  'ignore_parent_filters',
-                  mtMap.passthrough()
-                ),
-                filters: mtMap.objectField(
-                  'filters',
-                  mtMap.array(
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          type: mtMap.objectField('type', mtMap.passthrough()),
-                          keys: mtMap.objectField(
-                            'keys',
-                            mtMap.array(mtMap.passthrough())
-                          ),
-                          pattern: mtMap.objectField(
-                            'pattern',
-                            mtMap.passthrough()
-                          ),
-                          uris: mtMap.objectField(
-                            'uris',
-                            mtMap.array(mtMap.passthrough())
-                          )
-                        })
-                      )
-                    ])
-                  )
-                )
-              })
-            )
-          ])
-        ),
-        deployment: mtMap.objectField(
-          'deployment',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        credentials: mtMap.objectField(
-          'credentials',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-            isManaged: mtMap.objectField('is_managed', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-            scopes: mtMap.objectField(
-              'scopes',
-              mtMap.array(mtMap.passthrough())
-            ),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        authMethod: mtMap.objectField(
-          'auth_method',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            key: mtMap.objectField('key', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            capabilities: mtMap.objectField(
-              'capabilities',
-              mtMap.passthrough()
-            ),
-            inputSchema: mtMap.objectField(
-              'input_schema',
-              mtMap.object({
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                schema: mtMap.objectField('schema', mtMap.passthrough())
-              })
-            ),
-            outputSchema: mtMap.objectField(
-              'output_schema',
-              mtMap.object({
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                schema: mtMap.objectField('schema', mtMap.passthrough())
-              })
-            ),
-            scopes: mtMap.objectField(
-              'scopes',
-              mtMap.array(
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  scope: mtMap.objectField('scope', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  )
-                })
-              )
-            ),
-            adapters: mtMap.objectField(
-              'adapters',
-              mtMap.array(mtMap.passthrough())
-            ),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            providerSpecificationId: mtMap.objectField(
-              'provider_specification_id',
-              mtMap.passthrough()
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    config: mtMap.objectField(
-      'config',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        toolFilter: mtMap.objectField(
-          'tool_filter',
-          mtMap.union([
-            mtMap.unionOption(
-              'object',
-              mtMap.object({
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                ignoreParentFilters: mtMap.objectField(
-                  'ignore_parent_filters',
-                  mtMap.passthrough()
-                ),
-                filters: mtMap.objectField(
-                  'filters',
-                  mtMap.array(
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          type: mtMap.objectField('type', mtMap.passthrough()),
-                          keys: mtMap.objectField(
-                            'keys',
-                            mtMap.array(mtMap.passthrough())
-                          ),
-                          pattern: mtMap.objectField(
-                            'pattern',
-                            mtMap.passthrough()
-                          ),
-                          uris: mtMap.objectField(
-                            'uris',
-                            mtMap.array(mtMap.passthrough())
-                          )
-                        })
-                      )
-                    ])
-                  )
-                )
-              })
-            )
-          ])
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        specificationId: mtMap.objectField(
-          'specification_id',
-          mtMap.passthrough()
-        ),
-        deployment: mtMap.objectField(
-          'deployment',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        fromVault: mtMap.objectField(
-          'from_vault',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            deployment: mtMap.objectField(
+      [
+        'auth_method',
+        1,
+        [
+          1,
+          [
+            'input_schema',
+            'output_schema',
+            'provider_id',
+            'provider_specification_id',
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      [
+        'deployment',
+        0,
+        [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+      ],
+      [
+        'credentials',
+        0,
+        [
+          1,
+          [
+            'is_default',
+            'is_managed',
+            'provider_id',
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      [
+        'auth_config',
+        1,
+        [
+          1,
+          [
+            'is_default',
+            'provider_id',
+            ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
+            [
               'deployment',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                providerId: mtMap.objectField(
+              0,
+              [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+            ],
+            [
+              'credentials',
+              0,
+              [
+                1,
+                [
+                  'is_default',
+                  'is_managed',
                   'provider_id',
-                  mtMap.passthrough()
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    uiMode: mtMap.objectField('ui_mode', mtMap.passthrough()),
-    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-  });
+                  'created_at',
+                  'updated_at'
+                ]
+              ]
+            ],
+            [
+              'auth_method',
+              1,
+              [
+                1,
+                [
+                  'input_schema',
+                  'output_schema',
+                  'provider_id',
+                  'provider_specification_id',
+                  'created_at',
+                  'updated_at'
+                ]
+              ]
+            ],
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      [
+        'config',
+        0,
+        [
+          1,
+          [
+            'is_default',
+            ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
+            'provider_id',
+            'specification_id',
+            [
+              'deployment',
+              0,
+              [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+            ],
+            [
+              'from_vault',
+              1,
+              [
+                1,
+                [
+                  'provider_id',
+                  [
+                    'deployment',
+                    0,
+                    [
+                      1,
+                      ['is_default', 'provider_id', 'created_at', 'updated_at']
+                    ]
+                  ],
+                  'created_at',
+                  'updated_at'
+                ]
+              ]
+            ],
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      'ui_mode',
+      'redirect_url',
+      'created_at',
+      'updated_at',
+      'expires_at'
+    ],
+    1
+  );
 
 export type ManagementInstanceProviderDeploymentsSetupSessionsCreateBody = {
   providerId?: string | undefined;
@@ -603,78 +383,36 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsCreateBody = {
 };
 
 export let mapManagementInstanceProviderDeploymentsSetupSessionsCreateBody =
-  mtMap.object<ManagementInstanceProviderDeploymentsSetupSessionsCreateBody>({
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceProviderDeploymentsSetupSessionsCreateBody>(
+    [
+      'provider_id',
       'provider_deployment_id',
-      mtMap.passthrough()
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    providerAuthMethodId: mtMap.objectField(
       'provider_auth_method_id',
-      mtMap.passthrough()
-    ),
-    providerAuthCredentialsId: mtMap.objectField(
       'provider_auth_credentials_id',
-      mtMap.passthrough()
-    ),
-    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-    consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    configuration: mtMap.objectField(
-      'configuration',
-      mtMap.object({
-        providerSearch: mtMap.objectField(
-          'provider_search',
-          mtMap.object({
-            groups: mtMap.objectField(
-              'groups',
-              mtMap.array(
-                mtMap.object({
-                  groupId: mtMap.objectField('group_id', mtMap.passthrough())
-                })
-              )
-            ),
-            collections: mtMap.objectField(
-              'collections',
-              mtMap.array(
-                mtMap.object({
-                  collectionId: mtMap.objectField(
-                    'collection_id',
-                    mtMap.passthrough()
-                  )
-                })
-              )
-            ),
-            categories: mtMap.objectField(
-              'categories',
-              mtMap.array(
-                mtMap.object({
-                  categoryId: mtMap.objectField(
-                    'category_id',
-                    mtMap.passthrough()
-                  )
-                })
-              )
-            )
-          })
-        ),
-        toolFilters: mtMap.objectField(
-          'tool_filters',
-          mtMap.object({
-            enabled: mtMap.objectField('enabled', mtMap.passthrough())
-          })
-        ),
-        ui: mtMap.objectField(
-          'ui',
-          mtMap.object({
-            layout: mtMap.objectField('layout', mtMap.passthrough())
-          })
-        )
-      })
-    )
-  });
-
+      'identity_id',
+      'consumer_id',
+      'redirect_url',
+      [
+        'configuration',
+        0,
+        [
+          1,
+          [
+            [
+              'provider_search',
+              1,
+              [
+                1,
+                [
+                  ['groups', 0, [2, [1, ['group_id']]]],
+                  ['collections', 0, [2, [1, ['collection_id']]]],
+                  ['categories', 0, [2, [1, ['category_id']]]]
+                ]
+              ]
+            ],
+            'tool_filters'
+          ]
+        ]
+      ]
+    ]
+  );

@@ -157,6 +157,28 @@ let singlePage = (
 
 let parseJsonCall = (call: any[]) => JSON.parse(call[2]);
 
+let exportSinglePayload = async (presented: Record<string, unknown>) => {
+  let storage = createStorage();
+  let candidate = createCandidate();
+
+  let result = await runProviderTelemetryErrorGroupsExport({
+    now: new Date('2026-06-18T00:15:00.000Z'),
+    storage,
+    bucketName: 'exports',
+    listFailedMessages: singlePage([pageError([candidate])]),
+    presentMessage: async () => ({
+      object: 'session.message',
+      id: candidate.message.id,
+      status: 'failed',
+      createdAt: new Date('2026-06-18T00:10:00.000Z'),
+      ...presented
+    })
+  });
+
+  expect(result.quarantinedCount).toBe(0);
+  return parseJsonCall(storage.putObject.mock.calls[0]!).items[0].payload;
+};
+
 let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCandidate) => ({
   object: 'session.message',
   id: candidate.message.id,
@@ -351,6 +373,278 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
   });
 
+  it('redacts secret-named keys, URL query values, and PII keys inside nested provider error bodies', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let candidate = createCandidate();
+
+    await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([candidate])]),
+      presentMessage: async () => ({
+        object: 'session.message',
+        id: candidate.message.id,
+        status: 'failed',
+        input: { data: { query: 'open invoices', limit: 10, max_tokens: 500 } },
+        error: {
+          id: candidate.error.id,
+          code: 'upstream.invalid_request',
+          data: {
+            code: 'upstream.invalid_request',
+            upstream: {
+              status: 400,
+              url: 'https://api.example.io/v1/users?email=bob@corp.io&limit=5#access_token=abc'
+            },
+            baggage: {
+              response: {
+                errors: [
+                  {
+                    extensions: {
+                      code: 'INVALID_INPUT',
+                      api_key: 'abc123',
+                      session: 'sess-xyz',
+                      password: 'hunter2',
+                      token_type: 'bearer',
+                      credentials: { username: 'svc', value: 'v-1' },
+                      byEmail: { 'carol@initech.com': 'duplicate' }
+                    }
+                  }
+                ]
+              }
+            },
+            requestTraces: [
+              {
+                request: {
+                  url: 'https://user:pass@api.example.io/v1/items',
+                  headers: { 'x-api-key': 'k_42', Cookie: 'sid=1' }
+                }
+              }
+            ]
+          }
+        },
+        createdAt: new Date('2026-06-18T00:10:00.000Z')
+      })
+    });
+
+    let exportChunk = parseJsonCall(storage.putObject.mock.calls[0]!);
+    let payload = exportChunk.items[0].payload;
+    let data = payload.error.data;
+    let extensions = data.baggage.response.errors[0].extensions;
+
+    expect(payload.input.data).toEqual({ query: 'open invoices', limit: 10, max_tokens: 500 });
+    expect(data.code).toBe('upstream.invalid_request');
+    expect(data.upstream.status).toBe(400);
+    expect(data.upstream.url).not.toContain('bob@corp.io');
+    expect(data.upstream.url).not.toContain('access_token=abc');
+    expect(extensions).toEqual({
+      code: 'INVALID_INPUT',
+      api_key: '[REDACTED]',
+      session: '[REDACTED]',
+      password: '[REDACTED]',
+      token_type: 'bearer',
+      credentials: { username: '[REDACTED]', value: '[REDACTED]' },
+      byEmail: { '[REDACTED_KEY_1]': 'duplicate' }
+    });
+    expect(data.requestTraces[0].request.headers).toEqual({
+      'x-api-key': '[REDACTED]',
+      Cookie: '[REDACTED]'
+    });
+    expect(data.requestTraces[0].request.url).not.toContain('user:pass');
+    expect(JSON.stringify(exportChunk)).not.toMatch(
+      /bob@corp\.io|carol@initech\.com|hunter2|abc123|sess-xyz|k_42|user:pass/
+    );
+  });
+
+  it('keeps Metorial ids and session id fields while redacting session secrets', async () => {
+    let payload = await exportSinglePayload({
+      sessionId: 'ses_123',
+      sessionProviderId: 'sesp_456',
+      connectionId: 'conn_789',
+      providerRunId: 'prun_1',
+      toolCall: {
+        id: 'tc_1',
+        toolKey: 'users.info',
+        tool: { id: 'tool_1', providerId: 'prov_1' }
+      },
+      input: {
+        session_id: 'ses_abc',
+        credentialId: 'cred_1',
+        session: 'sess-secret',
+        session_token: 'st-secret',
+        sessionSecret: 'ss-secret',
+        sessionid: 'django-cookie',
+        cookie: 'sid=1'
+      },
+      error: { id: 'serr_1', code: 'provider_error', groupId: 'serg_1' }
+    });
+
+    expect(payload).toMatchObject({
+      sessionId: 'ses_123',
+      sessionProviderId: 'sesp_456',
+      connectionId: 'conn_789',
+      providerRunId: 'prun_1',
+      toolCall: {
+        id: 'tc_1',
+        toolKey: 'users.info',
+        tool: { id: 'tool_1', providerId: 'prov_1' }
+      },
+      error: { id: 'serr_1', groupId: 'serg_1' }
+    });
+    expect(payload.input).toEqual({
+      session_id: 'ses_abc',
+      credentialId: 'cred_1',
+      session: '[REDACTED]',
+      session_token: '[REDACTED]',
+      sessionSecret: '[REDACTED]',
+      sessionid: '[REDACTED]',
+      cookie: '[REDACTED]'
+    });
+  });
+
+  it('redacts only sensitive URL query values and keeps debugging parameters', async () => {
+    let url = [
+      'https://api.example.io/v1/items?limit=500&page=2&cursor=c_9&sort=desc',
+      '&api_key=k1&key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&X-Amz-Credential=abc',
+      '&contact=bob%40corp.io&phone=%2B15551234567&malformed=%E0%A4%A',
+      '#state=xyz&id_token=idt'
+    ].join('');
+
+    let payload = await exportSinglePayload({
+      input: { url },
+      error: { code: 'upstream', message: `Request to ${url} failed` }
+    });
+
+    let expected = [
+      'https://api.example.io/v1/items?limit=500&page=2&cursor=c_9&sort=desc',
+      '&api_key=[REDACTED]&key=[REDACTED]&X-Amz-Credential=[REDACTED]',
+      '&contact=[REDACTED]&phone=[REDACTED]&malformed=%E0%A4%A',
+      '#state=xyz&id_token=[REDACTED]'
+    ].join('');
+    expect(payload.input.url).toBe(expected);
+    expect(payload.error.message).toBe(`Request to ${expected} failed`);
+  });
+
+  it('redacts URL userinfo even when the password contains @', async () => {
+    let payload = await exportSinglePayload({
+      input: {
+        url: 'https://user:p@ss@db.example.io/v1/items?limit=5',
+        mention: 'https://example.io/v1/users/me?limit=5'
+      }
+    });
+
+    expect(payload.input.url).toBe('https://[REDACTED]@db.example.io/v1/items?limit=5');
+    expect(payload.input.mention).toBe('https://example.io/v1/users/me?limit=5');
+  });
+
+  it('keeps non-secret token, url, and id keys while redacting every secret-named primitive', async () => {
+    let payload = await exportSinglePayload({
+      input: {
+        max_tokens: 500,
+        totalTokens: 1200,
+        usage: { prompt_tokens: 10, completion_tokens: 20 },
+        nextPageToken: 'npt_1',
+        pageToken: 'pt_2',
+        authorizationUrl: 'https://auth.example.io/authorize',
+        tokenUrl: 'https://auth.example.io/token',
+        credentialId: 'cred_1',
+        token_type: 'bearer',
+        expires_in: 3600,
+        access_token: 'at',
+        refresh_token: 'rt',
+        id_token: 'it',
+        api_key: 'ak',
+        client_secret: 'cs',
+        password: 1234,
+        secret: true,
+        authorization: 'Basic x',
+        headers: { Cookie: 'c=1', 'x-api-key': 'xk' },
+        AWSSecretAccessKey: 'aws',
+        pwd: 'p',
+        passphrase: 'pp',
+        signature: 'sig',
+        jwt: 'j',
+        dsn: 'postgres://u@h/db',
+        connection_string: 'Server=x',
+        connectionString: 'Server=y',
+        token: null
+      }
+    });
+
+    expect(payload.input).toEqual({
+      max_tokens: 500,
+      totalTokens: 1200,
+      usage: { prompt_tokens: 10, completion_tokens: 20 },
+      nextPageToken: 'npt_1',
+      pageToken: 'pt_2',
+      authorizationUrl: 'https://auth.example.io/authorize',
+      tokenUrl: 'https://auth.example.io/token',
+      credentialId: 'cred_1',
+      token_type: 'bearer',
+      expires_in: 3600,
+      access_token: '[REDACTED]',
+      refresh_token: '[REDACTED]',
+      id_token: '[REDACTED]',
+      api_key: '[REDACTED]',
+      client_secret: '[REDACTED]',
+      password: '[REDACTED]',
+      secret: '[REDACTED]',
+      authorization: '[REDACTED]',
+      headers: { Cookie: '[REDACTED]', 'x-api-key': '[REDACTED]' },
+      AWSSecretAccessKey: '[REDACTED]',
+      pwd: '[REDACTED]',
+      passphrase: '[REDACTED]',
+      signature: '[REDACTED]',
+      jwt: '[REDACTED]',
+      dsn: '[REDACTED]',
+      connection_string: '[REDACTED]',
+      connectionString: '[REDACTED]',
+      token: null
+    });
+  });
+
+  it('redacts credentials embedded in free text and secret-bearing webhook URLs', async () => {
+    let payload = await exportSinglePayload({
+      error: {
+        code: 'upstream',
+        message:
+          'Rejected Bearer abcDEF123456.xyz and Basic dXNlcjpwYXNz; Token validation failed',
+        data: {
+          slack: 'POST https://hooks.slack.com/services/T000/B000/XXXXSECRET returned 404',
+          telegram:
+            'https://api.telegram.org/bot123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw/sendMessage',
+          discord: 'https://discord.com/api/webhooks/123456/tok_ABCdef-123/messages'
+        }
+      }
+    });
+
+    expect(payload.error.message).toBe(
+      'Rejected Bearer [REDACTED] and Basic [REDACTED]; Token validation failed'
+    );
+    expect(payload.error.data).toEqual({
+      slack: 'POST https://hooks.slack.com/services/[REDACTED] returned 404',
+      telegram: 'https://api.telegram.org/bot[REDACTED]/sendMessage',
+      discord: 'https://discord.com/api/webhooks/123456/[REDACTED]/messages'
+    });
+  });
+
+  it('redacts phone-shaped and IPv4 object keys', async () => {
+    let payload = await exportSinglePayload({
+      input: {
+        byPhone: { '+1 555-123-4567': 'duplicate' },
+        byIp: { '10.0.0.1': 'blocked' },
+        byDate: { '2026-06-18': 'ok' }
+      }
+    });
+
+    expect(payload.input).toEqual({
+      byPhone: { '[REDACTED_KEY_1]': 'duplicate' },
+      byIp: { '[REDACTED_KEY_1]': 'blocked' },
+      byDate: { '2026-06-18': 'ok' }
+    });
+  });
+
   it('redacts a broad set of OpenRedaction-supported PII categories in export payloads', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
     let storage = createStorage();
@@ -470,7 +764,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       },
       digitalIdentity: {
         jwt: '[REDACTED]',
-        bearer: '[REDACTED]',
+        bearer: 'Bearer [REDACTED]',
         macAddress: '[REDACTED]',
         bitcoinAddress: '[REDACTED]',
         ethereumAddress: '[REDACTED]'

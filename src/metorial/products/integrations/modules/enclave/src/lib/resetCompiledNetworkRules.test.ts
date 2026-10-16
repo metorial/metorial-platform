@@ -8,7 +8,7 @@ vi.mock('@metorial-subspace/db', () => ({
     JsonNull: Symbol('JsonNull')
   },
   db: {
-    enclave: {
+    integrationEnclave: {
       updateMany: (...args: unknown[]) => enclaveUpdateMany(...args)
     }
   }
@@ -23,15 +23,15 @@ describe('resetCompiledNetworkRulesForBindingTargets', () => {
 
   it('sets needsEnclaveReconciliation when invalidating compiled rules', async () => {
     await resetCompiledNetworkRulesForBindingTargets({
-      networkOid: 1n,
+      internetGatewayOid: 1n,
       tenantOid: 2n,
       environmentOid: 3n,
-      bindings: [{ enclaveOid: 4n, providerOid: null, networkOid: null }]
+      assignments: [{ enclaveOid: 4n, providerOid: null, internetGatewayOid: null }]
     });
 
     expect(enclaveUpdateMany).toHaveBeenCalledWith({
       where: {
-        networkOid: 1n,
+        internetGatewayOid: 1n,
         tenantOid: 2n,
         environmentOid: 3n,
         OR: [{ oid: { in: [4n] } }]

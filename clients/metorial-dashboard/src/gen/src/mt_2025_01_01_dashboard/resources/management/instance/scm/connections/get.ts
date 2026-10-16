@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceScmConnectionsGetOutput = {
   object: 'scm.connection';
@@ -18,26 +18,13 @@ export type ManagementInstanceScmConnectionsGetOutput = {
 };
 
 export let mapManagementInstanceScmConnectionsGetOutput =
-  mtMap.object<ManagementInstanceScmConnectionsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    provider: mtMap.objectField('provider', mtMap.passthrough()),
-    externalInstallationId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceScmConnectionsGetOutput>(
+    [
       'external_installation_id',
-      mtMap.passthrough()
-    ),
-    accountType: mtMap.objectField('account_type', mtMap.passthrough()),
-    externalAccount: mtMap.objectField(
-      'external_account',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        login: mtMap.objectField('login', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'account_type',
+      ['external_account', 1, [1, ['image_url']]],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

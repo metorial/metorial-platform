@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderGroupsGetOutput = {
   object: 'provider.listing_group';
@@ -10,13 +10,5 @@ export type ProviderGroupsGetOutput = {
   updatedAt: Date;
 };
 
-export let mapProviderGroupsGetOutput = mtMap.object<ProviderGroupsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  slug: mtMap.objectField('slug', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-});
-
+export let mapProviderGroupsGetOutput =
+  /* @__PURE__ */ createMapper<ProviderGroupsGetOutput>(8);

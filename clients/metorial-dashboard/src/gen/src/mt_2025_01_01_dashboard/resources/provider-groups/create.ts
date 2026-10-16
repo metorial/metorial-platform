@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderGroupsCreateOutput = {
   object: 'provider.listing_group';
@@ -11,25 +11,12 @@ export type ProviderGroupsCreateOutput = {
 };
 
 export let mapProviderGroupsCreateOutput =
-  mtMap.object<ProviderGroupsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ createMapper<ProviderGroupsCreateOutput>(8);
 
 export type ProviderGroupsCreateBody = {
   name: string;
   description?: string | undefined;
 };
 
-export let mapProviderGroupsCreateBody = mtMap.object<ProviderGroupsCreateBody>(
-  {
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough())
-  }
-);
-
+export let mapProviderGroupsCreateBody =
+  /* @__PURE__ */ createMapper<ProviderGroupsCreateBody>(0);

@@ -1,22 +1,22 @@
 import {
-  DashboardInstanceEnclavesListOutput,
-  DashboardInstanceEnclavesListQuery
+  DashboardInstanceIntegrationEnclavesListOutput,
+  DashboardInstanceIntegrationEnclavesListQuery
 } from '@metorial/dashboard-sdk';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useEnclaves
+  useIntegrationEnclaves
 } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '@metorial/table';
 import { TableStateProvider, TableStateProviderResult } from '@metorial/table';
 
-type Enclave = DashboardInstanceEnclavesListOutput['items'][number];
+type Enclave = DashboardInstanceIntegrationEnclavesListOutput['items'][number];
 
-type EnclavesTableProps = DashboardInstanceEnclavesListQuery & {
+type EnclavesTableProps = DashboardInstanceIntegrationEnclavesListQuery & {
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
@@ -27,7 +27,7 @@ let enclavesTableState: TableStateProvider<
   Enclave,
   TableStateProviderResult<Enclave>
 > = props => {
-  let enclaves = useEnclaves(props.instance.data?.id, {
+  let enclaves = useIntegrationEnclaves(props.instance.data?.id, {
     order: props.order ?? 'desc'
   });
 
@@ -72,7 +72,7 @@ let enclavesTable = new DashboardTable<EnclavesTableProps, Enclave>('network-enc
       id: 'network',
       isDefault: true,
       header: 'Network',
-      render: enclave => <ID id={enclave.networkId} />
+      render: enclave => <ID id={enclave.internetGatewayId} />
     },
     {
       id: 'lastUsedAt',

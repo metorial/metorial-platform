@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementUserDeleteOutput = {
   object: 'user';
@@ -15,29 +18,15 @@ export type ManagementUserDeleteOutput = {
 };
 
 export let mapManagementUserDeleteOutput =
-  mtMap.object<ManagementUserDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    email: mtMap.objectField('email', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    firstName: mtMap.objectField('first_name', mtMap.passthrough()),
-    lastName: mtMap.objectField('last_name', mtMap.passthrough()),
-    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementUserDeleteOutput>(
+    ['first_name', 'last_name', 'image_url', 'created_at', 'updated_at'],
+    1
+  );
 
 export type ManagementUserDeleteBody = {
   name?: string | undefined;
   email?: string | undefined;
 };
 
-export let mapManagementUserDeleteBody = mtMap.object<ManagementUserDeleteBody>(
-  {
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    email: mtMap.objectField('email', mtMap.passthrough())
-  }
-);
-
+export let mapManagementUserDeleteBody =
+  /* @__PURE__ */ createMapper<ManagementUserDeleteBody>(0);

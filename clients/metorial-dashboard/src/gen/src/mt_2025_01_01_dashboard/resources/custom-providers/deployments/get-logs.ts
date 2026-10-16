@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type CustomProvidersDeploymentsGetLogsOutput = {
   object: 'custom_provider.deployment.logs';
@@ -21,36 +21,25 @@ export type CustomProvidersDeploymentsGetLogsOutput = {
 };
 
 export let mapCustomProvidersDeploymentsGetLogsOutput =
-  mtMap.object<CustomProvidersDeploymentsGetLogsOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    customProviderDeploymentId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<CustomProvidersDeploymentsGetLogsOutput>(
+    [
       'custom_provider_deployment_id',
-      mtMap.passthrough()
-    ),
-    steps: mtMap.objectField(
-      'steps',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          logs: mtMap.objectField(
-            'logs',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                timestamp: mtMap.objectField('timestamp', mtMap.date()),
-                message: mtMap.objectField('message', mtMap.passthrough())
-              })
-            )
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          startedAt: mtMap.objectField('started_at', mtMap.date()),
-          endedAt: mtMap.objectField('ended_at', mtMap.date())
-        })
-      )
-    )
-  });
-
+      [
+        'steps',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              ['logs', 0, [2, [1, [['timestamp', 0, 4]]]]],
+              'created_at',
+              'started_at',
+              'ended_at'
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );

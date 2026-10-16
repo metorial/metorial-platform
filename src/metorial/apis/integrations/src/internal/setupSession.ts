@@ -12,6 +12,7 @@ import {
   setupSessionProviderListingItemPresenter,
   setupSessionSchemaPresenter,
   setupSessionSelectedProviderPresenter,
+  setupSessionToolCategoryPresenter,
   setupSessionToolPresenter
 } from './presenters';
 
@@ -255,12 +256,15 @@ export let setupSessionController = app.controller({
       })
     )
     .do(async ctx => {
+      let tools = await providerSetupSessionUiService.listTools({
+        providerSetupSession: ctx.session
+      });
+
       return {
-        items: (
-          await providerSetupSessionUiService.listTools({
-            providerSetupSession: ctx.session
-          })
-        ).map(tool => setupSessionToolPresenter(tool))
+        items: tools.items.map(tool => setupSessionToolPresenter(tool)),
+        toolCategories: tools.toolCategories.map(category =>
+          setupSessionToolCategoryPresenter(category)
+        )
       };
     }),
 

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancePortalsSurfaceProviderGroupsUpdateOutput = {
   object: 'consumer.surface.provider_group';
@@ -11,15 +11,9 @@ export type DashboardInstancePortalsSurfaceProviderGroupsUpdateOutput = {
 };
 
 export let mapDashboardInstancePortalsSurfaceProviderGroupsUpdateOutput =
-  mtMap.object<DashboardInstancePortalsSurfaceProviderGroupsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    index: mtMap.objectField('index', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ createMapper<DashboardInstancePortalsSurfaceProviderGroupsUpdateOutput>(
+    8
+  );
 
 export type DashboardInstancePortalsSurfaceProviderGroupsUpdateBody = {
   name?: string | undefined;
@@ -28,9 +22,6 @@ export type DashboardInstancePortalsSurfaceProviderGroupsUpdateBody = {
 };
 
 export let mapDashboardInstancePortalsSurfaceProviderGroupsUpdateBody =
-  mtMap.object<DashboardInstancePortalsSurfaceProviderGroupsUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    index: mtMap.objectField('index', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstancePortalsSurfaceProviderGroupsUpdateBody>(
+    0
+  );

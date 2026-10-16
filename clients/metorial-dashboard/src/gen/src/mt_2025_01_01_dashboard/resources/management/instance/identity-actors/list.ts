@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceIdentityActorsListOutput = {
   items: ({
@@ -30,72 +30,51 @@ export type ManagementInstanceIdentityActorsListOutput = {
 };
 
 export let mapManagementInstanceIdentityActorsListOutput =
-  mtMap.object<ManagementInstanceIdentityActorsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-              consumer: mtMap.objectField(
-                'consumer',
-                mtMap.union([
-                  mtMap.unionOption(
-                    'object',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      userId: mtMap.objectField('user_id', mtMap.passthrough()),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-                      isPortalConsumer: mtMap.objectField(
-                        'is_portal_consumer',
-                        mtMap.passthrough()
-                      ),
-                      isOrganizationMember: mtMap.objectField(
-                        'is_organization_member',
-                        mtMap.passthrough()
-                      )
-                    })
-                  )
-                ])
-              )
-            })
-          )
-        ])
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceIdentityActorsListOutput>(
+    [
+      7,
+      [
+        3,
+        [
+          [
+            0,
+            [
+              1,
+              [
+                'agent_id',
+                'created_at',
+                'updated_at',
+                [
+                  'consumer',
+                  0,
+                  [
+                    3,
+                    [
+                      [
+                        0,
+                        [
+                          1,
+                          [
+                            'image_url',
+                            'user_id',
+                            'created_at',
+                            'updated_at',
+                            'is_portal_consumer',
+                            'is_organization_member'
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstanceIdentityActorsListQuery = {
   limit?: number | undefined;
@@ -118,65 +97,21 @@ export type ManagementInstanceIdentityActorsListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapManagementInstanceIdentityActorsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      search: mtMap.objectField('search', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      agentId: mtMap.objectField(
-        'agent_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      consumerId: mtMap.objectField(
-        'consumer_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapManagementInstanceIdentityActorsListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceIdentityActorsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'agent_id',
+            'consumer_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

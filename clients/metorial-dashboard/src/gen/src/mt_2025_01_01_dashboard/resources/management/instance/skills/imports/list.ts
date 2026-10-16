@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsImportsListOutput = {
   items: {
@@ -45,86 +45,43 @@ export type ManagementInstanceSkillsImportsListOutput = {
 };
 
 export let mapManagementInstanceSkillsImportsListOutput =
-  mtMap.object<ManagementInstanceSkillsImportsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          source: mtMap.objectField(
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsImportsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          [
             'source',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  repositoryUrl: mtMap.objectField(
-                    'repository_url',
-                    mtMap.passthrough()
-                  ),
-                  repositoryName: mtMap.objectField(
-                    'repository_name',
-                    mtMap.passthrough()
-                  ),
-                  ref: mtMap.objectField('ref', mtMap.passthrough()),
-                  repositoryId: mtMap.objectField(
-                    'repository_id',
-                    mtMap.passthrough()
-                  ),
-                  path: mtMap.objectField('path', mtMap.passthrough()),
-                  fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-                  fileName: mtMap.objectField('file_name', mtMap.passthrough()),
-                  format: mtMap.objectField('format', mtMap.passthrough())
-                })
-              )
-            ])
-          ),
-          error: mtMap.objectField('error', mtMap.passthrough()),
-          items: mtMap.objectField(
-            'items',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                path: mtMap.objectField('path', mtMap.passthrough()),
-                error: mtMap.objectField('error', mtMap.passthrough()),
-                skill: mtMap.objectField(
-                  'skill',
-                  mtMap.object({
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    )
-                  })
-                ),
-                startedAt: mtMap.objectField('started_at', mtMap.date()),
-                completedAt: mtMap.objectField('completed_at', mtMap.date()),
-                createdAt: mtMap.objectField('created_at', mtMap.date())
-              })
-            )
-          ),
-          startedAt: mtMap.objectField('started_at', mtMap.date()),
-          completedAt: mtMap.objectField('completed_at', mtMap.date()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            0,
+            [
+              3,
+              [
+                [
+                  0,
+                  [
+                    1,
+                    [
+                      'repository_url',
+                      'repository_name',
+                      'repository_id',
+                      'file_id',
+                      'file_name'
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          ['items', 0, [2, [1, ['started_at', 'completed_at', 'created_at']]]],
+          'started_at',
+          'completed_at',
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstanceSkillsImportsListQuery = {
   limit?: number | undefined;
@@ -143,30 +100,5 @@ export type ManagementInstanceSkillsImportsListQuery = {
     | undefined;
 };
 
-export let mapManagementInstanceSkillsImportsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
-    })
-  )
-]);
-
+export let mapManagementInstanceSkillsImportsListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsImportsListQuery>(0);

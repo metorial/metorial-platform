@@ -9,7 +9,7 @@ import { providerAuthConfigArchivedQueue } from '@metorial-subspace/module-auth/
 import { providerAuthCredentialsArchivedQueue } from '@metorial-subspace/module-auth/src/queues/lifecycle/providerAuthCredentials';
 import { providerConfigArchivedQueue } from '@metorial-subspace/module-deployment/src/queues/lifecycle/providerConfig';
 import { providerConfigVaultArchivedQueue } from '@metorial-subspace/module-deployment/src/queues/lifecycle/providerConfigVault';
-import { firewallBindingDeletedQueue } from '@metorial-subspace/module-enclave/src/queues/lifecycle/firewallBinding';
+import { firewallAssignmentDeletedQueue } from '@metorial-subspace/module-enclave/src/queues/lifecycle/firewallAssignment';
 import { identityCredentialDeletedQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/identityCredential';
 import { listingUpdatedQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/listing';
 import { providerUpdatedQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/provider';
@@ -110,7 +110,7 @@ export let customProviderArchivedQueueProcessor = customProviderArchivedQueue.pr
     await customProviderArchiveSessionTemplateProvidersManyQueue.add({
       customProviderId: data.customProviderId
     });
-    await customProviderDeleteFirewallBindingsManyQueue.add({
+    await customProviderDeleteFirewallAssignmentsManyQueue.add({
       customProviderId: data.customProviderId
     });
     await customProviderArchiveSkillResourcesManyQueue.add({
@@ -789,17 +789,17 @@ export let customProviderArchiveSessionTemplateProvidersManyQueueProcessor =
     });
   });
 
-export let customProviderDeleteFirewallBindingsManyQueue = createQueue<{
+export let customProviderDeleteFirewallAssignmentsManyQueue = createQueue<{
   customProviderId: string;
   cursor?: string;
 }>({
-  name: 'sub/cpr/lc/customProvider/deleteFirewallBindingsMany',
+  name: 'sub/cpr/lc/customProvider/deleteFirewallAssignmentsMany',
   workerOpts: { concurrency: 1 },
   redisUrl: env.service.REDIS_URL
 });
 
-export let customProviderDeleteFirewallBindingsManyQueueProcessor =
-  customProviderDeleteFirewallBindingsManyQueue.process(async data => {
+export let customProviderDeleteFirewallAssignmentsManyQueueProcessor =
+  customProviderDeleteFirewallAssignmentsManyQueue.process(async data => {
     let customProvider = await db.customProvider.findUnique({
       where: { id: data.customProviderId }
     });
@@ -811,7 +811,7 @@ export let customProviderDeleteFirewallBindingsManyQueueProcessor =
       return;
     }
 
-    let bindings = await db.firewallBinding.findMany({
+    let assignments = await db.integrationFirewallAssignment.findMany({
       where: {
         tenantOid: customProvider.tenantOid,
         providerOid: customProvider.providerOid,
@@ -822,33 +822,33 @@ export let customProviderDeleteFirewallBindingsManyQueueProcessor =
       take: 100,
       include: {
         firewall: {
-          select: { networkOid: true }
+          select: { internetGatewayOid: true }
         }
       }
     });
-    if (bindings.length === 0) return;
+    if (assignments.length === 0) return;
 
-    await db.firewallBinding.deleteMany({
-      where: { oid: { in: bindings.map(binding => binding.oid) } }
+    await db.integrationFirewallAssignment.deleteMany({
+      where: { oid: { in: assignments.map(assignment => assignment.oid) } }
     });
 
-    await firewallBindingDeletedQueue.addMany(
-      bindings.map(binding => ({
-        firewallNetworkOid: binding.firewall.networkOid.toString(),
-        tenantOid: binding.tenantOid.toString(),
-        environmentOid: binding.environmentOid.toString(),
-        enclaveOid: binding.enclaveOid?.toString() ?? null,
-        providerOid: binding.providerOid?.toString() ?? null,
-        bindingNetworkOid: binding.networkOid?.toString() ?? null
+    await firewallAssignmentDeletedQueue.addMany(
+      assignments.map(assignment => ({
+        firewallInternetGatewayOid: assignment.firewall.internetGatewayOid.toString(),
+        tenantOid: assignment.tenantOid.toString(),
+        environmentOid: assignment.environmentOid.toString(),
+        enclaveOid: assignment.enclaveOid?.toString() ?? null,
+        providerOid: assignment.providerOid?.toString() ?? null,
+        assignmentInternetGatewayOid: assignment.internetGatewayOid?.toString() ?? null
       }))
     );
 
-    let lastBinding = bindings[bindings.length - 1];
-    if (!lastBinding) return;
+    let lastAssignment = assignments[assignments.length - 1];
+    if (!lastAssignment) return;
 
-    await customProviderDeleteFirewallBindingsManyQueue.add({
+    await customProviderDeleteFirewallAssignmentsManyQueue.add({
       customProviderId: data.customProviderId,
-      cursor: lastBinding.id
+      cursor: lastAssignment.id
     });
   });
 

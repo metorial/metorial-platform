@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type PortalsSurfaceProviderGroupsListOutput = {
   items: {
@@ -14,32 +14,7 @@ export type PortalsSurfaceProviderGroupsListOutput = {
 };
 
 export let mapPortalsSurfaceProviderGroupsListOutput =
-  mtMap.object<PortalsSurfaceProviderGroupsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          index: mtMap.objectField('index', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<PortalsSurfaceProviderGroupsListOutput>([7, 8]);
 
 export type PortalsSurfaceProviderGroupsListQuery = {
   limit?: number | undefined;
@@ -49,16 +24,5 @@ export type PortalsSurfaceProviderGroupsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapPortalsSurfaceProviderGroupsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapPortalsSurfaceProviderGroupsListQuery =
+  /* @__PURE__ */ createMapper<PortalsSurfaceProviderGroupsListQuery>(0);

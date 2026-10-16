@@ -374,8 +374,212 @@ let normalizeJsonValue = (value: unknown) => {
   return json === undefined ? undefined : JSON.parse(json);
 };
 
+let EXPORT_REDACTED_VALUE = '[REDACTED]';
+
+// OpenRedaction only detects values by format: it never redacts by key name, never
+// rewrites object keys, and misses emails inside URL query strings.
+let EXPORT_SECRET_KEY_PATTERN =
+  /(?:^|[^a-z0-9])(?:tokens?|secrets?|passwords?|passwd|pwd|passphrases?|authorization|cookies?|api[-_]?keys?|apikey|access[-_]?keys?|private[-_]?keys?|credentials?|sessions?|sessionid|sessid|signatures?|jwts?|dsn|connection[-_]?strings?)(?=[^a-z0-9]|$)/;
+// Identifiers (sessionId, credentialId), endpoints (tokenUrl), LLM token usage
+// (max_tokens) and pagination cursors (nextPageToken) are debugging data, not secrets.
+let EXPORT_NON_SECRET_KEY_PATTERN =
+  /[-_](?:ids?|url|uri|endpoint|type|kind|name|count|limit|ttl|expires(?:[-_](?:in|at))?|expiry|expiration|policy|strength)$|(?:^|[-_])(?:(?:max|min|total|prompt|completion|input|output|cached|reasoning)[-_]tokens|(?:page|next|prev|previous|continuation)[-_]token)$/;
+let EXPORT_SECRET_QUERY_PARAM_PATTERN = /^(?:key|sig|code)$/;
+let EXPORT_PII_KEY_CANDIDATE_PATTERN = /@|\s|\d{5,}/;
+let EXPORT_PHONE_KEY_PATTERN = /\d[\d\s().+-]{6,}\d/;
+// Keeps the backtracking-prone key patterns linear on pathological keys.
+let EXPORT_KEY_PATTERN_PROBE_LENGTH = 256;
+let EXPORT_IPV4_PATTERN =
+  /(?:^|[^\d.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?![\d.])/;
+let EXPORT_EMAIL_VALUE_PATTERN = /^[^\s@]{1,64}@[^\s@]{1,255}\.[a-z]{2,}$/i;
+let EXPORT_PHONE_VALUE_PATTERN =
+  /^(?:\+\d[\d\s().-]{5,}\d|\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4})$/;
+let EXPORT_URL_PATTERN = /\bhttps?:\/\/[^\s"'<>]+/gi;
+let EXPORT_URL_PARAM_PATTERN = /([?&#;])([^=&#?;\s]*)=([^&#;\s]*)/g;
+let EXPORT_AUTH_SCHEME_PATTERN = /\b(Bearer|bearer|Basic|Token)\s+([A-Za-z0-9._~+/=-]{8,})/g;
+let EXPORT_CREDENTIAL_SHAPE_PATTERN = /[0-9._~+/=-]|[a-z][A-Z]/;
+let EXPORT_SECRET_PATH_PATTERNS: [RegExp, string][] = [
+  [
+    /(hooks\.slack\.com\/(?:services|workflows|triggers)\/)[^\s?#"'<>]+/gi,
+    `$1${EXPORT_REDACTED_VALUE}`
+  ],
+  [
+    /(discord(?:app)?\.com\/api\/webhooks\/\d+\/)[^\s?#"'<>/]+/gi,
+    `$1${EXPORT_REDACTED_VALUE}`
+  ],
+  [/(\/bot)\d{3,}:[A-Za-z0-9_-]{10,}/g, `$1${EXPORT_REDACTED_VALUE}`]
+];
+
+let normalizeExportKey = (key: string) =>
+  key
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase();
+
+let isExportSecretKey = (key: string) => {
+  let normalized = normalizeExportKey(key.slice(0, EXPORT_KEY_PATTERN_PROBE_LENGTH));
+  return (
+    EXPORT_SECRET_KEY_PATTERN.test(normalized) &&
+    !EXPORT_NON_SECRET_KEY_PATTERN.test(normalized)
+  );
+};
+
+let safeDecodeUriComponent = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+let isDetectedByOpenRedaction = async (value: string) => {
+  try {
+    return (await providerTelemetryExportRedactor.detect(value)).detections.length > 0;
+  } catch {
+    return true;
+  }
+};
+
+let replaceAsync = async (
+  text: string,
+  pattern: RegExp,
+  replacer: (match: RegExpMatchArray) => Promise<string>
+) => {
+  let parts: string[] = [];
+  let lastIndex = 0;
+  for (let match of text.matchAll(pattern)) {
+    let index = match.index ?? 0;
+    parts.push(text.slice(lastIndex, index), await replacer(match));
+    lastIndex = index + match[0].length;
+  }
+  parts.push(text.slice(lastIndex));
+  return parts.join('');
+};
+
+let shouldRedactUrlParam = async (rawName: string, rawValue: string) => {
+  let value = safeDecodeUriComponent(rawValue);
+  if (!value) return false;
+
+  let name = safeDecodeUriComponent(rawName);
+  if (isExportSecretKey(name) || EXPORT_SECRET_QUERY_PARAM_PATTERN.test(name.toLowerCase())) {
+    return true;
+  }
+  if (EXPORT_EMAIL_VALUE_PATTERN.test(value) || EXPORT_PHONE_VALUE_PATTERN.test(value)) {
+    return true;
+  }
+  return isDetectedByOpenRedaction(value);
+};
+
+let redactUrl = async (url: string) => {
+  let withoutUserinfo = url.replace(
+    /^(https?:\/\/)[^/?#\s]*@/i,
+    `$1${EXPORT_REDACTED_VALUE}@`
+  );
+  let paramsStart = withoutUserinfo.search(/[?#]/);
+  if (paramsStart === -1) return withoutUserinfo;
+
+  let params = await replaceAsync(
+    withoutUserinfo.slice(paramsStart),
+    EXPORT_URL_PARAM_PATTERN,
+    async ([param, separator, name, value]) =>
+      (await shouldRedactUrlParam(name!, value!))
+        ? `${separator}${name}=${EXPORT_REDACTED_VALUE}`
+        : param!
+  );
+  return withoutUserinfo.slice(0, paramsStart) + params;
+};
+
+let redactExportString = async (text: string) => {
+  let redacted = text.replace(EXPORT_AUTH_SCHEME_PATTERN, (match, scheme, credential) =>
+    EXPORT_CREDENTIAL_SHAPE_PATTERN.test(credential)
+      ? `${scheme} ${EXPORT_REDACTED_VALUE}`
+      : match
+  );
+  for (let [pattern, replacement] of EXPORT_SECRET_PATH_PATTERNS) {
+    redacted = redacted.replace(pattern, replacement);
+  }
+  if (!/https?:\/\//i.test(redacted)) return redacted;
+  return replaceAsync(redacted, EXPORT_URL_PATTERN, async ([url]) => redactUrl(url!));
+};
+
+let isPiiExportKey = async (key: string) => {
+  let probe = key.slice(0, EXPORT_KEY_PATTERN_PROBE_LENGTH);
+  if (EXPORT_IPV4_PATTERN.test(probe)) return true;
+  if (!EXPORT_PII_KEY_CANDIDATE_PATTERN.test(key) && !EXPORT_PHONE_KEY_PATTERN.test(probe)) {
+    return false;
+  }
+  return isDetectedByOpenRedaction(key);
+};
+
+// Key-name redaction covers the whole payload, not only input/output/error.data:
+// presenter-owned keys are all ids/metadata the non-secret pattern keeps, and a
+// subtree allowlist would silently stop protecting any field added later.
+let redactExportKeysAndUrls = async (value: unknown, secret = false): Promise<unknown> => {
+  if (secret && value !== null && typeof value !== 'object') return EXPORT_REDACTED_VALUE;
+  if (typeof value === 'string') return redactExportString(value);
+  if (Array.isArray(value)) {
+    let items: unknown[] = [];
+    for (let item of value) items.push(await redactExportKeysAndUrls(item, secret));
+    return items;
+  }
+  if (value && typeof value === 'object') {
+    let entries: [string, unknown][] = [];
+    let redactedKeyCount = 0;
+    for (let [key, entry] of Object.entries(value)) {
+      let exportKey = (await isPiiExportKey(key))
+        ? `[REDACTED_KEY_${++redactedKeyCount}]`
+        : key;
+      entries.push([
+        exportKey,
+        await redactExportKeysAndUrls(entry, secret || isExportSecretKey(key))
+      ]);
+    }
+    return Object.fromEntries(entries);
+  }
+  return value;
+};
+
+let EXPORT_NAME_KEY_PATTERN =
+  /(?:^|_)(?:names?|first_?name|last_?name|full_?name|display_?name|given_?name|family_?name|surname|nickname|author|owner|contact|assignee|recipient|sender)$/;
+
+let getExportPathKey = (path: string) => {
+  let segments = path.replace(/\[\d+\]/g, '').split('.');
+  let key = segments.pop() ?? '';
+  // Array items are addressed by index; the list's own key carries the meaning.
+  while (/^\d+$/.test(key) && segments.length) key = segments.pop()!;
+  return normalizeExportKey(key);
+};
+
+type ExportJsonDetection = Awaited<ReturnType<JsonProcessor['detect']>>;
+
+// OpenRedaction's NAME detector flags any capitalized phrase ("Token validation
+// failed", "Service Unavailable"), and JsonProcessor then replaces the whole field.
+// Person names only appear under name-like keys, so NAME hits elsewhere would just
+// erase the error text the export exists for.
+let dropNameDetectionsOutsideNameKeys = (
+  detection: ExportJsonDetection
+): ExportJsonDetection => {
+  let matchesByPath = Object.fromEntries(
+    Object.entries(detection.matchesByPath)
+      .map(([path, matches]) => [
+        path,
+        matches.filter(
+          match =>
+            match.type !== 'NAME' || EXPORT_NAME_KEY_PATTERN.test(getExportPathKey(path))
+        )
+      ])
+      .filter(([, matches]) => matches.length > 0)
+  );
+
+  return {
+    ...detection,
+    matchesByPath,
+    pathsDetected: detection.pathsDetected.filter(path => path in matchesByPath)
+  };
+};
+
 let redactProviderTelemetryExportPayload = async (value: unknown) => {
-  let normalized = normalizeJsonValue(value);
+  let normalized = await redactExportKeysAndUrls(normalizeJsonValue(value));
   if (normalized === undefined) return normalized;
 
   let detection = await providerTelemetryExportJsonProcessor.detect(
@@ -383,7 +587,10 @@ let redactProviderTelemetryExportPayload = async (value: unknown) => {
     providerTelemetryExportRedactor
   );
 
-  return providerTelemetryExportJsonProcessor.redact(normalized, detection);
+  return providerTelemetryExportJsonProcessor.redact(
+    normalized,
+    dropNameDetectionsOutsideNameKeys(detection)
+  );
 };
 
 let normalizeS3KeyComponent = (value: string | null | undefined) => {

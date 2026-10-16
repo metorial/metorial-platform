@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type MagicMcpGroupsRemoveServersOutput = {
   object: 'magic_mcp.group';
@@ -13,25 +16,11 @@ export type MagicMcpGroupsRemoveServersOutput = {
 };
 
 export let mapMagicMcpGroupsRemoveServersOutput =
-  mtMap.object<MagicMcpGroupsRemoveServersOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ createMapper<MagicMcpGroupsRemoveServersOutput>(8);
 
 export type MagicMcpGroupsRemoveServersBody = { magicMcpServerIds: string[] };
 
 export let mapMagicMcpGroupsRemoveServersBody =
-  mtMap.object<MagicMcpGroupsRemoveServersBody>({
-    magicMcpServerIds: mtMap.objectField(
-      'magic_mcp_server_ids',
-      mtMap.array(mtMap.passthrough())
-    )
-  });
-
+  /* @__PURE__ */ mapObject<MagicMcpGroupsRemoveServersBody>([
+    'magic_mcp_server_ids'
+  ]);

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SkillsImportsGetOutput = {
   object: 'skill.import';
@@ -41,61 +41,35 @@ export type SkillsImportsGetOutput = {
   createdAt: Date;
 };
 
-export let mapSkillsImportsGetOutput = mtMap.object<SkillsImportsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  status: mtMap.objectField('status', mtMap.passthrough()),
-  source: mtMap.objectField(
-    'source',
-    mtMap.union([
-      mtMap.unionOption(
-        'object',
-        mtMap.object({
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          repositoryUrl: mtMap.objectField(
-            'repository_url',
-            mtMap.passthrough()
-          ),
-          repositoryName: mtMap.objectField(
-            'repository_name',
-            mtMap.passthrough()
-          ),
-          ref: mtMap.objectField('ref', mtMap.passthrough()),
-          repositoryId: mtMap.objectField('repository_id', mtMap.passthrough()),
-          path: mtMap.objectField('path', mtMap.passthrough()),
-          fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-          fileName: mtMap.objectField('file_name', mtMap.passthrough()),
-          format: mtMap.objectField('format', mtMap.passthrough())
-        })
-      )
-    ])
-  ),
-  error: mtMap.objectField('error', mtMap.passthrough()),
-  items: mtMap.objectField(
-    'items',
-    mtMap.array(
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        path: mtMap.objectField('path', mtMap.passthrough()),
-        error: mtMap.objectField('error', mtMap.passthrough()),
-        skill: mtMap.objectField(
-          'skill',
-          mtMap.object({
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough())
-          })
-        ),
-        startedAt: mtMap.objectField('started_at', mtMap.date()),
-        completedAt: mtMap.objectField('completed_at', mtMap.date()),
-        createdAt: mtMap.objectField('created_at', mtMap.date())
-      })
-    )
-  ),
-  startedAt: mtMap.objectField('started_at', mtMap.date()),
-  completedAt: mtMap.objectField('completed_at', mtMap.date()),
-  createdAt: mtMap.objectField('created_at', mtMap.date())
-});
-
+export let mapSkillsImportsGetOutput =
+  /* @__PURE__ */ mapObject<SkillsImportsGetOutput>(
+    [
+      [
+        'source',
+        0,
+        [
+          3,
+          [
+            [
+              0,
+              [
+                1,
+                [
+                  'repository_url',
+                  'repository_name',
+                  'repository_id',
+                  'file_id',
+                  'file_name'
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
+      ['items', 0, [2, [1, ['started_at', 'completed_at', 'created_at']]]],
+      'started_at',
+      'completed_at',
+      'created_at'
+    ],
+    1
+  );

@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type CallbacksUpdateOutput = {
   object: 'callback';
@@ -33,53 +36,19 @@ export type CallbacksUpdateOutput = {
   };
 };
 
-export let mapCallbacksUpdateOutput = mtMap.object<CallbacksUpdateOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  status: mtMap.objectField('status', mtMap.passthrough()),
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-  integrationId: mtMap.objectField('integration_id', mtMap.passthrough()),
-  integrationProviderId: mtMap.objectField(
-    'integration_provider_id',
-    mtMap.passthrough()
-  ),
-  provider: mtMap.objectField(
-    'provider',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      slug: mtMap.objectField('slug', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-    })
-  ),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-  authCredentialsIsManaged: mtMap.objectField(
-    'auth_credentials_is_managed',
-    mtMap.passthrough()
-  ),
-  sync: mtMap.objectField(
-    'sync',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      error: mtMap.objectField(
-        'error',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          code: mtMap.objectField('code', mtMap.passthrough()),
-          message: mtMap.objectField('message', mtMap.passthrough())
-        })
-      ),
-      syncedAt: mtMap.objectField('synced_at', mtMap.date())
-    })
-  )
-});
+export let mapCallbacksUpdateOutput =
+  /* @__PURE__ */ mapObject<CallbacksUpdateOutput>(
+    [
+      'integration_id',
+      'integration_provider_id',
+      ['provider', 0, 8],
+      'created_at',
+      'updated_at',
+      'auth_credentials_is_managed',
+      ['sync', 0, [1, ['synced_at']]]
+    ],
+    1
+  );
 
 export type CallbacksUpdateBody = {
   name?: string | undefined;
@@ -87,9 +56,5 @@ export type CallbacksUpdateBody = {
   metadata?: Record<string, any> | null | undefined;
 };
 
-export let mapCallbacksUpdateBody = mtMap.object<CallbacksUpdateBody>({
-  name: mtMap.objectField('name', mtMap.passthrough()),
-  description: mtMap.objectField('description', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough())
-});
-
+export let mapCallbacksUpdateBody =
+  /* @__PURE__ */ createMapper<CallbacksUpdateBody>(0);

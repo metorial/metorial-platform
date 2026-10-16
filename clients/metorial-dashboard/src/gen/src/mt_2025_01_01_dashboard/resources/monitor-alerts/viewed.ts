@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type MonitorAlertsViewedOutput = {
   object: 'monitor.alert';
@@ -81,123 +81,45 @@ export type MonitorAlertsViewedOutput = {
 };
 
 export let mapMonitorAlertsViewedOutput =
-  mtMap.object<MonitorAlertsViewedOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    monitor: mtMap.objectField(
-      'monitor',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        target: mtMap.objectField('target', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        owner: mtMap.objectField('owner', mtMap.passthrough()),
-        protoGuardFilterId: mtMap.objectField(
-          'proto_guard_filter_id',
-          mtMap.passthrough()
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        firstAlertAt: mtMap.objectField('first_alert_at', mtMap.date()),
-        lastAlertAt: mtMap.objectField('last_alert_at', mtMap.date())
-      })
-    ),
-    protoGuardAlertId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<MonitorAlertsViewedOutput>(
+    [
+      [
+        'monitor',
+        0,
+        [
+          1,
+          [
+            'proto_guard_filter_id',
+            'provider_id',
+            'created_at',
+            'updated_at',
+            'first_alert_at',
+            'last_alert_at'
+          ]
+        ]
+      ],
       'proto_guard_alert_id',
-      mtMap.passthrough()
-    ),
-    protoGuardRunId: mtMap.objectField(
       'proto_guard_run_id',
-      mtMap.passthrough()
-    ),
-    specificationChangeNotification: mtMap.objectField(
-      'specification_change_notification',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        providerVersionId: mtMap.objectField(
-          'provider_version_id',
-          mtMap.passthrough()
-        ),
-        fromSpecification: mtMap.objectField(
-          'from_specification',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        toSpecification: mtMap.objectField(
-          'to_specification',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        fromProviderVersion: mtMap.objectField(
-          'from_provider_version',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            version: mtMap.objectField('version', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        toProviderVersion: mtMap.objectField(
-          'to_provider_version',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            version: mtMap.objectField('version', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    resolvedAt: mtMap.objectField('resolved_at', mtMap.date()),
-    recipients: mtMap.objectField(
-      'recipients',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          recipientId: mtMap.objectField('recipient_id', mtMap.passthrough()),
-          viewedAt: mtMap.objectField('viewed_at', mtMap.date()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    events: mtMap.objectField(
-      'events',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    )
-  });
-
+      [
+        'specification_change_notification',
+        1,
+        [
+          1,
+          [
+            'provider_id',
+            'provider_version_id',
+            ['from_specification', 1, 8],
+            ['to_specification', 1, 8],
+            ['from_provider_version', 1, 8],
+            ['to_provider_version', 1, 8],
+            'created_at'
+          ]
+        ]
+      ],
+      'created_at',
+      'resolved_at',
+      ['recipients', 0, [2, [1, ['recipient_id', 'viewed_at', 'created_at']]]],
+      ['events', 0, [2, [1, ['actor_id', 'created_at']]]]
+    ],
+    1
+  );

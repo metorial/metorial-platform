@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstancePortalsConsumerInvitesGetOutput = {
   object: 'consumer.invite';
@@ -24,32 +24,14 @@ export type ManagementInstancePortalsConsumerInvitesGetOutput = {
 };
 
 export let mapManagementInstancePortalsConsumerInvitesGetOutput =
-  mtMap.object<ManagementInstancePortalsConsumerInvitesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    portalUrl: mtMap.objectField('portal_url', mtMap.passthrough()),
-    consumerProfile: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstancePortalsConsumerInvitesGetOutput>(
+    [
+      'portal_url',
       'consumer_profile',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough())
-      })
-    ),
-    invitedBy: mtMap.objectField(
       'invited_by',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough())
-      })
-    ),
-    message: mtMap.objectField('message', mtMap.passthrough()),
-    acceptedAt: mtMap.objectField('accepted_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'accepted_at',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

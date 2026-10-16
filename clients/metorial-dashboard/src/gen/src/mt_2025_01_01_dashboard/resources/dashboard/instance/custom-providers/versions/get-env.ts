@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCustomProvidersVersionsGetEnvOutput = {
   object: 'custom_provider.env';
@@ -6,8 +6,6 @@ export type DashboardInstanceCustomProvidersVersionsGetEnvOutput = {
 };
 
 export let mapDashboardInstanceCustomProvidersVersionsGetEnvOutput =
-  mtMap.object<DashboardInstanceCustomProvidersVersionsGetEnvOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    env: mtMap.objectField('env', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstanceCustomProvidersVersionsGetEnvOutput>(
+    0
+  );

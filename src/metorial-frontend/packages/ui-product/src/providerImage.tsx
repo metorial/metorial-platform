@@ -6,8 +6,8 @@ let Wrapper = styled.div<{ $size: number; $radius: number }>`
   width: ${p => p.$size}px;
   height: ${p => p.$size}px;
   border-radius: ${p => p.$radius}px;
-  background: ${theme.colors.gray200};
-  border: 1px solid ${theme.colors.gray400};
+  /* background: ${theme.colors.gray200};
+  border: 1px solid ${theme.colors.gray400}; */
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceFilesListOutput = {
   items: ({
@@ -89,228 +89,120 @@ export type DashboardInstanceFilesListOutput = {
 };
 
 export let mapDashboardInstanceFilesListOutput =
-  mtMap.object<DashboardInstanceFilesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              fileName: mtMap.objectField('file_name', mtMap.passthrough()),
-              fileSize: mtMap.objectField('file_size', mtMap.passthrough()),
-              fileType: mtMap.objectField('file_type', mtMap.passthrough()),
-              title: mtMap.objectField('title', mtMap.passthrough()),
-              purpose: mtMap.objectField('purpose', mtMap.passthrough()),
-              createdBy: mtMap.objectField(
-                'created_by',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                  email: mtMap.objectField('email', mtMap.passthrough()),
-                  organizationActor: mtMap.objectField(
-                    'organization_actor',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      type: mtMap.objectField('type', mtMap.passthrough()),
-                      organizationId: mtMap.objectField(
-                        'organization_id',
-                        mtMap.passthrough()
-                      ),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      member: mtMap.objectField(
-                        'member',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          ),
-                          role: mtMap.objectField('role', mtMap.passthrough())
-                        })
-                      ),
-                      teams: mtMap.objectField(
-                        'teams',
-                        mtMap.array(
-                          mtMap.object({
-                            id: mtMap.objectField('id', mtMap.passthrough()),
-                            name: mtMap.objectField(
-                              'name',
-                              mtMap.passthrough()
-                            ),
-                            slug: mtMap.objectField(
-                              'slug',
-                              mtMap.passthrough()
-                            ),
-                            assignmentId: mtMap.objectField(
-                              'assignment_id',
-                              mtMap.passthrough()
-                            ),
-                            createdAt: mtMap.objectField(
-                              'created_at',
-                              mtMap.date()
-                            ),
-                            updatedAt: mtMap.objectField(
-                              'updated_at',
-                              mtMap.date()
-                            )
-                          })
-                        )
-                      ),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  consumer: mtMap.objectField(
-                    'consumer',
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      id: mtMap.objectField('id', mtMap.passthrough()),
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      email: mtMap.objectField('email', mtMap.passthrough()),
-                      imageUrl: mtMap.objectField(
-                        'image_url',
-                        mtMap.passthrough()
-                      ),
-                      userId: mtMap.objectField('user_id', mtMap.passthrough()),
-                      createdAt: mtMap.objectField('created_at', mtMap.date()),
-                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                    })
-                  ),
-                  consumerProfile: mtMap.objectField(
-                    'consumer_profile',
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          email: mtMap.objectField(
-                            'email',
-                            mtMap.passthrough()
-                          ),
-                          imageUrl: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardInstanceFilesListOutput>(
+    [
+      7,
+      [
+        3,
+        [
+          [
+            0,
+            [
+              1,
+              [
+                'file_name',
+                'file_size',
+                'file_type',
+                [
+                  'created_by',
+                  1,
+                  [
+                    1,
+                    [
+                      'image_url',
+                      [
+                        'organization_actor',
+                        1,
+                        [
+                          1,
+                          [
+                            'organization_id',
                             'image_url',
-                            mtMap.passthrough()
-                          ),
-                          consumerId: mtMap.objectField(
-                            'consumer_id',
-                            mtMap.passthrough()
-                          ),
-                          userId: mtMap.objectField(
-                            'user_id',
-                            mtMap.passthrough()
-                          ),
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          ),
-                          createdAt: mtMap.objectField(
+                            [
+                              'teams',
+                              0,
+                              [
+                                2,
+                                [
+                                  1,
+                                  ['assignment_id', 'created_at', 'updated_at']
+                                ]
+                              ]
+                            ],
                             'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          ),
-                          groups: mtMap.objectField(
-                            'groups',
-                            mtMap.array(
-                              mtMap.object({
-                                object: mtMap.objectField(
-                                  'object',
-                                  mtMap.passthrough()
-                                ),
-                                group: mtMap.objectField(
-                                  'group',
-                                  mtMap.object({
-                                    object: mtMap.objectField(
-                                      'object',
-                                      mtMap.passthrough()
-                                    ),
-                                    id: mtMap.objectField(
-                                      'id',
-                                      mtMap.passthrough()
-                                    ),
-                                    status: mtMap.objectField(
-                                      'status',
-                                      mtMap.passthrough()
-                                    ),
-                                    name: mtMap.objectField(
-                                      'name',
-                                      mtMap.passthrough()
-                                    ),
-                                    description: mtMap.objectField(
-                                      'description',
-                                      mtMap.passthrough()
-                                    ),
-                                    isDefault: mtMap.objectField(
-                                      'is_default',
-                                      mtMap.passthrough()
-                                    ),
-                                    createdAt: mtMap.objectField(
-                                      'created_at',
-                                      mtMap.date()
-                                    ),
-                                    updatedAt: mtMap.objectField(
-                                      'updated_at',
-                                      mtMap.date()
-                                    )
-                                  })
-                                ),
-                                assignedVia: mtMap.objectField(
-                                  'assigned_via',
-                                  mtMap.passthrough()
-                                )
-                              })
-                            )
-                          )
-                        })
-                      )
-                    ])
-                  )
-                })
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-              downloadUrl: mtMap.objectField(
-                'download_url',
-                mtMap.passthrough()
-              )
-            })
-          )
-        ])
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+                            'updated_at'
+                          ]
+                        ]
+                      ],
+                      [
+                        'consumer',
+                        0,
+                        [
+                          1,
+                          ['image_url', 'user_id', 'created_at', 'updated_at']
+                        ]
+                      ],
+                      [
+                        'consumer_profile',
+                        1,
+                        [
+                          3,
+                          [
+                            [
+                              0,
+                              [
+                                1,
+                                [
+                                  'image_url',
+                                  'consumer_id',
+                                  'user_id',
+                                  'created_at',
+                                  'updated_at',
+                                  [
+                                    'groups',
+                                    0,
+                                    [
+                                      2,
+                                      [
+                                        1,
+                                        [
+                                          [
+                                            'group',
+                                            0,
+                                            [
+                                              1,
+                                              [
+                                                'is_default',
+                                                'created_at',
+                                                'updated_at'
+                                              ]
+                                            ]
+                                          ],
+                                          'assigned_via'
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ],
+                'created_at',
+                'updated_at',
+                'download_url'
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceFilesListQuery = {
   limit?: number | undefined;
@@ -328,6 +220,7 @@ export type DashboardInstanceFilesListQuery = {
     | 'skill_export'
     | 'generic'
     | 'chat_message_attachment'
+    | 'sandbox_image_build_context'
     | (
         | 'user_image'
         | 'organization_image'
@@ -336,6 +229,7 @@ export type DashboardInstanceFilesListQuery = {
         | 'skill_export'
         | 'generic'
         | 'chat_message_attachment'
+        | 'sandbox_image_build_context'
       )[]
     | undefined;
   storeId?: string | string[] | undefined;
@@ -345,74 +239,22 @@ export type DashboardInstanceFilesListQuery = {
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapDashboardInstanceFilesListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      purpose: mtMap.objectField(
-        'purpose',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      storeId: mtMap.objectField(
-        'store_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      documentId: mtMap.objectField(
-        'document_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      fileLinkId: mtMap.objectField(
-        'file_link_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      ),
-      updatedAt: mtMap.objectField(
-        'updated_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapDashboardInstanceFilesListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceFilesListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'store_id',
+            'document_id',
+            'file_link_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

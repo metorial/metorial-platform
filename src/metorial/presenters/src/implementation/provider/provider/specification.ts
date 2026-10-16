@@ -34,6 +34,19 @@ export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecifica
       )
     ),
 
+    tool_categories: (specification.value.specification.toolCategories ?? []).map(
+      category => ({
+        object: 'provider.tool_category' as const,
+        key: category.key,
+        name: category.name,
+        description: category.description ?? null,
+        image_url: category.imageUrl ?? null,
+        tool_count: specification.providerTools.filter(tool =>
+          (tool.value.categories ?? []).includes(category.key)
+        ).length
+      })
+    ),
+
     auth_methods: await Promise.all(
       specification.providerAuthMethods.map(authMethod =>
         v1ProviderAuthMethodPresenter
@@ -100,6 +113,46 @@ export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecifica
         name: 'tools',
         description: 'Available tools'
       }),
+      tool_categories: v.array(
+        v.object({
+          object: v.literal('provider.tool_category', {
+            description: "String representing the object's type"
+          }),
+          key: v.string({
+            name: 'key',
+            description: 'Tool category key',
+            examples: ['crm']
+          }),
+          name: v.string({
+            name: 'name',
+            description: 'Display name of the tool category',
+            examples: ['Zoho CRM']
+          }),
+          description: v.nullable(
+            v.string({
+              name: 'description',
+              description: 'Tool category description',
+              examples: ['Manage leads, contacts, deals and other CRM records']
+            })
+          ),
+          image_url: v.nullable(
+            v.string({
+              name: 'image_url',
+              description: 'URL of an icon or logo for the tool category',
+              examples: ['https://provider-logos.metorial-cdn.com/zoho-crm.svg']
+            })
+          ),
+          tool_count: v.number({
+            name: 'tool_count',
+            description: 'Number of tools in this specification that belong to the category',
+            examples: [24]
+          })
+        }),
+        {
+          name: 'tool_categories',
+          description: 'Tool categories that group the tools of this specification'
+        }
+      ),
       auth_methods: v.array(v1ProviderAuthMethodPresenter.schema, {
         name: 'auth_methods',
         description: 'Authentication methods'

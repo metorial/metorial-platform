@@ -27,7 +27,10 @@ export let authIntentState = createLoader({
     },
 
     verifyStep: async (
-      d: { input: { type: 'email_code'; code: string }; stepId: string },
+      d: {
+        input: { type: 'email_code'; code: string } | { type: 'password'; password: string };
+        stepId: string;
+      },
       { input, output, setOutput }
     ) => {
       let ai = await authClient.authIntent.verifyStep({
@@ -51,6 +54,16 @@ export let authIntentState = createLoader({
 
       setOutput(ai);
 
+      return ai;
+    },
+
+    requestEmailCode: async ({ stepId }: { stepId: string }, { input, setOutput }) => {
+      let ai = await authClient.authIntent.requestEmailCode({
+        authIntentId: input.authIntentId,
+        clientSecret: input.authIntentClientSecret,
+        stepId
+      });
+      setOutput(ai);
       return ai;
     },
 

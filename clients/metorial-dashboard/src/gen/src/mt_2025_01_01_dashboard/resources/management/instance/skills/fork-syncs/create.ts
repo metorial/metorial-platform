@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsForkSyncsCreateOutput = {
   object: 'skill.fork_sync';
@@ -24,33 +24,25 @@ export type ManagementInstanceSkillsForkSyncsCreateOutput = {
 };
 
 export let mapManagementInstanceSkillsForkSyncsCreateOutput =
-  mtMap.object<ManagementInstanceSkillsForkSyncsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    forkSkillId: mtMap.objectField('fork_skill_id', mtMap.passthrough()),
-    upstreamSkillId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsForkSyncsCreateOutput>(
+    [
+      'fork_skill_id',
       'upstream_skill_id',
-      mtMap.passthrough()
-    ),
-    mergeRequestId: mtMap.objectField('merge_request_id', mtMap.passthrough()),
-    error: mtMap.objectField('error', mtMap.passthrough()),
-    processingStartedAt: mtMap.objectField(
+      'merge_request_id',
       'processing_started_at',
-      mtMap.date()
-    ),
-    actionRequiredAt: mtMap.objectField('action_required_at', mtMap.date()),
-    completedAt: mtMap.objectField('completed_at', mtMap.date()),
-    failedAt: mtMap.objectField('failed_at', mtMap.date()),
-    cancelledAt: mtMap.objectField('cancelled_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'action_required_at',
+      'completed_at',
+      'failed_at',
+      'cancelled_at',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ManagementInstanceSkillsForkSyncsCreateBody = { skillId: string };
 
 export let mapManagementInstanceSkillsForkSyncsCreateBody =
-  mtMap.object<ManagementInstanceSkillsForkSyncsCreateBody>({
-    skillId: mtMap.objectField('skill_id', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsForkSyncsCreateBody>([
+    'skill_id'
+  ]);

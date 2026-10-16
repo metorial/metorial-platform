@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderAuthConfigErrorsGroupsListOutput = {
   items: {
@@ -15,36 +15,10 @@ export type ProviderAuthConfigErrorsGroupsListOutput = {
 };
 
 export let mapProviderAuthConfigErrorsGroupsListOutput =
-  mtMap.object<ProviderAuthConfigErrorsGroupsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          code: mtMap.objectField('code', mtMap.passthrough()),
-          message: mtMap.objectField('message', mtMap.passthrough()),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          occurrenceCount: mtMap.objectField(
-            'occurrence_count',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ProviderAuthConfigErrorsGroupsListOutput>(
+    [7, [1, ['provider_id', 'occurrence_count', 'created_at']]],
+    1
+  );
 
 export type ProviderAuthConfigErrorsGroupsListQuery = {
   limit?: number | undefined;
@@ -61,73 +35,21 @@ export type ProviderAuthConfigErrorsGroupsListQuery = {
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapProviderAuthConfigErrorsGroupsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerAuthConfigId: mtMap.objectField(
-        'provider_auth_config_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerAuthCredentialsId: mtMap.objectField(
-        'provider_auth_credentials_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      type: mtMap.objectField(
-        'type',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapProviderAuthConfigErrorsGroupsListQuery =
+  /* @__PURE__ */ createMapper<ProviderAuthConfigErrorsGroupsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'provider_id',
+            'provider_auth_config_id',
+            'provider_auth_credentials_id',
+            ['created_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
+  ]);

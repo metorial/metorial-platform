@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationServiceAccountsCredentialsGetOutput = {
   object: 'machine_access.service_account_credential';
@@ -97,149 +97,81 @@ export type ManagementOrganizationServiceAccountsCredentialsGetOutput = {
 };
 
 export let mapManagementOrganizationServiceAccountsCredentialsGetOutput =
-  mtMap.object<ManagementOrganizationServiceAccountsCredentialsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    serviceAccountId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementOrganizationServiceAccountsCredentialsGetOutput>(
+    [
       'service_account_id',
-      mtMap.passthrough()
-    ),
-    scopes: mtMap.objectField(
-      'scopes',
-      mtMap.array(
-        mtMap.object({
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough())
-        })
-      )
-    ),
-    machineAccess: mtMap.objectField(
-      'machine_access',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        lastUsedAt: mtMap.objectField('last_used_at', mtMap.date()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
-        actor: mtMap.objectField(
-          'actor',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            organizationId: mtMap.objectField(
-              'organization_id',
-              mtMap.passthrough()
-            ),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            email: mtMap.objectField('email', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            member: mtMap.objectField(
-              'member',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                role: mtMap.objectField('role', mtMap.passthrough())
-              })
-            ),
-            teams: mtMap.objectField(
-              'teams',
-              mtMap.array(
-                mtMap.object({
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  slug: mtMap.objectField('slug', mtMap.passthrough()),
-                  assignmentId: mtMap.objectField(
-                    'assignment_id',
-                    mtMap.passthrough()
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              )
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        instance: mtMap.objectField(
-          'instance',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            organizationId: mtMap.objectField(
-              'organization_id',
-              mtMap.passthrough()
-            ),
-            sandboxId: mtMap.objectField('sandbox_id', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-            project: mtMap.objectField(
-              'project',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                organizationId: mtMap.objectField(
+      [
+        'machine_access',
+        1,
+        [
+          1,
+          [
+            'last_used_at',
+            'created_at',
+            'updated_at',
+            'deleted_at',
+            [
+              'actor',
+              0,
+              [
+                1,
+                [
                   'organization_id',
-                  mtMap.passthrough()
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
-          })
-        ),
-        organization: mtMap.objectField(
-          'organization',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            magicMcpOrigin: mtMap.objectField(
-              'magic_mcp_origin',
-              mtMap.passthrough()
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        user: mtMap.objectField(
-          'user',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            email: mtMap.objectField('email', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            firstName: mtMap.objectField('first_name', mtMap.passthrough()),
-            lastName: mtMap.objectField('last_name', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        )
-      })
-    ),
-    lastUsedAt: mtMap.objectField('last_used_at', mtMap.date()),
-    revokedAt: mtMap.objectField('revoked_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+                  'image_url',
+                  [
+                    'teams',
+                    0,
+                    [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                  ],
+                  'created_at',
+                  'updated_at'
+                ]
+              ]
+            ],
+            [
+              'instance',
+              0,
+              [
+                1,
+                [
+                  'organization_id',
+                  'sandbox_id',
+                  'created_at',
+                  'updated_at',
+                  [
+                    'project',
+                    0,
+                    [1, ['organization_id', 'created_at', 'updated_at']]
+                  ]
+                ]
+              ]
+            ],
+            [
+              'organization',
+              0,
+              [1, ['image_url', 'magic_mcp_origin', 'created_at', 'updated_at']]
+            ],
+            [
+              'user',
+              0,
+              [
+                1,
+                [
+                  'first_name',
+                  'last_name',
+                  'image_url',
+                  'created_at',
+                  'updated_at'
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
+      'last_used_at',
+      'revoked_at',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

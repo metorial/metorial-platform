@@ -1,10 +1,10 @@
-import { getCurrentNetworkPolicyRules } from './networkPolicyRules';
+import { getCurrentNetworkPolicyRules } from '@metorial/module-networking/src/lib/networkPolicyRules';
 
 type NetworkPolicyRules = PrismaJson.NetworkPolicyRules;
 
 export type FirewallWithNetworkPolicies = {
   oid: bigint;
-  networkOid: bigint;
+  internetGatewayOid: bigint;
   networkPolicyLinks: {
     position: number;
     networkPolicy: {
@@ -43,11 +43,13 @@ export let compileNetworkRulesFromFirewalls = (
 };
 
 export let compileNetworkRulesForEnclave = (d: {
-  enclaveNetworkOid: bigint;
+  enclaveInternetGatewayOid: bigint;
   firewalls: FirewallWithNetworkPolicies[];
 }) =>
   compileNetworkRulesFromFirewalls(
     dedupeFirewallsByOid(
-      d.firewalls.filter(firewall => firewall.networkOid === d.enclaveNetworkOid)
+      d.firewalls.filter(
+        firewall => firewall.internetGatewayOid === d.enclaveInternetGatewayOid
+      )
     )
   );

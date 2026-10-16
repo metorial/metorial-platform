@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureRetentionUpdateOutput = {
   object: 'organization.project.retention_configuration';
@@ -9,19 +9,15 @@ export type DashboardProjectsConfigureRetentionUpdateOutput = {
 };
 
 export let mapDashboardProjectsConfigureRetentionUpdateOutput =
-  mtMap.object<DashboardProjectsConfigureRetentionUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    logRetentionInDays: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureRetentionUpdateOutput>(
+    [
+      'project_id',
       'log_retention_in_days',
-      mtMap.passthrough()
-    ),
-    enforceSessionExpiry: mtMap.objectField(
       'enforce_session_expiry',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardProjectsConfigureRetentionUpdateBody = {
   logRetentionInDays?: number | undefined;
@@ -29,14 +25,7 @@ export type DashboardProjectsConfigureRetentionUpdateBody = {
 };
 
 export let mapDashboardProjectsConfigureRetentionUpdateBody =
-  mtMap.object<DashboardProjectsConfigureRetentionUpdateBody>({
-    logRetentionInDays: mtMap.objectField(
-      'log_retention_in_days',
-      mtMap.passthrough()
-    ),
-    enforceSessionExpiry: mtMap.objectField(
-      'enforce_session_expiry',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureRetentionUpdateBody>([
+    'log_retention_in_days',
+    'enforce_session_expiry'
+  ]);

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsGroupsItemsListOutput = {
   items: {
@@ -29,65 +29,34 @@ export type DashboardInstanceSkillsGroupsItemsListOutput = {
 };
 
 export let mapDashboardInstanceSkillsGroupsItemsListOutput =
-  mtMap.object<DashboardInstanceSkillsGroupsItemsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          skillGroupId: mtMap.objectField(
-            'skill_group_id',
-            mtMap.passthrough()
-          ),
-          skill: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardInstanceSkillsGroupsItemsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'skill_group_id',
+          [
             'skill',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              clientName: mtMap.objectField('client_name', mtMap.passthrough()),
-              clientDescription: mtMap.objectField(
+            0,
+            [
+              1,
+              [
+                'image_url',
+                'client_name',
                 'client_description',
-                mtMap.passthrough()
-              ),
-              clientMetadata: mtMap.objectField(
                 'client_metadata',
-                mtMap.passthrough()
-              ),
-              license: mtMap.objectField('license', mtMap.passthrough()),
-              compatibility: mtMap.objectField(
-                'compatibility',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ],
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceSkillsGroupsItemsListQuery = {
   limit?: number | undefined;
@@ -107,47 +76,8 @@ export type DashboardInstanceSkillsGroupsItemsListQuery = {
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
-export let mapDashboardInstanceSkillsGroupsItemsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      skillId: mtMap.objectField(
-        'skill_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      createdAt: mtMap.objectField(
-        'created_at',
-        mtMap.object({
-          gt: mtMap.objectField('gt', mtMap.date()),
-          lt: mtMap.objectField('lt', mtMap.date())
-        })
-      )
-    })
-  )
-]);
-
+export let mapDashboardInstanceSkillsGroupsItemsListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceSkillsGroupsItemsListQuery>([
+    3,
+    [[0, [1, ['skill_id', ['created_at', 1, 5]]]]]
+  ]);

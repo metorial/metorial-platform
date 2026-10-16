@@ -2,7 +2,7 @@ import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
-import { enclaveInternalService } from '../../services/enclaveInternal';
+import { integrationEnclaveInternalService } from '../../services/integrationEnclaveInternal';
 
 export let reconcileProviderDeploymentEnclave = async (providerDeploymentId: string) => {
   let providerDeployment = await db.providerDeployment.findUnique({
@@ -24,7 +24,7 @@ export let reconcileProviderDeploymentEnclave = async (providerDeploymentId: str
   }
 
   try {
-    await enclaveInternalService.ensureEnclaveForProviderDeployment({
+    await integrationEnclaveInternalService.ensureEnclaveForProviderDeployment({
       tenant: providerDeployment.tenant,
       environment: providerDeployment.environment,
       provider: providerDeployment.provider,

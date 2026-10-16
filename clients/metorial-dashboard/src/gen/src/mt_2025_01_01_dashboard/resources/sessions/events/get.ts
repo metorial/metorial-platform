@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SessionsEventsGetOutput = {
   object: 'session.event';
@@ -167,6 +167,7 @@ export type SessionsEventsGetOutput = {
           schema: Record<string, any>;
         } | null;
         tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+        toolCategoryKeys: string[];
         specificationId: string;
         providerId: string;
         createdAt: Date;
@@ -269,518 +270,249 @@ export type SessionsEventsGetOutput = {
   createdAt: Date;
 };
 
-export let mapSessionsEventsGetOutput = mtMap.object<SessionsEventsGetOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  type: mtMap.objectField('type', mtMap.passthrough()),
-  sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-  connection: mtMap.objectField(
-    'connection',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      connectionState: mtMap.objectField(
-        'connection_state',
-        mtMap.passthrough()
-      ),
-      transport: mtMap.objectField('transport', mtMap.passthrough()),
-      usage: mtMap.objectField(
-        'usage',
-        mtMap.object({
-          totalProductiveClientMessageCount: mtMap.objectField(
-            'total_productive_client_message_count',
-            mtMap.passthrough()
-          ),
-          totalProductiveProviderMessageCount: mtMap.objectField(
-            'total_productive_provider_message_count',
-            mtMap.passthrough()
-          )
-        })
-      ),
-      mcp: mtMap.objectField(
-        'mcp',
-        mtMap.object({
-          capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
-          protocolVersion: mtMap.objectField(
-            'protocol_version',
-            mtMap.passthrough()
-          ),
-          transport: mtMap.objectField('transport', mtMap.passthrough())
-        })
-      ),
-      sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-      participant: mtMap.objectField(
-        'participant',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          data: mtMap.objectField(
-            'data',
-            mtMap.object({
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough())
-            })
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          connectionType: mtMap.objectField(
-            'connection_type',
-            mtMap.passthrough()
-          ),
-          agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-          agentInstanceId: mtMap.objectField(
-            'agent_instance_id',
-            mtMap.passthrough()
-          ),
-          identityActorId: mtMap.objectField(
-            'identity_actor_id',
-            mtMap.passthrough()
-          ),
-          identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-          agentActorId: mtMap.objectField(
-            'agent_actor_id',
-            mtMap.passthrough()
-          ),
-          agentClientId: mtMap.objectField(
-            'agent_client_id',
-            mtMap.passthrough()
-          ),
-          consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      ),
-      hasErrors: mtMap.objectField('has_errors', mtMap.passthrough()),
-      hasWarnings: mtMap.objectField('has_warnings', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      lastMessageAt: mtMap.objectField('last_message_at', mtMap.date()),
-      lastActiveAt: mtMap.objectField('last_active_at', mtMap.date())
-    })
-  ),
-  providerRun: mtMap.objectField(
-    'provider_run',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-      sessionProviderId: mtMap.objectField(
-        'session_provider_id',
-        mtMap.passthrough()
-      ),
-      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-      connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
-      completedAt: mtMap.objectField('completed_at', mtMap.date()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-    })
-  ),
-  message: mtMap.objectField(
-    'message',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      type: mtMap.objectField('type', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      source: mtMap.objectField('source', mtMap.passthrough()),
-      sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-      sessionProviderId: mtMap.objectField(
-        'session_provider_id',
-        mtMap.passthrough()
-      ),
-      connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
-      providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
-      hierarchy: mtMap.objectField(
-        'hierarchy',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          parentMessageId: mtMap.objectField(
-            'parent_message_id',
-            mtMap.passthrough()
-          ),
-          childMessageIds: mtMap.objectField(
-            'child_message_ids',
-            mtMap.array(mtMap.passthrough())
-          )
-        })
-      ),
-      transport: mtMap.objectField(
-        'transport',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          mcp: mtMap.objectField(
-            'mcp',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField(
-                'id',
-                mtMap.union([
-                  mtMap.unionOption('number', mtMap.passthrough()),
-                  mtMap.unionOption('string', mtMap.passthrough())
-                ])
-              ),
-              protocolVersion: mtMap.objectField(
-                'protocol_version',
-                mtMap.passthrough()
-              ),
-              transport: mtMap.objectField('transport', mtMap.passthrough())
-            })
-          ),
-          toolCall: mtMap.objectField(
-            'tool_call',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough())
-            })
-          )
-        })
-      ),
-      input: mtMap.objectField('input', mtMap.passthrough()),
-      output: mtMap.objectField('output', mtMap.passthrough()),
-      toolCall: mtMap.objectField(
-        'tool_call',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          toolKey: mtMap.objectField('tool_key', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          source: mtMap.objectField('source', mtMap.passthrough()),
-          transport: mtMap.objectField('transport', mtMap.passthrough()),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          messageId: mtMap.objectField('message_id', mtMap.passthrough()),
-          sessionProviderId: mtMap.objectField(
+export let mapSessionsEventsGetOutput =
+  /* @__PURE__ */ mapObject<SessionsEventsGetOutput>(
+    [
+      'session_id',
+      [
+        'connection',
+        0,
+        [
+          1,
+          [
+            'connection_state',
+            [
+              'usage',
+              0,
+              [
+                1,
+                [
+                  'total_productive_client_message_count',
+                  'total_productive_provider_message_count'
+                ]
+              ]
+            ],
+            ['mcp', 0, [1, ['protocol_version']]],
+            'session_id',
+            [
+              'participant',
+              0,
+              [
+                1,
+                [
+                  'provider_id',
+                  'connection_type',
+                  'agent_id',
+                  'agent_instance_id',
+                  'identity_actor_id',
+                  'identity_id',
+                  'agent_actor_id',
+                  'agent_client_id',
+                  'consumer_id',
+                  'created_at'
+                ]
+              ]
+            ],
+            'has_errors',
+            'has_warnings',
+            'created_at',
+            'last_message_at',
+            'last_active_at'
+          ]
+        ]
+      ],
+      [
+        'provider_run',
+        1,
+        [
+          1,
+          [
+            'session_id',
             'session_provider_id',
-            mtMap.passthrough()
-          ),
-          connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
-          providerRunId: mtMap.objectField(
+            'provider_id',
+            'connection_id',
+            'completed_at',
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      [
+        'message',
+        0,
+        [
+          1,
+          [
+            'session_id',
+            'session_provider_id',
+            'connection_id',
             'provider_run_id',
-            mtMap.passthrough()
-          ),
-          senderParticipant: mtMap.objectField(
-            'sender_participant',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              data: mtMap.objectField(
-                'data',
-                mtMap.object({
-                  identifier: mtMap.objectField(
-                    'identifier',
-                    mtMap.passthrough()
-                  ),
-                  name: mtMap.objectField('name', mtMap.passthrough())
-                })
-              ),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              connectionType: mtMap.objectField(
-                'connection_type',
-                mtMap.passthrough()
-              ),
-              agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-              agentInstanceId: mtMap.objectField(
-                'agent_instance_id',
-                mtMap.passthrough()
-              ),
-              identityActorId: mtMap.objectField(
-                'identity_actor_id',
-                mtMap.passthrough()
-              ),
-              identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-              agentActorId: mtMap.objectField(
-                'agent_actor_id',
-                mtMap.passthrough()
-              ),
-              agentClientId: mtMap.objectField(
-                'agent_client_id',
-                mtMap.passthrough()
-              ),
-              consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date())
-            })
-          ),
-          responderParticipant: mtMap.objectField(
-            'responder_participant',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              data: mtMap.objectField(
-                'data',
-                mtMap.object({
-                  identifier: mtMap.objectField(
-                    'identifier',
-                    mtMap.passthrough()
-                  ),
-                  name: mtMap.objectField('name', mtMap.passthrough())
-                })
-              ),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              connectionType: mtMap.objectField(
-                'connection_type',
-                mtMap.passthrough()
-              ),
-              agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-              agentInstanceId: mtMap.objectField(
-                'agent_instance_id',
-                mtMap.passthrough()
-              ),
-              identityActorId: mtMap.objectField(
-                'identity_actor_id',
-                mtMap.passthrough()
-              ),
-              identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-              agentActorId: mtMap.objectField(
-                'agent_actor_id',
-                mtMap.passthrough()
-              ),
-              agentClientId: mtMap.objectField(
-                'agent_client_id',
-                mtMap.passthrough()
-              ),
-              consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date())
-            })
-          ),
-          tool: mtMap.objectField(
-            'tool',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              key: mtMap.objectField('key', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              capabilities: mtMap.objectField(
-                'capabilities',
-                mtMap.passthrough()
-              ),
-              constraints: mtMap.objectField(
-                'constraints',
-                mtMap.array(mtMap.passthrough())
-              ),
-              instructions: mtMap.objectField(
-                'instructions',
-                mtMap.array(mtMap.passthrough())
-              ),
-              inputSchema: mtMap.objectField(
-                'input_schema',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  schema: mtMap.objectField('schema', mtMap.passthrough())
-                })
-              ),
-              outputSchema: mtMap.objectField(
-                'output_schema',
-                mtMap.object({
-                  type: mtMap.objectField('type', mtMap.passthrough()),
-                  schema: mtMap.objectField('schema', mtMap.passthrough())
-                })
-              ),
-              tags: mtMap.objectField(
-                'tags',
-                mtMap.object({
-                  destructive: mtMap.objectField(
-                    'destructive',
-                    mtMap.passthrough()
-                  ),
-                  readOnly: mtMap.objectField('read_only', mtMap.passthrough())
-                })
-              ),
-              specificationId: mtMap.objectField(
-                'specification_id',
-                mtMap.passthrough()
-              ),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          error: mtMap.objectField(
-            'error',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              code: mtMap.objectField('code', mtMap.passthrough()),
-              message: mtMap.objectField('message', mtMap.passthrough()),
-              data: mtMap.objectField('data', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-              providerRunId: mtMap.objectField(
-                'provider_run_id',
-                mtMap.passthrough()
-              ),
-              connectionId: mtMap.objectField(
-                'connection_id',
-                mtMap.passthrough()
-              ),
-              groupId: mtMap.objectField('group_id', mtMap.passthrough()),
-              similarErrorCount: mtMap.objectField(
-                'similar_error_count',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date())
-            })
-          ),
-          input: mtMap.objectField('input', mtMap.passthrough()),
-          output: mtMap.objectField('output', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      ),
-      senderParticipant: mtMap.objectField(
-        'sender_participant',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          data: mtMap.objectField(
-            'data',
-            mtMap.object({
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough())
-            })
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          connectionType: mtMap.objectField(
-            'connection_type',
-            mtMap.passthrough()
-          ),
-          agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-          agentInstanceId: mtMap.objectField(
-            'agent_instance_id',
-            mtMap.passthrough()
-          ),
-          identityActorId: mtMap.objectField(
-            'identity_actor_id',
-            mtMap.passthrough()
-          ),
-          identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-          agentActorId: mtMap.objectField(
-            'agent_actor_id',
-            mtMap.passthrough()
-          ),
-          agentClientId: mtMap.objectField(
-            'agent_client_id',
-            mtMap.passthrough()
-          ),
-          consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      ),
-      responderParticipant: mtMap.objectField(
-        'responder_participant',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          data: mtMap.objectField(
-            'data',
-            mtMap.object({
-              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough())
-            })
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          connectionType: mtMap.objectField(
-            'connection_type',
-            mtMap.passthrough()
-          ),
-          agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
-          agentInstanceId: mtMap.objectField(
-            'agent_instance_id',
-            mtMap.passthrough()
-          ),
-          identityActorId: mtMap.objectField(
-            'identity_actor_id',
-            mtMap.passthrough()
-          ),
-          identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-          agentActorId: mtMap.objectField(
-            'agent_actor_id',
-            mtMap.passthrough()
-          ),
-          agentClientId: mtMap.objectField(
-            'agent_client_id',
-            mtMap.passthrough()
-          ),
-          consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      ),
-      error: mtMap.objectField(
+            ['hierarchy', 0, [1, ['parent_message_id', 'child_message_ids']]],
+            [
+              'transport',
+              0,
+              [1, [['mcp', 0, [1, ['protocol_version']]], 'tool_call']]
+            ],
+            [
+              'tool_call',
+              1,
+              [
+                1,
+                [
+                  'tool_key',
+                  'session_id',
+                  'message_id',
+                  'session_provider_id',
+                  'connection_id',
+                  'provider_run_id',
+                  [
+                    'sender_participant',
+                    1,
+                    [
+                      1,
+                      [
+                        'provider_id',
+                        'connection_type',
+                        'agent_id',
+                        'agent_instance_id',
+                        'identity_actor_id',
+                        'identity_id',
+                        'agent_actor_id',
+                        'agent_client_id',
+                        'consumer_id',
+                        'created_at'
+                      ]
+                    ]
+                  ],
+                  [
+                    'responder_participant',
+                    1,
+                    [
+                      1,
+                      [
+                        'provider_id',
+                        'connection_type',
+                        'agent_id',
+                        'agent_instance_id',
+                        'identity_actor_id',
+                        'identity_id',
+                        'agent_actor_id',
+                        'agent_client_id',
+                        'consumer_id',
+                        'created_at'
+                      ]
+                    ]
+                  ],
+                  [
+                    'tool',
+                    0,
+                    [
+                      1,
+                      [
+                        'input_schema',
+                        'output_schema',
+                        ['tags', 0, [1, ['read_only']]],
+                        'tool_category_keys',
+                        'specification_id',
+                        'provider_id',
+                        'created_at',
+                        'updated_at'
+                      ]
+                    ]
+                  ],
+                  [
+                    'error',
+                    0,
+                    [
+                      1,
+                      [
+                        'session_id',
+                        'provider_run_id',
+                        'connection_id',
+                        'group_id',
+                        'similar_error_count',
+                        'created_at'
+                      ]
+                    ]
+                  ],
+                  'created_at'
+                ]
+              ]
+            ],
+            [
+              'sender_participant',
+              1,
+              [
+                1,
+                [
+                  'provider_id',
+                  'connection_type',
+                  'agent_id',
+                  'agent_instance_id',
+                  'identity_actor_id',
+                  'identity_id',
+                  'agent_actor_id',
+                  'agent_client_id',
+                  'consumer_id',
+                  'created_at'
+                ]
+              ]
+            ],
+            [
+              'responder_participant',
+              1,
+              [
+                1,
+                [
+                  'provider_id',
+                  'connection_type',
+                  'agent_id',
+                  'agent_instance_id',
+                  'identity_actor_id',
+                  'identity_id',
+                  'agent_actor_id',
+                  'agent_client_id',
+                  'consumer_id',
+                  'created_at'
+                ]
+              ]
+            ],
+            [
+              'error',
+              0,
+              [
+                1,
+                [
+                  'session_id',
+                  'provider_run_id',
+                  'connection_id',
+                  'group_id',
+                  'similar_error_count',
+                  'created_at'
+                ]
+              ]
+            ],
+            'created_at'
+          ]
+        ]
+      ],
+      [
         'error',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          code: mtMap.objectField('code', mtMap.passthrough()),
-          message: mtMap.objectField('message', mtMap.passthrough()),
-          data: mtMap.objectField('data', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          providerRunId: mtMap.objectField(
+        0,
+        [
+          1,
+          [
+            'session_id',
             'provider_run_id',
-            mtMap.passthrough()
-          ),
-          connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
-          groupId: mtMap.objectField('group_id', mtMap.passthrough()),
-          similarErrorCount: mtMap.objectField(
+            'connection_id',
+            'group_id',
             'similar_error_count',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      ),
-      createdAt: mtMap.objectField('created_at', mtMap.date())
-    })
-  ),
-  error: mtMap.objectField(
-    'error',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      code: mtMap.objectField('code', mtMap.passthrough()),
-      message: mtMap.objectField('message', mtMap.passthrough()),
-      data: mtMap.objectField('data', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-      providerRunId: mtMap.objectField('provider_run_id', mtMap.passthrough()),
-      connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
-      groupId: mtMap.objectField('group_id', mtMap.passthrough()),
-      similarErrorCount: mtMap.objectField(
-        'similar_error_count',
-        mtMap.passthrough()
-      ),
-      createdAt: mtMap.objectField('created_at', mtMap.date())
-    })
-  ),
-  warning: mtMap.objectField(
-    'warning',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      code: mtMap.objectField('code', mtMap.passthrough()),
-      message: mtMap.objectField('message', mtMap.passthrough()),
-      data: mtMap.objectField('data', mtMap.passthrough()),
-      sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-      connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date())
-    })
-  ),
-  createdAt: mtMap.objectField('created_at', mtMap.date())
-});
-
+            'created_at'
+          ]
+        ]
+      ],
+      ['warning', 0, [1, ['session_id', 'connection_id', 'created_at']]],
+      'created_at'
+    ],
+    1
+  );

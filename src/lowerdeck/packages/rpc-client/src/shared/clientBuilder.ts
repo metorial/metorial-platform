@@ -18,6 +18,7 @@ export interface ClientOpts {
   useDirectMethodRoute?: boolean;
   timeoutMs?: number;
   captureErrors?: boolean;
+  logResponses?: boolean;
   retry?: boolean;
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
@@ -40,6 +41,7 @@ export interface ClientRequestOpts {
   disableBatching?: boolean;
   timeoutMs?: number;
   captureErrors?: boolean;
+  logResponses?: boolean;
   retry?: boolean;
   signal?: AbortSignal;
 }
@@ -87,6 +89,7 @@ export let clientBuilder =
             let useDirectMethodRoute = clientOpts.useDirectMethodRoute ?? false;
             let timeoutMs = requestOpts?.timeoutMs ?? clientOpts.timeoutMs;
             let captureErrors = requestOpts?.captureErrors ?? clientOpts.captureErrors;
+            let logResponses = requestOpts?.logResponses ?? clientOpts.logResponses;
             let retry = requestOpts?.retry ?? clientOpts.retry;
             let signal = requestOpts?.signal;
             let signature = clientOpts.getSignatureCredentials
@@ -128,6 +131,7 @@ export let clientBuilder =
                 useDirectMethodRoute,
                 timeoutMs,
                 captureErrors,
+                logResponses,
                 retry,
                 signal,
                 context
@@ -150,6 +154,7 @@ export let clientBuilder =
                 useDirectMethodRoute,
                 timeoutMs,
                 captureErrors,
+                logResponses,
                 retry,
                 signal,
                 context

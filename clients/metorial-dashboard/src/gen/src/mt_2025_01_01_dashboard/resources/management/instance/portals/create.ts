@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstancePortalsCreateOutput = {
   object: 'portal';
@@ -28,78 +31,53 @@ export type ManagementInstancePortalsCreateOutput = {
   updatedAt: Date;
 } & { managedEveryoneGroupId: string | null };
 
-export let mapManagementInstancePortalsCreateOutput = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      id: mtMap.objectField('id', mtMap.passthrough()),
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      slug: mtMap.objectField('slug', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      allowConsumerSkillAuthoring: mtMap.objectField(
-        'allow_consumer_skill_authoring',
-        mtMap.passthrough()
-      ),
-      allowConsumerSkillPublishing: mtMap.objectField(
-        'allow_consumer_skill_publishing',
-        mtMap.passthrough()
-      ),
-      skillConfiguration: mtMap.objectField(
-        'skill_configuration',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-          allowScripts: mtMap.objectField('allow_scripts', mtMap.passthrough()),
-          allowedFileExtensions: mtMap.objectField(
-            'allowed_file_extensions',
-            mtMap.array(mtMap.passthrough())
-          ),
-          allowNonStandardDirectories: mtMap.objectField(
-            'allow_non_standard_directories',
-            mtMap.passthrough()
-          )
-        })
-      ),
-      auth: mtMap.objectField(
-        'auth',
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          sessionExpiryTimeInSeconds: mtMap.objectField(
-            'session_expiry_time_in_seconds',
-            mtMap.passthrough()
-          ),
-          allowedRedirectUrlFilters: mtMap.objectField(
-            'allowed_redirect_url_filters',
-            mtMap.array(
-              mtMap.object({
-                url: mtMap.objectField('url', mtMap.passthrough())
-              })
-            )
-          )
-        })
-      ),
-      urls: mtMap.objectField(
-        'urls',
-        mtMap.array(
-          mtMap.object({
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            url: mtMap.objectField('url', mtMap.passthrough())
-          })
-        )
-      ),
-      magicMcpUrl: mtMap.objectField('magic_mcp_url', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-      managedEveryoneGroupId: mtMap.objectField(
-        'managed_everyone_group_id',
-        mtMap.passthrough()
-      )
-    })
-  )
-]);
+export let mapManagementInstancePortalsCreateOutput =
+  /* @__PURE__ */ createMapper<ManagementInstancePortalsCreateOutput>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              'allow_consumer_skill_authoring',
+              'allow_consumer_skill_publishing',
+              [
+                'skill_configuration',
+                1,
+                [
+                  1,
+                  [
+                    'is_default',
+                    'allow_scripts',
+                    'allowed_file_extensions',
+                    'allow_non_standard_directories'
+                  ]
+                ]
+              ],
+              [
+                'auth',
+                0,
+                [
+                  1,
+                  [
+                    'session_expiry_time_in_seconds',
+                    'allowed_redirect_url_filters'
+                  ]
+                ]
+              ],
+              'magic_mcp_url',
+              'created_at',
+              'updated_at',
+              'managed_everyone_group_id'
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementInstancePortalsCreateBody = {
   name: string;
@@ -111,26 +89,9 @@ export type ManagementInstancePortalsCreateBody = {
 };
 
 export let mapManagementInstancePortalsCreateBody =
-  mtMap.object<ManagementInstancePortalsCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    allowedRedirectUrlFilters: mtMap.objectField(
-      'allowed_redirect_url_filters',
-      mtMap.array(
-        mtMap.object({ url: mtMap.objectField('url', mtMap.passthrough()) })
-      )
-    ),
-    sessionExpiryTimeInSeconds: mtMap.objectField(
-      'session_expiry_time_in_seconds',
-      mtMap.passthrough()
-    ),
-    allowConsumerSkillAuthoring: mtMap.objectField(
-      'allow_consumer_skill_authoring',
-      mtMap.passthrough()
-    ),
-    allowConsumerSkillPublishing: mtMap.objectField(
-      'allow_consumer_skill_publishing',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstancePortalsCreateBody>([
+    'allowed_redirect_url_filters',
+    'session_expiry_time_in_seconds',
+    'allow_consumer_skill_authoring',
+    'allow_consumer_skill_publishing'
+  ]);

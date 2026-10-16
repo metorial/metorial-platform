@@ -13,9 +13,11 @@ export type OAuthSetup = NonNullable<
 export type ProviderSearchItem = Awaited<
   ReturnType<IntegrationsRpcClient['setupSession']['listProviders']>
 >['items'][number];
-export type ToolListItem = Awaited<
+type ToolListResponse = Awaited<
   ReturnType<IntegrationsRpcClient['setupSession']['listTools']>
->['items'][number];
+>;
+export type ToolListItem = ToolListResponse['items'][number];
+export type ToolCategoryListItem = ToolListResponse['toolCategories'][number];
 
 export type Step =
   | 'provider'

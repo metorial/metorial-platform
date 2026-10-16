@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceAssistantsListOutput = {
   items: {
@@ -43,87 +43,31 @@ export type DashboardInstanceAssistantsListOutput = {
 };
 
 export let mapDashboardInstanceAssistantsListOutput =
-  mtMap.object<DashboardInstanceAssistantsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          ownerType: mtMap.objectField('owner_type', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          defaultModel: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardInstanceAssistantsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'owner_type',
+          'organization_id',
+          [
             'default_model',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              contextWindow: mtMap.objectField(
-                'context_window',
-                mtMap.passthrough()
-              ),
-              provider: mtMap.objectField(
-                'provider',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  slug: mtMap.objectField('slug', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-                })
-              )
-            })
-          ),
-          availableModels: mtMap.objectField(
+            1,
+            [1, ['context_window', ['provider', 0, [1, ['image_url']]]]]
+          ],
+          [
             'available_models',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                contextWindow: mtMap.objectField(
-                  'context_window',
-                  mtMap.passthrough()
-                ),
-                provider: mtMap.objectField(
-                  'provider',
-                  mtMap.object({
-                    object: mtMap.objectField('object', mtMap.passthrough()),
-                    id: mtMap.objectField('id', mtMap.passthrough()),
-                    slug: mtMap.objectField('slug', mtMap.passthrough()),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    imageUrl: mtMap.objectField(
-                      'image_url',
-                      mtMap.passthrough()
-                    )
-                  })
-                )
-              })
-            )
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            1,
+            [2, [1, ['context_window', ['provider', 0, [1, ['image_url']]]]]]
+          ],
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceAssistantsListQuery = {
   limit?: number | undefined;
@@ -133,16 +77,5 @@ export type DashboardInstanceAssistantsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardInstanceAssistantsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardInstanceAssistantsListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceAssistantsListQuery>(0);

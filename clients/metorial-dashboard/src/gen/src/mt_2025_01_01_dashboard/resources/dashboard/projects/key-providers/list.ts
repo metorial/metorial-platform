@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsKeyProvidersListOutput = {
   items: {
@@ -19,43 +19,23 @@ export type DashboardProjectsKeyProvidersListOutput = {
 };
 
 export let mapDashboardProjectsKeyProvidersListOutput =
-  mtMap.object<DashboardProjectsKeyProvidersListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          owner: mtMap.objectField('owner', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          isMetorialManaged: mtMap.objectField(
-            'is_metorial_managed',
-            mtMap.passthrough()
-          ),
-          keyReuseTimeSeconds: mtMap.objectField(
-            'key_reuse_time_seconds',
-            mtMap.passthrough()
-          ),
-          keyInfo: mtMap.objectField('key_info', mtMap.passthrough()),
-          isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardProjectsKeyProvidersListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'is_metorial_managed',
+          'key_reuse_time_seconds',
+          'key_info',
+          'is_default',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardProjectsKeyProvidersListQuery = {
   limit?: number | undefined;
@@ -65,16 +45,5 @@ export type DashboardProjectsKeyProvidersListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardProjectsKeyProvidersListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardProjectsKeyProvidersListQuery =
+  /* @__PURE__ */ createMapper<DashboardProjectsKeyProvidersListQuery>(0);

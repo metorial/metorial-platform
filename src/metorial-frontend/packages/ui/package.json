@@ -7,7 +7,8 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -42,11 +43,17 @@
     "shleemy": "^1.2.2",
     "sonner": "^2.0.3",
     "styled-components": "^6.1.13",
-    "use-delayed": "^0.1.0"
+    "use-delayed": "^0.1.0",
+    "input-otp": "^1.4.2"
   },
   "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "esbuild-plugin-styled-components": "^3.0.1",
+    "jsdom": "24.1.3",
     "tsup": "^8.4.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
   }
 }

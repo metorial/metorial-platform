@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProvidersGetOutput = {
   object: 'provider';
@@ -42,61 +42,26 @@ export type DashboardInstanceProvidersGetOutput = {
 };
 
 export let mapDashboardInstanceProvidersGetOutput =
-  mtMap.object<DashboardInstanceProvidersGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    access: mtMap.objectField('access', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    publisher: mtMap.objectField(
-      'publisher',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    currentVersion: mtMap.objectField(
-      'current_version',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        version: mtMap.objectField('version', mtMap.passthrough()),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        specificationId: mtMap.objectField(
-          'specification_id',
-          mtMap.passthrough()
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    oauth: mtMap.objectField(
-      'oauth',
-      mtMap.object({
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        callbackUrl: mtMap.objectField('callback_url', mtMap.passthrough()),
-        autoRegistration: mtMap.objectField(
-          'auto_registration',
-          mtMap.object({
-            status: mtMap.objectField('status', mtMap.passthrough())
-          })
-        )
-      })
-    ),
-    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceProvidersGetOutput>(
+    [
+      ['publisher', 0, [1, ['image_url', 'created_at', 'updated_at']]],
+      [
+        'current_version',
+        1,
+        [
+          1,
+          [
+            'provider_id',
+            'is_current',
+            'specification_id',
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      ['oauth', 0, [1, ['callback_url', 'auto_registration']]],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

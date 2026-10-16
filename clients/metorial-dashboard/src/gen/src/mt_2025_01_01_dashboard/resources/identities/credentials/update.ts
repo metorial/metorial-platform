@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type IdentitiesCredentialsUpdateOutput = {
   object: 'identity.credential';
@@ -15,30 +15,23 @@ export type IdentitiesCredentialsUpdateOutput = {
 };
 
 export let mapIdentitiesCredentialsUpdateOutput =
-  mtMap.object<IdentitiesCredentialsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    identityId: mtMap.objectField('identity_id', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    deploymentId: mtMap.objectField('deployment_id', mtMap.passthrough()),
-    configId: mtMap.objectField('config_id', mtMap.passthrough()),
-    authConfigId: mtMap.objectField('auth_config_id', mtMap.passthrough()),
-    delegationConfigId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<IdentitiesCredentialsUpdateOutput>(
+    [
+      'identity_id',
+      'provider_id',
+      'deployment_id',
+      'config_id',
+      'auth_config_id',
       'delegation_config_id',
-      mtMap.passthrough()
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type IdentitiesCredentialsUpdateBody = { delegationConfigId: string };
 
 export let mapIdentitiesCredentialsUpdateBody =
-  mtMap.object<IdentitiesCredentialsUpdateBody>({
-    delegationConfigId: mtMap.objectField(
-      'delegation_config_id',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<IdentitiesCredentialsUpdateBody>([
+    'delegation_config_id'
+  ]);

@@ -54,7 +54,7 @@ import {
   resolveUploadStreamDestination,
   type UploadStreamDestination
 } from '../lib/uploadDestination';
-import { uploadUrlExpirationSecs } from '../lib/uploadPolicy';
+import { getPurposeUploadSizeError, uploadUrlExpirationSecs } from '../lib/uploadPolicy';
 import { fileCleanupSingleQueue } from '../queues/fileCleanup';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
@@ -297,6 +297,14 @@ class FileServiceImpl {
             message: 'Document purpose cannot be used for normal file creation'
           })
         );
+      }
+
+      let purposeSizeError = getPurposeUploadSizeError({
+        purposeSlug: purpose.slug,
+        size: d.input.size
+      });
+      if (purposeSizeError) {
+        throw new ServiceError(badRequestError({ message: purposeSizeError }));
       }
 
       let actor = d.input.authorization.resourceActor;
@@ -573,8 +581,7 @@ class FileServiceImpl {
   async resolveFileContentSource(d: {
     file: Pick<File, 'oid' | 'status' | 'storeId'> & { effectiveStoreId?: string };
   }): Promise<
-    | { type: 'object'; bucket: string; key: string }
-    | { type: 'inline'; content: Buffer }
+    { type: 'object'; bucket: string; key: string } | { type: 'inline'; content: Buffer }
   > {
     await this.ensureFileActive(d.file);
 

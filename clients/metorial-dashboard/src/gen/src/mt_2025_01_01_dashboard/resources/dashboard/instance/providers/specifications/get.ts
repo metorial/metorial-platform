@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProvidersSpecificationsGetOutput = {
   object: 'provider.specification';
@@ -20,10 +20,19 @@ export type DashboardInstanceProvidersSpecificationsGetOutput = {
     inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
     outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
     tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+    toolCategoryKeys: string[];
     specificationId: string;
     providerId: string;
     createdAt: Date;
     updatedAt: Date;
+  }[];
+  toolCategories: {
+    object: 'provider.tool_category';
+    key: string;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    toolCount: number;
   }[];
   authMethods: {
     object: 'provider.capabilities.auth_method';
@@ -56,125 +65,52 @@ export type DashboardInstanceProvidersSpecificationsGetOutput = {
 };
 
 export let mapDashboardInstanceProvidersSpecificationsGetOutput =
-  mtMap.object<DashboardInstanceProvidersSpecificationsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    key: mtMap.objectField('key', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    configSchema: mtMap.objectField('config_schema', mtMap.passthrough()),
-    configVisibility: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceProvidersSpecificationsGetOutput>(
+    [
+      'config_schema',
       'config_visibility',
-      mtMap.passthrough()
-    ),
-    tools: mtMap.objectField(
-      'tools',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          key: mtMap.objectField('key', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
-          constraints: mtMap.objectField(
-            'constraints',
-            mtMap.array(mtMap.passthrough())
-          ),
-          instructions: mtMap.objectField(
-            'instructions',
-            mtMap.array(mtMap.passthrough())
-          ),
-          inputSchema: mtMap.objectField(
-            'input_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          outputSchema: mtMap.objectField(
-            'output_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          tags: mtMap.objectField(
-            'tags',
-            mtMap.object({
-              destructive: mtMap.objectField(
-                'destructive',
-                mtMap.passthrough()
-              ),
-              readOnly: mtMap.objectField('read_only', mtMap.passthrough())
-            })
-          ),
-          specificationId: mtMap.objectField(
-            'specification_id',
-            mtMap.passthrough()
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    authMethods: mtMap.objectField(
-      'auth_methods',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          key: mtMap.objectField('key', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
-          inputSchema: mtMap.objectField(
-            'input_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          outputSchema: mtMap.objectField(
-            'output_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          scopes: mtMap.objectField(
-            'scopes',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                scope: mtMap.objectField('scope', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            )
-          ),
-          adapters: mtMap.objectField(
-            'adapters',
-            mtMap.array(mtMap.passthrough())
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          providerSpecificationId: mtMap.objectField(
-            'provider_specification_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      [
+        'tools',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'input_schema',
+              'output_schema',
+              ['tags', 0, [1, ['read_only']]],
+              'tool_category_keys',
+              'specification_id',
+              'provider_id',
+              'created_at',
+              'updated_at'
+            ]
+          ]
+        ]
+      ],
+      ['tool_categories', 1, [2, [1, ['image_url', 'tool_count']]]],
+      [
+        'auth_methods',
+        1,
+        [
+          2,
+          [
+            1,
+            [
+              'input_schema',
+              'output_schema',
+              'provider_id',
+              'provider_specification_id',
+              'created_at',
+              'updated_at'
+            ]
+          ]
+        ]
+      ],
+      'provider_id',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type PortalsSurfaceProviderGroupsRemoveListingOutput = {
   object: 'consumer.surface.provider_group';
@@ -11,13 +11,6 @@ export type PortalsSurfaceProviderGroupsRemoveListingOutput = {
 };
 
 export let mapPortalsSurfaceProviderGroupsRemoveListingOutput =
-  mtMap.object<PortalsSurfaceProviderGroupsRemoveListingOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    index: mtMap.objectField('index', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ createMapper<PortalsSurfaceProviderGroupsRemoveListingOutput>(
+    8
+  );

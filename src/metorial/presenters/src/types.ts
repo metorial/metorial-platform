@@ -16,6 +16,23 @@ import type {
   Prisma as SubspacePrisma
 } from '@metorial-subspace/db';
 import type { ReactionCount } from '@slates/adapter-chat';
+import type { GenesisInternalClient } from '@metorial/genesis-client';
+import type {
+  sandboxDiskResizeService,
+  sandboxDiskService,
+  sandboxImageBuildService,
+  sandboxImageService,
+  sandboxImageVersionService,
+  sandboxMachineAccessService,
+  sandboxMachineErrorService,
+  sandboxMachineEventService,
+  sandboxMachineInstanceService,
+  sandboxMachineOperationService,
+  sandboxMachineService,
+  sandboxMachineUsageService,
+  SandboxMachineWithTenant,
+  sandboxSpecService
+} from '@metorial/module-sandbox';
 import type {
   CallbackEventDetails,
   CallbackEventWithRelations,
@@ -33,7 +50,7 @@ import type {
   scmProviderSetupSessionService,
   scmRepositoryService
 } from '@metorial-subspace/module-custom-provider';
-import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
+import type { IntegrationInternetGatewayNetworkLogsResponse } from '@metorial-subspace/module-enclave';
 import type {
   integrationInclude,
   integrationInstanceGroupInclude,
@@ -157,6 +174,7 @@ import {
   SkillTemplate,
   Store,
   StoreParticipant,
+  SandboxRegion,
   SystemEvent,
   Team,
   TeamMember,
@@ -2906,19 +2924,18 @@ export let skillTemplateItemType = PresentableType.create<{
   skillTemplateItem: SkillTemplateItemResource;
 }>()('skill.template.item');
 
-type RawNetwork = SubspacePrisma.NetworkGetPayload<{}>;
+type RawIntegrationInternetGateway = SubspacePrisma.IntegrationInternetGatewayGetPayload<{}>;
 
-type RawEnclave = SubspacePrisma.EnclaveGetPayload<{
+type RawIntegrationEnclave = SubspacePrisma.IntegrationEnclaveGetPayload<{
   include: {
     enclaveEnvironment: true;
-    network: { select: { id: true } };
+    internetGateway: { select: { id: true } };
     providerDeployment: { select: { id: true } };
   };
 }>;
 
 type RawFirewall = SubspacePrisma.FirewallGetPayload<{
   include: {
-    network: { select: { id: true } };
     networkPolicyLinks: {
       include: {
         networkPolicy: {
@@ -2929,16 +2946,17 @@ type RawFirewall = SubspacePrisma.FirewallGetPayload<{
   };
 }>;
 
-type RawFirewallBinding = SubspacePrisma.FirewallBindingGetPayload<{
-  include: {
-    firewall: { select: { id: true; slug: true; name: true } };
-    enclave: { select: { id: true; slug: true; name: true } };
-    provider: {
-      select: { id: true; slug: true; name: true; prettySlug: true };
+type RawIntegrationFirewallAssignment =
+  SubspacePrisma.IntegrationFirewallAssignmentGetPayload<{
+    include: {
+      firewall: { select: { id: true; slug: true; name: true } };
+      enclave: { select: { id: true; slug: true; name: true } };
+      provider: {
+        select: { id: true; slug: true; name: true; prettySlug: true };
+      };
+      internetGateway: { select: { id: true; name: true } };
     };
-    network: { select: { id: true; name: true } };
-  };
-}>;
+  }>;
 
 type RawNetworkPolicy = SubspacePrisma.NetworkPolicyGetPayload<{
   include: {
@@ -2951,14 +2969,14 @@ type RawNetworkPolicy = SubspacePrisma.NetworkPolicyGetPayload<{
   };
 }>;
 
-export let networkType = PresentableType.create<{
-  network: RawNetwork;
+export let integrationInternetGatewayType = PresentableType.create<{
+  internetGateway: RawIntegrationInternetGateway;
   maskPublicIp?: boolean;
-}>()('network');
+}>()('integration.internet_gateway');
 
-export let networkLogsType = PresentableType.create<{
-  logs: EnclaveNetworkLogsResponse;
-}>()('networkLogs');
+export let integrationInternetGatewayNetworkLogsType = PresentableType.create<{
+  logs: IntegrationInternetGatewayNetworkLogsResponse;
+}>()('integration.internet_gateway.network_logs');
 
 export let resourceCountsType = PresentableType.create<{
   resources: {
@@ -2967,25 +2985,107 @@ export let resourceCountsType = PresentableType.create<{
   }[];
 }>()('resourceCounts');
 
-export let enclaveType = PresentableType.create<{
-  enclave: RawEnclave;
-}>()('enclave');
+export let integrationEnclaveType = PresentableType.create<{
+  enclave: RawIntegrationEnclave;
+}>()('integration.enclave');
 
 export let firewallType = PresentableType.create<{
   firewall: RawFirewall;
-}>()('firewall');
+}>()('networking.firewall');
 
-export let firewallBindingType = PresentableType.create<{
-  firewallBinding: RawFirewallBinding;
-}>()('firewall.binding');
+export let integrationFirewallAssignmentType = PresentableType.create<{
+  firewallAssignment: RawIntegrationFirewallAssignment;
+}>()('integration.firewall_assignment');
 
 export let networkPolicyType = PresentableType.create<{
   networkPolicy: RawNetworkPolicy;
-}>()('network.policy');
+}>()('networking.network_policy');
 
 export let networkPolicyRuleType = PresentableType.create<{
   rule: PrismaJson.NetworkPolicyRule;
-}>()('network.policy.rule');
+}>()('networking.network_policy.rule');
+
+type SandboxResolved<F extends (...args: any[]) => Promise<any>> = Awaited<ReturnType<F>>;
+
+type SandboxPageItem<F extends (...args: any[]) => Promise<{ items: any[] }>> =
+  SandboxResolved<F>['items'][number];
+
+export let sandboxRegionType = PresentableType.create<{
+  region: SandboxRegion;
+}>()('sandbox.region');
+
+export let sandboxSpecType = PresentableType.create<{
+  spec: SandboxResolved<typeof sandboxSpecService.get>;
+  available: boolean;
+}>()('sandbox.spec');
+
+export let sandboxMachineType = PresentableType.create<{
+  machine: SandboxResolved<typeof sandboxMachineService.get>;
+}>()('sandbox.machine');
+
+export let sandboxMachineInstanceType = PresentableType.create<{
+  machine: SandboxMachineWithTenant;
+  instance: SandboxResolved<typeof sandboxMachineInstanceService.get>;
+}>()('sandbox.machine.instance');
+
+export let sandboxMachineOperationType = PresentableType.create<{
+  operation: SandboxResolved<typeof sandboxMachineOperationService.get>;
+}>()('sandbox.machine.operation');
+
+export let sandboxMachineEventType = PresentableType.create<{
+  event: SandboxResolved<typeof sandboxMachineEventService.get>;
+}>()('sandbox.machine.event');
+
+export let sandboxMachineErrorType = PresentableType.create<{
+  error: SandboxResolved<typeof sandboxMachineErrorService.get>;
+}>()('sandbox.machine.error');
+
+export let sandboxMachineUsageType = PresentableType.create<{
+  sample: SandboxPageItem<GenesisInternalClient['machine']['usage']>;
+}>()('sandbox.machine.usage');
+
+export let sandboxMachineUsageTimelineType = PresentableType.create<{
+  usage: SandboxResolved<typeof sandboxMachineUsageService.timeline>;
+}>()('sandbox.machine.usage.timeline');
+
+export let sandboxMachineUsageSummaryType = PresentableType.create<{
+  usage: SandboxResolved<typeof sandboxMachineUsageService.summary>;
+}>()('sandbox.machine.usage.summary');
+
+export let sandboxMachineAccessType = PresentableType.create<{
+  access: SandboxResolved<typeof sandboxMachineAccessService.createShellAccess>;
+  scope: 'shell' | 'files' | 'port';
+  ports: number[] | '*' | null;
+}>()('sandbox.machine.access');
+
+export let sandboxDiskType = PresentableType.create<{
+  disk: SandboxResolved<typeof sandboxDiskService.get>;
+}>()('sandbox.disk');
+
+export let sandboxDiskMountType = PresentableType.create<{
+  mount: SandboxPageItem<GenesisInternalClient['disk']['mounts']>;
+}>()('sandbox.disk.mount');
+
+export let sandboxDiskResizeType = PresentableType.create<{
+  resize: SandboxResolved<typeof sandboxDiskResizeService.get>;
+}>()('sandbox.disk.resize');
+
+export let sandboxImageType = PresentableType.create<{
+  image: SandboxResolved<typeof sandboxImageService.get>;
+}>()('sandbox.image');
+
+export let sandboxImageVersionType = PresentableType.create<{
+  image: SandboxResolved<typeof sandboxImageService.get>;
+  version: SandboxResolved<typeof sandboxImageVersionService.get>;
+}>()('sandbox.image.version');
+
+export let sandboxImageBuildType = PresentableType.create<{
+  build: SandboxResolved<typeof sandboxImageBuildService.get>;
+}>()('sandbox.image.build');
+
+export let sandboxLogLinesType = PresentableType.create<{
+  logs: SandboxResolved<typeof sandboxMachineInstanceService.logs>;
+}>()('sandbox.log_lines');
 
 export let integrationType = PresentableType.create<{
   integration: SubspaceIntegration;
@@ -3525,6 +3625,10 @@ export let chatInstanceProviderType = PresentableType.create<{
 export let chatTypingIndicatorType = PresentableType.create<{
   started: boolean;
 }>()('chat_typing_indicator');
+
+export let chatCommandResponseType = PresentableType.create<{
+  chatMessage: RawChatMessage | null;
+}>()('chat_command_response');
 
 export let chatReactionListType = PresentableType.create<{
   reactions: ReactionCount[];

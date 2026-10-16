@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsProjectsDeleteOutput = {
   object: 'organization.project';
@@ -12,14 +12,7 @@ export type DashboardOrganizationsProjectsDeleteOutput = {
 };
 
 export let mapDashboardOrganizationsProjectsDeleteOutput =
-  mtMap.object<DashboardOrganizationsProjectsDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardOrganizationsProjectsDeleteOutput>(
+    ['organization_id', 'created_at', 'updated_at'],
+    1
+  );

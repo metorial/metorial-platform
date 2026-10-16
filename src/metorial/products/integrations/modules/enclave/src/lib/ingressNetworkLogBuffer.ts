@@ -244,9 +244,7 @@ export let getIngressNetworkLogSnapshotEntry = async (d: {
 
   if (!count) return null;
 
-  let dimensions = meta
-    ? deserializeDimensions(JSON.parse(meta))
-    : decodeDimensions(d.field);
+  let dimensions = meta ? deserializeDimensions(JSON.parse(meta)) : decodeDimensions(d.field);
 
   return {
     ...dimensions,

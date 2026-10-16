@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsOutpostsCredentialsCreateOutput = {
   object: 'outpost_credential';
@@ -14,18 +14,16 @@ export type DashboardOrganizationsOutpostsCredentialsCreateOutput = {
 };
 
 export let mapDashboardOrganizationsOutpostsCredentialsCreateOutput =
-  mtMap.object<DashboardOrganizationsOutpostsCredentialsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    outpostId: mtMap.objectField('outpost_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    envelopePreview: mtMap.objectField('envelope_preview', mtMap.passthrough()),
-    envelope: mtMap.objectField('envelope', mtMap.passthrough()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardOrganizationsOutpostsCredentialsCreateOutput>(
+    [
+      'outpost_id',
+      'envelope_preview',
+      'expires_at',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardOrganizationsOutpostsCredentialsCreateBody = {
   name: string;
@@ -33,8 +31,7 @@ export type DashboardOrganizationsOutpostsCredentialsCreateBody = {
 };
 
 export let mapDashboardOrganizationsOutpostsCredentialsCreateBody =
-  mtMap.object<DashboardOrganizationsOutpostsCredentialsCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardOrganizationsOutpostsCredentialsCreateBody>(
+    ['expires_at'],
+    1
+  );

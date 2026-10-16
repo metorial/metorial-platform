@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsEventDestinationsListOutput = {
   items: {
@@ -42,107 +42,47 @@ export type DashboardOrganizationsEventDestinationsListOutput = {
 };
 
 export let mapDashboardOrganizationsEventDestinationsListOutput =
-  mtMap.object<DashboardOrganizationsEventDestinationsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          webhook: mtMap.objectField(
-            'webhook',
-            mtMap.object({
-              url: mtMap.objectField('url', mtMap.passthrough()),
-              method: mtMap.objectField('method', mtMap.passthrough()),
-              signingSecret: mtMap.objectField(
-                'signing_secret',
-                mtMap.passthrough()
-              )
-            })
-          ),
-          retry: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardOrganizationsEventDestinationsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'organization_id',
+          ['webhook', 0, [1, ['signing_secret']]],
+          [
             'retry',
-            mtMap.object({
-              strategy: mtMap.objectField('strategy', mtMap.passthrough()),
-              maxAttempts: mtMap.objectField(
-                'max_attempts',
-                mtMap.passthrough()
-              ),
-              baseDelaySeconds: mtMap.objectField(
-                'base_delay_seconds',
-                mtMap.passthrough()
-              ),
-              maxDelaySeconds: mtMap.objectField(
-                'max_delay_seconds',
-                mtMap.passthrough()
-              )
-            })
-          ),
-          listeners: mtMap.objectField(
+            0,
+            [1, ['max_attempts', 'base_delay_seconds', 'max_delay_seconds']]
+          ],
+          [
             'listeners',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                instanceId: mtMap.objectField(
+            0,
+            [
+              2,
+              [
+                1,
+                [
                   'instance_id',
-                  mtMap.passthrough()
-                ),
-                eventDestinationId: mtMap.objectField(
                   'event_destination_id',
-                  mtMap.passthrough()
-                ),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                eventTypes: mtMap.objectField(
                   'event_types',
-                  mtMap.array(mtMap.passthrough())
-                ),
-                callbackId: mtMap.objectField(
                   'callback_id',
-                  mtMap.passthrough()
-                ),
-                triggers: mtMap.objectField(
-                  'triggers',
-                  mtMap.array(mtMap.passthrough())
-                ),
-                chatConnectionId: mtMap.objectField(
                   'chat_connection_id',
-                  mtMap.passthrough()
-                ),
-                providerId: mtMap.objectField(
                   'provider_id',
-                  mtMap.passthrough()
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          archivedAt: mtMap.objectField('archived_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+                  'created_at',
+                  'updated_at'
+                ]
+              ]
+            ]
+          ],
+          'created_at',
+          'updated_at',
+          'archived_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardOrganizationsEventDestinationsListQuery = {
   limit?: number | undefined;
@@ -157,41 +97,7 @@ export type DashboardOrganizationsEventDestinationsListQuery = {
   search?: string | undefined;
 };
 
-export let mapDashboardOrganizationsEventDestinationsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      callbackId: mtMap.objectField(
-        'callback_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      chatConnectionId: mtMap.objectField(
-        'chat_connection_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      search: mtMap.objectField('search', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardOrganizationsEventDestinationsListQuery =
+  /* @__PURE__ */ createMapper<DashboardOrganizationsEventDestinationsListQuery>(
+    [3, [[0, [1, ['callback_id', 'chat_connection_id']]]]]
+  );

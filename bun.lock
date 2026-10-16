@@ -21,7 +21,7 @@
         "@metorial/fetch": "^1.0.0-rc.5",
         "@metorial/generated": "^1.0.0-rc.5",
         "@metorial/util-endpoint": "^1.0.0-rc.5",
-        "@metorial/util-resource-mapper": "^3.0.0",
+        "@metorial/util-resource-mapper": "^3.2.0",
         "@types/cookie": "^1.0.0",
       },
       "devDependencies": {
@@ -40,7 +40,7 @@
         "@metorial/fetch": "^1.0.0-rc.5",
         "@metorial/generated": "^1.0.0-rc.5",
         "@metorial/util-endpoint": "^1.0.0-rc.5",
-        "@metorial/util-resource-mapper": "^3.0.0",
+        "@metorial/util-resource-mapper": "^3.2.0",
       },
       "devDependencies": {
         "@types/isomorphic-fetch": "^0.0.39",
@@ -77,6 +77,7 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "esbuild": "^0.25.12",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -179,6 +180,7 @@
         "@metorial-io/ui": "^1.0.0",
         "@metorial-io/ui-product": "^1.0.0",
         "@metorial-platform-systems/relay-client": "workspace:*",
+        "@metorial/ui": "^1.0.0",
         "@prisma/adapter-pg": "^7.4.1",
         "@prisma/client": "^7.4.1",
         "@sentry/bun": "^10.38.0",
@@ -208,6 +210,7 @@
         "@types/node": "^25.0.3",
         "@vercel/ncc": "^0.38.1",
         "@vitejs/plugin-react": "4.3.1",
+        "jsdom": "24.1.3",
         "vitest": "4.0.17",
       },
       "peerDependencies": {
@@ -1212,12 +1215,17 @@
         "@metorial/editor-tabs": "^1.0.0",
         "@metorial/empty-state": "^1.0.0",
         "@metorial/explainer": "^1.0.0",
+        "@metorial/file-browser": "^1.0.0",
+        "@metorial/file-upload": "^1.0.0",
+        "@metorial/form-sections": "^1.0.0",
         "@metorial/frontend-config": "^1.0.0",
         "@metorial/json-viewer": "^1.0.0",
         "@metorial/layout": "^1.0.0",
+        "@metorial/log-viewer": "^1.0.0",
         "@metorial/markdown": "^1.0.0",
         "@metorial/mcp": "^1.0.0-rc.2",
         "@metorial/mcp-server": "^1.0.0-rc.12",
+        "@metorial/metrics-page": "^1.0.0",
         "@metorial/microfrontend": "^1.0.0",
         "@metorial/open-switcher": "^1.0.0",
         "@metorial/open-window": "^1.0.0",
@@ -1231,6 +1239,8 @@
         "@metorial/state": "^1.0.0",
         "@metorial/storage": "^1.0.0",
         "@metorial/table": "^1.0.0",
+        "@metorial/terminal": "^1.0.0",
+        "@metorial/tool-selection": "^1.0.0",
         "@metorial/ui": "^1.0.0",
         "@metorial/ui-product": "^1.0.0",
         "@metorial/use-debounced": "^1.0.0",
@@ -1265,6 +1275,7 @@
         "copy-to-clipboard": "^3.3.3",
         "date-fns": "^3.6.0",
         "dedent": "^1.6.0",
+        "fflate": "0.8.3",
         "formik": "^2.4.6",
         "framer-motion": "^11.5.4",
         "fuse.js": "7.4.2",
@@ -1314,6 +1325,7 @@
         "@metorial-io/ui": "^1.0.0",
         "@metorial/api-integrations": "^1.0.0",
         "@metorial/data-hooks": "^1.0.0",
+        "@metorial/tool-selection": "^1.0.0",
         "@metorial/ui": "workspace:*",
         "@remixicon/react": "^4.8.0",
         "framer-motion": "^12.9.4",
@@ -1582,6 +1594,59 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial-frontend/packages/file-browser": {
+      "name": "@metorial/file-browser",
+      "version": "1.0.0",
+      "dependencies": {
+        "@base-ui/react": "^1.3.0",
+        "@metorial/code-editor": "^1.0.0",
+        "@metorial/file-upload": "^1.0.0",
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/react": "^19.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/file-upload": {
+      "name": "@metorial/file-upload",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
+        "react-dropzone": "^14.3.8",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/react": "^19.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/form-sections": {
+      "name": "@metorial/form-sections",
+      "version": "1.0.0",
+      "dependencies": {
+        "@base-ui/react": "^1.3.0",
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/react": "^19.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial-frontend/packages/json-viewer": {
       "name": "@metorial/json-viewer",
       "version": "1.0.0",
@@ -1620,6 +1685,23 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial-frontend/packages/log-viewer": {
+      "name": "@metorial/log-viewer",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "ansi-to-react": "^6.1.6",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/react": "^19.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial-frontend/packages/markdown": {
       "name": "@metorial/markdown",
       "version": "1.0.0",
@@ -1637,6 +1719,24 @@
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/metrics-page": {
+      "name": "@metorial/metrics-page",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/chart": "^1.0.0",
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "date-fns": "^4.1.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/react": "^19.0.0",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -1762,6 +1862,39 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial-frontend/packages/terminal": {
+      "name": "@metorial/terminal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "@xterm/addon-fit": "^0.11.0",
+        "@xterm/xterm": "^6.0.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/react": "^19.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/tool-selection": {
+      "name": "@metorial/tool-selection",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial-frontend/packages/ui": {
       "name": "@metorial/ui",
       "version": "1.0.0",
@@ -1789,6 +1922,7 @@
         "copy-to-clipboard": "^3.3.3",
         "date-fns": "^4.1.0",
         "framer-motion": "^12.9.4",
+        "input-otp": "^1.4.2",
         "react": "19.1.1",
         "react-dom": "19.1.1",
         "react-feather": "^2.0.10",
@@ -1801,9 +1935,14 @@
         "use-delayed": "^0.1.0",
       },
       "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
         "esbuild-plugin-styled-components": "^3.0.1",
+        "jsdom": "24.1.3",
         "tsup": "^8.4.0",
         "typescript": "^5.8.3",
+        "vitest": "^3.1.2",
       },
     },
     "src/metorial-frontend/packages/ui-product": {
@@ -2128,6 +2267,7 @@
         "@metorial/module-file": "^1.0.0",
         "@metorial/module-machine-access": "^1.0.0",
         "@metorial/module-magic": "^1.0.0",
+        "@metorial/module-networking": "^1.0.0",
         "@metorial/module-organization": "^1.0.0",
         "@metorial/module-portal": "^1.0.0",
         "@metorial/module-product-assistant": "^1.0.0",
@@ -2625,6 +2765,7 @@
         "@metorial/config": "^1.0.0",
         "@metorial/consumer-oauth-utils": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/genesis-client": "workspace:*",
         "@metorial/module-access": "^1.0.0",
         "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-consumer-core": "^1.0.0",
@@ -2638,6 +2779,7 @@
         "@metorial/module-portal": "^1.0.0",
         "@metorial/module-product-assistant": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
+        "@metorial/module-sandbox": "^1.0.0",
         "@metorial/module-secrets": "^1.0.0",
         "@metorial/module-skill": "^1.0.0",
         "@metorial/module-skill-marketplace": "^1.0.0",
@@ -3058,7 +3200,7 @@
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/relay-client": "1.0.0",
+        "@metorial-platform-systems/relay-client": "workspace:*",
         "@metorial/db": "^1.0.0",
         "@metorial/queue": "^1.0.0",
       },
@@ -3148,6 +3290,36 @@
         "remark-stringify": "^11.0.0",
         "unified": "^11.0.5",
         "unist-util-visit": "^5.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/core/modules/networking": {
+      "name": "@metorial/module-networking",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial-subspace/list-utils": "^1.0.0",
+        "@metorial-subspace/module-tenant": "^1.0.0",
+        "@metorial/config": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/lock": "^1.0.0",
+        "@metorial/module-search": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "ipaddr.js": "^2.2.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3699,7 +3871,7 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/shadow-id": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/origin-client": "^1.0.0",
+        "@metorial-platform-systems/origin-client": "workspace:*",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/list-utils": "^1.0.0",
         "@metorial-subspace/module-auth": "^1.0.0",
@@ -3766,7 +3938,7 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/function-bay-client": "^1.0.0",
+        "@metorial-platform-systems/function-bay-client": "workspace:*",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/list-utils": "^1.0.0",
         "@metorial-subspace/module-catalog": "^1.0.0",
@@ -3774,6 +3946,7 @@
         "@metorial-subspace/provider": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/module-networking": "^1.0.0",
         "ipaddr.js": "^2.2.0",
       },
       "devDependencies": {
@@ -4170,7 +4343,7 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/shuttle-client": "1.0.0",
+        "@metorial-platform-systems/shuttle-client": "workspace:*",
         "@metorial-services/registry-client": "^1.0.0",
         "@metorial-subspace/connection-utils": "^1.0.0",
         "@metorial-subspace/db": "^1.0.0",
@@ -4205,7 +4378,7 @@
         "@lowerdeck/queue": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/slates-client": "^1.0.0",
+        "@metorial-platform-systems/slates-client": "workspace:*",
         "@metorial-services/registry-client": "^1.0.0",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/module-catalog": "^1.0.0",
@@ -4254,6 +4427,42 @@
       },
       "peerDependencies": {
         "typescript": "^5",
+      },
+    },
+    "src/metorial/products/sandbox/modules/sandbox": {
+      "name": "@metorial/module-sandbox",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/cache": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/genesis-client": "workspace:*",
+        "@metorial/lock": "^1.0.0",
+        "@metorial/module-file": "^1.0.0",
+        "@metorial/module-flags": "^1.0.0",
+        "@metorial/module-networking": "^1.0.0",
+        "@metorial/module-search": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/sandbox/packages/genesis-client": {
+      "name": "@metorial/genesis-client",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
       },
     },
     "src/metorial/products/skills/modules/skill": {
@@ -4524,7 +4733,7 @@
       "dependencies": {
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/origin-client": "^1.0.0",
+        "@metorial-platform-systems/origin-client": "workspace:*",
         "@metorial/db": "^1.0.0",
         "@metorial/skills-common": "^1.0.0",
       },
@@ -4843,7 +5052,7 @@
       "dependencies": {
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/tokens": "workspace:2.0.0",
-        "@metorial-platform-systems/ares-client": "^1.0.0",
+        "@metorial-platform-systems/ares-client": "workspace:*",
         "@metorial/config": "1.0.0",
         "@metorial/db": "1.0.0",
       },
@@ -4928,10 +5137,12 @@
         "@metorial/module-file": "1.0.0",
         "@metorial/module-machine-access": "1.0.0",
         "@metorial/module-magic": "1.0.0",
+        "@metorial/module-networking": "1.0.0",
         "@metorial/module-organization": "1.0.0",
         "@metorial/module-outpost": "1.0.0",
         "@metorial/module-portal": "1.0.0",
         "@metorial/module-product-assistant": "1.0.0",
+        "@metorial/module-sandbox": "1.0.0",
         "@metorial/module-skill": "1.0.0",
         "@metorial/module-skill-configurations": "1.0.0",
         "@metorial/module-skill-groups": "1.0.0",
@@ -5952,7 +6163,7 @@
         "@remixicon/react": "^4.0.0",
         "@sentry/bun": "^10.36.0",
         "@sentry/cli": "^3.2.0",
-        "@slates/proto": "^1.0.0-rc.22",
+        "@slates/proto": "^1.0.0-rc.25",
         "@types/semver": "^7.7.1",
         "@types/unzipper": "^0.10.11",
         "date-fns": "^4.1.0",
@@ -7438,13 +7649,21 @@
 
     "@metorial/fetch": ["@metorial/fetch@1.0.0", "", { "dependencies": { "cross-fetch": "^4.1.0" } }, "sha512-5R+FqW0tnSWyir6hEkGkYGnr9+urUX7zYtjVFmQhzFB253M/UwiewDiEqGAzbIm3+qwS2c/fbk0BwSxwSSz9PA=="],
 
+    "@metorial/file-browser": ["@metorial/file-browser@workspace:src/metorial-frontend/packages/file-browser"],
+
+    "@metorial/file-upload": ["@metorial/file-upload@workspace:src/metorial-frontend/packages/file-upload"],
+
     "@metorial/forge": ["@metorial/forge@workspace:src/forge/service"],
+
+    "@metorial/form-sections": ["@metorial/form-sections@workspace:src/metorial-frontend/packages/form-sections"],
 
     "@metorial/frontend-config": ["@metorial/frontend-config@workspace:src/metorial-frontend/packages/config"],
 
     "@metorial/function-bay": ["@metorial/function-bay@workspace:src/function-bay/service"],
 
     "@metorial/generated": ["@metorial/generated@1.0.0", "", { "dependencies": { "@metorial/util-endpoint": "^1.0.0", "@metorial/util-resource-mapper": "^1.0.0", "jose": "^5.9.6" } }, "sha512-qlCVP8KFcjzgD3qZk2CPT8P6B2EcEXlFEcDDuSz432pgfoXRxdc+TFL5seT5LAgLFP1guGPdSuvlj3iVh7tiww=="],
+
+    "@metorial/genesis-client": ["@metorial/genesis-client@workspace:src/metorial/products/sandbox/packages/genesis-client"],
 
     "@metorial/id": ["@metorial/id@workspace:src/metorial/packages/id"],
 
@@ -7458,6 +7677,8 @@
 
     "@metorial/lock": ["@metorial/lock@workspace:src/metorial/packages/lock"],
 
+    "@metorial/log-viewer": ["@metorial/log-viewer@workspace:src/metorial-frontend/packages/log-viewer"],
+
     "@metorial/logging": ["@metorial/logging@workspace:src/metorial/packages/logging"],
 
     "@metorial/markdown": ["@metorial/markdown@workspace:src/metorial-frontend/packages/markdown"],
@@ -7469,6 +7690,8 @@
     "@metorial/mcp-server": ["@metorial/mcp-server@workspace:src/shuttle/sdk/packages/mcp-server"],
 
     "@metorial/mcp-transport-memory": ["@metorial/mcp-transport-memory@workspace:src/shuttle/sdk/packages/mcp-transport-memory"],
+
+    "@metorial/metrics-page": ["@metorial/metrics-page@workspace:src/metorial-frontend/packages/metrics-page"],
 
     "@metorial/microfrontend": ["@metorial/microfrontend@workspace:src/metorial-frontend/packages/microfrontend"],
 
@@ -7512,6 +7735,8 @@
 
     "@metorial/module-markdown": ["@metorial/module-markdown@workspace:src/metorial/products/core/modules/markdown"],
 
+    "@metorial/module-networking": ["@metorial/module-networking@workspace:src/metorial/products/core/modules/networking"],
+
     "@metorial/module-organization": ["@metorial/module-organization@workspace:src/metorial/products/core/modules/organization"],
 
     "@metorial/module-outpost": ["@metorial/module-outpost@workspace:src/metorial/products/core/modules/outpost"],
@@ -7521,6 +7746,8 @@
     "@metorial/module-product-assistant": ["@metorial/module-product-assistant@workspace:src/metorial/products/agents/modules/product-assistant"],
 
     "@metorial/module-resource-actor": ["@metorial/module-resource-actor@workspace:src/metorial/products/core/modules/resource-actor"],
+
+    "@metorial/module-sandbox": ["@metorial/module-sandbox@workspace:src/metorial/products/sandbox/modules/sandbox"],
 
     "@metorial/module-search": ["@metorial/module-search@workspace:src/metorial/products/core/modules/search"],
 
@@ -7614,6 +7841,10 @@
 
     "@metorial/table": ["@metorial/table@workspace:src/metorial-frontend/packages/table"],
 
+    "@metorial/terminal": ["@metorial/terminal@workspace:src/metorial-frontend/packages/terminal"],
+
+    "@metorial/tool-selection": ["@metorial/tool-selection@workspace:src/metorial-frontend/packages/tool-selection"],
+
     "@metorial/tsconfig": ["@metorial/tsconfig@workspace:src/metorial/packages/tsconfig"],
 
     "@metorial/ui": ["@metorial/ui@workspace:src/metorial-frontend/packages/ui"],
@@ -7632,7 +7863,7 @@
 
     "@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.1", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-LqRt1EX5lx+/zYiDwlOHBg9NXqkARl+XQWquaJihbGc8+TPVCxw8yWEh/n6mwPU7ydG3QiAqlEM1cfPMRFpTbQ=="],
 
-    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.0.0", "", {}, "sha512-CiEVSUL9ncLQuIrZniE0lMkDdAJ9XUzd/rqwpxf0OV3yDZtdbTDP1Wo36b8tRndC1J5hyd1LVayxULQOXBCs4g=="],
+    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.2.0", "", {}, "sha512-gHeExU+5RsjFsUKybLjzw1vaNjgapQ/8nIgc5oL7WeS3iIIMZi8vdHohtG+h61vMvjQkZDU9MMiMr54QTWe6nQ=="],
 
     "@metorial/util-websocket": ["@metorial/util-websocket@1.0.0", "", { "dependencies": { "mitt": "^3.0.1", "ws": "^8.18.2" } }, "sha512-o0qRqbrjlmpjuKGyND4WDDCKBBRPztV8VkaX1HFSnbbKl/Jftz8CPtKnKmLQ38O4XPWPwl7Y7+9OPW7nqDg7UA=="],
 
@@ -8162,7 +8393,7 @@
 
     "@slates/adapter-chat": ["@slates/adapter-chat@1.0.0-rc.10", "", { "dependencies": { "@slates/adapter": "1.0.0-rc.9", "@slates/provider": "1.0.0-rc.25", "mdast-util-to-string": "^4.0.0", "remark-gfm": "^4.0.0", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "unified": "^11.0.5", "zod": "^4.2.1" } }, "sha512-0T7OAx8fAXD8pLggUhGc16dJedgg5oEM2oth+Ghwa/hsP/c/C6/PZv01avGKLDhroIhyrS0LcUlUvdtUqh9KNA=="],
 
-    "@slates/proto": ["@slates/proto@1.0.0-rc.22", "", { "dependencies": { "@lowerdeck/emitter": "^1.0.4", "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "zod": "^4.2.1" } }, "sha512-28PSZybDMxnqw/4LVl9OboIwSbR4LYNv1dVGFn82OVlZBMIY5T7r6QafrKOa6igYeVKrKyKsqFl+/x8WrvJdwA=="],
+    "@slates/proto": ["@slates/proto@1.0.0-rc.25", "", { "dependencies": { "@lowerdeck/emitter": "^1.0.4", "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "zod": "^4.2.1" } }, "sha512-karZODCHM8orE7UlcYYWjt4sSLrzkX3Mz/JKvqQRxBePHiEtV9aN5gUCH9MUbL9vqkGXXPZ+yGV14KbQ5JE9pA=="],
 
     "@slates/provider": ["@slates/provider@1.0.0-rc.25", "", { "dependencies": { "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "p-queue": "^6.6.2", "zod": "^4.2.1" } }, "sha512-g8WUUgk/Oun52P3uppukOAelxDRP5oI/aWkNVld2geRSAplZl6+cjoeFUUaHQQqb3EkI9yo2odu5EQxBWD8Fzw=="],
 
@@ -8595,6 +8826,10 @@
     "@xmldom/xmldom": ["@xmldom/xmldom@0.9.8", "", {}, "sha512-p96FSY54r+WJ50FIOsCOjyj/wavs8921hG5+kVMmZgKcvIKxMXHTrjNJvRgWa/zuX3B6t2lijLNFaOyuxUH+2A=="],
 
     "@xobotyi/scrollbar-width": ["@xobotyi/scrollbar-width@1.9.5", "", {}, "sha512-N8tkAACJx2ww8vFMneJmaAgmjAG1tnVBZJRLRcx061tmsLRZHSEZSLuGWnwPtunsSLvSqXQ2wfp7Mgqg1I+2dQ=="],
+
+    "@xterm/addon-fit": ["@xterm/addon-fit@0.11.0", "", {}, "sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g=="],
+
+    "@xterm/xterm": ["@xterm/xterm@6.0.0", "", {}, "sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg=="],
 
     "@yr/monotone-cubic-spline": ["@yr/monotone-cubic-spline@1.0.3", "", {}, "sha512-FQXkOta0XBSUPHndIKON2Y9JeQz5ZeMqLYZVVK93FliNBFm7LNMIZmY6FrMEB9XPcDbE2bekMbZD6kzDkxwYjA=="],
 
@@ -11422,7 +11657,7 @@
 
     "@lowerdeck/join-paths/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "@lowerdeck/lock/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+    "@lowerdeck/lock/@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 
     "@lowerdeck/memo/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
@@ -11530,13 +11765,13 @@
 
     "@metorial-platform-systems/ares-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "@metorial-platform-systems/forge-client/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+    "@metorial-platform-systems/forge-client/@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 
     "@metorial-platform-systems/forge-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial-platform-systems/function-bay-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "@metorial-platform-systems/nebula-client/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+    "@metorial-platform-systems/nebula-client/@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 
     "@metorial-platform-systems/nebula-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
@@ -11548,7 +11783,7 @@
 
     "@metorial-platform-systems/relay-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "@metorial-platform-systems/shuttle-client/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+    "@metorial-platform-systems/shuttle-client/@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 
     "@metorial-platform-systems/shuttle-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
@@ -11704,7 +11939,7 @@
 
     "@metorial/list-utils/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
-    "@metorial/lock/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+    "@metorial/lock/@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 
     "@metorial/markdown/react-markdown": ["react-markdown@10.1.0", "", { "dependencies": { "@types/hast": "^3.0.0", "@types/mdast": "^4.0.0", "devlop": "^1.0.0", "hast-util-to-jsx-runtime": "^2.0.0", "html-url-attributes": "^3.0.0", "mdast-util-to-hast": "^13.0.0", "remark-parse": "^11.0.0", "remark-rehype": "^11.0.0", "unified": "^11.0.0", "unist-util-visit": "^5.0.0", "vfile": "^6.0.0" }, "peerDependencies": { "@types/react": ">=18", "react": ">=18" } }, "sha512-qKxVopLT/TyA6BX3Ue5NwabOsAzm0Q7kAPwq6L+wWDwisYs7R8vZ0nRXqq6rkueboxpkjvLGU9fWifiX/ZZFxQ=="],
 
@@ -11760,7 +11995,7 @@
 
     "@metorial/multi-region/@prisma/adapter-pg": ["@prisma/adapter-pg@6.19.0", "", { "dependencies": { "@prisma/driver-adapter-utils": "6.19.0", "pg": "^8.11.3", "postgres-array": "3.0.4" } }, "sha512-F8f2kvU+igmxERA9oM+D2maMaxrST1P6vO7ayvdlAdcJI47nKNPdkLBGZKic9otghfA9CQnjNOGB56q2VXqnHw=="],
 
-    "@metorial/multi-region/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+    "@metorial/multi-region/@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 
     "@metorial/multi-region/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
@@ -12200,6 +12435,8 @@
 
     "gaxios/uuid": ["uuid@9.0.1", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA=="],
 
+    "generator/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+
     "glob/minimatch": ["minimatch@3.1.5", "", { "dependencies": { "brace-expansion": "^1.1.7" } }, "sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w=="],
 
     "globby/ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
@@ -12576,7 +12813,7 @@
 
     "@isaacs/cliui/wrap-ansi/ansi-styles": ["ansi-styles@6.2.3", "", {}, "sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg=="],
 
-    "@lowerdeck/lock/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+    "@lowerdeck/lock/@types/bun/bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
     "@mapbox/node-pre-gyp/https-proxy-agent/agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
@@ -12832,15 +13069,15 @@
 
     "@metorial-outpost/trust-proxy/tsup/source-map": ["source-map@0.8.0-beta.0", "", { "dependencies": { "whatwg-url": "^7.0.0" } }, "sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA=="],
 
-    "@metorial-platform-systems/forge-client/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+    "@metorial-platform-systems/forge-client/@types/bun/bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
-    "@metorial-platform-systems/nebula-client/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+    "@metorial-platform-systems/nebula-client/@types/bun/bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
     "@metorial-platform-systems/origin-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-platform-systems/relay-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial-platform-systems/shuttle-client/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+    "@metorial-platform-systems/shuttle-client/@types/bun/bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
     "@metorial-platform-systems/voyager-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -13134,7 +13371,7 @@
 
     "@metorial/list-utils/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
-    "@metorial/lock/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+    "@metorial/lock/@types/bun/bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
     "@metorial/mcp-proxy/tsup/bundle-require": ["bundle-require@4.2.1", "", { "dependencies": { "load-tsconfig": "^0.2.3" }, "peerDependencies": { "esbuild": ">=0.17" } }, "sha512-7Q/6vkyYAwOmQNRw75x+4yRtZCZJXUDmHHlFdkiV0wgv/reNjtJwpu1jPJ0w2kbEpIM0uoKI3S4/f39dU7AjSA=="],
 
@@ -13190,7 +13427,7 @@
 
     "@metorial/multi-region/@prisma/adapter-pg/@prisma/driver-adapter-utils": ["@prisma/driver-adapter-utils@6.19.0", "", { "dependencies": { "@prisma/debug": "6.19.0" } }, "sha512-VAC/wFebV569Jk7iEqzLxekM2A5toKYAr6cPM2KWVHiRHgyjsh/IHf++Xo67q8uor/JxY8mwOuyQyuxkstSf5w=="],
 
-    "@metorial/multi-region/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+    "@metorial/multi-region/@types/bun/bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
     "@metorial/nebula/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
@@ -13375,6 +13612,8 @@
     "@metorial/slates/vitest/vite": ["vite@7.3.5", "", { "dependencies": { "esbuild": "^0.27.0", "fdir": "^6.5.0", "picomatch": "^4.0.3", "postcss": "^8.5.6", "rollup": "^4.43.0", "tinyglobby": "^0.2.15" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "jiti": ">=1.21.0", "less": "^4.0.0", "lightningcss": "^1.21.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-KuOaNhcnGFN2zIPGA7wRmzF+lJA1sea7rHq17aiJ++9lzY1WWG6Jpwqwe1KNbRVPIqHmr8GLYx7jbrQcN/7/ww=="],
 
     "@metorial/state/@metorial/generated/@metorial/util-endpoint": ["@metorial/util-endpoint@3.0.0", "", { "dependencies": { "@metorial/util-async-iterator": "^3.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-uw+yw1xwa56jzG0H6iERK/FcuHhhz4n3sEWqyCG9bXhCGeMZSygls39mZB4qU+/Kb69N8deYnP0wSqoqvsO98Q=="],
+
+    "@metorial/state/@metorial/generated/@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.0.0", "", {}, "sha512-CiEVSUL9ncLQuIrZniE0lMkDdAJ9XUzd/rqwpxf0OV3yDZtdbTDP1Wo36b8tRndC1J5hyd1LVayxULQOXBCs4g=="],
 
     "@metorial/subspace-dev/@types/bun/bun-types": ["bun-types@1.4.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-iIKw23BspnQQYd3prITOBxeUsxBHnwzX6YJfGMuNOZzeNcMmVqzIIVGRm1l69ogaPQmb4wB6BN8mA5bE9YuC5Q=="],
 
@@ -13688,6 +13927,8 @@
 
     "gaxios/https-proxy-agent/agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
+    "generator/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+
     "glob/minimatch/brace-expansion": ["brace-expansion@1.1.15", "", { "dependencies": { "balanced-match": "^1.0.0", "concat-map": "0.0.1" } }, "sha512-EwOCDEex4quD37XhqM3omwtMoJjr//isUZz1JopUNWms+4Z2ViyM/k1YIRePpoVNnQhENnxtFjLaxNHrT7xIUg=="],
 
     "jest-worker/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
@@ -13933,6 +14174,8 @@
     "@inquirer/core/wrap-ansi/strip-ansi/ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 
     "@lowerdeck/lock/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
+
+    "@lowerdeck/lock/@types/bun/bun-types/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-outpost/adapter/tsup/chokidar/glob-parent": ["glob-parent@5.1.2", "", { "dependencies": { "is-glob": "^4.0.1" } }, "sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow=="],
 
@@ -15136,9 +15379,15 @@
 
     "@metorial-platform-systems/forge-client/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
+    "@metorial-platform-systems/forge-client/@types/bun/bun-types/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@metorial-platform-systems/nebula-client/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
+    "@metorial-platform-systems/nebula-client/@types/bun/bun-types/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@metorial-platform-systems/shuttle-client/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
+
+    "@metorial-platform-systems/shuttle-client/@types/bun/bun-types/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-subspace/adapter-chat/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
@@ -15420,6 +15669,8 @@
 
     "@metorial/lock/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
+    "@metorial/lock/@types/bun/bun-types/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@metorial/mcp-proxy/tsup/chokidar/glob-parent": ["glob-parent@5.1.2", "", { "dependencies": { "is-glob": "^4.0.1" } }, "sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow=="],
 
     "@metorial/mcp-proxy/tsup/chokidar/readdirp": ["readdirp@3.6.0", "", { "dependencies": { "picomatch": "^2.2.1" } }, "sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA=="],
@@ -15501,6 +15752,8 @@
     "@metorial/multi-region/@prisma/adapter-pg/@prisma/driver-adapter-utils/@prisma/debug": ["@prisma/debug@6.19.0", "", {}, "sha512-8hAdGG7JmxrzFcTzXZajlQCidX0XNkMJkpqtfbLV54wC6LSSX6Vni25W/G+nAANwLnZ2TmwkfIuWetA7jJxJFA=="],
 
     "@metorial/multi-region/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
+
+    "@metorial/multi-region/@types/bun/bun-types/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/nebula/vitest/@vitest/expect/chai": ["chai@6.2.2", "", {}, "sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg=="],
 
@@ -15602,6 +15855,8 @@
 
     "filelist/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
+    "generator/@types/bun/bun-types/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
+
     "glob/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
     "log-symbols/chalk/ansi-styles/color-convert": ["color-convert@2.0.1", "", { "dependencies": { "color-name": "~1.1.4" } }, "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ=="],
@@ -15693,8 +15948,6 @@
     "wrap-ansi/ansi-styles/color-convert/color-name": ["color-name@1.1.4", "", {}, "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="],
 
     "@inquirer/core/wrap-ansi/ansi-styles/color-convert/color-name": ["color-name@1.1.4", "", {}, "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="],
-
-    "@lowerdeck/lock/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-outpost/adapter/tsup/chokidar/readdirp/picomatch": ["picomatch@2.3.2", "", {}, "sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA=="],
 
@@ -15837,12 +16090,6 @@
     "@metorial-outpost/trust-proxy/tsup/source-map/whatwg-url/tr46": ["tr46@1.0.1", "", { "dependencies": { "punycode": "^2.1.0" } }, "sha512-dTpowEjclQ7Kgx5SdBkqRzVhERQXov8/l9Ft9dVM9fmg0W0KQSVaXX9T4i6twCPNtYiZM53lpSSUAwJbFPOHxA=="],
 
     "@metorial-outpost/trust-proxy/tsup/source-map/whatwg-url/webidl-conversions": ["webidl-conversions@4.0.2", "", {}, "sha512-YQ+BmxuTgd6UXZW3+ICGfyqRyHXVlD5GtQr5+qjiNW7bF0cqrzX500HVXPBOvgXb5YnzDd+h0zqyv61KUD7+Sg=="],
-
-    "@metorial-platform-systems/forge-client/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
-
-    "@metorial-platform-systems/nebula-client/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
-
-    "@metorial-platform-systems/shuttle-client/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-subspace/adapter-chat/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -16012,8 +16259,6 @@
 
     "@metorial/list-utils/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial/lock/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
-
     "@metorial/mcp-proxy/tsup/chokidar/readdirp/picomatch": ["picomatch@2.3.2", "", {}, "sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA=="],
 
     "@metorial/mcp-proxy/tsup/source-map/whatwg-url/tr46": ["tr46@1.0.1", "", { "dependencies": { "punycode": "^2.1.0" } }, "sha512-dTpowEjclQ7Kgx5SdBkqRzVhERQXov8/l9Ft9dVM9fmg0W0KQSVaXX9T4i6twCPNtYiZM53lpSSUAwJbFPOHxA=="],
@@ -16045,8 +16290,6 @@
     "@metorial/module-store/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/module-usage/mongoose/mongodb/mongodb-connection-string-url/@types/whatwg-url": ["@types/whatwg-url@11.0.5", "", { "dependencies": { "@types/webidl-conversions": "*" } }, "sha512-coYR071JRaHa+xoEvvYqvnIHaVqaYrLPbsufM9BF63HkwI5Lgmy2QR8Q5K/lYDYo5AK82wOvSOS0UsLTpTG7uQ=="],
-
-    "@metorial/multi-region/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/nebula/vitest/vite/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.27.7", "", { "os": "aix", "cpu": "ppc64" }, "sha512-EKX3Qwmhz1eMdEJokhALr0YiD0lhQNwDqkPYyPhiSwKrh7/4KRjQc04sZ8db+5DVVnZ1LmbNDI1uAMPEUBnQPg=="],
 
@@ -16377,6 +16620,8 @@
     "@sentry/bundler-plugin-core/glob/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
     "eslint/chalk/ansi-styles/color-convert/color-name": ["color-name@1.1.4", "", {}, "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="],
+
+    "generator/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "log-symbols/chalk/ansi-styles/color-convert/color-name": ["color-name@1.1.4", "", {}, "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="],
 

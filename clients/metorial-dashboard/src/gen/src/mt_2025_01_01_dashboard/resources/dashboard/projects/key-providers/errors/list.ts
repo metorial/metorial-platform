@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsKeyProvidersErrorsListOutput = {
   items: {
@@ -20,37 +20,13 @@ export type DashboardProjectsKeyProvidersErrorsListOutput = {
 };
 
 export let mapDashboardProjectsKeyProvidersErrorsListOutput =
-  mtMap.object<DashboardProjectsKeyProvidersErrorsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          day: mtMap.objectField('day', mtMap.date()),
-          operation: mtMap.objectField('operation', mtMap.passthrough()),
-          code: mtMap.objectField('code', mtMap.passthrough()),
-          count: mtMap.objectField('count', mtMap.passthrough()),
-          sampleMessage: mtMap.objectField(
-            'sample_message',
-            mtMap.passthrough()
-          ),
-          firstSeenAt: mtMap.objectField('first_seen_at', mtMap.date()),
-          lastSeenAt: mtMap.objectField('last_seen_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardProjectsKeyProvidersErrorsListOutput>(
+    [
+      7,
+      [1, [['day', 0, 4], 'sample_message', 'first_seen_at', 'last_seen_at']]
+    ],
+    1
+  );
 
 export type DashboardProjectsKeyProvidersErrorsListQuery = {
   limit?: number | undefined;
@@ -60,16 +36,5 @@ export type DashboardProjectsKeyProvidersErrorsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardProjectsKeyProvidersErrorsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardProjectsKeyProvidersErrorsListQuery =
+  /* @__PURE__ */ createMapper<DashboardProjectsKeyProvidersErrorsListQuery>(0);

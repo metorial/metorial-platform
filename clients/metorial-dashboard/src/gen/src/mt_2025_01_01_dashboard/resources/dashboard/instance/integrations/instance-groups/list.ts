@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceIntegrationsInstanceGroupsListOutput = {
   items: {
@@ -30,6 +30,7 @@ export type DashboardInstanceIntegrationsInstanceGroupsListOutput = {
             type: 'filter';
             filters: (
               | { type: 'tool_keys'; keys: string[] }
+              | { type: 'tool_categories'; keys: string[] }
               | { type: 'tool_regex'; pattern: string }
               | { type: 'resource_regex'; pattern: string }
               | { type: 'resource_uris'; uris: string[] }
@@ -52,130 +53,47 @@ export type DashboardInstanceIntegrationsInstanceGroupsListOutput = {
 };
 
 export let mapDashboardInstanceIntegrationsInstanceGroupsListOutput =
-  mtMap.object<DashboardInstanceIntegrationsInstanceGroupsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          implementation: mtMap.objectField(
-            'implementation',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              magicMcpEndpointId: mtMap.objectField(
-                'magic_mcp_endpoint_id',
-                mtMap.passthrough()
-              )
-            })
-          ),
-          providers: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardInstanceIntegrationsInstanceGroupsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          ['implementation', 0, [1, ['magic_mcp_endpoint_id']]],
+          [
             'providers',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                integrationId: mtMap.objectField(
+            0,
+            [
+              2,
+              [
+                1,
+                [
                   'integration_id',
-                  mtMap.passthrough()
-                ),
-                integrationInstanceGroupId: mtMap.objectField(
                   'integration_instance_group_id',
-                  mtMap.passthrough()
-                ),
-                integrationInstanceId: mtMap.objectField(
                   'integration_instance_id',
-                  mtMap.passthrough()
-                ),
-                integrationProviderId: mtMap.objectField(
                   'integration_provider_id',
-                  mtMap.passthrough()
-                ),
-                integrationInstanceProviderId: mtMap.objectField(
                   'integration_instance_provider_id',
-                  mtMap.passthrough()
-                ),
-                toolFilter: mtMap.objectField(
-                  'tool_filter',
-                  mtMap.union([
-                    mtMap.unionOption(
-                      'object',
-                      mtMap.object({
-                        type: mtMap.objectField('type', mtMap.passthrough()),
-                        ignoreParentFilters: mtMap.objectField(
-                          'ignore_parent_filters',
-                          mtMap.passthrough()
-                        ),
-                        filters: mtMap.objectField(
-                          'filters',
-                          mtMap.array(
-                            mtMap.union([
-                              mtMap.unionOption(
-                                'object',
-                                mtMap.object({
-                                  type: mtMap.objectField(
-                                    'type',
-                                    mtMap.passthrough()
-                                  ),
-                                  keys: mtMap.objectField(
-                                    'keys',
-                                    mtMap.array(mtMap.passthrough())
-                                  ),
-                                  pattern: mtMap.objectField(
-                                    'pattern',
-                                    mtMap.passthrough()
-                                  ),
-                                  uris: mtMap.objectField(
-                                    'uris',
-                                    mtMap.array(mtMap.passthrough())
-                                  )
-                                })
-                              )
-                            ])
-                          )
-                        )
-                      })
-                    )
-                  ])
-                ),
-                isOverrideToolFilter: mtMap.objectField(
+                  [
+                    'tool_filter',
+                    1,
+                    [3, [[0, [1, ['ignore_parent_filters']]]]]
+                  ],
                   'is_override_tool_filter',
-                  mtMap.passthrough()
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-                archivedAt: mtMap.objectField('archived_at', mtMap.date())
-              })
-            )
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          archivedAt: mtMap.objectField('archived_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+                  'created_at',
+                  'updated_at',
+                  'archived_at'
+                ]
+              ]
+            ]
+          ],
+          'created_at',
+          'updated_at',
+          'archived_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceIntegrationsInstanceGroupsListQuery = {
   limit?: number | undefined;
@@ -206,134 +124,29 @@ export type DashboardInstanceIntegrationsInstanceGroupsListQuery = {
 };
 
 export let mapDashboardInstanceIntegrationsInstanceGroupsListQuery =
-  mtMap.union([
-    mtMap.unionOption(
-      'object',
-      mtMap.object({
-        limit: mtMap.objectField('limit', mtMap.passthrough()),
-        after: mtMap.objectField('after', mtMap.passthrough()),
-        before: mtMap.objectField('before', mtMap.passthrough()),
-        cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-        order: mtMap.objectField('order', mtMap.passthrough()),
-        status: mtMap.objectField(
-          'status',
-          mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-        ),
-        id: mtMap.objectField(
-          'id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        integrationId: mtMap.objectField(
-          'integration_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        integrationInstanceId: mtMap.objectField(
-          'integration_instance_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        integrationInstanceProviderId: mtMap.objectField(
-          'integration_instance_provider_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        providerId: mtMap.objectField(
-          'provider_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        integrationProviderId: mtMap.objectField(
-          'integration_provider_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        providerDeploymentId: mtMap.objectField(
-          'provider_deployment_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        providerConfigId: mtMap.objectField(
-          'provider_config_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        providerAuthConfigId: mtMap.objectField(
-          'provider_auth_config_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        sessionTemplateId: mtMap.objectField(
-          'session_template_id',
-          mtMap.union([
-            mtMap.unionOption('string', mtMap.passthrough()),
-            mtMap.unionOption(
-              'array',
-              mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-            )
-          ])
-        ),
-        createdAt: mtMap.objectField(
-          'created_at',
-          mtMap.object({
-            gt: mtMap.objectField('gt', mtMap.date()),
-            lt: mtMap.objectField('lt', mtMap.date())
-          })
-        ),
-        updatedAt: mtMap.objectField(
-          'updated_at',
-          mtMap.object({
-            gt: mtMap.objectField('gt', mtMap.date()),
-            lt: mtMap.objectField('lt', mtMap.date())
-          })
-        )
-      })
-    )
-  ]);
-
+  /* @__PURE__ */ createMapper<DashboardInstanceIntegrationsInstanceGroupsListQuery>(
+    [
+      3,
+      [
+        [
+          0,
+          [
+            1,
+            [
+              'integration_id',
+              'integration_instance_id',
+              'integration_instance_provider_id',
+              'provider_id',
+              'integration_provider_id',
+              'provider_deployment_id',
+              'provider_config_id',
+              'provider_auth_config_id',
+              'session_template_id',
+              ['created_at', 1, 5],
+              ['updated_at', 1, 5]
+            ]
+          ]
+        ]
+      ]
+    ]
+  );

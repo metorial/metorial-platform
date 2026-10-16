@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSessionsErrorGroupsListOutput = {
   items: {
@@ -15,36 +15,10 @@ export type ManagementInstanceSessionsErrorGroupsListOutput = {
 };
 
 export let mapManagementInstanceSessionsErrorGroupsListOutput =
-  mtMap.object<ManagementInstanceSessionsErrorGroupsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          code: mtMap.objectField('code', mtMap.passthrough()),
-          message: mtMap.objectField('message', mtMap.passthrough()),
-          data: mtMap.objectField('data', mtMap.passthrough()),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          occurrenceCount: mtMap.objectField(
-            'occurrence_count',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceSessionsErrorGroupsListOutput>(
+    [7, [1, ['provider_id', 'occurrence_count', 'created_at']]],
+    1
+  );
 
 export type ManagementInstanceSessionsErrorGroupsListQuery = {
   limit?: number | undefined;
@@ -68,50 +42,8 @@ export type ManagementInstanceSessionsErrorGroupsListQuery = {
   providerId?: string | string[] | undefined;
 };
 
-export let mapManagementInstanceSessionsErrorGroupsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      type: mtMap.objectField(
-        'type',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      ),
-      id: mtMap.objectField(
-        'id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      sessionId: mtMap.objectField(
-        'session_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      providerId: mtMap.objectField(
-        'provider_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      )
-    })
-  )
-]);
-
+export let mapManagementInstanceSessionsErrorGroupsListQuery =
+  /* @__PURE__ */ createMapper<ManagementInstanceSessionsErrorGroupsListQuery>([
+    3,
+    [[0, [1, ['session_id', 'provider_id']]]]
+  ]);

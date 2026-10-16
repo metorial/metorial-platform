@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsItemsCreateOutput = {
   object: 'skill.item';
@@ -17,6 +20,7 @@ export type ManagementInstanceSkillsItemsCreateOutput = {
       canAttachCustomToolFilters: boolean;
       canAttachCustomProviderConfig: boolean;
       canOverrideToolFilters: boolean;
+      enableCallbackTools: boolean;
       useIntegrationNameInToolNames: boolean | null;
     };
     createdAt: Date;
@@ -36,74 +40,47 @@ export type ManagementInstanceSkillsItemsCreateOutput = {
 };
 
 export let mapManagementInstanceSkillsItemsCreateOutput =
-  mtMap.object<ManagementInstanceSkillsItemsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
-    integration: mtMap.objectField(
-      'integration',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        configuration: mtMap.objectField(
-          'configuration',
-          mtMap.object({
-            canAttachCustomToolFilters: mtMap.objectField(
-              'can_attach_custom_tool_filters',
-              mtMap.passthrough()
-            ),
-            canAttachCustomProviderConfig: mtMap.objectField(
-              'can_attach_custom_provider_config',
-              mtMap.passthrough()
-            ),
-            canOverrideToolFilters: mtMap.objectField(
-              'can_override_tool_filters',
-              mtMap.passthrough()
-            ),
-            useIntegrationNameInToolNames: mtMap.objectField(
-              'use_integration_name_in_tool_names',
-              mtMap.passthrough()
-            )
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        archivedAt: mtMap.objectField('archived_at', mtMap.date())
-      })
-    ),
-    provider: mtMap.objectField(
-      'provider',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsItemsCreateOutput>(
+    [
+      'skill_id',
+      [
+        'integration',
+        0,
+        [
+          1,
+          [
+            [
+              'configuration',
+              0,
+              [
+                1,
+                [
+                  'can_attach_custom_tool_filters',
+                  'can_attach_custom_provider_config',
+                  'can_override_tool_filters',
+                  'enable_callback_tools',
+                  'use_integration_name_in_tool_names'
+                ]
+              ]
+            ],
+            'created_at',
+            'updated_at',
+            'archived_at'
+          ]
+        ]
+      ],
+      ['provider', 0, 8],
+      'created_at'
+    ],
+    1
+  );
 
 export type ManagementInstanceSkillsItemsCreateBody =
   | { type: 'provider'; providerId: string }
   | { type: 'integration'; integrationId: string };
 
-export let mapManagementInstanceSkillsItemsCreateBody = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      type: mtMap.objectField('type', mtMap.passthrough()),
-      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-      integrationId: mtMap.objectField('integration_id', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapManagementInstanceSkillsItemsCreateBody =
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsItemsCreateBody>([
+    3,
+    [[0, [1, ['provider_id', 'integration_id']]]]
+  ]);

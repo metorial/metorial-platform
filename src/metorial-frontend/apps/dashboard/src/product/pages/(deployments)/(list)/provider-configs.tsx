@@ -3,6 +3,7 @@ import {
   DashboardInstanceProviderDeploymentsConfigsListQuery
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -12,13 +13,8 @@ import {
   useProviderConfigs,
   useProviders
 } from '@metorial/state';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
-import { EmptyState } from '@metorial/empty-state';
-import { Table as DashboardTable } from '@metorial/table';
 import {
+  Table as DashboardTable,
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
@@ -26,6 +22,10 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { showCreateProviderConfigFlow } from '../../../scenes/providerCreationFlows';
 
 type ProviderConfig = DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
@@ -191,7 +191,7 @@ export let providerConfigsOverviewTable = new DashboardTable<
     },
     {
       id: 'deployment',
-      isDefault: true,
+      isDefault: false,
       header: 'Deployment',
       render: row =>
         row.providerDeploymentName ? (
@@ -204,7 +204,7 @@ export let providerConfigsOverviewTable = new DashboardTable<
     },
     {
       id: 'createdAt',
-      isDefault: true,
+      isDefault: false,
       header: 'Created',
       render: row => <RenderDate date={row.createdAt} />
     },

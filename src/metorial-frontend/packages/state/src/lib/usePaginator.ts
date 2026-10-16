@@ -58,8 +58,6 @@ export let usePaginator = <
   }, [paginationSearchParamsEnabled, searchParams]);
 
   useEffect(() => {
-    if (!paginationSearchParamsEnabled) return;
-
     if (!didMountResetRef.current) {
       didMountResetRef.current = true;
       previousResetKeyRef.current = resetKey;
@@ -72,15 +70,16 @@ export let usePaginator = <
     setCursor(current => {
       if (!current.before && !current.after) return current;
 
-      setSearchParams(
-        currentSearchParams => {
-          let nextSearchParams = new URLSearchParams(currentSearchParams);
-          nextSearchParams.delete('before');
-          nextSearchParams.delete('after');
-          return nextSearchParams;
-        },
-        { replace: true }
-      );
+      if (paginationSearchParamsEnabled)
+        setSearchParams(
+          currentSearchParams => {
+            let nextSearchParams = new URLSearchParams(currentSearchParams);
+            nextSearchParams.delete('before');
+            nextSearchParams.delete('after');
+            return nextSearchParams;
+          },
+          { replace: true }
+        );
 
       return {};
     });

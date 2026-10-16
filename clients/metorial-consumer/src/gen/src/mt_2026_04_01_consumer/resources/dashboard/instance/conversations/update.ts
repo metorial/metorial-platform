@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceConversationsUpdateOutput = {
   object: 'assistant.conversation';
@@ -123,218 +126,120 @@ export type DashboardInstanceConversationsUpdateOutput = {
 };
 
 export let mapDashboardInstanceConversationsUpdateOutput =
-  mtMap.object<DashboardInstanceConversationsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    title: mtMap.objectField('title', mtMap.passthrough()),
-    assistantId: mtMap.objectField('assistant_id', mtMap.passthrough()),
-    instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    createdByActor: mtMap.objectField(
-      'created_by_actor',
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-        email: mtMap.objectField('email', mtMap.passthrough()),
-        organizationActor: mtMap.objectField(
-          'organization_actor',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            organizationId: mtMap.objectField(
-              'organization_id',
-              mtMap.passthrough()
-            ),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            email: mtMap.objectField('email', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            member: mtMap.objectField(
-              'member',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                role: mtMap.objectField('role', mtMap.passthrough())
-              })
-            ),
-            teams: mtMap.objectField(
-              'teams',
-              mtMap.array(
-                mtMap.object({
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  slug: mtMap.objectField('slug', mtMap.passthrough()),
-                  assignmentId: mtMap.objectField(
-                    'assignment_id',
-                    mtMap.passthrough()
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              )
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        consumer: mtMap.objectField(
-          'consumer',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            email: mtMap.objectField('email', mtMap.passthrough()),
-            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-            userId: mtMap.objectField('user_id', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        consumerProfile: mtMap.objectField(
-          'consumer_profile',
-          mtMap.union([
-            mtMap.unionOption(
-              'object',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                email: mtMap.objectField('email', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-                consumerId: mtMap.objectField(
-                  'consumer_id',
-                  mtMap.passthrough()
-                ),
-                userId: mtMap.objectField('user_id', mtMap.passthrough()),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-                groups: mtMap.objectField(
-                  'groups',
-                  mtMap.array(
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      group: mtMap.objectField(
-                        'group',
-                        mtMap.object({
-                          object: mtMap.objectField(
-                            'object',
-                            mtMap.passthrough()
-                          ),
-                          id: mtMap.objectField('id', mtMap.passthrough()),
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          ),
-                          name: mtMap.objectField('name', mtMap.passthrough()),
-                          description: mtMap.objectField(
-                            'description',
-                            mtMap.passthrough()
-                          ),
-                          isDefault: mtMap.objectField(
-                            'is_default',
-                            mtMap.passthrough()
-                          ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
-                          ),
-                          updatedAt: mtMap.objectField(
-                            'updated_at',
-                            mtMap.date()
-                          )
-                        })
-                      ),
-                      assignedVia: mtMap.objectField(
-                        'assigned_via',
-                        mtMap.passthrough()
-                      )
-                    })
-                  )
-                )
-              })
-            )
-          ])
-        )
-      })
-    ),
-    rootMessageId: mtMap.objectField('root_message_id', mtMap.passthrough()),
-    assistant: mtMap.objectField(
-      'assistant',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        slug: mtMap.objectField('slug', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        ownerType: mtMap.objectField('owner_type', mtMap.passthrough()),
-        organizationId: mtMap.objectField(
-          'organization_id',
-          mtMap.passthrough()
-        ),
-        defaultModel: mtMap.objectField(
-          'default_model',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            slug: mtMap.objectField('slug', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            contextWindow: mtMap.objectField(
-              'context_window',
-              mtMap.passthrough()
-            ),
-            provider: mtMap.objectField(
-              'provider',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                slug: mtMap.objectField('slug', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-              })
-            )
-          })
-        ),
-        availableModels: mtMap.objectField(
-          'available_models',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              contextWindow: mtMap.objectField(
-                'context_window',
-                mtMap.passthrough()
-              ),
-              provider: mtMap.objectField(
-                'provider',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  slug: mtMap.objectField('slug', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
-                })
-              )
-            })
-          )
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardInstanceConversationsUpdateOutput>(
+    [
+      'assistant_id',
+      'instance_id',
+      'organization_id',
+      [
+        'created_by_actor',
+        1,
+        [
+          1,
+          [
+            'image_url',
+            [
+              'organization_actor',
+              1,
+              [
+                1,
+                [
+                  'organization_id',
+                  'image_url',
+                  [
+                    'teams',
+                    0,
+                    [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                  ],
+                  'created_at',
+                  'updated_at'
+                ]
+              ]
+            ],
+            [
+              'consumer',
+              0,
+              [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+            ],
+            [
+              'consumer_profile',
+              1,
+              [
+                3,
+                [
+                  [
+                    0,
+                    [
+                      1,
+                      [
+                        'image_url',
+                        'consumer_id',
+                        'user_id',
+                        'created_at',
+                        'updated_at',
+                        [
+                          'groups',
+                          0,
+                          [
+                            2,
+                            [
+                              1,
+                              [
+                                [
+                                  'group',
+                                  0,
+                                  [
+                                    1,
+                                    ['is_default', 'created_at', 'updated_at']
+                                  ]
+                                ],
+                                'assigned_via'
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
+      'root_message_id',
+      [
+        'assistant',
+        0,
+        [
+          1,
+          [
+            'owner_type',
+            'organization_id',
+            [
+              'default_model',
+              1,
+              [1, ['context_window', ['provider', 0, [1, ['image_url']]]]]
+            ],
+            [
+              'available_models',
+              1,
+              [2, [1, ['context_window', ['provider', 0, [1, ['image_url']]]]]]
+            ],
+            'created_at',
+            'updated_at'
+          ]
+        ]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type DashboardInstanceConversationsUpdateBody = {
   title?: string | undefined;
 };
 
 export let mapDashboardInstanceConversationsUpdateBody =
-  mtMap.object<DashboardInstanceConversationsUpdateBody>({
-    title: mtMap.objectField('title', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<DashboardInstanceConversationsUpdateBody>(0);

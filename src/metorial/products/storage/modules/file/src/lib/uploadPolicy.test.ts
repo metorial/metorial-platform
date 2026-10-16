@@ -3,10 +3,13 @@ import {
   describeInvalidUploadSize,
   doesUploadedObjectMatch,
   formatByteSize,
+  getPurposeUploadSizeError,
   isValidDirectUploadSize,
   isValidUploadSize,
   maxDirectUploadSize,
-  maxUploadSize
+  maxUploadSize,
+  sandboxImageBuildContextFilePurposeSlug,
+  sandboxImageBuildContextMaxBytes
 } from './uploadPolicy';
 
 describe('byte size formatting', () => {
@@ -72,5 +75,27 @@ describe('uploaded object verification', () => {
     expect(doesUploadedObjectMatch({ declaredSize: 100, actualSize: 100 })).toBe(true);
     expect(doesUploadedObjectMatch({ declaredSize: 100, actualSize: 99 })).toBe(false);
     expect(doesUploadedObjectMatch({ declaredSize: 100, actualSize: 101 })).toBe(false);
+  });
+});
+
+describe('purpose upload size limits', () => {
+  it('limits sandbox image build contexts to 50 MB', () => {
+    let slug = sandboxImageBuildContextFilePurposeSlug;
+
+    expect(
+      getPurposeUploadSizeError({ purposeSlug: slug, size: sandboxImageBuildContextMaxBytes })
+    ).toBeNull();
+    expect(
+      getPurposeUploadSizeError({
+        purposeSlug: slug,
+        size: sandboxImageBuildContextMaxBytes + 1
+      })
+    ).toContain('at most 50 MB');
+  });
+
+  it('leaves other purposes to the general limits', () => {
+    expect(
+      getPurposeUploadSizeError({ purposeSlug: 'generic', size: maxUploadSize })
+    ).toBeNull();
   });
 });

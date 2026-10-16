@@ -1,0 +1,22 @@
+model SandboxRegion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SandboxResourceStatus @default(active)
+
+  identifier String @unique
+  name       String
+  cloud      String
+
+  areaId   String
+  areaName String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tenants             SandboxTenant[]
+  specRegions         SandboxSpecRegion[]
+  imageRegions        SandboxMachineImageRegion[]
+  imageVersionRegions SandboxMachineImageVersionRegion[]
+  imageBuildRegions   SandboxMachineImageBuildRegion[]
+}

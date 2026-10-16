@@ -245,6 +245,10 @@ class slateInvocationServiceImpl {
     return await d.stack.invoke('slates/trigger_groups.list', {});
   }
 
+  async listToolCategories(d: { stack: SlateInvocationStack }) {
+    return await d.stack.invoke('slates/tool_categories.list', {});
+  }
+
   async getRoutingMatchers(d: { stack: SlateInvocationStack; triggerGroupId: string }) {
     return await d.stack.invoke('slates/trigger_group.routing_matchers.get', {
       triggerGroupId: d.triggerGroupId
@@ -304,6 +308,32 @@ class slateInvocationServiceImpl {
     return await d.stack.invoke('slates/trigger_group.polling.poll', {
       triggerGroupId: d.triggerGroupId,
       state: d.state
+    });
+  }
+
+  async connectTriggerGroupGateway(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    state: any;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.gateway.connect', {
+      triggerGroupId: d.triggerGroupId,
+      state: d.state
+    });
+  }
+
+  async receiveTriggerGroupGatewayFrames(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    state: any;
+    frames: string[];
+    closed: { code: number; reason: string } | null;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.gateway.receive', {
+      triggerGroupId: d.triggerGroupId,
+      state: d.state,
+      frames: d.frames,
+      closed: d.closed
     });
   }
 

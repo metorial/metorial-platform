@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type SkillsMarketplacesGetEditorUrlOutput = {
   object: 'bucket.editor_token';
@@ -8,15 +11,12 @@ export type SkillsMarketplacesGetEditorUrlOutput = {
 };
 
 export let mapSkillsMarketplacesGetEditorUrlOutput =
-  mtMap.object<SkillsMarketplacesGetEditorUrlOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    url: mtMap.objectField('url', mtMap.passthrough()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<SkillsMarketplacesGetEditorUrlOutput>(
+    ['expires_at'],
+    1
+  );
 
 export type SkillsMarketplacesGetEditorUrlBody = {};
 
 export let mapSkillsMarketplacesGetEditorUrlBody =
-  mtMap.object<SkillsMarketplacesGetEditorUrlBody>({});
-
+  /* @__PURE__ */ createMapper<SkillsMarketplacesGetEditorUrlBody>(0);

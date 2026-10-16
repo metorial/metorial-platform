@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationServiceAccountsListOutput = {
   items: {
@@ -32,78 +32,22 @@ export type ManagementOrganizationServiceAccountsListOutput = {
 };
 
 export let mapManagementOrganizationServiceAccountsListOutput =
-  mtMap.object<ManagementOrganizationServiceAccountsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          scopes: mtMap.objectField(
-            'scopes',
-            mtMap.array(
-              mtMap.object({
-                identifier: mtMap.objectField(
-                  'identifier',
-                  mtMap.passthrough()
-                ),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            )
-          ),
-          clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-          policies: mtMap.objectField(
-            'policies',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                slug: mtMap.objectField('slug', mtMap.passthrough())
-              })
-            )
-          ),
-          clientSecrets: mtMap.objectField(
-            'client_secrets',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                preview: mtMap.objectField('preview', mtMap.passthrough()),
-                secret: mtMap.objectField('secret', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-              })
-            )
-          ),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<ManagementOrganizationServiceAccountsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'client_id',
+          ['client_secrets', 1, [2, [1, ['created_at', 'deleted_at']]]],
+          'organization_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ManagementOrganizationServiceAccountsListQuery = {
   limit?: number | undefined;
@@ -113,20 +57,7 @@ export type ManagementOrganizationServiceAccountsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined };
 
-export let mapManagementOrganizationServiceAccountsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      status: mtMap.objectField(
-        'status',
-        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
-    })
-  )
-]);
-
+export let mapManagementOrganizationServiceAccountsListQuery =
+  /* @__PURE__ */ createMapper<ManagementOrganizationServiceAccountsListQuery>(
+    0
+  );

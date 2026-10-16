@@ -6,6 +6,7 @@ let db = Object.fromEntries(
     'triggerRegistration',
     'triggerRegistrationInstance',
     'triggerRegistrationSchedule',
+    'triggerRegistrationGateway',
     'triggerRegistrationWebhook',
     'triggerWebhookTarget',
     'triggerWebhookTargetRegistrationAttempt',

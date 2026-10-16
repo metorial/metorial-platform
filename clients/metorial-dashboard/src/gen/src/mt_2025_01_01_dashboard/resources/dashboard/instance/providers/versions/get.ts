@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProvidersVersionsGetOutput = {
   object: 'provider.version';
@@ -15,17 +15,13 @@ export type DashboardInstanceProvidersVersionsGetOutput = {
 };
 
 export let mapDashboardInstanceProvidersVersionsGetOutput =
-  mtMap.object<DashboardInstanceProvidersVersionsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    version: mtMap.objectField('version', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    specificationId: mtMap.objectField('specification_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceProvidersVersionsGetOutput>(
+    [
+      'provider_id',
+      'is_current',
+      'specification_id',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

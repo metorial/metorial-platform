@@ -1,20 +1,19 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceFirewallsDeleteOutput = {
-  object: 'network.firewall';
+  object: 'networking.firewall';
   id: string;
   slug: string;
   name: string;
   description: string | null;
   status: 'active' | 'archived' | 'deleted';
-  networkId: string;
   networkPolicies: {
-    object: 'network.policy#preview';
+    object: 'networking.network_policy#preview';
     id: string;
     name: string;
     version: number;
     rules: {
-      object: 'network.policy.rule';
+      object: 'networking.network_policy.rule';
       id: string;
       effect: 'allow' | 'deny';
       direction: 'ingress' | 'egress';
@@ -23,7 +22,11 @@ export type ManagementInstanceFirewallsDeleteOutput = {
       enabled: boolean;
       priority: number;
       ports:
-        | { object: 'network.policy.port_range'; from: number; to: number }[]
+        | {
+            object: 'networking.network_policy.port_range';
+            from: number;
+            to: number;
+          }[]
         | null;
     }[];
   }[];
@@ -33,58 +36,7 @@ export type ManagementInstanceFirewallsDeleteOutput = {
 };
 
 export let mapManagementInstanceFirewallsDeleteOutput =
-  mtMap.object<ManagementInstanceFirewallsDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    networkId: mtMap.objectField('network_id', mtMap.passthrough()),
-    networkPolicies: mtMap.objectField(
-      'network_policies',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          version: mtMap.objectField('version', mtMap.passthrough()),
-          rules: mtMap.objectField(
-            'rules',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                effect: mtMap.objectField('effect', mtMap.passthrough()),
-                direction: mtMap.objectField('direction', mtMap.passthrough()),
-                cidrs: mtMap.objectField(
-                  'cidrs',
-                  mtMap.array(mtMap.passthrough())
-                ),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
-                enabled: mtMap.objectField('enabled', mtMap.passthrough()),
-                priority: mtMap.objectField('priority', mtMap.passthrough()),
-                ports: mtMap.objectField(
-                  'ports',
-                  mtMap.array(
-                    mtMap.object({
-                      object: mtMap.objectField('object', mtMap.passthrough()),
-                      from: mtMap.objectField('from', mtMap.passthrough()),
-                      to: mtMap.objectField('to', mtMap.passthrough())
-                    })
-                  )
-                )
-              })
-            )
-          )
-        })
-      )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    archivedAt: mtMap.objectField('archived_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceFirewallsDeleteOutput>(
+    ['network_policies', 'created_at', 'updated_at', 'archived_at'],
+    1
+  );

@@ -6,6 +6,14 @@ export let maxUploadSize = 2 * 1024 * 1024 * 1024;
 
 export let maxDirectUploadSize = 100 * 1024 * 1024;
 
+export let sandboxImageBuildContextFilePurposeSlug = 'sandbox_image_build_context';
+
+export let sandboxImageBuildContextMaxBytes = 50 * 1024 * 1024;
+
+export let purposeMaxUploadBytes: Record<string, number> = {
+  [sandboxImageBuildContextFilePurposeSlug]: sandboxImageBuildContextMaxBytes
+};
+
 export let maxDirectUploadBodySize = maxDirectUploadSize + 1024 * 1024;
 
 export let getUploadUrlExpiresAt = () => new Date(Date.now() + uploadUrlExpirationSecs * 1000);
@@ -48,3 +56,10 @@ export let useUploadUrlHint = `Set mode to "get_upload_url" to upload files of u
 
 export let doesUploadedObjectMatch = (d: { declaredSize: number; actualSize: number }) =>
   d.declaredSize === d.actualSize;
+
+export let getPurposeUploadSizeError = (d: { purposeSlug: string; size: number }) => {
+  let max = purposeMaxUploadBytes[d.purposeSlug];
+  if (max === undefined || d.size <= max) return null;
+
+  return describeInvalidUploadSize({ size: d.size, max });
+};

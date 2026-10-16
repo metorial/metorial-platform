@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsKeyProvidersValidateOutput = {
   object: 'key_provider_validation';
@@ -7,9 +7,6 @@ export type DashboardProjectsKeyProvidersValidateOutput = {
 };
 
 export let mapDashboardProjectsKeyProvidersValidateOutput =
-  mtMap.object<DashboardProjectsKeyProvidersValidateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    keyProviderId: mtMap.objectField('key_provider_id', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsKeyProvidersValidateOutput>([
+    'key_provider_id'
+  ]);

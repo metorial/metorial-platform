@@ -1,8 +1,8 @@
 import { db } from '@metorial-subspace/db';
 import { createResolver } from '../resolver';
 
-export let resolveNetworks = createResolver(async ({ ts, ids }) =>
-  db.network.findMany({
+export let resolveInternetGateways = createResolver(async ({ ts, ids }) =>
+  db.integrationInternetGateway.findMany({
     where: {
       tenantOid: ts.tenantOid,
       environmentOid: ts.environmentOid,
@@ -13,7 +13,7 @@ export let resolveNetworks = createResolver(async ({ ts, ids }) =>
 );
 
 export let resolveEnclaveEnvironments = createResolver(async ({ ts, ids }) =>
-  db.enclaveEnvironment.findMany({
+  db.integrationEnclaveEnvironment.findMany({
     where: {
       tenantOid: ts.tenantOid,
       OR: [{ id: { in: ids } }]
@@ -23,7 +23,7 @@ export let resolveEnclaveEnvironments = createResolver(async ({ ts, ids }) =>
 );
 
 export let resolveEnclaves = createResolver(async ({ ts, ids }) =>
-  db.enclave.findMany({
+  db.integrationEnclave.findMany({
     where: {
       tenantOid: ts.tenantOid,
       environmentOid: ts.environmentOid,

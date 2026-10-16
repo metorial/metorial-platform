@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardProjectsConfigureIntegrationNamingUpdateOutput = {
   object: 'organization.project.integration_naming_configuration';
@@ -8,25 +8,16 @@ export type DashboardProjectsConfigureIntegrationNamingUpdateOutput = {
 };
 
 export let mapDashboardProjectsConfigureIntegrationNamingUpdateOutput =
-  mtMap.object<DashboardProjectsConfigureIntegrationNamingUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-    useIntegrationNameInToolNames: mtMap.objectField(
-      'use_integration_name_in_tool_names',
-      mtMap.passthrough()
-    ),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureIntegrationNamingUpdateOutput>(
+    ['project_id', 'use_integration_name_in_tool_names', 'updated_at'],
+    1
+  );
 
 export type DashboardProjectsConfigureIntegrationNamingUpdateBody = {
   useIntegrationNameInToolNames?: boolean | undefined;
 };
 
 export let mapDashboardProjectsConfigureIntegrationNamingUpdateBody =
-  mtMap.object<DashboardProjectsConfigureIntegrationNamingUpdateBody>({
-    useIntegrationNameInToolNames: mtMap.objectField(
-      'use_integration_name_in_tool_names',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureIntegrationNamingUpdateBody>(
+    ['use_integration_name_in_tool_names']
+  );

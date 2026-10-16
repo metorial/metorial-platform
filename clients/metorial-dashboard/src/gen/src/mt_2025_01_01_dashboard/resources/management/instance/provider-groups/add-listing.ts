@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProviderGroupsAddListingOutput = {
   object: 'provider.listing_group';
@@ -11,25 +14,15 @@ export type ManagementInstanceProviderGroupsAddListingOutput = {
 };
 
 export let mapManagementInstanceProviderGroupsAddListingOutput =
-  mtMap.object<ManagementInstanceProviderGroupsAddListingOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ createMapper<ManagementInstanceProviderGroupsAddListingOutput>(
+    8
+  );
 
 export type ManagementInstanceProviderGroupsAddListingBody = {
   providerListingId: string;
 };
 
 export let mapManagementInstanceProviderGroupsAddListingBody =
-  mtMap.object<ManagementInstanceProviderGroupsAddListingBody>({
-    providerListingId: mtMap.objectField(
-      'provider_listing_id',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceProviderGroupsAddListingBody>([
+    'provider_listing_id'
+  ]);

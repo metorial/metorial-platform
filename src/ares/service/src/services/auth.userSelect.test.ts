@@ -6,6 +6,7 @@ let { authBlockService, db, deviceService, userService } = vi.hoisted(() => ({
     accountDomain: { findUnique: vi.fn() },
     appOAuthProvider: { findMany: vi.fn() },
     ssoConnection: { findMany: vi.fn() },
+    userPassword: { findUnique: vi.fn() },
     user: { findFirst: vi.fn() }
   },
   deviceService: { checkIfUserIsLoggedIn: vi.fn() },
@@ -103,6 +104,7 @@ describe('authService.getUserAuthOptions', () => {
     });
     db.ssoConnection.findMany.mockResolvedValue([localConnection]);
     db.user.findFirst.mockResolvedValue(null);
+    db.userPassword.findUnique.mockResolvedValue(null);
     authBlockService.registerBlock.mockResolvedValue(undefined);
     deviceService.checkIfUserIsLoggedIn.mockResolvedValue(false);
     db.appOAuthProvider.findMany.mockResolvedValue([
@@ -242,6 +244,7 @@ describe('authService.authWithEmail on an SSO domain', () => {
       allowedConnections: []
     });
     db.ssoConnection.findMany.mockResolvedValue([localConnection]);
+    db.userPassword.findUnique.mockResolvedValue(null);
     authBlockService.registerBlock.mockResolvedValue(undefined);
   });
 

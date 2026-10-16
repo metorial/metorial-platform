@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsOutpostsAccessListOutput = {
   items: {
@@ -15,39 +15,22 @@ export type DashboardOrganizationsOutpostsAccessListOutput = {
 };
 
 export let mapDashboardOrganizationsOutpostsAccessListOutput =
-  mtMap.object<DashboardOrganizationsOutpostsAccessListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          outpostId: mtMap.objectField('outpost_id', mtMap.passthrough()),
-          projectId: mtMap.objectField('project_id', mtMap.passthrough()),
-          instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          services: mtMap.objectField(
-            'services',
-            mtMap.array(mtMap.passthrough())
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardOrganizationsOutpostsAccessListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'outpost_id',
+          'project_id',
+          'instance_id',
+          'organization_id',
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardOrganizationsOutpostsAccessListQuery = {
   limit?: number | undefined;
@@ -57,18 +40,8 @@ export type DashboardOrganizationsOutpostsAccessListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { organizationId?: string | undefined; instanceId?: string | undefined };
 
-export let mapDashboardOrganizationsOutpostsAccessListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-      instanceId: mtMap.objectField('instance_id', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardOrganizationsOutpostsAccessListQuery =
+  /* @__PURE__ */ createMapper<DashboardOrganizationsOutpostsAccessListQuery>([
+    3,
+    [[0, [1, ['organization_id', 'instance_id']]]]
+  ]);

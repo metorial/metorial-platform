@@ -1,3 +1,4 @@
+import { ContentLayout } from '@metorial/layout';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useDashboardFlags } from '@metorial/state';
 import { ComingSoon, Upgrade } from '@metorial/empty-state';
@@ -18,25 +19,34 @@ export let useNetworkManagementAccess = () => {
 export let getDisplayedNetworkPublicIp = (
   ip: string | undefined,
   hasPublicIpAccess: boolean
-) => (hasPublicIpAccess ? ip ?? '-' : 'shared');
+) => (hasPublicIpAccess ? (ip ?? '-') : 'shared');
 
-export let NetworkManagedPage = ({ children }: { children: React.ReactNode }) => {
+export let NetworkManagedPage = ({
+  children,
+  fallbackWithLayout = false
+}: {
+  children: React.ReactNode;
+  fallbackWithLayout?: boolean;
+}) => {
   let flags = useDashboardFlags();
 
   return renderWithLoader({ flags })(({ flags }) => {
+    let fallback = (content: React.ReactNode) =>
+      fallbackWithLayout ? <ContentLayout>{content}</ContentLayout> : content;
+
     if (!flags.data.flags['networking-enabled']) {
-      return (
+      return fallback(
         <ComingSoon
-          title="Metorial Magic Network"
+          title="Integration Internet Gateway"
           description="Monitor network activity, manage firewalls, and control egress for provider deployments in secure enclaves."
         />
       );
     }
 
     if (!flags.data.flags['paid-networking']) {
-      return (
+      return fallback(
         <Upgrade
-          title="Metorial Magic Network"
+          title="Integration Internet Gateway"
           description="Monitor network activity, manage firewalls, and control egress for provider deployments in secure enclaves."
         />
       );

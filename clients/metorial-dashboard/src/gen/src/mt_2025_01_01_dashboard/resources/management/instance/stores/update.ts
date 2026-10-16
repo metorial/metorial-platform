@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceStoresUpdateOutput = {
   object: 'store';
@@ -11,15 +14,10 @@ export type ManagementInstanceStoresUpdateOutput = {
 };
 
 export let mapManagementInstanceStoresUpdateOutput =
-  mtMap.object<ManagementInstanceStoresUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    access: mtMap.objectField('access', mtMap.passthrough()),
-    itemCount: mtMap.objectField('item_count', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementInstanceStoresUpdateOutput>(
+    ['item_count', 'created_at', 'updated_at'],
+    1
+  );
 
 export type ManagementInstanceStoresUpdateBody = {
   name?: string | undefined;
@@ -27,8 +25,4 @@ export type ManagementInstanceStoresUpdateBody = {
 };
 
 export let mapManagementInstanceStoresUpdateBody =
-  mtMap.object<ManagementInstanceStoresUpdateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    access: mtMap.objectField('access', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<ManagementInstanceStoresUpdateBody>(0);

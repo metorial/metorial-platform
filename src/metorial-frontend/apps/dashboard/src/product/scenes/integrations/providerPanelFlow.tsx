@@ -35,6 +35,7 @@ import {
   Text,
   theme
 } from '@metorial/ui';
+import { hydrateToolSelection, type ToolSelection } from '@metorial/tool-selection';
 import { RiAddLine, RiCheckLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
@@ -44,6 +45,7 @@ import {
 } from '../../lib/configSelection';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
+import { toSdkToolFilterRules } from '../../lib/toolFilterRules';
 import { AuthMethodPicker } from '../providerAuthConfigs/authMethodPicker';
 import { showProviderAuthCredentialsFormModal } from '../providerAuthCredentials/modal';
 import {
@@ -56,8 +58,7 @@ import { ProviderSetupSections } from '../sessionTemplates/addProviderPanelFlow'
 import { IntegrationProviderCallbacksSection } from '../callbacks/providerCallbacksSection';
 
 type ToolFilterFormValues = {
-  toolFilterMode: 'all' | 'select';
-  selectedToolKeys: string[];
+  toolSelection: ToolSelection;
 };
 
 type IntegrationProviderFormValues = ToolFilterFormValues & {
@@ -97,12 +98,7 @@ let getProviderName = (provider: any, fallback?: string) =>
   provider?.name ?? provider?.slug ?? fallback ?? 'Provider';
 
 let getToolFilters = (values: ToolFilterFormValues) =>
-  values.toolFilterMode === 'select'
-    ? {
-        type: 'tool_keys' as const,
-        keys: values.selectedToolKeys
-      }
-    : null;
+  toSdkToolFilterRules(values.toolSelection);
 
 let isConfigSelectionComplete = (selection: ConfigurationSelection) =>
   selection.kind !== 'none';
@@ -744,13 +740,7 @@ let IntegrationProviderSetupStep = (p: {
       selectedAuthConfigId: '',
       callbacksStatus: p.integrationProvider?.callbacks.status ?? 'disabled',
       enableCallbackTools: false,
-      toolFilterMode: p.integrationProvider?.toolFilter?.type === 'filter' ? 'select' : 'all',
-      selectedToolKeys:
-        p.integrationProvider?.toolFilter?.type === 'filter'
-          ? p.integrationProvider.toolFilter.filters.flatMap(filter =>
-              filter.type === 'tool_keys' ? filter.keys : []
-            )
-          : []
+      toolSelection: hydrateToolSelection(p.integrationProvider?.toolFilter)
     },
     onSubmit: async values => {
       let selectedAuthMethod = getSelectedAuthMethodById(values.selectedAuthMethodId);
@@ -797,8 +787,7 @@ let IntegrationProviderSetupStep = (p: {
         selectedAuthMethodId: yup.string().optional().default(''),
         selectedAuthCredentialsId: yup.string().optional().default(''),
         selectedAuthConfigId: yup.string().optional().default(''),
-        toolFilterMode: yup.mixed<'all' | 'select'>().oneOf(['all', 'select']).required(),
-        selectedToolKeys: yup.array().of(yup.string().required()).defined(),
+        toolSelection: yup.mixed<ToolSelection>().defined(),
         callbacksStatus: yup
           .mixed<'enabled' | 'disabled'>()
           .oneOf(['enabled', 'disabled'])
@@ -1247,10 +1236,8 @@ let IntegrationProviderSetupStep = (p: {
           form.setFieldTouched('selectedAuthConfigId', false, false);
           form.setFieldError('selectedAuthConfigId', undefined);
         }}
-        toolFilterMode={form.values.toolFilterMode}
-        onToolFilterModeChange={value => form.setFieldValue('toolFilterMode', value)}
-        selectedToolKeys={form.values.selectedToolKeys}
-        onSelectedToolKeysChange={keys => form.setFieldValue('selectedToolKeys', keys)}
+        toolSelection={form.values.toolSelection}
+        onToolSelectionChange={value => form.setFieldValue('toolSelection', value)}
         showConfigSection={visibility.showConfig}
         forceConfigSectionVisible={isUpdate}
         showAuthSection={effectiveShowAuthConfig}
@@ -1631,7 +1618,7 @@ let IntegrationInstanceProviderPanel = (p: {
       providerConfigId: providerConfigId ?? undefined,
       providerAuthConfigId: values.selectedAuthConfigId || undefined,
       toolFilters: getToolFilters(values),
-      isOverrideToolFilter: values.toolFilterMode === 'select'
+      isOverrideToolFilter: values.toolSelection.mode === 'select'
     });
     if (!result) return false;
     p.onComplete();
@@ -1651,13 +1638,7 @@ let IntegrationInstanceProviderPanel = (p: {
         ? { kind: 'config', id: initialConfigId }
         : emptyConfigurationSelection(),
       selectedAuthConfigId: p.instanceProvider?.authConfig?.id ?? '',
-      toolFilterMode: p.instanceProvider?.toolFilter?.type === 'filter' ? 'select' : 'all',
-      selectedToolKeys:
-        p.instanceProvider?.toolFilter?.type === 'filter'
-          ? p.instanceProvider.toolFilter.filters.flatMap(filter =>
-              filter.type === 'tool_keys' ? filter.keys : []
-            )
-          : []
+      toolSelection: hydrateToolSelection(p.instanceProvider?.toolFilter)
     },
     onSubmit: async values => {
       if (
@@ -1682,8 +1663,7 @@ let IntegrationInstanceProviderPanel = (p: {
         selectedProviderId: yup.string().required(),
         selectedConfiguration: yup.mixed<ConfigurationSelection>().defined(),
         selectedAuthConfigId: yup.string().optional().default(''),
-        toolFilterMode: yup.mixed<'all' | 'select'>().oneOf(['all', 'select']).required(),
-        selectedToolKeys: yup.array().of(yup.string().required()).defined()
+        toolSelection: yup.mixed<ToolSelection>().defined()
       })
   });
 
@@ -1767,10 +1747,8 @@ let IntegrationInstanceProviderPanel = (p: {
                   form.setFieldTouched('selectedAuthConfigId', false, false);
                   form.setFieldError('selectedAuthConfigId', undefined);
                 }}
-                toolFilterMode={form.values.toolFilterMode}
-                onToolFilterModeChange={value => form.setFieldValue('toolFilterMode', value)}
-                selectedToolKeys={form.values.selectedToolKeys}
-                onSelectedToolKeysChange={keys => form.setFieldValue('selectedToolKeys', keys)}
+                toolSelection={form.values.toolSelection}
+                onToolSelectionChange={value => form.setFieldValue('toolSelection', value)}
                 showConfigSection={visibility.showConfig}
                 forceConfigSectionVisible={isUpdate}
                 showAuthSection={visibility.showAuth}

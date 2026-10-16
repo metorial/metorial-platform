@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationTeamsPoliciesDeleteOutput = {
   object: 'management.team';
@@ -34,52 +34,30 @@ export type ManagementOrganizationTeamsPoliciesDeleteOutput = {
 };
 
 export let mapManagementOrganizationTeamsPoliciesDeleteOutput =
-  mtMap.object<ManagementOrganizationTeamsPoliciesDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    policies: mtMap.objectField(
-      'policies',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough())
-        })
-      )
-    ),
-    projects: mtMap.objectField(
-      'projects',
-      mtMap.array(
-        mtMap.object({
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          project: mtMap.objectField(
-            'project',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              organizationId: mtMap.objectField(
-                'organization_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          )
-        })
-      )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementOrganizationTeamsPoliciesDeleteOutput>(
+    [
+      'organization_id',
+      [
+        'projects',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'created_at',
+              'updated_at',
+              [
+                'project',
+                0,
+                [1, ['organization_id', 'created_at', 'updated_at']]
+              ]
+            ]
+          ]
+        ]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

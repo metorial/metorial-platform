@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsAgentsCreateOutput = {
   object: 'skill.agent';
@@ -18,22 +21,18 @@ export type ManagementInstanceSkillsAgentsCreateOutput = {
 };
 
 export let mapManagementInstanceSkillsAgentsCreateOutput =
-  mtMap.object<ManagementInstanceSkillsAgentsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    storeId: mtMap.objectField('store_id', mtMap.passthrough()),
-    storeItemId: mtMap.objectField('store_item_id', mtMap.passthrough()),
-    path: mtMap.objectField('path', mtMap.passthrough()),
-    documentId: mtMap.objectField('document_id', mtMap.passthrough()),
-    archivedAt: mtMap.objectField('archived_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<ManagementInstanceSkillsAgentsCreateOutput>(
+    [
+      'skill_id',
+      'store_id',
+      'store_item_id',
+      'document_id',
+      'archived_at',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ManagementInstanceSkillsAgentsCreateBody = {
   name: string;
@@ -42,9 +41,4 @@ export type ManagementInstanceSkillsAgentsCreateBody = {
 };
 
 export let mapManagementInstanceSkillsAgentsCreateBody =
-  mtMap.object<ManagementInstanceSkillsAgentsCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    content: mtMap.objectField('content', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsAgentsCreateBody>(0);

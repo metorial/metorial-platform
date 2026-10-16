@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderAuthConfigErrorsGroupsGetOutput = {
   object: 'provider.auth_config_error_group';
@@ -12,14 +12,7 @@ export type DashboardInstanceProviderAuthConfigErrorsGroupsGetOutput = {
 };
 
 export let mapDashboardInstanceProviderAuthConfigErrorsGroupsGetOutput =
-  mtMap.object<DashboardInstanceProviderAuthConfigErrorsGroupsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    code: mtMap.objectField('code', mtMap.passthrough()),
-    message: mtMap.objectField('message', mtMap.passthrough()),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    occurrenceCount: mtMap.objectField('occurrence_count', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceProviderAuthConfigErrorsGroupsGetOutput>(
+    ['provider_id', 'occurrence_count', 'created_at'],
+    1
+  );

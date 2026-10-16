@@ -697,13 +697,20 @@ class sessionTemplateServiceImpl {
         providerVersion: currentVersion
       });
 
-      let list = await paginator.run({ limit: 100 });
+      let after: string | undefined;
 
-      for (let tool of list.items) {
-        if (toolMap.has(tool.key)) continue;
+      while (true) {
+        let list = await paginator.run({ limit: 100, ...(after ? { after } : {}) });
 
-        let { allowed } = checkToolAccess(tool, templateProvider, 'list');
-        if (allowed) toolMap.set(tool.key, tool);
+        for (let tool of list.items) {
+          if (toolMap.has(tool.key)) continue;
+
+          let { allowed } = checkToolAccess(tool, templateProvider, 'list');
+          if (allowed) toolMap.set(tool.key, tool);
+        }
+
+        if (!list.pagination.hasNextPage || list.items.length === 0) break;
+        after = list.items[list.items.length - 1]!.id;
       }
     }
 

@@ -15,7 +15,7 @@ import {
   customProviderArchiveSessionTemplateProvidersManyQueueProcessor,
   customProviderArchiveSkillResourcesManyQueueProcessor,
   customProviderCreatedQueueProcessor,
-  customProviderDeleteFirewallBindingsManyQueueProcessor,
+  customProviderDeleteFirewallAssignmentsManyQueueProcessor,
   customProviderUpdatedQueueProcessor
 } from './customProvider';
 import { customProviderDeploymentCreatedQueueProcessor } from './customProviderDeployment';
@@ -35,7 +35,7 @@ export let lifecycleQueues = combineQueueProcessors([
   customProviderArchiveIdentityCredentialsManyQueueProcessor,
   customProviderArchiveSessionProvidersManyQueueProcessor,
   customProviderArchiveSessionTemplateProvidersManyQueueProcessor,
-  customProviderDeleteFirewallBindingsManyQueueProcessor,
+  customProviderDeleteFirewallAssignmentsManyQueueProcessor,
   customProviderArchiveSkillResourcesManyQueueProcessor,
   customProviderArchiveMonitorsManyQueueProcessor,
 

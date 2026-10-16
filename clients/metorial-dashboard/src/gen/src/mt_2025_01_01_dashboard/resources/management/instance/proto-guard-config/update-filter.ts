@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProtoGuardConfigUpdateFilterOutput = {
   object: 'protoguard.filter_config';
@@ -30,41 +30,28 @@ export type ManagementInstanceProtoGuardConfigUpdateFilterOutput = {
 };
 
 export let mapManagementInstanceProtoGuardConfigUpdateFilterOutput =
-  mtMap.object<ManagementInstanceProtoGuardConfigUpdateFilterOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    alertFilterCountThreshold: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementInstanceProtoGuardConfigUpdateFilterOutput>(
+    [
       'alert_filter_count_threshold',
-      mtMap.passthrough()
-    ),
-    filters: mtMap.objectField(
-      'filters',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          key: mtMap.objectField('key', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          issueType: mtMap.objectField('issue_type', mtMap.passthrough()),
-          severity: mtMap.objectField('severity', mtMap.passthrough()),
-          scoreWeight: mtMap.objectField('score_weight', mtMap.passthrough()),
-          defaultEnabled: mtMap.objectField(
-            'default_enabled',
-            mtMap.passthrough()
-          ),
-          enabled: mtMap.objectField('enabled', mtMap.passthrough()),
-          defaultAlertConfidenceThreshold: mtMap.objectField(
-            'default_alert_confidence_threshold',
-            mtMap.passthrough()
-          ),
-          alertConfidenceThreshold: mtMap.objectField(
-            'alert_confidence_threshold',
-            mtMap.passthrough()
-          )
-        })
-      )
-    )
-  });
+      [
+        'filters',
+        0,
+        [
+          2,
+          [
+            1,
+            [
+              'issue_type',
+              'score_weight',
+              'default_enabled',
+              'default_alert_confidence_threshold',
+              'alert_confidence_threshold'
+            ]
+          ]
+        ]
+      ]
+    ]
+  );
 
 export type ManagementInstanceProtoGuardConfigUpdateFilterBody = {
   enabled?: boolean | undefined;
@@ -72,11 +59,6 @@ export type ManagementInstanceProtoGuardConfigUpdateFilterBody = {
 };
 
 export let mapManagementInstanceProtoGuardConfigUpdateFilterBody =
-  mtMap.object<ManagementInstanceProtoGuardConfigUpdateFilterBody>({
-    enabled: mtMap.objectField('enabled', mtMap.passthrough()),
-    alertConfidenceThreshold: mtMap.objectField(
-      'alert_confidence_threshold',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<ManagementInstanceProtoGuardConfigUpdateFilterBody>(
+    ['alert_confidence_threshold']
+  );

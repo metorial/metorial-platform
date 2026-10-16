@@ -23,11 +23,6 @@ export let env = createValidatedEnv({
     FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: v.number()
   },
 
-  signal: {
-    SIGNAL_API_URL: v.string(),
-    SIGNAL_SENDER_IDENTIFIER: v.string()
-  },
-
   storage: {
     OBJECT_STORAGE_URL: v.string(),
     INVOCATIONS_BUCKET_NAME: v.string(),
@@ -42,7 +37,9 @@ export let env = createValidatedEnv({
     INITIAL_REGISTRIES: v.optional(v.string()),
     SLATES_REGISTRY_URL: v.optional(v.string()),
     SLATES_SUB_REGISTRY_ID: v.optional(v.string()),
-    SUPPORTS_PREBUILT_SLATES: v.optional(v.boolean())
+    SUPPORTS_PREBUILT_SLATES: v.optional(v.boolean()),
+    // npm registry for slate deployment installs; npm's default when unset.
+    SLATE_DEPLOYMENT_NPM_REGISTRY_URL: v.optional(v.string())
   },
 
   ares: {

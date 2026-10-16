@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsOauthCliDevicesListOutput = {
   items: {
@@ -27,54 +27,35 @@ export type DashboardOrganizationsOauthCliDevicesListOutput = {
 };
 
 export let mapDashboardOrganizationsOauthCliDevicesListOutput =
-  mtMap.object<DashboardOrganizationsOauthCliDevicesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          ip: mtMap.objectField('ip', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          oauthAuthorizationId: mtMap.objectField(
-            'oauth_authorization_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          user: mtMap.objectField(
+  /* @__PURE__ */ createMapper<DashboardOrganizationsOauthCliDevicesListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'organization_id',
+          'oauth_authorization_id',
+          'created_at',
+          'updated_at',
+          [
             'user',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              email: mtMap.objectField('email', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              firstName: mtMap.objectField('first_name', mtMap.passthrough()),
-              lastName: mtMap.objectField('last_name', mtMap.passthrough()),
-              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          )
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+            0,
+            [
+              1,
+              [
+                'first_name',
+                'last_name',
+                'image_url',
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ]
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardOrganizationsOauthCliDevicesListQuery = {
   limit?: number | undefined;
@@ -84,16 +65,7 @@ export type DashboardOrganizationsOauthCliDevicesListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardOrganizationsOauthCliDevicesListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardOrganizationsOauthCliDevicesListQuery =
+  /* @__PURE__ */ createMapper<DashboardOrganizationsOauthCliDevicesListQuery>(
+    0
+  );

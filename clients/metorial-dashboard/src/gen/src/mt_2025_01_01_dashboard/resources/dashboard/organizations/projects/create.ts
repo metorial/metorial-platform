@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsProjectsCreateOutput = {
   object: 'organization.project';
@@ -12,16 +12,10 @@ export type DashboardOrganizationsProjectsCreateOutput = {
 };
 
 export let mapDashboardOrganizationsProjectsCreateOutput =
-  mtMap.object<DashboardOrganizationsProjectsCreateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ mapObject<DashboardOrganizationsProjectsCreateOutput>(
+    ['organization_id', 'created_at', 'updated_at'],
+    1
+  );
 
 export type DashboardOrganizationsProjectsCreateBody = {
   name: string;
@@ -29,11 +23,6 @@ export type DashboardOrganizationsProjectsCreateBody = {
 };
 
 export let mapDashboardOrganizationsProjectsCreateBody =
-  mtMap.object<DashboardOrganizationsProjectsCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    magicMcpSessionDurationMinutes: mtMap.objectField(
-      'magic_mcp_session_duration_minutes',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardOrganizationsProjectsCreateBody>([
+    'magic_mcp_session_duration_minutes'
+  ]);

@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationAuditLogStreamsUpdateOutput = {
   object: 'organization.audit_log_stream';
@@ -17,27 +17,20 @@ export type ManagementOrganizationAuditLogStreamsUpdateOutput = {
 };
 
 export let mapManagementOrganizationAuditLogStreamsUpdateOutput =
-  mtMap.object<ManagementOrganizationAuditLogStreamsUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
-    provider: mtMap.objectField('provider', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    accessStatus: mtMap.objectField('access_status', mtMap.passthrough()),
-    isPausedDueToError: mtMap.objectField(
+  /* @__PURE__ */ mapObject<ManagementOrganizationAuditLogStreamsUpdateOutput>(
+    [
+      'organization_id',
+      'access_status',
       'is_paused_due_to_error',
-      mtMap.passthrough()
-    ),
-    errorMessage: mtMap.objectField('error_message', mtMap.passthrough()),
-    consecutiveErrorCount: mtMap.objectField(
+      'error_message',
       'consecutive_error_count',
-      mtMap.passthrough()
-    ),
-    isStarted: mtMap.objectField('is_started', mtMap.passthrough()),
-    providerData: mtMap.objectField('provider_data', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+      'is_started',
+      'provider_data',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );
 
 export type ManagementOrganizationAuditLogStreamsUpdateBody = {
   provider?: 'datadog' | 'splunk' | undefined;
@@ -46,9 +39,6 @@ export type ManagementOrganizationAuditLogStreamsUpdateBody = {
 };
 
 export let mapManagementOrganizationAuditLogStreamsUpdateBody =
-  mtMap.object<ManagementOrganizationAuditLogStreamsUpdateBody>({
-    provider: mtMap.objectField('provider', mtMap.passthrough()),
-    providerData: mtMap.objectField('provider_data', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementOrganizationAuditLogStreamsUpdateBody>([
+    'provider_data'
+  ]);

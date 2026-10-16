@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ProvidersToolsListOutput = {
   items: {
@@ -13,6 +13,7 @@ export type ProvidersToolsListOutput = {
     inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
     outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
     tags: { destructive: boolean | null; readOnly: boolean | null } | null;
+    toolCategoryKeys: string[];
     specificationId: string;
     providerId: string;
     createdAt: Date;
@@ -21,72 +22,26 @@ export type ProvidersToolsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapProvidersToolsListOutput = mtMap.object<ProvidersToolsListOutput>(
-  {
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          key: mtMap.objectField('key', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
-          constraints: mtMap.objectField(
-            'constraints',
-            mtMap.array(mtMap.passthrough())
-          ),
-          instructions: mtMap.objectField(
-            'instructions',
-            mtMap.array(mtMap.passthrough())
-          ),
-          inputSchema: mtMap.objectField(
-            'input_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          outputSchema: mtMap.objectField(
-            'output_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          tags: mtMap.objectField(
-            'tags',
-            mtMap.object({
-              destructive: mtMap.objectField(
-                'destructive',
-                mtMap.passthrough()
-              ),
-              readOnly: mtMap.objectField('read_only', mtMap.passthrough())
-            })
-          ),
-          specificationId: mtMap.objectField(
-            'specification_id',
-            mtMap.passthrough()
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  }
-);
+export let mapProvidersToolsListOutput =
+  /* @__PURE__ */ createMapper<ProvidersToolsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'input_schema',
+          'output_schema',
+          ['tags', 0, [1, ['read_only']]],
+          'tool_category_keys',
+          'specification_id',
+          'provider_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type ProvidersToolsListQuery = {
   limit?: number | undefined;
@@ -99,30 +54,8 @@ export type ProvidersToolsListQuery = {
   providerAuthMethodId?: string | string[] | undefined;
 };
 
-export let mapProvidersToolsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      providerVersionId: mtMap.objectField(
-        'provider_version_id',
-        mtMap.passthrough()
-      ),
-      providerAuthMethodId: mtMap.objectField(
-        'provider_auth_method_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      )
-    })
-  )
-]);
-
+export let mapProvidersToolsListQuery =
+  /* @__PURE__ */ createMapper<ProvidersToolsListQuery>([
+    3,
+    [[0, [1, ['provider_version_id', 'provider_auth_method_id']]]]
+  ]);

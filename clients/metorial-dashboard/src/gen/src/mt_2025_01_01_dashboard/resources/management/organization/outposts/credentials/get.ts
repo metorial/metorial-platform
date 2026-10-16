@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationOutpostsCredentialsGetOutput = {
   object: 'outpost_credential';
@@ -14,16 +14,13 @@ export type ManagementOrganizationOutpostsCredentialsGetOutput = {
 };
 
 export let mapManagementOrganizationOutpostsCredentialsGetOutput =
-  mtMap.object<ManagementOrganizationOutpostsCredentialsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    outpostId: mtMap.objectField('outpost_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    envelopePreview: mtMap.objectField('envelope_preview', mtMap.passthrough()),
-    envelope: mtMap.objectField('envelope', mtMap.passthrough()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+  /* @__PURE__ */ mapObject<ManagementOrganizationOutpostsCredentialsGetOutput>(
+    [
+      'outpost_id',
+      'envelope_preview',
+      'expires_at',
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

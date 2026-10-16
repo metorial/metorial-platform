@@ -72,11 +72,7 @@ export let NetworkFirewallSettingsPage = () => {
             if (!res) return;
 
             navigate(
-              Paths.organization.instance.networkFirewalls(
-                organization.data,
-                project.data,
-                instance.data
-              )
+              Paths.instance.networkFirewalls(organization.data, project.data, instance.data)
             );
           }}
         >

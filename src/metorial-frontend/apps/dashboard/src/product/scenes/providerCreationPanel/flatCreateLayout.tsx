@@ -1,18 +1,8 @@
-import { theme } from '@metorial/ui';
+import { FormSectionCard, FormSectionList } from '@metorial/form-sections';
 import styled from 'styled-components';
 
-export let FlatCreateSections = styled.div`
-  display: flex;
-  flex-direction: column;
+export let FlatCreateSections = styled(FormSectionList)`
   gap: 0;
 `;
 
-export let FlatCreateSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px solid ${theme.colors.gray400};
-  box-shadow: ${theme.shadows.small};
-`;
+export let FlatCreateSection = FormSectionCard;

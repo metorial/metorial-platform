@@ -87,6 +87,10 @@ export interface SpecificationTool {
   authMethods?: string[] | null;
   isPublic?: boolean;
 
+  // Keys of the specification's tool categories this tool belongs to.
+  // Omitted (never `undefined`) when the tool has none.
+  categories?: string[];
+
   metadata: Record<string, any>;
 
   adapterIdentifier?: string | null;
@@ -172,6 +176,8 @@ export interface SpecificationTriggerGroup {
         type: 'polling';
         intervalSeconds: number;
       }
+    // Persistent provider connection, e.g. the Discord Gateway.
+    | { type: 'gateway' }
     | {
         type: 'webhook';
         registration:
@@ -184,6 +190,13 @@ export interface SpecificationTriggerGroup {
       };
 
   metadata: Record<string, any>;
+}
+
+export interface SpecificationToolCategory {
+  key: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
 }
 
 export interface Specification {
@@ -201,6 +214,8 @@ export interface Specification {
   metadata: Record<string, any>;
   triggers?: SpecificationTrigger[];
   triggerGroups?: SpecificationTriggerGroup[];
+  // Omitted (never `undefined`) when the provider declares no tool categories
+  toolCategories?: SpecificationToolCategory[];
 
   mcp: {
     serverInfo: InitializeResult['serverInfo'];

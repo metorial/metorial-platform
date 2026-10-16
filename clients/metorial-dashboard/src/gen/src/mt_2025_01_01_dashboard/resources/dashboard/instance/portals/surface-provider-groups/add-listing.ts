@@ -1,4 +1,7 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancePortalsSurfaceProviderGroupsAddListingOutput = {
   object: 'consumer.surface.provider_group';
@@ -11,25 +14,15 @@ export type DashboardInstancePortalsSurfaceProviderGroupsAddListingOutput = {
 };
 
 export let mapDashboardInstancePortalsSurfaceProviderGroupsAddListingOutput =
-  mtMap.object<DashboardInstancePortalsSurfaceProviderGroupsAddListingOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    index: mtMap.objectField('index', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
+  /* @__PURE__ */ createMapper<DashboardInstancePortalsSurfaceProviderGroupsAddListingOutput>(
+    8
+  );
 
 export type DashboardInstancePortalsSurfaceProviderGroupsAddListingBody = {
   consumerAccessListingId: string;
 };
 
 export let mapDashboardInstancePortalsSurfaceProviderGroupsAddListingBody =
-  mtMap.object<DashboardInstancePortalsSurfaceProviderGroupsAddListingBody>({
-    consumerAccessListingId: mtMap.objectField(
-      'consumer_access_listing_id',
-      mtMap.passthrough()
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstancePortalsSurfaceProviderGroupsAddListingBody>(
+    ['consumer_access_listing_id']
+  );

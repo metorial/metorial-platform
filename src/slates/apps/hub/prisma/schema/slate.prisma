@@ -348,6 +348,9 @@ model SlateSpecification {
   /// [SlateTriggerGroups]
   triggerGroups Json @default("[]")
 
+  /// [SlateToolCategories]
+  toolCategories Json @default("[]")
+
   /// [SlateCapabilities]
   capabilities Json @default("{}")
 

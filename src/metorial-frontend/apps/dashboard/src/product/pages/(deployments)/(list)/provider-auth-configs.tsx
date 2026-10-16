@@ -3,6 +3,7 @@ import {
   DashboardInstanceProviderDeploymentsAuthConfigsListQuery
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -12,13 +13,8 @@ import {
   useProviderAuthConfigs,
   useProviders
 } from '@metorial/state';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
-import { EmptyState } from '@metorial/empty-state';
-import { Table as DashboardTable } from '@metorial/table';
 import {
+  Table as DashboardTable,
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
@@ -26,6 +22,10 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { RiDeleteBinLine } from '@remixicon/react';
+import { useState } from 'react';
 import { showCreateProviderAuthConfigFlow } from '../../../scenes/providerCreationFlows';
 
 type AuthConfigItem =
@@ -189,7 +189,7 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
     },
     {
       id: 'deployment',
-      isDefault: true,
+      isDefault: false,
       header: 'Deployment',
       render: row => <Text size="2">{row.deployment?.name ?? '—'}</Text>
     },
@@ -201,7 +201,7 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
     },
     {
       id: 'createdAt',
-      isDefault: true,
+      isDefault: false,
       header: 'Created',
       render: row => <RenderDate date={row.createdAt} />
     },

@@ -1,0 +1,13 @@
+{
+  "name": "@metorial/genesis-client",
+  "version": "1.0.0",
+  "description": "Vendored typed client for the Genesis sandbox controller's internal RPC API. Generated from the Metorial enterprise repo; do not edit by hand.",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "dependencies": {
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0"
+  }
+}

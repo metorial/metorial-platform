@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProvidersAuthMethodsListOutput = {
   items: {
@@ -30,72 +30,23 @@ export type DashboardInstanceProvidersAuthMethodsListOutput = {
 };
 
 export let mapDashboardInstanceProvidersAuthMethodsListOutput =
-  mtMap.object<DashboardInstanceProvidersAuthMethodsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          key: mtMap.objectField('key', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          capabilities: mtMap.objectField('capabilities', mtMap.passthrough()),
-          inputSchema: mtMap.objectField(
-            'input_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          outputSchema: mtMap.objectField(
-            'output_schema',
-            mtMap.object({
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough())
-            })
-          ),
-          scopes: mtMap.objectField(
-            'scopes',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                scope: mtMap.objectField('scope', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
-              })
-            )
-          ),
-          adapters: mtMap.objectField(
-            'adapters',
-            mtMap.array(mtMap.passthrough())
-          ),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          providerSpecificationId: mtMap.objectField(
-            'provider_specification_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
+  /* @__PURE__ */ createMapper<DashboardInstanceProvidersAuthMethodsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'input_schema',
+          'output_schema',
+          'provider_id',
+          'provider_specification_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );
 
 export type DashboardInstanceProvidersAuthMethodsListQuery = {
   limit?: number | undefined;
@@ -105,21 +56,8 @@ export type DashboardInstanceProvidersAuthMethodsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & { providerVersionId: string; adapter?: string | undefined };
 
-export let mapDashboardInstanceProvidersAuthMethodsListQuery = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      limit: mtMap.objectField('limit', mtMap.passthrough()),
-      after: mtMap.objectField('after', mtMap.passthrough()),
-      before: mtMap.objectField('before', mtMap.passthrough()),
-      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      providerVersionId: mtMap.objectField(
-        'provider_version_id',
-        mtMap.passthrough()
-      ),
-      adapter: mtMap.objectField('adapter', mtMap.passthrough())
-    })
-  )
-]);
-
+export let mapDashboardInstanceProvidersAuthMethodsListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceProvidersAuthMethodsListQuery>([
+    3,
+    [[0, [1, ['provider_version_id']]]]
+  ]);

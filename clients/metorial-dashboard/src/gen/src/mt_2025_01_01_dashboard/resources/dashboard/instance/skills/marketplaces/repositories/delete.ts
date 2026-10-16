@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsMarketplacesRepositoriesDeleteOutput = {
   object: 'skill.marketplace_repository';
@@ -21,29 +21,17 @@ export type DashboardInstanceSkillsMarketplacesRepositoriesDeleteOutput = {
 };
 
 export let mapDashboardInstanceSkillsMarketplacesRepositoriesDeleteOutput =
-  mtMap.object<DashboardInstanceSkillsMarketplacesRepositoriesDeleteOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    skillMarketplaceId: mtMap.objectField(
+  /* @__PURE__ */ mapObject<DashboardInstanceSkillsMarketplacesRepositoriesDeleteOutput>(
+    [
       'skill_marketplace_id',
-      mtMap.passthrough()
-    ),
-    repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
-    repository: mtMap.objectField(
-      'repository',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        provider: mtMap.objectField('provider', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough()),
-        isPrivate: mtMap.objectField('is_private', mtMap.passthrough()),
-        defaultBranch: mtMap.objectField('default_branch', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+      'repo_id',
+      [
+        'repository',
+        0,
+        [1, ['is_private', 'default_branch', 'created_at', 'updated_at']]
+      ],
+      'created_at',
+      'updated_at'
+    ],
+    1
+  );

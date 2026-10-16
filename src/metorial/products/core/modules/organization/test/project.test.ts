@@ -156,7 +156,8 @@ describe('ProjectService', () => {
         auditScope: {},
         input: {
           name: 'Production',
-          type: 'production'
+          type: 'production',
+          isInitial: false
         }
       });
     });

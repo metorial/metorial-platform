@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput = {
   object: 'provider.capabilities.config.schema';
@@ -11,25 +11,9 @@ export type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput = {
 };
 
 export let mapDashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput =
-  mtMap.object<DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput>(
-    {
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      schema: mtMap.objectField(
-        'schema',
-        mtMap.object({
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          schema: mtMap.objectField('schema', mtMap.passthrough())
-        })
-      ),
-      visibility: mtMap.objectField('visibility', mtMap.passthrough()),
-      specificationId: mtMap.objectField(
-        'specification_id',
-        mtMap.passthrough()
-      ),
-      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-      createdAt: mtMap.objectField('created_at', mtMap.date()),
-      updatedAt: mtMap.objectField('updated_at', mtMap.date())
-    }
+  /* @__PURE__ */ mapObject<DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput>(
+    ['specification_id', 'provider_id', 'created_at', 'updated_at'],
+    1
   );
 
 export type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery = {
@@ -40,21 +24,11 @@ export type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery = {
 };
 
 export let mapDashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery =
-  mtMap.object<DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery>(
-    {
-      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-      providerConfigId: mtMap.objectField(
-        'provider_config_id',
-        mtMap.passthrough()
-      ),
-      providerVersionId: mtMap.objectField(
-        'provider_version_id',
-        mtMap.passthrough()
-      ),
-      providerDeploymentId: mtMap.objectField(
-        'provider_deployment_id',
-        mtMap.passthrough()
-      )
-    }
+  /* @__PURE__ */ mapObject<DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery>(
+    [
+      'provider_id',
+      'provider_config_id',
+      'provider_version_id',
+      'provider_deployment_id'
+    ]
   );
-

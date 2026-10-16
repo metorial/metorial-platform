@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsLayoutsListOutput = {
   items: {
@@ -18,40 +18,19 @@ export type DashboardOrganizationsLayoutsListOutput = {
 };
 
 export let mapDashboardOrganizationsLayoutsListOutput =
-  mtMap.object<DashboardOrganizationsLayoutsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          layoutTypeId: mtMap.objectField(
-            'layout_type_id',
-            mtMap.passthrough()
-          ),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          ownership: mtMap.objectField('ownership', mtMap.passthrough()),
-          userId: mtMap.objectField('user_id', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          value: mtMap.objectField('value', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
-      mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
-      })
-    )
-  });
-
+  /* @__PURE__ */ createMapper<DashboardOrganizationsLayoutsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'layout_type_id',
+          'user_id',
+          'organization_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
+    1
+  );

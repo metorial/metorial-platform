@@ -11,7 +11,7 @@ export let enclaveCreatedQueue = createQueue<{ enclaveId: string }>({
 });
 
 export let enclaveCreatedQueueProcessor = enclaveCreatedQueue.process(async data => {
-  let enclave = await db.enclave.findFirst({
+  let enclave = await db.integrationEnclave.findFirst({
     where: { id: data.enclaveId },
     include: { providerDeployment: { include: { provider: true } }, tenant: true }
   });
@@ -31,7 +31,7 @@ export let enclaveCreatedQueueProcessor = enclaveCreatedQueue.process(async data
       id: enclave.id
     });
 
-    await db.enclave.updateMany({
+    await db.integrationEnclave.updateMany({
       where: { oid: enclave.oid },
       data: { hasFunctionBayBacking: true }
     });
@@ -45,7 +45,7 @@ export let enclaveUpdatedQueue = createQueue<{ enclaveId: string }>({
 });
 
 export let enclaveUpdatedQueueProcessor = enclaveUpdatedQueue.process(async data => {
-  await db.enclave.updateMany({
+  await db.integrationEnclave.updateMany({
     where: { id: data.enclaveId },
     data: {
       compiledNetworkRules: Prisma.JsonNull,

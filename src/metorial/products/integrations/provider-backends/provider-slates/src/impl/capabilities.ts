@@ -11,6 +11,7 @@ import {
   type ProviderSpecificationGetRes
 } from '@metorial-subspace/provider-utils';
 import { slates } from '../client';
+import { normalizeToolCategories, resolveToolCategoryKeys } from './toolCategories';
 
 type SlateSpecificationRecord = Awaited<ReturnType<typeof slates.slateSpecification.get>>;
 
@@ -28,7 +29,8 @@ let toTriggerInvocation = (trigger: SlateSpecificationTrigger) => {
     return { type: 'polling' as const, intervalSeconds: invocation.intervalSeconds };
   }
 
-  let isAuto = invocation.registration.mode === 'auto';
+  // Gateways connect without setup, like auto-registered webhooks.
+  let isAuto = invocation.type !== 'webhook' || invocation.registration.mode === 'auto';
 
   return {
     type: 'webhook' as const,
@@ -103,6 +105,10 @@ export class ProviderCapabilities extends IProviderCapabilities {
       slateSpecificationId: slateVersionRecord.specification?.specificationId
     });
 
+    // Older hubs do not return tool categories
+    let toolCategories = normalizeToolCategories(specRecord.toolCategories);
+    let toolCategoryKeys = new Set(toolCategories.map(category => category.key));
+
     return {
       status: 'success',
       type: 'full',
@@ -150,6 +156,9 @@ export class ProviderCapabilities extends IProviderCapabilities {
           invocation: triggerGroup.invocation,
           metadata: triggerGroup.metadata ?? {}
         })),
+        // Conditional spreads: an `undefined` value would canonicalize to `null`
+        // and change the hash of every existing specification.
+        ...(toolCategories.length > 0 ? { toolCategories } : {}),
         mcp: null
       },
       triggers: specRecord.triggers
@@ -201,7 +210,10 @@ export class ProviderCapabilities extends IProviderCapabilities {
       tools: specRecord.tools
         .filter(t => !t.isPublic)
         .map(t => {
-          let tool = t as typeof t & { authMethods?: string[] | null };
+          let categories = resolveToolCategoryKeys(t.toolCategoryIds, toolCategoryKeys, {
+            toolKey: t.key,
+            specId: specRecord.id
+          });
 
           return {
             specId: t.id,
@@ -219,10 +231,11 @@ export class ProviderCapabilities extends IProviderCapabilities {
               type: 'tool.callable'
             },
             scopes: t.scopes ?? null,
-            authMethods: tool.authMethods ?? null,
+            authMethods: t.authMethods ?? null,
             tags: t.tags,
             metadata: {},
-            adapterIdentifier: t.adapter?.slateIdentifier ?? null
+            adapterIdentifier: t.adapter?.slateIdentifier ?? null,
+            ...(categories.length > 0 ? { categories } : {})
           };
         })
     };

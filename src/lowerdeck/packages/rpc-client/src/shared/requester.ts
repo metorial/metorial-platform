@@ -22,6 +22,7 @@ export interface Call {
   useDirectMethodRoute?: boolean;
   timeoutMs?: number;
   captureErrors?: boolean;
+  logResponses?: boolean;
   retry?: boolean;
   signal?: AbortSignal;
   signature?:

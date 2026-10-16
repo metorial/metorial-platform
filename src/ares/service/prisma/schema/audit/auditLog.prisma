@@ -8,7 +8,7 @@ model AuditLog {
   type String
 
   userOid BigInt?
-  user    User?  @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: SetNull)
 
   ip String?
   ua String? @db.Text

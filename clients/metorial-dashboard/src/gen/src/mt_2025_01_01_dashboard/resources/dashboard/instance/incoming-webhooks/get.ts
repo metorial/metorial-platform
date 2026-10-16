@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceIncomingWebhooksGetOutput = {
   object: 'incoming_webhook';
@@ -18,32 +18,7 @@ export type DashboardInstanceIncomingWebhooksGetOutput = {
 };
 
 export let mapDashboardInstanceIncomingWebhooksGetOutput =
-  mtMap.object<DashboardInstanceIncomingWebhooksGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    attemptCount: mtMap.objectField('attempt_count', mtMap.passthrough()),
-    webhookRegistrationId: mtMap.objectField(
-      'webhook_registration_id',
-      mtMap.passthrough()
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    receivedAt: mtMap.objectField('received_at', mtMap.date()),
-    details: mtMap.objectField(
-      'details',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        method: mtMap.objectField('method', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough()),
-        headers: mtMap.objectField('headers', mtMap.passthrough()),
-        body: mtMap.objectField(
-          'body',
-          mtMap.object({
-            encoding: mtMap.objectField('encoding', mtMap.passthrough()),
-            content: mtMap.objectField('content', mtMap.passthrough())
-          })
-        )
-      })
-    )
-  });
-
+  /* @__PURE__ */ mapObject<DashboardInstanceIncomingWebhooksGetOutput>(
+    ['attempt_count', 'webhook_registration_id', 'provider_id', 'received_at'],
+    1
+  );

@@ -1,4 +1,11 @@
 import { renderWithLoader, renderWithPagination, useMutation } from '@metorial/data-hooks';
+import {
+  createToolSelection,
+  setToolSelectionMode,
+  ToolAccessEditor,
+  toToolFilterPayload,
+  type ToolSelection
+} from '@metorial/tool-selection';
 import { Button, CenteredSpinner, Error, Flex, Input, Text } from '@metorial/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JsonSchema } from '../../lib/jsonSchema';
@@ -10,7 +17,6 @@ import {
 } from '../../state/setupSession';
 import { SetupLayout } from './components/setupLayout';
 import { StepContentBlock, StepWrapper } from './components/stepLayout';
-import { ToolFilterEditor } from './components/toolFilterEditor';
 import { DashboardEmbeddableLayout } from './layouts/dashboardEmbeddableLayout';
 import { MetorialElementsLayout } from './layouts/metorialElementsLayout';
 import { AuthConfigStep } from './steps/authConfigStep';
@@ -18,7 +24,15 @@ import { CompletedStep } from './steps/completedStep';
 import { ConfigStep } from './steps/configStep';
 import { OAuthRedirectStep } from './steps/oAuthRedirectStep';
 import { ProviderSelectionStep } from './steps/providerSelectionStep';
-import type { Brand, OAuthSetup, Provider, Session, Step, ToolListItem } from './types';
+import type {
+  Brand,
+  OAuthSetup,
+  Provider,
+  Session,
+  Step,
+  ToolCategoryListItem,
+  ToolListItem
+} from './types';
 
 interface SetupSessionFlowProps {
   session: Session;
@@ -119,9 +133,11 @@ export let SetupSessionFlow = ({
   let [providerSearch, setProviderSearch] = useState('');
   let [debouncedProviderSearch, setDebouncedProviderSearch] = useState('');
   let [toolItems, setToolItems] = useState<ToolListItem[]>([]);
+  let [toolCategories, setToolCategories] = useState<ToolCategoryListItem[]>([]);
   let [toolsLoading, setToolsLoading] = useState(false);
-  let [toolFilterMode, setToolFilterMode] = useState<'all' | 'select'>('all');
-  let [selectedToolKeys, setSelectedToolKeys] = useState<string[]>([]);
+  let [toolSelection, setToolSelection] = useState<ToolSelection>(() =>
+    createToolSelection('all')
+  );
   let [toolAccessStepCompleted, setToolAccessStepCompleted] = useState(false);
   let [hasSeenConfigFields, setHasSeenConfigFields] = useState(false);
   let oauthInitiated = useRef(false);
@@ -165,20 +181,18 @@ export let SetupSessionFlow = ({
     return () => window.clearTimeout(timeout);
   }, [providerSearch]);
 
-  let toolFilterPayload = useMemo(() => {
-    if (!toolFiltersEnabled || toolFilterMode !== 'select' || selectedToolKeys.length === 0) {
-      return undefined;
-    }
-
-    return {
-      type: 'tool_keys' as const,
-      keys: selectedToolKeys
-    };
-  }, [selectedToolKeys, toolFilterMode, toolFiltersEnabled]);
+  let toolFilterPayload = useMemo(
+    () =>
+      toolFiltersEnabled
+        ? (toToolFilterPayload(toolSelection, { emptySelection: 'all' }) ?? undefined)
+        : undefined,
+    [toolSelection, toolFiltersEnabled]
+  );
 
   useEffect(() => {
     if (!toolFiltersEnabled || needsProviderSelection) {
       setToolItems([]);
+      setToolCategories([]);
       return;
     }
 
@@ -190,10 +204,15 @@ export let SetupSessionFlow = ({
         clientSecret
       })
       .then(res => {
-        if (!ignore) setToolItems(res.items);
+        if (ignore) return;
+
+        setToolItems(res.items);
+        setToolCategories(res.toolCategories);
       })
       .catch(() => {
-        if (!ignore) setToolItems([]);
+        if (ignore) return;
+        setToolItems([]);
+        setToolCategories([]);
       })
       .finally(() => {
         if (!ignore) setToolsLoading(false);
@@ -205,15 +224,19 @@ export let SetupSessionFlow = ({
   }, [client, clientSecret, flowSession.id, needsProviderSelection, toolFiltersEnabled]);
 
   useEffect(() => {
-    if (toolFilterMode !== 'select') {
-      setSelectedToolKeys([]);
-      return;
-    }
+    setToolSelection(current => {
+      if (current.mode !== 'select') return current;
 
-    setSelectedToolKeys(currentKeys =>
-      currentKeys.filter(key => toolItems.some(tool => tool.key === key))
-    );
-  }, [toolFilterMode, toolItems]);
+      let toolKeys = new Set(toolItems.map(tool => tool.key));
+      let categoryKeys = new Set(toolItems.flatMap(tool => tool.toolCategoryKeys));
+
+      return {
+        ...current,
+        toolKeys: current.toolKeys.filter(key => toolKeys.has(key)),
+        categoryKeys: current.categoryKeys.filter(key => categoryKeys.has(key))
+      };
+    });
+  }, [toolItems]);
 
   let determineStep = (): Step => {
     if (needsProviderSelection) return 'provider';
@@ -429,13 +452,19 @@ export let SetupSessionFlow = ({
         <CenteredSpinner size={20} />
       </Flex>
     ) : (
-      <ToolFilterEditor
-        enabled={toolFiltersEnabled}
+      <ToolAccessEditor
+        title="Tool Access"
+        description="Choose whether setup should allow all tools or only a selected subset."
+        emptyText="No selectable tools are currently available for this provider. Continue to keep the default access settings."
+        mode={toolSelection.mode}
+        onModeChange={mode => {
+          if (mode !== 'none')
+            setToolSelection(current => setToolSelectionMode(current, mode));
+        }}
         tools={toolItems}
-        mode={toolFilterMode}
-        selectedKeys={selectedToolKeys}
-        onModeChange={setToolFilterMode}
-        onSelectedKeysChange={setSelectedToolKeys}
+        categories={toolCategories}
+        selection={toolSelection}
+        onSelectionChange={setToolSelection}
       />
     )
   ) : null;

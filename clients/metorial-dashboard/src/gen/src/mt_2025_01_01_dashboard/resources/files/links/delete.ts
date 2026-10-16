@@ -1,4 +1,4 @@
-import { mtMap } from '@metorial/util-resource-mapper';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type FilesLinksDeleteOutput = {
   object: 'file.file_link';
@@ -9,12 +9,8 @@ export type FilesLinksDeleteOutput = {
   expiresAt: Date | null;
 };
 
-export let mapFilesLinksDeleteOutput = mtMap.object<FilesLinksDeleteOutput>({
-  object: mtMap.objectField('object', mtMap.passthrough()),
-  id: mtMap.objectField('id', mtMap.passthrough()),
-  fileId: mtMap.objectField('file_id', mtMap.passthrough()),
-  url: mtMap.objectField('url', mtMap.passthrough()),
-  createdAt: mtMap.objectField('created_at', mtMap.date()),
-  expiresAt: mtMap.objectField('expires_at', mtMap.date())
-});
-
+export let mapFilesLinksDeleteOutput =
+  /* @__PURE__ */ mapObject<FilesLinksDeleteOutput>(
+    ['file_id', 'created_at', 'expires_at'],
+    1
+  );

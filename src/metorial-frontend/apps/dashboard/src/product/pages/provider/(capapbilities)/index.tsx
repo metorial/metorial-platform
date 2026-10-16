@@ -1,6 +1,10 @@
 import { DashboardInstanceProvidersToolsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useProviderTools } from '@metorial/state';
+import {
+  useCurrentInstance,
+  useProviderToolCategories,
+  useProviderTools
+} from '@metorial/state';
 import { Badge, Button, Flex, Text, showModal } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { getJsonSchemaObject } from '../../../lib/jsonSchema';
@@ -40,14 +44,33 @@ export let ProviderToolsPage = () => {
     selectedVersionId ? { providerVersionId: selectedVersionId } : null
   );
 
+  let toolItems = tools.data?.items ?? [];
+  let hasToolCategories = toolItems.some(tool => tool.toolCategoryKeys.length > 0);
+  let toolCategories = useProviderToolCategories(instance.data?.id, toolItems);
+  let categoryNames = new Map(
+    (toolCategories.getCategories(toolItems) ?? []).map(category => [
+      category.key,
+      category.name
+    ])
+  );
+
+  let getCategoryLabels = (tool: ProviderTool) =>
+    tool.toolCategoryKeys.map(key => ({ key, label: categoryNames.get(key) ?? key }));
+
   let onViewDetails = (tool: ProviderTool) => {
     let modeBadges = getToolModeBadges(tool);
+
     let inputSchema = getJsonSchemaObject(tool.inputSchema);
     let outputSchema = getJsonSchemaObject(tool.outputSchema);
     let inputFieldCount = getSchemaFieldCount(inputSchema);
     let outputFieldCount = getSchemaFieldCount(outputSchema);
+
     let metadataBadges: CapabilityMetadataBadge[] = [
       ...modeBadges,
+      ...getCategoryLabels(tool).map(category => ({
+        label: category.label,
+        color: 'blue' as const
+      })),
       ...(inputFieldCount > 0
         ? [
             {
@@ -97,7 +120,7 @@ export let ProviderToolsPage = () => {
   let toolsContent = renderWithLoader({ tools })(({ tools }) => (
     <>
       <Table
-        headers={['Name', 'Type', '']}
+        headers={hasToolCategories ? ['Name', 'Type', 'Categories', ''] : ['Name', 'Type', '']}
         data={tools.data.items.map(tool => {
           let modeBadges = getToolModeBadges(tool);
           let description =
@@ -125,6 +148,17 @@ export let ProviderToolsPage = () => {
                   </Badge>
                 )}
               </Flex>,
+              ...(hasToolCategories
+                ? [
+                    <Flex gap={6} align="center" wrap="wrap">
+                      {getCategoryLabels(tool).map(category => (
+                        <Badge key={category.key} color="blue" size="1">
+                          {category.label}
+                        </Badge>
+                      ))}
+                    </Flex>
+                  ]
+                : []),
               <Flex justify="end" style={{ width: '100%' }}>
                 <Button size="1" variant="outline" onClick={() => onViewDetails(tool)}>
                   View Details
