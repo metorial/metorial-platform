@@ -1,6 +1,9 @@
 name: Setup Warp Cache
 description: Starts the S3-backed Turborepo v8 cache proxy for this job
 inputs:
+  cache-bun-downloads:
+    description: Restore Bun downloads when dependencies have not already been prepared
+    default: 'true'
   aws-access-key-id:
     required: false
   aws-secret-access-key:
@@ -21,6 +24,7 @@ runs:
       shell: bash
       run: echo "version=$(bun --version)" >> "$GITHUB_OUTPUT"
     - uses: actions/cache@v4
+      if: inputs.cache-bun-downloads == 'true'
       with:
         path: ~/.bun/install/cache
         key: bun-downloads-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun-version.outputs.version }}-${{ hashFiles('**/bun.lock') }}

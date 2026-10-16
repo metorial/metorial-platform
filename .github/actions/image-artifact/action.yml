@@ -1,0 +1,29 @@
+name: Record tested image
+description: Record the immutable GHCR image and source revision for downstream tests
+inputs:
+  name:
+    required: true
+  image:
+    required: true
+  workspace:
+    default: .
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.name }}
+        IMAGE_REFERENCE: ${{ inputs.image }}
+        SOURCE_WORKSPACE: ${{ inputs.workspace }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/test-images"
+        digest="$(regctl image digest "$IMAGE_REFERENCE")"
+        revision="$(git -C "$SOURCE_WORKSPACE" rev-parse HEAD)"
+        jq -n --arg name "$IMAGE_NAME" --arg image "${IMAGE_REFERENCE%:*}@$digest" --arg revision "$revision" \
+          '{name:$name,image:$image,sourceRevision:$revision}' > "$RUNNER_TEMP/test-images/$IMAGE_NAME.json"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: test-image-${{ inputs.name }}
+        path: ${{ runner.temp }}/test-images/${{ inputs.name }}.json
+        retention-days: 7

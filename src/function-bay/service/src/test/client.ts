@@ -1,6 +1,6 @@
-import { createFunctionBayClient } from '@metorial-platform-systems/function-bay-client';
+import { createClient } from '@lowerdeck/rpc-client';
 import { createFetchRouter } from '@lowerdeck/testing-tools';
-import { functionBayApi } from '../controllers';
+import { functionBayApi, type FunctionBayClient } from '../controllers';
 
 type ClientOptsLike = {
   endpoint: string;
@@ -15,23 +15,23 @@ type ClientOptsLike = {
   }) => any;
 };
 
-const fetchRouter = createFetchRouter();
-const registerInMemoryRoute = (endpoint: string) => {
+let fetchRouter = createFetchRouter();
+let registerInMemoryRoute = (endpoint: string) => {
   fetchRouter.registerRoute(endpoint, request => functionBayApi(request, undefined));
 };
 
-const defaultEndpoint = 'http://function-bay.test/metorial-function-bay';
+let defaultEndpoint = 'http://function-bay.test/metorial-function-bay';
 
-export const createTestFunctionBayClient = (opts: Partial<ClientOptsLike> = {}) => {
-  const endpoint = opts.endpoint ?? defaultEndpoint;
+export let createTestFunctionBayClient = (opts: Partial<ClientOptsLike> = {}) => {
+  let endpoint = opts.endpoint ?? defaultEndpoint;
   registerInMemoryRoute(endpoint);
   fetchRouter.install();
 
-  return createFunctionBayClient({
+  return createClient<FunctionBayClient>({
     ...opts,
     endpoint
   } as ClientOptsLike);
 };
 
-export const functionBayClient = createTestFunctionBayClient();
+export let functionBayClient = createTestFunctionBayClient();
 export type FunctionBayTestClient = ReturnType<typeof createTestFunctionBayClient>;
