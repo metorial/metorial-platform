@@ -1,3 +1,4 @@
+import { getJsonSizeBytes } from '@metorial-subspace/connection-utils';
 import {
   db,
   getId,
@@ -99,6 +100,7 @@ export let completeMessage = async (
       },
       data: {
         output: retention.storeContent ? data.output : Prisma.DbNull,
+        outputSize: retention.storeContent ? getJsonSizeBytes(data.output) : 0,
         hasOutput: !!data.output,
         status: data.status,
         completedAt: data.completedAt ?? new Date(),

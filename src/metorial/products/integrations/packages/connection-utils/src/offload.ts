@@ -24,7 +24,7 @@ export let offload = {
     );
   },
 
-  getOffloadedSessionMessage: async (message: SessionMessage) => {
+  getOffloadedSessionMessage: async (message: Pick<SessionMessage, 'id'>) => {
     try {
       let res = await storage.getObject(
         sessionMessageBucketRecord.bucket,

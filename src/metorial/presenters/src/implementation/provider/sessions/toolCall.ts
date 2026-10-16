@@ -1,5 +1,4 @@
 import { v } from '@lowerdeck/validation';
-import { getOffloadedSessionMessage } from '@metorial-subspace/connection-utils';
 import {
   messageInputToToolCall,
   messageOutputToToolCall,
@@ -9,19 +8,12 @@ import {
 import { Presenter } from '@metorial/presenter';
 import { toolCallType } from '../../../types';
 import { v1ProviderToolPresenter } from '../provider';
+import { omittedBodyDescription, presentOmittedBody } from './omittedBody';
 import { v1SessionErrorPresenter } from './sessionError';
 import { v1SessionParticipantPresenter } from './sessionParticipant';
 
 export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
   .presenter(async ({ toolCall }, opts) => {
-    if (toolCall.message.isOffloadedToStorage) {
-      let offloaded = await getOffloadedSessionMessage(toolCall.message);
-      if (offloaded) {
-        toolCall.message.input = offloaded.input;
-        toolCall.message.output = offloaded.output;
-      }
-    }
-
     let output = toolCall.message.output;
     if (output?.type === 'tool.result') {
       output = replaceToolCallAttachmentsInOutput(
@@ -62,10 +54,16 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
 
       tool: await v1ProviderToolPresenter.present({ tool: toolCall.tool }, opts).run(),
 
-      input: toolCall.message.input
-        ? await messageInputToToolCall(toolCall.message.input, toolCall.message)
-        : null,
-      output: output ? await messageOutputToToolCall(output, toolCall.message) : null,
+      input: toolCall.message.inputOmitted
+        ? presentOmittedBody(toolCall.message.inputSize)
+        : toolCall.message.input
+          ? await messageInputToToolCall(toolCall.message.input, toolCall.message)
+          : null,
+      output: toolCall.message.outputOmitted
+        ? presentOmittedBody(toolCall.message.outputSize)
+        : output
+          ? await messageOutputToToolCall(output, toolCall.message)
+          : null,
 
       error: toolCall.message.error
         ? await v1SessionErrorPresenter
@@ -150,13 +148,13 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
       input: v.nullable(
         v.record(v.any(), {
           name: 'input',
-          description: 'Input data passed to the tool call'
+          description: `Input data passed to the tool call. ${omittedBodyDescription}`
         })
       ),
       output: v.nullable(
         v.record(v.any(), {
           name: 'output',
-          description: 'Output data returned from the tool call'
+          description: `Output data returned from the tool call. ${omittedBodyDescription}`
         })
       ),
 

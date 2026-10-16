@@ -32,6 +32,8 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 vi.mock('@metorial-subspace/connection-utils', () => ({
+  getJsonSizeBytes: (value: unknown) =>
+    value == null ? 0 : Buffer.byteLength(JSON.stringify(value)),
   sessionMessageBucketRecord: mocks.sessionMessageBucketRecord
 }));
 

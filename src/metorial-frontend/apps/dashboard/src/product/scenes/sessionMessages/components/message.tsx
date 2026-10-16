@@ -1,19 +1,24 @@
+import { useCurrentInstance, useSessionMessage } from '@metorial/state';
+import { Button } from '@metorial/ui';
 import { useInView } from 'framer-motion';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { formatBytes } from '../../sandbox/lib/format';
 import { Entry } from '../../session/components/entry';
 import type { AggregatedMessages } from '../../session/hooks/useAggregatedMessages';
 import { getMessagePresentation } from '../presentations/getMessagePresentation';
-import { MessageStack } from '../styles';
+import { MessageStack, OmittedNotice } from '../styles';
 import type { DashboardInstanceSessionsMessagesGetOutput } from '../types';
 import {
   getMessageMethod,
   getMessagePayload,
   getMethodResult,
+  getPresentBody,
+  isOmittedBody,
   shouldRenderStandaloneMessage
 } from '../utils';
 import { MessageCard } from './messageCard';
 
-export let useMessagePresentation = ({
+let getBodySourceMessages = ({
   aggregatedMessages,
   message
 }: {
@@ -27,17 +32,39 @@ export let useMessagePresentation = ({
   let messageKey = String(payload.id ?? transportMcp.id);
   let agg = aggregatedMessages.get(messageKey);
 
+  return {
+    agg,
+    inputMessage: agg?.request ?? (message.input ? message : undefined),
+    outputMessage: agg?.response ?? (message.output ? message : undefined)
+  };
+};
+
+export let useMessagePresentation = ({
+  aggregatedMessages,
+  fullInputMessage,
+  fullOutputMessage,
+  message
+}: {
+  message: DashboardInstanceSessionsMessagesGetOutput;
+  aggregatedMessages: Map<string, AggregatedMessages>;
+  fullInputMessage?: DashboardInstanceSessionsMessagesGetOutput;
+  fullOutputMessage?: DashboardInstanceSessionsMessagesGetOutput;
+}) => {
+  let sources = getBodySourceMessages({ aggregatedMessages, message });
+  if (!sources) return null;
+
   if (!shouldRenderStandaloneMessage(message, aggregatedMessages)) {
     return null;
   }
 
-  let inputMessage = agg?.request ?? (message.input ? message : undefined);
-  let outputMessage = agg?.response ?? (message.output ? message : undefined);
+  let agg = sources.agg;
+  let inputMessage = fullInputMessage ?? sources.inputMessage;
+  let outputMessage = fullOutputMessage ?? sources.outputMessage;
 
-  let input = (inputMessage?.input ?? null) as Record<string, any> | null;
-  let output = (outputMessage?.output ?? null) as Record<string, any> | null;
+  let input = getPresentBody(inputMessage?.input);
+  let output = getPresentBody(outputMessage?.output);
   let method = getMessageMethod(message, aggregatedMessages) ?? message.type ?? 'message';
-  let isResponseOnly = !input && !!output;
+  let isResponseOnly = !input && !isOmittedBody(inputMessage?.input) && !!output;
   let date = inputMessage?.createdAt ?? outputMessage?.createdAt ?? message.createdAt;
   let position = isResponseOnly
     ? 'server'
@@ -58,12 +85,73 @@ export let useMessagePresentation = ({
     date,
     hasError,
     input,
+    inputMessage,
     isToolError,
     messageError,
     output,
+    outputMessage,
     position,
     presentation
   };
+};
+
+let getOmittedBodies = (
+  inputMessage: DashboardInstanceSessionsMessagesGetOutput | undefined,
+  outputMessage: DashboardInstanceSessionsMessagesGetOutput | undefined
+) => {
+  let omitted: { label: string; size: number | null }[] = [];
+
+  if (isOmittedBody(inputMessage?.input)) {
+    omitted.push({ label: 'request', size: inputMessage.input.size });
+  }
+
+  if (isOmittedBody(outputMessage?.output)) {
+    omitted.push({ label: 'response', size: outputMessage.output.size });
+  }
+
+  return omitted;
+};
+
+let describeOmittedBodies = (omitted: { label: string; size: number | null }[]) =>
+  omitted
+    .map(body =>
+      body.size == null ? body.label : `${body.label} (${formatBytes(body.size)})`
+    )
+    .join(' and ');
+
+let OmittedBodiesNotice = ({
+  hasError,
+  isLoading,
+  isTooLarge,
+  omitted,
+  onLoad
+}: {
+  hasError: boolean;
+  isLoading: boolean;
+  isTooLarge: boolean;
+  omitted: { label: string; size: number | null }[];
+  onLoad?: () => void;
+}) => {
+  let description = describeOmittedBodies(omitted);
+  let isPlural = omitted.length > 1;
+
+  return (
+    <OmittedNotice>
+      <span>
+        {isTooLarge
+          ? `The ${description} ${isPlural ? 'are' : 'is'} too large to display in the dashboard.`
+          : hasError
+            ? `The full ${description} could not be loaded.`
+            : `The ${description} ${isPlural ? 'were' : 'was'} left out of the timeline because ${isPlural ? 'they are' : 'it is'} large.`}
+      </span>
+
+      {!isTooLarge && !hasError && onLoad && (
+        <Button size="1" variant="outline" type="button" loading={isLoading} onClick={onLoad}>
+          Load Full Message
+        </Button>
+      )}
+    </OmittedNotice>
+  );
 };
 
 let MessageBody = ({
@@ -89,9 +177,7 @@ let MessageBody = ({
   isToolError?: boolean;
   label: React.ReactNode;
   output?: Record<string, any> | null;
-  overviewSections?: ReturnType<
-    typeof getMessagePresentation
-  >['overviewSections'];
+  overviewSections?: ReturnType<typeof getMessagePresentation>['overviewSections'];
   position: string;
 }) => {
   let ref = useRef<HTMLDivElement>(null);
@@ -132,7 +218,29 @@ export let Message = ({
   /** Set to false when an outer container already gates mounting (e.g. row virtualization). */
   deferMount?: boolean;
 }) => {
-  let presentationData = useMessagePresentation({ aggregatedMessages, message });
+  let instance = useCurrentInstance();
+  let [loadFullBodies, setLoadFullBodies] = useState(false);
+
+  let sources = getBodySourceMessages({ aggregatedMessages, message });
+  let instanceId = instance.data?.id;
+  let fullInputMessageId =
+    loadFullBodies && instanceId && isOmittedBody(sources?.inputMessage?.input)
+      ? (sources?.inputMessage?.id ?? null)
+      : null;
+  let fullOutputMessageId =
+    loadFullBodies && instanceId && isOmittedBody(sources?.outputMessage?.output)
+      ? (sources?.outputMessage?.id ?? null)
+      : null;
+
+  let fullInputMessage = useSessionMessage(instanceId, fullInputMessageId);
+  let fullOutputMessage = useSessionMessage(instanceId, fullOutputMessageId);
+
+  let presentationData = useMessagePresentation({
+    aggregatedMessages,
+    message,
+    fullInputMessage: fullInputMessage.data ?? undefined,
+    fullOutputMessage: fullOutputMessage.data ?? undefined
+  });
   if (!presentationData) return null;
 
   let {
@@ -140,12 +248,25 @@ export let Message = ({
     date,
     hasError,
     input,
+    inputMessage,
     isToolError,
     messageError,
     output,
+    outputMessage,
     position,
     presentation
   } = presentationData;
+
+  let omitted = getOmittedBodies(inputMessage, outputMessage);
+  let isLoadingFullBodies =
+    (!!fullInputMessageId && fullInputMessage.isLoading) ||
+    (!!fullOutputMessageId && fullOutputMessage.isLoading);
+  let hasFullBodiesError = !!fullInputMessage.error || !!fullOutputMessage.error;
+  let hasLoadedFullBodies =
+    loadFullBodies &&
+    !isLoadingFullBodies &&
+    !hasFullBodiesError &&
+    (!!fullInputMessage.data || !!fullOutputMessage.data);
 
   return (
     <MessageStack>
@@ -155,6 +276,16 @@ export let Message = ({
         time={date}
         variant={hasError ? 'error' : undefined}
       />
+
+      {omitted.length > 0 && (
+        <OmittedBodiesNotice
+          omitted={omitted}
+          hasError={hasFullBodiesError}
+          isLoading={isLoadingFullBodies}
+          isTooLarge={hasLoadedFullBodies}
+          onLoad={instanceId ? () => setLoadFullBodies(true) : undefined}
+        />
+      )}
 
       {!presentation.hideCard && (
         <MessageBody

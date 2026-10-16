@@ -2,6 +2,10 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  GET_PAYLOAD_LIMIT_BYTES,
+  LIST_PAYLOAD_LIMIT_BYTES
+} from '@metorial-subspace/connection-utils';
+import {
   db,
   type Environment,
   type SessionEvent,
@@ -30,7 +34,11 @@ import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import { providerRunInclude } from './providerRun';
 import { sessionConnectionInclude } from './sessionConnection';
 import { sessionErrorInclude } from './sessionError';
-import { sessionMessageInclude, sessionMessageService } from './sessionMessage';
+import {
+  sessionMessageBodyOmit,
+  sessionMessageInclude,
+  sessionMessageService
+} from './sessionMessage';
 
 let include = {
   session: true
@@ -64,7 +72,10 @@ export type GetSessionEventByIdParams = {
 };
 
 class sessionEventServiceImpl {
-  private async enrichEvents<T extends SessionEvent>(events: T[]) {
+  private async enrichEvents<T extends SessionEvent>(
+    events: T[],
+    opts: { bodyLimitBytes: number }
+  ) {
     let providerRuns = await db.providerRun.findMany({
       where: {
         oid: { in: events.map(e => e.providerRunOid!).filter(Boolean) }
@@ -82,8 +93,10 @@ class sessionEventServiceImpl {
         where: {
           oid: { in: events.map(e => e.messageOid!).filter(Boolean) }
         },
-        include: sessionMessageInclude
-      })
+        include: sessionMessageInclude,
+        omit: sessionMessageBodyOmit
+      }),
+      opts
     );
     let errors = await db.sessionError.findMany({
       where: {
@@ -181,7 +194,7 @@ class sessionEventServiceImpl {
           include: { session: true }
         });
 
-        return this.enrichEvents(events);
+        return this.enrichEvents(events, { bodyLimitBytes: LIST_PAYLOAD_LIMIT_BYTES });
       })
     );
   }
@@ -216,7 +229,9 @@ class sessionEventServiceImpl {
     if (!sessionEvent)
       throw new ServiceError(notFoundError('session.event', d.sessionEventId));
 
-    let [enrichedEvent] = await this.enrichEvents([sessionEvent]);
+    let [enrichedEvent] = await this.enrichEvents([sessionEvent], {
+      bodyLimitBytes: GET_PAYLOAD_LIMIT_BYTES
+    });
     return enrichedEvent!;
   }
 }

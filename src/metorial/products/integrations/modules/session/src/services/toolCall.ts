@@ -3,6 +3,10 @@ import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  GET_PAYLOAD_LIMIT_BYTES,
+  LIST_PAYLOAD_LIMIT_BYTES
+} from '@metorial-subspace/connection-utils';
+import {
   db,
   type Environment,
   type Session,
@@ -40,7 +44,11 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { env } from '../env';
 import { enrichSessionParticipantsWithConsumer } from '../lib/enrichSessionParticipants';
-import { sessionMessageInclude, sessionMessageService } from './sessionMessage';
+import {
+  sessionMessageBodyOmit,
+  sessionMessageInclude,
+  sessionMessageService
+} from './sessionMessage';
 
 let include = {
   attachments: true,
@@ -103,14 +111,17 @@ export type CreateInternalToolCallParams = CreateToolCallParams & {
 
 class toolCallServiceImpl {
   async enrichToolCalls<T extends ToolCall & { attachments?: ToolCallAttachment[] }>(
-    toolCalls: T[]
+    toolCalls: T[],
+    opts: { bodyLimitBytes: number }
   ) {
     let messageOids = toolCalls.map(tc => tc.messageOid).filter(Boolean);
     let messages = await sessionMessageService.enrichMessages(
       await db.sessionMessage.findMany({
         where: { oid: { in: messageOids } },
-        include: sessionMessageInclude
-      })
+        include: sessionMessageInclude,
+        omit: sessionMessageBodyOmit
+      }),
+      opts
     );
     let messageMap = new Map(messages.map(m => [m.oid, m]));
 
@@ -300,7 +311,7 @@ class toolCallServiceImpl {
           include
         });
 
-        return await this.enrichToolCalls(res);
+        return await this.enrichToolCalls(res, { bodyLimitBytes: LIST_PAYLOAD_LIMIT_BYTES });
       })
     );
   }
@@ -357,7 +368,9 @@ class toolCallServiceImpl {
     });
     if (!toolCall) throw new ServiceError(notFoundError('tool_call', d.toolCallId));
 
-    let [enriched] = await this.enrichToolCalls([toolCall]);
+    let [enriched] = await this.enrichToolCalls([toolCall], {
+      bodyLimitBytes: GET_PAYLOAD_LIMIT_BYTES
+    });
     return enriched!;
   }
 
@@ -482,7 +495,9 @@ class toolCallServiceImpl {
     });
     if (!toolCall) throw new Error('WTF - no message for tool call response');
 
-    let [enriched] = await this.enrichToolCalls([toolCall]);
+    let [enriched] = await this.enrichToolCalls([toolCall], {
+      bodyLimitBytes: GET_PAYLOAD_LIMIT_BYTES
+    });
     return enriched!;
   }
 }

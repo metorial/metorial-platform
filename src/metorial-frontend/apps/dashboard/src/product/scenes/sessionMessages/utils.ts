@@ -29,8 +29,7 @@ export let asRecord = (value: unknown): Record<string, any> | null => {
   return value as Record<string, any>;
 };
 
-export let formatRawJson = (value: unknown) =>
-  JSON.stringify(value, null, 2) ?? String(value);
+export let formatRawJson = (value: unknown) => JSON.stringify(value, null, 2) ?? String(value);
 
 export let getMethodParams = (payload: Record<string, any> | null | undefined) =>
   asRecord(payload?.params);
@@ -61,9 +60,24 @@ export let getDefaultSection = (
   return null;
 };
 
+export type OmittedBody = {
+  object: 'session.message.omitted_body';
+  reason: string;
+  size: number | null;
+};
+
+export let isOmittedBody = (value: unknown): value is OmittedBody =>
+  typeof value == 'object' &&
+  value !== null &&
+  (value as { object?: unknown }).object == 'session.message.omitted_body';
+
+export let getPresentBody = (value: Record<string, any> | null | undefined) =>
+  isOmittedBody(value) ? null : (value ?? null);
+
 export let getMessagePayload = (
   message: DashboardInstanceSessionsMessagesGetOutput
-): MessagePayload => (message.input ?? message.output ?? {}) as MessagePayload;
+): MessagePayload =>
+  (getPresentBody(message.input) ?? getPresentBody(message.output) ?? {}) as MessagePayload;
 
 export let getMessageTransportMeta = (
   message: DashboardInstanceSessionsMessagesGetOutput

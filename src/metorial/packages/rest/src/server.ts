@@ -25,6 +25,8 @@ import { parseBody } from './parseBody';
 import { RateLimiter } from './ratelimit';
 import { Authenticator, RequestFlags } from './types';
 
+let MAX_LOGGED_BODY_BYTES = 64 * 1024;
+
 let Sentry = getSentry();
 
 export let json = (data: any, status: number = 200, headers: Record<string, string> = {}) =>
@@ -89,6 +91,20 @@ let emptyShape = (value: any): any => {
   if (typeof value == 'boolean') return false;
   if (value == null) return value;
   return '';
+};
+
+let getOmittedLogBody = (sizeBytes: number) => ({
+  omitted: true,
+  reason: 'body_too_large',
+  sizeBytes
+});
+
+let getRequestBodySizeBytes = (contentLength: string | undefined, body: any) => {
+  let parsedContentLength = contentLength ? parseInt(contentLength) : NaN;
+  if (!isNaN(parsedContentLength)) return parsedContentLength;
+  if (body === undefined) return 0;
+
+  return Buffer.byteLength(JSON.stringify(body) ?? '');
 };
 
 let sensitiveLogFields = new Set([
@@ -415,11 +431,33 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         }
                       }
 
+                      let jsonBody = JSON.stringify(response.body);
+
                       if (this.logger) {
                         let isConfidential = !!handler.descriptor.confidential;
                         let requestQuery = redactSensitiveFields(query);
                         let requestParams = c.req.param() as any;
                         let shouldRedactResponse = isConfidential && response.status < 400;
+
+                        let requestBodySizeBytes = getRequestBodySizeBytes(
+                          c.req.header('content-length'),
+                          request.body
+                        );
+                        let responseBodySizeBytes = Buffer.byteLength(jsonBody ?? '');
+
+                        let loggedRequestBody =
+                          requestBodySizeBytes > MAX_LOGGED_BODY_BYTES
+                            ? getOmittedLogBody(requestBodySizeBytes)
+                            : isConfidential
+                              ? emptyShape(request.body)
+                              : request.body;
+                        let loggedResponseBody =
+                          responseBodySizeBytes > MAX_LOGGED_BODY_BYTES
+                            ? getOmittedLogBody(responseBodySizeBytes)
+                            : shouldRedactResponse
+                              ? emptyShape(response.body)
+                              : response.body;
+
                         try {
                           await this.logger({
                             surface: 'rest',
@@ -440,10 +478,8 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                             durationMs: Date.now() - startedAt,
                             query: isConfidential ? emptyShape(requestQuery) : requestQuery,
                             params: isConfidential ? emptyShape(requestParams) : requestParams,
-                            body: isConfidential ? emptyShape(request.body) : request.body,
-                            response: shouldRedactResponse
-                              ? emptyShape(response.body)
-                              : response.body,
+                            body: loggedRequestBody,
+                            response: loggedResponseBody,
                             error: isConfidential ? undefined : error,
                             auth: c.env.auth,
                             context: c.env.context
@@ -452,8 +488,6 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                           console.error('Error in request logger', e);
                         }
                       }
-
-                      let jsonBody = JSON.stringify(response.body);
 
                       return new Response(jsonBody, {
                         status: response.status,

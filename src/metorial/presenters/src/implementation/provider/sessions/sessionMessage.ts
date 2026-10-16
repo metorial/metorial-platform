@@ -1,22 +1,14 @@
 import { v } from '@lowerdeck/validation';
-import { getOffloadedSessionMessage } from '@metorial-subspace/connection-utils';
 import { messageTranslator } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { sessionMessageType } from '../../../types';
+import { omittedBodyDescription, presentOmittedBody } from './omittedBody';
 import { v1SessionErrorPresenter } from './sessionError';
 import { v1SessionParticipantPresenter } from './sessionParticipant';
 import { v1ProviderToolCallPresenter } from './toolCall';
 
 export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageType)
   .presenter(async ({ sessionMessage }, opts) => {
-    if (sessionMessage.isOffloadedToStorage) {
-      let offloaded = await getOffloadedSessionMessage(sessionMessage);
-      if (offloaded) {
-        sessionMessage.input = offloaded.input;
-        sessionMessage.output = offloaded.output;
-      }
-    }
-
     return {
       object: 'session.message' as const,
 
@@ -66,29 +58,33 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
             : null
       },
 
-      input: sessionMessage.input
-        ? ((await messageTranslator.inputToMcpBasic(
-            sessionMessage.input,
-            sessionMessage
-          )) as Record<string, any>)
-        : sessionMessage.methodOrToolKey &&
-            (sessionMessage.type === 'mcp_message' || sessionMessage.type === 'tool_call')
-          ? {
-              jsonrpc: '2.0',
-              id: sessionMessage.clientMcpId ?? sessionMessage.id,
-              method: 'tools/call',
-              params: {
-                name: sessionMessage.methodOrToolKey ?? 'unknown_tool',
-                arguments: null
+      input: sessionMessage.inputOmitted
+        ? presentOmittedBody(sessionMessage.inputSize)
+        : sessionMessage.input
+          ? ((await messageTranslator.inputToMcpBasic(
+              sessionMessage.input,
+              sessionMessage
+            )) as Record<string, any>)
+          : sessionMessage.methodOrToolKey &&
+              (sessionMessage.type === 'mcp_message' || sessionMessage.type === 'tool_call')
+            ? {
+                jsonrpc: '2.0',
+                id: sessionMessage.clientMcpId ?? sessionMessage.id,
+                method: 'tools/call',
+                params: {
+                  name: sessionMessage.methodOrToolKey ?? 'unknown_tool',
+                  arguments: null
+                }
               }
-            }
+            : null,
+      output: sessionMessage.outputOmitted
+        ? presentOmittedBody(sessionMessage.outputSize)
+        : sessionMessage.output
+          ? ((await messageTranslator.outputToMcpBasic(
+              sessionMessage.output,
+              sessionMessage
+            )) as Record<string, any>)
           : null,
-      output: sessionMessage.output
-        ? ((await messageTranslator.outputToMcpBasic(
-            sessionMessage.output,
-            sessionMessage
-          )) as Record<string, any>)
-        : null,
 
       tool_call: sessionMessage.toolCall
         ? await v1ProviderToolCallPresenter
@@ -238,13 +234,13 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
       input: v.nullable(
         v.record(v.any(), {
           name: 'input',
-          description: 'Input message data'
+          description: `Input message data. ${omittedBodyDescription}`
         })
       ),
       output: v.nullable(
         v.record(v.any(), {
           name: 'output',
-          description: 'Output message data'
+          description: `Output message data. ${omittedBodyDescription}`
         })
       ),
       tool_call: v.nullable(v1ProviderToolCallPresenter.schema),

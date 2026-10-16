@@ -1,6 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@lowerdeck/queue';
-import { offload } from '@metorial-subspace/connection-utils';
+import { getJsonSizeBytes, offload } from '@metorial-subspace/connection-utils';
 import { db, Prisma } from '@metorial-subspace/db';
 import { subDays } from 'date-fns';
 import { env } from '../../env';
@@ -64,10 +64,13 @@ let offloadMessageQueueProcessor = offloadMessageQueue.process(async data => {
   });
   if (!message || message.isOffloadedToStorage) return;
 
+  let inputSize = message.inputSize ?? getJsonSizeBytes(message.input);
+  let outputSize = message.outputSize ?? getJsonSizeBytes(message.output);
+
   if (message.input === null && message.output === null) {
     await db.sessionMessage.updateMany({
       where: { oid: message.oid, isOffloadedToStorage: false },
-      data: { isOffloadedToStorage: true }
+      data: { isOffloadedToStorage: true, inputSize, outputSize }
     });
     return;
   }
@@ -79,7 +82,9 @@ let offloadMessageQueueProcessor = offloadMessageQueue.process(async data => {
     data: {
       isOffloadedToStorage: true,
       input: Prisma.DbNull,
-      output: Prisma.DbNull
+      output: Prisma.DbNull,
+      inputSize,
+      outputSize
     }
   });
 });

@@ -2,6 +2,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  GET_PAYLOAD_LIMIT_BYTES,
+  LIST_PAYLOAD_LIMIT_BYTES,
+  loadSessionMessageBodies,
+  type SessionMessageBodies
+} from '@metorial-subspace/connection-utils';
+import {
   db,
   type Environment,
   type SessionMessage,
@@ -40,6 +46,24 @@ let include = {
 };
 export let sessionMessageInclude = include;
 
+export let sessionMessageBodyOmit = {
+  input: true,
+  output: true
+} as const;
+
+type SessionMessageWithoutBodies = Omit<SessionMessage, 'input' | 'output'>;
+
+let getPassThroughBodies = (
+  message: SessionMessageWithoutBodies & Partial<Pick<SessionMessage, 'input' | 'output'>>
+): SessionMessageBodies => ({
+  input: message.input ?? null,
+  output: message.output ?? null,
+  inputSize: message.inputSize,
+  outputSize: message.outputSize,
+  inputOmitted: false,
+  outputOmitted: false
+});
+
 export type ListSessionMessagesParams = {
   types?: SessionMessageType[];
   source?: SessionMessageSource[];
@@ -67,7 +91,14 @@ export type GetSessionMessageByIdParams = {
 };
 
 class sessionMessageServiceImpl {
-  async enrichMessages<T extends SessionMessage>(messages: T[]) {
+  async enrichMessages<T extends SessionMessageWithoutBodies>(
+    messages: T[],
+    opts?: { bodyLimitBytes: number }
+  ) {
+    let bodies = opts
+      ? await loadSessionMessageBodies(messages, { limitBytes: opts.bodyLimitBytes })
+      : null;
+
     let participants = await db.sessionParticipant.findMany({
       where: {
         oid: {
@@ -102,12 +133,14 @@ class sessionMessageServiceImpl {
     let parentMessages = await db.sessionMessage.findMany({
       where: {
         oid: { in: messages.map(m => m.parentMessageOid!).filter(Boolean) }
-      }
+      },
+      omit: sessionMessageBodyOmit
     });
     let childMessages = await db.sessionMessage.findMany({
       where: {
         parentMessageOid: { in: messages.map(m => m.oid).filter(Boolean) }
-      }
+      },
+      omit: sessionMessageBodyOmit
     });
 
     let participantMap = new Map(participants.map(p => [p.oid, p]));
@@ -121,11 +154,12 @@ class sessionMessageServiceImpl {
         arr.push(m);
         acc.set(m.parentMessageOid!, arr);
         return acc;
-      }, new Map<bigint, SessionMessage[]>())
+      }, new Map<bigint, SessionMessageWithoutBodies[]>())
     );
 
     return messages.map(message => ({
       ...message,
+      ...(bodies?.get(message.oid) ?? getPassThroughBodies(message)),
       senderParticipant: participantMap.get(message.senderParticipantOid)!,
       responderParticipant: message.responderParticipantOid
         ? participantMap.get(message.responderParticipantOid)!
@@ -157,7 +191,7 @@ class sessionMessageServiceImpl {
   }
 
   async listSessionMessagesInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<
+    d: { tenant: Tenant; environment: Environment; bodyLimitBytes?: number } & Omit<
       ListSessionMessagesParams,
       'accessTagSessionIds'
     >
@@ -230,10 +264,13 @@ class sessionMessageServiceImpl {
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
           },
-          include
+          include,
+          omit: sessionMessageBodyOmit
         });
 
-        return this.enrichMessages(res);
+        return this.enrichMessages(res, {
+          bodyLimitBytes: d.bodyLimitBytes ?? LIST_PAYLOAD_LIMIT_BYTES
+        });
       })
     );
   }
@@ -267,12 +304,15 @@ class sessionMessageServiceImpl {
           mergeRetentionWithDateFilter(d.tenant)
         ]
       },
-      include: include
+      include,
+      omit: sessionMessageBodyOmit
     });
     if (!sessionMessage)
       throw new ServiceError(notFoundError('session.message', d.sessionMessageId));
 
-    let [res] = await this.enrichMessages([sessionMessage]);
+    let [res] = await this.enrichMessages([sessionMessage], {
+      bodyLimitBytes: GET_PAYLOAD_LIMIT_BYTES
+    });
     return res!;
   }
 }

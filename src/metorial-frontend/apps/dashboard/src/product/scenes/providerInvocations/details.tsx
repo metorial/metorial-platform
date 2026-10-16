@@ -152,7 +152,9 @@ export let ProviderInvocationByCallbackEventId = ({
       );
     }
 
-    return <ProviderInvocationDetails invocation={invocation} hideHeader={hideHeader} />;
+    return (
+      <ProviderInvocationById providerInvocationId={invocation.id} hideHeader={hideHeader} />
+    );
   });
 };
 
@@ -177,6 +179,8 @@ export let ProviderInvocationByChatEventId = ({
       );
     }
 
-    return <ProviderInvocationDetails invocation={invocation} hideHeader={hideHeader} />;
+    return (
+      <ProviderInvocationById providerInvocationId={invocation.id} hideHeader={hideHeader} />
+    );
   });
 };

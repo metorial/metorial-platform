@@ -239,6 +239,19 @@ export let MessageStack = styled.div`
   gap: 12px;
 `;
 
+export let OmittedNotice = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px dashed ${theme.colors.gray400};
+  border-radius: 8px;
+  background: ${theme.colors.gray100};
+  font-size: 12px;
+  color: ${theme.colors.gray700};
+`;
+
 export let SummaryTitle = styled.span`
   display: inline-flex;
   align-items: center;
