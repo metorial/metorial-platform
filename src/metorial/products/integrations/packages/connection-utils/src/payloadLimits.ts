@@ -6,3 +6,9 @@ export let getJsonSizeBytes = (value: unknown) => {
 
   return Buffer.byteLength(JSON.stringify(value) ?? '');
 };
+
+export let presentOmittedBody = (size: number | null) => ({
+  object: 'session.message.omitted_body' as const,
+  reason: 'body_too_large' as const,
+  size
+});

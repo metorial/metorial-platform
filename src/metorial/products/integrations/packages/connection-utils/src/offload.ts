@@ -24,6 +24,18 @@ export let offload = {
     );
   },
 
+  getOffloadedSessionMessageSize: async (message: Pick<SessionMessage, 'id'>) => {
+    try {
+      let res = await storage.headObject(
+        sessionMessageBucketRecord.bucket,
+        `msg/${message.id}/data`
+      );
+      return res.size;
+    } catch (e) {
+      return null;
+    }
+  },
+
   getOffloadedSessionMessage: async (message: Pick<SessionMessage, 'id'>) => {
     try {
       let res = await storage.getObject(
@@ -39,3 +51,4 @@ export let offload = {
 };
 
 export let getOffloadedSessionMessage = offload.getOffloadedSessionMessage;
+export let getOffloadedSessionMessageSize = offload.getOffloadedSessionMessageSize;

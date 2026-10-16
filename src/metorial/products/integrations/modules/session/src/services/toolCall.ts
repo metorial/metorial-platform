@@ -496,7 +496,7 @@ class toolCallServiceImpl {
     if (!toolCall) throw new Error('WTF - no message for tool call response');
 
     let [enriched] = await this.enrichToolCalls([toolCall], {
-      bodyLimitBytes: GET_PAYLOAD_LIMIT_BYTES
+      bodyLimitBytes: Number.POSITIVE_INFINITY
     });
     return enriched!;
   }

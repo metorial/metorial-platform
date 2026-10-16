@@ -2,7 +2,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   GET_PAYLOAD_LIMIT_BYTES,
-  getOffloadedSessionMessage
+  presentOmittedBody
 } from '@metorial-subspace/connection-utils';
 import {
   db,
@@ -22,7 +22,7 @@ import type { ProviderInvocation } from '@metorial-subspace/provider-utils';
 import { adminProviderTelemetryErrorGroupService } from './adminProviderTelemetryErrorGroup';
 import { providerInvocationService } from './providerInvocation';
 import { providerRunLogsService } from './providerRunLogs';
-import { sessionMessageService } from './sessionMessage';
+import { sessionMessageBodyOmit, sessionMessageService } from './sessionMessage';
 
 let withDefaultRange = (range?: { from?: Date; to?: Date }) => {
   let to = range?.to ?? new Date();
@@ -714,20 +714,6 @@ let providerInvocationPresenter = (invocation: ProviderInvocation) => ({
 });
 
 let sessionMessagePresenter = async (message: any) => {
-  let hasResolvedBodies =
-    message.input != null ||
-    message.output != null ||
-    message.inputOmitted ||
-    message.outputOmitted;
-
-  if (message.isOffloadedToStorage && !hasResolvedBodies) {
-    let offloaded = await getOffloadedSessionMessage(message);
-    if (offloaded) {
-      message.input = offloaded.input;
-      message.output = offloaded.output;
-    }
-  }
-
   return {
     object: 'session.message' as const,
     id: message.id,
@@ -756,8 +742,8 @@ let sessionMessagePresenter = async (message: any) => {
     },
     sender_participant_id: message.senderParticipant?.id ?? null,
     responder_participant_id: message.responderParticipant?.id ?? null,
-    input: message.input,
-    output: message.output,
+    input: message.inputOmitted ? presentOmittedBody(message.inputSize) : message.input,
+    output: message.outputOmitted ? presentOmittedBody(message.outputSize) : message.output,
     error: message.error
       ? {
           id: message.error.id,
@@ -1627,6 +1613,7 @@ class adminProviderTelemetryServiceImpl {
           connection: true,
           providerRun: true
         },
+        omit: sessionMessageBodyOmit,
         orderBy: { createdAt: 'asc' },
         take: SESSION_TRACE_LIMITS.messages
       }),
@@ -1650,7 +1637,9 @@ class adminProviderTelemetryServiceImpl {
       })
     ]);
 
-    let messages = await sessionMessageService.enrichMessages(rawMessages as any);
+    let messages = await sessionMessageService.enrichMessages(rawMessages, {
+      bodyLimitBytes: GET_PAYLOAD_LIMIT_BYTES
+    });
     let invocations = await providerInvocationService.listProviderInvocationsInternal({
       tenant,
       environment,
