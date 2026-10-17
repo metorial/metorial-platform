@@ -8,6 +8,7 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { enqueueCallbackInstanceReconcileForIntegrationInstance } from '@metorial-subspace/module-callback/src/queues/reconcile/callbackInstance';
 import { env } from '../../env';
+import { syncMagicMcpServerProviderRows } from '../../lib/magicMcpBacking/serverProviderSync';
 import { integrationInstanceDeletedQueue } from '../lifecycle/integrationInstance';
 
 let integrationInstanceArchivedCleanup = createArchivedCleanupScan({
@@ -20,12 +21,14 @@ let integrationInstanceArchivedCleanup = createArchivedCleanupScan({
       where: archivedCleanupWhere({ cursor }),
       ...archivedCleanupFindArgs({ cursor, take })
     }),
-  enqueue: ids => integrationInstanceDeleteQueue.addMany(ids.map(id => ({ integrationInstanceId: id })))
+  enqueue: ids =>
+    integrationInstanceDeleteQueue.addMany(ids.map(id => ({ integrationInstanceId: id })))
 });
 
 export let integrationInstanceArchivedCleanupCron = integrationInstanceArchivedCleanup.cron;
 export let integrationInstanceDeleteManyQueue = integrationInstanceArchivedCleanup.manyQueue;
-export let integrationInstanceDeleteManyQueueProcessor = integrationInstanceArchivedCleanup.manyProcessor;
+export let integrationInstanceDeleteManyQueueProcessor =
+  integrationInstanceArchivedCleanup.manyProcessor;
 
 export let integrationInstanceDeleteQueue = createQueue<{ integrationInstanceId: string }>({
   name: 'sub/int/delete/integrationInstance',
@@ -74,6 +77,10 @@ export let integrationInstanceDeleteQueueProcessor = integrationInstanceDeleteQu
         metadata: {},
         privateMetadata: {}
       }
+    });
+
+    await syncMagicMcpServerProviderRows({
+      integrationInstanceOids: [integrationInstance.oid]
     });
 
     await db.integrationInstance.updateMany({

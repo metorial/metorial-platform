@@ -47,6 +47,7 @@ model MagicMcpServerBacking {
   magicMcpServerProviders MagicMcpServerProvider[]
 
   @@index([integrationInstanceOid, ownerType])
+  @@index([ownerIntegrationOid])
 }
 
 model MagicMcpServerProvider {
@@ -109,6 +110,9 @@ model MagicMcpEndpointServerBacking {
   toolFilters Json?
 
   createdAt DateTime @default(now())
+
+  @@index([magicMcpEndpointBackingOid])
+  @@index([magicMcpServerBackingOid])
 }
 
 model ProviderTemplateBacking {
