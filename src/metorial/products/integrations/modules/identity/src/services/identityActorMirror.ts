@@ -2,7 +2,7 @@ import { Service } from '@lowerdeck/service';
 import { db } from '@metorial-subspace/db';
 import { metorialDb } from '@metorial-subspace/module-tenant';
 
-let resolveMetorialInstance = async (d: {
+export let resolveMetorialInstance = async (d: {
   instanceOid: bigint | null;
   environmentOid: bigint;
 }) => {

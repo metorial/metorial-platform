@@ -5,6 +5,7 @@ let mocks = vi.hoisted(() => {
   let agentClientRegistrationUpsert = vi.fn();
   let addAfterTransactionHook = vi.fn();
   let indexAgentClientQueueAdd = vi.fn();
+  let mirrorAgentClientQueueAdd = vi.fn();
 
   let db = {
     agentClient: { upsert: agentClientUpsert },
@@ -16,7 +17,8 @@ let mocks = vi.hoisted(() => {
     agentClientUpsert,
     agentClientRegistrationUpsert,
     addAfterTransactionHook,
-    indexAgentClientQueueAdd
+    indexAgentClientQueueAdd,
+    mirrorAgentClientQueueAdd
   };
 });
 
@@ -48,6 +50,10 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 
 vi.mock('../queues/search/agentClient', () => ({
   indexAgentClientQueue: { add: mocks.indexAgentClientQueueAdd }
+}));
+
+vi.mock('../queues/mirror', () => ({
+  mirrorAgentClientQueue: { add: mocks.mirrorAgentClientQueueAdd }
 }));
 
 import { agentClientService } from './agentClient';
@@ -108,5 +114,48 @@ describe('Agent client double writes', () => {
     let call = mocks.agentClientUpsert.mock.calls[0][0];
 
     expect(call.where).toEqual({ foreignId: 'fid_1' });
+  });
+
+  it('queues the core mirror after a new client is created', async () => {
+    await agentClientService.upsertAgentClientInternal({ tenant, environment, input });
+
+    let hooks = mocks.addAfterTransactionHook.mock.calls.map(call => call[0]);
+    for (let hook of hooks) await hook();
+
+    expect(mocks.mirrorAgentClientQueueAdd).toHaveBeenCalledWith({ agentClientId: 'kac_new' });
+  });
+
+  it('does not requeue the mirror for an unchanged client', async () => {
+    mocks.agentClientUpsert.mockResolvedValue({ oid: 9n, id: 'kac_existing' });
+
+    await agentClientService.upsertAgentClientInternal({ tenant, environment, input });
+
+    let hooks = mocks.addAfterTransactionHook.mock.calls.map(call => call[0]);
+    for (let hook of hooks) await hook();
+
+    expect(mocks.mirrorAgentClientQueueAdd).not.toHaveBeenCalled();
+  });
+
+  it('queues the core mirror when an existing client gets a new registration', async () => {
+    mocks.agentClientUpsert.mockResolvedValue({ oid: 9n, id: 'kac_existing' });
+    mocks.agentClientRegistrationUpsert.mockResolvedValue({ oid: 500n, id: 'kac_new' });
+
+    await agentClientService.upsertAgentClientInternal({
+      tenant,
+      environment,
+      input: {
+        name: 'Probe',
+        type: 'mcp_client_oauth',
+        foreignId: 'fid_1',
+        oauthRegistrationId: 'cac_1'
+      }
+    });
+
+    let hooks = mocks.addAfterTransactionHook.mock.calls.map(call => call[0]);
+    for (let hook of hooks) await hook();
+
+    expect(mocks.mirrorAgentClientQueueAdd).toHaveBeenCalledWith({
+      agentClientId: 'kac_existing'
+    });
   });
 });
