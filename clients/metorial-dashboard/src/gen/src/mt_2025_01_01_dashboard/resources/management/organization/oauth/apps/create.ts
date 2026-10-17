@@ -6,6 +6,10 @@ export type ManagementOrganizationOauthAppsCreateOutput = {
   status: 'active' | 'archived';
   type: 'user_facing' | 'cli_auth' | 'server_side';
   accessLevel: 'organization' | 'global';
+  subjectType:
+    | 'organization_member'
+    | 'consumer'
+    | 'consumer_or_organization_member';
   allowTokenExchangeWithoutClientSecret: boolean;
   name: string;
   description: string | null;
@@ -33,6 +37,7 @@ export let mapManagementOrganizationOauthAppsCreateOutput =
   /* @__PURE__ */ mapObject<ManagementOrganizationOauthAppsCreateOutput>(
     [
       'access_level',
+      'subject_type',
       'allow_token_exchange_without_client_secret',
       'image_url',
       'website_url',
@@ -50,6 +55,7 @@ export let mapManagementOrganizationOauthAppsCreateOutput =
 
 export type ManagementOrganizationOauthAppsCreateBody = {
   accessLevel: 'organization';
+  subjectType?: 'organization_member' | 'consumer' | undefined;
   allowTokenExchangeWithoutClientSecret?: boolean | undefined;
   name: string;
   description?: string | undefined;
@@ -63,6 +69,7 @@ export type ManagementOrganizationOauthAppsCreateBody = {
 export let mapManagementOrganizationOauthAppsCreateBody =
   /* @__PURE__ */ mapObject<ManagementOrganizationOauthAppsCreateBody>([
     'access_level',
+    'subject_type',
     'allow_token_exchange_without_client_secret',
     'website_url',
     'privacy_policy_url',

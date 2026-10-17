@@ -11,6 +11,11 @@ export type ManagementInstanceIntegrationsSetupSessionsCreateOutput = {
   configuration: Record<string, any> | null;
   redirectUrl: string | null;
   integrationId: string;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    consumerId: string | null;
+  } | null;
   integrationInstance: {
     object: 'integration.instance';
     id: string;
@@ -21,6 +26,11 @@ export type ManagementInstanceIntegrationsSetupSessionsCreateOutput = {
     integrationId: string;
     identityActorId: string | null;
     identityId: string | null;
+    ownerActor: {
+      id: string;
+      type: 'person' | 'agent' | 'consumer';
+      consumerId: string | null;
+    } | null;
     implementation: {
       type: 'magic_mcp_server';
       magicMcpServerId: string;
@@ -176,6 +186,7 @@ export let mapManagementInstanceIntegrationsSetupSessionsCreateOutput =
     [
       'redirect_url',
       'integration_id',
+      ['owner_actor', 1, [1, ['consumer_id']]],
       [
         'integration_instance',
         1,
@@ -185,6 +196,7 @@ export let mapManagementInstanceIntegrationsSetupSessionsCreateOutput =
             'integration_id',
             'identity_actor_id',
             'identity_id',
+            ['owner_actor', 1, [1, ['consumer_id']]],
             ['implementation', 0, [1, ['magic_mcp_server_id']]],
             [
               'providers',
@@ -306,6 +318,7 @@ export let mapManagementInstanceIntegrationsSetupSessionsCreateOutput =
 
 export type ManagementInstanceIntegrationsSetupSessionsCreateBody = {
   integrationId: string;
+  integrationInstanceId?: string | undefined;
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
@@ -332,6 +345,7 @@ export let mapManagementInstanceIntegrationsSetupSessionsCreateBody =
   /* @__PURE__ */ mapObject<ManagementInstanceIntegrationsSetupSessionsCreateBody>(
     [
       'integration_id',
+      'integration_instance_id',
       'identity_actor_id',
       'identity_id',
       'expires_at',

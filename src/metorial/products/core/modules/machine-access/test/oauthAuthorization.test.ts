@@ -32,6 +32,7 @@ let {
     },
     oAuthAuthorization: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       findFirstOrThrow: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
@@ -61,6 +62,17 @@ let {
     },
     teamMember: {
       findMany: vi.fn()
+    },
+    consumerProfile: {
+      findFirst: vi.fn(),
+      findMany: vi.fn()
+    },
+    consumerSession: {
+      upsert: vi.fn(),
+      updateMany: vi.fn()
+    },
+    cliDevice: {
+      upsert: vi.fn()
     }
   },
   machineAccessCreateMock: vi.fn(),
@@ -102,7 +114,8 @@ vi.mock('bun', () => ({
 }));
 
 vi.mock('@metorial/id', () => ({
-  generateCustomId: vi.fn((prefix: string, length: number) => `${prefix}-${length}`)
+  generateCustomId: vi.fn((prefix: string, length: number) => `${prefix}-${length}`),
+  generateCode: vi.fn((length: number) => 'A'.repeat(length))
 }));
 
 vi.mock('@metorial/config', () => ({
@@ -175,6 +188,7 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
+import { cliAuthScopes, cliConsumerAuthScopes } from '../src/lib/oauthAuthorizationScopes';
 import { oauthAuthorizationService } from '../src/services/oauthAuthorization';
 
 let baseContext = { ip: '203.0.113.10' } as any;
@@ -403,6 +417,11 @@ describe('oauthAuthorizationService', () => {
       secret: 'secret-1'
     });
     mockDb.oAuthAuthorization.findFirst.mockResolvedValue(null);
+    mockDb.oAuthAuthorization.findUnique.mockResolvedValue(null);
+    mockDb.consumerSession.upsert.mockImplementation(async ({ create }: any) => ({
+      oid: 800n,
+      ...create
+    }));
     mockDb.oAuthAuthorization.upsert.mockImplementation(async ({ create, update }: any) => {
       let data = create ?? update;
       return {
@@ -1077,5 +1096,332 @@ describe('oauthAuthorizationService', () => {
     ).rejects.toThrow(ServiceError);
 
     expect(mockDb.oAuthAuthorization.update).not.toHaveBeenCalled();
+  });
+
+  describe('consumer subjects', () => {
+    let memberApplication = (overrides: Record<string, any> = {}) => ({
+      oid: 100n,
+      id: 'oauthApplication-generated-id',
+      name: 'My App',
+      clientId: 'client-1',
+      status: 'active',
+      type: 'user_facing',
+      subjectType: 'organization_member',
+      redirectUris: ['https://example.com/callback'],
+      scopes: ['organization:read', 'organization:write'],
+      accessLevel: 'global',
+      allowClientSecretlessTokenExchange: true,
+      organizationOid: null,
+      organization: null,
+      scopedInstallation: null,
+      serverSideMachineAccess: null,
+      clientSecrets: [],
+      ...overrides
+    });
+
+    let consumerApplication = (overrides: Record<string, any> = {}) =>
+      memberApplication({
+        subjectType: 'consumer',
+        scopes: ['consumer#instance:read', 'consumer#instance.file:read'],
+        ...overrides
+      });
+
+    let cliApplication = () =>
+      memberApplication({
+        type: 'cli_auth',
+        subjectType: 'consumer_or_organization_member',
+        scopes: []
+      });
+
+    let consumerProfile = (overrides: Record<string, any> = {}) => ({
+      oid: 900n,
+      id: 'cpr_1',
+      status: 'active',
+      name: 'Portal User',
+      email: 'portal@example.com',
+      organizationOid: baseOrg.oid,
+      instanceOid: 20n,
+      organizationActorOid: 21n,
+      organization: baseOrg,
+      instance: { oid: 20n, id: 'ins_1' },
+      consumer: { oid: 901n, userOid: baseUser.oid, isServiceAccount: false },
+      surface: {
+        oid: 902n,
+        type: 'portal',
+        status: 'active',
+        portal: { oid: 903n, id: 'prt_1', name: 'Portal', status: 'active' }
+      },
+      ...overrides
+    });
+
+    let consumerRequest = (oauthApplication: any) =>
+      ({
+        id: 'oar_consumer',
+        type: 'interactive',
+        status: 'pending',
+        subjectType: 'consumer',
+        clientIp: '198.51.100.7',
+        scopes: ['consumer#instance:read'],
+        oidcScopes: [],
+        expiresAt: new Date(Date.now() + 60_000),
+        oauthApplication
+      }) as any;
+
+    let createInteractiveRequest = (subjectType?: 'organization_member' | 'consumer') =>
+      oauthAuthorizationService.createOAuthAuthorizationRequest({
+        context: baseContext,
+        input: {
+          type: 'interactive',
+          clientId: 'client-1',
+          redirectUri: 'https://example.com/callback',
+          scopes: [],
+          subjectType
+        }
+      });
+
+    it('uses the fixed subject of an application when none is requested', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(consumerApplication());
+
+      await createInteractiveRequest();
+
+      expect(oauthGlobalRepositoryMock.createOAuthAuthorizationRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ subjectType: 'consumer' })
+      );
+    });
+
+    it('rejects a requested subject that differs from the fixed application subject', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(memberApplication());
+
+      await expect(createInteractiveRequest('consumer')).rejects.toThrow(ServiceError);
+      expect(oauthGlobalRepositoryMock.createOAuthAuthorizationRequest).not.toHaveBeenCalled();
+    });
+
+    it('defaults cli requests to the organization member subject', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(cliApplication());
+
+      await oauthAuthorizationService.createCliAuthAuthorizationRequest({
+        context: baseContext
+      });
+
+      expect(oauthGlobalRepositoryMock.createOAuthAuthorizationRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subjectType: 'organization_member',
+          scopes: cliAuthScopes
+        })
+      );
+    });
+
+    it('lets cli requests choose the consumer subject with consumer scopes', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(cliApplication());
+
+      await oauthAuthorizationService.createCliAuthAuthorizationRequest({
+        context: baseContext,
+        subjectType: 'consumer'
+      });
+
+      expect(oauthGlobalRepositoryMock.createOAuthAuthorizationRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subjectType: 'consumer',
+          scopes: cliConsumerAuthScopes
+        })
+      );
+    });
+
+    it('rejects consumer scopes on organization member applications', async () => {
+      mockDb.oAuthApplication.findFirst.mockResolvedValue(memberApplication());
+
+      await expect(
+        oauthAuthorizationService.createOAuthAuthorizationRequest({
+          context: baseContext,
+          input: {
+            type: 'interactive',
+            clientId: 'client-1',
+            redirectUri: 'https://example.com/callback',
+            scopes: ['consumer#instance:read']
+          }
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('accepts consumer requests with an instance-bound consumer authorization', async () => {
+      mockDb.consumerProfile.findFirst.mockResolvedValue(consumerProfile());
+
+      let result = await oauthAuthorizationService.acceptOAuthAuthorizationRequest({
+        oauthAuthorizationRequest: consumerRequest(consumerApplication()),
+        user: baseUser,
+        organizationId: baseOrg.id,
+        consumerProfileId: 'cpr_1',
+        context: baseContext
+      });
+
+      expect(getOrganizationByIdForUserMock).not.toHaveBeenCalled();
+      expect(machineAccessCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'instance_consumer',
+          kind: 'user',
+          user: baseUser,
+          consumerProfile: expect.objectContaining({ oid: 900n }),
+          input: expect.objectContaining({ scopes: ['consumer#instance:read'] })
+        })
+      );
+      expect(mockDb.oAuthAuthorization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            consumerProfileOid_oauthApplicationOid: {
+              consumerProfileOid: 900n,
+              oauthApplicationOid: 100n
+            }
+          },
+          create: expect.objectContaining({
+            subjectType: 'consumer',
+            consumerProfileOid: 900n,
+            instanceOid: 20n
+          })
+        })
+      );
+      expect(mockDb.consumerSession.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { oauthAuthorizationOid: 300n },
+          update: expect.objectContaining({ loggedOutAt: null })
+        })
+      );
+      expect(mockDb.oAuthAuthorizationFlow.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            subjectType: 'consumer',
+            consumerProfileOid: 900n,
+            instanceOid: 20n
+          })
+        })
+      );
+      expect(result.oauthAuthorizationRequest.status).toBe('accepted');
+    });
+
+    it('rejects consumer profiles that are not on a portal surface', async () => {
+      mockDb.consumerProfile.findFirst.mockResolvedValue(
+        consumerProfile({
+          surface: { oid: 902n, type: 'cli', status: 'active', portal: null }
+        })
+      );
+
+      await expect(
+        oauthAuthorizationService.acceptOAuthAuthorizationRequest({
+          oauthAuthorizationRequest: consumerRequest(consumerApplication()),
+          user: baseUser,
+          organizationId: baseOrg.id,
+          consumerProfileId: 'cpr_1',
+          context: baseContext
+        })
+      ).rejects.toThrow(ServiceError);
+      expect(oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest).not.toHaveBeenCalled();
+    });
+
+    it('rejects consumer profiles that belong to another user', async () => {
+      mockDb.consumerProfile.findFirst.mockResolvedValue(
+        consumerProfile({
+          consumer: { oid: 901n, userOid: 999n, isServiceAccount: false }
+        })
+      );
+
+      await expect(
+        oauthAuthorizationService.acceptOAuthAuthorizationRequest({
+          oauthAuthorizationRequest: consumerRequest(consumerApplication()),
+          user: baseUser,
+          organizationId: baseOrg.id,
+          consumerProfileId: 'cpr_1',
+          context: baseContext
+        })
+      ).rejects.toThrow(ServiceError);
+      expect(oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest).not.toHaveBeenCalled();
+    });
+
+    it('rejects consumer profiles from another organization for organization-scoped apps', async () => {
+      mockDb.consumerProfile.findFirst.mockResolvedValue(
+        consumerProfile({ organizationOid: 2n })
+      );
+
+      await expect(
+        oauthAuthorizationService.acceptOAuthAuthorizationRequest({
+          oauthAuthorizationRequest: consumerRequest(
+            consumerApplication({
+              accessLevel: 'organization',
+              organizationOid: baseOrg.oid,
+              organization: baseOrg
+            })
+          ),
+          user: baseUser,
+          organizationId: baseOrg.id,
+          consumerProfileId: 'cpr_1',
+          context: baseContext
+        })
+      ).rejects.toThrow(ServiceError);
+      expect(oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest).not.toHaveBeenCalled();
+    });
+
+    it('keeps member and consumer authorizations of the same user and app apart', async () => {
+      let cliApp = cliApplication();
+      mockDb.consumerProfile.findFirst.mockResolvedValue(consumerProfile());
+
+      await oauthAuthorizationService.acceptOAuthAuthorizationRequest({
+        oauthAuthorizationRequest: {
+          ...consumerRequest(cliApp),
+          id: 'oar_member',
+          subjectType: 'organization_member',
+          scopes: ['organization:read']
+        },
+        user: baseUser,
+        organizationId: baseOrg.id,
+        context: baseContext
+      });
+
+      await oauthAuthorizationService.acceptOAuthAuthorizationRequest({
+        oauthAuthorizationRequest: consumerRequest(cliApp),
+        user: baseUser,
+        organizationId: baseOrg.id,
+        consumerProfileId: 'cpr_1',
+        context: baseContext
+      });
+
+      expect(mockDb.cliDevice.upsert).toHaveBeenCalledTimes(1);
+
+      let upsertKeys = mockDb.oAuthAuthorization.upsert.mock.calls.map(
+        ([args]: any[]) => args.where
+      );
+      expect(upsertKeys).toEqual([
+        {
+          organizationMemberOid_oauthApplicationOid: {
+            organizationMemberOid: baseMember.oid,
+            oauthApplicationOid: 100n
+          }
+        },
+        {
+          consumerProfileOid_oauthApplicationOid: {
+            consumerProfileOid: 900n,
+            oauthApplicationOid: 100n
+          }
+        }
+      ]);
+    });
+
+    it('logs out the linked consumer session when an authorization is revoked', async () => {
+      mockDb.oAuthAuthorization.findFirstOrThrow.mockResolvedValue({
+        oid: 300n,
+        status: 'active',
+        subjectType: 'consumer',
+        consumerProfile: consumerProfile(),
+        oauthApplication: { type: 'user_facing' },
+        oauthInstallation: { organization: baseOrg, appActor: null }
+      });
+
+      await oauthAuthorizationService.revokeOAuthAuthorization({
+        oauthAuthorization: { oid: 300n } as any,
+        auditScope: testAuditScope
+      });
+
+      expect(mockDb.consumerSession.updateMany).toHaveBeenCalledWith({
+        where: { oauthAuthorization: { oid: 300n }, loggedOutAt: null },
+        data: { loggedOutAt: expect.any(Date) }
+      });
+    });
   });
 });

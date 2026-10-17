@@ -13,12 +13,14 @@ export type DashboardInstanceIdentitiesDelegationRequestsListOutput = {
     requester: {
       object: 'identity.actor';
       id: string;
-      type: 'person' | 'agent';
+      type: 'person' | 'agent' | 'consumer';
       status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;
       metadata: Record<string, any> | null;
       agentId: string | null;
+      consumerId: string | null;
+      defaultIdentityId: string | null;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -65,12 +67,14 @@ export type DashboardInstanceIdentitiesDelegationRequestsListOutput = {
         actor: {
           object: 'identity.actor';
           id: string;
-          type: 'person' | 'agent';
+          type: 'person' | 'agent' | 'consumer';
           status: 'active' | 'archived' | 'deleted';
           name: string;
           description: string | null;
           metadata: Record<string, any> | null;
           agentId: string | null;
+          consumerId: string | null;
+          defaultIdentityId: string | null;
           createdAt: Date;
           updatedAt: Date;
         };
@@ -88,12 +92,14 @@ export type DashboardInstanceIdentitiesDelegationRequestsListOutput = {
         requester: {
           object: 'identity.actor';
           id: string;
-          type: 'person' | 'agent';
+          type: 'person' | 'agent' | 'consumer';
           status: 'active' | 'archived' | 'deleted';
           name: string;
           description: string | null;
           metadata: Record<string, any> | null;
           agentId: string | null;
+          consumerId: string | null;
+          defaultIdentityId: string | null;
           createdAt: Date;
           updatedAt: Date;
         };
@@ -128,7 +134,20 @@ export let mapDashboardInstanceIdentitiesDelegationRequestsListOutput =
         1,
         [
           'denied_reason',
-          ['requester', 0, [1, ['agent_id', 'created_at', 'updated_at']]],
+          [
+            'requester',
+            0,
+            [
+              1,
+              [
+                'agent_id',
+                'consumer_id',
+                'default_identity_id',
+                'created_at',
+                'updated_at'
+              ]
+            ]
+          ],
           'identity_id',
           [
             'delegation',
@@ -151,7 +170,16 @@ export let mapDashboardInstanceIdentitiesDelegationRequestsListOutput =
                         [
                           'actor',
                           0,
-                          [1, ['agent_id', 'created_at', 'updated_at']]
+                          [
+                            1,
+                            [
+                              'agent_id',
+                              'consumer_id',
+                              'default_identity_id',
+                              'created_at',
+                              'updated_at'
+                            ]
+                          ]
                         ],
                         'created_at'
                       ]
@@ -168,7 +196,16 @@ export let mapDashboardInstanceIdentitiesDelegationRequestsListOutput =
                       [
                         'requester',
                         0,
-                        [1, ['agent_id', 'created_at', 'updated_at']]
+                        [
+                          1,
+                          [
+                            'agent_id',
+                            'consumer_id',
+                            'default_identity_id',
+                            'created_at',
+                            'updated_at'
+                          ]
+                        ]
                       ],
                       'identity_id',
                       'expires_at',

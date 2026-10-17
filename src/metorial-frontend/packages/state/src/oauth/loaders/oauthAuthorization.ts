@@ -10,6 +10,7 @@ export let oauthAuthorizationsLoader = createLoader({
     after?: string;
     installationId?: string;
     appId?: string;
+    subjectType?: 'organization_member' | 'consumer';
   }) =>
     withAuth(sdk =>
       sdk.oauth.authorizations.list(i.organizationId, {
@@ -17,20 +18,23 @@ export let oauthAuthorizationsLoader = createLoader({
         after: i.after,
         limit: 100,
         installationId: i.installationId,
-        appId: i.appId
+        appId: i.appId,
+        subjectType: i.subjectType
       })
     ),
   mutators: {
-    revoke: (
-      i: { oauthAuthorizationId: string },
-      { input: { organizationId } }
-    ) => withAuth(sdk => sdk.oauth.authorizations.revoke(organizationId, i.oauthAuthorizationId))
+    revoke: (i: { oauthAuthorizationId: string }, { input: { organizationId } }) =>
+      withAuth(sdk => sdk.oauth.authorizations.revoke(organizationId, i.oauthAuthorizationId))
   }
 });
 
 export let useOAuthAuthorizations = (
   organizationId: string | null | undefined,
-  opts?: { installationId?: string; appId?: string }
+  opts?: {
+    installationId?: string;
+    appId?: string;
+    subjectType?: 'organization_member' | 'consumer';
+  }
 ) => {
   let oauthAuthorizations = usePaginator(cursor =>
     oauthAuthorizationsLoader.use(
@@ -39,7 +43,8 @@ export let useOAuthAuthorizations = (
             organizationId,
             ...cursor,
             installationId: opts?.installationId,
-            appId: opts?.appId
+            appId: opts?.appId,
+            subjectType: opts?.subjectType
           }
         : null
     )
@@ -67,9 +72,7 @@ export let useOAuthAuthorization = (
   oauthAuthorizationId: string | null | undefined
 ) => {
   let oauthAuthorization = oauthAuthorizationLoader.use(
-    organizationId && oauthAuthorizationId
-      ? { organizationId, oauthAuthorizationId }
-      : null
+    organizationId && oauthAuthorizationId ? { organizationId, oauthAuthorizationId } : null
   );
 
   return {

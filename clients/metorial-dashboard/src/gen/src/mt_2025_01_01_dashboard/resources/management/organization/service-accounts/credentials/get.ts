@@ -13,7 +13,8 @@ export type ManagementOrganizationServiceAccountsCredentialsGetOutput = {
     type:
       | 'organization_management'
       | 'instance_secret'
-      | 'instance_publishable';
+      | 'instance_publishable'
+      | 'instance_consumer';
     name: string;
     lastUsedAt: Date;
     createdAt: Date;

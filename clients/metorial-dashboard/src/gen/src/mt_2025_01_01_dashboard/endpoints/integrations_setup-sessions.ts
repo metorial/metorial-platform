@@ -104,7 +104,7 @@ export class MetorialIntegrationsSetupSessionsEndpoint {
 
   /**
    * @name Create integration setup session
-   * @description Creates a new integration setup session and draft integration instance.
+   * @description Creates a new integration setup session. Creates a draft integration instance unless integration_instance_id is given, in which case that instance is reused and its config and auth config are overwritten on completion.
    *
    * @param `body` - DashboardInstanceIntegrationsSetupSessionsCreateBody
    * @param `opts` - { headers?: Record<string, string> }

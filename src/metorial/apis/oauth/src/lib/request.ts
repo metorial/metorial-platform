@@ -31,6 +31,24 @@ export let normalizeScopes = (value: unknown): string[] | undefined => {
   return [...new Set(scopes)];
 };
 
+export type OAuthRequestSubjectType = 'organization_member' | 'consumer';
+
+let subjectTypes: OAuthRequestSubjectType[] = ['organization_member', 'consumer'];
+
+export let getSubjectType = (value: unknown): OAuthRequestSubjectType | undefined => {
+  let subjectType = getString(value);
+  if (!subjectType) return undefined;
+
+  if (!subjectTypes.includes(subjectType as OAuthRequestSubjectType)) {
+    throw new OAuthError({
+      error: 'invalid_request',
+      errorMessage: `subject_type must be one of: ${subjectTypes.join(', ')}`
+    });
+  }
+
+  return subjectType as OAuthRequestSubjectType;
+};
+
 export let parseOAuthBody = async (c: Context): Promise<Record<string, string>> => {
   try {
     let contentType = c.req.header('content-type');

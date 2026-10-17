@@ -24,6 +24,7 @@ export let v1OAuthAuthorizationRequestPresenter = Presenter.create(
     id: oauthAuthorizationRequest.id,
     status: oauthAuthorizationRequest.status,
     type: oauthAuthorizationRequest.type,
+    subject_type: oauthAuthorizationRequest.subjectType,
 
     user_code: oauthAuthorizationRequest.userCode,
     redirect_uri: oauthAuthorizationRequest.redirectUri,
@@ -56,6 +57,11 @@ export let v1OAuthAuthorizationRequestPresenter = Presenter.create(
       id: v.string(),
       status: v.enumOf(['pending', 'accepted', 'denied', 'consumed']),
       type: v.enumOf(['interactive', 'device_code']),
+      subject_type: v.enumOf(['organization_member', 'consumer'], {
+        name: 'subject_type',
+        description:
+          'Whether approving this request authorizes the app as an organization member or as a portal consumer'
+      }),
       user_code: v.nullable(v.string()),
       redirect_uri: v.nullable(v.string()),
       scopes: v.array(

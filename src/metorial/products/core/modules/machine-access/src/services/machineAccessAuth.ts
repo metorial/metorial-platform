@@ -30,6 +30,20 @@ let apiKeySecretInclude = {
   }
 } as const;
 
+let consumerProfileInclude = {
+  consumer: {
+    include: {
+      user: true
+    }
+  },
+  resourceActors: true,
+  surface: {
+    include: {
+      portal: true
+    }
+  }
+} as const;
+
 let oauthTokenInclude = {
   oauthAuthorization: {
     include: {
@@ -44,6 +58,16 @@ let oauthTokenInclude = {
       user: true,
       machineAccess: {
         include: machineAccessInclude
+      },
+      consumerProfile: {
+        include: consumerProfileInclude
+      },
+      consumerSession: {
+        include: {
+          consumerProfile: {
+            include: consumerProfileInclude
+          }
+        }
       }
     }
   }

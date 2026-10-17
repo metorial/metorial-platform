@@ -5,6 +5,7 @@ export type DashboardOauthAuthorizationRequestsGetOutput = {
   id: string;
   status: 'pending' | 'accepted' | 'denied' | 'consumed';
   type: 'interactive' | 'device_code';
+  subjectType: 'organization_member' | 'consumer';
   userCode: string | null;
   redirectUri: string | null;
   scopes: { identifier: string; name: string; description: string }[];
@@ -16,6 +17,10 @@ export type DashboardOauthAuthorizationRequestsGetOutput = {
     status: 'active' | 'archived';
     type: 'user_facing' | 'cli_auth' | 'server_side';
     accessLevel: 'organization' | 'global';
+    subjectType:
+      | 'organization_member'
+      | 'consumer'
+      | 'consumer_or_organization_member';
     allowTokenExchangeWithoutClientSecret: boolean;
     name: string;
     description: string | null;
@@ -43,6 +48,7 @@ export type DashboardOauthAuthorizationRequestsGetOutput = {
 export let mapDashboardOauthAuthorizationRequestsGetOutput =
   /* @__PURE__ */ mapObject<DashboardOauthAuthorizationRequestsGetOutput>(
     [
+      'subject_type',
       'user_code',
       'redirect_uri',
       'redirect_url',
@@ -54,6 +60,7 @@ export let mapDashboardOauthAuthorizationRequestsGetOutput =
           1,
           [
             'access_level',
+            'subject_type',
             'allow_token_exchange_without_client_secret',
             'image_url',
             'website_url',

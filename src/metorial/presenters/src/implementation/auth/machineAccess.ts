@@ -85,10 +85,18 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
         description: `The machineAccess's status`
       }),
 
-      type: v.enumOf(['organization_management', 'instance_secret', 'instance_publishable'], {
-        name: 'type',
-        description: `The machineAccess's type`
-      }),
+      type: v.enumOf(
+        [
+          'organization_management',
+          'instance_secret',
+          'instance_publishable',
+          'instance_consumer'
+        ],
+        {
+          name: 'type',
+          description: `The machineAccess's type`
+        }
+      ),
 
       name: v.string({ name: 'name', description: `The machineAccess's name` }),
 

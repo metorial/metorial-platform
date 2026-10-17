@@ -1,4 +1,4 @@
-import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -45,6 +45,8 @@ import { syncUserConsumersQueue } from '../queues/syncUserConsumer';
 import { consumerService } from './consumer';
 import type { EnrichedConsumerSurface } from './consumerSurface';
 import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurface';
+
+let serviceAccountEmailDomainSuffix = 'service-accounts.metorial.net';
 
 let include = {
   consumer: {
@@ -699,6 +701,52 @@ class ConsumerProfileServiceImpl {
     });
   }
 
+  async createServiceAccountConsumerProfile(d: {
+    surface: ConsumerSurface;
+    name: string;
+    serviceAccountKey: string;
+    auditScope: AuditScope;
+  }) {
+    if (d.surface.type != 'portal') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Service account consumer profiles can only be created on portals.'
+        })
+      );
+    }
+
+    return await this.ensureConsumerProfile({
+      surface: d.surface,
+      email: `sa-${d.serviceAccountKey}@${d.surface.organizationOid}.${serviceAccountEmailDomainSuffix}`,
+      name: d.name,
+      auditScope: d.auditScope,
+      inviteStatus: 'unset',
+      rejectIfActiveProfileExists: true,
+      automatic: true,
+      isServiceAccount: true
+    });
+  }
+
+  async deleteServiceAccountConsumerProfile(d: {
+    consumerProfile: Pick<ConsumerProfile, 'oid'>;
+    auditScope: AuditScope;
+  }) {
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: {
+        oid: d.consumerProfile.oid,
+        status: 'active',
+        consumer: { isServiceAccount: true }
+      },
+      include
+    });
+    if (!consumerProfile) return null;
+
+    return await this.deleteConsumerProfile({
+      consumerProfile,
+      auditScope: d.auditScope
+    });
+  }
+
   async deleteConsumerProfile(d: {
     consumerProfile: ConsumerProfileWithRelations;
     auditScope: AuditScope;
@@ -872,6 +920,7 @@ class ConsumerProfileServiceImpl {
     inviteStatus?: ConsumerProfileInviteStatus;
     rejectIfActiveProfileExists?: boolean;
     automatic?: boolean;
+    isServiceAccount?: boolean;
 
     ssoGroupIds?: string[];
     ssoRoles?: string[];
@@ -902,7 +951,8 @@ class ConsumerProfileServiceImpl {
           user: d.user,
           flags: {
             isOrganizationMember: d.surface.type === 'organization_members',
-            isPortalConsumer: d.surface.type === 'portal'
+            isPortalConsumer: d.surface.type === 'portal',
+            isServiceAccount: d.isServiceAccount
           },
           input: {
             name: d.name,
@@ -1309,6 +1359,7 @@ class ConsumerProfileServiceImpl {
 
     return await db.consumer.findMany({
       where: {
+        isServiceAccount: false,
         OR: [
           { userOid: d.user.oid },
 

@@ -2,13 +2,25 @@ import { Fabric, type FabricEvents } from '@metorial/fabric';
 import { auditTrackerService } from '@metorial/module-audit-tracker';
 import { recordAuditEventAfterCommit } from './record';
 
+type AuditServiceAccount =
+  FabricEvents['machine_access.service_account.created:after']['serviceAccount'];
+
+let serviceAccountWithSubject = (
+  serviceAccount: AuditServiceAccount,
+  subject: Pick<AuditServiceAccount, 'portal' | 'consumerProfile'>
+) => ({
+  ...serviceAccount,
+  portal: serviceAccount.portal ?? subject.portal ?? null,
+  consumerProfile: serviceAccount.consumerProfile ?? subject.consumerProfile ?? null
+});
+
 export let recordServiceAccountCreated = async (
   event: FabricEvents['machine_access.service_account.created:after']
 ) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'service_account', 'create', {
       payload: {
-        serviceAccount: event.serviceAccount
+        serviceAccount: serviceAccountWithSubject(event.serviceAccount, event)
       },
       recordedAt
     });
@@ -18,13 +30,15 @@ export let recordServiceAccountCreated = async (
 export let recordServiceAccountUpdated = async (
   event: FabricEvents['machine_access.service_account.updated:after']
 ) => {
+  let serviceAccount = serviceAccountWithSubject(event.serviceAccount, event);
+
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'service_account', 'update', {
       payload: {
-        serviceAccount: event.serviceAccount
+        serviceAccount
       },
       previousPayload: {
-        serviceAccount: event.previousServiceAccount
+        serviceAccount: serviceAccountWithSubject(event.previousServiceAccount, serviceAccount)
       },
       recordedAt
     });
@@ -37,7 +51,7 @@ export let recordServiceAccountArchived = async (
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'service_account', 'archive', {
       payload: {
-        serviceAccount: event.serviceAccount
+        serviceAccount: serviceAccountWithSubject(event.serviceAccount, event)
       },
       recordedAt
     });

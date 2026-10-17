@@ -4,12 +4,14 @@ export type DashboardInstanceIdentityActorsListOutput = {
   items: ({
     object: 'identity.actor';
     id: string;
-    type: 'person' | 'agent';
+    type: 'person' | 'agent' | 'consumer';
     status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
     agentId: string | null;
+    consumerId: string | null;
+    defaultIdentityId: string | null;
     createdAt: Date;
     updatedAt: Date;
   } & {
@@ -23,7 +25,11 @@ export type DashboardInstanceIdentityActorsListOutput = {
           userId: string | null;
           createdAt: Date;
           updatedAt: Date;
-        } & { isPortalConsumer: boolean; isOrganizationMember: boolean })
+        } & {
+          isPortalConsumer: boolean;
+          isOrganizationMember: boolean;
+          isServiceAccount: boolean;
+        })
       | null;
   })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -42,6 +48,8 @@ export let mapDashboardInstanceIdentityActorsListOutput =
               1,
               [
                 'agent_id',
+                'consumer_id',
+                'default_identity_id',
                 'created_at',
                 'updated_at',
                 [
@@ -60,7 +68,8 @@ export let mapDashboardInstanceIdentityActorsListOutput =
                             'created_at',
                             'updated_at',
                             'is_portal_consumer',
-                            'is_organization_member'
+                            'is_organization_member',
+                            'is_service_account'
                           ]
                         ]
                       ]

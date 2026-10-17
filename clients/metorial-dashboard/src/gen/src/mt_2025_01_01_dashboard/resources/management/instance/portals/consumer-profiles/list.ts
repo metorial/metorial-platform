@@ -30,6 +30,7 @@ export type ManagementInstancePortalsConsumerProfilesListOutput = {
         }[]
       | null;
   }) & {
+    isServiceAccount: boolean;
     surface: {
       object: 'consumer.surface';
       id: string;
@@ -92,6 +93,7 @@ export let mapManagementInstancePortalsConsumerProfilesListOutput =
                     ]
                   ]
                 ],
+                'is_service_account',
                 [
                   'surface',
                   0,

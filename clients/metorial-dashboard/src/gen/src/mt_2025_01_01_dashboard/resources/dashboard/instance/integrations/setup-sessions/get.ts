@@ -11,6 +11,11 @@ export type DashboardInstanceIntegrationsSetupSessionsGetOutput = {
   configuration: Record<string, any> | null;
   redirectUrl: string | null;
   integrationId: string;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    consumerId: string | null;
+  } | null;
   integrationInstance: {
     object: 'integration.instance';
     id: string;
@@ -21,6 +26,11 @@ export type DashboardInstanceIntegrationsSetupSessionsGetOutput = {
     integrationId: string;
     identityActorId: string | null;
     identityId: string | null;
+    ownerActor: {
+      id: string;
+      type: 'person' | 'agent' | 'consumer';
+      consumerId: string | null;
+    } | null;
     implementation: {
       type: 'magic_mcp_server';
       magicMcpServerId: string;
@@ -176,6 +186,7 @@ export let mapDashboardInstanceIntegrationsSetupSessionsGetOutput =
     [
       'redirect_url',
       'integration_id',
+      ['owner_actor', 1, [1, ['consumer_id']]],
       [
         'integration_instance',
         1,
@@ -185,6 +196,7 @@ export let mapDashboardInstanceIntegrationsSetupSessionsGetOutput =
             'integration_id',
             'identity_actor_id',
             'identity_id',
+            ['owner_actor', 1, [1, ['consumer_id']]],
             ['implementation', 0, [1, ['magic_mcp_server_id']]],
             [
               'providers',

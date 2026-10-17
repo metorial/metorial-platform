@@ -19,7 +19,7 @@ let input = {
   content: { subject: 'Approved', html: '<p>Approved</p>', text: 'Approved' },
   identity: { oid: 1 } as any
 };
-let email = { oid: 123n, id: 'oe_1', queuedAt: null };
+let email = { oid: 123n, id: 'oe_1', queuedAt: null, numberOfDestinations: 1 };
 
 describe('Relay idempotent admission', () => {
   beforeEach(() => {
@@ -73,6 +73,37 @@ describe('Relay idempotent admission', () => {
     ).resolves.toMatchObject({ id: email.id });
     expect(mocks.enqueue).toHaveBeenCalledTimes(2);
   });
+  it('drops ignored recipients and only sends to the rest', async () => {
+    await emailService.sendEmail({
+      ...input,
+      to: ['customer@example.com', 'sa-abc@900.service-accounts.metorial.net']
+    });
+
+    let data = mocks.create.mock.calls[0]![0].data;
+    expect(data.numberOfDestinations).toBe(1);
+    expect(data.destinations.create).toEqual([
+      expect.objectContaining({ destination: 'customer@example.com', status: 'pending' })
+    ]);
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it('records but never queues an email whose recipients are all ignored', async () => {
+    mocks.create.mockResolvedValue({ ...email, numberOfDestinations: 0 });
+
+    await expect(
+      emailService.sendEmail({
+        ...input,
+        to: ['sa-abc@900.service-accounts.metorial.net', 'deleted_1@deleted.local']
+      })
+    ).resolves.toMatchObject({ id: email.id });
+
+    let data = mocks.create.mock.calls[0]![0].data;
+    expect(data.numberOfDestinations).toBe(0);
+    expect(data.destinations.create).toHaveLength(0);
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
   it('keeps legacy sends independent and does not mask unrelated errors', async () => {
     await emailService.sendEmail(input);
     expect(mocks.create.mock.calls[0]![0].data.idempotencyKey).toBeUndefined();

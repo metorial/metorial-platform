@@ -75,6 +75,13 @@ export let oauthApplicationManagementController = Controller.create(
                 v.array(v.enumOf(['active', 'archived']))
               ]),
               { description: 'Filter by application status' }
+            ),
+            subject_type: v.optional(
+              v.union([
+                v.enumOf(['organization_member', 'consumer']),
+                v.array(v.enumOf(['organization_member', 'consumer']))
+              ]),
+              { description: 'Filter by the subject type applications act as' }
             )
           })
         )
@@ -82,7 +89,8 @@ export let oauthApplicationManagementController = Controller.create(
       .do(async ctx => {
         let paginator = await oauthApplicationService.listOAuthApplications({
           organization: ctx.organization,
-          statuses: normalizeArrayParam(ctx.query.status)
+          statuses: normalizeArrayParam(ctx.query.status),
+          subjectTypes: normalizeArrayParam(ctx.query.subject_type)
         });
 
         let list = await paginator.run(ctx.query);
@@ -117,6 +125,12 @@ export let oauthApplicationManagementController = Controller.create(
           access_level: v.enumOf(['organization'], {
             description: 'Whether the app is organization-scoped or globally installable'
           }),
+          subject_type: v.optional(
+            v.enumOf(['organization_member', 'consumer'], {
+              description:
+                'Whether the app acts as an organization member or as a portal consumer. Defaults to organization_member and cannot be changed after creation.'
+            })
+          ),
           allow_token_exchange_without_client_secret: v.optional(
             v.boolean({
               description:
@@ -169,6 +183,7 @@ export let oauthApplicationManagementController = Controller.create(
           input: {
             type: 'user_facing',
             accessLevel: ctx.body.access_level,
+            subjectType: ctx.body.subject_type,
             allowClientSecretlessTokenExchange:
               ctx.body.allow_token_exchange_without_client_secret,
             name: ctx.body.name,

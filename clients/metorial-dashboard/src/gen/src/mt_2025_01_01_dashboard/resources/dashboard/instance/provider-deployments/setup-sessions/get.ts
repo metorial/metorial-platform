@@ -19,6 +19,11 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsGetOutput = {
   providerId: string | null;
   identityId: string | null;
   identityCredentialId: string | null;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    consumerId: string | null;
+  } | null;
   authMethod: {
     object: 'provider.capabilities.auth_method';
     id: string;
@@ -147,6 +152,11 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsGetOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
+    ownerActor: {
+      id: string;
+      type: 'person' | 'agent' | 'consumer';
+      consumerId: string | null;
+    } | null;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -208,6 +218,11 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsGetOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
+    ownerActor: {
+      id: string;
+      type: 'person' | 'agent' | 'consumer';
+      consumerId: string | null;
+    } | null;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -224,6 +239,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsGetOutput =
       'provider_id',
       'identity_id',
       'identity_credential_id',
+      ['owner_actor', 1, [1, ['consumer_id']]],
       [
         'auth_method',
         1,
@@ -301,6 +317,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsGetOutput =
                 ]
               ]
             ],
+            ['owner_actor', 1, [1, ['consumer_id']]],
             'created_at',
             'updated_at'
           ]
@@ -341,6 +358,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsGetOutput =
                 ]
               ]
             ],
+            ['owner_actor', 1, [1, ['consumer_id']]],
             'created_at',
             'updated_at'
           ]

@@ -75,6 +75,7 @@ import {
   v1ConsumerAndProfilePresenter,
   v1ConsumerGroupPresenter,
   v1ConsumerInvitePresenter,
+  v1ConsumerOAuthAuthorizationPresenter,
   v1ConsumerOAuthTestAuthorizationPresenter,
   v1ConsumerPresenter,
   v1ConsumerProfilePresenter,
@@ -146,6 +147,7 @@ import {
   v1OAuthApplicationPresenter,
   v1OAuthAuthorizationLogPresenter,
   v1OAuthAuthorizationPresenter,
+  v1OAuthAuthorizationRequestConsumerTargetPresenter,
   v1OAuthAuthorizationRequestPresenter,
   v1OAuthInstallationPresenter,
   v1OAuthScopePermissionsPresenter,
@@ -325,6 +327,7 @@ import {
   consumerAndProfileType,
   consumerGroupType,
   consumerInviteType,
+  consumerOAuthAuthorizationType,
   consumerOAuthTestAuthorizationType,
   consumerProfileType,
   consumerProviderType,
@@ -393,6 +396,7 @@ import {
   oauthApplicationClientSecretType,
   oauthApplicationType,
   oauthAuthorizationLogType,
+  oauthAuthorizationRequestConsumerTargetType,
   oauthAuthorizationRequestType,
   oauthAuthorizationType,
   oauthInstallationType,
@@ -581,6 +585,14 @@ export let oauthAuthorizationRequestPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1OAuthAuthorizationRequestPresenter,
     mt_2026_01_01_magnetar: v1OAuthAuthorizationRequestPresenter
+  }
+);
+
+export let oauthAuthorizationRequestConsumerTargetPresenter = declarePresenter(
+  oauthAuthorizationRequestConsumerTargetType,
+  {
+    mt_2025_01_01_dashboard: v1OAuthAuthorizationRequestConsumerTargetPresenter,
+    mt_2026_01_01_magnetar: v1OAuthAuthorizationRequestConsumerTargetPresenter
   }
 );
 
@@ -1283,6 +1295,15 @@ export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
   mt_2026_01_01_magnetar: v1ConsumerSessionPresenter,
   mt_2026_04_01_consumer: v1ConsumerSessionPresenter
 });
+
+export let consumerOAuthAuthorizationPresenter = declarePresenter(
+  consumerOAuthAuthorizationType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerOAuthAuthorizationPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerOAuthAuthorizationPresenter,
+    mt_2026_04_01_consumer: v1ConsumerOAuthAuthorizationPresenter
+  }
+);
 
 export let consumerProviderPresenter = declarePresenter(consumerProviderType, {
   mt_2025_01_01_dashboard: v1ConsumerProviderPresenter,

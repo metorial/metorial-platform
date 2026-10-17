@@ -15,6 +15,12 @@ enum OAuthAuthorizationAccessLevel {
   global
 }
 
+enum OAuthApplicationSubjectType {
+  organization_member
+  consumer
+  consumer_or_organization_member
+}
+
 model OAuthApplication {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -22,6 +28,7 @@ model OAuthApplication {
   status      OAuthApplicationStatus
   type        OAuthApplicationType
   accessLevel OAuthAuthorizationAccessLevel
+  subjectType OAuthApplicationSubjectType   @default(organization_member)
 
   systemIdentifier String?
 
@@ -185,12 +192,18 @@ enum OAuthAuthorizationType {
   server_side
 }
 
+enum OAuthSubjectType {
+  organization_member
+  consumer
+}
+
 model OAuthAuthorization {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status OAuthAuthorizationStatus
-  type   OAuthAuthorizationType
+  status      OAuthAuthorizationStatus
+  type        OAuthAuthorizationType
+  subjectType OAuthSubjectType         @default(organization_member)
 
   scopes     String[]
   oidcScopes String[] @default([])
@@ -213,6 +226,9 @@ model OAuthAuthorization {
   organizationMemberOid BigInt?
   organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: Cascade)
 
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
   machineAccessOid BigInt
   machineAccess    MachineAccess @relation(fields: [machineAccessOid], references: [oid], onDelete: Cascade)
 
@@ -229,10 +245,10 @@ model OAuthAuthorization {
   internalOAuthToken         InternalOAuthToken?
   cliDevices                 CliDevice[]
   serviceAccountCredential   ServiceAccountCredential?
+  consumerSession            ConsumerSession?
 
-  @@unique([oauthInstallationOid, userOid])
-  @@unique([userOid, organizationOid, oauthApplicationOid])
   @@unique([organizationMemberOid, oauthApplicationOid])
+  @@unique([consumerProfileOid, oauthApplicationOid])
 }
 
 enum OAuthAuthorizationFlowChallengeMethod {
@@ -255,8 +271,9 @@ model OAuthAuthorizationFlow {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  type   OAuthAuthorizationFlowType
-  status OAuthAuthorizationFlowStatus
+  type        OAuthAuthorizationFlowType
+  status      OAuthAuthorizationFlowStatus
+  subjectType OAuthSubjectType             @default(organization_member)
 
   scopes     String[]
   oidcScopes String[] @default([])
@@ -276,6 +293,9 @@ model OAuthAuthorizationFlow {
 
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
 
   codeChallengeMethod OAuthAuthorizationFlowChallengeMethod
   codeChallenge       String?

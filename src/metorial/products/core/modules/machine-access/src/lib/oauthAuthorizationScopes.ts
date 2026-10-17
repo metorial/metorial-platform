@@ -1,19 +1,29 @@
 import {
   OAuthApplication,
+  OAuthSubjectType,
   Organization,
   OrganizationMember,
   ServiceAccount
 } from '@metorial/db';
 import { effectiveAccessService } from '@metorial/module-organization/src/services/effectiveAccess';
-import { coreScopes } from '../../../access/src/definitions';
+import { consumerScopes, coreScopes } from '../../../access/src/definitions';
 
 export let normalizeScopes = (scopes: string[]) => Array.from(new Set(scopes)).sort();
 
 export let cliAuthScopes = normalizeScopes(coreScopes);
 
+export let consumerOAuthScopes = normalizeScopes(consumerScopes);
+
+export let cliConsumerAuthScopes = consumerOAuthScopes;
+
 export let getOAuthApplicationScopes = (
-  oauthApplication: Pick<OAuthApplication, 'type' | 'scopes'>
-) => (oauthApplication.type == 'cli_auth' ? cliAuthScopes : oauthApplication.scopes);
+  oauthApplication: Pick<OAuthApplication, 'type' | 'scopes'>,
+  subjectType: OAuthSubjectType = 'organization_member'
+) => {
+  if (oauthApplication.type != 'cli_auth') return oauthApplication.scopes;
+
+  return subjectType == 'consumer' ? cliConsumerAuthScopes : cliAuthScopes;
+};
 
 export let intersectScopes = (...scopeSets: Array<string[] | undefined | null>) => {
   let normalizedSets = scopeSets
@@ -53,6 +63,17 @@ export let getUserEffectiveScopes = async (d: {
     d.requestedScopes
   );
 };
+
+export let getConsumerEffectiveScopes = (d: {
+  oauthApplication: Pick<OAuthApplication, 'type' | 'scopes'>;
+  requestedScopes: string[];
+  serviceAccount?: Pick<ServiceAccount, 'scopes'> | null;
+}) =>
+  intersectScopes(
+    d.serviceAccount?.scopes,
+    getOAuthApplicationScopes(d.oauthApplication, 'consumer'),
+    d.requestedScopes
+  );
 
 export let getServiceAccountEffectiveScopes = async (d: {
   organization: Organization;

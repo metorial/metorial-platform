@@ -31,6 +31,7 @@ let syncOAuthApp = async (_app: { id: string }) => {
     status: app.status,
     type: app.type,
     accessLevel: app.accessLevel,
+    subjectType: app.subjectType,
     allowClientSecretlessTokenExchange: app.allowClientSecretlessTokenExchange,
 
     name: app.name,
