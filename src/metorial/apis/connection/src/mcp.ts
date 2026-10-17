@@ -1,5 +1,7 @@
 import {
   handleMcpRequest as handleSubspaceMcpRequest,
+  isModernMcpRequest,
+  isSessionlessMcpEnabled,
   McpConnection
 } from '@metorial-subspace/module-connection';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
@@ -14,6 +16,7 @@ import {
   getOutpostAuth,
   resolveOutpostOrigin
 } from './outpost';
+import { handleSessionlessHttpRequest, sessionlessDisabledResponse } from './sessionless';
 import { createStreamableHttpResponse, missingMcpResponse } from './streamableHttpResponse';
 
 let agentClientSchema = z.discriminatedUnion('type', [
@@ -128,6 +131,21 @@ export let handleMcpRequest = async (
       : 'sse';
   let proxyUrl = publicProxyUrl(c, resolveOutpostOrigin(getOutpostAuth(c)));
 
+  let body: unknown;
+  if (c.req.method === 'POST') {
+    let parsedBody = await readMessage(c);
+    if (parsedBody instanceof Response) return parsedBody;
+    body = parsedBody;
+  }
+
+  let isSessionless =
+    c.req.method === 'POST' &&
+    !connectionToken &&
+    isModernMcpRequest({ body, getHeader: name => c.req.header(name) });
+  if (isSessionless && !isSessionlessMcpEnabled()) {
+    return sessionlessDisabledResponse(c, body);
+  }
+
   let privateMetadata = parseOptionalJsonHeader(
     c.req.header('metorial-connection-private-metadata'),
     privateMetadataSchema,
@@ -159,18 +177,30 @@ export let handleMcpRequest = async (
     };
   }
 
-  let connectionInput = {
-    connectionToken,
+  let baseConnectionInput = {
     sessionId: d.sessionId,
     solutionId: solution.id,
     tenantId: tenant.id,
-    mcpTransport: transport,
     agentClient: d.agentClient ?? undefined,
     connectionPrivateMetadata: privateMetadata.data,
     ingressPolicyCheck
   };
+  let connectionInput = {
+    ...baseConnectionInput,
+    connectionToken,
+    mcpTransport: transport
+  };
 
   await Fabric.fire('provider.session_message.created:before', { instance: d.instance });
+
+  if (isSessionless) {
+    return handleSessionlessHttpRequest(c, {
+      body,
+      connectionInput: baseConnectionInput,
+      clientIp: d.ingressIp,
+      onSubspaceSessionResolved: d.onSubspaceSessionResolved
+    });
+  }
 
   let finish = async (response: Response, connection: McpConnection) => {
     for (let [key, value] of c.res.headers) response.headers.set(key, value);
@@ -210,8 +240,7 @@ export let handleMcpRequest = async (
     }
 
     if (c.req.method === 'POST') {
-      let message = await readMessage(c);
-      if (message instanceof Response) return message;
+      let message = body as JSONRPCMessage;
       let { connection } = await handleSubspaceMcpRequest({
         ...connectionInput,
         message,
@@ -246,8 +275,7 @@ export let handleMcpRequest = async (
   }
 
   if (c.req.method === 'POST') {
-    let message = await readMessage(c);
-    if (message instanceof Response) return message;
+    let message = body as JSONRPCMessage;
 
     let stream = createStreamableHttpResponse();
     let resolveConnection!: (connection: McpConnection) => void;

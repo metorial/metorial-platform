@@ -9,6 +9,11 @@ import { handleMagicMcpRequest } from './magic';
 import { handleMcpRequest } from './mcp';
 import { outpostConnectionAuthMiddleware, useConnectionRequestContext } from './outpost';
 
+let CORS_ALLOW_HEADERS =
+  'Content-Type, Authorization, metorial-version, mcp-protocol-version, Mcp-Method, Mcp-Name, MCP-Session-ID, Last-Event-ID, baggage, sentry-trace';
+let CORS_EXPOSE_HEADERS =
+  'Metorial-Connection-Id, Metorial-Connection-Token, Metorial-Session-Id, MCP-Session-ID, MCP-Protocol-Version';
+
 export type CorsOriginOption = string[] | ((origin: string) => boolean);
 
 let isCorsOriginAllowed = (origin: string | undefined, corsOrigins?: CorsOriginOption) => {
@@ -41,12 +46,9 @@ export let startMcpServer = (d: {
       );
       c.res.headers.set(
         'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, metorial-version, mcp-protocol-version, MCP-Session-ID, Last-Event-ID, baggage, sentry-trace'
+        c.req.header('Access-Control-Request-Headers') ?? CORS_ALLOW_HEADERS
       );
-      c.res.headers.set(
-        'Access-Control-Expose-Headers',
-        'Metorial-Connection-Id, Metorial-Connection-Token, Metorial-Session-Id, MCP-Session-ID'
-      );
+      c.res.headers.set('Access-Control-Expose-Headers', CORS_EXPOSE_HEADERS);
       c.res.headers.set('Access-Control-Allow-Credentials', 'true');
       c.res.headers.set('Access-Control-Max-Age', '86400');
     })
