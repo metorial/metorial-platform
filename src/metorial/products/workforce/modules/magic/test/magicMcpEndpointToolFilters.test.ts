@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, magicMcpEndpointUpdatedQueueAddMock } = vi.hoisted(() => {
+let { db, ensureMagicMcpEndpointBackingMock } = vi.hoisted(() => {
   let db = {
     magicMcpServer: {
       findMany: vi.fn()
@@ -14,13 +14,17 @@ let { db, magicMcpEndpointUpdatedQueueAddMock } = vi.hoisted(() => {
       updateMany: vi.fn()
     },
     magicMcpEndpoint: {
-      update: vi.fn()
+      update: vi.fn(),
+      findUniqueOrThrow: vi.fn()
+    },
+    instance: {
+      findUniqueOrThrow: vi.fn()
     }
   };
 
   return {
     db,
-    magicMcpEndpointUpdatedQueueAddMock: vi.fn()
+    ensureMagicMcpEndpointBackingMock: vi.fn()
   };
 });
 
@@ -47,9 +51,11 @@ vi.mock('@metorial/module-access', () => ({
 }));
 
 vi.mock('../src/queues/lifecycle/magicMcpEndpoint', () => ({
-  magicMcpEndpointCreatedQueue: { add: vi.fn() },
-  magicMcpEndpointDeletedQueue: { add: vi.fn() },
-  magicMcpEndpointUpdatedQueue: { add: magicMcpEndpointUpdatedQueueAddMock }
+  magicMcpEndpointDeletedQueue: { add: vi.fn() }
+}));
+
+vi.mock('../src/lib/backing', () => ({
+  ensureMagicMcpEndpointBacking: ensureMagicMcpEndpointBackingMock
 }));
 
 import { magicMcpEndpointService } from '../src/services/magicMcpEndpoint';
@@ -73,6 +79,13 @@ describe('magicMcpEndpointService endpoint server tool filters', () => {
     db.magicMcpEndpointServer.findMany.mockResolvedValue([{ magicMcpServerOid: server.oid }]);
     db.magicMcpEndpointServer.upsert.mockResolvedValue({});
     db.magicMcpEndpoint.update.mockResolvedValue(endpoint);
+    db.magicMcpEndpoint.findUniqueOrThrow.mockResolvedValue(endpoint);
+    db.instance.findUniqueOrThrow.mockResolvedValue({ oid: endpoint.instanceOid });
+    ensureMagicMcpEndpointBackingMock.mockResolvedValue({
+      hasSubspaceBacking: true,
+      subspaceEphemeralManagedSessionId: 'ems_1',
+      isSubspaceBackingReconciling: false
+    });
   });
 
   it('preserves existing endpoint server filters when toolFilters is omitted', async () => {

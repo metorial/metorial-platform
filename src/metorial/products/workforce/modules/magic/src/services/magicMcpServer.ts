@@ -42,9 +42,12 @@ import { assertAuthMethodAllowedForTenant } from '@metorial-subspace/module-prov
 import { sessionTemplateService } from '@metorial-subspace/module-session';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import {
+  applyMagicMcpServerBacking,
+  type ConsumerOwner,
   ensureMagicMcpServerBacking,
-  healMagicMcpServerBacking,
-  type ConsumerOwner
+  getConsumerOwnerForServer,
+  getMagicMcpServerBackingCoreFields,
+  healMagicMcpServerBacking
 } from '../lib/backing';
 import {
   magicMcpServerCreatedQueue,
@@ -197,8 +200,7 @@ class MagicMcpServerImpl {
         : await ensureMagicMcpServerBacking({
             instance: d.instance,
             server: d.server,
-            isReconciliation: true,
-            deferReconcile: false
+            isReconciliation: true
           });
       let backing = await magicMcpServerBackingService.getMagicMcpServerBackingById({
         instance: d.instance,
@@ -303,43 +305,63 @@ class MagicMcpServerImpl {
     });
 
     let ownerActorOid = await resolveOwnerActorOid(d.input.consumerOwner);
+    let magicMcpServerId = await ID.generateId('magicMcpServer');
 
-    let magicMcpServer = await withTransaction(
-      async db => {
-        return await db.magicMcpServer.create({
-          data: {
-            id: await ID.generateId('magicMcpServer'),
-            status: 'active',
-            source: d.input.source ?? 'manual',
-            isConsumerReconciled: true,
-            isSubspaceBackingReconciling: true,
-            providerTemplateId: d.input.providerTemplateId,
-            subspaceIntegrationInstanceId: d.input.subspaceIntegrationInstanceId,
-            name: d.input.name,
-            description: d.input.description,
-            metadata: d.input.metadata ?? {},
-            instanceOid: d.instance.oid,
-            ownerActorOid,
-            aliases: {
-              create: {
-                slug: buildAlias(d.input.name)
+    let backing = await applyMagicMcpServerBacking({
+      instance: d.instance,
+      owner: d.input.consumerOwner ?? {},
+      providers: d.input.providers,
+      server: {
+        id: magicMcpServerId,
+        name: d.input.name ?? null,
+        description: d.input.description ?? null,
+        metadata: (d.input.metadata ?? {}) as MagicMcpServer['metadata'],
+        providerTemplateId: d.input.providerTemplateId ?? null,
+        subspaceIntegrationInstanceId: d.input.subspaceIntegrationInstanceId ?? null,
+        legacySubspaceSessionTemplateId: null
+      }
+    });
+
+    let magicMcpServer;
+    try {
+      magicMcpServer = await withTransaction(
+        async db => {
+          return await db.magicMcpServer.create({
+            data: {
+              id: magicMcpServerId,
+              status: 'active',
+              source: d.input.source ?? 'manual',
+              isConsumerReconciled: true,
+              ...getMagicMcpServerBackingCoreFields(backing),
+              providerTemplateId: d.input.providerTemplateId,
+              subspaceIntegrationInstanceId: d.input.subspaceIntegrationInstanceId,
+              name: d.input.name,
+              description: d.input.description,
+              metadata: d.input.metadata ?? {},
+              instanceOid: d.instance.oid,
+              ownerActorOid,
+              aliases: {
+                create: {
+                  slug: buildAlias(d.input.name)
+                }
               }
             }
-          },
-          include: {
-            instance: true
-          }
-        });
-      },
-      { ifExists: true }
-    );
+          });
+        },
+        { ifExists: true }
+      );
+    } catch (error) {
+      await magicMcpServerBackingService
+        .archiveMagicMcpServerBacking({
+          instance: d.instance,
+          magicMcpServerBackingId: magicMcpServerId
+        })
+        .catch(() => undefined);
 
-    await magicMcpServerCreatedQueue.add({
-      magicMcpServerId: magicMcpServer.id,
-      providers: d.input.providers,
-      owner: d.input.consumerOwner,
-      isReconciliation: false
-    });
+      throw error;
+    }
+
+    await magicMcpServerCreatedQueue.add({ magicMcpServerId: magicMcpServer.id });
 
     let server = await db.magicMcpServer.findUniqueOrThrow({
       where: { id: magicMcpServer.id },
@@ -497,7 +519,15 @@ class MagicMcpServerImpl {
 
     let ownerActorOid = await resolveOwnerActorOid(d.consumerOwner);
 
-    let { server, endpointLinks } = await withTransaction(async db => {
+    let backing = await applyMagicMcpServerBacking({
+      instance: d.instance,
+      server: { ...d.server, subspaceIntegrationInstanceId: integrationInstance.id },
+      owner:
+        d.consumerOwner ??
+        (await getConsumerOwnerForServer({ instance: d.instance, server: d.server }))
+    });
+
+    let { endpointLinks } = await withTransaction(async db => {
       let endpointLinks = await db.magicMcpEndpointServer.findMany({
         where: { magicMcpServerOid: d.server.oid },
         select: {
@@ -519,23 +549,16 @@ class MagicMcpServerImpl {
         data: { isConsumerReconciled: false }
       });
 
-      let server = await db.magicMcpServer.update({
+      await db.magicMcpServer.update({
         where: { oid: d.server.oid },
         data: {
+          ...getMagicMcpServerBackingCoreFields(backing),
           subspaceIntegrationInstanceId: integrationInstance.id,
-          isSubspaceBackingReconciling: true,
           ...(ownerActorOid ? { ownerActorOid } : {})
         }
       });
 
-      return { server, endpointLinks };
-    });
-
-    await ensureMagicMcpServerBacking({
-      instance: d.instance,
-      server,
-      owner: d.consumerOwner,
-      deferReconcile: false
+      return { endpointLinks };
     });
 
     if (endpointLinks.length) {
@@ -611,17 +634,42 @@ class MagicMcpServerImpl {
       }
     }
 
+    let instance =
+      d.instance ??
+      (await db.instance.findUniqueOrThrow({ where: { oid: d.server.instanceOid } }));
+
+    let name = d.input.name === undefined ? d.server.name : d.input.name;
+    let description =
+      d.input.description === undefined ? d.server.description : d.input.description;
+    let metadata = (
+      d.input.metadata === undefined ? d.server.metadata : d.input.metadata
+    ) as MagicMcpServer['metadata'];
+
+    let isBackingChanged =
+      !d.server.hasSubspaceBacking ||
+      name !== d.server.name ||
+      description !== d.server.description ||
+      d.input.metadata !== undefined;
+
+    let backing = isBackingChanged
+      ? await applyMagicMcpServerBacking({
+          instance,
+          server: { ...d.server, name, description, metadata },
+          owner: await getConsumerOwnerForServer({ instance, server: d.server }),
+          isReconciliation: !d.server.hasSubspaceBacking
+        })
+      : null;
+
     let server;
     try {
       server = await withTransaction(async db => {
         return await db.magicMcpServer.update({
           where: { id: d.server.id },
           data: {
-            name: d.input.name === undefined ? d.server.name : d.input.name,
-            description:
-              d.input.description === undefined ? d.server.description : d.input.description,
+            name,
+            description,
             metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
-            isSubspaceBackingReconciling: true,
+            ...(backing ? getMagicMcpServerBackingCoreFields(backing) : {}),
             aliases: {
               create: nextAliases.map(slug => ({ slug }))
             }
@@ -640,14 +688,7 @@ class MagicMcpServerImpl {
       throw error;
     }
 
-    await magicMcpServerUpdatedQueue.add({
-      magicMcpServerId: server.id,
-      isReconciliation: false
-    });
-
-    let instance =
-      d.instance ??
-      (await db.instance.findUniqueOrThrow({ where: { oid: d.server.instanceOid } }));
+    await magicMcpServerUpdatedQueue.add({ magicMcpServerId: server.id });
 
     await Fabric.fire('magic_mcp.server.updated:after', {
       instance,
@@ -686,8 +727,7 @@ class MagicMcpServerImpl {
       : await ensureMagicMcpServerBacking({
           instance: d.instance,
           server: d.server,
-          isReconciliation: true,
-          deferReconcile: false
+          isReconciliation: true
         });
 
     return await magicMcpServerProviderService.listMagicMcpServerProviders({
@@ -725,8 +765,7 @@ class MagicMcpServerImpl {
       : await ensureMagicMcpServerBacking({
           instance: d.instance,
           server: d.server,
-          isReconciliation: true,
-          deferReconcile: false
+          isReconciliation: true
         });
     let provider = await magicMcpServerProviderService.getMagicMcpServerProviderById({
       instance: d.instance,
@@ -758,17 +797,13 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags
     });
 
-    await db.magicMcpServer.update({
-      where: { oid: d.server.oid },
-      data: { isSubspaceBackingReconciling: true }
-    });
-
-    let server = await ensureMagicMcpServerBacking({
-      instance: d.instance,
-      server: d.server,
-      isReconciliation: false,
-      deferReconcile: false
-    });
+    let server = d.server.hasSubspaceBacking
+      ? d.server
+      : await ensureMagicMcpServerBacking({
+          instance: d.instance,
+          server: d.server,
+          isReconciliation: true
+        });
 
     return await magicMcpServerProviderService.createMagicMcpServerProvider({
       instance: d.instance,
