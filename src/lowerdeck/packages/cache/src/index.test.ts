@@ -30,4 +30,19 @@ describe('createLocallyCachedFunction', () => {
       process.off('unhandledRejection', onUnhandledRejection);
     }
   });
+
+  it('keeps values for ttlSeconds, not milliseconds', async () => {
+    let provider = vi.fn(async (key: string) => `value:${key}`);
+    let cached = createLocallyCachedFunction({
+      getHash: (key: string) => key,
+      provider,
+      ttlSeconds: 1
+    });
+
+    await cached('key');
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    expect(await cached('key')).toBe('value:key');
+    expect(provider).toHaveBeenCalledTimes(1);
+  });
 });
