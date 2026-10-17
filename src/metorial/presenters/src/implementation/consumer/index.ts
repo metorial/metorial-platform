@@ -6,6 +6,7 @@ export * from './consumerActivity';
 export * from './consumerAndProfile';
 export * from './consumerGroup';
 export * from './consumerInvite';
+export * from './consumerOAuthAuthorization';
 export * from './consumerProfile';
 export * from './consumerProvider';
 export * from './consumerSession';

@@ -1,4 +1,10 @@
-import { coreScopes, getScopeDefinition, Scope } from '@metorial/module-access';
+import { v } from '@lowerdeck/validation';
+import {
+  consumerScopes,
+  coreScopes,
+  getScopeDefinition,
+  Scope
+} from '@metorial/module-access';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import {
@@ -20,10 +26,23 @@ export let oauthScopeManagementController = Controller.create(
           'Returns all available OAuth scopes that organization-owned OAuth applications may request.'
       })
       .use(checkAccess({ possibleScopes: ['organization.oauth_app:read'] }))
+      .query(
+        'default',
+        v.object({
+          subject_type: v.optional(
+            v.enumOf(['organization_member', 'consumer'], {
+              description:
+                'Return the scopes available to applications acting as this subject. Defaults to organization_member.'
+            })
+          )
+        })
+      )
       .output(oauthScopePermissionsPresenter)
-      .do(async () => {
+      .do(async ctx => {
+        let scopes = ctx.query.subject_type == 'consumer' ? consumerScopes : coreScopes;
+
         return oauthScopePermissionsPresenter.present({
-          permissions: coreScopes.map(scope => getScopeDefinition(scope as Scope))
+          permissions: scopes.map(scope => getScopeDefinition(scope as Scope))
         });
       })
   }

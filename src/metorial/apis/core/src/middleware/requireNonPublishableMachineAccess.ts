@@ -9,4 +9,12 @@ export let requireNonPublishableMachineAccess = instanceGroup.createMiddleware(a
       })
     );
   }
+
+  if (ctx.auth.type == 'machine' && ctx.auth.machineAccess.type == 'instance_consumer') {
+    throw new ServiceError(
+      unauthorizedError({
+        message: 'This endpoint is not available for consumer access tokens'
+      })
+    );
+  }
 });

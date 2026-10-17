@@ -89,6 +89,7 @@ export let dashboardConsumerProfilePresenter = Presenter.create(consumerProfileT
 
     return {
       ...inner,
+      is_service_account: consumerProfile.consumer.isServiceAccount,
       surface: await v1ConsumerSurfacePresenter
         .present({ consumerSurface: consumerProfile.surface }, opts)
         .run()
@@ -98,6 +99,10 @@ export let dashboardConsumerProfilePresenter = Presenter.create(consumerProfileT
     v.intersection([
       v1ConsumerProfilePresenter.schema,
       v.object({
+        is_service_account: v.boolean({
+          name: 'is_service_account',
+          description: 'Whether this profile is the dedicated identity of a service account'
+        }),
         surface: v1ConsumerSurfacePresenter.schema
       })
     ])

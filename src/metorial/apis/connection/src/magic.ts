@@ -138,7 +138,8 @@ let ensureMagicMcpApiKeyAccess = async (d: {
   if (
     auth.type == 'machine' &&
     auth.restrictions.type == 'instance' &&
-    auth.machineAccess.type == 'instance_publishable'
+    (auth.machineAccess.type == 'instance_publishable' ||
+      auth.machineAccess.type == 'instance_consumer')
   ) {
     if (!auth.restrictions.consumer) {
       throw new ServiceError(

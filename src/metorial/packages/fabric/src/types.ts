@@ -60,8 +60,10 @@ import {
   MagicMcpToken,
   OAuthApplication,
   OAuthApplicationClientSecret,
+  OAuthApplicationSubjectType,
   OAuthAuthorization,
   OAuthInstallation,
+  OAuthSubjectType,
   OAuthToken,
   Organization,
   OrganizationActor,
@@ -119,12 +121,19 @@ export type MachineAccessInput =
       organization: Organization;
       instance: Instance;
       auditScope: AuditScope;
+    }
+  | {
+      type: 'instance_consumer';
+      organization: Organization;
+      consumerProfile: ConsumerProfile;
+      auditScope: AuditScope;
     };
 
 export type OAuthApplicationCreateInput = {
   status?: 'active' | 'archived';
   type: 'user_facing' | 'server_side' | 'cli_auth' | 'internal';
   accessLevel: 'organization' | 'global';
+  subjectType?: OAuthApplicationSubjectType;
   systemIdentifier?: string | null;
   allowClientSecretlessTokenExchange?: boolean;
   name: string;
@@ -675,6 +684,8 @@ export type AuditTeam = Team & {
 
 export type AuditServiceAccount = ServiceAccount & {
   organization: Organization;
+  portal?: Portal | null;
+  consumerProfile?: ConsumerProfile | null;
   policies?: (AccessPolicyAssignment & {
     accessPolicy: AccessPolicy;
   })[];
@@ -1054,29 +1065,29 @@ export interface FabricEvents {
   'machine_access.oauth_installation.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope: AuditScope };
   'machine_access.oauth_installation.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; previousOAuthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
 
-  'machine_access.oauth_authorization.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope };
-  'machine_access.oauth_authorization.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
-  'machine_access.oauth_authorization.updated:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope };
-  'machine_access.oauth_authorization.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
-  'machine_access.oauth_authorization.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
-  'machine_access.oauth_authorization.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
+  'machine_access.oauth_authorization.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.updated:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
 
-  'machine_access.oauth_authorization_request.accepted:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
-  'machine_access.oauth_authorization_request.accepted:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
-  'machine_access.oauth_authorization_request.denied:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
-  'machine_access.oauth_authorization_request.denied:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
+  'machine_access.oauth_authorization_request.accepted:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member?: OrganizationMember | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization_request.accepted:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member?: OrganizationMember | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization_request.denied:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member?: OrganizationMember | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization_request.denied:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member?: OrganizationMember | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
 
   'machine_access.oauth_token.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.oauth_token.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.oauth_token.refreshed:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.oauth_token.refreshed:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
 
-  'machine_access.service_account.created:before': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; };
-  'machine_access.service_account.created:after': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; };
-  'machine_access.service_account.updated:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; };
-  'machine_access.service_account.updated:after': { serviceAccount: AuditServiceAccount; previousServiceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; };
-  'machine_access.service_account.archived:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; };
-  'machine_access.service_account.archived:after': { serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; };
+  'machine_access.service_account.created:before': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.created:after': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.updated:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.updated:after': { serviceAccount: AuditServiceAccount; previousServiceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.archived:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.archived:after': { serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
   'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
 

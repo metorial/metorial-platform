@@ -6,6 +6,7 @@ export interface PresenterContext {
   accessType:
     | 'instance_secret'
     | 'instance_publishable'
+    | 'instance_consumer'
     | 'organization_management'
     | 'user_auth_token'
     | 'event_system'

@@ -5,7 +5,9 @@ import {
   getClientCredentials,
   getNumber,
   getString,
+  getSubjectType,
   normalizeScopes,
+  OAuthRequestSubjectType,
   parseOAuthBody
 } from './lib/request';
 
@@ -46,6 +48,7 @@ export let createOAuthAppSkeleton = (d: {
             state?: string;
             nonce?: string;
             scopes?: string[];
+            subjectType?: OAuthRequestSubjectType;
           },
       c: Context
     ) => Promise<Response>;
@@ -55,6 +58,7 @@ export let createOAuthAppSkeleton = (d: {
         context: ReturnType<typeof useRequestContext>;
         credentials: ReturnType<typeof getClientCredentials>;
         scopes: string[];
+        subjectType?: OAuthRequestSubjectType;
       },
       c: Context
     ) => Promise<Response>;
@@ -86,7 +90,10 @@ export let createOAuthAppSkeleton = (d: {
 
   cli: {
     authStart: (
-      d: { context: ReturnType<typeof useRequestContext> },
+      d: {
+        context: ReturnType<typeof useRequestContext>;
+        subjectType: OAuthRequestSubjectType;
+      },
       c: Context
     ) => Promise<Response>;
 
@@ -157,8 +164,10 @@ export let createOAuthAppSkeleton = (d: {
     })
     .post('/cli/auth/start', async c => {
       let context = useRequestContext(c);
+      let body = await parseOAuthBody(c);
+      let subjectType = getSubjectType(body.subject_type) ?? 'organization_member';
 
-      return await d.cli.authStart({ context }, c);
+      return await d.cli.authStart({ context, subjectType }, c);
     })
     .post('/cli/auth/complete', async c => {
       let body = await parseOAuthBody(c);
@@ -190,7 +199,8 @@ export let createOAuthAppSkeleton = (d: {
         {
           context,
           credentials,
-          scopes: normalizeScopes(body.scope) ?? []
+          scopes: normalizeScopes(body.scope) ?? [],
+          subjectType: getSubjectType(body.subject_type)
         },
         c
       );
@@ -218,6 +228,7 @@ export let createOAuthAppSkeleton = (d: {
       let state = getString(c.req.query('state'));
       let nonce = getString(c.req.query('nonce'));
       let scopes = normalizeScopes(c.req.query('scope') || c.req.query('scopes'));
+      let subjectType = getSubjectType(c.req.query('subject_type'));
 
       if (!responseType) {
         throw new OAuthError({
@@ -276,7 +287,8 @@ export let createOAuthAppSkeleton = (d: {
           codeChallengeMethod: codeChallengeMethod === 'S256' ? 's256' : 'none',
           state,
           nonce,
-          scopes
+          scopes,
+          subjectType
         },
         c
       );
