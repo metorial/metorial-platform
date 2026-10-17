@@ -18,6 +18,8 @@ export let serviceAccountsLoader = createLoader({
         name: string;
         description?: string;
         scopes: string[];
+        subjectType?: 'organization_member' | 'consumer';
+        portalId?: string;
       },
       { input: { organizationId } }
     ) =>
@@ -25,7 +27,9 @@ export let serviceAccountsLoader = createLoader({
         sdk.serviceAccounts.create(organizationId, {
           name: i.name,
           description: i.description,
-          scopes: i.scopes
+          scopes: i.scopes,
+          subjectType: i.subjectType,
+          portalId: i.portalId
         })
       )
   }
