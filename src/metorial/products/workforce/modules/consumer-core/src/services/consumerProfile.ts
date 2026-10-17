@@ -46,7 +46,7 @@ import { consumerService } from './consumer';
 import type { EnrichedConsumerSurface } from './consumerSurface';
 import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurface';
 
-let serviceAccountEmailDomain = 'service-accounts.metorial.invalid';
+let serviceAccountEmailDomainSuffix = 'service-accounts.metorial.net';
 
 let include = {
   consumer: {
@@ -717,7 +717,7 @@ class ConsumerProfileServiceImpl {
 
     return await this.ensureConsumerProfile({
       surface: d.surface,
-      email: `sa-${d.serviceAccountKey}@${serviceAccountEmailDomain}`,
+      email: `sa-${d.serviceAccountKey}@${d.surface.organizationOid}.${serviceAccountEmailDomainSuffix}`,
       name: d.name,
       auditScope: d.auditScope,
       inviteStatus: 'unset',

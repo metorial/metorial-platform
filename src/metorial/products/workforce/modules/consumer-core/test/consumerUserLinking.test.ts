@@ -174,7 +174,7 @@ describe('consumerProfileService.createServiceAccountConsumerProfile', () => {
     let ensureConsumerProfile = vi
       .spyOn(consumerProfileService, 'ensureConsumerProfile')
       .mockResolvedValue({ id: 'cop_sa' } as any);
-    let surface = { oid: 22n, type: 'portal' } as any;
+    let surface = { oid: 22n, organizationOid: 900n, type: 'portal' } as any;
     let auditScope = { organizationOid: 900n } as any;
 
     await consumerProfileService.createServiceAccountConsumerProfile({
@@ -186,7 +186,7 @@ describe('consumerProfileService.createServiceAccountConsumerProfile', () => {
 
     expect(ensureConsumerProfile).toHaveBeenCalledWith({
       surface,
-      email: 'sa-key123@service-accounts.metorial.invalid',
+      email: 'sa-key123@900.service-accounts.metorial.net',
       name: 'Deploy Bot',
       auditScope,
       inviteStatus: 'unset',
