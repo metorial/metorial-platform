@@ -2,6 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
+  integrationInstanceService,
   integrationService,
   integrationSetupSessionService
 } from '@metorial-subspace/module-integration';
@@ -160,13 +161,15 @@ export let integrationSetupSessionController = Controller.create(
     create: instanceGroup
       .post(instancePath('integration-setup-sessions', 'integrations.setupSessions.create'), {
         name: 'Create integration setup session',
-        description: 'Creates a new integration setup session and draft integration instance.'
+        description:
+          'Creates a new integration setup session. Creates a draft integration instance unless integration_instance_id is given, in which case that instance is reused and its config and auth config are overwritten on completion.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
         v.object({
           integration_id: v.string(),
+          integration_instance_id: v.optional(v.string()),
           name: v.string(),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
@@ -183,11 +186,19 @@ export let integrationSetupSessionController = Controller.create(
           instance: ctx.instance,
           integrationId: ctx.body.integration_id
         });
+        let integrationInstance = ctx.body.integration_instance_id
+          ? await integrationInstanceService.getIntegrationInstanceById({
+              instance: ctx.instance,
+              integrationInstanceId: ctx.body.integration_instance_id
+            })
+          : undefined;
+
         let integrationSetupSession =
           await integrationSetupSessionService.createIntegrationSetupSession({
             instance: ctx.instance,
             auditScope: ctx.auditScope,
             integration,
+            integrationInstance,
             input: {
               name: ctx.body.name,
               description: ctx.body.description,

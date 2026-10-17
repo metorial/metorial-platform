@@ -13,6 +13,7 @@ import {
   generateRegionalClientSecret,
   getId,
   type Integration,
+  type IntegrationInstance,
   type IntegrationSetupSession,
   type IntegrationSetupSessionStatus,
   type ProviderSetupSession,
@@ -146,6 +147,7 @@ export type GetIntegrationSetupSessionByIdParams = {
 
 export type CreateIntegrationSetupSessionParams = {
   integration: Integration;
+  integrationInstance?: IntegrationInstance;
   brand?: Brand;
   input: {
     name: string;
@@ -396,8 +398,31 @@ class integrationSetupSessionServiceImpl {
 
     checkTenant(d, d.integration);
     checkTenant(d, d.brand);
+    checkTenant(d, d.integrationInstance);
     checkDeletedRelation(d.integration);
     checkDeletedRelation(d.brand);
+    checkDeletedRelation(d.integrationInstance);
+
+    if (d.integrationInstance) {
+      if (d.integrationInstance.integrationOid !== d.integration.oid) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Integration instance does not belong to this integration.',
+            code: 'integration_instance_mismatch'
+          })
+        );
+      }
+
+      if (d.input.identityActorId || d.input.identityId) {
+        throw new ServiceError(
+          badRequestError({
+            message:
+              'Identity cannot be set when linking an existing integration instance; it is inherited from the instance.',
+            code: 'integration_instance_identity_conflict'
+          })
+        );
+      }
+    }
 
     let integration = await db.integration.findFirstOrThrow({
       where: {
@@ -429,7 +454,8 @@ class integrationSetupSessionServiceImpl {
     }
 
     let integrationInstance =
-      await integrationInstanceService.createIntegrationInstanceInternal({
+      d.integrationInstance ??
+      (await integrationInstanceService.createIntegrationInstanceInternal({
         tenant: d.tenant,
         environment: d.environment,
         integration,
@@ -442,7 +468,7 @@ class integrationSetupSessionServiceImpl {
           identityActorId: d.input.identityActorId,
           identityId: d.input.identityId
         }
-      });
+      }));
 
     let setupSession = await db.integrationSetupSession.create({
       data: {
