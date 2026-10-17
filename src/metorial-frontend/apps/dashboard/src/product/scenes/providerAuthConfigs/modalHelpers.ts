@@ -1,4 +1,5 @@
 import { DashboardInstanceProvidersAuthMethodsListOutput } from '@metorial/dashboard-sdk';
+import { generatePlaceholderInstanceName } from '../../lib/instanceName';
 
 export type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];
 
@@ -34,4 +35,13 @@ export let getCreateMethodDescription = (method: AuthMethod) => {
   }
 
   return 'Manual configuration';
+};
+
+export let getGeneratedAuthConfigName = (
+  prefix: string | null | undefined,
+  providerName: string | null | undefined
+) => {
+  let base = prefix?.trim() || `${providerName?.trim() || 'Provider'} Auth`;
+
+  return `${base} - ${generatePlaceholderInstanceName()}`;
 };

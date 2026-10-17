@@ -197,24 +197,10 @@ let ProviderAuthConfigPanelFlow = (
   let [selectedMethodId, setSelectedMethodId] = useState('');
   let [autoSkipSingle, setAutoSkipSingle] = useState(false);
   let [isWindowOpen, setIsWindowOpen] = useState(false);
-  let authCreation = useProviderAuthCreationCapabilities(p.instanceId, undefined, providerId);
-  let selectedMethod = authCreation.authMethodItems.find(
-    method => method.id === selectedMethodId
-  );
 
   useEffect(() => {
-    if (step === 0) {
-      p.setPanelWidth(1050);
-      return;
-    }
-
-    if (step === 2 && selectedMethod?.type === 'oauth') {
-      p.setPanelWidth(1180);
-      return;
-    }
-
-    p.setPanelWidth(660);
-  }, [step, selectedMethod?.type, p.setPanelWidth]);
+    p.setPanelWidth(step === 0 ? 1050 : 660);
+  }, [step, p.setPanelWidth]);
 
   let steps = useMemo(
     () => [

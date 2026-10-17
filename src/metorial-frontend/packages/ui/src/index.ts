@@ -41,6 +41,7 @@ export * from './popover';
 export * from './progress';
 export * from './progressSteps';
 export * from './select';
+export * from './selectList';
 export * from './showModal';
 export * from './skeleton';
 export * from './slider';

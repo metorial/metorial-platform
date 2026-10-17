@@ -1,27 +1,32 @@
 import { Dialog } from '@metorial/ui';
+import { useState } from 'react';
 import { ProviderAuthConfigForm } from './form';
+import { getGeneratedAuthConfigName } from './modalHelpers';
 
 export let ProviderAuthConfigManualCreateContent = (p: {
   instanceId: string;
   providerDeploymentId?: string;
   providerId?: string;
+  providerName: string;
   initialAuthMethodId: string;
   defaultAuthConfigName?: string;
   close: () => void;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
   embedded?: boolean;
-  hideDetailsInputs?: boolean;
 }) => {
   let useFlatLayout = true;
+  let [authConfigName] = useState(() =>
+    getGeneratedAuthConfigName(p.defaultAuthConfigName, p.providerName)
+  );
 
   return (
     <>
       {!p.embedded && (
         <>
-          <Dialog.Title>Create Auth Config</Dialog.Title>
+          <Dialog.Title>Authenticate with {p.providerName}</Dialog.Title>
           <Dialog.Description>
-            Create a new authentication configuration for the selected provider.
+            Enter the details {p.providerName} needs to connect.
           </Dialog.Description>
         </>
       )}
@@ -35,8 +40,8 @@ export let ProviderAuthConfigManualCreateContent = (p: {
         hideAuthMethodStep
         flattenCreateStep={useFlatLayout}
         hideProviderContext={useFlatLayout}
-        defaultName={p.defaultAuthConfigName}
-        hideDetailsInputs={p.hideDetailsInputs}
+        defaultName={authConfigName}
+        hideDetailsInputs
         close={p.close}
         onBack={p.onBack}
         onCreate={authConfig => {
