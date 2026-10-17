@@ -12,6 +12,7 @@ import {
 import { Context } from '@metorial/context';
 import { ConsumerProfile, ConsumerSession, ConsumerSurface, db, ID, User } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { oauthAuthorizationService } from '@metorial/module-machine-access';
 import { addDays } from 'date-fns';
 import {
   isConsumerSurfaceEmailWhitelisted,
@@ -251,6 +252,26 @@ class ConsumerAuthServiceImpl {
   async revokeConsumerSession(d: { session: ConsumerSession; auditScope: AuditScope }) {
     if (d.session.loggedOutAt) {
       return d.session;
+    }
+
+    if (d.session.oauthAuthorizationOid) {
+      let oauthAuthorization = await db.oAuthAuthorization.findUniqueOrThrow({
+        where: { oid: d.session.oauthAuthorizationOid },
+        include: { consumerProfile: true, oauthApplication: true }
+      });
+
+      let isUserRevocable =
+        oauthAuthorization.status == 'active' &&
+        (oauthAuthorization.oauthApplication.type == 'user_facing' ||
+          oauthAuthorization.oauthApplication.type == 'cli_auth');
+
+      if (oauthAuthorization.consumerProfile && isUserRevocable) {
+        await oauthAuthorizationService.revokeConsumerOAuthAuthorization({
+          consumerProfile: oauthAuthorization.consumerProfile,
+          oauthAuthorizationId: oauthAuthorization.id,
+          context: d.auditScope.context
+        });
+      }
     }
 
     let consumerSession = await db.consumerSession.update({

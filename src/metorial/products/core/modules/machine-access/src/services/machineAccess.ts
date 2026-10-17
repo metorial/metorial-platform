@@ -2,6 +2,7 @@ import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
+  ConsumerProfile,
   db,
   ID,
   Instance,
@@ -52,10 +53,42 @@ class MachineAccessService {
           organization: Organization;
           instance: Instance;
         }
+      | {
+          type: 'instance_consumer';
+          organization: Organization;
+          consumerProfile: ConsumerProfile;
+          user?: User | null;
+        }
     )
   ) {
     let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.created:before', d);
+
+      if (d.type == 'instance_consumer') {
+        if (d.consumerProfile.organizationOid != d.organization.oid) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'Cannot link machine access to a consumer from another organization'
+            })
+          );
+        }
+
+        return await db.machineAccess.create({
+          data: {
+            id: await ID.generateId('machineAccess'),
+            status: 'active',
+            type: d.type,
+            kind: d.kind ?? 'api_key',
+            hasCustomScopes: d.input.hasCustomScopes ?? false,
+            scopes: d.input.scopes ?? [],
+            name: d.input.name,
+            organizationOid: d.organization.oid,
+            instanceOid: d.consumerProfile.instanceOid,
+            actorOid: d.consumerProfile.organizationActorOid,
+            userOid: d.user?.oid ?? null
+          }
+        });
+      }
 
       let linkedTo = d.linkedTo ?? { type: 'new_actor' as const };
 
@@ -154,10 +187,7 @@ class MachineAccessService {
     return res;
   }
 
-  async deleteMachineAccess(d: {
-    machineAccess: MachineAccess;
-    auditScope: AuditScope;
-  }) {
+  async deleteMachineAccess(d: { machineAccess: MachineAccess; auditScope: AuditScope }) {
     await this.ensureMachineAccessActive(d.machineAccess);
 
     let org = await db.organization.findUniqueOrThrow({

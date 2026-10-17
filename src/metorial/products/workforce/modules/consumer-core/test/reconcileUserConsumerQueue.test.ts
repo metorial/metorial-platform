@@ -161,6 +161,30 @@ describe('reconcile user consumer queue', () => {
     ]);
   });
 
+  it('never selects service account consumers as merge candidates', async () => {
+    mocks.user.findUnique.mockResolvedValue({
+      id: 'user_123',
+      oid: 42n,
+      type: 'user',
+      name: 'Current Name',
+      email: 'current@example.com',
+      globalProfileOid: null
+    });
+    mocks.consumer.findMany.mockResolvedValue([]);
+
+    await (reconcileUserConsumerQueueProcessor as any)({
+      userId: 'user_123',
+      organizationId: 'organization_123'
+    });
+
+    expect(mocks.consumer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isServiceAccount: false })
+      })
+    );
+    expect(mocks.consumer.update).not.toHaveBeenCalled();
+  });
+
   it('merges the exact email holder before normalizing the canonical consumer', async () => {
     let user = {
       id: 'user_123',

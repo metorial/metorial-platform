@@ -1,4 +1,5 @@
 import { bindAuditScope } from '@metorial/audit-scope';
+import type { OAuthSubjectType } from '@metorial/db';
 import { Fabric, type FabricEvents } from '@metorial/fabric';
 import { auditTrackerService } from '@metorial/module-audit-tracker';
 import { recordAuditEventAfterCommit } from './record';
@@ -26,13 +27,24 @@ let clientSecretPayload = (event: {
 });
 
 let authorizationPayload = (event: {
-  oauthAuthorization: { id: string; status: string; type: string; scopes: string[] };
+  oauthAuthorization: {
+    id: string;
+    status: string;
+    type: string;
+    subjectType?: OAuthSubjectType;
+    scopes: string[];
+  };
   oauthApplication: { id: string; name: string };
+  consumerProfile?: { id: string } | null;
+  subjectType?: OAuthSubjectType;
 }) => ({
   id: event.oauthAuthorization.id,
   status: event.oauthAuthorization.status,
   type: event.oauthAuthorization.type,
+  subjectType:
+    event.subjectType ?? event.oauthAuthorization.subjectType ?? 'organization_member',
   scopes: event.oauthAuthorization.scopes,
+  consumerProfileId: event.consumerProfile?.id ?? null,
   oauthApplication: {
     id: event.oauthApplication.id,
     name: event.oauthApplication.name
@@ -40,13 +52,26 @@ let authorizationPayload = (event: {
 });
 
 let authorizationRequestPayload = (event: {
-  oauthAuthorizationRequest: { id: string; status: string; type: string; scopes: string[] };
+  oauthAuthorizationRequest: {
+    id: string;
+    status: string;
+    type: string;
+    subjectType?: OAuthSubjectType;
+    scopes: string[];
+  };
   oauthApplication: { id: string; name: string };
+  member?: { id: string } | null;
+  consumerProfile?: { id: string } | null;
+  subjectType?: OAuthSubjectType;
 }) => ({
   id: event.oauthAuthorizationRequest.id,
   status: event.oauthAuthorizationRequest.status,
   type: event.oauthAuthorizationRequest.type,
+  subjectType:
+    event.subjectType ?? event.oauthAuthorizationRequest.subjectType ?? 'organization_member',
   scopes: event.oauthAuthorizationRequest.scopes,
+  organizationMemberId: event.member?.id ?? null,
+  consumerProfileId: event.consumerProfile?.id ?? null,
   oauthApplication: {
     id: event.oauthApplication.id,
     name: event.oauthApplication.name
@@ -260,8 +285,8 @@ export let recordOAuthAuthorizationRevoked = async (
     await auditTrackerService.recordEvent(event.auditScope, 'oauth_authorization', 'revoke', {
       payload: authorizationPayload(event),
       previousPayload: authorizationPayload({
-        oauthAuthorization: event.previousOAuthAuthorization,
-        oauthApplication: event.oauthApplication
+        ...event,
+        oauthAuthorization: event.previousOAuthAuthorization
       }),
       recordedAt
     });
@@ -279,8 +304,8 @@ export let recordOAuthAuthorizationRequestAccepted = async (
       {
         payload: authorizationRequestPayload(event),
         previousPayload: authorizationRequestPayload({
-          oauthAuthorizationRequest: event.previousOAuthAuthorizationRequest,
-          oauthApplication: event.oauthApplication
+          ...event,
+          oauthAuthorizationRequest: event.previousOAuthAuthorizationRequest
         }),
         recordedAt
       }
@@ -299,8 +324,8 @@ export let recordOAuthAuthorizationRequestDenied = async (
       {
         payload: authorizationRequestPayload(event),
         previousPayload: authorizationRequestPayload({
-          oauthAuthorizationRequest: event.previousOAuthAuthorizationRequest,
-          oauthApplication: event.oauthApplication
+          ...event,
+          oauthAuthorizationRequest: event.previousOAuthAuthorizationRequest
         }),
         recordedAt
       }

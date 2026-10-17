@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import {
   authenticateWithConsumerToken,
+  authenticateWithOAuthConsumerSession,
   getConsumerAccessContextForSession
 } from '@metorial/consumer-auth';
 import { Context } from '@metorial/context';
@@ -135,6 +136,100 @@ class AuthenticationService {
       project: d.project,
       consumerProfile: d.consumerProfile
     });
+  }
+
+  private async authenticateConsumerOAuthToken(d: {
+    oauthToken: OAuthTokenWithAuthorization | undefined;
+    context: Context;
+  }): Promise<AuthInfo> {
+    let oauthAuthorization = d.oauthToken?.oauthAuthorization;
+    let machineAccess = oauthAuthorization?.machineAccess;
+    let instance = machineAccess?.instance;
+    let organization = machineAccess?.organization;
+    let actor = machineAccess?.actor;
+
+    if (
+      !d.oauthToken ||
+      !oauthAuthorization ||
+      !machineAccess ||
+      !instance ||
+      !organization ||
+      !actor ||
+      oauthAuthorization.subjectType != 'consumer'
+    ) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Consumer machine access is only valid for consumer OAuth access tokens'
+        })
+      );
+    }
+
+    let consumerRes = await authenticateWithOAuthConsumerSession({
+      session: oauthAuthorization.consumerSession,
+      instance
+    });
+
+    let expectedConsumerProfileOid =
+      oauthAuthorization.consumerProfileOid ??
+      oauthAuthorization.serviceAccountCredential?.serviceAccount.consumerProfileOid;
+
+    if (
+      !expectedConsumerProfileOid ||
+      consumerRes.consumerProfile.oid != expectedConsumerProfileOid
+    ) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'The consumer session for this OAuth token is no longer valid.'
+        })
+      );
+    }
+
+    let consumerAccess = await getConsumerAccessContextForSession({
+      session: consumerRes.session
+    });
+
+    let consumer: AuthenticatedConsumerContext = {
+      consumerSurface: consumerRes.surface,
+      consumerSession: consumerRes.session,
+      consumerProfile: consumerRes.consumerProfile,
+      consumerGroups: consumerAccess.consumerGroups,
+      accessTags: consumerAccess.accessTags,
+      portal: consumerRes.surface.portal
+    };
+
+    let resourceActor = await this.getConsumerProfileResourceActor({
+      project: instance.project,
+      consumerProfile: consumer.consumerProfile
+    });
+
+    let orgScopes = Array.from(
+      new Set([...instancePublishableTokenScopes, ...(oauthAuthorization.scopes as Scope[])])
+    ).sort();
+
+    return {
+      type: 'machine',
+      auditScope: createAuditScope({
+        organization,
+        instance,
+        actor: {
+          type: 'consumer_profile',
+          id: consumer.consumerProfile.id
+        },
+        context: d.context
+      }),
+      oauthToken: d.oauthToken,
+      machineAccess,
+      user: oauthAuthorization.user ?? machineAccess.user ?? undefined,
+      orgScopes,
+      restrictions: {
+        type: 'instance',
+        organization,
+        actor,
+        instance,
+        resourceActor,
+        consumer
+      }
+    };
   }
 
   async authenticate(
@@ -276,6 +371,15 @@ class AuthenticationService {
       );
     }
 
+    if (d.consumerSessionClientSecret && machineAccess.type == 'instance_consumer') {
+      throw new ServiceError(
+        unauthorizedError({
+          message:
+            'Consumer session tokens cannot be combined with consumer OAuth access tokens, which already identify a consumer'
+        })
+      );
+    }
+
     if (d.consumerSessionClientSecret && machineAccess.type != 'instance_publishable') {
       throw new ServiceError(
         unauthorizedError({
@@ -283,6 +387,13 @@ class AuthenticationService {
             'Consumer session tokens can only be used with instance publishable machine access tokens'
         })
       );
+    }
+
+    if (machineAccess.type == 'instance_consumer') {
+      return await this.authenticateConsumerOAuthToken({
+        oauthToken: res.type == 'oauth_token' ? res.oauthToken : undefined,
+        context: d.context
+      });
     }
 
     if (

@@ -12,6 +12,7 @@ import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
+  ConsumerProfile,
   db,
   ID,
   OAuthApplication,
@@ -19,6 +20,7 @@ import {
   OAuthAuthorization,
   OAuthAuthorizationFlowChallengeMethod,
   OAuthAuthorizationStatus,
+  OAuthSubjectType,
   OAuthToken,
   Organization,
   OrganizationActor,
@@ -41,9 +43,13 @@ import {
   ensureScopesAllowed,
   ensureTokenRefreshable
 } from '../lib/oauthAuthorizationGuards';
+import { revokeOAuthConsumerSession } from '../internal/oauthConsumerSession';
+import { createConsumerProfileAuditScope } from '../lib/consumerAuditScope';
 import { createCodeChallenge } from '../lib/oauthAuthorizationPkce';
 import {
   cliAuthScopes,
+  cliConsumerAuthScopes,
+  getConsumerEffectiveScopes,
   getOAuthApplicationScopes,
   getServiceAccountEffectiveScopes,
   getUserEffectiveScopes
@@ -133,6 +139,95 @@ class OAuthAuthorizationService {
         })
       );
     }
+  }
+
+  private resolveRequestSubjectType(
+    oauthApplication: OAuthApplication,
+    requestedSubjectType?: OAuthSubjectType
+  ): OAuthSubjectType {
+    if (oauthApplication.subjectType == 'consumer_or_organization_member') {
+      return requestedSubjectType ?? 'organization_member';
+    }
+
+    if (requestedSubjectType && requestedSubjectType != oauthApplication.subjectType) {
+      throw new ServiceError(
+        badRequestError({
+          message: `This oauth application only supports the ${oauthApplication.subjectType} subject type`,
+          oauth: {
+            error: 'invalid_request',
+            errorMessage: `This oauth application only supports the ${oauthApplication.subjectType} subject type`
+          }
+        })
+      );
+    }
+
+    return oauthApplication.subjectType;
+  }
+
+  private getAuthorizationSubject(oauthAuthorization: OAuthAuthorizationWithRelations) {
+    return {
+      subjectType: oauthAuthorization.subjectType,
+      consumerProfile:
+        oauthAuthorization.subjectType == 'consumer'
+          ? (oauthAuthorization.consumerProfile ??
+            oauthAuthorization.consumerSession?.consumerProfile ??
+            null)
+          : null
+    };
+  }
+
+  private async resolveConsumerProfile(d: {
+    user: User;
+    consumerProfileId?: string;
+    oauthApplication: OAuthApplication;
+  }) {
+    if (!d.consumerProfileId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'A consumer profile is required to accept this authorization request'
+        })
+      );
+    }
+
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: { id: d.consumerProfileId },
+      include: authorizationConsumerProfileInclude
+    });
+    if (
+      !consumerProfile ||
+      consumerProfile.status != 'active' ||
+      consumerProfile.consumer.userOid != d.user.oid ||
+      consumerProfile.consumer.isServiceAccount
+    ) {
+      throw new ServiceError(notFoundError('consumer_profile', d.consumerProfileId));
+    }
+
+    let portal = consumerProfile.surface.portal;
+    if (
+      consumerProfile.surface.type != 'portal' ||
+      consumerProfile.surface.status != 'active' ||
+      !portal ||
+      portal.status != 'active'
+    ) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Only consumer profiles of active portals can authorize oauth applications'
+        })
+      );
+    }
+
+    if (
+      d.oauthApplication.accessLevel == 'organization' &&
+      consumerProfile.organizationOid != d.oauthApplication.organizationOid
+    ) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'This oauth application cannot be authorized for this consumer profile'
+        })
+      );
+    }
+
+    return consumerProfile;
   }
 
   private async getLocalOAuthApplicationById(d: { oauthApplicationId: string }) {
@@ -471,7 +566,8 @@ class OAuthAuthorizationService {
         oauthAuthorization,
         oauthInstallation: oauthAuthorization.oauthInstallation,
         oauthApplication: oauthAuthorization.oauthApplication,
-        oauthAuthorizationRequest
+        oauthAuthorizationRequest,
+        ...this.getAuthorizationSubject(oauthAuthorization)
       };
     });
   }
@@ -582,7 +678,8 @@ class OAuthAuthorizationService {
         oauthAuthorization,
         oauthInstallation: oauthAuthorization.oauthInstallation,
         oauthApplication: oauthAuthorization.oauthApplication,
-        oauthAuthorizationRequest: res.oauthAuthorizationRequest
+        oauthAuthorizationRequest: res.oauthAuthorizationRequest,
+        ...this.getAuthorizationSubject(oauthAuthorization)
       };
     });
   }
@@ -633,7 +730,10 @@ class OAuthAuthorizationService {
         );
       }
 
-      let requestedScopes = validateOAuthScopes(d.scopes ?? oauthApplication.scopes);
+      let requestedScopes = validateOAuthScopes(
+        d.scopes ?? oauthApplication.scopes,
+        oauthApplication.subjectType == 'consumer' ? 'consumer' : 'organization_member'
+      );
       let requestedApplicationScopes = ensureScopesAllowed({
         allowedScopes: oauthApplication.scopes,
         requestedScopes
@@ -644,14 +744,22 @@ class OAuthAuthorizationService {
           oauthApplicationOid: oauthApplication.oid
         }
       });
-      let scopes = serviceAccount
-        ? await getServiceAccountEffectiveScopes({
-            organization: oauthApplication.organization!,
-            serviceAccount,
-            oauthApplication,
-            requestedScopes: requestedApplicationScopes
-          })
-        : requestedApplicationScopes;
+
+      let scopes = requestedApplicationScopes;
+      if (serviceAccount?.subjectType == 'consumer') {
+        scopes = getConsumerEffectiveScopes({
+          oauthApplication,
+          serviceAccount,
+          requestedScopes: requestedApplicationScopes
+        });
+      } else if (serviceAccount) {
+        scopes = await getServiceAccountEffectiveScopes({
+          organization: oauthApplication.organization!,
+          serviceAccount,
+          oauthApplication,
+          requestedScopes: requestedApplicationScopes
+        });
+      }
 
       let oauthAuthorization =
         await oauthAuthorizationInstallationService.getOrCreateServerSideAuthorization({
@@ -671,7 +779,8 @@ class OAuthAuthorizationService {
         oauthToken,
         oauthAuthorization,
         oauthInstallation: oauthAuthorization.oauthInstallation,
-        oauthApplication: oauthAuthorization.oauthApplication
+        oauthApplication: oauthAuthorization.oauthApplication,
+        ...this.getAuthorizationSubject(oauthAuthorization)
       };
     });
   }
@@ -719,7 +828,8 @@ class OAuthAuthorizationService {
         oauthToken: refreshedToken,
         oauthAuthorization: oauthToken.oauthAuthorization,
         oauthInstallation: oauthToken.oauthAuthorization.oauthInstallation,
-        oauthApplication: oauthToken.oauthAuthorization.oauthApplication
+        oauthApplication: oauthToken.oauthAuthorization.oauthApplication,
+        ...this.getAuthorizationSubject(oauthToken.oauthAuthorization)
       };
     });
   }
@@ -969,6 +1079,7 @@ class OAuthAuthorizationService {
       | {
           type: 'interactive';
           clientId: string;
+          subjectType?: OAuthSubjectType;
           scopes: string[];
           redirectUri: string;
           state?: string;
@@ -980,6 +1091,7 @@ class OAuthAuthorizationService {
           type: 'device_code';
           clientId: string;
           clientIp: string;
+          subjectType?: OAuthSubjectType;
           scopes: string[];
           allowCliAuth?: boolean;
         };
@@ -994,11 +1106,14 @@ class OAuthAuthorizationService {
       allowCliAuth: d.input.type == 'device_code' ? d.input.allowCliAuth : false
     });
 
+    let subjectType = this.resolveRequestSubjectType(oauthApplication, d.input.subjectType);
+
     let requestedScopes = splitOAuthAndOidcScopes(d.input.scopes);
     let scopes = ensureScopesAllowed({
-      allowedScopes: getOAuthApplicationScopes(oauthApplication),
+      allowedScopes: getOAuthApplicationScopes(oauthApplication, subjectType),
       requestedScopes: requestedScopes.accessScopes
     });
+    if (subjectType == 'consumer') validateOAuthScopes(scopes, subjectType);
 
     if (d.input.type == 'interactive') {
       validateRedirectUri({
@@ -1011,6 +1126,7 @@ class OAuthAuthorizationService {
       id: await ID.generateId('oauthAuthorizationRequest'),
       oauthApplicationId: oauthApplication.id,
       type: d.input.type,
+      subjectType,
       scopes,
       oidcScopes: requestedScopes.oidcScopes,
       urlToken: generateCustomId('mtout_', 50),
@@ -1034,7 +1150,10 @@ class OAuthAuthorizationService {
     return await this.hydrateOAuthAuthorizationRequest(globalRequest);
   }
 
-  async createCliAuthAuthorizationRequest(d: { context: Context }) {
+  async createCliAuthAuthorizationRequest(d: {
+    context: Context;
+    subjectType?: OAuthSubjectType;
+  }) {
     let cliAuthApplication = await oauthApplicationService.getCliAuthOAuthApplication();
 
     if (!cliAuthApplication) {
@@ -1055,7 +1174,8 @@ class OAuthAuthorizationService {
         type: 'device_code',
         clientId: cliAuthApplication.clientId,
         clientIp: d.context.ip,
-        scopes: cliAuthScopes,
+        subjectType: d.subjectType,
+        scopes: d.subjectType == 'consumer' ? cliConsumerAuthScopes : cliAuthScopes,
         allowCliAuth: true
       }
     });
@@ -1083,32 +1203,76 @@ class OAuthAuthorizationService {
     });
   }
 
+  private async resolveAcceptingSubject(d: {
+    oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
+    user: User;
+    organizationId: string;
+    consumerProfileId?: string;
+  }) {
+    let oauthApplication = d.oauthAuthorizationRequest.oauthApplication;
+
+    if (d.oauthAuthorizationRequest.subjectType == 'consumer') {
+      let consumerProfile = await this.resolveConsumerProfile({
+        user: d.user,
+        consumerProfileId: d.consumerProfileId,
+        oauthApplication
+      });
+
+      return {
+        type: 'consumer' as const,
+        organization: consumerProfile.organization,
+        consumerProfile,
+        member: null,
+        scopes: getConsumerEffectiveScopes({
+          oauthApplication,
+          requestedScopes: d.oauthAuthorizationRequest.scopes
+        })
+      };
+    }
+
+    let { organization, member } = await this.resolveOrganizationMember({
+      oauthApplication,
+      user: d.user,
+      organizationId: d.organizationId
+    });
+
+    return {
+      type: 'organization_member' as const,
+      organization,
+      consumerProfile: null,
+      member,
+      scopes: await getUserEffectiveScopes({
+        organization,
+        member,
+        oauthApplication,
+        requestedScopes: d.oauthAuthorizationRequest.scopes
+      })
+    };
+  }
+
   async acceptOAuthAuthorizationRequest(d: {
     oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
     user: User;
     organizationId: string;
+    consumerProfileId?: string;
     context: Context;
   }) {
     ensureAuthorizationRequestPending(d.oauthAuthorizationRequest);
 
-    let { organization, member } = await this.resolveOrganizationMember({
-      oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+    let oauthApplication = d.oauthAuthorizationRequest.oauthApplication;
+
+    let subject = await this.resolveAcceptingSubject({
+      oauthAuthorizationRequest: d.oauthAuthorizationRequest,
       user: d.user,
-      organizationId: d.organizationId
+      organizationId: d.organizationId,
+      consumerProfileId: d.consumerProfileId
     });
-    let scopes = await getUserEffectiveScopes({
-      organization,
-      member,
-      oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
-      requestedScopes: d.oauthAuthorizationRequest.scopes
-    });
+
+    let { organization, scopes } = subject;
     let missingScopes = d.oauthAuthorizationRequest.scopes.filter(
       scope => !scopes.includes(scope)
     );
-    if (
-      d.oauthAuthorizationRequest.oauthApplication.type == 'user_facing' &&
-      missingScopes.length > 0
-    ) {
+    if (oauthApplication.type == 'user_facing' && missingScopes.length > 0) {
       throw new ServiceError(
         forbiddenError({
           message: `You cannot accept this app because it requires permissions that you do not have: ${missingScopes.join(', ')}`,
@@ -1141,26 +1305,36 @@ class OAuthAuthorizationService {
     let oauthAuthorizationFlow = await withTransaction(async db => {
       let oauthInstallation =
         await oauthAuthorizationInstallationService.getOrCreateInstallation({
-          oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+          oauthApplication,
           organization
         });
 
+      let authorizationInput = {
+        oauthApplication,
+        oauthInstallation,
+        organization,
+        user: d.user,
+        scopes,
+        oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
+        requestingIp: d.oauthAuthorizationRequest.clientIp,
+        acceptingIp: d.context.ip,
+        context: d.context
+      };
+
       let oauthAuthorization =
-        await oauthAuthorizationInstallationService.getOrCreateUserAuthorization({
-          oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
-          oauthInstallation,
-          organization,
-          member,
-          user: d.user,
-          scopes,
-          oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
-          requestingIp: d.oauthAuthorizationRequest.clientIp,
-          acceptingIp: d.context.ip,
-          context: d.context
-        });
+        subject.type == 'consumer'
+          ? await oauthAuthorizationInstallationService.getOrCreateConsumerAuthorization({
+              ...authorizationInput,
+              consumerProfile: subject.consumerProfile
+            })
+          : await oauthAuthorizationInstallationService.getOrCreateUserAuthorization({
+              ...authorizationInput,
+              member: subject.member
+            });
 
       if (
-        d.oauthAuthorizationRequest.oauthApplication.type == 'cli_auth' &&
+        subject.type == 'organization_member' &&
+        oauthApplication.type == 'cli_auth' &&
         d.oauthAuthorizationRequest.clientIp
       ) {
         await cliDeviceService.upsertCliDevice({
@@ -1171,6 +1345,26 @@ class OAuthAuthorizationService {
         });
       }
 
+      let flow = {
+        status: 'accepted' as const,
+        subjectType: subject.type,
+        scopes,
+        oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
+        clientIp: d.oauthAuthorizationRequest.clientIp,
+        redirectUri: d.oauthAuthorizationRequest.redirectUri,
+        nonce: d.oauthAuthorizationRequest.nonce,
+        userOid: d.user.oid,
+        organizationOid: organization.oid,
+        instanceOid: subject.consumerProfile?.instanceOid ?? null,
+        consumerProfileOid: subject.consumerProfile?.oid ?? null,
+        codeChallengeMethod: d.oauthAuthorizationRequest.codeChallengeMethod,
+        codeChallenge: d.oauthAuthorizationRequest.codeChallenge,
+        oauthApplicationOid: oauthApplication.oid,
+        oauthAuthorizationOid: oauthAuthorization.oid,
+        acceptedAt,
+        expiresAt
+      };
+
       return await db.oAuthAuthorizationFlow.upsert({
         where: {
           id: d.oauthAuthorizationRequest.id
@@ -1178,36 +1372,10 @@ class OAuthAuthorizationService {
         create: {
           id: d.oauthAuthorizationRequest.id,
           type: d.oauthAuthorizationRequest.type,
-          status: 'accepted',
-          scopes,
-          oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
-          clientIp: d.oauthAuthorizationRequest.clientIp,
-          redirectUri: d.oauthAuthorizationRequest.redirectUri,
-          nonce: d.oauthAuthorizationRequest.nonce,
-          userOid: d.user.oid,
-          organizationOid: organization.oid,
-          codeChallengeMethod: d.oauthAuthorizationRequest.codeChallengeMethod,
-          codeChallenge: d.oauthAuthorizationRequest.codeChallenge,
-          oauthApplicationOid: d.oauthAuthorizationRequest.oauthApplication.oid,
-          oauthAuthorizationOid: oauthAuthorization.oid,
-          acceptedAt,
-          expiresAt
+          ...flow
         },
         update: {
-          status: 'accepted',
-          scopes,
-          oidcScopes: d.oauthAuthorizationRequest.oidcScopes,
-          clientIp: d.oauthAuthorizationRequest.clientIp,
-          redirectUri: d.oauthAuthorizationRequest.redirectUri,
-          nonce: d.oauthAuthorizationRequest.nonce,
-          userOid: d.user.oid,
-          organizationOid: organization.oid,
-          codeChallengeMethod: d.oauthAuthorizationRequest.codeChallengeMethod,
-          codeChallenge: d.oauthAuthorizationRequest.codeChallenge,
-          oauthApplicationOid: d.oauthAuthorizationRequest.oauthApplication.oid,
-          oauthAuthorizationOid: oauthAuthorization.oid,
-          acceptedAt,
-          expiresAt,
+          ...flow,
           consumedAt: null
         },
         include: authorizationFlowInclude
@@ -1230,32 +1398,44 @@ class OAuthAuthorizationService {
     let oauthAuthorizationRequest = {
       ...acceptedRequest,
       status: acceptedRequest.status as OAuthAuthorizationRequestStatus,
-      oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+      oauthApplication,
       oauthAuthorizationFlow
     };
 
-    let auditScope = createOrganizationActorAuditScope({
-      organization,
-      organizationActor: member.actor,
-      context: d.context ?? { ip: '0.0.0.0' }
-    });
+    let auditScope =
+      subject.type == 'consumer'
+        ? createConsumerProfileAuditScope({
+            consumerProfile: subject.consumerProfile,
+            context: d.context
+          })
+        : createOrganizationActorAuditScope({
+            organization,
+            organizationActor: subject.member.actor,
+            context: d.context ?? { ip: '0.0.0.0' }
+          });
+
+    let fabricSubject = {
+      member: subject.member,
+      consumerProfile: subject.consumerProfile,
+      subjectType: subject.type
+    };
 
     await Fabric.fire('machine_access.oauth_authorization_request.accepted:before', {
-      oauthApplication: oauthAuthorizationRequest.oauthApplication,
+      oauthApplication,
       oauthAuthorizationRequest,
       organization,
-      member,
-      auditScope
+      auditScope,
+      ...fabricSubject
     });
 
     addAfterTransactionHook(() =>
       Fabric.fire('machine_access.oauth_authorization_request.accepted:after', {
-        oauthApplication: oauthAuthorizationRequest.oauthApplication,
+        oauthApplication,
         oauthAuthorizationRequest,
         previousOAuthAuthorizationRequest: d.oauthAuthorizationRequest,
         organization,
-        member,
-        auditScope
+        auditScope,
+        ...fabricSubject
       })
     );
 
@@ -1266,43 +1446,105 @@ class OAuthAuthorizationService {
     };
   }
 
+  async listConsumerAuthorizationTargets(d: {
+    oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
+    user: User;
+  }) {
+    let oauthApplication = d.oauthAuthorizationRequest.oauthApplication;
+    if (oauthApplication.accessLevel == 'organization' && !oauthApplication.organizationOid) {
+      return [];
+    }
+
+    return await db.consumerProfile.findMany({
+      where: {
+        status: 'active',
+        consumer: {
+          userOid: d.user.oid,
+          isServiceAccount: false
+        },
+        surface: {
+          type: 'portal',
+          status: 'active',
+          portal: { status: 'active' }
+        },
+        organizationOid:
+          oauthApplication.accessLevel == 'organization'
+            ? oauthApplication.organizationOid!
+            : undefined
+      },
+      include: authorizationConsumerProfileInclude,
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  private async resolveRejectingSubject(d: {
+    user: User;
+    oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
+    organizationId?: string;
+    consumerProfileId?: string;
+    context?: Context;
+  }) {
+    let context = d.context ?? { ip: '0.0.0.0' };
+
+    try {
+      if (d.oauthAuthorizationRequest.subjectType == 'consumer') {
+        if (!d.consumerProfileId) return null;
+
+        let consumerProfile = await this.resolveConsumerProfile({
+          user: d.user,
+          consumerProfileId: d.consumerProfileId,
+          oauthApplication: d.oauthAuthorizationRequest.oauthApplication
+        });
+
+        return {
+          organization: consumerProfile.organization,
+          member: null,
+          consumerProfile,
+          subjectType: 'consumer' as const,
+          auditScope: createConsumerProfileAuditScope({ consumerProfile, context })
+        };
+      }
+
+      if (!d.organizationId) return null;
+
+      let { organization, member } = await this.resolveOrganizationMember({
+        oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
+        user: d.user,
+        organizationId: d.organizationId
+      });
+
+      return {
+        organization,
+        member,
+        consumerProfile: null,
+        subjectType: 'organization_member' as const,
+        auditScope: createOrganizationActorAuditScope({
+          organization,
+          organizationActor: member.actor,
+          context
+        })
+      };
+    } catch {
+      return null;
+    }
+  }
+
   async rejectOAuthAuthorizationRequest(d: {
     user: User;
     oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
     organizationId?: string;
+    consumerProfileId?: string;
     context?: Context;
   }) {
     ensureAuthorizationRequestPending(d.oauthAuthorizationRequest);
 
-    let organizationMember = await (async () => {
-      if (!d.organizationId) return null;
+    let subject = await this.resolveRejectingSubject(d);
 
-      try {
-        return await this.resolveOrganizationMember({
-          oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
-          user: d.user,
-          organizationId: d.organizationId
-        });
-      } catch {
-        return null;
-      }
-    })();
-
-    let auditScope = organizationMember
-      ? createOrganizationActorAuditScope({
-          organization: organizationMember.organization,
-          organizationActor: organizationMember.member.actor,
-          context: d.context ?? { ip: '0.0.0.0' }
-        })
-      : null;
-
-    if (organizationMember && auditScope) {
+    if (subject) {
       await Fabric.fire('machine_access.oauth_authorization_request.denied:before', {
         oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
         oauthAuthorizationRequest: d.oauthAuthorizationRequest,
-        organization: organizationMember.organization,
-        member: organizationMember.member,
-        auditScope
+        ...subject
       });
     }
 
@@ -1325,15 +1567,13 @@ class OAuthAuthorizationService {
       oauthAuthorizationFlow: null
     };
 
-    if (organizationMember && auditScope) {
+    if (subject) {
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_authorization_request.denied:after', {
           oauthApplication: oauthAuthorizationRequest.oauthApplication,
           oauthAuthorizationRequest: oauthAuthorizationRequest,
           previousOAuthAuthorizationRequest: d.oauthAuthorizationRequest,
-          organization: organizationMember.organization,
-          member: organizationMember.member,
-          auditScope
+          ...subject
         })
       );
     }
@@ -1361,13 +1601,16 @@ class OAuthAuthorizationService {
         );
       }
 
+      let subject = this.getAuthorizationSubject(existingAuthorization);
+
       await Fabric.fire('machine_access.oauth_authorization.revoked:before', {
         oauthApplication: existingAuthorization.oauthApplication,
         oauthInstallation: existingAuthorization.oauthInstallation,
         oauthAuthorization: existingAuthorization,
         organization: existingAuthorization.oauthInstallation.organization,
         appActor: existingAuthorization.oauthInstallation.appActor,
-        auditScope: d.auditScope
+        auditScope: d.auditScope,
+        ...subject
       });
 
       let oauthAuthorization = await db.oAuthAuthorization.update({
@@ -1381,6 +1624,8 @@ class OAuthAuthorizationService {
         include: authorizationInclude
       });
 
+      await revokeOAuthConsumerSession({ oauthAuthorization });
+
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_authorization.revoked:after', {
           oauthApplication: oauthAuthorization.oauthApplication,
@@ -1389,12 +1634,73 @@ class OAuthAuthorizationService {
           previousOAuthAuthorization: existingAuthorization,
           organization: oauthAuthorization.oauthInstallation.organization,
           appActor: oauthAuthorization.oauthInstallation.appActor,
-          auditScope: d.auditScope
+          auditScope: d.auditScope,
+          ...subject
         })
       );
 
       return oauthAuthorization;
     });
+  }
+
+  async revokeConsumerOAuthAuthorization(d: {
+    consumerProfile: ConsumerProfile;
+    oauthAuthorizationId: string;
+    context: Context;
+  }) {
+    let oauthAuthorization = await this.getConsumerOAuthAuthorizationById(d);
+
+    return await this.revokeOAuthAuthorization({
+      oauthAuthorization,
+      auditScope: createConsumerProfileAuditScope({
+        consumerProfile: d.consumerProfile,
+        context: d.context
+      })
+    });
+  }
+
+  async getConsumerOAuthAuthorizationById(d: {
+    consumerProfile: ConsumerProfile;
+    oauthAuthorizationId: string;
+  }) {
+    let oauthAuthorization = await db.oAuthAuthorization.findFirst({
+      where: {
+        id: d.oauthAuthorizationId,
+        consumerProfileOid: d.consumerProfile.oid,
+        oauthApplication: {
+          type: { in: ['user_facing', 'cli_auth'] }
+        }
+      },
+      include: authorizationInclude
+    });
+
+    if (!oauthAuthorization) {
+      throw new ServiceError(notFoundError('oauth_authorization', d.oauthAuthorizationId));
+    }
+
+    return oauthAuthorization;
+  }
+
+  async listConsumerOAuthAuthorizations(d: {
+    consumerProfile: ConsumerProfile;
+    statuses?: OAuthAuthorizationStatus[];
+  }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.oAuthAuthorization.findMany({
+            ...opts,
+            where: {
+              consumerProfileOid: d.consumerProfile.oid,
+              status: d.statuses ? { in: d.statuses } : undefined,
+              oauthApplication: {
+                type: { in: ['user_facing', 'cli_auth'] }
+              }
+            },
+            include: authorizationInclude
+          })
+      )
+    );
   }
 
   async getOAuthAuthorizationById(d: {
@@ -1426,6 +1732,7 @@ class OAuthAuthorizationService {
     oauthInstallationIds?: string[];
     oauthApplicationIds?: string[];
     statuses?: OAuthAuthorizationStatus[];
+    subjectType?: OAuthSubjectType;
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -1435,6 +1742,7 @@ class OAuthAuthorizationService {
             where: {
               organizationOid: d.organization.oid,
               status: d.statuses ? { in: d.statuses } : undefined,
+              subjectType: d.subjectType,
               oauthInstallation: d.oauthInstallationIds
                 ? {
                     id: {
@@ -1477,6 +1785,17 @@ let oauthApplicationInclude = {
   }
 } as const;
 
+let authorizationConsumerProfileInclude = {
+  consumer: true,
+  organization: true,
+  instance: true,
+  surface: {
+    include: {
+      portal: true
+    }
+  }
+} as const;
+
 export let authorizationInclude = {
   oauthApplication: {
     include: {
@@ -1487,6 +1806,17 @@ export let authorizationInclude = {
     include: installationInclude
   },
   organizationMember: true,
+  instance: true,
+  consumerProfile: {
+    include: authorizationConsumerProfileInclude
+  },
+  consumerSession: {
+    include: {
+      consumerProfile: {
+        include: authorizationConsumerProfileInclude
+      }
+    }
+  },
   serviceAccountCredential: {
     include: {
       serviceAccount: true

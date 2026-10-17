@@ -21,6 +21,9 @@ let { machineAccessCreateMock, machineAccessUpdateMock, mockConfig, mockDb } = v
       },
       oAuthAuthorization: {
         updateMany: vi.fn()
+      },
+      consumerSession: {
+        updateMany: vi.fn()
       }
     }
   })
@@ -507,6 +510,7 @@ describe('oauthApplicationService', () => {
         type: 'cli_auth',
         status: 'active',
         isImportedFromOtherInstance: false,
+        subjectType: 'consumer_or_organization_member',
         scopes: ['instance.server:read'],
         ...overrides
       }) as any;

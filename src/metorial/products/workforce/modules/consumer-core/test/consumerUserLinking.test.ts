@@ -136,6 +136,18 @@ describe('consumerProfileService.getConsumersForUser', () => {
     );
   });
 
+  it('never resolves service account consumers for a user', async () => {
+    mocks.consumerFindMany.mockResolvedValue([]);
+
+    await consumerProfileService.getConsumersForUser({ user });
+
+    expect(mocks.consumerFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isServiceAccount: false })
+      })
+    );
+  });
+
   it('claims a consumer invited under a different casing', async () => {
     mocks.consumerFindMany
       .mockResolvedValueOnce([invitedConsumer])
@@ -150,5 +162,51 @@ describe('consumerProfileService.getConsumersForUser', () => {
     expect(mocks.reconcileAdd).toHaveBeenCalledWith({ userId: user.id });
     expect(mocks.syncUserConsumersAdd).toHaveBeenCalledWith({ userId: user.id });
     expect(consumers.map(consumer => consumer.id)).toEqual([invitedConsumer.id]);
+  });
+});
+
+describe('consumerProfileService.createServiceAccountConsumerProfile', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('creates a dedicated profile with a synthetic address and no invite', async () => {
+    let ensureConsumerProfile = vi
+      .spyOn(consumerProfileService, 'ensureConsumerProfile')
+      .mockResolvedValue({ id: 'cop_sa' } as any);
+    let surface = { oid: 22n, type: 'portal' } as any;
+    let auditScope = { organizationOid: 900n } as any;
+
+    await consumerProfileService.createServiceAccountConsumerProfile({
+      surface,
+      name: 'Deploy Bot',
+      serviceAccountKey: 'key123',
+      auditScope
+    });
+
+    expect(ensureConsumerProfile).toHaveBeenCalledWith({
+      surface,
+      email: 'sa-key123@service-accounts.metorial.invalid',
+      name: 'Deploy Bot',
+      auditScope,
+      inviteStatus: 'unset',
+      rejectIfActiveProfileExists: true,
+      automatic: true,
+      isServiceAccount: true
+    });
+  });
+
+  it('rejects non-portal surfaces', async () => {
+    let ensureConsumerProfile = vi.spyOn(consumerProfileService, 'ensureConsumerProfile');
+
+    await expect(
+      consumerProfileService.createServiceAccountConsumerProfile({
+        surface: { oid: 22n, type: 'cli' } as any,
+        name: 'Deploy Bot',
+        serviceAccountKey: 'key123',
+        auditScope: {} as any
+      })
+    ).rejects.toThrow();
+    expect(ensureConsumerProfile).not.toHaveBeenCalled();
   });
 });

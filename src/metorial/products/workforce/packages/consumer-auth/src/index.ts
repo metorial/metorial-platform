@@ -7,6 +7,7 @@ import {
   ConsumerProfile,
   ConsumerSurface,
   db,
+  Instance,
   Organization,
   type Prisma
 } from '@metorial/db';
@@ -371,6 +372,48 @@ export let authenticateWithConsumerToken = async (d: {
     consumerProfile: session.consumerProfile,
     surface: session.consumerProfile.surface,
     ssoGroupIds
+  };
+};
+
+export let authenticateWithOAuthConsumerSession = async (d: {
+  session: ConsumerSessionWithProfile | null | undefined;
+  instance: Pick<Instance, 'oid'>;
+}) => {
+  let session = d.session;
+  let surface = session?.consumerProfile.surface;
+
+  if (
+    !session ||
+    !surface ||
+    session.loggedOutAt ||
+    session.expiresAt < new Date() ||
+    session.consumerProfile.status != 'active' ||
+    surface.status != 'active' ||
+    surface.type != 'portal' ||
+    surface.instanceOid != d.instance.oid ||
+    (surface.portal && surface.portal.status != 'active')
+  ) {
+    throw new ServiceError(
+      unauthorizedError({
+        message: 'The consumer session for this OAuth token is no longer valid.'
+      })
+    );
+  }
+
+  await db.consumerSession.update({
+    where: {
+      oid: session.oid
+    },
+    data: {
+      lastUsedAt: new Date()
+    }
+  });
+
+  return {
+    session,
+    consumerProfile: session.consumerProfile,
+    surface,
+    ssoGroupIds: session.consumerProfile.ssoGroupIds ?? []
   };
 };
 

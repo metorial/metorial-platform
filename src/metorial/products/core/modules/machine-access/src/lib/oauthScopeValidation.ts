@@ -1,12 +1,19 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { OAuthSubjectType } from '@metorial/db';
 import { coreScopes } from '../../../access/src/definitions';
-import { normalizeScopes } from './oauthAuthorizationScopes';
+import { consumerOAuthScopes, normalizeScopes } from './oauthAuthorizationScopes';
 
-let oauthScopeSet = new Set(coreScopes);
+let oauthScopeSet = new Set<string>(coreScopes);
+let consumerOAuthScopeSet = new Set<string>(consumerOAuthScopes);
 
-export let validateOAuthScopes = (scopes: string[]) => {
+export let validateOAuthScopes = (
+  scopes: string[],
+  subjectType: OAuthSubjectType = 'organization_member'
+) => {
+  let allowedScopes = subjectType == 'consumer' ? consumerOAuthScopeSet : oauthScopeSet;
+
   let normalizedScopes = normalizeScopes(scopes);
-  let invalidScopes = normalizedScopes.filter(scope => !oauthScopeSet.has(scope as any));
+  let invalidScopes = normalizedScopes.filter(scope => !allowedScopes.has(scope));
 
   if (invalidScopes.length > 0) {
     throw new ServiceError(

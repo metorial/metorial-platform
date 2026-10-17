@@ -12,6 +12,9 @@ let { mockDb } = vi.hoisted(() => ({
     },
     oAuthAuthorization: {
       updateMany: vi.fn()
+    },
+    consumerSession: {
+      updateMany: vi.fn()
     }
   }
 }));
