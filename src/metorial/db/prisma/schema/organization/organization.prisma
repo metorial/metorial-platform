@@ -99,6 +99,7 @@ model Organization {
   consumerActors                         ConsumerActor[]
   identityActors                         IdentityActor[]
   agents                                 Agent[]
+  agentClients                           AgentClient[]
   consumerClients                        ConsumerClient[]
   consumerAuthClients                    ConsumerAuthClient[]
   consumerAuthTestAuthorizations         ConsumerAuthTestAuthorization[]

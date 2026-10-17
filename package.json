@@ -160,6 +160,7 @@
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/case": "workspace:2.0.0",
+    "@lowerdeck/cors": "workspace:2.0.0",
     "@lowerdeck/cron": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/emitter": "workspace:2.0.0",

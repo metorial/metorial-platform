@@ -1,3 +1,4 @@
+import { isLocalDevelopmentOrigin } from '@lowerdeck/cors';
 import {
   internalServerError,
   isServiceError,
@@ -144,7 +145,9 @@ export let rpcMux = (
       let origin = req.headers.get('origin') ?? '';
       let corsOk = false;
 
-      if (opts.cors && 'domains' in opts.cors) {
+      if (opts.cors && isLocalDevelopmentOrigin(origin)) {
+        corsOk = true;
+      } else if (opts.cors && 'domains' in opts.cors) {
         try {
           let url = new URL(origin);
           let hostname = url.hostname;

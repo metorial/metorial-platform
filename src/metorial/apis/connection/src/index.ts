@@ -1,3 +1,4 @@
+import { isLocalDevelopmentOrigin } from '@lowerdeck/cors';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
@@ -12,7 +13,7 @@ export type CorsOriginOption = string[] | ((origin: string) => boolean);
 
 let isCorsOriginAllowed = (origin: string | undefined, corsOrigins?: CorsOriginOption) => {
   if (!origin) return false;
-  if (!corsOrigins) return true;
+  if (!corsOrigins || isLocalDevelopmentOrigin(origin)) return true;
   return typeof corsOrigins === 'function'
     ? corsOrigins(origin)
     : corsOrigins.includes(origin);

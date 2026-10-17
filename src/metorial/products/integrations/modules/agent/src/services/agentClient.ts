@@ -19,6 +19,7 @@ import {
   toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { mirrorAgentClientQueue } from '../queues/mirror';
 import { indexAgentClientQueue } from '../queues/search/agentClient';
 
 type AgentClientInput =
@@ -173,12 +174,14 @@ class agentClientServiceImpl {
         }
       });
 
+      let newRegistrationId = getId('agentClientRegistration');
+
       let agentClientRegistration =
         d.input.type === 'mcp_client_oauth'
           ? await db.agentClientRegistration.upsert({
               where: { oauthRegistrationId: d.input.oauthRegistrationId },
               create: {
-                ...getId('agentClientRegistration'),
+                ...newRegistrationId,
 
                 oauthRegistrationId: d.input.oauthRegistrationId,
                 privateMetadata: d.input.privateMetadata,
@@ -195,6 +198,12 @@ class agentClientServiceImpl {
       if (isNew) {
         await addAfterTransactionHook(async () =>
           indexAgentClientQueue.add({ agentClientId: agentClient.id })
+        );
+      }
+
+      if (isNew || agentClientRegistration?.id === newRegistrationId.id) {
+        await addAfterTransactionHook(async () =>
+          mirrorAgentClientQueue.add({ agentClientId: agentClient.id })
         );
       }
 

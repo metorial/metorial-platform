@@ -6,9 +6,7 @@ use std::{
 use miette::{IntoDiagnostic, Result, WrapErr, bail};
 
 use crate::{
-    dev, docker, environment,
-    infrastructure::{self, RenderOptions, Requirements},
-    manifest, process, proxy,
+    dev, docker, environment, manifest, process, proxy,
     root::ProjectRoot,
     workspace::{self, ServicePorts, WorkspaceMetadata, WorkspaceRuntime},
 };
@@ -353,38 +351,17 @@ fn source_services_compose(metadata: &WorkspaceMetadata) -> Result<PathBuf> {
     let path = metadata
         .source_root
         .join(".control/dev/services.docker-compose.yml");
-    let ports = ServicePorts {
-        postgres: 35432,
-        mongo: 32707,
-        redis: 36379,
-        nats: 34222,
-        etcd_client: 32379,
-        etcd_peer: 32380,
-    };
-    infrastructure::write_compose(
-        &path,
-        &Requirements {
-            postgres: true,
-            ..Default::default()
-        },
-        &RenderOptions {
-            project_name: Some("control_source_services"),
-            network: "control-services",
-            network_name: None,
-            ports: Some(&ports),
-            restart: true,
-        },
-    )
+    if !path.is_file() {
+        bail!(
+            "root workspace has no dependency services at {}; start the root workspace first",
+            path.display()
+        );
+    }
+    Ok(path)
 }
 
 fn source_compose_args(compose: &Path) -> Vec<String> {
-    vec![
-        "compose".into(),
-        "--project-name".into(),
-        "dev_services".into(),
-        "--file".into(),
-        compose.to_string_lossy().into_owned(),
-    ]
+    compose_args(compose)
 }
 
 fn compose_path(project: &ProjectRoot) -> PathBuf {
@@ -460,13 +437,7 @@ mod tests {
         };
         assert_eq!(
             source_compose_args(Path::new("/code/services.docker-compose.yml")),
-            [
-                "compose",
-                "--project-name",
-                "dev_services",
-                "--file",
-                "/code/services.docker-compose.yml"
-            ]
+            ["compose", "--file", "/code/services.docker-compose.yml"]
         );
         assert_eq!(
             postgres_clone_marker(&project),

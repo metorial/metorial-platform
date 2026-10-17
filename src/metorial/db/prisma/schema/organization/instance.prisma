@@ -133,6 +133,7 @@ model Instance {
   consumerActors                       ConsumerActor[]
   identityActors                       IdentityActor[]
   agents                               Agent[]
+  agentClients                         AgentClient[]
   consumerTokens                       ConsumerToken[]
   consumerIntegrations                 ConsumerIntegration[]
   consumerIntegrationEndpoints         ConsumerIntegrationEndpoint[]
