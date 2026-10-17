@@ -8,20 +8,39 @@ export let getRetentionCutoffDate = (logRetentionInDays: number) =>
   subDays(new Date(), Math.max(logRetentionInDays, 0));
 
 export let retentionPhaseBatch = async <Record>(d: {
-  findMany: () => Promise<Record[]>;
+  cursor?: string;
+  findMany: (cursor?: string) => Promise<Record[]>;
+  getCursor?: (record: Record) => string;
+  filter?: (records: Record[]) => Record[] | Promise<Record[]>;
   batchSize?: number;
   beforeDelete?: (records: Record[]) => Promise<void>;
   deleteMany: (records: Record[]) => Promise<unknown>;
-}) => {
+}): Promise<RetentionPhaseResult & { deleted: number }> => {
   let batchSize = d.batchSize ?? RETENTION_BATCH_SIZE;
 
-  let records = await d.findMany();
+  let records = await d.findMany(d.cursor);
   if (records.length === 0) return { deleted: 0, hasMore: false };
 
-  if (d.beforeDelete) await d.beforeDelete(records);
-  await d.deleteMany(records);
+  let deletable = d.filter ? await d.filter(records) : records;
 
-  return { deleted: records.length, hasMore: records.length === batchSize };
+  if (deletable.length > 0) {
+    if (d.beforeDelete) await d.beforeDelete(deletable);
+    await d.deleteMany(deletable);
+  }
+
+  let isFullPage = records.length === batchSize;
+
+  if (d.getCursor) {
+    return {
+      deleted: deletable.length,
+      hasMore: isFullPage,
+      cursor: d.getCursor(records[records.length - 1]!)
+    };
+  }
+
+  // Without a cursor the next batch re-reads whatever this one skipped, so a page that
+  // deleted nothing would loop on the same rows forever.
+  return { deleted: deletable.length, hasMore: isFullPage && deletable.length > 0 };
 };
 
 export interface RetentionPhaseResult {
