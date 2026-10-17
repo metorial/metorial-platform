@@ -109,6 +109,7 @@ model Project {
   sandboxEgressPolicies                  SandboxEgressPolicy[]
   identityActors                         IdentityActor[]
   agents                                 Agent[]
+  agentClients                           AgentClient[]
 
   @@index([previousSlugs])
 }

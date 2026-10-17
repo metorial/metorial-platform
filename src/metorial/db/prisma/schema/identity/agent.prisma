@@ -36,7 +36,102 @@ model Agent {
   archivedAt DateTime?
   syncedAt   DateTime  @default(now()) @updatedAt
 
+  instances AgentInstance[]
+
   @@index([organizationOid])
   @@index([projectOid])
   @@index([instanceOid])
+}
+
+enum AgentClientType {
+  mcp_client_oauth
+  system_client
+}
+
+enum AgentInstanceType {
+  mcp_client
+  tool_call
+}
+
+model AgentClient {
+  oid BigInt @id
+  id  String @unique
+
+  type AgentClientType
+
+  name String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerClientOid BigInt?
+  consumerClient    ConsumerClient? @relation(fields: [consumerClientOid], references: [oid], onDelete: SetNull)
+
+  createdAt       DateTime
+  updatedAt       DateTime
+  lastConnectedAt DateTime?
+  syncedAt        DateTime  @default(now()) @updatedAt
+
+  registrations AgentClientRegistration[]
+  instances     AgentInstance[]
+
+  @@index([organizationOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+  @@index([consumerClientOid])
+}
+
+model AgentClientRegistration {
+  oid BigInt @id
+  id  String @unique
+
+  agentClientOid BigInt
+  agentClient    AgentClient @relation(fields: [agentClientOid], references: [oid], onDelete: Cascade)
+
+  consumerAuthClientOid BigInt?             @unique
+  consumerAuthClient    ConsumerAuthClient? @relation(fields: [consumerAuthClientOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime
+  updatedAt DateTime
+  syncedAt  DateTime @default(now()) @updatedAt
+
+  agentInstances AgentInstance[]
+
+  @@index([agentClientOid])
+}
+
+model AgentInstance {
+  oid BigInt @id
+  id  String @unique
+
+  type AgentInstanceType
+
+  name        String
+  version     String?
+  description String?
+  hash        String
+
+  agentOid BigInt
+  agent    Agent  @relation(fields: [agentOid], references: [oid], onDelete: Cascade)
+
+  agentClientOid BigInt?
+  agentClient    AgentClient? @relation(fields: [agentClientOid], references: [oid], onDelete: Cascade)
+
+  agentClientRegistrationOid BigInt?
+  agentClientRegistration    AgentClientRegistration? @relation(fields: [agentClientRegistrationOid], references: [oid], onDelete: Cascade)
+
+  createdAt       DateTime
+  updatedAt       DateTime
+  lastConnectedAt DateTime?
+  syncedAt        DateTime  @default(now()) @updatedAt
+
+  @@unique([agentOid, hash])
+  @@index([agentClientOid])
+  @@index([agentClientRegistrationOid])
 }
