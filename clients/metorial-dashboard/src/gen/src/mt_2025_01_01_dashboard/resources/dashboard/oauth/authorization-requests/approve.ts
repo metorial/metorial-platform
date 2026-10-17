@@ -5,6 +5,7 @@ export type DashboardOauthAuthorizationRequestsApproveOutput = {
   id: string;
   status: 'pending' | 'accepted' | 'denied' | 'consumed';
   type: 'interactive' | 'device_code';
+  subjectType: 'organization_member' | 'consumer';
   userCode: string | null;
   redirectUri: string | null;
   scopes: { identifier: string; name: string; description: string }[];
@@ -16,6 +17,10 @@ export type DashboardOauthAuthorizationRequestsApproveOutput = {
     status: 'active' | 'archived';
     type: 'user_facing' | 'cli_auth' | 'server_side';
     accessLevel: 'organization' | 'global';
+    subjectType:
+      | 'organization_member'
+      | 'consumer'
+      | 'consumer_or_organization_member';
     allowTokenExchangeWithoutClientSecret: boolean;
     name: string;
     description: string | null;
@@ -43,6 +48,7 @@ export type DashboardOauthAuthorizationRequestsApproveOutput = {
 export let mapDashboardOauthAuthorizationRequestsApproveOutput =
   /* @__PURE__ */ mapObject<DashboardOauthAuthorizationRequestsApproveOutput>(
     [
+      'subject_type',
       'user_code',
       'redirect_uri',
       'redirect_url',
@@ -54,6 +60,7 @@ export let mapDashboardOauthAuthorizationRequestsApproveOutput =
           1,
           [
             'access_level',
+            'subject_type',
             'allow_token_exchange_without_client_secret',
             'image_url',
             'website_url',
@@ -74,9 +81,11 @@ export let mapDashboardOauthAuthorizationRequestsApproveOutput =
 
 export type DashboardOauthAuthorizationRequestsApproveBody = {
   organizationId: string;
+  consumerProfileId?: string | undefined;
 };
 
 export let mapDashboardOauthAuthorizationRequestsApproveBody =
   /* @__PURE__ */ mapObject<DashboardOauthAuthorizationRequestsApproveBody>([
-    'organization_id'
+    'organization_id',
+    'consumer_profile_id'
   ]);

@@ -37,12 +37,14 @@ export type IdentitiesDelegationsGetOutput = {
     actor: {
       object: 'identity.actor';
       id: string;
-      type: 'person' | 'agent';
+      type: 'person' | 'agent' | 'consumer';
       status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;
       metadata: Record<string, any> | null;
       agentId: string | null;
+      consumerId: string | null;
+      defaultIdentityId: string | null;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -60,12 +62,14 @@ export type IdentitiesDelegationsGetOutput = {
     requester: {
       object: 'identity.actor';
       id: string;
-      type: 'person' | 'agent';
+      type: 'person' | 'agent' | 'consumer';
       status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;
       metadata: Record<string, any> | null;
       agentId: string | null;
+      consumerId: string | null;
+      defaultIdentityId: string | null;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -102,7 +106,20 @@ export let mapIdentitiesDelegationsGetOutput =
           [
             1,
             [
-              ['actor', 0, [1, ['agent_id', 'created_at', 'updated_at']]],
+              [
+                'actor',
+                0,
+                [
+                  1,
+                  [
+                    'agent_id',
+                    'consumer_id',
+                    'default_identity_id',
+                    'created_at',
+                    'updated_at'
+                  ]
+                ]
+              ],
               'created_at'
             ]
           ]
@@ -115,7 +132,20 @@ export let mapIdentitiesDelegationsGetOutput =
           1,
           [
             'denied_reason',
-            ['requester', 0, [1, ['agent_id', 'created_at', 'updated_at']]],
+            [
+              'requester',
+              0,
+              [
+                1,
+                [
+                  'agent_id',
+                  'consumer_id',
+                  'default_identity_id',
+                  'created_at',
+                  'updated_at'
+                ]
+              ]
+            ],
             'identity_id',
             'expires_at',
             'created_at'

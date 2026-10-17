@@ -6,6 +6,10 @@ export type DashboardOrganizationsOauthAppsCreateOutput = {
   status: 'active' | 'archived';
   type: 'user_facing' | 'cli_auth' | 'server_side';
   accessLevel: 'organization' | 'global';
+  subjectType:
+    | 'organization_member'
+    | 'consumer'
+    | 'consumer_or_organization_member';
   allowTokenExchangeWithoutClientSecret: boolean;
   name: string;
   description: string | null;
@@ -33,6 +37,7 @@ export let mapDashboardOrganizationsOauthAppsCreateOutput =
   /* @__PURE__ */ mapObject<DashboardOrganizationsOauthAppsCreateOutput>(
     [
       'access_level',
+      'subject_type',
       'allow_token_exchange_without_client_secret',
       'image_url',
       'website_url',
@@ -50,6 +55,7 @@ export let mapDashboardOrganizationsOauthAppsCreateOutput =
 
 export type DashboardOrganizationsOauthAppsCreateBody = {
   accessLevel: 'organization';
+  subjectType?: 'organization_member' | 'consumer' | undefined;
   allowTokenExchangeWithoutClientSecret?: boolean | undefined;
   name: string;
   description?: string | undefined;
@@ -63,6 +69,7 @@ export type DashboardOrganizationsOauthAppsCreateBody = {
 export let mapDashboardOrganizationsOauthAppsCreateBody =
   /* @__PURE__ */ mapObject<DashboardOrganizationsOauthAppsCreateBody>([
     'access_level',
+    'subject_type',
     'allow_token_exchange_without_client_secret',
     'website_url',
     'privacy_policy_url',

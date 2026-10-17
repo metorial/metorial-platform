@@ -169,6 +169,7 @@ import {
   MetorialDashboardInstanceStoresPermissionsEndpoint,
   MetorialDashboardInstanceToolCallsEndpoint,
   MetorialDashboardInstanceWebhookRegistrationsEndpoint,
+  MetorialDashboardOauthAuthorizationRequestsConsumerTargetsEndpoint,
   MetorialDashboardOauthAuthorizationRequestsEndpoint,
   MetorialDashboardOrganizationsAccessPoliciesEndpoint,
   MetorialDashboardOrganizationsAccessRolesEndpoint,
@@ -990,7 +991,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
   oauth: {
     cliDevices: new MetorialDashboardOrganizationsOauthCliDevicesEndpoint(manager),
-    authorizationRequests: new MetorialDashboardOauthAuthorizationRequestsEndpoint(manager),
+    authorizationRequests: Object.assign(
+      new MetorialDashboardOauthAuthorizationRequestsEndpoint(manager),
+      {
+        consumerTargets:
+          new MetorialDashboardOauthAuthorizationRequestsConsumerTargetsEndpoint(manager)
+      }
+    ),
     scopes: new MetorialDashboardOrganizationsOauthScopesEndpoint(manager),
     apps: Object.assign(new MetorialDashboardOrganizationsOauthAppsEndpoint(manager), {
       clientSecrets: new MetorialDashboardOrganizationsOauthAppsClientSecretsEndpoint(manager)

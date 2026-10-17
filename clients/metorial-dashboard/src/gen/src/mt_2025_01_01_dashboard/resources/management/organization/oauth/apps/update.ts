@@ -6,6 +6,10 @@ export type ManagementOrganizationOauthAppsUpdateOutput = {
   status: 'active' | 'archived';
   type: 'user_facing' | 'cli_auth' | 'server_side';
   accessLevel: 'organization' | 'global';
+  subjectType:
+    | 'organization_member'
+    | 'consumer'
+    | 'consumer_or_organization_member';
   allowTokenExchangeWithoutClientSecret: boolean;
   name: string;
   description: string | null;
@@ -33,6 +37,7 @@ export let mapManagementOrganizationOauthAppsUpdateOutput =
   /* @__PURE__ */ mapObject<ManagementOrganizationOauthAppsUpdateOutput>(
     [
       'access_level',
+      'subject_type',
       'allow_token_exchange_without_client_secret',
       'image_url',
       'website_url',

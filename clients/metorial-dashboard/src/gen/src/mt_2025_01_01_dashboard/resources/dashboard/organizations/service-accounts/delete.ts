@@ -4,6 +4,7 @@ export type DashboardOrganizationsServiceAccountsDeleteOutput = {
   object: 'machine_access.service_account';
   id: string;
   status: 'active' | 'archived';
+  subjectType: 'organization_member' | 'consumer';
   name: string;
   description: string | null;
   scopes: { identifier: string; name: string; description: string }[];
@@ -24,6 +25,8 @@ export type DashboardOrganizationsServiceAccountsDeleteOutput = {
     deletedAt: Date | null;
   }[];
   organizationId: string;
+  portalId: string | null;
+  consumerProfileId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -31,9 +34,12 @@ export type DashboardOrganizationsServiceAccountsDeleteOutput = {
 export let mapDashboardOrganizationsServiceAccountsDeleteOutput =
   /* @__PURE__ */ mapObject<DashboardOrganizationsServiceAccountsDeleteOutput>(
     [
+      'subject_type',
       'client_id',
       ['client_secrets', 1, [2, [1, ['created_at', 'deleted_at']]]],
       'organization_id',
+      'portal_id',
+      'consumer_profile_id',
       'created_at',
       'updated_at'
     ],

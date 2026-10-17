@@ -5,18 +5,26 @@ export type DashboardOrganizationsOauthAuthorizationsRevokeOutput = {
   id: string;
   status: 'active' | 'revoked';
   type: 'user' | 'server_side';
+  subjectType: 'organization_member' | 'consumer';
   scopes: { identifier: string; name: string; description: string }[];
   organizationId: string;
   oauthApplicationId: string;
   oauthInstallationId: string;
   userId: string | null;
   organizationMemberId: string | null;
+  consumerProfileId: string | null;
+  portalId: string | null;
+  instanceId: string | null;
   oauthApplication: {
     object: 'machine_access.oauth_application';
     id: string;
     status: 'active' | 'archived';
     type: 'user_facing' | 'cli_auth' | 'server_side';
     accessLevel: 'organization' | 'global';
+    subjectType:
+      | 'organization_member'
+      | 'consumer'
+      | 'consumer_or_organization_member';
     allowTokenExchangeWithoutClientSecret: boolean;
     name: string;
     description: string | null;
@@ -46,7 +54,8 @@ export type DashboardOrganizationsOauthAuthorizationsRevokeOutput = {
     type:
       | 'organization_management'
       | 'instance_secret'
-      | 'instance_publishable';
+      | 'instance_publishable'
+      | 'instance_consumer';
     name: string;
     lastUsedAt: Date;
     createdAt: Date;
@@ -134,11 +143,15 @@ export type DashboardOrganizationsOauthAuthorizationsRevokeOutput = {
 export let mapDashboardOrganizationsOauthAuthorizationsRevokeOutput =
   /* @__PURE__ */ mapObject<DashboardOrganizationsOauthAuthorizationsRevokeOutput>(
     [
+      'subject_type',
       'organization_id',
       'oauth_application_id',
       'oauth_installation_id',
       'user_id',
       'organization_member_id',
+      'consumer_profile_id',
+      'portal_id',
+      'instance_id',
       [
         'oauth_application',
         1,
@@ -146,6 +159,7 @@ export let mapDashboardOrganizationsOauthAuthorizationsRevokeOutput =
           1,
           [
             'access_level',
+            'subject_type',
             'allow_token_exchange_without_client_secret',
             'image_url',
             'website_url',

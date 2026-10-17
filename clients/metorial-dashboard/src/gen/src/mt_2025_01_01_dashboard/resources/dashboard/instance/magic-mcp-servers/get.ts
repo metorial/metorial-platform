@@ -128,6 +128,11 @@ export type DashboardInstanceMagicMcpServersGetOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any>;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    consumerId: string | null;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -372,6 +377,7 @@ export let mapDashboardInstanceMagicMcpServersGetOutput =
                   ]
                 ]
               ],
+              ['owner_actor', 1, [1, ['consumer_id']]],
               'created_at',
               'updated_at',
               'integration_id',
