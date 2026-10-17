@@ -136,6 +136,7 @@ export type CreateProviderSetupSessionParams = {
   };
   internal?: {
     integrationSetupSessionProviderOid?: bigint;
+    skipConfirmation?: boolean;
   };
 };
 
@@ -472,6 +473,7 @@ class providerSetupSessionServiceImpl {
 
           uiMode: d.input.uiMode,
           status: 'pending',
+          skipConfirmation: d.internal?.skipConfirmation ?? false,
 
           name: d.input.name?.trim() || undefined,
           description: d.input.description?.trim() || undefined,
