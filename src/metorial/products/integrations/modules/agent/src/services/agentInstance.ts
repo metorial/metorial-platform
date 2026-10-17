@@ -3,6 +3,7 @@ import { Hash } from '@lowerdeck/hash';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   type Agent,
   type AgentClient,
   type AgentClientRegistration,
@@ -23,6 +24,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { mirrorAgentInstanceQueue } from '../queues/mirror';
 
 let include = {
   agent: true,
@@ -168,7 +170,9 @@ class agentInstanceServiceImpl {
     );
 
     return await withTransaction(async db => {
-      return await db.agentInstance.upsert({
+      let newId = getId('agentInstance');
+
+      let agentInstance = await db.agentInstance.upsert({
         where: {
           agentOid_hash: {
             agentOid: d.agent.oid,
@@ -176,7 +180,7 @@ class agentInstanceServiceImpl {
           }
         },
         create: {
-          ...getId('agentInstance'),
+          ...newId,
 
           name: d.input.name.trim(),
           version: d.input.version?.trim() || undefined,
@@ -200,6 +204,14 @@ class agentInstanceServiceImpl {
         },
         include
       });
+
+      if (agentInstance.id === newId.id) {
+        await addAfterTransactionHook(async () =>
+          mirrorAgentInstanceQueue.add({ agentInstanceId: agentInstance.id })
+        );
+      }
+
+      return agentInstance;
     });
   }
 }
