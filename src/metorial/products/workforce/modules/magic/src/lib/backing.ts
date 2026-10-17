@@ -1,5 +1,5 @@
 import { isServiceError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { db, ID, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
+import { db, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
 import {
   integrationInstanceService,
   magicMcpEndpointBackingService,
@@ -112,8 +112,10 @@ export let applyMagicMcpServerBacking = async (d: {
   owner: ConsumerOwner;
   providers?: MagicMcpBackingProviderInput[];
   isReconciliation?: boolean;
+  maxSessionDurationInMinutes?: number;
 }) => {
-  let maxSessionDurationInMinutes = await getMagicMcpSessionDuration(d.instance);
+  let maxSessionDurationInMinutes =
+    d.maxSessionDurationInMinutes ?? (await getMagicMcpSessionDuration(d.instance));
   let providerTemplateBackingId = d.server.providerTemplateId ?? null;
 
   let ownerIntegrationId: string | null = null;
@@ -159,6 +161,7 @@ export let ensureMagicMcpServerBacking = async (d: {
   owner?: ConsumerOwner;
   providers?: MagicMcpBackingProviderInput[];
   isReconciliation?: boolean;
+  maxSessionDurationInMinutes?: number;
 }) => {
   let owner =
     d.owner ?? (await getConsumerOwnerForServer({ instance: d.instance, server: d.server }));
@@ -168,7 +171,8 @@ export let ensureMagicMcpServerBacking = async (d: {
     server: d.server,
     owner,
     providers: d.providers,
-    isReconciliation: d.isReconciliation
+    isReconciliation: d.isReconciliation,
+    maxSessionDurationInMinutes: d.maxSessionDurationInMinutes
   });
 
   let ownerActorOid = d.server.ownerActorOid ?? (await resolveOwnerActorOid(owner));
@@ -274,56 +278,38 @@ export let healMagicMcpEndpointBacking = async (d: {
   });
 };
 
-let ensureEndpointServerIds = async (endpoint: Pick<MagicMcpEndpoint, 'oid'>) => {
-  let rows = await db.magicMcpEndpointServer.findMany({
-    where: {
-      magicMcpEndpointOid: endpoint.oid
-    },
-    select: {
-      oid: true,
-      id: true
-    }
-  });
-
-  for (let row of rows) {
-    if (row.id) continue;
-
-    await db.magicMcpEndpointServer.update({
-      where: { oid: row.oid },
-      data: { id: await ID.generateId('magicMcpEndpoint') }
-    });
-  }
-};
-
 export let ensureMagicMcpEndpointBacking = async (d: {
   instance: Instance;
   endpoint: Pick<MagicMcpEndpoint, 'oid'>;
   isReconciliation?: boolean;
 }) => {
-  await ensureEndpointServerIds(d.endpoint);
-
   let endpoint = await db.magicMcpEndpoint.findUniqueOrThrow({
     where: { oid: d.endpoint.oid },
     include: magicMcpEndpointBackingInclude
   });
 
-  let owner = await getConsumerOwnerForProfile({
-    instance: d.instance,
-    consumerProfileOid: endpoint.consumerProfileOid
-  });
-
-  for (let server of endpoint.servers) {
-    if (server.magicMcpServer.hasSubspaceBacking && !endpoint.consumerProfileOid) continue;
-
-    await ensureMagicMcpServerBacking({
+  let [owner, maxSessionDurationInMinutes] = await Promise.all([
+    getConsumerOwnerForProfile({
       instance: d.instance,
-      server: server.magicMcpServer,
-      ...(endpoint.consumerProfileOid ? { owner } : {}),
-      isReconciliation: d.isReconciliation
-    });
-  }
+      consumerProfileOid: endpoint.consumerProfileOid
+    }),
+    getMagicMcpSessionDuration(d.instance)
+  ]);
 
-  let maxSessionDurationInMinutes = await getMagicMcpSessionDuration(d.instance);
+  await Promise.all(
+    endpoint.servers.map(async server => {
+      if (server.magicMcpServer.hasSubspaceBacking && !endpoint.consumerProfileOid) return;
+
+      await ensureMagicMcpServerBacking({
+        instance: d.instance,
+        server: server.magicMcpServer,
+        ...(endpoint.consumerProfileOid ? { owner } : {}),
+        isReconciliation: d.isReconciliation,
+        maxSessionDurationInMinutes
+      });
+    })
+  );
+
   let backing = await magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking({
     instance: d.instance,
     input: {
@@ -335,7 +321,7 @@ export let ensureMagicMcpEndpointBacking = async (d: {
       isReconciliation: d.isReconciliation,
       ...owner,
       servers: endpoint.servers.map(server => ({
-        id: server.id!,
+        id: server.id,
         magicMcpServerBackingId: server.magicMcpServer.id,
         toolFilters: toBackingToolFilter(server.toolFilters)
       }))
