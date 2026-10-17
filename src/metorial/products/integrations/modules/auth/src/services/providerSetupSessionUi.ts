@@ -59,6 +59,7 @@ class providerSetupSessionUiServiceImpl {
         shuttleConfigOid: bigint | null;
       } | null;
     };
+    ownerActorOid: bigint | null;
     toolFilters?: PrismaJson.ToolFilter | null;
   }) {
     let eventBase = await getSubspaceSystemProviderEventBase({
@@ -88,7 +89,8 @@ class providerSetupSessionUiServiceImpl {
         specificationOid: d.config.specificationOid,
         deploymentOid: d.config.deploymentOid,
         fromVaultOid: d.config.fromVaultOid,
-        parentConfigOid: d.config.oid
+        parentConfigOid: d.config.oid,
+        ownerActorOid: d.ownerActorOid ?? d.config.ownerActorOid
       }
     });
 
@@ -340,6 +342,7 @@ class providerSetupSessionUiServiceImpl {
             providerDeployment: currentSession.deployment ?? undefined,
             credentials: currentSession.authCredentials ?? undefined,
             authMethod,
+            ownerActorOid: currentSession.ownerActorOid,
             expiresAt: currentSession.expiresAt,
             input: {
               name: currentSession.name ?? undefined,
@@ -479,6 +482,7 @@ class providerSetupSessionUiServiceImpl {
               })
             : await this.cloneConfigForToolFilters({
                 config: currentSession.config,
+                ownerActorOid: currentSession.ownerActorOid,
                 toolFilters: d.input.toolFilters
               });
 
@@ -492,6 +496,7 @@ class providerSetupSessionUiServiceImpl {
             provider: currentSession.provider,
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
+            ownerActorOid: currentSession.ownerActorOid,
             input: {
               name: currentSession.name ?? undefined,
               description: currentSession.description ?? undefined,
@@ -641,6 +646,7 @@ class providerSetupSessionUiServiceImpl {
             tenant: session.tenant,
             environment: session.environment,
             provider,
+            ownerActorOid: session.ownerActorOid,
             expiresAt: session.expiresAt,
             input: {
               name: session.name ?? undefined,

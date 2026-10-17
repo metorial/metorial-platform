@@ -51,6 +51,7 @@ class providerSetupSessionInternalServiceImpl {
         | null;
     };
     credentials?: ProviderAuthCredentials;
+    ownerActorOid?: bigint | null;
     expiresAt: Date;
     input: {
       name?: string;
@@ -173,6 +174,7 @@ class providerSetupSessionInternalServiceImpl {
                 providerDeployment: d.providerDeployment,
                 credentials,
                 authMethod,
+                ownerActorOid: d.ownerActorOid,
                 expiresAt: d.expiresAt,
                 input: {
                   name: d.input.name,
@@ -216,6 +218,7 @@ class providerSetupSessionInternalServiceImpl {
             environment: d.environment,
             provider: d.provider,
             providerDeployment: d.providerDeployment,
+            ownerActorOid: d.ownerActorOid,
             input: {
               name: d.input.name,
               description: d.input.description,
@@ -252,6 +255,7 @@ class providerSetupSessionInternalServiceImpl {
     };
     credentials?: ProviderAuthCredentials;
     authMethod: ProviderAuthMethod;
+    ownerActorOid?: bigint | null;
     expiresAt: Date;
     input: {
       name?: string;
@@ -319,6 +323,7 @@ class providerSetupSessionInternalServiceImpl {
         environment: d.environment,
         provider: d.provider,
         providerDeployment: d.providerDeployment,
+        ownerActorOid: d.ownerActorOid,
         import: d.import,
         source: 'setup_session',
         input: {
@@ -367,6 +372,7 @@ class providerSetupSessionInternalServiceImpl {
         | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
         | null;
     };
+    ownerActorOid?: bigint | null;
     input: {
       name?: string;
       description?: string;
@@ -388,6 +394,7 @@ class providerSetupSessionInternalServiceImpl {
       environment: d.environment,
       provider: d.provider,
       providerDeployment: d.providerDeployment,
+      ownerActorOid: d.ownerActorOid,
       input: {
         name: d.input.name,
         description: d.input.description,

@@ -283,10 +283,30 @@ type RawProviderListing = SubspacePrisma.ProviderListingGetPayload<{
   };
 }>;
 
-type RawIdentityActor = SubspacePrisma.IdentityActorGetPayload<{
-  include: {
-    agent: true;
+type OwnerActorSelect = {
+  select: {
+    id: true;
+    type: true;
+    instanceConsumer: { select: { consumer: { select: { id: true } } } };
   };
+};
+
+type MagicMcpServerOwnerActor = Prisma.IdentityActorGetPayload<{
+  select: {
+    id: true;
+    type: true;
+    consumerActor: { select: { consumer: { select: { id: true } } } };
+  };
+}> | null;
+
+type IdentityActorPresentInclude = {
+  agent: true;
+  defaultIdentity: { select: { id: true } };
+  instanceConsumer: { select: { consumer: { select: { id: true } } } };
+};
+
+type RawIdentityActor = SubspacePrisma.IdentityActorGetPayload<{
+  include: IdentityActorPresentInclude;
 }> & {
   consumer?: Prisma.InstanceConsumerGetPayload<{
     include: {
@@ -325,9 +345,7 @@ type RawIdentity = SubspacePrisma.IdentityGetPayload<{
       };
     };
     actor: {
-      include: {
-        agent: true;
-      };
+      include: IdentityActorPresentInclude;
     };
     delegationConfig: true;
     credentials: {
@@ -353,9 +371,7 @@ type RawIdentityDelegation = SubspacePrisma.IdentityDelegationGetPayload<{
     request: {
       include: {
         requester: {
-          include: {
-            agent: true;
-          };
+          include: IdentityActorPresentInclude;
         };
         identity: true;
       };
@@ -363,9 +379,7 @@ type RawIdentityDelegation = SubspacePrisma.IdentityDelegationGetPayload<{
     parties: {
       include: {
         actor: {
-          include: {
-            agent: true;
-          };
+          include: IdentityActorPresentInclude;
         };
       };
     };
@@ -393,9 +407,7 @@ type RawIdentityDelegationRequest = SubspacePrisma.IdentityDelegationRequestGetP
         request: {
           include: {
             requester: {
-              include: {
-                agent: true;
-              };
+              include: IdentityActorPresentInclude;
             };
             identity: true;
           };
@@ -403,9 +415,7 @@ type RawIdentityDelegationRequest = SubspacePrisma.IdentityDelegationRequestGetP
         parties: {
           include: {
             actor: {
-              include: {
-                agent: true;
-              };
+              include: IdentityActorPresentInclude;
             };
           };
         };
@@ -417,9 +427,7 @@ type RawIdentityDelegationRequest = SubspacePrisma.IdentityDelegationRequestGetP
       };
     };
     requester: {
-      include: {
-        agent: true;
-      };
+      include: IdentityActorPresentInclude;
     };
     identity: true;
   };
@@ -479,6 +487,7 @@ type RawProviderConfigVault = SubspacePrisma.ProviderConfigVaultGetPayload<{
 
 type RawProviderConfig = SubspacePrisma.ProviderConfigGetPayload<{
   include: {
+    ownerActor: OwnerActorSelect;
     provider: true;
     deployment: true;
     specification: {
@@ -891,6 +900,7 @@ export type PresentedProviderTrigger = {
 
 type RawProviderAuthConfig = SubspacePrisma.ProviderAuthConfigGetPayload<{
   include: {
+    ownerActor: OwnerActorSelect;
     provider: true;
     deployment: true;
     authCredentials: true;
@@ -916,6 +926,7 @@ type RawProviderAuthImport = SubspacePrisma.ProviderAuthImportGetPayload<{
   include: {
     authConfig: {
       include: {
+        ownerActor: OwnerActorSelect;
         provider: true;
         deployment: true;
         authCredentials: true;
@@ -937,6 +948,7 @@ type RawProviderAuthExport = SubspacePrisma.ProviderAuthExportGetPayload<{
   include: {
     authConfig: {
       include: {
+        ownerActor: OwnerActorSelect;
         provider: true;
         deployment: true;
         authCredentials: true;
@@ -956,10 +968,12 @@ type RawProviderAuthExport = SubspacePrisma.ProviderAuthExportGetPayload<{
 
 type RawProviderSetupSession = SubspacePrisma.ProviderSetupSessionGetPayload<{
   include: {
+    ownerActor: OwnerActorSelect;
     identity: true;
     identityCredential: true;
     authConfig: {
       include: {
+        ownerActor: OwnerActorSelect;
         provider: true;
         deployment: true;
         authCredentials: true;
@@ -988,6 +1002,7 @@ type RawProviderSetupSession = SubspacePrisma.ProviderSetupSessionGetPayload<{
     authCredentials: true;
     config: {
       include: {
+        ownerActor: OwnerActorSelect;
         deployment: true;
         specification: {
           omit: {
@@ -2201,6 +2216,7 @@ export let magicMcpServerType = PresentableType.create<{
       consumer: Consumer;
       consumerProfile: ConsumerProfile;
     })[];
+    ownerActor: MagicMcpServerOwnerActor;
   };
   integration?: SubspaceIntegration | null;
   integrationInstance?: SubspaceIntegrationInstance | null;
@@ -2224,6 +2240,7 @@ export let magicMcpEndpointType = PresentableType.create<{
     servers: (MagicMcpEndpointServer & {
       magicMcpServer: MagicMcpServer & {
         aliases: MagicMcpServerAlias[];
+        ownerActor: MagicMcpServerOwnerActor;
       };
     })[];
   };
@@ -2235,6 +2252,7 @@ export let magicMcpSessionType = PresentableType.create<{
     magicMcpServer:
       | (MagicMcpServer & {
           aliases: MagicMcpServerAlias[];
+          ownerActor: MagicMcpServerOwnerActor;
           consumerIntegrations: (ConsumerIntegration & {
             consumer: Consumer;
             consumerProfile: ConsumerProfile;
@@ -2251,6 +2269,7 @@ export let magicMcpSessionType = PresentableType.create<{
           servers: (MagicMcpEndpointServer & {
             magicMcpServer: MagicMcpServer & {
               aliases: MagicMcpServerAlias[];
+              ownerActor: MagicMcpServerOwnerActor;
               consumerIntegrations: (ConsumerIntegration & {
                 consumer: Consumer;
                 consumerProfile: ConsumerProfile;

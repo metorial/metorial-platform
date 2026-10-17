@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
+import { ownerActorSchema, presentOwnerActor } from '../../_shared';
 import { integrationInstanceType } from '../../../types';
 import {
   dashboardIntegrationInstanceProviderPresenter,
@@ -17,6 +18,7 @@ export let v1IntegrationInstancePresenter = Presenter.create(integrationInstance
     integration_id: integrationInstance.integration.id,
     identity_actor_id: integrationInstance.identityActor?.id ?? null,
     identity_id: integrationInstance.identity?.id ?? null,
+    owner_actor: presentOwnerActor(integrationInstance.identityActor),
     implementation: integrationInstance.magicMcpServerBackings[0]
       ? {
           type: 'magic_mcp_server' as const,
@@ -45,6 +47,7 @@ export let v1IntegrationInstancePresenter = Presenter.create(integrationInstance
       integration_id: v.string(),
       identity_actor_id: v.nullable(v.string()),
       identity_id: v.nullable(v.string()),
+      owner_actor: ownerActorSchema,
       implementation: v.nullable(
         v.object({
           type: v.literal('magic_mcp_server'),

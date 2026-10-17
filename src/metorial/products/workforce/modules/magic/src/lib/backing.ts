@@ -5,6 +5,7 @@ import {
   magicMcpEndpointBackingService,
   magicMcpServerBackingService
 } from '@metorial-subspace/module-integration';
+import { resolveOwnerActorOid } from './ownerActor';
 
 let magicMcpEndpointBackingInclude = {
   consumerProfile: true,
@@ -82,7 +83,7 @@ let getConsumerOwnerForProfile = async (d: {
   };
 };
 
-let getConsumerOwnerForServer = async (d: {
+export let getConsumerOwnerForServer = async (d: {
   instance: Instance;
   server: Pick<MagicMcpServer, 'oid'>;
 }): Promise<ConsumerOwner> => {
@@ -165,10 +166,13 @@ export let ensureMagicMcpServerBacking = async (d: {
       }
     });
 
+    let ownerActorOid = d.server.ownerActorOid ?? (await resolveOwnerActorOid(owner));
+
     return await db.magicMcpServer.update({
       where: { oid: d.server.oid },
       data: {
         hasSubspaceBacking: true,
+        ...(ownerActorOid ? { ownerActorOid } : {}),
         ownerType: backing.ownerType,
         subspaceEphemeralManagedSessionId: backing.ephemeralManagedSession.id,
         isSubspaceBackingReconciling: backing.ephemeralManagedSession.isReconciling

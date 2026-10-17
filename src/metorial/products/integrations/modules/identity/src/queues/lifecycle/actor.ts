@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { env } from '../../env';
 import { indexIdentityActorQueue } from '../search/actor';
+import { mirrorIdentityActorQueue } from '../mirror';
 import { lcOpts } from './_opts';
 
 export let identityActorCreatedQueue = createQueue<{ identityActorId: string }>({
@@ -12,6 +13,7 @@ export let identityActorCreatedQueue = createQueue<{ identityActorId: string }>(
 export let identityActorCreatedQueueProcessor = identityActorCreatedQueue.process(
   async data => {
     await indexIdentityActorQueue.add({ identityActorId: data.identityActorId });
+    await mirrorIdentityActorQueue.add({ identityActorId: data.identityActorId });
   }
 );
 
@@ -24,6 +26,7 @@ export let identityActorUpdatedQueue = createQueue<{ identityActorId: string }>(
 export let identityActorUpdatedQueueProcessor = identityActorUpdatedQueue.process(
   async data => {
     await indexIdentityActorQueue.add({ identityActorId: data.identityActorId });
+    await mirrorIdentityActorQueue.add({ identityActorId: data.identityActorId });
   }
 );
 
@@ -36,5 +39,6 @@ export let identityActorDeletedQueue = createQueue<{ identityActorId: string }>(
 export let identityActorDeletedQueueProcessor = identityActorDeletedQueue.process(
   async data => {
     await indexIdentityActorQueue.add({ identityActorId: data.identityActorId });
+    await mirrorIdentityActorQueue.add({ identityActorId: data.identityActorId });
   }
 );

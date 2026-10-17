@@ -337,7 +337,8 @@ class magicMcpServerBackingServiceImpl {
               integrationInstanceOid: integrationInstance.oid,
               sessionTemplateOid: sessionTemplate.oid,
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
-              actorOid
+              actorOid,
+              identityOid: integrationInstance.identityOid
             },
             update: {
               ownerType,
@@ -347,7 +348,8 @@ class magicMcpServerBackingServiceImpl {
               integrationInstanceOid: integrationInstance.oid,
               sessionTemplateOid: sessionTemplate.oid,
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
-              actorOid
+              actorOid,
+              identityOid: integrationInstance.identityOid
             }
           });
 

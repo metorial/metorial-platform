@@ -107,6 +107,8 @@ model Project {
   firewalls                              Firewall[]
   networkPolicies                        NetworkPolicy[]
   sandboxEgressPolicies                  SandboxEgressPolicy[]
+  identityActors                         IdentityActor[]
+  agents                                 Agent[]
 
   @@index([previousSlugs])
 }

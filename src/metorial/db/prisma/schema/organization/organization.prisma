@@ -97,6 +97,8 @@ model Organization {
   apiKeyCreatedEmailSends                ApiKeyCreatedEmailSend[]
   apiKeyExpiredEmailSends                ApiKeyExpiredEmailSend[]
   consumerActors                         ConsumerActor[]
+  identityActors                         IdentityActor[]
+  agents                                 Agent[]
   consumerClients                        ConsumerClient[]
   consumerAuthClients                    ConsumerAuthClient[]
   consumerAuthTestAuthorizations         ConsumerAuthTestAuthorization[]

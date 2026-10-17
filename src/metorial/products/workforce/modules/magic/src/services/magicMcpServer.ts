@@ -52,6 +52,7 @@ import {
   magicMcpServerUpdatedQueue
 } from '../queues/lifecycle/magicMcpServer';
 import { magicMcpEndpointUpdatedQueue } from '../queues/lifecycle/magicMcpEndpoint';
+import { magicMcpServerOwnerActorSelect, resolveOwnerActorOid } from '../lib/ownerActor';
 import { getAccessTagFilter, getActiveStatusFilter } from './consumerAccess';
 
 let include = {
@@ -80,7 +81,8 @@ let include = {
       consumerProfile: true
     }
   },
-  subspaceSession: true
+  subspaceSession: true,
+  ownerActor: magicMcpServerOwnerActorSelect
 } satisfies Prisma.MagicMcpServerInclude;
 
 type MagicMcpServerWithRelations = Prisma.MagicMcpServerGetPayload<{
@@ -300,6 +302,8 @@ class MagicMcpServerImpl {
       instance: d.instance
     });
 
+    let ownerActorOid = await resolveOwnerActorOid(d.input.consumerOwner);
+
     let magicMcpServer = await withTransaction(
       async db => {
         return await db.magicMcpServer.create({
@@ -315,6 +319,7 @@ class MagicMcpServerImpl {
             description: d.input.description,
             metadata: d.input.metadata ?? {},
             instanceOid: d.instance.oid,
+            ownerActorOid,
             aliases: {
               create: {
                 slug: buildAlias(d.input.name)
@@ -490,6 +495,8 @@ class MagicMcpServerImpl {
       assertAuthMethodAllowedForTenant({ tenant, authMethod });
     }
 
+    let ownerActorOid = await resolveOwnerActorOid(d.consumerOwner);
+
     let { server, endpointLinks } = await withTransaction(async db => {
       let endpointLinks = await db.magicMcpEndpointServer.findMany({
         where: { magicMcpServerOid: d.server.oid },
@@ -516,7 +523,8 @@ class MagicMcpServerImpl {
         where: { oid: d.server.oid },
         data: {
           subspaceIntegrationInstanceId: integrationInstance.id,
-          isSubspaceBackingReconciling: true
+          isSubspaceBackingReconciling: true,
+          ...(ownerActorOid ? { ownerActorOid } : {})
         }
       });
 

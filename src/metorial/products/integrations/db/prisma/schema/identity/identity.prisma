@@ -19,7 +19,7 @@ model Identity {
   needsReconciliation Boolean
 
   actorOid BigInt
-  actor    IdentityActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+  actor    IdentityActor @relation("IdentityActorIdentities", fields: [actorOid], references: [oid], onDelete: Cascade)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -46,6 +46,8 @@ model Identity {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
+  defaultForActor IdentityActor? @relation("IdentityActorDefaultIdentity")
+
   credentials                IdentityCredential[]
   providerSetupSessions      ProviderSetupSession[]
   identityDelegations        IdentityDelegation[]
@@ -57,6 +59,7 @@ model Identity {
   sessions                   Session[]
   ephemeralManagedSessions   EphemeralManagedSession[]
   sessionParticipants        SessionParticipant[]
+  magicMcpServerBackings     MagicMcpServerBacking[]
 
   @@index([createdAt])
   @@index([updatedAt])

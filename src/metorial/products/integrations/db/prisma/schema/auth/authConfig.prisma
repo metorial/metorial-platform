@@ -73,6 +73,9 @@ model ProviderAuthConfig {
   owningIntegrationInstanceProviderOid BigInt?
   owningIntegrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [owningIntegrationInstanceProviderOid], references: [oid])
 
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
+
   deploymentOid BigInt?
   deployment    ProviderDeployment? @relation(fields: [deploymentOid], references: [oid])
 
@@ -112,6 +115,7 @@ model ProviderAuthConfig {
   @@index([needsScopeSync])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([ownerActorOid])
 }
 
 model ProviderAuthConfigVersion {

@@ -8,6 +8,7 @@ import type {
   ProviderSpecification
 } from '@metorial-subspace/db';
 import type { PresentedProviderAuthMethod } from '../../../types';
+import type { RawSubspaceOwnerActor } from '../../_shared';
 
 export let presentRawProviderDeploymentPreview = (
   deployment: ProviderDeployment,
@@ -55,6 +56,7 @@ export let presentRawProviderConfig = (
           deployment: ProviderDeployment | null;
         })
       | null;
+    ownerActor: RawSubspaceOwnerActor | null;
   },
   provider: Provider
 ) => ({

@@ -27,7 +27,8 @@ let mocks = vi.hoisted(() => {
     resourceActor: model(),
     skill: model(),
     fire: vi.fn(),
-    consumerUpdatedAdd: vi.fn()
+    consumerUpdatedAdd: vi.fn(),
+    instanceConsumerActorSyncAddMany: vi.fn()
   };
 });
 
@@ -62,6 +63,10 @@ vi.mock('@metorial/queue', () => ({
     process: vi.fn(handler => handler)
   })),
   QueueRetryError: class QueueRetryError extends Error {}
+}));
+
+vi.mock('@metorial/module-consumer-entities', () => ({
+  syncInstanceConsumerActorsQueue: { addMany: mocks.instanceConsumerActorSyncAddMany }
 }));
 
 vi.mock('../src/queues/lifecycle/consumer', () => ({
@@ -112,7 +117,9 @@ describe('reconcile user consumer queue', () => {
 
     mocks.user.findUnique.mockResolvedValue(user);
     mocks.consumer.findMany.mockResolvedValue([canonical, duplicate]);
-    mocks.instanceConsumer.findMany.mockResolvedValue([]);
+    mocks.instanceConsumer.findMany.mockImplementation(async ({ where }) =>
+      where.consumerOid === canonical.oid ? [{ id: 'instance_consumer_canonical' }] : []
+    );
     mocks.consumerProfile.findMany.mockResolvedValue([]);
     mocks.consumerInvite.findMany.mockResolvedValue([]);
     mocks.consumer.update.mockResolvedValue({
@@ -149,6 +156,9 @@ describe('reconcile user consumer queue', () => {
     expect(mocks.consumerUpdatedAdd).toHaveBeenCalledWith({
       consumerId: canonical.id
     });
+    expect(mocks.instanceConsumerActorSyncAddMany).toHaveBeenCalledWith([
+      { instanceConsumerId: 'instance_consumer_canonical' }
+    ]);
   });
 
   it('merges the exact email holder before normalizing the canonical consumer', async () => {

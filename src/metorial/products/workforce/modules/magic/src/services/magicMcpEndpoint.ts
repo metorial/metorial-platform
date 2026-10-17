@@ -18,6 +18,7 @@ import {
   Prisma,
   withTransaction
 } from '@metorial/db';
+import { magicMcpServerOwnerActorSelect } from '../lib/ownerActor';
 import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
 import {
@@ -113,7 +114,8 @@ export let magicMcpEndpointInclude = {
       magicMcpServer: {
         include: {
           aliases: true,
-          subspaceSession: true
+          subspaceSession: true,
+          ownerActor: magicMcpServerOwnerActorSelect
         }
       }
     }

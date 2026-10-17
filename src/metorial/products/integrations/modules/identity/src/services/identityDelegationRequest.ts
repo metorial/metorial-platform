@@ -26,14 +26,11 @@ import {
   identityDelegationInternalService,
   type CreateDelegationInput
 } from './identityDelegationInternal';
+import { identityActorInclude } from '../lib/identityActorInclude';
 
 let include = {
   delegation: { include: delegationInclude },
-  requester: {
-    include: {
-      agent: true
-    }
-  },
+  requester: { include: identityActorInclude },
   identity: true
 };
 
@@ -75,7 +72,9 @@ export type ApproveIdentityDelegationRequestParams = {
 export type DenyIdentityDelegationRequestParams = ApproveIdentityDelegationRequestParams;
 
 class identityDelegationRequestServiceImpl {
-  async listIdentityDelegationRequests(d: MetorialFacing<ListIdentityDelegationRequestsParams>) {
+  async listIdentityDelegationRequests(
+    d: MetorialFacing<ListIdentityDelegationRequestsParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
     return this.listIdentityDelegationRequestsInternal({ ...rest, tenant, environment });

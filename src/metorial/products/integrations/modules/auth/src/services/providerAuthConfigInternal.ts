@@ -27,8 +27,7 @@ import {
   checkProviderMatch,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
-import { getMetorialSolution,
-  checkTenant } from '@metorial-subspace/module-tenant';
+import { getMetorialSolution, checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import type { ProviderAuthConfigCreateRes } from '@metorial-subspace/provider-utils';
 import { providerAuthConfigCreatedQueue } from '../queues/lifecycle/providerAuthConfig';
@@ -363,6 +362,7 @@ class providerAuthConfigInternalServiceImpl {
     type: ProviderAuthConfigType;
     source: ProviderAuthConfigSource;
     credentials?: ProviderAuthCredentials;
+    ownerActorOid?: bigint | null;
     input: {
       name?: string;
       description?: string;
@@ -435,7 +435,8 @@ class providerAuthConfigInternalServiceImpl {
           providerOid: d.provider.oid,
           authMethodOid: d.authMethod.oid,
           deploymentOid: d.providerDeployment?.oid,
-          authCredentialsOid: d.credentials?.oid
+          authCredentialsOid: d.credentials?.oid,
+          ownerActorOid: d.ownerActorOid
         },
         include: providerAuthConfigInclude
       });

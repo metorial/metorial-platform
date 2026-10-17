@@ -35,6 +35,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
+  ownerActorSelect,
   toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -85,6 +86,7 @@ export let integrationSetupSessionInclude = {
     include: integrationInstanceInclude
   },
   brand: true,
+  ownerActor: ownerActorSelect,
   providers: {
     include: integrationSetupSessionProviderInclude,
     orderBy: { createdAt: 'asc' as const }
@@ -462,6 +464,7 @@ class integrationSetupSessionServiceImpl {
         instanceOid: d.environment.instanceOid,
         integrationOid: integration.oid,
         integrationInstanceOid: integrationInstance.oid,
+        ownerActorOid: integrationInstance.identityActorOid,
         brandOid: d.brand?.oid,
         expiresAt
       }
@@ -873,7 +876,10 @@ class integrationSetupSessionServiceImpl {
     environment: Environment;
     brand?: Brand | null;
     integration: Pick<Integration, 'canAttachCustomToolFilters' | 'canOverrideToolFilters'>;
-    setupSession: Pick<IntegrationSetupSession, 'oid' | 'name' | 'description' | 'metadata'>;
+    setupSession: Pick<
+      IntegrationSetupSession,
+      'oid' | 'name' | 'description' | 'metadata' | 'ownerActorOid'
+    >;
     integrationProvider: Awaited<
       ReturnType<integrationSetupSessionServiceImpl['getActiveIntegrationProviders']>
     >[number];
@@ -939,6 +945,7 @@ class integrationSetupSessionServiceImpl {
       providerDeployment: material.deployment,
       providerConfig: material.config ?? undefined,
       credentials: material.authCredentials ?? undefined,
+      ownerActorOid: d.setupSession.ownerActorOid,
       input: {
         name: d.setupSession.name ?? d.integrationProvider.name,
         description:

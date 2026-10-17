@@ -1,6 +1,7 @@
 enum IdentityActorType {
   person
   agent
+  consumer
 }
 
 enum IdentityActorStatus {
@@ -37,29 +38,51 @@ model IdentityActor {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
+  consumerOid BigInt?
+  consumer    Consumer? @relation(fields: [consumerOid], references: [oid], onDelete: SetNull)
+
+  instanceConsumerOid BigInt?
+  instanceConsumer    InstanceConsumer? @relation("IdentityActorInstanceConsumer", fields: [instanceConsumerOid], references: [oid], onDelete: SetNull)
+
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
+
+  defaultForInstanceConsumerOid BigInt?           @unique
+  defaultForInstanceConsumer    InstanceConsumer? @relation("IdentityActorDefaultForInstanceConsumer", fields: [defaultForInstanceConsumerOid], references: [oid], onDelete: SetNull)
+
+  defaultIdentityOid BigInt?   @unique
+  defaultIdentity    Identity? @relation("IdentityActorDefaultIdentity", fields: [defaultIdentityOid], references: [oid], onDelete: SetNull)
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  agent                      Agent?
-  identities                 Identity[]
-  identityDelegationParties  IdentityDelegationParty[]
-  identityDelegationRequests IdentityDelegationRequest[]
-  delegatedIdentities        DelegatedIdentity[]
-  identityDelegations        IdentityDelegation[]        @relation("delegations")
-  subDelegations             IdentityDelegation[]        @relation("subDelegatedTo")
-  integrationInstances       IntegrationInstance[]
-  integrationInstanceGroups  IntegrationInstanceGroup[]
-  sessionTemplates           SessionTemplate[]
-  sessions                   Session[]
-  magicMcpEndpointBackings   MagicMcpEndpointBacking[]
-  magicMcpServerBackings     MagicMcpServerBacking[]
-  ephemeralManagedSessions   EphemeralManagedSession[]
-  sessionParticipants        SessionParticipant[]
+  agent                         Agent?
+  identities                    Identity[]                  @relation("IdentityActorIdentities")
+  identityDelegationParties     IdentityDelegationParty[]
+  identityDelegationRequests    IdentityDelegationRequest[]
+  delegatedIdentities           DelegatedIdentity[]
+  identityDelegations           IdentityDelegation[]        @relation("delegations")
+  subDelegations                IdentityDelegation[]        @relation("subDelegatedTo")
+  integrationInstances          IntegrationInstance[]
+  integrationInstanceGroups     IntegrationInstanceGroup[]
+  sessionTemplates              SessionTemplate[]
+  sessions                      Session[]
+  magicMcpEndpointBackings      MagicMcpEndpointBacking[]
+  magicMcpServerBackings        MagicMcpServerBacking[]
+  ephemeralManagedSessions      EphemeralManagedSession[]
+  ownedProviderConfigs          ProviderConfig[]
+  ownedProviderAuthConfigs      ProviderAuthConfig[]
+  ownedProviderSetupSessions    ProviderSetupSession[]
+  ownedIntegrationSetupSessions IntegrationSetupSession[]
+  sessionParticipants           SessionParticipant[]
 
   @@index([createdAt])
   @@index([updatedAt])
   @@index([status])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([consumerOid])
+  @@index([instanceConsumerOid])
+  @@index([consumerProfileOid])
 }

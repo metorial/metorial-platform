@@ -99,7 +99,9 @@ export let integrationInstanceProviderInclude = {
 
 export let integrationInstanceInclude = {
   integration: true,
-  identityActor: true,
+  identityActor: {
+    include: { instanceConsumer: { select: { consumer: { select: { id: true } } } } }
+  },
   identity: true,
   defaultSessionTemplate: true,
   magicMcpServerBackings: {
@@ -446,6 +448,8 @@ class integrationInstanceServiceImpl {
     );
 
     let automaticInputs: SetIntegrationInstanceProviderInput[] = [];
+    let createdConfigOids: bigint[] = [];
+
     for (let integrationProvider of integrationProviders) {
       let provider = integrationProvider.provider;
       let deployment = integrationProvider.currentVersion?.deployment;
@@ -502,6 +506,7 @@ class integrationInstanceServiceImpl {
           }
         });
         providerConfigId = emptyConfig.id;
+        createdConfigOids.push(emptyConfig.oid);
       }
 
       automaticInputs.push({
@@ -511,7 +516,7 @@ class integrationInstanceServiceImpl {
       });
     }
 
-    return automaticInputs;
+    return { automaticInputs, createdConfigOids };
   }
 
   async listIntegrationInstances(d: MetorialFacing<ListIntegrationInstancesParams>) {
@@ -727,12 +732,13 @@ class integrationInstanceServiceImpl {
     checkDeletedRelation(d.integration);
 
     return await withTransaction(async db => {
-      let automaticProviders = await this.getAutomaticProviderInputs({
-        tenant: d.tenant,
-        environment: d.environment,
-        integration: d.integration,
-        input: d.input
-      });
+      let { automaticInputs: automaticProviders, createdConfigOids } =
+        await this.getAutomaticProviderInputs({
+          tenant: d.tenant,
+          environment: d.environment,
+          integration: d.integration,
+          input: d.input
+        });
 
       let newId = getId('integrationInstance');
       let integrationInstance = await db.integrationInstance.create({
@@ -763,6 +769,13 @@ class integrationInstanceServiceImpl {
         where: { oid: integrationInstance.oid },
         include: integrationInstanceInclude
       });
+
+      if (createdConfigOids.length && integrationInstance.identityActorOid) {
+        await db.providerConfig.updateMany({
+          where: { oid: { in: createdConfigOids }, ownerActorOid: null },
+          data: { ownerActorOid: integrationInstance.identityActorOid }
+        });
+      }
 
       await addAfterTransactionHook(async () =>
         integrationInstanceCreatedQueue.add({ integrationInstanceId: integrationInstance.id })

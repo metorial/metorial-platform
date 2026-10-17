@@ -76,6 +76,9 @@ model ProviderSetupSession {
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
 
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
+
   authConfigOid BigInt?             @unique
   authConfig    ProviderAuthConfig? @relation(fields: [authConfigOid], references: [oid])
 
@@ -112,6 +115,7 @@ model ProviderSetupSession {
   @@index([integrationSetupSessionProviderOid])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([ownerActorOid])
 }
 
 enum ProviderSetupSessionEventType {
@@ -202,6 +206,9 @@ model IntegrationSetupSession {
   integrationInstanceOid BigInt
   integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
 
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
+
   brandOid BigInt?
   brand    Brand?  @relation(fields: [brandOid], references: [oid], onDelete: Cascade)
 
@@ -220,6 +227,7 @@ model IntegrationSetupSession {
   @@index([integrationInstanceOid])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([ownerActorOid])
 }
 
 model IntegrationSetupSessionProvider {

@@ -67,10 +67,11 @@ vi.mock('@metorial-subspace/module-provider-internal', () => ({
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn(),
+  ownerActorSelect: { select: { id: true } },
   getMetorialSolution: vi.fn(async () => ({ oid: 7, id: 'sol_1' })),
   metorialDb: {
     instanceConsumer: { findFirst: vi.fn() },
-    consumerActor: { findFirst: vi.fn() }
+    consumerActor: { findFirst: vi.fn(), findUnique: vi.fn() }
   },
   resolveMetorialFacing: vi.fn(),
   resolveMetorialFacingWithOptionalActor: vi.fn(),
@@ -141,6 +142,38 @@ describe('createProviderSetupSessionInternal double writes', () => {
       projectOid: null,
       environmentOid: 30n,
       instanceOid: null
+    });
+  });
+
+  it("owns the session by the identity's actor when no owner is given", async () => {
+    await providerSetupSessionService.createProviderSetupSessionInternal({
+      ...makeParams(),
+      identity: { oid: 50n, actorOid: 60n, tenantOid: 10n, status: 'active' }
+    } as any);
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
+      identityOid: 50n,
+      ownerActorOid: 60n
+    });
+  });
+
+  it('prefers an explicit owner actor over the identity actor', async () => {
+    await providerSetupSessionService.createProviderSetupSessionInternal({
+      ...makeParams(),
+      identity: { oid: 50n, actorOid: 60n, tenantOid: 10n, status: 'active' },
+      ownerActorOid: 70n
+    } as any);
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
+      ownerActorOid: 70n
+    });
+  });
+
+  it('leaves the session unowned without an identity or owner', async () => {
+    await providerSetupSessionService.createProviderSetupSessionInternal(makeParams() as any);
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
+      ownerActorOid: null
     });
   });
 });
