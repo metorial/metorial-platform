@@ -1,9 +1,13 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
+import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { Context } from '@metorial/context';
 import { db, Prisma } from '@metorial/db';
 import { differenceInMinutes } from 'date-fns';
+
+let API_KEY_SECRET_CACHE_TTL_SECONDS = 10;
 
 export let machineAccessInclude = {
   organization: true,
@@ -13,11 +17,7 @@ export let machineAccessInclude = {
       project: true
     }
   },
-  actor: {
-    include: {
-      resourceActors: true
-    }
-  }
+  actor: true
 } as const;
 
 let apiKeySecretInclude = {
@@ -52,6 +52,18 @@ let oauthTokenInclude = {
 type ApiKeySecretWithMachineAccess = Prisma.ApiKeySecretGetPayload<{
   include: typeof apiKeySecretInclude;
 }>;
+
+// Process-local on purpose: the row carries the plaintext secret and user records, which
+// must not be copied into Redis. Revocation clears this process; others expire within the TTL.
+let getApiKeySecretBySha512 = createLocallyCachedFunction({
+  ttlSeconds: API_KEY_SECRET_CACHE_TTL_SECONDS,
+  getHash: (d: { token: string; secretSha512: string }) => d.secretSha512,
+  provider: async (d: { token: string; secretSha512: string }) =>
+    await db.apiKeySecret.findUnique({
+      where: { secret: d.token },
+      include: apiKeySecretInclude
+    })
+});
 
 export type OAuthTokenWithAuthorization = Prisma.OAuthTokenGetPayload<{
   include: typeof oauthTokenInclude;
@@ -122,11 +134,9 @@ class MachineAccessAuthService {
         };
       }
 
-      let secret = await db.apiKeySecret.findUnique({
-        where: {
-          secret: d.token
-        },
-        include: apiKeySecretInclude
+      let secret = await getApiKeySecretBySha512({
+        token: d.token,
+        secretSha512: await Hash.sha512(d.token)
       });
       if (secret) {
         if (
@@ -147,10 +157,14 @@ class MachineAccessAuthService {
           !secret.apiKey.lastUsedAt ||
           differenceInMinutes(new Date(), secret.apiKey.lastUsedAt) > 30
         ) {
+          let lastUsedAt = new Date();
           await db.apiKey.update({
             where: { id: secret.apiKey.id },
-            data: { lastUsedAt: new Date() }
+            data: { lastUsedAt }
           });
+
+          // The row may be served from the cache, so record the write there too.
+          secret.apiKey.lastUsedAt = lastUsedAt;
         }
 
         return {
@@ -166,6 +180,17 @@ class MachineAccessAuthService {
         hint: 'Make sure to use a valid API key from the Metorial dashboard'
       })
     );
+  }
+
+  async clearApiKeyAuthCache(d: { apiKeyOid: bigint }) {
+    let secrets = await db.apiKeySecret.findMany({
+      where: { apiKeyOid: d.apiKeyOid },
+      select: { secretSha512: true }
+    });
+
+    for (let secret of secrets) {
+      await getApiKeySecretBySha512.clear({ token: '', secretSha512: secret.secretSha512 });
+    }
   }
 }
 

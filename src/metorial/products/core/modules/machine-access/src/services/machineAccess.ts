@@ -154,10 +154,7 @@ class MachineAccessService {
     return res;
   }
 
-  async deleteMachineAccess(d: {
-    machineAccess: MachineAccess;
-    auditScope: AuditScope;
-  }) {
+  async deleteMachineAccess(d: { machineAccess: MachineAccess; auditScope: AuditScope }) {
     await this.ensureMachineAccessActive(d.machineAccess);
 
     let org = await db.organization.findUniqueOrThrow({

@@ -79,6 +79,12 @@ vi.mock('@metorial/module-resource-actor', () => ({
       projectOid: 100n,
       organizationActorOid: 1n
     })),
+    getOrEnsureOrganizationActor: vi.fn(async () => ({
+      oid: 102n,
+      id: 'rac-organization',
+      projectOid: 100n,
+      organizationActorOid: 1n
+    })),
     ensureConsumerProfileActor: vi.fn(async () => ({
       oid: 103n,
       id: 'rac-profile',
