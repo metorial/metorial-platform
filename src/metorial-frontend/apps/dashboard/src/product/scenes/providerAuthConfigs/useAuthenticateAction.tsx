@@ -1,6 +1,6 @@
 import {
   instanceProviderAuthConfigsLoader,
-  useProviderAuthCredentials,
+  useProviderAuthCredentialsForMethods,
   useProviderListing
 } from '@metorial/state';
 import { Button, Dialog, Spacer, Text, showModal, toast } from '@metorial/ui';
@@ -12,7 +12,11 @@ import {
   getRememberedProviderAuthCredentialId
 } from './credentialPicker';
 import { showProviderAuthConfigCreateModal } from './createModal';
-import { type AuthMethod, getGeneratedAuthConfigName, isSetupFlowAuthMethod } from './modalHelpers';
+import {
+  type AuthMethod,
+  getGeneratedAuthConfigName,
+  isSetupFlowAuthMethod
+} from './modalHelpers';
 
 let WINDOW_DIALOG_DURATION_MS = 45_000;
 
@@ -70,27 +74,27 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     providerListing.data?.name ?? authCreation.provider.data?.name ?? 'Provider';
 
   let oauthMethods = authCreation.authMethodItems.filter(isSetupFlowAuthMethod);
-  let primaryOAuthMethod = p.fixedAuthMethodId
-    ? oauthMethods.find(method => method.id === p.fixedAuthMethodId)
-    : oauthMethods.length === 1
-      ? oauthMethods[0]
-      : undefined;
+  let credentialMethods = p.fixedAuthMethodId
+    ? oauthMethods.filter(method => method.id === p.fixedAuthMethodId)
+    : oauthMethods;
   let needsCredentials =
     !authCreation.oauthAutoRegistrationEnabled && !p.fixedAuthCredentialsId;
 
-  let credentials = useProviderAuthCredentials(
+  let credentials = useProviderAuthCredentialsForMethods(
     p.instanceId,
-    providerId && primaryOAuthMethod && needsCredentials
-      ? getProviderAuthCredentialsQuery({
-          providerId,
-          providerAuthMethodId: primaryOAuthMethod.id
-        })
+    providerId && needsCredentials
+      ? credentialMethods.map(method =>
+          getProviderAuthCredentialsQuery({
+            providerId,
+            providerAuthMethodId: method.id
+          })
+        )
       : null
   );
 
   let isPreparing =
     !!providerId &&
-    !!primaryOAuthMethod &&
+    credentialMethods.length > 0 &&
     needsCredentials &&
     !credentials.data &&
     !credentials.error;
@@ -188,13 +192,22 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
 
   let getDirectCredentials = (method: AuthMethod) => {
     if (!needsCredentials) return { providerAuthCredentialsId: p.fixedAuthCredentialsId };
-    if (method.id !== primaryOAuthMethod?.id || !credentials.data) return null;
+    let methodCredentials = credentials.data?.find(
+      entry => entry.providerAuthMethodId === method.id
+    )?.credentials;
+    if (!methodCredentials) return null;
 
-    let items = credentials.data.items;
+    let items = methodCredentials.items;
     let remembered = getRememberedProviderAuthCredentialId(items);
     if (remembered) return { providerAuthCredentialsId: remembered };
 
-    if (items.length !== 1 || credentials.data.pagination.hasMoreAfter) return null;
+    if (
+      items.length !== 1 ||
+      methodCredentials.pagination.hasMoreAfter ||
+      methodCredentials.pagination.hasMoreBefore
+    ) {
+      return null;
+    }
 
     return { providerAuthCredentialsId: items[0]!.id };
   };
@@ -214,7 +227,8 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
 
   let start = (authMethodId: string) => {
     let method = authCreation.authMethodItems.find(method => method.id === authMethodId);
-    let direct = method && providerId && isSetupFlowAuthMethod(method) && getDirectCredentials(method);
+    let direct =
+      method && providerId && isSetupFlowAuthMethod(method) && getDirectCredentials(method);
 
     if (!method || !direct) {
       openModal(authMethodId);
