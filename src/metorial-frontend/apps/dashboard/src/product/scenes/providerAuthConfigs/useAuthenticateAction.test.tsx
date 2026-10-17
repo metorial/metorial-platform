@@ -50,7 +50,7 @@ vi.mock('../providerDeployments/setupSessionRunner', () => ({
   useProviderSetupSessionRunner: () => ({
     start: state.start,
     isStarting: false,
-    isWindowOpen: false
+    isAwaitingCompletion: false
   })
 }));
 

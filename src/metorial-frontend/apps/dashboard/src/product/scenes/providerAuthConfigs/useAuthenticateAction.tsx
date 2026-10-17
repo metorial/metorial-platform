@@ -18,8 +18,6 @@ import {
   isSetupFlowAuthMethod
 } from './modalHelpers';
 
-let WINDOW_DIALOG_DURATION_MS = 45_000;
-
 let AuthenticationWindowDialog = (p: {
   providerName: string;
   onReopen: () => void;
@@ -108,73 +106,36 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
       if (!setupSession.authConfig) return;
       void instanceProviderAuthConfigsLoader.refetchAll();
       p.onCreate?.(setupSession.authConfig);
-    },
-    onWindowClosed: () => {}
+    }
   });
 
   let runnerRef = useRef(runner);
   runnerRef.current = runner;
-  let closeDialogRef = useRef<(() => void) | null>(null);
   let startedDirectlyRef = useRef(false);
 
-  let closeWindowDialog = () => {
-    closeDialogRef.current?.();
-    closeDialogRef.current = null;
-  };
-
   useEffect(() => {
-    if (!runner.isWindowOpen) {
+    if (!runner.isAwaitingCompletion) {
       startedDirectlyRef.current = false;
-      closeWindowDialog();
       return;
     }
 
     if (!startedDirectlyRef.current) return;
 
-    showModal(({ dialogProps, close }) => {
-      closeDialogRef.current = close;
-      return (
+    let modal = showModal(
+      ({ dialogProps, close }) => (
         <Dialog.Wrapper {...dialogProps} width={450}>
           <AuthenticationWindowDialog
             providerName={providerName}
             onReopen={() => runnerRef.current.openWindow()}
-            onCancel={() => {
-              runnerRef.current.reset();
-              close();
-            }}
+            onCancel={close}
           />
         </Dialog.Wrapper>
-      );
-    });
+      ),
+      { onClose: () => runnerRef.current.reset() }
+    );
 
-    let remaining = WINDOW_DIALOG_DURATION_MS;
-    let resumedAt = 0;
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-
-    let resume = () => {
-      if (timeout) return;
-      resumedAt = Date.now();
-      timeout = setTimeout(closeWindowDialog, remaining);
-    };
-
-    let pause = () => {
-      if (!timeout) return;
-      clearTimeout(timeout);
-      timeout = undefined;
-      remaining = Math.max(0, remaining - (Date.now() - resumedAt));
-    };
-
-    if (!document.hasFocus()) resume();
-    window.addEventListener('blur', resume);
-    window.addEventListener('focus', pause);
-
-    return () => {
-      pause();
-      window.removeEventListener('blur', resume);
-      window.removeEventListener('focus', pause);
-      closeWindowDialog();
-    };
-  }, [runner.isWindowOpen]);
+    return () => modal.close();
+  }, [runner.isAwaitingCompletion]);
 
   useEffect(() => {
     if (!runner.error) return;
@@ -247,6 +208,6 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     authCreation,
     providerName,
     start,
-    isLoading: isPreparing || runner.isStarting || runner.isWindowOpen
+    isLoading: isPreparing || runner.isStarting || runner.isAwaitingCompletion
   };
 };
