@@ -88,6 +88,13 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
       : null
   );
 
+  let isPreparing =
+    !!providerId &&
+    !!primaryOAuthMethod &&
+    needsCredentials &&
+    !credentials.data &&
+    !credentials.error;
+
   let runner = useProviderSetupSessionRunner({
     instanceId: p.instanceId,
     providerId: providerId ?? '',
@@ -226,6 +233,6 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     authCreation,
     providerName,
     start,
-    isLoading: runner.isStarting || runner.isWindowOpen
+    isLoading: isPreparing || runner.isStarting || runner.isWindowOpen
   };
 };
