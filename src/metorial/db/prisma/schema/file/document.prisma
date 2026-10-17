@@ -66,6 +66,8 @@ model Document {
   @@index([instanceOid, isTemplateBacking])
   @@index([isContentOwner])
   @@index([draftVersionExpiresAt])
+  @@index([contentOid])
+  @@index([currentVersionOid])
 }
 
 enum DocumentParticipantRole {
@@ -135,6 +137,10 @@ model DocumentVersion {
 
   @@unique([resourceTenantOid, resourceGroupOid, documentOid, versionNumber])
   @@unique([instanceOid, documentOid, versionNumber])
+  @@index([documentOid])
+  @@index([contentOid])
+  @@index([previousVersionOid])
+  @@index([createdAt])
 }
 
 model DocumentVersionEditors {

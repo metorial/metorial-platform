@@ -7,6 +7,7 @@ import { env } from '../../env';
 import {
   getRetentionCutoffDate,
   RETENTION_BATCH_SIZE,
+  retentionCleanupPhaseWorkerOpts,
   retentionCleanupWorkerOpts
 } from './_config';
 
@@ -232,33 +233,39 @@ let cleanupProviderRuns = async (d: { tenantOid: bigint; cutoffDate: Date }) => 
         where: { providerRunOid: { in: providerRunOids } }
       });
 
-      await Promise.all([
-        db.sessionEvent.updateMany({
-          where: { providerRunOid: { in: providerRunOids } },
-          data: {
-            providerRunOid: null,
-            isParentDeleted: true
-          }
-        }),
-        db.sessionMessage.updateMany({
-          where: { providerRunOid: { in: providerRunOids } },
-          data: {
-            providerRunOid: null,
-            isParentDeleted: true
-          }
-        }),
-        db.sessionError.updateMany({
-          where: { providerRunOid: { in: providerRunOids } },
-          data: {
-            providerRunOid: null,
-            isParentDeleted: true
-          }
-        }),
-        db.toolCall.updateMany({
-          where: { providerRunOid: { in: providerRunOids } },
-          data: { providerRunOid: null }
-        })
-      ]);
+      for (let run of [
+        () =>
+          db.sessionEvent.updateMany({
+            where: { providerRunOid: { in: providerRunOids } },
+            data: {
+              providerRunOid: null,
+              isParentDeleted: true
+            }
+          }),
+        () =>
+          db.sessionMessage.updateMany({
+            where: { providerRunOid: { in: providerRunOids } },
+            data: {
+              providerRunOid: null,
+              isParentDeleted: true
+            }
+          }),
+        () =>
+          db.sessionError.updateMany({
+            where: { providerRunOid: { in: providerRunOids } },
+            data: {
+              providerRunOid: null,
+              isParentDeleted: true
+            }
+          }),
+        () =>
+          db.toolCall.updateMany({
+            where: { providerRunOid: { in: providerRunOids } },
+            data: { providerRunOid: null }
+          })
+      ]) {
+        await run();
+      }
 
       await db.providerRun.deleteMany({
         where: { oid: { in: providerRunOids } }
@@ -305,48 +312,56 @@ let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date 
     deleteMany: async records => {
       let connectionOids = records.map(record => record.oid);
 
-      await Promise.all([
-        db.sessionEvent.updateMany({
-          where: { connectionOid: { in: connectionOids } },
-          data: {
-            connectionOid: null,
-            isParentDeleted: true
-          }
-        }),
-        db.sessionMessage.updateMany({
-          where: { connectionOid: { in: connectionOids } },
-          data: {
-            connectionOid: null,
-            isParentDeleted: true
-          }
-        }),
-        db.sessionError.updateMany({
-          where: { connectionOid: { in: connectionOids } },
-          data: {
-            connectionOid: null,
-            isParentDeleted: true
-          }
-        }),
-        db.sessionWarning.updateMany({
-          where: { connectionOid: { in: connectionOids } },
-          data: {
-            connectionOid: null,
-            isParentDeleted: true
-          }
-        }),
-        db.protoGuardRun.updateMany({
-          where: { connectionOid: { in: connectionOids } },
-          data: {
-            connectionOid: null
-          }
-        }),
-        db.protoGuardAlert.updateMany({
-          where: { connectionOid: { in: connectionOids } },
-          data: {
-            connectionOid: null
-          }
-        })
-      ]);
+      for (let run of [
+        () =>
+          db.sessionEvent.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null,
+              isParentDeleted: true
+            }
+          }),
+        () =>
+          db.sessionMessage.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null,
+              isParentDeleted: true
+            }
+          }),
+        () =>
+          db.sessionError.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null,
+              isParentDeleted: true
+            }
+          }),
+        () =>
+          db.sessionWarning.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null,
+              isParentDeleted: true
+            }
+          }),
+        () =>
+          db.protoGuardRun.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null
+            }
+          }),
+        () =>
+          db.protoGuardAlert.updateMany({
+            where: { connectionOid: { in: connectionOids } },
+            data: {
+              connectionOid: null
+            }
+          })
+      ]) {
+        await run();
+      }
 
       await db.sessionConnection.deleteMany({
         where: { oid: { in: connectionOids } }
@@ -496,6 +511,7 @@ let tenantLogRetentionRunner = createRetentionRunner<TenantLogRetentionTenant>({
   redisUrl: env.service.REDIS_URL,
   cron: '0 0 * * *',
   tenantWorkerOpts: retentionCleanupWorkerOpts,
+  phaseWorkerOpts: retentionCleanupPhaseWorkerOpts,
 
   listTenants: ({ cursor, take }) =>
     db.tenant.findMany({
@@ -534,7 +550,8 @@ let tenantLogRetentionRunner = createRetentionRunner<TenantLogRetentionTenant>({
     providerAuthConfigErrors: d => cleanupProviderAuthConfigErrors(d),
     providerAuthConfigEvents: d => cleanupProviderAuthConfigEvents(d),
     providerSetupSessionEvents: d => cleanupProviderSetupSessionEvents(d),
-    providerDeploymentConfigPairDiscoveries: d => cleanupProviderDeploymentConfigPairDiscoveries(d)
+    providerDeploymentConfigPairDiscoveries: d =>
+      cleanupProviderDeploymentConfigPairDiscoveries(d)
   }
 });
 
@@ -549,4 +566,5 @@ export let tenantLogRetentionStorageCleanupQueue = createObjectDeleteQueue({
   deleteObject: (bucket, key) => storage.deleteObject(bucket, key)
 });
 
-export let tenantLogRetentionStorageCleanupQueueProcessor = tenantLogRetentionStorageCleanupQueue.processor;
+export let tenantLogRetentionStorageCleanupQueueProcessor =
+  tenantLogRetentionStorageCleanupQueue.processor;

@@ -21,27 +21,36 @@ class environmentServiceImpl {
     try {
       let existingEnvironment = await db.environment.findUnique({
         where: { identifier: d.input.identifier },
-        select: { id: true }
-      });
-
-      let environment = await db.environment.upsert({
-        where: { identifier: d.input.identifier },
-        update: {
-          name: d.input.name,
-          resourceGroupId: d.input.resourceGroupId,
-          resourceGroupIdentifier: d.input.resourceGroupIdentifier
-        },
-        create: {
-          ...getId('environment'),
-          name: d.input.name,
-          identifier: d.input.identifier,
-          type: d.input.type,
-          resourceGroupId: d.input.resourceGroupId,
-          resourceGroupIdentifier: d.input.resourceGroupIdentifier,
-          tenantOid: d.tenant.oid
-        },
         include
       });
+
+      let isEnvironmentUnchanged =
+        !!existingEnvironment &&
+        existingEnvironment.name === d.input.name &&
+        existingEnvironment.resourceGroupId === d.input.resourceGroupId &&
+        existingEnvironment.resourceGroupIdentifier === d.input.resourceGroupIdentifier;
+
+      let environment =
+        isEnvironmentUnchanged && existingEnvironment
+          ? existingEnvironment
+          : await db.environment.upsert({
+              where: { identifier: d.input.identifier },
+              update: {
+                name: d.input.name,
+                resourceGroupId: d.input.resourceGroupId,
+                resourceGroupIdentifier: d.input.resourceGroupIdentifier
+              },
+              create: {
+                ...getId('environment'),
+                name: d.input.name,
+                identifier: d.input.identifier,
+                type: d.input.type,
+                resourceGroupId: d.input.resourceGroupId,
+                resourceGroupIdentifier: d.input.resourceGroupIdentifier,
+                tenantOid: d.tenant.oid
+              },
+              include
+            });
 
       if (d.input.instanceOid !== undefined) {
         environment.instanceOid = await linkEnvironmentToInstanceMirror({

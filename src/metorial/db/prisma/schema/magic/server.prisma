@@ -60,6 +60,8 @@ model MagicMcpServer {
   consumerIntegrations   ConsumerIntegration[]
 
   @@index([ownerActorOid])
+  @@index([instanceOid, status])
+  @@index([legacySubspaceSessionTemplateId])
 }
 
 model MagicMcpServerAlias {
@@ -68,4 +70,6 @@ model MagicMcpServerAlias {
 
   serverOid BigInt
   server    MagicMcpServer @relation(fields: [serverOid], references: [oid], onDelete: Cascade)
+
+  @@index([serverOid])
 }

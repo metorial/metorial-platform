@@ -59,11 +59,37 @@ if (replicaClient) {
   ) as any as PrismaClient;
 }
 
+let pointLookupOperations = new Set([
+  'findUnique',
+  'findUniqueOrThrow',
+  'findFirst',
+  'findFirstOrThrow'
+]);
+let readOperations = new Set([...pointLookupOperations, 'findMany']);
+
+let loadsRelations = (args: any) =>
+  !!args &&
+  (!!args.include ||
+    (!!args.select &&
+      Object.values(args.select).some(value => typeof value === 'object' && value !== null)));
+
 export let db = baseClient.$extends({
   query: {
     $allModels: {
-      async $allOperations({ args, query }) {
-        return await withExecutionContextTraceFallback(async () => await query(args));
+      async $allOperations({ operation, args, query }) {
+        let strategyArgs: any =
+          readOperations.has(operation) &&
+          loadsRelations(args) &&
+          (args as any).relationLoadStrategy === undefined
+            ? {
+                ...(args as any),
+                relationLoadStrategy: pointLookupOperations.has(operation) ? 'join' : 'query'
+              }
+            : args;
+
+        return await withExecutionContextTraceFallback(
+          async () => await query(strategyArgs as any)
+        );
       }
     }
   }

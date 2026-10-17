@@ -1,3 +1,4 @@
+import { createCachedFunction } from '@lowerdeck/cache';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { Service } from '@lowerdeck/service';
 import {
@@ -54,6 +55,9 @@ export type SubspaceInstanceScope = {
   tenantIdentifier: string;
   environmentIdentifier: string;
 };
+
+let scopeCacheTtlSeconds = 60;
+let instanceSyncRefreshMs = 10 * 60 * 1000;
 
 let hasUpdates = (update: Record<string, unknown>) =>
   Object.values(update).some(value => value !== undefined);
@@ -381,6 +385,16 @@ let persistInstanceScope = async (d: {
   environmentId: string;
   environmentIdentifier: string;
 }) => {
+  let isLinked =
+    d.instance.internalTenantIdentifier === d.tenantIdentifier &&
+    d.instance.subspaceTenantId === d.tenantId &&
+    d.instance.internalEnvironmentIdentifier === d.environmentIdentifier &&
+    d.instance.subspaceEnvironmentId === d.environmentId;
+  let isFresh =
+    !!d.instance.lastSubspaceSyncAt &&
+    Date.now() - d.instance.lastSubspaceSyncAt.getTime() < instanceSyncRefreshMs;
+  if (isLinked && isFresh) return;
+
   await metorialDb.instance.update({
     where: { id: d.instance.id },
     data: {
@@ -437,6 +451,16 @@ class subspaceScopeServiceImpl {
   }
 
   async ensureForProject(project: ScopeProject) {
+    let { tenant, tenantIdentifier } = await projectScopeCache({ project });
+
+    return {
+      tenant,
+      tenantIdentifier,
+      solution: await this.getSolution()
+    };
+  }
+
+  async ensureForProjectUncached(project: ScopeProject) {
     let loadedProject = await loadProjectWithInstances(project);
     await assertProjectScope(loadedProject);
     for (let instance of loadedProject.instances ?? []) {
@@ -481,23 +505,25 @@ class subspaceScopeServiceImpl {
       tenantId: tenant.id
     });
 
-    return {
-      tenant,
-      tenantIdentifier,
-      solution: await this.getSolution()
-    };
+    return { tenant, tenantIdentifier };
   }
 
   async ensureForInstance(instance: ScopeInstance): Promise<SubspaceInstanceScope> {
+    let scope = await instanceScopeCache({ instance });
+
+    return { ...scope, solution: await this.getSolution() };
+  }
+
+  async ensureForInstanceUncached(instance: ScopeInstance) {
     let loadedInstance = await loadInstanceWithSubspaceContext(instance);
     await assertProjectScope(loadedInstance.project!);
     await assertInstanceScope(loadedInstance, loadedInstance.project!);
 
     let environmentIdentifier = getInstanceEnvironmentIdentifier(loadedInstance);
     let resourceGroup = await resolveInstanceResourceGroup(loadedInstance);
-    let { tenant, tenantIdentifier, solution } = await this.ensureForProject(
-      loadedInstance.project!
-    );
+    let { tenant, tenantIdentifier } = await projectScopeCache({
+      project: loadedInstance.project!
+    });
 
     let environment = await environmentService.upsertEnvironment({
       tenant,
@@ -522,7 +548,6 @@ class subspaceScopeServiceImpl {
     return {
       tenant,
       environment,
-      solution,
       tenantIdentifier,
       environmentIdentifier
     };
@@ -573,3 +598,21 @@ export let subspaceScopeService = Service.create(
   'subspaceScopeService',
   () => new subspaceScopeServiceImpl()
 ).build();
+
+let projectScopeCache = createCachedFunction({
+  name: 'subspaceScope:project',
+  redisUrl: env.service.REDIS_URL,
+  getHash: (i: { project: ScopeProject }) => i.project.id,
+  ttlSeconds: scopeCacheTtlSeconds,
+  provider: async (i: { project: ScopeProject }) =>
+    await subspaceScopeService.ensureForProjectUncached(i.project)
+});
+
+let instanceScopeCache = createCachedFunction({
+  name: 'subspaceScope:instance',
+  redisUrl: env.service.REDIS_URL,
+  getHash: (i: { instance: ScopeInstance }) => i.instance.id,
+  ttlSeconds: scopeCacheTtlSeconds,
+  provider: async (i: { instance: ScopeInstance }) =>
+    await subspaceScopeService.ensureForInstanceUncached(i.instance)
+});

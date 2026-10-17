@@ -22,6 +22,14 @@ let mocks = vi.hoisted(() => ({
   generateId: vi.fn()
 }));
 
+vi.mock('@lowerdeck/cache', () => ({
+  createCachedFunction: vi.fn((opts: { provider: (i: any) => Promise<unknown> }) =>
+    vi.fn((i: any) => opts.provider(i))
+  )
+}));
+
+import { createCachedFunction } from '@lowerdeck/cache';
+
 vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((_name, factory) => ({
@@ -99,6 +107,8 @@ vi.mock('./actor', () => ({
 }));
 
 import { subspaceScopeService } from './subspaceScope';
+
+let cacheConfigs = vi.mocked(createCachedFunction).mock.calls.map(([opts]) => opts as any);
 
 let resourceTenant = {
   oid: 100n,
@@ -215,6 +225,62 @@ describe('Subspace scope provisioning', () => {
         input: expect.objectContaining({ instanceOid: 3n })
       })
     );
+  });
+
+  it('caches project and instance scopes for a minute', () => {
+    expect(cacheConfigs.map(opts => opts.name).sort()).toEqual([
+      'subspaceScope:instance',
+      'subspaceScope:project'
+    ]);
+    expect(cacheConfigs.every(opts => opts.ttlSeconds === 60)).toBe(true);
+  });
+
+  let makeLinkedInstance = (overrides: Record<string, unknown> = {}) => {
+    let instance = {
+      oid: 3n,
+      id: 'ins_3',
+      name: 'Production',
+      type: 'production',
+      organizationOid: 1n,
+      projectOid: 2n,
+      resourceGroupOid: 200n,
+      internalTenantIdentifier: 'mte-pro-2',
+      internalEnvironmentIdentifier: 'mte-ins-3',
+      subspaceTenantId: 'ktn_canonical',
+      subspaceEnvironmentId: 'ken_canonical',
+      ...overrides
+    } as any;
+    instance.project = makeProject({
+      internalTenantIdentifier: 'mte-pro-2',
+      subspaceTenantId: 'ktn_canonical',
+      instances: [instance]
+    });
+    instance.organization = { oid: 1n, id: 'org_1', subspaceTenantIds: ['ktn_canonical'] };
+    mocks.tenantFind.mockResolvedValue({ oid: 20n, identifier: 'mte-pro-2' });
+    mocks.environmentFind.mockResolvedValue({ identifier: 'mte-ins-3', tenantOid: 20n });
+    return instance;
+  };
+
+  it('skips rewriting an instance that is already linked and was synced recently', async () => {
+    await subspaceScopeService.ensureForInstance(
+      makeLinkedInstance({ lastSubspaceSyncAt: new Date() })
+    );
+
+    expect(mocks.instanceUpdate).not.toHaveBeenCalled();
+  });
+
+  it('refreshes an instance link that has not been synced for a while', async () => {
+    await subspaceScopeService.ensureForInstance(
+      makeLinkedInstance({ lastSubspaceSyncAt: new Date(Date.now() - 60 * 60 * 1000) })
+    );
+
+    expect(mocks.instanceUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes the instance link when it has never been synced', async () => {
+    await subspaceScopeService.ensureForInstance(makeLinkedInstance());
+
+    expect(mocks.instanceUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('refuses to provision when the project carries an identifier its oid does not produce', async () => {

@@ -113,4 +113,7 @@ model SessionError {
   @@index([type])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([connectionOid])
+  @@index([providerRunOid])
+  @@index([tenantOid, createdAt])
 }

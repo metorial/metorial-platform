@@ -146,6 +146,7 @@ model ProtoGuardRun {
   @@index([confidence])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([connectionOid])
 }
 
 model ProtoGuardAlert {
@@ -197,6 +198,7 @@ model ProtoGuardAlert {
   @@index([messageOid])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([connectionOid])
 }
 
 model ProtoGuardAlertInstance {
