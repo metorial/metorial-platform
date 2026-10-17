@@ -1,7 +1,7 @@
+import { integrationInstanceService } from '@metorial-subspace/module-integration';
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@metorial/queue';
-import { integrationInstanceService } from '@metorial-subspace/module-integration';
 import { getConsumerOwnerForServer } from '../../lib/backing';
 import { resolveOwnerActorOid } from '../../lib/ownerActor';
 
@@ -88,10 +88,10 @@ export let reconcileMagicMcpServerOwnerQueueProcessor =
 
     if (!ownerActorOid) return;
 
-    await db.magicMcpServer.updateMany({
-      where: { oid: server.oid, ownerActorOid: null },
-      data: { ownerActorOid }
-    });
+    // await db.magicMcpServer.updateMany({
+    //   where: { oid: server.oid, ownerActorOid: null },
+    //   data: { ownerActorOid }
+    // });
   });
 
 export let magicOwnerActorQueueProcessor = combineQueueProcessors([
