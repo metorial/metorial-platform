@@ -286,6 +286,14 @@ class SkillServiceImpl {
         }
       }
 
+      await Fabric.fire('skill.audit.created:after', {
+        auditScope: d.auditScope,
+        skill,
+        parentSkillId: d.parentSkill?.id ?? null,
+        parentSkillTemplateId: d.parentSkillTemplate?.id ?? null,
+        cloneType: d.parentSkill ? (d.parentSkillCloneType ?? null) : null
+      });
+
       await enqueueSkillLifecycle({ skillId: skill.id, event: 'created' });
 
       return skill;
@@ -573,16 +581,24 @@ class SkillServiceImpl {
 
     await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
 
-    return await this.getSkillRecord({
+    let updated = await this.getSkillRecord({
       project: d.project,
       instance: d.instance,
       skillId: d.skill.id
-    }).then(skill => ({ ...skill, store }) satisfies SkillRecord);
+    });
+    await Fabric.fire('skill.audit.updated:after', {
+      auditScope: d.auditScope,
+      skill: updated,
+      previousSkill: d.skill
+    });
+
+    return { ...updated, store } satisfies SkillRecord;
   }
 
   async archiveSkill(d: {
     project: Project;
     instance: Instance;
+    auditScope?: AuditScope;
     skill: SkillRecord;
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
@@ -615,6 +631,13 @@ class SkillServiceImpl {
           status: 'archived'
         }
       });
+
+      if (d.auditScope) {
+        await Fabric.fire('skill.audit.archived:after', {
+          auditScope: d.auditScope,
+          skill: d.skill
+        });
+      }
 
       await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'archived' });
     });

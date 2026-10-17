@@ -135,6 +135,7 @@ export let skillGroupController = Controller.create(
         let localGroup = await skillGroupService.createSkillGroup({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -171,6 +172,7 @@ export let skillGroupController = Controller.create(
         let localGroup = await skillGroupService.updateSkillGroup({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           skillGroupId: ctx.skillGroup.id,
           input: {
             name: ctx.body.name,
@@ -198,6 +200,7 @@ export let skillGroupController = Controller.create(
         let localGroup = await skillGroupService.archiveSkillGroup({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           skillGroupId: ctx.skillGroup.id
         });
         let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);

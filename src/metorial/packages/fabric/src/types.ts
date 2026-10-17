@@ -720,6 +720,32 @@ export type AuditDocument = Document & {
 
 export type AuditStore = Store;
 
+export type AuditSkillGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  allowConsumerSkillAssignment: boolean;
+  skillIds: string[];
+};
+
+export type AuditSkillTemplate = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: string;
+};
+
+export type AuditSkillMergeRequest = {
+  id: string;
+  title: string;
+  status: string;
+  direction: string;
+  sourceSkillId: string;
+  targetSkillId: string;
+};
+
 export type AuditSandboxMachine = {
   id: string;
   name: string | null;
@@ -1371,6 +1397,33 @@ export interface FabricEvents {
   'skill.marketplace.created:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.archived:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.deleted:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
+
+  'skill.audit.created:after': { auditScope: AuditScope; skill: Skill; parentSkillId: string | null; parentSkillTemplateId: string | null; cloneType: 'fork' | 'duplicate' | null };
+  'skill.audit.updated:after': { auditScope: AuditScope; skill: Skill; previousSkill: Skill };
+  'skill.audit.archived:after': { auditScope: AuditScope; skill: Skill };
+
+  'skill.plugin.audit.created:after': { auditScope: AuditScope; skillPlugin: SkillPlugin };
+  'skill.plugin.audit.updated:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; previousSkillPlugin: SkillPlugin };
+  'skill.plugin.audit.archived:after': { auditScope: AuditScope; skillPlugin: SkillPlugin };
+
+  'skill.marketplace.audit.created:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
+  'skill.marketplace.audit.updated:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace; previousSkillMarketplace: SkillMarketplace };
+  'skill.marketplace.audit.archived:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
+
+  'skill.group.audit.created:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup };
+  'skill.group.audit.updated:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup; previousSkillGroup: AuditSkillGroup };
+  'skill.group.audit.archived:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup };
+  'skill.group.audit.skill_added:after': { auditScope: AuditScope; skillGroupId: string; skillId: string };
+  'skill.group.audit.skill_removed:after': { auditScope: AuditScope; skillGroupId: string; skillId: string };
+
+  'skill.template.audit.created:after': { auditScope: AuditScope; skillTemplate: AuditSkillTemplate };
+  'skill.template.audit.updated:after': { auditScope: AuditScope; skillTemplate: AuditSkillTemplate; previousSkillTemplate: AuditSkillTemplate };
+  'skill.template.audit.archived:after': { auditScope: AuditScope; skillTemplate: AuditSkillTemplate };
+
+  'skill.merge_request.audit.created:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
+  'skill.merge_request.audit.merged:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
+  'skill.merge_request.audit.closed:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
+  'skill.merge_request.audit.rolled_back:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
 
   'skill.store.size:before': SkillStoreFabricOwner;
 

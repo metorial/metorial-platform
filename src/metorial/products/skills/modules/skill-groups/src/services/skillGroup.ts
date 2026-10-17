@@ -1,8 +1,10 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import type { Instance, Project } from '@metorial/db';
 import { db, ID, type Prisma, withTransaction } from '@metorial/db';
+import { Fabric, type AuditSkillGroup } from '@metorial/fabric';
 import { type DateFilter, normalizeDateFilter } from '@metorial/list-utils';
 import {
   accessTagService,
@@ -27,6 +29,15 @@ let include = {
 } satisfies Prisma.SkillGroupInclude;
 
 export type SkillGroupRecord = Prisma.SkillGroupGetPayload<{ include: typeof include }>;
+
+let toAuditSkillGroup = (group: SkillGroupRecord): AuditSkillGroup => ({
+  id: group.id,
+  name: group.name,
+  description: group.description,
+  status: group.status,
+  allowConsumerSkillAssignment: group.allowConsumerSkillAssignment,
+  skillIds: group.items.map(item => item.skill.id)
+});
 
 class SkillGroupServiceImpl {
   async getSkillGroupById(d: {
@@ -114,6 +125,7 @@ class SkillGroupServiceImpl {
   async createSkillGroup(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string | null;
@@ -157,6 +169,10 @@ class SkillGroupServiceImpl {
         where: { id: group.id },
         include
       });
+      await Fabric.fire('skill.group.audit.created:after', {
+        auditScope: d.auditScope,
+        skillGroup: toAuditSkillGroup(result)
+      });
       await enqueueSkillGroupLifecycle({ skillGroupId: result.id, event: 'created' });
       return result;
     });
@@ -165,6 +181,7 @@ class SkillGroupServiceImpl {
   async updateSkillGroup(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillGroupId: string;
     input: {
       name?: string;
@@ -225,12 +242,22 @@ class SkillGroupServiceImpl {
         where: { id: group.id },
         include
       });
+      await Fabric.fire('skill.group.audit.updated:after', {
+        auditScope: d.auditScope,
+        skillGroup: toAuditSkillGroup(result),
+        previousSkillGroup: toAuditSkillGroup(group)
+      });
       await enqueueSkillGroupLifecycle({ skillGroupId: result.id, event: 'updated' });
       return result;
     });
   }
 
-  async archiveSkillGroup(d: { project: Project; instance: Instance; skillGroupId: string }) {
+  async archiveSkillGroup(d: {
+    project: Project;
+    instance: Instance;
+    auditScope: AuditScope;
+    skillGroupId: string;
+  }) {
     let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
     return await withTransaction(async db => {
       await db.skillGroupItem.updateMany({
@@ -241,6 +268,10 @@ class SkillGroupServiceImpl {
         where: { id: group.id },
         data: { status: 'archived' },
         include
+      });
+      await Fabric.fire('skill.group.audit.archived:after', {
+        auditScope: d.auditScope,
+        skillGroup: toAuditSkillGroup({ ...result, items: group.items })
       });
       await enqueueSkillGroupLifecycle({ skillGroupId: result.id, event: 'archived' });
       return result;

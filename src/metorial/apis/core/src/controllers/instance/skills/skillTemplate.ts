@@ -195,6 +195,7 @@ export let skillTemplateController = Controller.create(
         let localTemplate = await skillTemplateService.updateSkillTemplate({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           skillTemplateId: ctx.skillTemplate.id,
           input: {
             name: ctx.body.name,
@@ -222,6 +223,7 @@ export let skillTemplateController = Controller.create(
         let localTemplate = await skillTemplateService.deleteSkillTemplate({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           skillTemplateId: ctx.skillTemplate.id
         });
         await skillResourceService.ensureDelegatedSkillTemplate(localTemplate);

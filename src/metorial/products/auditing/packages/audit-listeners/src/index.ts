@@ -26,6 +26,7 @@ export * from './projectSettings';
 export * from './record';
 export * from './sandbox';
 export * from './serviceAccount';
+export * from './skill';
 export * from './storage';
 export * from './subspace';
 export * from './team';
