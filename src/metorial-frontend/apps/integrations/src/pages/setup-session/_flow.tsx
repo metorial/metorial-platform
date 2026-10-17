@@ -3,6 +3,7 @@ import { ElementsLayout } from '../../components/elementsLayout';
 import { EmbeddedLayout } from '../../components/embeddedLayout';
 import { SideLayout } from '../../components/sideLayout';
 import { MobileSheetProvider } from '../../components/stepContainer';
+import { useHideBootSpinner } from '../../lib/bootSpinner';
 import type { Brand, Provider, Session } from '../../state/types';
 import { RetryError } from './_retryError';
 import { CompletedStep } from './_steps/completedStep';
@@ -79,6 +80,8 @@ export let SetupFlow = ({
   completionRedirectUrl?: string | null;
 }) => {
   let flow = useSetupFlow({ session, provider, clientSecret });
+
+  useHideBootSpinner(!flow.isPreparing);
 
   let isElementsMode = flow.session.uiMode === 'metorial_elements';
   let layout = flow.session.configuration?.ui?.layout ?? 'box';

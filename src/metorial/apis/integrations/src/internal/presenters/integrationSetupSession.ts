@@ -118,6 +118,7 @@ export let integrationSetupSessionPresenter = (
     metadata: integrationSetupSession.metadata,
     configuration: integrationSetupSession.configuration,
     redirectUrl: integrationSetupSession.redirectUrl,
+    skipConfirmation: integrationSetupSession.skipConfirmation,
 
     integrationId: integrationSetupSession.integration.id,
     integrationInstanceId: integrationSetupSession.integrationInstance.id,

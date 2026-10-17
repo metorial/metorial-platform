@@ -124,6 +124,12 @@ export let useSetupFlow = ({
 
   let step = explicitStep ?? resolveNextStep();
 
+  let isPreparing =
+    (!!providerCredentials && needsAuthConfig && authSchemaLoader.isLoading) ||
+    (!!providerCredentials && needsConfig && configSchemaLoader.isLoading) ||
+    (step === 'config' && toolFiltersEnabled && tools.isLoading) ||
+    (step === 'oauth_loading' && !oauthError);
+
   useEffect(() => {
     if (hasConfigFields) setHasSeenConfigFields(true);
   }, [hasConfigFields]);
@@ -156,6 +162,11 @@ export let useSetupFlow = ({
   };
 
   let showOAuthRedirect = (setup: OAuthSetup) => {
+    if (flowSession.skipConfirmation && setup.url) {
+      window.location.href = setup.url;
+      return;
+    }
+
     setOauthSetup(setup);
     setExplicitStep('oauth_redirect');
   };
@@ -252,6 +263,7 @@ export let useSetupFlow = ({
     sessionCredentials,
 
     step,
+    isPreparing,
     stageLabels: stages.map(stage => stageLabels[stage]),
     stageIndex: stageIndex >= 0 ? stageIndex : stages.length,
 

@@ -164,6 +164,9 @@ export type CreateIntegrationSetupSessionParams = {
     ip: string;
     ua: string;
   };
+  internal?: {
+    skipConfirmation?: boolean;
+  };
 };
 
 class integrationSetupSessionServiceImpl {
@@ -474,6 +477,7 @@ class integrationSetupSessionServiceImpl {
       data: {
         ...getId('integrationSetupSession'),
         status: 'pending',
+        skipConfirmation: d.internal?.skipConfirmation ?? false,
         clientSecret: await generateRegionalClientSecret(
           'integrationSetupSession_clientSecret'
         ),
@@ -904,7 +908,7 @@ class integrationSetupSessionServiceImpl {
     integration: Pick<Integration, 'canAttachCustomToolFilters' | 'canOverrideToolFilters'>;
     setupSession: Pick<
       IntegrationSetupSession,
-      'oid' | 'name' | 'description' | 'metadata' | 'ownerActorOid'
+      'oid' | 'name' | 'description' | 'metadata' | 'ownerActorOid' | 'skipConfirmation'
     >;
     integrationProvider: Awaited<
       ReturnType<integrationSetupSessionServiceImpl['getActiveIntegrationProviders']>
@@ -985,7 +989,8 @@ class integrationSetupSessionServiceImpl {
       },
       import: d.context,
       internal: {
-        integrationSetupSessionProviderOid: setupSessionProviderOid
+        integrationSetupSessionProviderOid: setupSessionProviderOid,
+        skipConfirmation: d.setupSession.skipConfirmation
       }
     });
 
