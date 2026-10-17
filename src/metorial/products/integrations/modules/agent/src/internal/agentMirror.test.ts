@@ -10,7 +10,7 @@ let mocks = vi.hoisted(() => ({
     consumerAuthClient: { findUnique: vi.fn() },
     agent: { findUnique: vi.fn() },
     agentClient: { upsert: vi.fn(), deleteMany: vi.fn() },
-    agentClientRegistration: { upsert: vi.fn(), findUnique: vi.fn() },
+    agentClientRegistration: { upsert: vi.fn(), findUnique: vi.fn(), deleteMany: vi.fn() },
     agentInstance: { upsert: vi.fn(), deleteMany: vi.fn() }
   },
   resolveMetorialInstance: vi.fn(),
@@ -127,6 +127,31 @@ describe('syncAgentClient', () => {
         })
       })
     );
+  });
+
+  it('removes mirrored registrations that no longer exist in the source', async () => {
+    mocks.db.agentClient.findUnique.mockResolvedValue(buildClient());
+
+    await agentMirrorService.syncAgentClient({ agentClientId: 'agc_1' });
+
+    expect(mocks.metorialDb.agentClientRegistration.deleteMany).toHaveBeenCalledWith({
+      where: { agentClientOid: 11n, id: { notIn: ['agr_1'] } }
+    });
+  });
+
+  it('frees the oauth client from a stale registration of a removed client', async () => {
+    mocks.db.agentClient.findUnique.mockResolvedValue(buildClient());
+
+    await agentMirrorService.syncAgentClient({ agentClientId: 'agc_1' });
+
+    let deleteOrder =
+      mocks.metorialDb.agentClientRegistration.deleteMany.mock.invocationCallOrder;
+    let upsertOrder =
+      mocks.metorialDb.agentClientRegistration.upsert.mock.invocationCallOrder[0]!;
+    expect(mocks.metorialDb.agentClientRegistration.deleteMany).toHaveBeenCalledWith({
+      where: { consumerAuthClientOid: 501n, id: { not: 'agr_1' } }
+    });
+    expect(Math.max(...deleteOrder)).toBeLessThan(upsertOrder);
   });
 
   it('leaves system clients without a consumer link', async () => {

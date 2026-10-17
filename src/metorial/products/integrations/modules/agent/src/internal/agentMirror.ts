@@ -49,6 +49,15 @@ class agentMirrorServiceImpl {
       update: data
     });
 
+    await metorialDb.agentClientRegistration.deleteMany({
+      where: {
+        agentClientOid: mirroredClient.oid,
+        id: {
+          notIn: agentClient.agentClientRegistrations.map(registration => registration.id)
+        }
+      }
+    });
+
     for (let registration of agentClient.agentClientRegistrations) {
       let consumerAuthClient = registration.oauthRegistrationId
         ? await metorialDb.consumerAuthClient.findUnique({
@@ -56,6 +65,15 @@ class agentMirrorServiceImpl {
             select: { oid: true }
           })
         : null;
+
+      if (consumerAuthClient) {
+        await metorialDb.agentClientRegistration.deleteMany({
+          where: {
+            consumerAuthClientOid: consumerAuthClient.oid,
+            id: { not: registration.id }
+          }
+        });
+      }
 
       let registrationData = {
         agentClientOid: mirroredClient.oid,
