@@ -193,8 +193,15 @@ export let ProviderOAuthAuthenticateContent = (p: {
     return result.id;
   };
 
-  let handleContinue = (e?: FormEvent) => {
+  let handleContinue = (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+    if (
+      typeof document != 'undefined' &&
+      document.activeElement instanceof HTMLInputElement &&
+      document.activeElement.type == 'search'
+    ) {
+      return;
+    }
     if (isBusy) return;
 
     if (needsCredentials && isCreatingCredentials) {

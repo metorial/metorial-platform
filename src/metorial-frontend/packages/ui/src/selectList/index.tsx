@@ -227,7 +227,10 @@ let Empty = styled('div')`
   text-align: center;
 `;
 
-let useDebouncedCallback = (callback: ((value: string) => void) | undefined, delay: number) => {
+let useDebouncedCallback = (
+  callback: ((value: string) => void) | undefined,
+  delay: number
+) => {
   let callbackRef = useRef(callback);
   callbackRef.current = callback;
   let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -244,12 +247,22 @@ let useDebouncedCallback = (callback: ((value: string) => void) | undefined, del
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setIsPending(true);
     timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = null;
       setIsPending(false);
       callbackRef.current?.(value);
     }, delay);
   };
 
-  return { schedule, isPending };
+  let flush = (value: string) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setIsPending(false);
+    callbackRef.current?.(value);
+  };
+
+  return { schedule, flush, isPending };
 };
 
 export let SelectList = (p: {
@@ -320,7 +333,9 @@ export let SelectList = (p: {
           </InputLabel>
         ))}
 
-      {p.description && <InputDescription id={descriptionId}>{p.description}</InputDescription>}
+      {p.description && (
+        <InputDescription id={descriptionId}>{p.description}</InputDescription>
+      )}
 
       <ListBox>
         <ScrollArea $maxHeight={isCollapsed ? undefined : p.maxHeight}>
@@ -347,12 +362,22 @@ export let SelectList = (p: {
                         setSearch(e.target.value);
                         debouncedSearch.schedule(e.target.value.trim());
                       }}
+                      onKeyDown={e => {
+                        if (e.key == 'Enter') {
+                          e.preventDefault();
+                          debouncedSearch.flush(e.currentTarget.value.trim());
+                        }
+                      }}
                     />
                     <SpinnerSlot
                       $visible={!!p.isLoading || debouncedSearch.isPending}
                       aria-hidden
                     >
-                      <Spinner size={14} foreground={theme.colors.gray700} background="transparent" />
+                      <Spinner
+                        size={14}
+                        foreground={theme.colors.gray700}
+                        background="transparent"
+                      />
                     </SpinnerSlot>
                   </SearchField>
                 </SearchBar>
@@ -370,7 +395,10 @@ export let SelectList = (p: {
             onValueChange={(value, details) => {
               let nextValue = value as string;
               let isExplicitActivation =
-                typeof PointerEvent != 'undefined' && details.event instanceof PointerEvent;
+                (typeof PointerEvent != 'undefined' &&
+                  details.event instanceof PointerEvent) ||
+                (typeof KeyboardEvent != 'undefined' &&
+                  details.event instanceof KeyboardEvent);
 
               if (collapseOn.includes(nextValue) && !isExplicitActivation) return;
               if (nextValue == p.value) return;
@@ -388,7 +416,23 @@ export let SelectList = (p: {
                   exit={{ height: 0, opacity: 0 }}
                   transition={transition}
                 >
-                  <Row value={item.id} disabled={item.disabled} $reserveEnd={isCollapsed}>
+                  <Row
+                    value={item.id}
+                    disabled={item.disabled}
+                    $reserveEnd={isCollapsed}
+                    onFocus={e => {
+                      if (collapseOn.includes(item.id)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onKeyDown={e => {
+                      if (item.disabled || p.disabled) return;
+                      if (e.key == 'Enter' || e.key == ' ') {
+                        e.preventDefault();
+                        if (item.id != p.value) p.onChange(item.id);
+                      }
+                    }}
+                  >
                     <Indicator aria-hidden>
                       <IndicatorDot keepMounted />
                     </Indicator>
