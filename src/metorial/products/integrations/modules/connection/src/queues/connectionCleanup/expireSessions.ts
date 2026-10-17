@@ -14,7 +14,7 @@ let getExpiredSessionsWhere = () => ({
 let expireSessionsCron = createCron(
   {
     name: 'sub/con/ses/expire',
-    cron: '25 * * * * *',
+    cron: '25 2-59/5 * * * *',
     redisUrl: env.service.REDIS_URL
   },
   async () => {

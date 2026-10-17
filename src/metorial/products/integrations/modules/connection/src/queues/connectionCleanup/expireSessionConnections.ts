@@ -9,7 +9,7 @@ let EXPIRE_CONNECTIONS_BATCH_SIZE = 500;
 let expireSessionConnectionsCron = createCron(
   {
     name: 'sub/con/conn/expire/cron',
-    cron: '10 * * * * *',
+    cron: '10 0-59/5 * * * *',
     redisUrl: env.service.REDIS_URL
   },
   async () => {
