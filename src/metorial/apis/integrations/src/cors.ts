@@ -1,14 +1,4 @@
-let localDevelopmentOrigin = (origin: string) => {
-  try {
-    let url = new URL(origin);
-    return (
-      (url.protocol === 'http:' || url.protocol === 'https:') &&
-      (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
-    );
-  } catch {
-    return false;
-  }
-};
+import { isLocalhostOrigin } from '@lowerdeck/cors';
 
 let configuredOrigins = (domains: string | undefined) =>
   (domains ?? '')
@@ -30,5 +20,5 @@ export let isIntegrationsCorsOriginAllowed = (d: {
   if (normalizedOrigin === uiOrigin) return true;
 
   if (configuredOrigins(d.corsDomains).includes(normalizedOrigin)) return true;
-  return !!d.isDevelopment && localDevelopmentOrigin(normalizedOrigin);
+  return !!d.isDevelopment && isLocalhostOrigin(normalizedOrigin);
 };

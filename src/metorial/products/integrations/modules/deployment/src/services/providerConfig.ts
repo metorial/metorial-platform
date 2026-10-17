@@ -54,9 +54,9 @@ import {
   resolveConsumerActorIds,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
-  toProviderEventBase,
-  ownerActorSelect
+  toProviderEventBase
 } from '@metorial-subspace/module-tenant';
+import { ownerActorSelect } from '@metorial-subspace/module-tenant/src/lib/ownerActor';
 import { getBackend } from '@metorial-subspace/provider';
 import { Fabric, type AuditSubspaceProviderConfig } from '@metorial/fabric';
 import { env } from '../env';

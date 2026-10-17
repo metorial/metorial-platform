@@ -1,3 +1,4 @@
+import { isLocalDevelopmentOrigin } from '@lowerdeck/cors';
 import {
   badRequestError,
   internalServerError,
@@ -629,10 +630,12 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
 
                     let auth = await this.authenticate(req, url as URL);
 
-                    let corsOk = this.checkCors({
-                      origin,
-                      auth: auth.auth
-                    });
+                    let corsOk =
+                      isLocalDevelopmentOrigin(origin) ||
+                      this.checkCors({
+                        origin,
+                        auth: auth.auth
+                      });
                     if (!corsOk) corsHeaders = {};
 
                     let rateLimit = await this.rateLimiter.check({

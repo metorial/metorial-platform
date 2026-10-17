@@ -9,6 +9,7 @@
   "dependencies": {
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/base62": "workspace:2.0.0",
+    "@lowerdeck/cors": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/hono": "workspace:2.0.0",
     "@lowerdeck/rpc-server": "workspace:2.0.0",
