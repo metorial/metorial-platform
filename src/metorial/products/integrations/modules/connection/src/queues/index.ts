@@ -1,6 +1,6 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { expireSessionConnectionsQueues } from './connectionCleanup/expireSessionConnections';
-import { expireSessionsCron } from './connectionCleanup/expireSessions';
+import { expireSessionsQueues } from './connectionCleanup/expireSessions';
 import { createErrorQueueProcessor } from './error/createError';
 import { createWarningQueueProcessor } from './error/createWarning';
 import { finalizeMessageQueueProcessor } from './message/finalizeMessage';
@@ -9,11 +9,11 @@ import { messageTimeoutQueueProcessor } from './message/messageTimeout';
 import { offloadQueues } from './message/offloadMessage';
 import { protoGuardMessageQueueProcessor } from './message/protoGuard';
 import { providerRunStartQueueProcessor } from './provderRun/providerRunStart';
-import { stopProviderRunsCron } from './provderRun/stopProviderRuns';
+import { stopProviderRunsQueues } from './provderRun/stopProviderRuns';
 
 export let queues = combineQueueProcessors([
   expireSessionConnectionsQueues,
-  expireSessionsCron,
+  expireSessionsQueues,
   messageTimeoutQueueProcessor,
   finalizeMessageQueueProcessor,
   protoGuardMessageQueueProcessor,
@@ -21,6 +21,6 @@ export let queues = combineQueueProcessors([
   createErrorQueueProcessor,
   createWarningQueueProcessor,
   messageCreatedQueueProcessor,
-  stopProviderRunsCron,
+  stopProviderRunsQueues,
   providerRunStartQueueProcessor
 ]);

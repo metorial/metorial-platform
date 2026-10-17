@@ -155,39 +155,26 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
     }
   });
 
-  await db.sessionEvent.createMany({
-    data: {
-      ...getId('sessionEvent'),
-      type: 'message_created',
-      sessionOid: message.sessionOid,
-      connectionOid: message.connectionOid,
-      providerRunOid: message.providerRunOid,
-      messageOid: message.oid,
-      tenantOid: message.tenantOid,
-      projectOid: message.projectOid,
-      solutionOid: message.solutionOid,
-      environmentOid: message.environmentOid,
-      instanceOid: message.instanceOid
-    }
-  });
+  let eventBase = {
+    sessionOid: message.sessionOid,
+    connectionOid: message.connectionOid,
+    providerRunOid: message.providerRunOid,
+    messageOid: message.oid,
+    tenantOid: message.tenantOid,
+    projectOid: message.projectOid,
+    solutionOid: message.solutionOid,
+    environmentOid: message.environmentOid,
+    instanceOid: message.instanceOid
+  };
 
-  if (message.status !== 'waiting_for_response') {
-    await db.sessionEvent.createMany({
-      data: {
-        ...getId('sessionEvent'),
-        type: 'message_processed',
-        sessionOid: message.sessionOid,
-        connectionOid: message.connectionOid,
-        providerRunOid: message.providerRunOid,
-        messageOid: message.oid,
-        tenantOid: message.tenantOid,
-        projectOid: message.projectOid,
-        solutionOid: message.solutionOid,
-        environmentOid: message.environmentOid,
-        instanceOid: message.instanceOid
-      }
-    });
-  }
+  await db.sessionEvent.createMany({
+    data: [
+      { ...getId('sessionEvent'), type: 'message_created' as const, ...eventBase },
+      ...(message.status !== 'waiting_for_response'
+        ? [{ ...getId('sessionEvent'), type: 'message_processed' as const, ...eventBase }]
+        : [])
+    ]
+  });
 
   await messageCreatedQueue.add({ messageId: message.id });
 

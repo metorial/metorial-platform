@@ -93,7 +93,7 @@ describe('SenderManager tool resolution', () => {
     let provider = { id: 'spr_1', nameTemplate: 'slack_$' };
 
     manager.listProviders = vi.fn(async () => [provider]);
-    manager.getLegacyToolMatch = vi.fn(async () => null);
+    manager.getLegacyToolMatch = vi.fn(() => null);
     manager.getProviderToolByResolvedName = vi.fn();
 
     await expect(

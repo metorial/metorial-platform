@@ -4,18 +4,18 @@ import { db, getId } from '@metorial-subspace/db';
 import { subMinutes } from 'date-fns';
 import { env } from '../../env';
 
+let EXPIRE_CONNECTIONS_BATCH_SIZE = 500;
+
 let expireSessionConnectionsCron = createCron(
   {
     name: 'sub/con/conn/expire/cron',
-    cron: '* * * * *',
+    cron: '10 * * * * *',
     redisUrl: env.service.REDIS_URL
   },
   async () => {
-    await expireSessionConnectionsQueue.add({});
+    await expireSessionConnectionsQueue.add({}, { id: 'expire-connections-root' });
   }
 );
-
-let EXPIRE_CONNECTIONS_BATCH_SIZE = 500;
 
 let expireSessionConnectionsQueue = createQueue<{ cursor?: string }>({
   name: 'sub/con/conn/expire/many',
@@ -30,7 +30,10 @@ let expireSessionConnectionsQueueProcessor = expireSessionConnectionsQueue.proce
     let connections = await db.sessionConnection.findMany({
       where: {
         state: 'connected',
-        lastActiveAt: { lt: twoMinutesAgo },
+        OR: [
+          { lastActiveAt: { lt: twoMinutesAgo } },
+          { lastActiveAt: null, createdAt: { lt: twoMinutesAgo } }
+        ],
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },

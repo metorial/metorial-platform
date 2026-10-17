@@ -114,14 +114,17 @@ describe('createMessage', () => {
   it('copies the mirrored oids from the created message onto the session event', async () => {
     await createMessage({ ...baseProps, session });
 
+    expect(mocks.db.sessionEvent.createMany).toHaveBeenCalledTimes(1);
     expect(mocks.db.sessionEvent.createMany).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        type: 'message_created',
-        tenantOid: 10n,
-        projectOid: 11n,
-        environmentOid: 20n,
-        instanceOid: 21n
-      })
+      data: [
+        expect.objectContaining({
+          type: 'message_created',
+          tenantOid: 10n,
+          projectOid: 11n,
+          environmentOid: 20n,
+          instanceOid: 21n
+        })
+      ]
     });
   });
 
@@ -136,10 +139,31 @@ describe('createMessage', () => {
     expect(data.toolCall.create.instanceOid).toBeNull();
 
     expect(mocks.db.sessionEvent.createMany).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        projectOid: null,
-        instanceOid: null
-      })
+      data: [
+        expect.objectContaining({
+          projectOid: null,
+          instanceOid: null
+        })
+      ]
+    });
+  });
+
+  it('writes the created and processed events in one insert for a completed message', async () => {
+    await createMessage({
+      ...baseProps,
+      status: 'succeeded',
+      output: { type: 'tool.result', data: {} } as any,
+      responderParticipant: { oid: 401n } as any,
+      session,
+      tool
+    });
+
+    expect(mocks.db.sessionEvent.createMany).toHaveBeenCalledTimes(1);
+    expect(mocks.db.sessionEvent.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({ type: 'message_created' }),
+        expect.objectContaining({ type: 'message_processed' })
+      ]
     });
   });
 });

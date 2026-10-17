@@ -1,6 +1,11 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { db } from '@metorial-subspace/db';
+import { dbPrimary } from '@metorial-subspace/db';
 import { env } from '../../env';
+import {
+  applyMessageActivity,
+  claimMessageActivity,
+  getCreationIncrements
+} from '../../shared/messageActivity';
 import { finalizeMessageQueue } from './finalizeMessage';
 import { messageTimeoutQueue } from './messageTimeout';
 
@@ -13,63 +18,34 @@ export let messageCreatedQueue = createQueue<{ messageId: string }>({
 });
 
 export let messageCreatedQueueProcessor = messageCreatedQueue.process(async data => {
-  let message = await db.sessionMessage.findFirst({
-    where: { id: data.messageId }
+  let message = await dbPrimary.sessionMessage.findUnique({
+    where: { id: data.messageId },
+    select: {
+      oid: true,
+      id: true,
+      status: true,
+      isProductive: true,
+      source: true,
+      sessionOid: true,
+      connectionOid: true,
+      sessionProviderOid: true
+    }
   });
   if (!message) throw new QueueRetryError();
 
-  let incrementClientProductive = message.isProductive && message.source === 'client' ? 1 : 0;
-  let incrementProviderProductive =
-    message.isProductive && message.source === 'provider' ? 1 : 0;
-
-  let incrementData: {
-    totalProductiveClientMessageCount?: { increment: number };
-    totalProductiveProviderMessageCount?: { increment: number };
-  } = {};
-
-  if (incrementClientProductive) {
-    incrementData.totalProductiveClientMessageCount = { increment: 1 };
-  }
-  if (incrementProviderProductive) {
-    incrementData.totalProductiveProviderMessageCount = { increment: 1 };
+  // Completed messages are counted by finalize, which folds the creation and response
+  // counters into a single update per row.
+  if (message.status != 'waiting_for_response') {
+    await finalizeMessageQueue.add({ messageId: message.id }, { id: message.id });
+    return;
   }
 
-  if (message.connectionOid) {
-    await db.sessionConnection.updateMany({
-      where: { oid: message.connectionOid },
-      data: {
-        lastActiveAt: new Date(),
-        lastMessageAt: new Date(),
-        ...incrementData
-      }
-    });
+  if (await claimMessageActivity(message.oid)) {
+    await applyMessageActivity(message, { touch: true, ...getCreationIncrements(message) });
   }
 
-  if (message.sessionProviderOid) {
-    await db.sessionProvider.updateMany({
-      where: { oid: message.sessionProviderOid },
-      data: {
-        lastMessageAt: new Date(),
-        ...incrementData
-      }
-    });
-  }
-
-  await db.session.updateMany({
-    where: { oid: message.sessionOid },
-    data: {
-      lastActiveAt: new Date(),
-      lastMessageAt: new Date(),
-      ...incrementData
-    }
-  });
-
-  if (message.status == 'waiting_for_response') {
-    await messageTimeoutQueue.add(
-      { messageId: message.id },
-      { delay: MESSAGE_TIMEOUT_FALLBACK_INITIAL_DELAY_MS }
-    );
-  } else {
-    await finalizeMessageQueue.add({ messageId: message.id });
-  }
+  await messageTimeoutQueue.add(
+    { messageId: message.id, attempt: 0 },
+    { delay: MESSAGE_TIMEOUT_FALLBACK_INITIAL_DELAY_MS, id: `${message.id}:timeout:0` }
+  );
 });
