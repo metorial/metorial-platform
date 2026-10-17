@@ -24,6 +24,7 @@ export * from './portal';
 export * from './project';
 export * from './projectSettings';
 export * from './record';
+export * from './sandbox';
 export * from './serviceAccount';
 export * from './storage';
 export * from './subspace';

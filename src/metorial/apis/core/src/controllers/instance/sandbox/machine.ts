@@ -225,6 +225,7 @@ export let sandboxMachineController = Controller.create(
       .output(sandboxMachinePresenter)
       .do(async ctx => {
         let machine = await sandboxMachineService.create({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           organization: ctx.organization,
           regionIdentifier: ctx.body.region,
@@ -287,6 +288,7 @@ export let sandboxMachineController = Controller.create(
       .output(sandboxMachinePresenter)
       .do(async ctx => {
         let machine = await sandboxMachineService.update({
+          auditScope: ctx.auditScope,
           machine: ctx.machine,
           organization: ctx.organization,
           input: {
@@ -315,7 +317,10 @@ export let sandboxMachineController = Controller.create(
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .output(sandboxMachinePresenter)
       .do(async ctx => {
-        let machine = await sandboxMachineService.terminate({ machine: ctx.machine });
+        let machine = await sandboxMachineService.terminate({
+          auditScope: ctx.auditScope,
+          machine: ctx.machine
+        });
 
         return sandboxMachinePresenter.present({ machine });
       }),
@@ -328,7 +333,10 @@ export let sandboxMachineController = Controller.create(
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .output(sandboxMachinePresenter)
       .do(async ctx => {
-        let result = await sandboxMachineService.start({ machine: ctx.machine });
+        let result = await sandboxMachineService.start({
+          auditScope: ctx.auditScope,
+          machine: ctx.machine
+        });
 
         return sandboxMachinePresenter.present({
           machine: { ...ctx.machine, remote: result.remote }
@@ -343,7 +351,10 @@ export let sandboxMachineController = Controller.create(
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .output(sandboxMachinePresenter)
       .do(async ctx => {
-        let result = await sandboxMachineService.pause({ machine: ctx.machine });
+        let result = await sandboxMachineService.pause({
+          auditScope: ctx.auditScope,
+          machine: ctx.machine
+        });
 
         return sandboxMachinePresenter.present({
           machine: { ...ctx.machine, remote: result.remote }
@@ -361,7 +372,10 @@ export let sandboxMachineController = Controller.create(
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .output(sandboxMachinePresenter)
       .do(async ctx => {
-        let result = await sandboxMachineService.hibernate({ machine: ctx.machine });
+        let result = await sandboxMachineService.hibernate({
+          auditScope: ctx.auditScope,
+          machine: ctx.machine
+        });
 
         return sandboxMachinePresenter.present({
           machine: { ...ctx.machine, remote: result.remote }
@@ -376,7 +390,10 @@ export let sandboxMachineController = Controller.create(
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .output(sandboxMachinePresenter)
       .do(async ctx => {
-        let result = await sandboxMachineService.restart({ machine: ctx.machine });
+        let result = await sandboxMachineService.restart({
+          auditScope: ctx.auditScope,
+          machine: ctx.machine
+        });
 
         return sandboxMachinePresenter.present({
           machine: { ...ctx.machine, remote: result.remote }
@@ -441,6 +458,7 @@ export let sandboxMachineController = Controller.create(
       .output(sandboxMachineAccessPresenter)
       .do(async ctx => {
         let access = await sandboxMachineAccessService.createShellAccess({
+          auditScope: ctx.auditScope,
           machine: ctx.machine,
           input: { ttlSeconds: ctx.body.ttl_seconds }
         });
@@ -464,6 +482,7 @@ export let sandboxMachineController = Controller.create(
       .output(sandboxMachineAccessPresenter)
       .do(async ctx => {
         let access = await sandboxMachineAccessService.createFilesAccess({
+          auditScope: ctx.auditScope,
           machine: ctx.machine,
           input: { ttlSeconds: ctx.body.ttl_seconds }
         });
@@ -495,6 +514,7 @@ export let sandboxMachineController = Controller.create(
       .output(sandboxMachineAccessPresenter)
       .do(async ctx => {
         let access = await sandboxMachineAccessService.createPortAccess({
+          auditScope: ctx.auditScope,
           machine: ctx.machine,
           input: { ports: ctx.body.ports, ttlSeconds: ctx.body.ttl_seconds }
         });

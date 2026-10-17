@@ -1,12 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
   type Instance,
   type SandboxDiskType,
   type SandboxResourceStatus
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import type { GenesisInternalClient } from '@metorial/genesis-client';
 import { isSearchEnabled, searchSandboxDiskIds } from '@metorial/module-search';
 import {
@@ -14,6 +16,7 @@ import {
   sandboxDiskInternalService,
   type SandboxDiskWithTenant
 } from '../internal/diskInternal';
+import { toAuditDisk } from '../lib/audit';
 import { getRegional, hydrateByTenant } from '../lib/regional';
 import { createRemotePaginator } from '../lib/remotePaginator';
 import { indexSandboxDiskQueue } from '../queues/search';
@@ -120,6 +123,7 @@ class SandboxDiskServiceImpl {
 
   async create(d: {
     instance: Instance;
+    auditScope: AuditScope;
     regionIdentifier: string;
     input: {
       name?: CreateDiskInput['name'];
@@ -137,16 +141,25 @@ class SandboxDiskServiceImpl {
     let { metadata, ...input } = d.input;
     let remote = await genesis.disk.create({ tenantId, ...input });
 
-    return await sandboxDiskInternalService.record({
+    let disk = await sandboxDiskInternalService.record({
       instance: d.instance,
       tenant,
       remote,
       metadata
     });
+    await Fabric.fire('sandbox.disk.created:after', {
+      auditScope: d.auditScope,
+      disk: toAuditDisk(disk),
+      sourceDiskId: null,
+      sourceImageId: null
+    });
+
+    return disk;
   }
 
   async clone(d: {
     instance: Instance;
+    auditScope: AuditScope;
     disk: SandboxDiskWithTenant;
     input: { name?: string; idempotencyKey?: string; metadata?: Record<string, any> };
   }) {
@@ -157,12 +170,20 @@ class SandboxDiskServiceImpl {
     let { metadata, ...input } = d.input;
     let remote = await genesis.disk.clone({ tenantId, diskId: d.disk.id, ...input });
 
-    return await sandboxDiskInternalService.record({
+    let disk = await sandboxDiskInternalService.record({
       instance: d.instance,
       tenant: d.disk.tenant,
       metadata,
       remote
     });
+    await Fabric.fire('sandbox.disk.created:after', {
+      auditScope: d.auditScope,
+      disk: toAuditDisk(disk),
+      sourceDiskId: d.disk.id,
+      sourceImageId: null
+    });
+
+    return disk;
   }
 
   async get(d: { instance: Instance; diskId: string; statuses?: SandboxResourceStatus[] }) {
@@ -252,6 +273,7 @@ class SandboxDiskServiceImpl {
 
   async update(d: {
     disk: SandboxDiskWithTenant;
+    auditScope: AuditScope;
     input: { name?: string | null; metadata?: Record<string, any> };
   }) {
     if (d.input.name !== undefined) sandboxDiskInternalService.assertStandard(d.disk);
@@ -268,11 +290,16 @@ class SandboxDiskServiceImpl {
     }
 
     let [hydrated] = await this.hydrate([disk]);
+    await Fabric.fire('sandbox.disk.updated:after', {
+      auditScope: d.auditScope,
+      disk: toAuditDisk(disk),
+      previousDisk: toAuditDisk(d.disk)
+    });
 
     return hydrated!;
   }
 
-  async delete(d: { disk: SandboxDiskWithTenant }) {
+  async delete(d: { disk: SandboxDiskWithTenant; auditScope: AuditScope }) {
     sandboxDiskInternalService.assertStandard(d.disk);
     sandboxDiskInternalService.assertActive(d.disk);
 
@@ -286,6 +313,10 @@ class SandboxDiskServiceImpl {
     });
 
     await indexSandboxDiskQueue.add({ diskOid: disk.oid.toString() });
+    await Fabric.fire('sandbox.disk.deleted:after', {
+      auditScope: d.auditScope,
+      disk: toAuditDisk(d.disk)
+    });
 
     return { ...disk, remote };
   }

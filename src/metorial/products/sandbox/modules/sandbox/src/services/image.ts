@@ -1,6 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   db,
@@ -11,12 +12,14 @@ import {
   type SandboxMachineImageStatus,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   isSearchEnabled,
   searchSandboxImageIds,
   sandboxGlobalSearchTenantId
 } from '@metorial/module-search';
 import { sandboxDiskInternalService } from '../internal/diskInternal';
+import { toAuditDisk, toAuditImage } from '../lib/audit';
 import { terminalBuildStatuses } from '../lib/imageBuildEnd';
 import { getRegional } from '../lib/regional';
 import { imageRemoteRootQueue } from '../queues/imageRemote';
@@ -35,6 +38,7 @@ export let sandboxImageInclude = {
 class SandboxImageServiceImpl {
   async create(d: {
     instance: Instance;
+    auditScope: AuditScope;
     input: { name?: string; metadata?: Record<string, any> };
   }) {
     let image = await db.sandboxMachineImage.create({
@@ -50,6 +54,10 @@ class SandboxImageServiceImpl {
     });
 
     await indexSandboxImageQueue.add({ imageOid: image.oid.toString() });
+    await Fabric.fire('sandbox.image.created:after', {
+      auditScope: d.auditScope,
+      image: toAuditImage(image)
+    });
 
     return image;
   }
@@ -103,6 +111,7 @@ class SandboxImageServiceImpl {
 
   async createDisk(d: {
     instance: Instance;
+    auditScope: AuditScope;
     image: SandboxMachineImage;
     regionIdentifier: string;
     input: { versionId?: string; name?: string; idempotencyKey?: string };
@@ -155,11 +164,24 @@ class SandboxImageServiceImpl {
       idempotencyKey: d.input.idempotencyKey
     });
 
-    return await sandboxDiskInternalService.record({ instance: d.instance, tenant, remote });
+    let disk = await sandboxDiskInternalService.record({
+      instance: d.instance,
+      tenant,
+      remote
+    });
+    await Fabric.fire('sandbox.disk.created:after', {
+      auditScope: d.auditScope,
+      disk: toAuditDisk(disk),
+      sourceDiskId: null,
+      sourceImageId: d.image.id
+    });
+
+    return disk;
   }
 
   async update(d: {
     instance: Instance;
+    auditScope: AuditScope;
     image: SandboxMachineImage;
     input: { name?: string | null; metadata?: Record<string, any> };
   }) {
@@ -177,10 +199,17 @@ class SandboxImageServiceImpl {
       await indexSandboxImageQueue.add({ imageOid: d.image.oid.toString() });
     }
 
-    return await this.get({ instance: d.instance, imageId: d.image.id });
+    let image = await this.get({ instance: d.instance, imageId: d.image.id });
+    await Fabric.fire('sandbox.image.updated:after', {
+      auditScope: d.auditScope,
+      image: toAuditImage(image),
+      previousImage: toAuditImage(d.image)
+    });
+
+    return image;
   }
 
-  async delete(d: { instance: Instance; image: SandboxMachineImage }) {
+  async delete(d: { instance: Instance; auditScope: AuditScope; image: SandboxMachineImage }) {
     this.assertOwned(d);
 
     let builds = await db.sandboxMachineImageBuild.findMany({
@@ -188,7 +217,11 @@ class SandboxImageServiceImpl {
       select: { id: true }
     });
     for (let build of builds) {
-      await sandboxImageBuildService.cancel({ instance: d.instance, build });
+      await sandboxImageBuildService.cancel({
+        instance: d.instance,
+        auditScope: d.auditScope,
+        build
+      });
     }
 
     await withTransaction(async db => {
@@ -211,7 +244,13 @@ class SandboxImageServiceImpl {
       });
     });
 
-    return await this.get({ instance: d.instance, imageId: d.image.id });
+    let image = await this.get({ instance: d.instance, imageId: d.image.id });
+    await Fabric.fire('sandbox.image.deleted:after', {
+      auditScope: d.auditScope,
+      image: toAuditImage(d.image)
+    });
+
+    return image;
   }
 
   private assertOwned(d: { instance: Instance; image: SandboxMachineImage }) {

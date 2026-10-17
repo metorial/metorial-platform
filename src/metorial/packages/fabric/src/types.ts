@@ -720,6 +720,37 @@ export type AuditDocument = Document & {
 
 export type AuditStore = Store;
 
+export type AuditSandboxMachine = {
+  id: string;
+  name: string | null;
+  imageId: string | null;
+  regionIdentifier: string | null;
+  specMemoryMiB: number | null;
+  specVcpus: number | null;
+};
+
+export type AuditSandboxDisk = {
+  id: string;
+  name: string | null;
+  type: string;
+  sizeBytes: number | null;
+  regionIdentifier: string | null;
+};
+
+export type AuditSandboxImage = {
+  id: string;
+  name: string | null;
+};
+
+export type AuditSandboxImageBuild = {
+  id: string;
+  imageId: string;
+  status: string;
+};
+
+export type SandboxMachineLifecycleAction = 'start' | 'pause' | 'hibernate' | 'restart';
+export type SandboxMachineAccessKind = 'shell' | 'files' | 'port';
+
 export type StoreItemFabricOperation = {
   type: 'add' | 'modify' | 'remove';
   kind: StoreItem['kind'];
@@ -814,6 +845,23 @@ export type MagicMcpServerMembershipFabricChange = {
 // prettier-ignore
 export interface FabricEvents {
   'sandbox.tenant.created:after': { tenant: SandboxTenant };
+
+  'sandbox.machine.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
+  'sandbox.machine.updated:after': { auditScope: AuditScope; machine: AuditSandboxMachine; previousMachine: AuditSandboxMachine };
+  'sandbox.machine.deleted:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
+  'sandbox.machine.lifecycle:after': { auditScope: AuditScope; machine: AuditSandboxMachine; action: SandboxMachineLifecycleAction };
+  'sandbox.machine.access.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine; kind: SandboxMachineAccessKind; ports: number[] | '*' | null; ttlSeconds: number | null };
+
+  'sandbox.disk.created:after': { auditScope: AuditScope; disk: AuditSandboxDisk; sourceDiskId: string | null; sourceImageId: string | null };
+  'sandbox.disk.updated:after': { auditScope: AuditScope; disk: AuditSandboxDisk; previousDisk: AuditSandboxDisk };
+  'sandbox.disk.deleted:after': { auditScope: AuditScope; disk: AuditSandboxDisk };
+  'sandbox.disk.resized:after': { auditScope: AuditScope; disk: AuditSandboxDisk; resizeId: string; sizeBytes: number | null; retry: boolean };
+
+  'sandbox.image.created:after': { auditScope: AuditScope; image: AuditSandboxImage };
+  'sandbox.image.updated:after': { auditScope: AuditScope; image: AuditSandboxImage; previousImage: AuditSandboxImage };
+  'sandbox.image.deleted:after': { auditScope: AuditScope; image: AuditSandboxImage };
+  'sandbox.image.build.created:after': { auditScope: AuditScope; build: AuditSandboxImageBuild };
+  'sandbox.image.build.cancelled:after': { auditScope: AuditScope; build: AuditSandboxImageBuild };
 
   'user.created:before': { context?: Context };
   'user.created:after': { user: User, performedBy: User; context?: Context };
