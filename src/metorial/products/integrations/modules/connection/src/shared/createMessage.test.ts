@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   db: {
     sessionMessage: {
-      create: vi.fn()
+      create: vi.fn(),
+      updateMany: vi.fn()
     },
     sessionEvent: {
       createMany: vi.fn()
@@ -11,6 +12,8 @@ let mocks = vi.hoisted(() => ({
   },
   getId: vi.fn(() => ({ id: 'test_id' })),
   sessionMessageBucketRecord: { oid: 900n },
+  offloadWithRetry: vi.fn(),
+  captureException: vi.fn(),
   messageCreatedQueue: {
     add: vi.fn()
   },
@@ -20,10 +23,16 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
-  getId: mocks.getId
+  getId: mocks.getId,
+  Prisma: { DbNull: Symbol('DbNull') }
+}));
+
+vi.mock('@lowerdeck/sentry', () => ({
+  getSentry: () => ({ captureException: mocks.captureException })
 }));
 
 vi.mock('@metorial-subspace/connection-utils', () => ({
+  offload: { offloadSessionMessageWithRetry: mocks.offloadWithRetry },
   getJsonSizeBytes: (value: unknown) =>
     value == null ? 0 : Buffer.byteLength(JSON.stringify(value)),
   sessionMessageBucketRecord: mocks.sessionMessageBucketRecord
@@ -38,7 +47,8 @@ vi.mock('./createError', () => ({
   messageFailureReasonToErrorType: mocks.messageFailureReasonToErrorType
 }));
 
-import { createMessage } from './createMessage';
+import { Prisma } from '@metorial-subspace/db';
+import { createMessage, DIRECT_OFFLOAD_MIN_BYTES } from './createMessage';
 
 let session = {
   oid: 1n,
@@ -77,6 +87,7 @@ describe('createMessage', () => {
     mocks.getId.mockReturnValue({ id: 'test_id' });
     mocks.db.sessionEvent.createMany.mockResolvedValue(undefined);
     mocks.messageCreatedQueue.add.mockResolvedValue(undefined);
+    mocks.offloadWithRetry.mockResolvedValue(undefined);
     mocks.db.sessionMessage.create.mockImplementation(async (args: any) => ({
       ...args.data,
       oid: 500n,
@@ -164,6 +175,74 @@ describe('createMessage', () => {
         expect.objectContaining({ type: 'message_created' }),
         expect.objectContaining({ type: 'message_processed' })
       ]
+    });
+  });
+  describe('direct offload of control messages', () => {
+    let big = { type: 'mcp', data: { result: 'x'.repeat(DIRECT_OFFLOAD_MIN_BYTES) } } as any;
+    let controlProps = {
+      ...baseProps,
+      type: 'mcp_control' as const,
+      status: 'succeeded' as const,
+      responderParticipant: { oid: 401n } as any,
+      input: { type: 'mcp', data: { method: 'tools/list' } } as any,
+      session
+    };
+
+    it('stores large control responses in storage instead of the database', async () => {
+      let message = await createMessage({ ...controlProps, output: big });
+
+      let { data } = mocks.db.sessionMessage.create.mock.calls[0]![0];
+      expect(data.isOffloadedToStorage).toBe(true);
+      expect(data.input).toBe(Prisma.DbNull);
+      expect(data.output).toBe(Prisma.DbNull);
+      expect(data.outputSize).toBeGreaterThanOrEqual(DIRECT_OFFLOAD_MIN_BYTES);
+
+      expect(mocks.offloadWithRetry).toHaveBeenCalledWith({
+        id: 'msg_created',
+        input: controlProps.input,
+        output: big
+      });
+      expect(message.output).toBe(big);
+    });
+
+    it('keeps small control responses in the database', async () => {
+      await createMessage({
+        ...controlProps,
+        output: { type: 'mcp', data: { result: {} } } as any
+      });
+
+      let { data } = mocks.db.sessionMessage.create.mock.calls[0]![0];
+      expect(data.isOffloadedToStorage).toBe(false);
+      expect(data.output).not.toBe(Prisma.DbNull);
+      expect(mocks.offloadWithRetry).not.toHaveBeenCalled();
+    });
+
+    it('keeps large tool calls in the database', async () => {
+      await createMessage({
+        ...controlProps,
+        type: 'tool_call',
+        output: big
+      });
+
+      expect(mocks.db.sessionMessage.create.mock.calls[0]![0].data.isOffloadedToStorage).toBe(
+        false
+      );
+      expect(mocks.offloadWithRetry).not.toHaveBeenCalled();
+    });
+
+    it('puts the body back into the database when the storage write fails', async () => {
+      let error = new Error('storage down');
+      mocks.offloadWithRetry.mockRejectedValue(error);
+      mocks.db.sessionMessage.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(createMessage({ ...controlProps, output: big })).resolves.toBeDefined();
+      await vi.waitFor(() => expect(mocks.db.sessionMessage.updateMany).toHaveBeenCalled());
+
+      expect(mocks.captureException).toHaveBeenCalledWith(error);
+      expect(mocks.db.sessionMessage.updateMany).toHaveBeenCalledWith({
+        where: { oid: 500n },
+        data: { input: controlProps.input, output: big, isOffloadedToStorage: false }
+      });
     });
   });
 });

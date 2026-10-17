@@ -1,5 +1,7 @@
+import { getSentry } from '@lowerdeck/sentry';
 import {
   getJsonSizeBytes,
+  offload,
   sessionMessageBucketRecord
 } from '@metorial-subspace/connection-utils';
 import {
@@ -22,6 +24,10 @@ import {
 import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
 import { messageCreatedQueue } from '../queues/message/messageCreated';
 import { createError, messageFailureReasonToErrorType } from './createError';
+
+export let DIRECT_OFFLOAD_MIN_BYTES = 128 * 1024;
+
+let Sentry = getSentry();
 
 export interface CreateMessageProps {
   status: SessionMessageStatus;
@@ -95,6 +101,18 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
     });
   }
 
+  let inputSize = retention.storeContent ? getJsonSizeBytes(data.input) : 0;
+  let outputSize = retention.storeContent ? getJsonSizeBytes(data.output) : 0;
+
+  // Large one-shot control responses (tools/list, ...) never need to sit in the database:
+  // nothing reads them inline and they would only be moved to storage later.
+  let isDirectOffload =
+    retention.storeContent &&
+    data.type === 'mcp_control' &&
+    hasOutput &&
+    data.status !== 'waiting_for_response' &&
+    inputSize + outputSize >= DIRECT_OFFLOAD_MIN_BYTES;
+
   let message = await db.sessionMessage.create({
     data: {
       ...getId('sessionMessage'),
@@ -124,10 +142,11 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
       senderParticipantOid: data.senderParticipant.oid,
       responderParticipantOid: data.responderParticipant?.oid,
 
-      input: retention.storeContent ? data.input : Prisma.DbNull,
-      output: retention.storeContent ? data.output : Prisma.DbNull,
-      inputSize: retention.storeContent ? getJsonSizeBytes(data.input) : 0,
-      outputSize: retention.storeContent ? getJsonSizeBytes(data.output) : 0,
+      input: retention.storeContent && !isDirectOffload ? data.input : Prisma.DbNull,
+      output: retention.storeContent && !isDirectOffload ? data.output : Prisma.DbNull,
+      inputSize,
+      outputSize,
+      isOffloadedToStorage: isDirectOffload,
 
       methodOrToolKey: retention.storeToolIdentity
         ? (data.tool?.key ?? data.methodOrToolKey ?? null)
@@ -177,6 +196,28 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
   });
 
   await messageCreatedQueue.add({ messageId: message.id });
+
+  if (isDirectOffload) {
+    let body = { id: message.id, input: data.input, output: data.output ?? null };
+
+    offload.offloadSessionMessageWithRetry(body).catch(async e => {
+      Sentry.captureException(e);
+
+      // Keep the body: put it back into the row so the regular offload cron moves it later.
+      await db.sessionMessage
+        .updateMany({
+          where: { oid: message.oid },
+          data: {
+            input: data.input,
+            output: data.output ?? Prisma.DbNull,
+            isOffloadedToStorage: false
+          }
+        })
+        .catch(restoreError => Sentry.captureException(restoreError));
+    });
+
+    return { ...message, input: data.input, output: data.output ?? null };
+  }
 
   if (!retention.storeContent) {
     return {

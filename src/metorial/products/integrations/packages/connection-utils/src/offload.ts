@@ -1,5 +1,9 @@
+import { delay } from '@lowerdeck/delay';
 import type { SessionMessage } from '@metorial-subspace/db';
 import { sessionMessageBucketRecord, storage } from './storage';
+
+let BACKGROUND_OFFLOAD_ATTEMPTS = 3;
+let BACKGROUND_OFFLOAD_RETRY_DELAY_MS = 500;
 
 export interface OffloadedSessionMessage {
   v: 1;
@@ -9,7 +13,7 @@ export interface OffloadedSessionMessage {
 }
 
 export let offload = {
-  offloadSessionMessage: async (message: SessionMessage) => {
+  offloadSessionMessage: async (message: Pick<SessionMessage, 'id' | 'input' | 'output'>) => {
     let offloaded: OffloadedSessionMessage = {
       v: 1,
       messageId: message.id,
@@ -22,6 +26,20 @@ export let offload = {
       `msg/${message.id}/data`,
       JSON.stringify(offloaded)
     );
+  },
+
+  offloadSessionMessageWithRetry: async (
+    message: Pick<SessionMessage, 'id' | 'input' | 'output'>
+  ) => {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await offload.offloadSessionMessage(message);
+        return;
+      } catch (e) {
+        if (attempt >= BACKGROUND_OFFLOAD_ATTEMPTS) throw e;
+        await delay(BACKGROUND_OFFLOAD_RETRY_DELAY_MS * attempt);
+      }
+    }
   },
 
   getOffloadedSessionMessageSize: async (message: Pick<SessionMessage, 'id'>) => {

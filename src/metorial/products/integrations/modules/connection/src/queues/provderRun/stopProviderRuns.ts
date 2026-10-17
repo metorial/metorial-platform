@@ -24,7 +24,7 @@ let getStaleProviderRunsWhere = () => {
 let stopProviderRunsCron = createCron(
   {
     name: 'sub/con/prun/stop',
-    cron: '40 * * * * *',
+    cron: '40 4-59/5 * * * *',
     redisUrl: env.service.REDIS_URL
   },
   async () => {
