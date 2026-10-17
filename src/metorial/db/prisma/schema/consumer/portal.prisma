@@ -39,4 +39,5 @@ model Portal {
   deletedAt  DateTime?
 
   namespaceProperties NamespaceProperty[]
+  serviceAccounts     ServiceAccount[]
 }

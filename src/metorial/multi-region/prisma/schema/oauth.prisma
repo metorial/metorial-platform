@@ -14,12 +14,24 @@ enum OAuthAuthorizationAccessLevel {
   global
 }
 
+enum OAuthApplicationSubjectType {
+  organization_member
+  consumer
+  consumer_or_organization_member
+}
+
+enum OAuthSubjectType {
+  organization_member
+  consumer
+}
+
 model OAuthApplication {
   id String @unique
 
   status      OAuthApplicationStatus
   type        OAuthApplicationType
   accessLevel OAuthAuthorizationAccessLevel
+  subjectType OAuthApplicationSubjectType   @default(organization_member)
 
   name        String
   description String?
@@ -82,8 +94,9 @@ enum OAuthAuthorizationRequestType {
 model OAuthAuthorizationRequest {
   id String @unique
 
-  type   OAuthAuthorizationRequestType
-  status OAuthAuthorizationRequestStatus
+  type        OAuthAuthorizationRequestType
+  status      OAuthAuthorizationRequestStatus
+  subjectType OAuthSubjectType                @default(organization_member)
 
   urlToken String @unique
 
