@@ -136,23 +136,3 @@ export let ManagedCredentialsPreviewCard = styled.div`
   border: 1px dashed ${theme.colors.gray400};
   background: ${theme.colors.background};
 `;
-
-export let FlatConnectForm = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-export let FlatConnectSection = styled.section`
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  border-radius: 14px;
-  margin-top: 15px;
-  border: 1px solid ${theme.colors.gray300};
-`;
-
-export let FlatInlineField = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-top: 15px;
-`;

@@ -23,7 +23,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
     p.providerDeploymentId,
     p.providerId ?? deployment.data?.providerId
   );
-  let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
+  let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'Provider';
 
   let onCreateRef = useRef(p.onCreate);
   let onBackRef = useRef(p.onBack);
@@ -54,7 +54,6 @@ let ProviderAuthConfigMethodPickerModalContent = (
           providerId: p.providerId,
           initialAuthMethodId: values.authMethodId,
           defaultAuthConfigName: p.defaultAuthConfigName,
-          autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
           onCreate: p.onCreate,
           onBack: p.onBack
         })
@@ -96,7 +95,6 @@ let ProviderAuthConfigMethodPickerModalContent = (
         providerId: p.providerId,
         initialAuthMethodId: singleMethodId,
         defaultAuthConfigName: p.defaultAuthConfigName,
-        autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
         onCreate: onCreateRef.current,
         onBack: onBackRef.current
       })
@@ -135,7 +133,7 @@ let ProviderAuthConfigMethodPickerModalContent = (
   if (!authCreation.canCreateAuthConfig) {
     return (
       <>
-        <Dialog.Title>Create Auth Config</Dialog.Title>
+        <Dialog.Title>Authenticate with {providerName}</Dialog.Title>
         <Dialog.Description>
           {authCreation.authConfigDisabledReason ??
             'Authentication cannot be configured for this provider right now.'}
@@ -158,9 +156,9 @@ let ProviderAuthConfigMethodPickerModalContent = (
 
   return (
     <>
-      <Dialog.Title>Create Auth Config</Dialog.Title>
+      <Dialog.Title>Authenticate with {providerName}</Dialog.Title>
       <Dialog.Description>
-        Choose an authentication method for {providerName}.
+        Choose how you want to authenticate.
       </Dialog.Description>
 
       <form onSubmit={form.handleSubmit}>

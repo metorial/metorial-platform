@@ -47,10 +47,12 @@ export let useProviderAuthCredentials = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceProviderDeploymentsAuthCredentialsListQuery | null
 ) => {
-  let data = usePaginator(pagination =>
-    providerAuthCredentialsLoader.use(
-      instanceId && query ? { ...pagination, ...query, instanceId } : null
-    )
+  let data = usePaginator(
+    pagination =>
+      providerAuthCredentialsLoader.use(
+        instanceId && query ? { ...pagination, ...query, instanceId } : null
+      ),
+    query?.search ?? null
   );
 
   return data;

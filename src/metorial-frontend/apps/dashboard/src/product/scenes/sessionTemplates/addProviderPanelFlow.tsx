@@ -42,19 +42,14 @@ import {
   emptyConfigurationSelection,
   type ConfigurationSelection
 } from '../../lib/configSelection';
-import {
-  getProviderConfigSchemaCapabilities,
-  useProviderAuthCreationCapabilities
-} from '../../lib/providerCreationCapabilities';
+import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
 import { type SdkToolFilterRule, toSdkToolFilterRules } from '../../lib/toolFilterRules';
-import {
-  ProviderAuthConfigCreateFlowContent,
-  showProviderAuthConfigCreateModal
-} from '../providerAuthConfigs/createModal';
+import { ProviderAuthConfigCreateFlowContent } from '../providerAuthConfigs/createModal';
 import {
   getCreateMethodDescription,
   isSetupFlowAuthMethod
 } from '../providerAuthConfigs/modalHelpers';
+import { useProviderAuthConfigAuthenticateAction } from '../providerAuthConfigs/useAuthenticateAction';
 import { ProviderConfigurationSelection } from '../providerConfigs/selection';
 import {
   ProviderCreationPanelShell,
@@ -803,7 +798,6 @@ export type ProviderSetupSectionsProps = {
   showExistingConfigOptions?: boolean;
   showExistingAuthOptions?: boolean;
   filterAvailableResources?: boolean;
-  autoStartManagedCredentialSetup?: boolean;
   emptyState?: ReactNode;
   supplementaryContent?: ReactNode;
   footer?: ReactNode;
@@ -835,7 +829,6 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let showExistingConfigOptions = p.showExistingConfigOptions ?? true;
   let showExistingAuthOptions = p.showExistingAuthOptions ?? true;
   let filterAvailableResources = p.filterAvailableResources ?? false;
-  let autoStartManagedCredentialSetup = p.autoStartManagedCredentialSetup ?? false;
   let providerAuthMethodId =
     p.fixedAuthMethodId ?? inlineAuthMethodId ?? p.providerAuthMethodId ?? undefined;
   let currentAuthMethod = useProviderAuthMethod(p.instanceId, providerAuthMethodId);
@@ -1045,9 +1038,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     p.providerName ??
     provider.data?.slug ??
     'Provider';
-  let createAuthConfigLabel = requiresProviderConfig
-    ? 'Create Auth Config'
-    : `Log in with ${providerDisplayName}`;
+  let createAuthConfigLabel = 'Authenticate';
   let providerImageUrl = providerListing.data?.imageUrl;
   let generatedResourceName = getProviderSetupGeneratedName(providerDisplayName);
 
@@ -1138,17 +1129,15 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             initialAuthMethodId={inlineAuthMethodId}
             fixedAuthCredentialsId={p.fixedAuthCredentialsId}
             authMethodAdapter={p.authMethodAdapter}
-            defaultAuthConfigName={generatedResourceName}
-            autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
+            defaultAuthConfigName={p.defaultAuthConfigName}
             close={() => setInlineAuthMethodId(null)}
             onBack={() => setInlineAuthMethodId(null)}
             embedded
-            hideDetailsInputs
             onCreate={authConfig => {
               pendingCreatedAuthConfigIdRef.current = authConfig.id;
               setCreatedAuthConfigSelection({
                 id: authConfig.id,
-                label: authConfig.name ?? generatedResourceName
+                label: authConfig.name ?? authConfig.id
               });
               setInlineAuthMethodId(null);
               p.onSelectedAuthConfigIdChange(authConfig.id);
@@ -1208,7 +1197,6 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
               fixedAuthCredentialsId={p.fixedAuthCredentialsId}
               authMethodAdapter={p.authMethodAdapter}
               defaultAuthConfigName={p.defaultAuthConfigName}
-              autoStartManagedCredentialSetup={autoStartManagedCredentialSetup}
               onInlineCreate={authMethodId => setInlineAuthMethodId(authMethodId)}
               onCreate={async authConfig => {
                 pendingCreatedAuthConfigIdRef.current = authConfig.id;
@@ -1377,7 +1365,6 @@ let ProviderAuthConfigCreateAction = (p: {
   fixedAuthCredentialsId?: string;
   authMethodAdapter?: string;
   defaultAuthConfigName?: string;
-  autoStartManagedCredentialSetup?: boolean;
   onInlineCreate: (authMethodId: string) => void;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
@@ -1387,12 +1374,18 @@ let ProviderAuthConfigCreateAction = (p: {
   ariaLabel?: string;
   disabled?: boolean;
 }) => {
-  let authCreation = useProviderAuthCreationCapabilities(
-    p.instanceId,
-    p.providerDeploymentId,
-    p.providerId,
-    p.authMethodAdapter
-  );
+  let authenticate = useProviderAuthConfigAuthenticateAction({
+    instanceId: p.instanceId,
+    providerDeploymentId: p.providerDeploymentId,
+    providerId: p.providerId,
+    fixedAuthMethodId: p.fixedAuthMethodId,
+    fixedAuthCredentialsId: p.fixedAuthCredentialsId,
+    authMethodAdapter: p.authMethodAdapter,
+    defaultAuthConfigName: p.defaultAuthConfigName,
+    onCreate: p.onCreate,
+    onBack: p.onBack
+  });
+  let authCreation = authenticate.authCreation;
 
   let openCreateFlow = (authMethodId: string) => {
     let method = authCreation.authMethodItems.find(method => method.id === authMethodId);
@@ -1402,18 +1395,7 @@ let ProviderAuthConfigCreateAction = (p: {
       return;
     }
 
-    showProviderAuthConfigCreateModal({
-      instanceId: p.instanceId,
-      providerDeploymentId: p.providerDeploymentId,
-      providerId: p.providerId,
-      initialAuthMethodId: authMethodId,
-      fixedAuthCredentialsId: p.fixedAuthCredentialsId,
-      authMethodAdapter: p.authMethodAdapter,
-      defaultAuthConfigName: p.defaultAuthConfigName,
-      autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
-      onCreate: p.onCreate,
-      onBack: p.onBack
-    });
+    authenticate.start(authMethodId);
   };
 
   let disabledReason = authCreation.isLoading
@@ -1431,6 +1413,7 @@ let ProviderAuthConfigCreateAction = (p: {
             iconLeft={p.iconLeft}
             aria-label={p.ariaLabel}
             disabled={isDisabled}
+            loading={authenticate.isLoading}
             onClick={() => openCreateFlow(p.fixedAuthMethodId!)}
           >
             {p.children}
@@ -1472,6 +1455,7 @@ let ProviderAuthConfigCreateAction = (p: {
         iconLeft={p.iconLeft}
         aria-label={p.ariaLabel}
         disabled={p.disabled || !method}
+        loading={authenticate.isLoading}
         onClick={() => method && openCreateFlow(method.id)}
       >
         {p.children}
@@ -1496,6 +1480,7 @@ let ProviderAuthConfigCreateAction = (p: {
         iconLeft={p.iconLeft}
         aria-label={p.ariaLabel}
         disabled={p.disabled}
+        loading={authenticate.isLoading}
       >
         {p.children}
       </Button>

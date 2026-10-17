@@ -1,11 +1,10 @@
 import { useProviderDeployment } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Spacer, Text, showModal } from '@metorial/ui';
-import { type ReactElement, useEffect, useState } from 'react';
+import type { ReactElement } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
+import { ProviderOAuthAuthenticateContent } from './authenticateContent';
 import { ProviderAuthConfigManualCreateContent } from './createManualModal';
-import { ProviderAuthConfigSetupFlowCreateContent } from './createSetupFlowModal';
 import { closeAndThen, isSetupFlowAuthMethod } from './modalHelpers';
-import { PreviewMode } from './previewSidebar';
 
 export type ProviderAuthConfigCreateModalProps = {
   instanceId: string;
@@ -15,10 +14,8 @@ export type ProviderAuthConfigCreateModalProps = {
   fixedAuthCredentialsId?: string;
   authMethodAdapter?: string;
   defaultAuthConfigName?: string;
-  autoStartManagedCredentialSetup?: boolean;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
-  hideDetailsInputs?: boolean;
 };
 
 let ProviderAuthConfigCreateModalContent = (
@@ -40,12 +37,7 @@ let ProviderAuthConfigCreateModalContent = (
   let selectedMethod = authCreation.authMethodItems.find(
     method => method.id === p.initialAuthMethodId
   );
-  let effectiveAuthMethod =
-    selectedMethod ??
-    (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
-
-  let dialogWidth =
-    effectiveAuthMethod && isSetupFlowAuthMethod(effectiveAuthMethod) ? 1180 : 650;
+  let dialogWidth = !selectedMethod || isSetupFlowAuthMethod(selectedMethod) ? 560 : 650;
 
   let handleBack = () => {
     if (!p.onBack) {
@@ -68,6 +60,7 @@ export let ProviderAuthConfigCreateFlowContent = (
     close: () => void;
     onBack: () => void;
     embedded?: boolean;
+    cancelLabel?: string;
     onWindowOpenStateChange?: (isOpen: boolean) => void;
   }
 ) => {
@@ -79,61 +72,33 @@ export let ProviderAuthConfigCreateFlowContent = (
     p.authMethodAdapter
   );
   let isDeploymentScoped = !!p.providerDeploymentId;
-  let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'provider';
+  let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'Provider';
   let providerId =
     p.providerId ?? deployment.data?.providerId ?? authCreation.provider.data?.id;
-  let selectedMethod = authCreation.authMethodItems.find(
-    method => method.id === p.initialAuthMethodId
-  );
-  let effectiveAuthMethod =
-    selectedMethod ??
+  let selectedMethod =
+    authCreation.authMethodItems.find(method => method.id === p.initialAuthMethodId) ??
     (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
-  let [previewMode, setPreviewMode] = useState<PreviewMode>(
-    effectiveAuthMethod?.type === 'oauth'
-      ? authCreation.oauthAutoRegistrationEnabled
-        ? 'managed'
-        : 'manual_existing'
-      : 'manual_existing'
-  );
 
-  useEffect(() => {
-    if (effectiveAuthMethod?.type === 'oauth') {
-      setPreviewMode(
-        authCreation.oauthAutoRegistrationEnabled ? 'managed' : 'manual_existing'
-      );
-      return;
-    }
-
-    setPreviewMode('manual_existing');
-  }, [authCreation.oauthAutoRegistrationEnabled, effectiveAuthMethod]);
-
-  let content: ReactElement;
-
-  let renderError = (message: string) =>
-    p.embedded ? (
-      <>
+  let renderError = (message: string) => (
+    <>
+      {!p.embedded && <Dialog.Title>Authenticate with {providerName}</Dialog.Title>}
+      {p.embedded ? (
         <Text size="2" color="gray600">
           {message}
         </Text>
-        <Spacer size={15} />
-        <Dialog.Actions>
-          <Button variant="outline" onClick={p.onBack}>
-            Back
-          </Button>
-        </Dialog.Actions>
-      </>
-    ) : (
-      <>
-        <Dialog.Title>Create Auth Config</Dialog.Title>
+      ) : (
         <Dialog.Description>{message}</Dialog.Description>
-        <Spacer size={15} />
-        <Dialog.Actions>
-          <Button variant="outline" onClick={p.onBack}>
-            Close
-          </Button>
-        </Dialog.Actions>
-      </>
-    );
+      )}
+      <Spacer size={15} />
+      <Dialog.Actions>
+        <Button variant="outline" onClick={p.onBack}>
+          {p.embedded ? 'Back' : 'Close'}
+        </Button>
+      </Dialog.Actions>
+    </>
+  );
+
+  let content: ReactElement;
 
   if (authCreation.isLoading) {
     content = <CenteredSpinner />;
@@ -141,61 +106,53 @@ export let ProviderAuthConfigCreateFlowContent = (
     content = renderError(
       authCreation.authConfigDisabledReason ??
         (isDeploymentScoped
-          ? 'This deployment cannot create an auth config from the dashboard.'
-          : 'This provider cannot create an auth config from the dashboard.')
+          ? 'This deployment cannot be authenticated from the dashboard.'
+          : 'This provider cannot be authenticated from the dashboard.')
     );
-  } else if (!effectiveAuthMethod) {
+  } else if (!selectedMethod) {
     content = renderError(
       'The selected authentication method is no longer available. Go back and choose another method.'
     );
+  } else if (isSetupFlowAuthMethod(selectedMethod)) {
+    content = providerId ? (
+      <ProviderOAuthAuthenticateContent
+        instanceId={p.instanceId}
+        providerId={providerId}
+        providerDeploymentId={p.providerDeploymentId}
+        method={selectedMethod}
+        fixedAuthCredentialsId={p.fixedAuthCredentialsId}
+        defaultAuthConfigName={p.defaultAuthConfigName}
+        embedded={p.embedded}
+        cancelLabel={p.cancelLabel}
+        onCancel={p.onBack}
+        onWindowOpenStateChange={p.onWindowOpenStateChange}
+        onCreate={authConfig => {
+          p.onCreate?.(authConfig);
+          p.close();
+        }}
+      />
+    ) : (
+      renderError(
+        isDeploymentScoped
+          ? 'Could not resolve the provider for this deployment.'
+          : 'Could not resolve the selected provider.'
+      )
+    );
   } else {
-    let method = effectiveAuthMethod;
-
-    if (isSetupFlowAuthMethod(method)) {
-      if (!providerId) {
-        content = renderError(
-          isDeploymentScoped
-            ? 'Could not resolve the provider for this deployment.'
-            : 'Could not resolve the selected provider.'
-        );
-      } else {
-        content = (
-          <ProviderAuthConfigSetupFlowCreateContent
-            instanceId={p.instanceId}
-            providerDeploymentId={p.providerDeploymentId}
-            providerId={providerId}
-            providerName={providerName}
-            providerImageUrl={authCreation.provider.data?.publisher.imageUrl}
-            defaultAuthConfigName={p.defaultAuthConfigName}
-            selectedMethod={method}
-            fixedAuthCredentialsId={p.fixedAuthCredentialsId}
-            autoStartManagedCredentialSetup={p.autoStartManagedCredentialSetup}
-            previewMode={previewMode}
-            onPreviewModeChange={setPreviewMode}
-            close={p.close}
-            onCreate={p.onCreate}
-            onCancel={p.onBack}
-            onWindowOpenStateChange={p.onWindowOpenStateChange}
-            embedded={p.embedded}
-          />
-        );
-      }
-    } else {
-      content = (
-        <ProviderAuthConfigManualCreateContent
-          instanceId={p.instanceId}
-          providerDeploymentId={p.providerDeploymentId}
-          providerId={providerId}
-          initialAuthMethodId={method.id}
-          defaultAuthConfigName={p.defaultAuthConfigName}
-          close={p.close}
-          onBack={p.onBack}
-          onCreate={p.onCreate}
-          embedded={p.embedded}
-          hideDetailsInputs={p.hideDetailsInputs}
-        />
-      );
-    }
+    content = (
+      <ProviderAuthConfigManualCreateContent
+        instanceId={p.instanceId}
+        providerDeploymentId={p.providerDeploymentId}
+        providerId={providerId}
+        providerName={providerName}
+        initialAuthMethodId={selectedMethod.id}
+        defaultAuthConfigName={p.defaultAuthConfigName}
+        close={p.close}
+        onBack={p.onBack}
+        onCreate={p.onCreate}
+        embedded={p.embedded}
+      />
+    );
   }
 
   return content;

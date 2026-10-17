@@ -14,8 +14,6 @@ import type { ReactNode } from 'react';
 import { ProviderDocsLink, type ProviderDocReference } from '../../../lib/providerDocs';
 import { AuthMethodPicker } from '../../providerAuthConfigs/authMethodPicker';
 import {
-  FlatConnectForm,
-  FlatConnectSection,
   ManagedCredentialsColumn,
   ManagedCredentialsLayout,
   ManagedCredentialsMetaRow,
@@ -96,39 +94,7 @@ export let MissingSetupWindowState = (p: {
   );
 };
 
-export let AuthConfigDetailsFields = (p: {
-  collectAuthConfigDetails: boolean;
-  authConfigDetailsForm: AnyForm;
-  disabled?: boolean;
-}) => {
-  if (!p.collectAuthConfigDetails) return null;
-
-  return (
-    <>
-      <Input
-        label="Auth Config Name"
-        description="Name the connection so you can tell it apart from other auth configs."
-        {...p.authConfigDetailsForm.getFieldProps('name')}
-        placeholder="e.g. John Doe"
-        disabled={p.disabled}
-      />
-      <p.authConfigDetailsForm.RenderError field="name" />
-
-      <Spacer size={10} />
-
-      <Input
-        label="Auth Config Description"
-        description="Optional context for your team about what this connection is used for."
-        placeholder="e.g. Production workspace for the CRM sync"
-        {...p.authConfigDetailsForm.getFieldProps('description')}
-        disabled={p.disabled}
-      />
-      <p.authConfigDetailsForm.RenderError field="description" />
-    </>
-  );
-};
-
-let RedirectUriField = (p: {
+export let RedirectUriField = (p: {
   redirectUri: string;
   configDoc?: ProviderDocReference | null;
 }) => {
@@ -208,7 +174,6 @@ let CredentialsSelector = (p: {
   providerDoc?: ProviderDocReference | null;
   configDoc?: ProviderDocReference | null;
   isCustomSelected: boolean;
-  disableCredentialSelection?: boolean;
   disabled?: boolean;
 }) => {
   let shouldShowRedirectUri =
@@ -220,24 +185,20 @@ let CredentialsSelector = (p: {
     <>
       <Select
         label="Credentials"
-        description={
-          p.disableCredentialSelection
-            ? 'Credentials are fixed by the integration provider for this auth config.'
-            : 'Select existing credentials or add new ones for this provider.'
-        }
+        description="Select existing credentials or add new ones for this provider."
         value={
           p.credentialsForm.values.credentialMode === 'new'
             ? '__create_new__'
             : p.selectedCredentialId
         }
         placeholder="Select or add credentials"
-        disabled={p.disabled || p.disableCredentialSelection}
+        disabled={p.disabled}
         onChange={p.handleCredentialSelectionChange}
         items={p.credentialSelectItems}
       />
       <p.credentialsForm.RenderError field="selectedCredentialId" />
 
-      {p.hasManagedVisibleCredentials && !p.disableCredentialSelection && (
+      {p.hasManagedVisibleCredentials && (
         <>
           <Spacer size={5} />
           <Text size="1" color="gray600">
@@ -251,7 +212,7 @@ let CredentialsSelector = (p: {
         <RedirectUriField redirectUri={p.redirectUri} configDoc={p.configDoc} />
       )}
 
-      {p.isCreatingCredentials && !p.disableCredentialSelection && (
+      {p.isCreatingCredentials && (
         <NewCredentialsFields
           credentialsForm={p.credentialsForm}
           providerDoc={p.providerDoc}
@@ -356,9 +317,6 @@ export let ConnectSummary = (p: {
   selectedCredentialLabel: string;
   isManagedSelected: boolean;
   isSelectedCredentialDefault: boolean;
-  collectAuthConfigDetails: boolean;
-  authConfigDetailsForm: AnyForm;
-  disabled?: boolean;
 }) => {
   return (
     <>
@@ -383,12 +341,6 @@ export let ConnectSummary = (p: {
           <Spacer size={20} />
         </>
       )}
-
-      <AuthConfigDetailsFields
-        collectAuthConfigDetails={p.collectAuthConfigDetails}
-        authConfigDetailsForm={p.authConfigDetailsForm}
-        disabled={p.disabled}
-      />
     </>
   );
 };
@@ -451,10 +403,7 @@ export let CredentialsSelectionStep = (p: {
   credentialsForm: AnyForm;
   selectedCredentialId: string;
   hasSelectedCredential: boolean;
-  hideCredentialsIntro: boolean;
   oauthMethodName: string;
-  showManagedChoiceStep: boolean;
-  showExternalPreviewSidebar: boolean;
   credentialSelectItems: CredentialSelectItem[];
   handleCredentialSelectionChange: (value: string) => void;
   hasManagedVisibleCredentials: boolean;
@@ -463,7 +412,6 @@ export let CredentialsSelectionStep = (p: {
   configDoc?: ProviderDocReference | null;
   isCustomSelected: boolean;
   isCreatingCredentials: boolean;
-  disableCredentialSelection?: boolean;
   projectBrandImageUrl?: string | null;
   projectBrandName: string;
   providerName: string;
@@ -471,10 +419,7 @@ export let CredentialsSelectionStep = (p: {
   isManagedSelected: boolean;
   error: string | null;
   createCredentials: { isPending: boolean; RenderError: () => ReactNode };
-  showHiddenMethodStep: boolean;
   includeMethodStep: boolean;
-  skipMethodStep: boolean;
-  onBackToMethodSelection?: () => void;
   onBack: () => void;
 }) => {
   return {
@@ -482,64 +427,39 @@ export let CredentialsSelectionStep = (p: {
     subtitle: 'Select existing or add credentials',
     render: () => (
       <form onSubmit={p.credentialsForm.handleSubmit}>
-        {!p.hideCredentialsIntro && (
-          <>
-            <Text size="2" weight="strong">
-              Select {p.oauthMethodName} Credentials
-            </Text>
-            <Text size="2" color="gray600">
-              Select existing credentials or add new credentials to continue.
-            </Text>
-            <Spacer size={6} />
-          </>
-        )}
+        <Text size="2" weight="strong">
+          Select {p.oauthMethodName} Credentials
+        </Text>
+        <Text size="2" color="gray600">
+          Select existing credentials or add new credentials to continue.
+        </Text>
+        <Spacer size={6} />
 
-        {p.showManagedChoiceStep ? (
-          <ManagedCredentialsLayout
-            style={p.showExternalPreviewSidebar ? { gridTemplateColumns: '1fr' } : undefined}
-          >
-            <ManagedCredentialsColumn>
-              <CredentialsSelector
-                credentialsForm={p.credentialsForm}
-                selectedCredentialId={p.selectedCredentialId}
-                credentialSelectItems={p.credentialSelectItems}
-                handleCredentialSelectionChange={p.handleCredentialSelectionChange}
-                hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
-                isCreatingCredentials={p.isCreatingCredentials}
-                redirectUri={p.redirectUri}
-                providerDoc={p.providerDoc}
-                configDoc={p.configDoc}
-                isCustomSelected={p.isCustomSelected}
-                disableCredentialSelection={p.disableCredentialSelection}
-              />
-            </ManagedCredentialsColumn>
+        <ManagedCredentialsLayout>
+          <ManagedCredentialsColumn>
+            <CredentialsSelector
+              credentialsForm={p.credentialsForm}
+              selectedCredentialId={p.selectedCredentialId}
+              credentialSelectItems={p.credentialSelectItems}
+              handleCredentialSelectionChange={p.handleCredentialSelectionChange}
+              hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
+              isCreatingCredentials={p.isCreatingCredentials}
+              redirectUri={p.redirectUri}
+              providerDoc={p.providerDoc}
+              configDoc={p.configDoc}
+              isCustomSelected={p.isCustomSelected}
+            />
+          </ManagedCredentialsColumn>
 
-            {!p.showExternalPreviewSidebar && (
-              <ManagedCredentialsPreviewPanel
-                projectBrandImageUrl={p.projectBrandImageUrl}
-                projectBrandName={p.projectBrandName}
-                providerName={p.providerName}
-                providerImageUrl={p.providerImageUrl}
-                hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
-                isManagedSelected={p.isManagedSelected}
-              />
-            )}
-          </ManagedCredentialsLayout>
-        ) : (
-          <CredentialsSelector
-            credentialsForm={p.credentialsForm}
-            selectedCredentialId={p.selectedCredentialId}
-            credentialSelectItems={p.credentialSelectItems}
-            handleCredentialSelectionChange={p.handleCredentialSelectionChange}
+          <ManagedCredentialsPreviewPanel
+            projectBrandImageUrl={p.projectBrandImageUrl}
+            projectBrandName={p.projectBrandName}
+            providerName={p.providerName}
+            providerImageUrl={p.providerImageUrl}
             hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
-            isCreatingCredentials={p.isCreatingCredentials}
-            redirectUri={p.redirectUri}
-            providerDoc={p.providerDoc}
-            configDoc={p.configDoc}
-            isCustomSelected={p.isCustomSelected}
-            disableCredentialSelection={p.disableCredentialSelection}
+            isManagedSelected={p.isManagedSelected}
           />
-        )}
+        </ManagedCredentialsLayout>
 
         <p.createCredentials.RenderError />
 
@@ -555,19 +475,8 @@ export let CredentialsSelectionStep = (p: {
         <Spacer size={12} />
 
         <Flex gap={8}>
-          {!p.showHiddenMethodStep && p.includeMethodStep && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                if (p.skipMethodStep) {
-                  p.onBackToMethodSelection?.();
-                  return;
-                }
-
-                p.onBack();
-              }}
-            >
+          {p.includeMethodStep && (
+            <Button type="button" variant="outline" onClick={p.onBack}>
               Back
             </Button>
           )}
@@ -591,164 +500,6 @@ export let CredentialsSelectionStep = (p: {
   } satisfies SetupStep;
 };
 
-export let FlatOAuthConnectStep = (p: {
-  collectAuthConfigDetails: boolean;
-  authConfigDetailsForm: AnyForm;
-  selectedCredentialId: string;
-  hasSelectedCredential: boolean;
-  redirectUri?: string;
-  isCustomSelected: boolean;
-  credentialsForm: AnyForm;
-  isCreatingCredentials: boolean;
-  disableCredentialSelection?: boolean;
-  credentialSelectItems: CredentialSelectItem[];
-  handleCredentialSelectionChange: (value: string) => void;
-  hasManagedVisibleCredentials: boolean;
-  createCredentials: { isPending: boolean; RenderError: () => ReactNode };
-  createSetupSession: { isPending: boolean; RenderError: () => ReactNode };
-  providerDoc?: ProviderDocReference | null;
-  configDoc?: ProviderDocReference | null;
-  error: string | null;
-  setupSession: SetupSessionState | null;
-  setupWindowBlocked: boolean;
-  onCancel?: () => void;
-  cancelLabel: string;
-  onWindowOpenCancel?: () => void;
-  windowOpenCancelLabel: string;
-  isStarting: boolean;
-  resolveSelectedCredentialId: () => Promise<string | null>;
-  handleStartSetup: (providerAuthCredentialsId?: string) => Promise<SetupSessionState | null>;
-  openSetupWindow: () => boolean;
-}) => {
-  return {
-    title: 'Connect',
-    subtitle: 'Complete authentication',
-    render: () => {
-      let isWindowOpen = !!p.setupSession?.url;
-
-      return (
-        <form
-          onSubmit={async e => {
-            e.preventDefault();
-
-            if (isWindowOpen) return;
-
-            if (p.isCustomSelected && !p.hasSelectedCredential && !p.isCreatingCredentials) {
-              p.credentialsForm.setFieldTouched('selectedCredentialId', true, false);
-              await p.credentialsForm.validateField('selectedCredentialId');
-              return;
-            }
-
-            let providerAuthCredentialsId = await p.resolveSelectedCredentialId();
-            if (p.isCustomSelected && !providerAuthCredentialsId) return;
-
-            await p.handleStartSetup(providerAuthCredentialsId ?? undefined);
-          }}
-        >
-          <FlatConnectForm>
-            <AuthConfigDetailsFields
-              collectAuthConfigDetails={p.collectAuthConfigDetails}
-              authConfigDetailsForm={p.authConfigDetailsForm}
-              disabled={isWindowOpen}
-            />
-
-            <FlatConnectSection>
-              <CredentialsSelector
-                credentialsForm={p.credentialsForm}
-                selectedCredentialId={p.selectedCredentialId}
-                credentialSelectItems={p.credentialSelectItems}
-                handleCredentialSelectionChange={p.handleCredentialSelectionChange}
-                hasManagedVisibleCredentials={p.hasManagedVisibleCredentials}
-                redirectUri={p.redirectUri}
-                providerDoc={p.providerDoc}
-                configDoc={p.configDoc}
-                isCreatingCredentials={p.isCreatingCredentials}
-                isCustomSelected={p.isCustomSelected}
-                disableCredentialSelection={p.disableCredentialSelection}
-                disabled={isWindowOpen}
-              />
-            </FlatConnectSection>
-          </FlatConnectForm>
-
-          <p.createCredentials.RenderError />
-          <p.createSetupSession.RenderError />
-
-          {p.error && (
-            <>
-              <Spacer size={5} />
-              <Text size="2" color="red600">
-                {p.error}
-              </Text>
-            </>
-          )}
-
-          <Spacer size={8} />
-
-          {isWindowOpen ? (
-            <>
-              {p.setupWindowBlocked && (
-                <>
-                  <Text size="2" color="red600">
-                    The popup window was blocked by your browser. Open it manually to continue.
-                  </Text>
-                  <Spacer size={5} />
-                </>
-              )}
-
-              <Text size="2" weight="medium">
-                Continue in the authentication window
-              </Text>
-
-              <Spacer size={8} />
-
-              <Flex gap={8} align="center">
-                {(p.onWindowOpenCancel ?? p.onCancel) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={p.onWindowOpenCancel ?? p.onCancel}
-                  >
-                    {p.onWindowOpenCancel ? p.windowOpenCancelLabel : p.cancelLabel}
-                  </Button>
-                )}
-
-                <Button type="button" onClick={() => p.openSetupWindow()}>
-                  Reopen Window
-                </Button>
-              </Flex>
-            </>
-          ) : (
-            <Flex gap={8} align="center">
-              {p.onCancel && (
-                <Button type="button" variant="outline" onClick={p.onCancel}>
-                  {p.cancelLabel}
-                </Button>
-              )}
-              <Button
-                type="submit"
-                loading={
-                  p.isStarting ||
-                  p.createSetupSession.isPending ||
-                  p.createCredentials.isPending
-                }
-                disabled={
-                  (p.isCreatingCredentials &&
-                    (!p.credentialsForm.values.newCredName ||
-                      !p.credentialsForm.values.newCredClientId ||
-                      !p.credentialsForm.values.newCredClientSecret)) ||
-                  (p.isCustomSelected && !p.isCreatingCredentials && !p.hasSelectedCredential)
-                }
-              >
-                Continue
-              </Button>
-            </Flex>
-          )}
-        </form>
-      );
-    }
-  } satisfies SetupStep;
-};
-
 export let ConnectStep = (p: {
   connectSubtitle: string;
   setupSession: SetupSessionState | null;
@@ -757,22 +508,16 @@ export let ConnectStep = (p: {
   hasCredentialsStep: boolean;
   isManagedSelected: boolean;
   isSelectedCredentialDefault: boolean;
-  collectAuthConfigDetails: boolean;
-  authConfigDetailsForm: AnyForm;
   oauthMethodName: string;
-  onWindowOpenCancel?: () => void;
   onCancel?: () => void;
-  windowOpenCancelLabel: string;
   cancelLabel: string;
   openSetupWindow: () => boolean;
-  skipMethodStep: boolean;
-  onBackToMethodSelection?: () => void;
+  showChangeMethod: boolean;
   resetSetupSession: () => void;
   onBack: () => void;
   error: string | null;
   isOAuth: boolean;
   providerName: string;
-  createSetupSession: { isPending: boolean; RenderError: () => ReactNode };
   handleStartSetup: () => Promise<SetupSessionState | null>;
   isStarting: boolean;
   selectedMethodId: string;
@@ -790,9 +535,6 @@ export let ConnectStep = (p: {
               selectedCredentialLabel={p.selectedCredentialLabel}
               isManagedSelected={p.isManagedSelected}
               isSelectedCredentialDefault={p.isSelectedCredentialDefault}
-              collectAuthConfigDetails={p.collectAuthConfigDetails}
-              authConfigDetailsForm={p.authConfigDetailsForm}
-              disabled
             />
 
             {p.setupWindowBlocked && (
@@ -816,13 +558,9 @@ export let ConnectStep = (p: {
             <Spacer size={8} />
 
             <Flex gap={8} align="center">
-              {(p.onWindowOpenCancel ?? p.onCancel) && (
-                <Button
-                  size="1"
-                  variant="outline"
-                  onClick={p.onWindowOpenCancel ?? p.onCancel}
-                >
-                  {p.onWindowOpenCancel ? p.windowOpenCancelLabel : p.cancelLabel}
+              {p.onCancel && (
+                <Button size="1" variant="outline" onClick={p.onCancel}>
+                  {p.cancelLabel}
                 </Button>
               )}
 
@@ -831,18 +569,13 @@ export let ConnectStep = (p: {
               </Button>
             </Flex>
 
-            {(!p.skipMethodStep || p.onBackToMethodSelection) && (
+            {p.showChangeMethod && (
               <>
                 <Spacer size={8} />
                 <span
                   style={{ cursor: 'pointer' }}
                   onClick={() => {
                     p.resetSetupSession();
-                    if (p.skipMethodStep) {
-                      p.onBackToMethodSelection?.();
-                      return;
-                    }
-
                     p.onBack();
                   }}
                 >
@@ -872,8 +605,6 @@ export let ConnectStep = (p: {
             selectedCredentialLabel={p.selectedCredentialLabel}
             isManagedSelected={p.isManagedSelected}
             isSelectedCredentialDefault={p.isSelectedCredentialDefault}
-            collectAuthConfigDetails={p.collectAuthConfigDetails}
-            authConfigDetailsForm={p.authConfigDetailsForm}
           />
 
           <Spacer size={12} />
@@ -886,8 +617,6 @@ export let ConnectStep = (p: {
               ? `A separate window will open so you can authorize ${p.providerName}.`
               : 'Start the setup session for this authentication method.'}
           </Text>
-
-          <p.createSetupSession.RenderError />
 
           {p.error && (
             <>
@@ -904,7 +633,7 @@ export let ConnectStep = (p: {
             <Button
               type="button"
               onClick={() => void p.handleStartSetup()}
-              loading={p.isStarting || p.createSetupSession.isPending}
+              loading={p.isStarting}
               disabled={!p.selectedMethodId}
             >
               {p.isOAuth ? 'Open Window' : 'Start Setup'}

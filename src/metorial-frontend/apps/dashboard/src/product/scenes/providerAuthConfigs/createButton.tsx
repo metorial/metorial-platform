@@ -1,12 +1,9 @@
 import { Button, Menu, Tooltip } from '@metorial/ui';
 import type { ButtonSize } from '@metorial/ui';
 import type { ReactNode } from 'react';
-import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
+import type { ProviderAuthConfigCreateModalProps } from './createModal';
 import { getCreateMethodDescription } from './modalHelpers';
-import {
-  ProviderAuthConfigCreateModalProps,
-  showProviderAuthConfigCreateModal
-} from './createModal';
+import { useProviderAuthConfigAuthenticateAction } from './useAuthenticateAction';
 
 export let ProviderAuthConfigCreateButton = (
   p: Omit<ProviderAuthConfigCreateModalProps, 'initialAuthMethodId'> & {
@@ -18,24 +15,19 @@ export let ProviderAuthConfigCreateButton = (
     disabled?: boolean;
   }
 ) => {
-  let authCreation = useProviderAuthCreationCapabilities(
-    p.instanceId,
-    p.providerDeploymentId,
-    p.providerId
-  );
-
-  let openCreateFlow = (authMethodId: string) =>
-    showProviderAuthConfigCreateModal({
-      instanceId: p.instanceId,
-      providerDeploymentId: p.providerDeploymentId,
-      providerId: p.providerId,
-      initialAuthMethodId: authMethodId,
-      fixedAuthCredentialsId: p.fixedAuthCredentialsId,
-      defaultAuthConfigName: p.defaultAuthConfigName,
-      autoStartManagedCredentialSetup: p.autoStartManagedCredentialSetup,
-      onCreate: p.onCreate,
-      onBack: p.onBack
-    });
+  let authenticate = useProviderAuthConfigAuthenticateAction({
+    instanceId: p.instanceId,
+    providerDeploymentId: p.providerDeploymentId,
+    providerId: p.providerId,
+    fixedAuthMethodId: p.fixedAuthMethodId,
+    fixedAuthCredentialsId: p.fixedAuthCredentialsId,
+    authMethodAdapter: p.authMethodAdapter,
+    defaultAuthConfigName: p.defaultAuthConfigName,
+    onCreate: p.onCreate,
+    onBack: p.onBack
+  });
+  let authCreation = authenticate.authCreation;
+  let openCreateFlow = authenticate.start;
 
   if (p.fixedAuthMethodId) {
     return (
@@ -45,6 +37,7 @@ export let ProviderAuthConfigCreateButton = (
         iconLeft={p.iconLeft}
         aria-label={p.ariaLabel}
         disabled={p.disabled}
+        loading={authenticate.isLoading}
         onClick={() => openCreateFlow(p.fixedAuthMethodId!)}
       >
         {p.children}
@@ -82,6 +75,7 @@ export let ProviderAuthConfigCreateButton = (
         iconLeft={p.iconLeft}
         aria-label={p.ariaLabel}
         disabled={p.disabled}
+        loading={authenticate.isLoading}
         onClick={() => openCreateFlow(authCreation.authMethodItems[0]!.id)}
       >
         {p.children}
@@ -106,6 +100,7 @@ export let ProviderAuthConfigCreateButton = (
         iconLeft={p.iconLeft}
         aria-label={p.ariaLabel}
         disabled={p.disabled}
+        loading={authenticate.isLoading}
       >
         {p.children}
       </Button>
