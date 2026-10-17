@@ -18,6 +18,7 @@ enum SessionConnectionMcpConnectionTransport {
   none
   sse
   streamable_http
+  sessionless
 }
 
 enum SessionConnectionTransport {
@@ -83,6 +84,8 @@ model SessionConnection {
   mcpTransport       SessionConnectionMcpConnectionTransport
   mcpProtocolVersion String?
 
+  mcpClientKey String?
+
   privateMetadata Json?
 
   createdAt DateTime @default(now())
@@ -115,4 +118,5 @@ model SessionConnection {
   @@index([tenantOid, environmentOid, isInternal, createdAt])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([sessionOid, mcpClientKey, lastActiveAt])
 }

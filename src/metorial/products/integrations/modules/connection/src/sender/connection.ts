@@ -9,7 +9,8 @@ import {
   type CallToolProps,
   type InitProps,
   SenderManager,
-  type SenderMangerProps
+  type SenderMangerProps,
+  type SessionlessConnectionProps
 } from './manager';
 
 export class SenderConnection {
@@ -134,6 +135,10 @@ export class SenderConnection {
 
   initialize(d: InitProps) {
     return this.manager.initialize(d);
+  }
+
+  resolveSessionlessConnection(d: SessionlessConnectionProps) {
+    return this.manager.resolveSessionlessConnection(d);
   }
 
   createConnection() {

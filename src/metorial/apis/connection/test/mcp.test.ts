@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 
-let { create, handleSubspaceMcpRequest } = vi.hoisted(() => ({
+let {
+  create,
+  handleSubspaceMcpRequest,
+  handleSessionlessMcpRequest,
+  isSessionlessMcpEnabled
+} = vi.hoisted(() => ({
   create: vi.fn(),
-  handleSubspaceMcpRequest: vi.fn()
+  handleSubspaceMcpRequest: vi.fn(),
+  handleSessionlessMcpRequest: vi.fn(),
+  isSessionlessMcpEnabled: vi.fn(() => true)
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -19,9 +26,12 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   }
 }));
 
-vi.mock('@metorial-subspace/module-connection', () => ({
+vi.mock('@metorial-subspace/module-connection', async () => ({
+  ...(await import('@metorial-subspace/module-connection/src/mcp/modern')),
   McpConnection: { create },
-  handleMcpRequest: handleSubspaceMcpRequest
+  handleMcpRequest: handleSubspaceMcpRequest,
+  handleSessionlessMcpRequest,
+  isSessionlessMcpEnabled
 }));
 
 // `../src/outpost` only reaches into `@metorial/module-outpost` when an outpost signature is
@@ -64,6 +74,8 @@ describe('handleMcpRequest', () => {
   beforeEach(() => {
     create.mockReset();
     handleSubspaceMcpRequest.mockReset();
+    handleSessionlessMcpRequest.mockReset();
+    isSessionlessMcpEnabled.mockReturnValue(true);
   });
 
   it.skipIf(typeof Bun === 'undefined')(
@@ -240,5 +252,215 @@ describe('handleMcpRequest', () => {
       `data: ${JSON.stringify(finalResponse)}\n\n`
     );
     expect((await reader.read()).done).toBe(true);
+  });
+});
+
+describe('handleMcpRequest protocol detection', () => {
+  let sessionlessConnection = {
+    session: { id: 'ses_1' },
+    connection: { id: 'scon_1', token: 'tok_1' }
+  };
+
+  let modernMeta = {
+    'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+    'io.modelcontextprotocol/clientCapabilities': {},
+    'io.modelcontextprotocol/clientInfo': { name: 'test', version: '1.0.0' }
+  };
+
+  let modernHeaders = (method: string, extra: Record<string, string> = {}) => ({
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+    'MCP-Protocol-Version': '2026-07-28',
+    'Mcp-Method': method,
+    ...extra
+  });
+
+  let app = new Hono().post('/connect/mcp/:sessionId', c =>
+    handleMcpRequest(c, {
+      instance: { id: 'ins_1' } as any,
+      sessionId: 'ses_1'
+    })
+  );
+
+  let post = (body: unknown, headers: Record<string, string>) =>
+    app.request('/connect/mcp/ses_1', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+
+  let legacyResult = {
+    connection: sessionlessConnection,
+    response: { mcp: { jsonrpc: '2.0', id: 1, result: {} } }
+  };
+
+  beforeEach(() => {
+    handleSubspaceMcpRequest.mockReset();
+    handleSessionlessMcpRequest.mockReset();
+    isSessionlessMcpEnabled.mockReturnValue(true);
+  });
+
+  it('routes modern requests to the sessionless pipeline as plain JSON', async () => {
+    handleSessionlessMcpRequest.mockResolvedValue({
+      connection: sessionlessConnection,
+      mcp: { jsonrpc: '2.0', id: 1, result: { tools: [], resultType: 'complete' } },
+      httpStatus: 200
+    });
+
+    let response = await post(
+      { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: modernMeta } },
+      modernHeaders('tools/list')
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(response.headers.get('mcp-session-id')).toBeNull();
+    expect(response.headers.get('mcp-protocol-version')).toBe('2026-07-28');
+    expect(response.headers.get('metorial-connection-id')).toBe('scon_1');
+    expect(await response.json()).toEqual({
+      jsonrpc: '2.0',
+      id: 1,
+      result: { tools: [], resultType: 'complete' }
+    });
+    expect(handleSubspaceMcpRequest).not.toHaveBeenCalled();
+    expect(handleSessionlessMcpRequest.mock.calls[0]![0]).toMatchObject({
+      sessionId: 'ses_1',
+      request: { method: 'tools/list', context: { protocolVersion: '2026-07-28' } }
+    });
+  });
+
+  it('passes through the HTTP status of modern errors', async () => {
+    handleSessionlessMcpRequest.mockResolvedValue({
+      connection: sessionlessConnection,
+      mcp: { jsonrpc: '2.0', id: 1, error: { code: -32601, message: 'Method not found' } },
+      httpStatus: 404
+    });
+
+    let response = await post(
+      { jsonrpc: '2.0', id: 1, method: 'logging/setLevel', params: { _meta: modernMeta } },
+      modernHeaders('logging/setLevel')
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it('keeps requests carrying a legacy session on the legacy path', async () => {
+    handleSubspaceMcpRequest.mockResolvedValue(legacyResult);
+
+    await post(
+      { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: modernMeta } },
+      modernHeaders('tools/list', { 'Mcp-Session-Id': 'tok_1' })
+    );
+
+    expect(handleSubspaceMcpRequest).toHaveBeenCalled();
+    expect(handleSessionlessMcpRequest).not.toHaveBeenCalled();
+  });
+
+  it('keeps initialize on the legacy path', async () => {
+    handleSubspaceMcpRequest.mockResolvedValue(legacyResult);
+
+    await post(
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-11-25',
+          capabilities: {},
+          clientInfo: { name: 'test', version: '1.0.0' }
+        }
+      },
+      { 'Content-Type': 'application/json', 'MCP-Protocol-Version': '2025-11-25' }
+    );
+
+    expect(handleSubspaceMcpRequest).toHaveBeenCalled();
+    expect(handleSessionlessMcpRequest).not.toHaveBeenCalled();
+  });
+
+  it('keeps requests without modern metadata on the legacy path', async () => {
+    handleSubspaceMcpRequest.mockResolvedValue(legacyResult);
+
+    await post(
+      { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+      { 'Content-Type': 'application/json' }
+    );
+
+    expect(handleSubspaceMcpRequest).toHaveBeenCalled();
+    expect(handleSessionlessMcpRequest).not.toHaveBeenCalled();
+  });
+
+  it('answers modern requests like an uninitialized legacy server when disabled', async () => {
+    isSessionlessMcpEnabled.mockReturnValue(false);
+
+    let response = await post(
+      { jsonrpc: '2.0', id: 7, method: 'tools/list', params: { _meta: modernMeta } },
+      modernHeaders('tools/list')
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      jsonrpc: '2.0',
+      id: 7,
+      error: { code: -32000, message: 'Bad Request: Server not initialized' }
+    });
+    expect(handleSubspaceMcpRequest).not.toHaveBeenCalled();
+    expect(handleSessionlessMcpRequest).not.toHaveBeenCalled();
+  });
+
+  it('rejects modern requests whose headers do not match the body', async () => {
+    let response = await post(
+      { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: modernMeta } },
+      modernHeaders('tools/call')
+    );
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe(-32020);
+    expect(handleSessionlessMcpRequest).not.toHaveBeenCalled();
+  });
+
+  it('accepts modern notifications with 202', async () => {
+    let response = await post(
+      {
+        jsonrpc: '2.0',
+        method: 'notifications/cancelled',
+        params: { requestId: 1, _meta: modernMeta }
+      },
+      modernHeaders('notifications/cancelled')
+    );
+
+    expect(response.status).toBe(202);
+    expect(handleSessionlessMcpRequest).not.toHaveBeenCalled();
+  });
+
+  it('streams modern progress as SSE and finishes with the final response', async () => {
+    let progress = {
+      jsonrpc: '2.0' as const,
+      method: 'notifications/progress',
+      params: { progressToken: 'p1', progress: 1 }
+    };
+    let finalResponse = { jsonrpc: '2.0' as const, id: 1, result: { content: [] } };
+
+    handleSessionlessMcpRequest.mockImplementation(async input => {
+      await input.onConnection(sessionlessConnection);
+      await input.onProgress(progress);
+      return { connection: sessionlessConnection, mcp: finalResponse, httpStatus: 200 };
+    });
+
+    let response = await post(
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'search', _meta: { ...modernMeta, progressToken: 'p1' } }
+      },
+      modernHeaders('tools/call', { 'Mcp-Name': 'search' })
+    );
+
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+    expect(response.headers.get('mcp-session-id')).toBeNull();
+
+    let body = await response.text();
+    expect(body).toContain(`data: ${JSON.stringify(progress)}\n\n`);
+    expect(body).toContain(`data: ${JSON.stringify(finalResponse)}\n\n`);
   });
 });

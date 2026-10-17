@@ -12,7 +12,7 @@ export type ManagementInstanceSessionsConnectionsGetOutput = {
   mcp: {
     capabilities: Record<string, any>;
     protocolVersion: string;
-    transport: 'none' | 'sse' | 'streamable_http';
+    transport: 'none' | 'sse' | 'streamable_http' | 'sessionless';
   } | null;
   sessionId: string;
   participant: {

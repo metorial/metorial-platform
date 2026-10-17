@@ -59,11 +59,14 @@ import {
   sessionProviderNameTemplateService
 } from '@metorial-subspace/module-session';
 import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
-import { addDays, addMinutes, differenceInMinutes } from 'date-fns';
+import { addDays, addHours, addMinutes, differenceInMinutes, subHours } from 'date-fns';
+import { isEqual } from 'lodash';
 import {
   DEFAULT_SESSION_EXPIRATION_DAYS,
   SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT,
   SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES,
+  SESSIONLESS_CONNECTION_MAX_AGE_HOURS,
+  SESSIONLESS_CONNECTION_MAX_IDLE_HOURS,
   UNINITIALIZED_SESSION_EXPIRATION_MINUTES
 } from '../const';
 import { env } from '../env';
@@ -120,6 +123,11 @@ let connectionTokenLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+let sessionlessConnectionLock = createLock({
+  name: 'sub/conn/session/sessionless/lock',
+  redisUrl: env.service.REDIS_URL
+});
+
 let providerInstanceResolutionPromises = new Map<string, Promise<any>>();
 
 let sender = conduit.createSender({
@@ -139,6 +147,15 @@ export interface InitProps {
   agentInstance?: AgentInstance | null;
   systemIdentifier?: string;
   allowReservedClientIdentifier?: boolean;
+  mcpClientKey?: string;
+  expiresAt?: Date;
+}
+
+export interface SessionlessConnectionProps {
+  clientKey: string;
+  client: InitProps['client'];
+  mcpCapabilities: Record<string, any>;
+  mcpProtocolVersion: string;
 }
 
 export interface CallToolProps {
@@ -460,6 +477,10 @@ export class SenderManager {
       }
 
       if (connection.expiresAt < new Date()) {
+        if (connection.mcpTransport === 'sessionless') {
+          throw new ServiceError(goneError({ message: 'Connection has expired' }));
+        }
+
         if (connection.initState === 'pending') {
           throw new ServiceError(
             badRequestError({
@@ -1867,6 +1888,104 @@ export class SenderManager {
     this.connection = Object.assign(this.connection ?? {}, connection);
   }
 
+  async resolveSessionlessConnection(d: SessionlessConnectionProps) {
+    let existing = await this.findSessionlessConnection(d.clientKey);
+    if (existing) return await this.reuseSessionlessConnection(existing, d);
+
+    return await sessionlessConnectionLock.usingLock(
+      `${this.session.oid}:${d.clientKey}`,
+      async () => {
+        let current = await this.findSessionlessConnection(d.clientKey);
+        if (current) return await this.reuseSessionlessConnection(current, d);
+
+        return await this.initialize({
+          client: d.client,
+          mcpCapabilities: d.mcpCapabilities,
+          mcpProtocolVersion: d.mcpProtocolVersion,
+          mcpTransport: 'sessionless',
+          mcpClientKey: d.clientKey,
+          expiresAt: addHours(new Date(), SESSIONLESS_CONNECTION_MAX_AGE_HOURS)
+        });
+      }
+    );
+  }
+
+  private async findSessionlessConnection(clientKey: string) {
+    let now = new Date();
+
+    return await db.sessionConnection.findFirst({
+      where: {
+        sessionOid: this.session.oid,
+        mcpClientKey: clientKey,
+        mcpTransport: 'sessionless',
+        transport: this.transport,
+        status: 'active',
+        isManuallyDisabled: false,
+        expiresAt: { gt: now },
+        lastActiveAt: { gt: subHours(now, SESSIONLESS_CONNECTION_MAX_IDLE_HOURS) }
+      },
+      orderBy: { lastActiveAt: 'desc' },
+      include: { participant: true }
+    });
+  }
+
+  private async reuseSessionlessConnection(
+    connection: SessionConnection,
+    d: SessionlessConnectionProps
+  ) {
+    let now = new Date();
+    let wasDisconnected = connection.state === 'disconnected';
+    let mcpDataChanged =
+      connection.mcpProtocolVersion !== d.mcpProtocolVersion ||
+      !isEqual(connection.mcpData?.capabilities, d.mcpCapabilities);
+
+    let updated = await db.sessionConnection.update({
+      where: { oid: connection.oid },
+      data: {
+        lastActiveAt: now,
+        lastPingAt: now,
+        ...(wasDisconnected ? { state: 'connected' as const, disconnectedAt: null } : {}),
+        ...(mcpDataChanged
+          ? {
+              mcpProtocolVersion: d.mcpProtocolVersion,
+              mcpData: {
+                ...connection.mcpData,
+                capabilities: d.mcpCapabilities,
+                protocolVersion: d.mcpProtocolVersion
+              }
+            }
+          : {})
+      },
+      include: { participant: true }
+    });
+
+    if (wasDisconnected) {
+      await db.session.updateMany({
+        where: { oid: this.session.oid },
+        data: { connectionState: 'connected', lastActiveAt: now }
+      });
+
+      if (!this.session.isInternal) {
+        await db.sessionEvent.createMany({
+          data: {
+            ...getId('sessionEvent'),
+            type: 'connection_connected',
+            sessionOid: this.session.oid,
+            connectionOid: updated.oid,
+            tenantOid: this.session.tenantOid,
+            projectOid: this.session.projectOid,
+            solutionOid: this.session.solutionOid,
+            environmentOid: this.session.environmentOid,
+            instanceOid: this.session.instanceOid
+          }
+        });
+      }
+    }
+
+    await this.setConnection(updated);
+    return updated;
+  }
+
   async disableConnection() {
     if (!this.connection) {
       throw new ServiceError(badRequestError({ message: 'No connection to disable' }));
@@ -1965,13 +2084,14 @@ export class SenderManager {
       mcpProtocolVersion: d.mcpProtocolVersion,
       mcpTransport: d.mcpTransport,
 
-      expiresAt: addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
+      expiresAt: d.expiresAt ?? addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
       lastPingAt: new Date(),
       lastActiveAt: new Date(),
       disconnectedAt: null,
 
       transport: this.transport,
-      ...(d.systemIdentifier === undefined ? {} : { systemIdentifier: d.systemIdentifier })
+      ...(d.systemIdentifier === undefined ? {} : { systemIdentifier: d.systemIdentifier }),
+      ...(d.mcpClientKey === undefined ? {} : { mcpClientKey: d.mcpClientKey })
     };
 
     let connection: SessionConnection;

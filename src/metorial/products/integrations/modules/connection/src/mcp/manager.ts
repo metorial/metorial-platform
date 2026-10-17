@@ -1,5 +1,10 @@
 import { conduitResultToMcpMessage } from '@metorial-subspace/connection-utils';
-import type { CallToolProps, InitProps, SenderMangerProps } from '../sender';
+import type {
+  CallToolProps,
+  InitProps,
+  SenderMangerProps,
+  SessionlessConnectionProps
+} from '../sender';
 import { SenderConnection } from '../sender/connection';
 import type { CreateMessageProps } from '../shared/createMessage';
 
@@ -84,6 +89,10 @@ export class McpManager {
 
   initialize(d: InitProps) {
     return this._connection.initialize(d);
+  }
+
+  resolveSessionlessConnection(d: SessionlessConnectionProps) {
+    return this._connection.resolveSessionlessConnection(d);
   }
 
   createConnection() {

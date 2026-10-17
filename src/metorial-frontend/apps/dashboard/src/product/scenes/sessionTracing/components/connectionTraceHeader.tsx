@@ -109,7 +109,10 @@ let getConnectionTransportLabel = (connectionType?: string | null) => {
   if (!connectionType) return null;
   return (
     {
-      mcp: 'MCP'
+      mcp: 'MCP',
+      sse: 'SSE',
+      streamable_http: 'Streamable HTTP',
+      sessionless: 'Sessionless MCP'
     }[connectionType] ?? connectionType
   );
 };
