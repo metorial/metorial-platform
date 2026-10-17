@@ -4,9 +4,6 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   type Environment,
-  getId,
-  type IntegrationInstance,
-  type IntegrationProvider,
   type MagicMcpServerProvider,
   type Solution,
   type Tenant,
@@ -25,29 +22,24 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
-import { integrationInclude } from '../integration';
-import { integrationInstanceProviderInclude } from '../integrationInstance';
+import { integrationProviderVersionInclude } from '../../lib/integrationIncludes';
+import { integrationInstanceProviderVersionInclude } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
-import {
-  integrationProviderInclude,
-  integrationProviderService
-} from '../integrationProvider';
-import {
-  getMagicMcpOwnerIntegration,
-  magicMcpServerBackingInclude,
-  resolveMagicMcpBackingPolicy,
-  withMagicMcpBackingLock
-} from './shared';
+import { integrationProviderService } from '../integrationProvider';
+import { getMagicMcpOwnerIntegration, resolveMagicMcpBackingPolicy } from './shared';
 
 export let magicMcpServerProviderInclude = {
-  magicMcpServerBacking: {
-    include: magicMcpServerBackingInclude
-  },
+  magicMcpServerBacking: true,
   integrationProvider: {
-    include: integrationProviderInclude
+    include: {
+      provider: true,
+      currentVersion: { include: integrationProviderVersionInclude }
+    }
   },
   integrationInstanceProvider: {
-    include: integrationInstanceProviderInclude
+    include: {
+      currentVersion: { include: integrationInstanceProviderVersionInclude }
+    }
   }
 } as const;
 
@@ -83,27 +75,10 @@ let loadMagicMcpServerBackingForProviders = async (d: {
       ...getBackingScopeWhere(d)
     },
     include: {
-      providerTemplateBacking: {
-        include: {
-          integration: { include: integrationInclude }
-        }
-      },
-      ownerIntegration: {
-        include: integrationInclude
-      },
-      integration: {
-        include: integrationInclude
-      },
-      integrationInstance: {
-        include: {
-          integrationInstanceProviders: {
-            include: integrationInstanceProviderInclude
-          }
-        }
-      },
-      sessionTemplate: true,
-      ephemeralManagedSession: true,
-      actor: true
+      providerTemplateBacking: { include: { integration: true } },
+      ownerIntegration: true,
+      integration: true,
+      integrationInstance: true
     }
   });
   if (!backing) {
@@ -114,142 +89,6 @@ let loadMagicMcpServerBackingForProviders = async (d: {
 
   return backing;
 };
-
-let getRowStatus = (d: {
-  integrationProvider: Pick<IntegrationProvider, 'status'>;
-  integrationInstanceProvider:
-    | NonNullable<
-        Awaited<
-          ReturnType<typeof loadMagicMcpServerBackingForProviders>
-        >['integrationInstance']['integrationInstanceProviders'][number]
-      >
-    | null
-    | undefined;
-}) => {
-  if (d.integrationProvider.status === 'deleted') return 'deleted' as const;
-  if (d.integrationProvider.status !== 'active') return 'archived' as const;
-  if (
-    d.integrationInstanceProvider &&
-    d.integrationInstanceProvider.status === 'active' &&
-    !d.integrationInstanceProvider.isParentDeleted
-  ) {
-    return 'active' as const;
-  }
-
-  return 'pending' as const;
-};
-
-export let reconcileMagicMcpServerProvidersForBackingWithoutLock = async (d: {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
-  magicMcpServerBackingId: string;
-}) => {
-  let backing = await loadMagicMcpServerBackingForProviders(d);
-  let ownerIntegration = getMagicMcpOwnerIntegration(backing);
-  if (!ownerIntegration) {
-    return [];
-  }
-
-  let existingRows = await db.magicMcpServerProvider.findMany({
-    where: {
-      magicMcpServerBackingOid: backing.oid
-    },
-    include: {
-      integrationProvider: true,
-      integrationInstanceProvider: true
-    }
-  });
-  let existingRowsByIntegrationProviderOid = new Map(
-    existingRows.map(row => [row.integrationProviderOid, row])
-  );
-  let activeInstanceProvidersByIntegrationProviderOid = new Map(
-    backing.integrationInstance.integrationInstanceProviders
-      .filter(provider => provider.status === 'active' && !provider.isParentDeleted)
-      .map(provider => [provider.integrationProviderOid, provider])
-  );
-  let touchedIntegrationProviderOids = new Set<bigint>();
-
-  for (let integrationProvider of ownerIntegration.providers) {
-    touchedIntegrationProviderOids.add(integrationProvider.oid);
-    let existingRow = existingRowsByIntegrationProviderOid.get(integrationProvider.oid);
-    let integrationInstanceProvider =
-      activeInstanceProvidersByIntegrationProviderOid.get(integrationProvider.oid) ?? null;
-    let status = getRowStatus({
-      integrationProvider,
-      integrationInstanceProvider
-    });
-
-    if (existingRow) {
-      await db.magicMcpServerProvider.update({
-        where: { oid: existingRow.oid },
-        data: {
-          status,
-          archivedAt: status === 'archived' || status === 'deleted' ? new Date() : null,
-          integrationInstanceProviderOid: integrationInstanceProvider?.oid ?? null
-        }
-      });
-      continue;
-    }
-    await db.magicMcpServerProvider.create({
-      data: {
-        ...getId('magicMcpServerProvider'),
-        status,
-        archivedAt: status === 'archived' || status === 'deleted' ? new Date() : null,
-        magicMcpServerBackingOid: backing.oid,
-        integrationProviderOid: integrationProvider.oid,
-        integrationInstanceProviderOid: integrationInstanceProvider?.oid ?? null
-      }
-    });
-  }
-
-  for (let existingRow of existingRows) {
-    if (touchedIntegrationProviderOids.has(existingRow.integrationProviderOid)) continue;
-
-    let status =
-      existingRow.integrationProvider.status === 'deleted'
-        ? ('deleted' as const)
-        : ('archived' as const);
-    await db.magicMcpServerProvider.update({
-      where: { oid: existingRow.oid },
-      data: {
-        status,
-        archivedAt: existingRow.archivedAt ?? new Date()
-      }
-    });
-  }
-
-  return await db.magicMcpServerProvider.findMany({
-    where: {
-      magicMcpServerBackingOid: backing.oid
-    },
-    include: magicMcpServerProviderInclude
-  });
-};
-
-export let reconcileMagicMcpServerProvidersForBackingWithExistingLock =
-  reconcileMagicMcpServerProvidersForBackingWithoutLock;
-
-export let reconcileMagicMcpServerProvidersForBacking = async (d: {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
-  magicMcpServerBackingId: string;
-}) =>
-  await withMagicMcpBackingLock(
-    getMagicMcpServerBackingLockKey(d),
-    async () =>
-      await withTransaction(
-        async () => await reconcileMagicMcpServerProvidersForBackingWithoutLock(d)
-      )
-  );
-
-let getMagicMcpServerBackingLockKey = (d: {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
-  magicMcpServerBackingId: string;
-}) => `server:${d.magicMcpServerBackingId}`;
 
 let getMagicMcpServerProviderOrThrow = async (d: {
   tenant: Tenant;
@@ -273,44 +112,6 @@ let getMagicMcpServerProviderOrThrow = async (d: {
   }
 
   return row;
-};
-
-let getMagicMcpServerProviderByIdentityOrThrow = async (d: {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
-  magicMcpServerBackingOid: bigint;
-  integrationProviderOid: bigint;
-  allowDeleted?: boolean;
-  preferredMagicMcpServerProviderId?: string;
-}) => {
-  let rows = await db.magicMcpServerProvider.findMany({
-    where: {
-      magicMcpServerBackingOid: d.magicMcpServerBackingOid,
-      integrationProviderOid: d.integrationProviderOid,
-      magicMcpServerBacking: getBackingScopeWhere(d),
-      ...normalizeStatusForGet(d).noParent
-    },
-    include: magicMcpServerProviderInclude
-  });
-  if (rows.length === 0) {
-    throw new ServiceError(
-      notFoundError(
-        'magic_mcp.server_provider',
-        d.preferredMagicMcpServerProviderId ?? String(d.integrationProviderOid)
-      )
-    );
-  }
-
-  let preferredRow = d.preferredMagicMcpServerProviderId
-    ? rows.find(row => row.id === d.preferredMagicMcpServerProviderId)
-    : null;
-  if (preferredRow) return preferredRow;
-
-  let activeRow = rows.find(row => row.status === 'active');
-  if (activeRow) return activeRow;
-
-  return rows[0]!;
 };
 
 let assertCanArchiveMagicMcpServerProvider = (d: {
@@ -508,13 +309,6 @@ class magicMcpServerProviderServiceImpl {
     let solution = await getMetorialSolution();
     let scoped = { tenant: d.tenant, solution, environment: d.environment };
 
-    for (let magicMcpServerBackingId of d.magicMcpServerBackingIds ?? []) {
-      await reconcileMagicMcpServerProvidersForBacking({
-        ...scoped,
-        magicMcpServerBackingId
-      });
-    }
-
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         return await db.magicMcpServerProvider.findMany({
@@ -591,31 +385,11 @@ class magicMcpServerProviderServiceImpl {
     let solution = await getMetorialSolution();
     let scoped = { tenant: d.tenant, solution, environment: d.environment };
 
-    let existing = await getMagicMcpServerProviderOrThrow({
+    return await getMagicMcpServerProviderOrThrow({
       ...scoped,
       magicMcpServerProviderId: d.magicMcpServerProviderId,
       allowDeleted: d.allowDeleted
     });
-    await reconcileMagicMcpServerProvidersForBacking({
-      ...scoped,
-      magicMcpServerBackingId: existing.magicMcpServerBacking.id
-    });
-
-    try {
-      return await getMagicMcpServerProviderByIdentityOrThrow({
-        ...scoped,
-        magicMcpServerBackingOid: existing.magicMcpServerBackingOid,
-        integrationProviderOid: existing.integrationProviderOid,
-        allowDeleted: d.allowDeleted,
-        preferredMagicMcpServerProviderId: existing.id
-      });
-    } catch (error) {
-      return await getMagicMcpServerProviderOrThrow({
-        ...scoped,
-        magicMcpServerProviderId: existing.id,
-        allowDeleted: true
-      });
-    }
   }
 
   async createMagicMcpServerProvider(d: MetorialFacing<CreateMagicMcpServerProviderParams>) {
@@ -640,71 +414,53 @@ class magicMcpServerProviderServiceImpl {
       magicMcpServerBackingId: d.magicMcpServerBackingId
     };
 
-    let created = await withMagicMcpBackingLock(
-      getMagicMcpServerBackingLockKey(scoped),
-      async () => {
-        let created = await withTransaction(async () => {
-          let backing = await loadMagicMcpServerBackingForProviders(scoped);
-          let policy = resolveMagicMcpBackingPolicy(backing);
-          assertCanMutateIntegrationProvider(policy);
+    let created = await withTransaction(async () => {
+      let backing = await loadMagicMcpServerBackingForProviders(scoped);
+      let policy = resolveMagicMcpBackingPolicy(backing);
+      assertCanMutateIntegrationProvider(policy);
 
-          let ownerIntegration = getMagicMcpOwnerIntegration(backing);
-          if (!ownerIntegration) {
-            throw new ServiceError(notFoundError('integration'));
-          }
-
-          let materialInput = await resolveIntegrationProviderMaterialInput({
-            tenant: d.tenant,
-            solution,
-            environment: d.environment,
-            input: d.input
-          });
-
-          let integrationProvider =
-            await integrationProviderService.createIntegrationProviderInternal({
-              tenant: d.tenant,
-              environment: d.environment,
-              integration: ownerIntegration,
-              input: {
-                providerId: d.input.providerId,
-                providerDeploymentId: materialInput.providerDeploymentId,
-                providerAuthMethodId: materialInput.providerAuthMethodId,
-                providerAuthCredentialsId: materialInput.providerAuthCredentialsId,
-                providerConfigId: d.input.providerConfigId ?? undefined,
-                toolFilters: d.input.toolFilters
-              }
-            });
-
-          await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
-            tenant: d.tenant,
-            environment: d.environment,
-            integrationInstance: backing.integrationInstance as IntegrationInstance,
-            input: {
-              providerId: integrationProvider.id,
-              providerDeploymentId: materialInput.providerDeploymentId,
-              providerConfigId: d.input.providerConfigId ?? null,
-              providerAuthConfigId: d.input.providerAuthConfigId ?? undefined,
-              toolFilters: d.input.toolFilters
-            }
-          });
-
-          return {
-            backingOid: backing.oid,
-            magicMcpServerBackingId: backing.id,
-            integrationProviderOid: integrationProvider.oid
-          };
-        });
-
-        await reconcileMagicMcpServerProvidersForBackingWithExistingLock({
-          tenant: d.tenant,
-          solution,
-          environment: d.environment,
-          magicMcpServerBackingId: created.magicMcpServerBackingId
-        });
-
-        return created;
+      let ownerIntegration = getMagicMcpOwnerIntegration(backing);
+      if (!ownerIntegration) {
+        throw new ServiceError(notFoundError('integration'));
       }
-    );
+
+      let materialInput = await resolveIntegrationProviderMaterialInput({
+        tenant: d.tenant,
+        solution,
+        environment: d.environment,
+        input: d.input
+      });
+
+      let integrationProvider =
+        await integrationProviderService.createIntegrationProviderInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          integration: ownerIntegration,
+          input: {
+            providerId: d.input.providerId,
+            providerDeploymentId: materialInput.providerDeploymentId,
+            providerAuthMethodId: materialInput.providerAuthMethodId,
+            providerAuthCredentialsId: materialInput.providerAuthCredentialsId,
+            providerConfigId: d.input.providerConfigId ?? undefined,
+            toolFilters: d.input.toolFilters
+          }
+        });
+
+      await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        integrationInstance: backing.integrationInstance,
+        input: {
+          providerId: integrationProvider.id,
+          providerDeploymentId: materialInput.providerDeploymentId,
+          providerConfigId: d.input.providerConfigId ?? null,
+          providerAuthConfigId: d.input.providerAuthConfigId ?? undefined,
+          toolFilters: d.input.toolFilters
+        }
+      });
+
+      return { backingOid: backing.oid, integrationProviderOid: integrationProvider.oid };
+    });
 
     return await db.magicMcpServerProvider.findFirstOrThrow({
       where: {
@@ -737,120 +493,80 @@ class magicMcpServerProviderServiceImpl {
       magicMcpServerProviderId: d.magicMcpServerProviderId
     };
 
-    let existing = await getMagicMcpServerProviderOrThrow(scoped);
-
-    await withMagicMcpBackingLock(
-      getMagicMcpServerBackingLockKey({
+    await withTransaction(async () => {
+      let row = await getMagicMcpServerProviderOrThrow(scoped);
+      let policy = resolveMagicMcpBackingPolicy(row.magicMcpServerBacking);
+      let backing = await loadMagicMcpServerBackingForProviders({
         tenant: d.tenant,
         solution,
         environment: d.environment,
-        magicMcpServerBackingId: existing.magicMcpServerBacking.id
-      }),
-      async () => {
-        let updated = await withTransaction(async () => {
-          let row = await getMagicMcpServerProviderOrThrow(scoped);
-          let policy = resolveMagicMcpBackingPolicy(row.magicMcpServerBacking);
-          let backing = await loadMagicMcpServerBackingForProviders({
-            tenant: d.tenant,
-            solution,
-            environment: d.environment,
-            magicMcpServerBackingId: row.magicMcpServerBacking.id
-          });
-          let providerAuthMethodId: string | null | undefined;
-          let providerAuthCredentialsId: string | null | undefined;
-          let providerDeploymentId =
-            d.input.providerDeploymentId ??
-            row.integrationProvider.currentVersion?.deployment.id;
+        magicMcpServerBackingId: row.magicMcpServerBacking.id
+      });
 
-          if (d.input.providerAuthConfigId === null) {
-            providerAuthMethodId = null;
-            providerAuthCredentialsId = null;
-          } else if (d.input.providerAuthConfigId !== undefined) {
-            let materialInput = await resolveIntegrationProviderMaterialInput({
-              tenant: d.tenant,
-              solution,
-              environment: d.environment,
-              input: {
-                providerDeploymentId,
-                providerAuthConfigId: d.input.providerAuthConfigId
-              }
-            });
-            providerAuthMethodId = materialInput.providerAuthMethodId;
-            providerAuthCredentialsId = materialInput.providerAuthCredentialsId ?? null;
-            providerDeploymentId = materialInput.providerDeploymentId ?? providerDeploymentId;
-          }
+      let providerAuthMethodId: string | null | undefined;
+      let providerAuthCredentialsId: string | null | undefined;
+      let providerDeploymentId =
+        d.input.providerDeploymentId ?? row.integrationProvider.currentVersion?.deployment.id;
 
-          if (policy.canMutateIntegrationProviders) {
-            await integrationProviderService.updateIntegrationProviderInternal({
-              tenant: d.tenant,
-              environment: d.environment,
-              integrationProvider: row.integrationProvider,
-              input: {
-                providerDeploymentId,
-                providerAuthMethodId,
-                providerAuthCredentialsId,
-                providerConfigId:
-                  d.input.providerConfigId === undefined
-                    ? undefined
-                    : d.input.providerConfigId,
-                toolFilters: d.input.toolFilters
-              }
-            });
-          } else if (d.input.providerDeploymentId !== undefined) {
-            throw new ServiceError(
-              badRequestError({
-                message: 'Inherited magic MCP server providers cannot change deployments.',
-                code: 'magic_mcp_server_provider_inherited'
-              })
-            );
-          }
-
-          assertCanMutateIntegrationInstanceProvider(policy);
-
-          await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
-            tenant: d.tenant,
-            environment: d.environment,
-            integrationInstance: backing.integrationInstance as IntegrationInstance,
-            input: {
-              providerId: row.integrationProvider.id,
-              providerDeploymentId: d.input.providerDeploymentId,
-              providerConfigId:
-                d.input.providerConfigId === undefined ? undefined : d.input.providerConfigId,
-              providerAuthConfigId: d.input.providerAuthConfigId ?? undefined,
-              toolFilters: d.input.toolFilters
-            }
-          });
-
-          return { magicMcpServerBackingId: backing.id };
-        });
-
-        await reconcileMagicMcpServerProvidersForBackingWithExistingLock({
+      if (d.input.providerAuthConfigId === null) {
+        providerAuthMethodId = null;
+        providerAuthCredentialsId = null;
+      } else if (d.input.providerAuthConfigId !== undefined) {
+        let materialInput = await resolveIntegrationProviderMaterialInput({
           tenant: d.tenant,
           solution,
           environment: d.environment,
-          magicMcpServerBackingId: updated.magicMcpServerBackingId
+          input: {
+            providerDeploymentId,
+            providerAuthConfigId: d.input.providerAuthConfigId
+          }
         });
+        providerAuthMethodId = materialInput.providerAuthMethodId;
+        providerAuthCredentialsId = materialInput.providerAuthCredentialsId ?? null;
+        providerDeploymentId = materialInput.providerDeploymentId ?? providerDeploymentId;
       }
-    );
 
-    try {
-      return await getMagicMcpServerProviderByIdentityOrThrow({
+      if (policy.canMutateIntegrationProviders) {
+        await integrationProviderService.updateIntegrationProviderInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          integrationProvider: row.integrationProvider,
+          input: {
+            providerDeploymentId,
+            providerAuthMethodId,
+            providerAuthCredentialsId,
+            providerConfigId:
+              d.input.providerConfigId === undefined ? undefined : d.input.providerConfigId,
+            toolFilters: d.input.toolFilters
+          }
+        });
+      } else if (d.input.providerDeploymentId !== undefined) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Inherited magic MCP server providers cannot change deployments.',
+            code: 'magic_mcp_server_provider_inherited'
+          })
+        );
+      }
+
+      assertCanMutateIntegrationInstanceProvider(policy);
+
+      await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
         tenant: d.tenant,
-        solution,
         environment: d.environment,
-        magicMcpServerBackingOid: existing.magicMcpServerBackingOid,
-        integrationProviderOid: existing.integrationProviderOid,
-        preferredMagicMcpServerProviderId: existing.id
+        integrationInstance: backing.integrationInstance,
+        input: {
+          providerId: row.integrationProvider.id,
+          providerDeploymentId: d.input.providerDeploymentId,
+          providerConfigId:
+            d.input.providerConfigId === undefined ? undefined : d.input.providerConfigId,
+          providerAuthConfigId: d.input.providerAuthConfigId ?? undefined,
+          toolFilters: d.input.toolFilters
+        }
       });
-    } catch (error) {
-      return await getMagicMcpServerProviderOrThrow({
-        tenant: d.tenant,
-        solution,
-        environment: d.environment,
-        magicMcpServerProviderId: existing.id,
-        allowDeleted: true
-      });
-    }
+    });
+
+    return await getMagicMcpServerProviderOrThrow({ ...scoped, allowDeleted: true });
   }
 
   async archiveMagicMcpServerProvider(d: MetorialFacing<ArchiveMagicMcpServerProviderParams>) {
@@ -875,49 +591,41 @@ class magicMcpServerProviderServiceImpl {
       magicMcpServerProviderId: d.magicMcpServerProviderId
     };
 
-    let row = await getMagicMcpServerProviderOrThrow(scoped);
-    checkDeletedEdit(row, 'archive');
+    await withTransaction(async db => {
+      let row = await getMagicMcpServerProviderOrThrow(scoped);
+      checkDeletedEdit(row, 'archive');
 
-    let policy = resolveMagicMcpBackingPolicy(row.magicMcpServerBacking);
-    assertCanArchiveMagicMcpServerProvider({ row, policy });
+      let policy = resolveMagicMcpBackingPolicy(row.magicMcpServerBacking);
+      assertCanArchiveMagicMcpServerProvider({ row, policy });
 
-    if (row.integrationInstanceProvider) {
-      await integrationInstanceProviderService.archiveIntegrationInstanceProviderInternal({
-        tenant: d.tenant,
-        environment: d.environment,
-        integrationInstanceProvider: row.integrationInstanceProvider
+      if (row.integrationInstanceProvider) {
+        await integrationInstanceProviderService.archiveIntegrationInstanceProviderInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          integrationInstanceProvider: row.integrationInstanceProvider
+        });
+      }
+
+      let remainingActive = await db.integrationInstanceProvider.findFirst({
+        where: {
+          integrationProviderOid: row.integrationProvider.oid,
+          status: 'active',
+          isParentDeleted: false,
+          oid: row.integrationInstanceProvider?.oid
+            ? { not: row.integrationInstanceProvider.oid }
+            : undefined
+        }
       });
-    }
-
-    let remainingActive = await db.integrationInstanceProvider.findFirst({
-      where: {
-        integrationProviderOid: row.integrationProvider.oid,
-        status: 'active',
-        isParentDeleted: false,
-        oid: row.integrationInstanceProvider?.oid
-          ? { not: row.integrationInstanceProvider.oid }
-          : undefined
+      if (!remainingActive) {
+        await integrationProviderService.archiveIntegrationProviderInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          integrationProvider: row.integrationProvider
+        });
       }
     });
-    if (!remainingActive) {
-      await integrationProviderService.archiveIntegrationProviderInternal({
-        tenant: d.tenant,
-        environment: d.environment,
-        integrationProvider: row.integrationProvider
-      });
-    }
 
-    await reconcileMagicMcpServerProvidersForBacking({
-      tenant: d.tenant,
-      solution,
-      environment: d.environment,
-      magicMcpServerBackingId: row.magicMcpServerBacking.id
-    });
-
-    return await getMagicMcpServerProviderOrThrow({
-      ...scoped,
-      allowDeleted: true
-    });
+    return await getMagicMcpServerProviderOrThrow({ ...scoped, allowDeleted: true });
   }
 
   async deleteMagicMcpServerProvider(d: MetorialFacing<ArchiveMagicMcpServerProviderParams>) {

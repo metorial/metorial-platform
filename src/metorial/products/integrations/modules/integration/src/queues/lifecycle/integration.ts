@@ -4,6 +4,7 @@ import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { enqueueCallbackReconcileForIntegration } from '@metorial-subspace/module-callback/src/queues/reconcile/callback';
 import { env } from '../../env';
+import { syncMagicMcpServerProviderRows } from '../../lib/magicMcpBacking/serverProviderSync';
 import {
   createIntegrationProviderVersion,
   createIntegrationVersion
@@ -207,6 +208,8 @@ export let integrationArchiveProvidersManyQueueProcessor =
         });
       }
     }
+
+    await syncMagicMcpServerProviderRows({ integrationOids: [integration.oid] });
 
     await createIntegrationVersion({ integrationOid: integration.oid });
 

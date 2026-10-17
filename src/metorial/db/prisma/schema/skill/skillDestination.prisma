@@ -118,6 +118,9 @@ model SkillDestinationSync {
   logs Json[] @default([])
 
   repositoryPropagations SkillDestinationSyncRepositoryPropagation[]
+
+  @@index([destinationOid, status])
+  @@index([createdAt])
 }
 
 model SkillDestinationSyncRepositoryPropagation {

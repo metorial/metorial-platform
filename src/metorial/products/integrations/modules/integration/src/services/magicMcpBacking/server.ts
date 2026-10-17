@@ -20,10 +20,8 @@ import {
 import { integrationService } from '../integration';
 import { integrationInstanceService } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
-import {
-  enqueueMagicMcpServerBackingReconcile,
-  reconcileMagicMcpServerBacking
-} from '../../queues/lifecycle/magicMcpBackingReconcile';
+import { syncMagicMcpServerBacking } from '../../queues/lifecycle/magicMcpBackingSync';
+import { syncMagicMcpServerProviderRows } from '../../lib/magicMcpBacking/serverProviderSync';
 import {
   type BackingProviderInput,
   type MagicMcpBackingInputBase,
@@ -45,7 +43,6 @@ type UpsertMagicMcpServerBackingParams = {
     providers?: BackingProviderInput[];
     legacySessionTemplateId?: string | null;
     isReconciliation?: boolean;
-    deferReconcile?: boolean;
   };
 };
 
@@ -234,10 +231,6 @@ class magicMcpServerBackingServiceImpl {
           })
         : []);
 
-    let shouldRunReconcile =
-      providers.length > 0 || ownerType !== 'server_owned' || d.input.deferReconcile === false;
-    let shouldDeferReconcile = d.input.deferReconcile !== false && shouldRunReconcile;
-
     let syncTarget = await withMagicMcpBackingLock(
       `server:${d.input.id}`,
       async () =>
@@ -320,7 +313,7 @@ class magicMcpServerBackingServiceImpl {
                 input: {
                   maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
                   actorOid,
-                  isReconciling: shouldDeferReconcile
+                  isReconciling: false
                 }
               }
             );
@@ -376,21 +369,12 @@ class magicMcpServerBackingServiceImpl {
       );
     }
 
-    if (shouldDeferReconcile) {
-      await enqueueMagicMcpServerBackingReconcile({
-        tenant: d.tenant,
-        solution,
-        environment: d.environment,
-        magicMcpServerBackingId: d.input.id
-      });
-    } else if (shouldRunReconcile) {
-      await reconcileMagicMcpServerBacking({
-        tenant: d.tenant,
-        solution,
-        environment: d.environment,
-        magicMcpServerBackingId: d.input.id
-      });
-    }
+    await syncMagicMcpServerBacking({
+      tenant: d.tenant,
+      solution,
+      environment: d.environment,
+      magicMcpServerBackingId: d.input.id
+    });
 
     return {
       ...syncTarget.backing,
@@ -501,18 +485,6 @@ class magicMcpServerBackingServiceImpl {
     checkTenant(d, backing.integrationInstance);
 
     let policy = resolveMagicMcpBackingPolicy(backing);
-    let archivedAt = new Date();
-
-    await db.magicMcpServerProvider.updateMany({
-      where: {
-        magicMcpServerBackingOid: backing.oid,
-        status: { in: ['pending', 'active'] }
-      },
-      data: {
-        status: 'archived',
-        archivedAt
-      }
-    });
 
     if (
       policy.archivesIntegrationInstance &&
@@ -558,6 +530,8 @@ class magicMcpServerBackingServiceImpl {
           })
       });
     }
+
+    await syncMagicMcpServerProviderRows({ magicMcpServerBackingOids: [backing.oid] });
 
     return await this.getMagicMcpServerBackingByIdInternal(d);
   }

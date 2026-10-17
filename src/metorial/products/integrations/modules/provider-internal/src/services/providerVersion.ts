@@ -161,14 +161,17 @@ class providerVersionInternalServiceImpl {
                 });
 
             if (d.isCurrent) {
-              await db.providerVariant.updateMany({
-                where: { oid: d.variant.oid },
-                data: { currentVersionOid: providerVersion.oid }
-              });
+              if (currentVariant?.currentVersionOid !== providerVersion.oid) {
+                await db.providerVariant.updateMany({
+                  where: { oid: d.variant.oid },
+                  data: { currentVersionOid: providerVersion.oid }
+                });
+              }
               await db.providerVersion.updateMany({
                 where: {
                   providerVariantOid: d.variant.oid,
-                  oid: { not: providerVersion.oid }
+                  oid: { not: providerVersion.oid },
+                  isCurrent: true
                 },
                 data: { isCurrent: false }
               });

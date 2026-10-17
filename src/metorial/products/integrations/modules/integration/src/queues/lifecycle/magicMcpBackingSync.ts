@@ -1,16 +1,10 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import {
-  db,
-  type Environment,
-  type Solution,
-  type Tenant,
-  withTransaction
-} from '@metorial-subspace/db';
+import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
 import { sessionTemplateProviderService } from '@metorial-subspace/module-session';
 import { enqueueSessionTemplateSyncHash } from '@metorial-subspace/module-session/src/queues/lifecycle/sessionTemplateProvider';
 import { env } from '../../env';
 import { integrationInstanceGroupProviderService } from '../../services/integrationInstanceGroupProvider';
-import { reconcileMagicMcpServerProvidersForBackingWithoutLock } from '../../services/magicMcpBacking/serverProvider';
+import { syncMagicMcpServerProviderRows } from '../../lib/magicMcpBacking/serverProviderSync';
 
 export type MagicMcpBackingReconcileInput = {
   tenantId: string;
@@ -52,21 +46,6 @@ let loadScope = async (d: { tenantId: string; solutionId: string; environmentId:
   };
 };
 
-export let enqueueMagicMcpServerBackingReconcile = async (d: {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
-  magicMcpServerBackingId: string;
-}) => {
-  await magicMcpBackingReconcileQueue.add({
-    kind: 'server',
-    tenantId: d.tenant.id,
-    solutionId: d.solution.id,
-    environmentId: d.environment.id,
-    magicMcpServerBackingId: d.magicMcpServerBackingId
-  });
-};
-
 export let enqueueMagicMcpEndpointBackingReconcile = async (d: {
   tenant: Tenant;
   solution: Solution;
@@ -82,7 +61,20 @@ export let enqueueMagicMcpEndpointBackingReconcile = async (d: {
   });
 };
 
-export let reconcileMagicMcpServerBacking = async (d: {
+// Backings created before the inline sync could be left with isReconciling set.
+let clearLegacyReconcilingFlag = async (ephemeralManagedSession: {
+  oid: bigint;
+  isReconciling: boolean;
+}) => {
+  if (!ephemeralManagedSession.isReconciling) return;
+
+  await db.ephemeralManagedSession.update({
+    where: { oid: ephemeralManagedSession.oid },
+    data: { isReconciling: false }
+  });
+};
+
+export let syncMagicMcpServerBacking = async (d: {
   tenant: Tenant;
   solution: Solution;
   environment: Environment;
@@ -112,21 +104,13 @@ export let reconcileMagicMcpServerBacking = async (d: {
     });
     await enqueueSessionTemplateSyncHash(backing.sessionTemplate.id);
 
-    await reconcileMagicMcpServerProvidersForBackingWithoutLock({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      magicMcpServerBackingId: d.magicMcpServerBackingId
-    });
+    await syncMagicMcpServerProviderRows({ magicMcpServerBackingOids: [backing.oid] });
   } finally {
-    await db.ephemeralManagedSession.update({
-      where: { oid: backing.ephemeralManagedSessionOid },
-      data: { isReconciling: false }
-    });
+    await clearLegacyReconcilingFlag(backing.ephemeralManagedSession);
   }
 };
 
-export let reconcileMagicMcpEndpointBacking = async (d: {
+export let syncMagicMcpEndpointBacking = async (d: {
   tenant: Tenant;
   solution: Solution;
   environment: Environment;
@@ -190,10 +174,7 @@ export let reconcileMagicMcpEndpointBacking = async (d: {
     });
     await enqueueSessionTemplateSyncHash(backing.sessionTemplate.id);
   } finally {
-    await db.ephemeralManagedSession.update({
-      where: { oid: backing.ephemeralManagedSessionOid },
-      data: { isReconciling: false }
-    });
+    await clearLegacyReconcilingFlag(backing.ephemeralManagedSession);
   }
 };
 
@@ -202,14 +183,14 @@ export let magicMcpBackingReconcileQueueProcessor = magicMcpBackingReconcileQueu
     let scope = await loadScope(data);
 
     if (data.kind === 'server') {
-      await reconcileMagicMcpServerBacking({
+      await syncMagicMcpServerBacking({
         ...scope,
         magicMcpServerBackingId: data.magicMcpServerBackingId
       });
       return;
     }
 
-    await reconcileMagicMcpEndpointBacking({
+    await syncMagicMcpEndpointBacking({
       ...scope,
       magicMcpEndpointBackingId: data.magicMcpEndpointBackingId
     });

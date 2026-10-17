@@ -9,6 +9,7 @@ import {
   enqueueSyncIntegrationInstanceSessionTemplates
 } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
+import { syncMagicMcpServerProviderRows } from '../../lib/magicMcpBacking/serverProviderSync';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 import { enqueueIntegrationInstanceProvidersSet } from './integrationInstanceProvider';
 import { integrationInstanceService } from '../../services/integrationInstance';
@@ -52,6 +53,10 @@ export let runIntegrationInstanceArchivedEffects = async (d: {
       status: 'archived',
       archivedAt: d.archivedAt
     }
+  });
+
+  await syncMagicMcpServerProviderRows({
+    integrationInstanceOids: [d.integrationInstanceOid]
   });
 
   let ownedIdentities = await db.identity.findMany({

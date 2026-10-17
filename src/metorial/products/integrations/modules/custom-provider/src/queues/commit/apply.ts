@@ -141,7 +141,8 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
       await db.providerVersion.updateMany({
         where: {
           providerVariantOid: customProvider.providerVariantOid!,
-          oid: { not: targetVersion.providerVersionOid! }
+          oid: { not: targetVersion.providerVersionOid! },
+          isCurrent: true
         },
         data: { isCurrent: false }
       });

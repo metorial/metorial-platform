@@ -74,4 +74,5 @@ model ProviderVersion {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([isCurrent])
+  @@index([providerVariantOid])
 }

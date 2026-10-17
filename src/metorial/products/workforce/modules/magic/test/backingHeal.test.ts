@@ -105,8 +105,7 @@ describe('healMagicMcpServerBacking', () => {
       expect.objectContaining({
         input: expect.objectContaining({
           id: 'magic_server',
-          ownerIntegrationInstanceId: 'iin_1',
-          deferReconcile: false
+          ownerIntegrationInstanceId: 'iin_1'
         })
       })
     );
@@ -193,12 +192,12 @@ describe('healMagicMcpEndpointBacking', () => {
     expect(result.subspaceEphemeralManagedSessionId).toBe('ems_endpoint_new');
     expect(magicMcpServerBackingService.upsertMagicMcpServerBacking).toHaveBeenCalledWith(
       expect.objectContaining({
-        input: expect.objectContaining({ id: 'magic_server', deferReconcile: false })
+        input: expect.objectContaining({ id: 'magic_server' })
       })
     );
     expect(magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking).toHaveBeenCalledWith(
       expect.objectContaining({
-        input: expect.objectContaining({ id: 'magic_endpoint', deferReconcile: false })
+        input: expect.objectContaining({ id: 'magic_endpoint' })
       })
     );
   });

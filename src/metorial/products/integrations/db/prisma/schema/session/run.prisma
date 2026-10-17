@@ -64,6 +64,8 @@ model ProviderRun {
   @@index([lastPingAt])
   @@index([projectOid])
   @@index([metorialInstanceOid])
+  @@index([connectionOid])
+  @@index([tenantOid, createdAt])
 }
 
 model SessionProviderInstance {

@@ -77,4 +77,5 @@ model SessionProvider {
   @@index([isEphemeral])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([providerOid])
 }

@@ -466,14 +466,13 @@ describe('shared integration session templates', () => {
       providers: []
     } as any);
 
-    let promise = integrationInstanceGroupService.createSessionForIntegrationInstanceGroupInternal(
-      {
+    let promise =
+      integrationInstanceGroupService.createSessionForIntegrationInstanceGroupInternal({
         tenant: { oid: 1n } as any,
         environment: { oid: 3n } as any,
         integrationInstanceGroup: { oid: 22n, id: 'int_group_1' } as any,
         input: {}
-      }
-    );
+      });
     let rejection = expect(promise).rejects.toThrow();
 
     await vi.advanceTimersByTimeAsync(250 * 20);

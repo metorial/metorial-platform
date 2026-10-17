@@ -59,4 +59,9 @@ model SessionEvent {
   @@index([type])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([messageOid])
+  @@index([connectionOid])
+  @@index([providerRunOid])
+  @@index([sessionOid])
+  @@index([tenantOid, createdAt])
 }
