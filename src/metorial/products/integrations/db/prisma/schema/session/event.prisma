@@ -64,4 +64,6 @@ model SessionEvent {
   @@index([providerRunOid])
   @@index([sessionOid])
   @@index([tenantOid, createdAt])
+  @@index([errorOid])
+  @@index([warningOid])
 }

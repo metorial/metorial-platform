@@ -19,7 +19,10 @@ import {
   toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { isDeepStrictEqual } from 'node:util';
 import { indexAgentClientQueue } from '../queues/search/agentClient';
+
+let LAST_CONNECTED_AT_WRITE_INTERVAL_MS = 30_000;
 
 type AgentClientInput =
   | {
@@ -139,6 +142,9 @@ class agentClientServiceImpl {
   async upsertAgentClientInternal(d: UpsertAgentClientParams) {
     let solution = await getMetorialSolution();
 
+    let unchanged = await this.findUnchangedAgentClient(d, solution.oid);
+    if (unchanged) return unchanged;
+
     return await withTransaction(async db => {
       let newId = getId('agentClient');
 
@@ -200,6 +206,46 @@ class agentClientServiceImpl {
 
       return { agentClient, agentClientRegistration };
     });
+  }
+
+  private async findUnchangedAgentClient(d: UpsertAgentClientParams, solutionOid: number) {
+    let matchesMetadata = (current: unknown) =>
+      d.input.privateMetadata === undefined ||
+      isDeepStrictEqual(current, d.input.privateMetadata);
+
+    let agentClient = await db.agentClient.findUnique({
+      where: { foreignId: d.input.foreignId }
+    });
+
+    let isUnchanged =
+      agentClient &&
+      agentClient.name === d.input.name.trim() &&
+      agentClient.type === d.input.type &&
+      matchesMetadata(agentClient.privateMetadata) &&
+      agentClient.tenantOid === d.tenant.oid &&
+      agentClient.projectOid === d.tenant.projectOid &&
+      agentClient.solutionOid === solutionOid &&
+      agentClient.environmentOid === d.environment.oid &&
+      agentClient.instanceOid === d.environment.instanceOid &&
+      agentClient.lastConnectedAt &&
+      Date.now() - agentClient.lastConnectedAt.getTime() < LAST_CONNECTED_AT_WRITE_INTERVAL_MS;
+    if (!agentClient || !isUnchanged) return null;
+
+    if (d.input.type !== 'mcp_client_oauth') {
+      return { agentClient, agentClientRegistration: null };
+    }
+
+    let agentClientRegistration = await db.agentClientRegistration.findUnique({
+      where: { oauthRegistrationId: d.input.oauthRegistrationId }
+    });
+
+    let registrationUnchanged =
+      agentClientRegistration &&
+      agentClientRegistration.agentClientOid === agentClient.oid &&
+      matchesMetadata(agentClientRegistration.privateMetadata);
+    if (!agentClientRegistration || !registrationUnchanged) return null;
+
+    return { agentClient, agentClientRegistration };
   }
 
   async createAgentClient(d: MetorialFacing<CreateAgentClientParams>) {

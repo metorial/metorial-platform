@@ -37,4 +37,5 @@ model SessionWarning {
   @@index([instanceOid])
   @@index([connectionOid])
   @@index([tenantOid, createdAt])
+  @@index([sessionOid])
 }

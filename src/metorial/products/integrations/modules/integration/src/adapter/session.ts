@@ -13,7 +13,10 @@ import {
 } from '@metorial-subspace/db';
 import { buildIntegrationProviderToolFilterChain } from '@metorial-subspace/module-provider-internal';
 import { sessionService } from '@metorial-subspace/module-session';
-import { createSessionRecord } from '@metorial-subspace/module-session/src/services/_shared/createSession';
+import {
+  createSessionRecord,
+  resolveSessionRecordProviders
+} from '@metorial-subspace/module-session/src/services/_shared/createSession';
 import { assertInternalAdapterSupportedBySession } from '@metorial-subspace/module-session/src/services/_shared/internalAdapter';
 import { addDays } from 'date-fns';
 import { env } from '../env';
@@ -167,6 +170,21 @@ let rotateAdapterInstanceProviderSession = async (d: {
   let adapterGlobal = d.provider.adapterIntegration.adapterGlobal;
   let integrationInstance = d.provider.adapterIntegrationInstance.integrationInstance;
 
+  let providers = [
+    {
+      deploymentId: d.material.deployment.id,
+      configId: d.material.config.id,
+      authConfigId: d.material.authConfig?.id,
+      toolFilters: d.material.toolFilter as PrismaJson.ToolFilter | null
+    }
+  ];
+
+  let resolvedProviders = await resolveSessionRecordProviders({
+    tenant: d.tenant,
+    environment: d.environment,
+    providers
+  });
+
   return withTransaction(async db => {
     let session = await createSessionRecord({
       tenant: d.tenant,
@@ -176,16 +194,8 @@ let rotateAdapterInstanceProviderSession = async (d: {
       adapterGlobalOid: adapterGlobal.oid,
       identityActorOid: integrationInstance.identityActorOid ?? null,
       identityOid: integrationInstance.identityOid ?? null,
-      input: {
-        providers: [
-          {
-            deploymentId: d.material.deployment.id,
-            configId: d.material.config.id,
-            authConfigId: d.material.authConfig?.id,
-            toolFilters: d.material.toolFilter as PrismaJson.ToolFilter | null
-          }
-        ]
-      }
+      input: { providers },
+      resolvedProviders
     });
 
     await assertInternalAdapterSupportedBySession({

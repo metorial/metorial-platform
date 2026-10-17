@@ -44,9 +44,7 @@ export type MagicMcpSubspaceSessionInfo = {
   magicMcpTarget: MagicMcpTargetForRouting;
   subspaceSessionId: string;
   magicMcpToken: MagicMcpTokenForRouting | null;
-  consumerToken: Awaited<
-    ReturnType<(typeof consumerIntegrationService)['findConsumerTokenByMagicMcpToken']>
-  > | null;
+  consumerToken: MagicMcpTokenForRouting['consumerTokens'][number] | null;
   consumerProfileForOwnership: MagicMcpSessionOwnerConsumerProfile | null;
   agentClient?: ConnectionMcpAgentClient | null;
 };
@@ -73,7 +71,10 @@ let ensureMagicMcpTokenAccess = async (d: {
   }
 };
 
-let resolveMagicMcpTargetFromToken = async (d: { token: MagicMcpTokenForRouting }) => {
+let resolveMagicMcpTargetFromToken = async (d: {
+  token: MagicMcpTokenForRouting;
+  currentTarget: MagicMcpTargetForRouting | null;
+}) => {
   if (d.token.magicMcpServer && d.token.magicMcpEndpoint) {
     throw new ServiceError(
       badRequestError({
@@ -82,12 +83,19 @@ let resolveMagicMcpTargetFromToken = async (d: { token: MagicMcpTokenForRouting 
     );
   }
 
-  let magicMcpTargetIdOrAlias = d.token.magicMcpEndpoint?.id ?? d.token.magicMcpServer?.id;
-  if (!magicMcpTargetIdOrAlias) {
-    return null;
+  // A token-linked server only fills in a missing target, and a token-linked endpoint only
+  // replaces a missing or server target, so skip resolving when the result would be discarded.
+  if (d.token.magicMcpEndpoint) {
+    if (d.currentTarget?.type == 'endpoint') return null;
+    return await resolveMagicMcpTargetByIdOrAlias(d.token.magicMcpEndpoint.id);
   }
 
-  return await resolveMagicMcpTargetByIdOrAlias(magicMcpTargetIdOrAlias);
+  if (d.token.magicMcpServer) {
+    if (d.currentTarget) return null;
+    return await resolveMagicMcpTargetByIdOrAlias(d.token.magicMcpServer.id);
+  }
+
+  return null;
 };
 
 let isMagicMcpTokenLinkedToTarget = (
@@ -166,13 +174,14 @@ let ensureMagicMcpApiKeyAccess = async (d: {
   return null;
 };
 
-let resolveAgentClientForConsumerToken = (d: {
-  consumerToken: Awaited<
-    ReturnType<(typeof consumerIntegrationService)['findConsumerTokenByMagicMcpToken']>
+let resolveAgentClientForConsumerAuthClient = (d: {
+  consumerAuthClient: Awaited<
+    ReturnType<
+      (typeof consumerIntegrationService)['findLatestConsumerAuthClientForMagicMcpToken']
+    >
   >;
 }): ConnectionMcpAgentClient | null => {
-  let consumerAuthClient =
-    d.consumerToken?.magicMcpToken.consumerAuthAttempts[0]?.consumerAuthClient;
+  let consumerAuthClient = d.consumerAuthClient;
   if (!consumerAuthClient) return null;
   let consumerClient =
     consumerAuthClient.consumerAuthClientSurfaces[0]?.consumerClient ?? null;
@@ -227,16 +236,11 @@ export let resolveMagicMcpSubspaceSession = async (d: {
       ((magicMcpToken.magicMcpEndpointOid || magicMcpToken.magicMcpServerOid) &&
         !isMagicMcpTokenLinkedToTarget(magicMcpToken, magicMcpTarget)))
   ) {
-    let tokenTarget = await resolveMagicMcpTargetFromToken({ token: magicMcpToken });
-
-    if (tokenTarget?.type == 'server' && !magicMcpTarget) {
-      magicMcpTarget = tokenTarget;
-    } else if (
-      tokenTarget?.type == 'endpoint' &&
-      (!magicMcpTarget || magicMcpTarget.type == 'server')
-    ) {
-      magicMcpTarget = tokenTarget;
-    }
+    let tokenTarget = await resolveMagicMcpTargetFromToken({
+      token: magicMcpToken,
+      currentTarget: magicMcpTarget
+    });
+    if (tokenTarget) magicMcpTarget = tokenTarget;
   }
 
   if (!magicMcpTarget) {
@@ -276,13 +280,17 @@ export let resolveMagicMcpSubspaceSession = async (d: {
   }
 
   let subspaceSessionId = await ensureMagicMcpSubspaceSession(magicMcpTarget);
-  let consumerToken = magicMcpToken
-    ? await consumerIntegrationService.findConsumerTokenByMagicMcpToken({
-        magicMcpToken
-      })
-    : null;
+
+  let consumerToken = magicMcpToken?.consumerTokens[0] ?? null;
   consumerProfileForOwnership = consumerToken?.consumerProfile ?? consumerProfileForOwnership;
-  let agentClient = resolveAgentClientForConsumerToken({ consumerToken });
+
+  let consumerAuthClient =
+    magicMcpToken && consumerToken
+      ? await consumerIntegrationService.findLatestConsumerAuthClientForMagicMcpToken({
+          magicMcpToken
+        })
+      : null;
+  let agentClient = resolveAgentClientForConsumerAuthClient({ consumerAuthClient });
 
   return {
     type: 'magic_mcp_subspace_session',

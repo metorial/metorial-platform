@@ -2,18 +2,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => {
   let agentClientUpsert = vi.fn();
+  let agentClientFindUnique = vi.fn();
   let agentClientRegistrationUpsert = vi.fn();
   let addAfterTransactionHook = vi.fn();
   let indexAgentClientQueueAdd = vi.fn();
 
   let db = {
-    agentClient: { upsert: agentClientUpsert },
+    agentClient: { upsert: agentClientUpsert, findUnique: agentClientFindUnique },
     agentClientRegistration: { upsert: agentClientRegistrationUpsert }
   };
 
   return {
     db,
     agentClientUpsert,
+    agentClientFindUnique,
     agentClientRegistrationUpsert,
     addAfterTransactionHook,
     indexAgentClientQueueAdd
@@ -65,6 +67,45 @@ describe('Agent client double writes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.agentClientUpsert.mockResolvedValue({ oid: 500n, id: 'kac_new' });
+    mocks.agentClientFindUnique.mockResolvedValue(null);
+  });
+
+  let existingClient = {
+    oid: 9n,
+    id: 'kac_existing',
+    name: 'Probe',
+    type: 'system_client',
+    privateMetadata: null,
+    tenantOid: 1n,
+    projectOid: 2n,
+    solutionOid: 7,
+    environmentOid: 3n,
+    instanceOid: 4n,
+    lastConnectedAt: new Date()
+  };
+
+  it('returns a recently connected, unchanged client without writing', async () => {
+    mocks.agentClientFindUnique.mockResolvedValue(existingClient);
+
+    let result = await agentClientService.upsertAgentClientInternal({
+      tenant,
+      environment,
+      input
+    });
+
+    expect(result).toEqual({ agentClient: existingClient, agentClientRegistration: null });
+    expect(mocks.agentClientUpsert).not.toHaveBeenCalled();
+  });
+
+  it('refreshes lastConnectedAt once the write interval has passed', async () => {
+    mocks.agentClientFindUnique.mockResolvedValue({
+      ...existingClient,
+      lastConnectedAt: new Date(Date.now() - 60_000)
+    });
+
+    await agentClientService.upsertAgentClientInternal({ tenant, environment, input });
+
+    expect(mocks.agentClientUpsert).toHaveBeenCalledTimes(1);
   });
 
   it('mirrors the tenant and environment oids in both upsert branches', async () => {

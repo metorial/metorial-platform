@@ -1,3 +1,4 @@
+import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { Service } from '@lowerdeck/service';
 import {
   db,
@@ -20,61 +21,60 @@ import {
 
 export let DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD = 2;
 
-let CACHE_TTL_MS = 10_000;
+let GLOBAL_FILTERS_CACHE_TTL_SECONDS = 60;
+let TENANT_CONFIG_CACHE_TTL_SECONDS = 10;
 
-type CachedEvaluationConfig = {
-  expiresAt: number;
-  alertFilterCountThreshold: number;
-  filters: {
-    key: string;
-    oid: bigint;
-    enabled: boolean;
-    alertConfidenceThreshold: number;
-  }[];
-};
+let getGlobalFilters = createLocallyCachedFunction({
+  getHash: () => 'filters',
+  provider: async () =>
+    db.protoGuardFilter.findMany({
+      select: {
+        oid: true,
+        key: true,
+        defaultEnabled: true,
+        alertConfidenceThreshold: true
+      }
+    }),
+  ttlSeconds: GLOBAL_FILTERS_CACHE_TTL_SECONDS
+});
 
-let cache = new Map<string, CachedEvaluationConfig>();
+let getTenantConfig = createLocallyCachedFunction({
+  getHash: (d: { tenantOid: bigint }) => String(d.tenantOid),
+  provider: async (d: { tenantOid: bigint }) => {
+    let [filters, tenantFilterSettings, tenantSetting] = await Promise.all([
+      getGlobalFilters(undefined),
+      db.protoGuardTenantFilterSetting.findMany({ where: { tenantOid: d.tenantOid } }),
+      db.protoGuardTenantSetting.findUnique({ where: { tenantOid: d.tenantOid } })
+    ]);
 
-let clearTenantCache = (tenantOid: bigint) => {
-  cache.delete(String(tenantOid));
-};
+    let settingByFilterOid = new Map(
+      tenantFilterSettings.map(setting => [setting.filterOid, setting])
+    );
 
-export let getProtoGuardConfigForEvaluation = async (d: { tenantOid: bigint }) => {
-  let cacheKey = String(d.tenantOid);
-  let cached = cache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached;
+    return {
+      alertFilterCountThreshold:
+        tenantSetting?.alertFilterCountThreshold ??
+        DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD,
+      filters: filters.map(filter => {
+        let setting = settingByFilterOid.get(filter.oid);
 
-  let [filters, tenantFilterSettings, tenantSetting] = await Promise.all([
-    db.protoGuardFilter.findMany(),
-    db.protoGuardTenantFilterSetting.findMany({ where: { tenantOid: d.tenantOid } }),
-    db.protoGuardTenantSetting.findUnique({ where: { tenantOid: d.tenantOid } })
-  ]);
+        return {
+          key: filter.key,
+          oid: filter.oid,
+          enabled: setting?.enabled ?? filter.defaultEnabled,
+          alertConfidenceThreshold:
+            setting?.alertConfidenceThreshold ?? filter.alertConfidenceThreshold
+        };
+      })
+    };
+  },
+  ttlSeconds: TENANT_CONFIG_CACHE_TTL_SECONDS
+});
 
-  let settingByFilterOid = new Map(
-    tenantFilterSettings.map(setting => [setting.filterOid, setting])
-  );
+let clearTenantCache = (tenantOid: bigint) => getTenantConfig.clearAndWait({ tenantOid });
 
-  let result = {
-    expiresAt: Date.now() + CACHE_TTL_MS,
-    alertFilterCountThreshold:
-      tenantSetting?.alertFilterCountThreshold ??
-      DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD,
-    filters: filters.map(filter => {
-      let setting = settingByFilterOid.get(filter.oid);
-
-      return {
-        key: filter.key,
-        oid: filter.oid,
-        enabled: setting?.enabled ?? filter.defaultEnabled,
-        alertConfidenceThreshold:
-          setting?.alertConfidenceThreshold ?? filter.alertConfidenceThreshold
-      };
-    })
-  };
-
-  cache.set(cacheKey, result);
-  return result;
-};
+export let getProtoGuardConfigForEvaluation = async (d: { tenantOid: bigint }) =>
+  getTenantConfig({ tenantOid: d.tenantOid });
 
 export type ListProtoGuardFiltersParams = { tenant: Tenant };
 export type SetTenantFilterEnabledParams = {
@@ -110,7 +110,8 @@ let toFilterSettingAuditPayload = (
   settingId: setting?.id ?? null,
   enabled: setting?.enabled ?? filter.defaultEnabled,
   isUsingDefaultEnabled: !setting,
-  alertConfidenceThreshold: setting?.alertConfidenceThreshold ?? filter.alertConfidenceThreshold,
+  alertConfidenceThreshold:
+    setting?.alertConfidenceThreshold ?? filter.alertConfidenceThreshold,
   isUsingDefaultConfidenceThreshold: setting?.alertConfidenceThreshold == null
 });
 
@@ -213,7 +214,7 @@ class protoGuardConfigServiceImpl {
       }
     });
 
-    clearTenantCache(d.tenant.oid);
+    await clearTenantCache(d.tenant.oid);
     return setting;
   }
 
@@ -278,7 +279,7 @@ class protoGuardConfigServiceImpl {
       }
     });
 
-    clearTenantCache(d.tenant.oid);
+    await clearTenantCache(d.tenant.oid);
     return setting;
   }
 
@@ -313,7 +314,7 @@ class protoGuardConfigServiceImpl {
       await db.protoGuardTenantSetting.deleteMany({
         where: { tenantOid: d.tenant.oid }
       });
-      clearTenantCache(d.tenant.oid);
+      await clearTenantCache(d.tenant.oid);
       return null;
     }
 
@@ -328,7 +329,7 @@ class protoGuardConfigServiceImpl {
       }
     });
 
-    clearTenantCache(d.tenant.oid);
+    await clearTenantCache(d.tenant.oid);
     return setting;
   }
 }

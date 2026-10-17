@@ -24,6 +24,8 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 
+let LAST_CONNECTED_AT_WRITE_INTERVAL_MS = 30_000;
+
 let include = {
   agent: true,
   agentClient: true,
@@ -166,6 +168,19 @@ class agentInstanceServiceImpl {
         d.input.type
       ])
     );
+
+    let existing = await db.agentInstance.findUnique({
+      where: { agentOid_hash: { agentOid: d.agent.oid, hash } },
+      include
+    });
+
+    let description = d.input.description?.trim() || undefined;
+    let isUnchanged =
+      existing &&
+      (description === undefined || existing.description === description) &&
+      existing.lastConnectedAt &&
+      Date.now() - existing.lastConnectedAt.getTime() < LAST_CONNECTED_AT_WRITE_INTERVAL_MS;
+    if (existing && isUnchanged) return existing;
 
     return await withTransaction(async db => {
       return await db.agentInstance.upsert({

@@ -112,6 +112,9 @@ model SessionMessage {
   createdAt   DateTime  @default(now())
   completedAt DateTime?
 
+  activityCountedAt DateTime?
+  finalizedAt       DateTime?
+
   sessionEvents    SessionEvent[]
   chatEvents       ChatEvent[]
   providerTool     ProviderTool?     @relation(fields: [providerToolOid], references: [oid])
@@ -129,10 +132,12 @@ model SessionMessage {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([providerRunOid])
-  @@index([connectionOid])
+  @@index([connectionOid, oid])
   @@index([sessionOid])
   @@index([parentMessageOid])
   @@index([tenantOid, createdAt])
+  @@index([errorOid])
+  @@index([slateToolCallOid])
 }
 
 model SessionMessageStorageBucket {
@@ -190,6 +195,8 @@ model ToolCall {
   @@index([createdAt])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([sessionOid])
+  @@index([providerRunOid])
 }
 
 model ToolCallAttachment {

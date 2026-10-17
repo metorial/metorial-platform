@@ -4,7 +4,7 @@ import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sd
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type { ChatBody, ChatContext, LinkUnfurl, ReactionCount } from '@slates/adapter-chat';
-import { PrismaClient } from '../prisma/generated/client';
+import { Prisma, PrismaClient } from '../prisma/generated/client';
 import type {
   CustomProviderConfig,
   CustomProviderFrom,
@@ -45,13 +45,15 @@ let replicaAdapter = replicaUrl
 
 let replicaClient = replicaAdapter ? new PrismaClient({ adapter: replicaAdapter }) : undefined;
 
-let baseClient = new PrismaClient({
+let primaryClient = new PrismaClient({
   adapter: mainAdapter,
   transactionOptions: {
     maxWait: 10000,
     timeout: 12000
   }
 });
+
+let baseClient = primaryClient;
 
 if (replicaClient) {
   baseClient = baseClient.$extends(
@@ -73,7 +75,7 @@ let loadsRelations = (args: any) =>
     (!!args.select &&
       Object.values(args.select).some(value => typeof value === 'object' && value !== null)));
 
-export let db = baseClient.$extends({
+let queryExtension = Prisma.defineExtension({
   query: {
     $allModels: {
       async $allOperations({ operation, args, query }) {
@@ -94,6 +96,12 @@ export let db = baseClient.$extends({
     }
   }
 });
+
+export let db = baseClient.$extends(queryExtension);
+
+// Reads that must observe a write another process made moments ago (queue jobs, the conduit
+// receiver) bypass the read replica, which may lag behind the primary.
+export let dbPrimary = primaryClient.$extends(queryExtension) as unknown as typeof db;
 
 declare global {
   namespace PrismaJson {

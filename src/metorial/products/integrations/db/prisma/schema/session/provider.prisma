@@ -78,4 +78,5 @@ model SessionProvider {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([providerOid])
+  @@index([fromTemplateOid])
 }

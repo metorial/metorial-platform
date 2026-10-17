@@ -274,25 +274,6 @@ let cleanupProviderRuns = async (d: { tenantOid: bigint; cutoffDate: Date }) => 
   });
 };
 
-let cleanupSessionUsageRecords = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
-  return retentionPhaseBatch<{ id: string }>({
-    findMany: () =>
-      db.sessionUsageRecord.findMany({
-        where: {
-          tenantOid: d.tenantOid,
-          createdAt: { lt: d.cutoffDate }
-        },
-        orderBy: { createdAt: 'asc' },
-        take: RETENTION_BATCH_SIZE,
-        select: { id: true }
-      }),
-    deleteMany: records =>
-      db.sessionUsageRecord.deleteMany({
-        where: { id: { in: records.map(record => record.id) } }
-      })
-  });
-};
-
 let cleanupSessionConnections = async (d: { tenantOid: bigint; cutoffDate: Date }) => {
   return retentionPhaseBatch<{ oid: bigint }>({
     findMany: () =>
@@ -543,7 +524,6 @@ let tenantLogRetentionRunner = createRetentionRunner<TenantLogRetentionTenant>({
     sessionErrors: d => cleanupSessionErrors(d),
     providerRunUsageRecords: d => cleanupProviderRunUsageRecords(d),
     providerRuns: d => cleanupProviderRuns(d),
-    sessionUsageRecords: d => cleanupSessionUsageRecords(d),
     sessionConnections: d => cleanupSessionConnections(d),
     providerAuthExports: d => cleanupProviderAuthExports(d),
     providerAuthImports: d => cleanupProviderAuthImports(d),

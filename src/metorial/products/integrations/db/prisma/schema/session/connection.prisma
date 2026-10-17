@@ -108,11 +108,13 @@ model SessionConnection {
 
   @@index([createdAt])
   @@index([lastActiveAt])
-  @@index([state])
+  @@index([state, lastActiveAt])
   @@index([status])
   @@index([isInternal])
   @@index([adapterGlobalOid])
   @@index([tenantOid, environmentOid, isInternal, createdAt])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([sessionOid, state])
+  @@index([tenantOid, createdAt])
 }
