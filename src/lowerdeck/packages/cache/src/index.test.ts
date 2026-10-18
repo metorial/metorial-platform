@@ -36,6 +36,45 @@ describe('createCachedFunction', () => {
     expect(await cached('key')).toBe('value:key:2');
     expect(provider).toHaveBeenCalledTimes(2);
   });
+
+  it('revalidates values served from redis but not freshly computed ones', async () => {
+    let provider = vi.fn(async (key: string) => `value:${key}:${provider.mock.calls.length}`);
+    let revalidate = vi.fn(async () => false);
+    let options = {
+      name: 'revalidate-redis',
+      redisUrl: 'redis://test',
+      getHash: (key: string) => key,
+      provider,
+      revalidate,
+      ttlSeconds: 60
+    };
+
+    expect(await createCachedFunction(options)('key')).toBe('value:key:1');
+    expect(revalidate).not.toHaveBeenCalled();
+
+    expect(await createCachedFunction(options)('key')).toBe('value:key:2');
+    expect(revalidate).toHaveBeenCalledWith('value:key:1', 'key');
+    expect(provider).toHaveBeenCalledTimes(2);
+  });
+
+  it('serves a local hit that still revalidates', async () => {
+    let provider = vi.fn(async (key: string) => `value:${key}`);
+    let revalidate = vi.fn(async () => true);
+    let cached = createCachedFunction({
+      name: 'revalidate-local',
+      redisUrl: 'redis://test',
+      getHash: (key: string) => key,
+      provider,
+      revalidate,
+      ttlSeconds: 60
+    });
+
+    await cached('key');
+    expect(await cached('key')).toBe('value:key');
+
+    expect(revalidate).toHaveBeenCalledTimes(1);
+    expect(provider).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('createLocallyCachedFunction', () => {
@@ -66,6 +105,26 @@ describe('createLocallyCachedFunction', () => {
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
+  });
+
+  it('revalidates hits only and recomputes values that fail it', async () => {
+    let provider = vi.fn(async (key: string) => `value:${key}:${provider.mock.calls.length}`);
+    let revalidate = vi.fn(async (value: string) => value.endsWith(':2'));
+    let cached = createLocallyCachedFunction({
+      getHash: (key: string) => key,
+      provider,
+      revalidate,
+      ttlSeconds: 60
+    });
+
+    expect(await cached('key')).toBe('value:key:1');
+    expect(revalidate).not.toHaveBeenCalled();
+
+    expect(await cached('key')).toBe('value:key:2');
+    expect(await cached('key')).toBe('value:key:2');
+
+    expect(revalidate).toHaveBeenCalledTimes(2);
+    expect(provider).toHaveBeenCalledTimes(2);
   });
 
   it('keeps values for ttlSeconds, not milliseconds', async () => {

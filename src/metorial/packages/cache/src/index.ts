@@ -10,6 +10,7 @@ export let createCachedFunction = <I, O>(opts: {
   provider: (i: I, opts: { setTTL: (ttl: number) => void }) => Promise<O>;
   ttlSeconds: number;
   getTags?: (o: O, i: I) => string[];
+  revalidate?: (o: O, i: I) => Promise<boolean>;
 }) => {
   return innerCreateCachedFunction({
     ...opts,
@@ -21,6 +22,7 @@ export let createLocallyCachedFunction = <I, O>(opts: {
   getHash: (i: I) => string;
   provider: (i: I) => Promise<O>;
   ttlSeconds: number;
+  revalidate?: (o: O, i: I) => Promise<boolean>;
 }) => {
   return innerCreateLocallyCachedFunction(opts);
 };

@@ -20,6 +20,7 @@ export let createCachedFunction = <I, O>(opts: {
   provider: (i: I, opts: { setTTL: (ttl: number) => void }) => Promise<O>;
   ttlSeconds: number;
   getTags?: (o: O, i: I) => string[];
+  revalidate?: (o: O, i: I) => Promise<boolean>;
 }) => {
   let active = new Map<string, Promise<O>>();
   let cache = new LRUCache<string, any>({
@@ -32,18 +33,33 @@ export let createCachedFunction = <I, O>(opts: {
   let getHash = (i: I) => `cache:${version}:${opts.name}:val:${opts.getHash(i)}`;
   let getTagKeys = (tags: string[]) => tags.map(tag => `cache:${version}:tag:${tag}`);
 
+  let readCached = async (hash: string): Promise<{ value: O; local: boolean } | null> => {
+    if (cache.has(hash)) return { value: cache.get(hash), local: true };
+
+    let redis = await useRedisClient();
+    let value = await redis.get(hash);
+    if (!value) return null;
+
+    return { value: SuperJson.parse(value), local: false };
+  };
+
   let run = async (i: I): Promise<O> => {
     let hash = getHash(i);
     if (active.has(hash)) return await active.get(hash)!;
-    if (cache.has(hash)) return cache.get(hash)!;
+    if (cache.has(hash) && !opts.revalidate) return cache.get(hash)!;
 
     let promise = (async () => {
       let redis = await useRedisClient();
-      let value = await redis.get(hash);
-      if (value) {
-        let parsed = SuperJson.parse(value);
-        cache.set(hash, parsed);
-        return parsed;
+
+      let cached = await readCached(hash);
+      if (cached) {
+        if (!opts.revalidate || (await opts.revalidate(cached.value, i))) {
+          if (!cached.local) cache.set(hash, cached.value);
+          return cached.value;
+        }
+
+        cache.delete(hash);
+        await redis.del(hash);
       }
 
       let ttl = { current: opts.ttlSeconds };
@@ -139,6 +155,7 @@ export let createLocallyCachedFunction = <I, O>(opts: {
   getHash: (i: I) => string;
   provider: (i: I) => Promise<O>;
   ttlSeconds: number;
+  revalidate?: (o: O, i: I) => Promise<boolean>;
 }) => {
   let cache = new LRUCache<string, any>({ max: 500, ttl: opts.ttlSeconds * 1000 });
 
@@ -149,9 +166,16 @@ export let createLocallyCachedFunction = <I, O>(opts: {
   let run = async (i: I): Promise<O> => {
     let hash = getHash(i);
     if (active.has(hash)) return await active.get(hash)!;
-    if (cache.has(hash)) return cache.get(hash)!;
+    if (cache.has(hash) && !opts.revalidate) return cache.get(hash)!;
 
     let promise = (async () => {
+      if (cache.has(hash)) {
+        let cached: O = cache.get(hash);
+        if (await opts.revalidate!(cached, i)) return cached;
+
+        cache.delete(hash);
+      }
+
       let result = await opts.provider(i);
       cache.set(hash, result);
       return result;
