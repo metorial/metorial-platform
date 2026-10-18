@@ -260,7 +260,7 @@ export type DashboardInstanceCustomProvidersVersionsCreateBody = {
         type: 'remote';
         remoteUrl: string;
         oauthConfig?: Record<string, any> | undefined;
-        protocol: 'sse' | 'streamable_http';
+        protocol: 'sse' | 'streamable_http' | 'stateless';
       }
     | {
         type: 'function';

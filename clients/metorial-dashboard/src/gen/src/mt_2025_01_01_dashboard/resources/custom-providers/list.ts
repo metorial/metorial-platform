@@ -26,7 +26,7 @@ export type CustomProvidersListOutput = {
         | {
             object: 'custom_provider.draft.remote';
             url: string;
-            transport: 'sse' | 'streamable_http';
+            transport: 'sse' | 'streamable_http' | 'stateless';
           }
         | undefined;
       config: {
