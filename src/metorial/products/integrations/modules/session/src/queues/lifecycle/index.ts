@@ -12,6 +12,7 @@ import {
   syncIntegrationInstanceSessionTemplatesQueueProcessor
 } from './linkedSessionTemplate';
 import {
+  sessionArchivedChildrenQueueProcessor,
   sessionArchivedQueueProcessor,
   sessionCreatedQueueProcessor,
   sessionDeletedQueueProcessor,
@@ -34,6 +35,7 @@ export let lifecycleQueues = combineQueueProcessors([
   sessionUpdatedQueueProcessor,
   sessionDeletedQueueProcessor,
   sessionArchivedQueueProcessor,
+  sessionArchivedChildrenQueueProcessor,
   sessionDeletedQueueProcessor,
   sessionProviderCreatedQueueProcessor,
   syncIntegrationInstanceSessionTemplatesQueueProcessor,

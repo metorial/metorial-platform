@@ -1,5 +1,5 @@
-import { createQueue } from '@lowerdeck/queue';
-import { db, getId } from '@metorial-subspace/db';
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { db, dbPrimary, getId } from '@metorial-subspace/db';
 import { v7 } from 'uuid';
 import { env } from '../../env';
 
@@ -10,11 +10,10 @@ export let providerRunStartQueue = createQueue<{ providerRunId: string }>({
 });
 
 export let providerRunStartQueueProcessor = providerRunStartQueue.process(async data => {
-  let providerRun = await db.providerRun.findFirst({
-    where: { id: data.providerRunId },
-    include: { session: true }
+  let providerRun = await dbPrimary.providerRun.findUnique({
+    where: { id: data.providerRunId }
   });
-  if (!providerRun) return;
+  if (!providerRun) throw new QueueRetryError();
 
   await db.providerRunUsageRecord.createMany({
     data: {

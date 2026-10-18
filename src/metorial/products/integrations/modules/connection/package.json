@@ -9,6 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/case": "workspace:2.0.0",
     "@lowerdeck/cron": "workspace:2.0.0",
@@ -48,6 +49,7 @@
     "@types/lodash": "^4.17.23",
     "date-fns": "^4.1.0",
     "lodash": "^4.17.23",
+    "lru-cache": "^11.2.4",
     "nats": "^2.29.3",
     "uuid": "^13.0.0",
     "zod": "^4.3.5"

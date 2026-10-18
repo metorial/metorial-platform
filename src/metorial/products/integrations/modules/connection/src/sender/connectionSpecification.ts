@@ -1,11 +1,20 @@
 import type { ConduitListToolsResult } from '@metorial-subspace/connection-utils';
 import { db, type ProviderVersion } from '@metorial-subspace/db';
 import { getBackend } from '@metorial-subspace/provider';
+import { LRUCache } from 'lru-cache';
 import { getConnectionProviderSpecification } from '../shared/connectionSpecification';
 
 // A failed discovery is retried on the next tools/list instead of poisoning the
 // connection, but not more often than this.
 let FAILED_DISCOVERY_RETRY_MS = 30_000;
+
+let CONNECTION_SCOPED_CACHE_MAX = 5_000;
+let CONNECTION_SCOPED_CACHE_TTL_MS = 10 * 60 * 1000;
+
+let connectionScopedByVersionOid = new LRUCache<bigint, boolean>({
+  max: CONNECTION_SCOPED_CACHE_MAX,
+  ttl: CONNECTION_SCOPED_CACHE_TTL_MS
+});
 
 export type ConnectionScopedSpecification = {
   specificationOid: bigint | null;
@@ -19,6 +28,21 @@ export let isConnectionScopedProviderVersion = async (providerVersion: ProviderV
   });
 
   return behavior.discoverPerConnection;
+};
+
+export let isConnectionScopedProviderVersionOid = async (providerVersionOid: bigint) => {
+  let cached = connectionScopedByVersionOid.get(providerVersionOid);
+  if (cached !== undefined) return cached;
+
+  let providerVersion = await db.providerVersion.findFirst({
+    where: { oid: providerVersionOid }
+  });
+  if (!providerVersion) return false;
+
+  let isConnectionScoped = await isConnectionScopedProviderVersion(providerVersion);
+  connectionScopedByVersionOid.set(providerVersionOid, isConnectionScoped);
+
+  return isConnectionScoped;
 };
 
 export let resolveConnectionScopedSpecification = async (d: {

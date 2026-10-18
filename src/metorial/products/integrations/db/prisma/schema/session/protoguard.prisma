@@ -147,6 +147,7 @@ model ProtoGuardRun {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([connectionOid])
+  @@index([providerRunOid])
 }
 
 model ProtoGuardAlert {
@@ -199,6 +200,7 @@ model ProtoGuardAlert {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([connectionOid])
+  @@index([providerRunOid])
 }
 
 model ProtoGuardAlertInstance {
@@ -230,4 +232,5 @@ model ProtoGuardAlertInstance {
 
   @@index([filterOid, issueType])
   @@index([severity])
+  @@index([alertOid])
 }

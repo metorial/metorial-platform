@@ -1,6 +1,11 @@
+import { delay } from '@lowerdeck/delay';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { serialize } from '@lowerdeck/serialize';
-import type { BroadcastMessage, ConduitResult } from '@metorial-subspace/connection-utils';
+import {
+  type BroadcastMessage,
+  type ConduitResult,
+  getOffloadedSessionMessage
+} from '@metorial-subspace/connection-utils';
 import { db, type SessionMessage } from '@metorial-subspace/db';
 import { broadcastNats } from '../lib/nats';
 import { topics } from '../lib/topic';
@@ -11,6 +16,35 @@ import {
   SenderManager,
   type SenderMangerProps
 } from './manager';
+
+let REPLAY_STORAGE_POLL_ATTEMPTS = 10;
+let REPLAY_STORAGE_POLL_INTERVAL_MS = 500;
+let REPLAY_STORAGE_POLL_MAX_MESSAGE_AGE_MS = 30_000;
+
+// A body offloaded straight to storage may still be in flight, or may have been put back
+// into the row after a failed write, so recent messages are polled for both.
+let readReplayOutput = async (msg: SessionMessage) => {
+  if (!msg.isOffloadedToStorage) return msg.output;
+
+  let isRecent = Date.now() - msg.createdAt.getTime() < REPLAY_STORAGE_POLL_MAX_MESSAGE_AGE_MS;
+  let attempts = isRecent ? REPLAY_STORAGE_POLL_ATTEMPTS : 1;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    let offloaded = await getOffloadedSessionMessage(msg);
+    if (offloaded) return offloaded.output;
+
+    if (attempt === attempts) break;
+    await delay(REPLAY_STORAGE_POLL_INTERVAL_MS);
+
+    let current = await db.sessionMessage.findUnique({
+      where: { oid: msg.oid },
+      select: { isOffloadedToStorage: true, output: true }
+    });
+    if (current && !current.isOffloadedToStorage) return current.output;
+  }
+
+  return msg.output;
+};
 
 export class SenderConnection {
   private constructor(private readonly manager: SenderManager) {}
@@ -40,6 +74,8 @@ export class SenderConnection {
       );
     }
 
+    let connection = this.manager.connection;
+
     let sub = broadcastNats.subscribe(
       topics.sessionConnection.encode({
         session: this.manager.session,
@@ -53,9 +89,10 @@ export class SenderConnection {
       async *[Symbol.asyncIterator]() {
         if (d?.replayFromMessageId) {
           let message = await db.sessionMessage.findUnique({
-            where: { id: d.replayFromMessageId }
+            where: { id: d.replayFromMessageId },
+            select: { oid: true, connectionOid: true }
           });
-          if (!message) {
+          if (!message || message.connectionOid !== connection.oid) {
             throw new ServiceError(
               badRequestError({
                 message: 'Invalid last message ID for replay'
@@ -63,30 +100,36 @@ export class SenderConnection {
             );
           }
 
-          let cursor: string | undefined = d.replayFromMessageId;
+          let cursor: bigint | undefined = message.oid;
           let count = 20;
 
           while (cursor) {
             let messages: SessionMessage[] = await db.sessionMessage.findMany({
               where: {
-                id: { gt: cursor },
+                connectionOid: connection.oid,
+                oid: { gt: cursor },
                 status: { not: 'waiting_for_response' }
               },
               orderBy: { oid: 'asc' },
               take: count
             });
 
-            for (let msg of messages) {
+            let outputs = await Promise.all(messages.map(readReplayOutput));
+
+            for (let [index, msg] of messages.entries()) {
+              let output = outputs[index] ?? null;
+
               yield {
                 channel: 'targeted_response',
                 status: msg.status,
-                completedAt: message.completedAt,
-                message: msg,
-                output: message.output
+                completedAt: msg.completedAt,
+                message: { ...msg, output },
+                output
               } satisfies ConduitResult & { channel: 'targeted_response' };
             }
 
-            cursor = messages.length === count ? messages[messages.length - 1]?.id : undefined;
+            cursor =
+              messages.length === count ? messages[messages.length - 1]?.oid : undefined;
           }
         }
 

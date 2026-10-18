@@ -40,4 +40,6 @@ model ProviderRunUsageRecord {
   createdAt DateTime @default(now())
 
   @@index([projectOid])
+  @@index([providerRunOid])
+  @@index([createdAt])
 }

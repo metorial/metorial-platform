@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let {
   tx,
   createSessionRecord,
+  resolveSessionRecordProviders,
   archiveSessionInternal,
   assertInternalAdapterSupportedBySession
 } = vi.hoisted(() => {
@@ -22,6 +23,7 @@ let {
       session: createModel()
     },
     createSessionRecord: vi.fn(),
+    resolveSessionRecordProviders: vi.fn(),
     archiveSessionInternal: vi.fn(),
     assertInternalAdapterSupportedBySession: vi.fn()
   };
@@ -58,7 +60,8 @@ vi.mock('@metorial-subspace/module-session', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-session/src/services/_shared/createSession', () => ({
-  createSessionRecord
+  createSessionRecord,
+  resolveSessionRecordProviders
 }));
 
 vi.mock('@metorial-subspace/module-session/src/services/_shared/internalAdapter', () => ({
@@ -154,6 +157,7 @@ describe('adapter instance provider sessions', () => {
     tx.adapterIntegrationInstanceProviderSession.findMany.mockResolvedValue([]);
     tx.adapterIntegrationInstance.findUnique.mockResolvedValue(null);
     tx.session.findUnique.mockResolvedValue(null);
+    resolveSessionRecordProviders.mockResolvedValue({ providers: [], template: null });
     createSessionRecord.mockResolvedValue(makeSession({ oid: 2000n, id: 'ses_new' }));
     archiveSessionInternal.mockResolvedValue({});
     assertInternalAdapterSupportedBySession.mockResolvedValue(undefined);
@@ -173,6 +177,7 @@ describe('adapter instance provider sessions', () => {
         adapterGlobalOid: 9n,
         identityActorOid: 7n,
         identityOid: 8n,
+        resolvedProviders: { providers: [], template: null },
         input: {
           providers: [
             expect.objectContaining({

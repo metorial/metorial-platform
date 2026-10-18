@@ -1,4 +1,5 @@
 import { db, withTransaction } from '@metorial/db';
+import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { createQueue } from '@metorial/queue';
 
 let deactivateConsumerSurfaceResources = async (d: {
@@ -52,6 +53,10 @@ let deactivateConsumerSurfaceResources = async (d: {
         }
       });
     }
+  });
+
+  await machineAccessAuthService.clearApiKeyAuthCache({
+    apiKeyOid: d.publishableApiKeyOid
   });
 };
 

@@ -1,5 +1,4 @@
 import { db, getId, type ProviderRun } from '@metorial-subspace/db';
-import { isRecordDeleted } from '@metorial-subspace/list-utils';
 import { getBackend } from '@metorial-subspace/provider';
 import type {
   ConnectionSpecificationBehavior,
@@ -9,13 +8,19 @@ import { Store } from '@metorial-subspace/store';
 import { addMinutes } from 'date-fns';
 import { SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT } from '../../const';
 import { resolveConnectionTimeouts } from '../../lib/timeouts';
-import { type ConnectionBaseState, getConnectionBaseState } from './base';
+import {
+  type ConnectionBaseState,
+  getConnectionBaseState,
+  getConnectionLiveness,
+  getConnectionStateFingerprint
+} from './base';
 import { createProviderRun } from './providerRun';
 
 export class ConnectionState {
   #instanceExtensionIv: NodeJS.Timeout;
   #refetchIv: NodeJS.Timeout;
   #lastMessageAt = new Store<Date | null>(null);
+  #fingerprint: string;
 
   private constructor(
     private baseState: ConnectionBaseState,
@@ -24,42 +29,70 @@ export class ConnectionState {
     public readonly connectionSpecificationBehavior: ConnectionSpecificationBehavior,
     onError: () => void
   ) {
-    this.#instanceExtensionIv = setInterval(async () => {
-      await db.sessionProviderInstance.updateMany({
-        where: { oid: baseState.instance.oid },
+    this.#fingerprint = getConnectionStateFingerprint(baseState.sessionProvider);
+
+    this.#instanceExtensionIv = setInterval(() => {
+      this.extendInstance().catch(err =>
+        console.error('CONNECTION.state.extend_instance_failed', err)
+      );
+    }, 1000 * 60);
+
+    this.#refetchIv = setInterval(() => {
+      this.refresh(onError).catch(err => console.error('CONNECTION.state.refresh_failed', err));
+    }, 1000 * 60);
+  }
+
+  // These writes are the liveness signal the provider-run and instance sweeps rely on, so
+  // they run every interval regardless of traffic.
+  private async extendInstance() {
+    let lastMessageAt = this.#lastMessageAt.value;
+    this.#lastMessageAt.set(null);
+
+    await Promise.all([
+      db.sessionProviderInstance.updateMany({
+        where: { oid: this.baseState.instance.oid },
         data: {
-          lastUsedAt: this.#lastMessageAt.value ?? undefined,
+          lastUsedAt: lastMessageAt ?? undefined,
           lastRenewedAt: new Date(),
           expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
         }
-      });
+      }),
 
-      await db.providerRun.updateMany({
+      db.providerRun.updateMany({
         where: { oid: this.providerRun.oid },
         data: { lastPingAt: new Date() }
-      });
+      })
+    ]);
+  }
 
-      this.#lastMessageAt.set(null);
-    }, 1000 * 60);
+  private async refresh(onError: () => void) {
+    let target = {
+      connectionOid: this.baseState.connection.oid,
+      instanceOid: this.baseState.instance.oid
+    };
 
-    this.#refetchIv = setInterval(async () => {
-      let baseRes = await getConnectionBaseState({
-        connectionOid: baseState.connection.oid,
-        instanceOid: baseState.instance.oid
-      });
-      let updatedProviderRun = await db.providerRun.findFirstOrThrow({
-        where: { oid: this.providerRun.oid }
-      });
+    let liveness = await getConnectionLiveness(target);
+    if (!liveness) {
+      onError();
+      await this.dispose();
+      return;
+    }
 
-      if (!baseRes || isRecordDeleted(updatedProviderRun)) {
-        onError();
-        this.dispose();
-        return;
-      }
+    if (liveness.fingerprint === this.#fingerprint) return;
 
-      this.baseState = baseRes;
-      this.providerRun = updatedProviderRun;
-    }, 1000 * 60);
+    let baseRes = await getConnectionBaseState(target);
+    if (!baseRes) {
+      onError();
+      await this.dispose();
+      return;
+    }
+
+    this.baseState = baseRes;
+    this.#fingerprint = getConnectionStateFingerprint(baseRes.sessionProvider);
+  }
+
+  markMessageReceived() {
+    this.#lastMessageAt.set(new Date());
   }
 
   static async create(d: { instanceOid: bigint; connectionOid: bigint }, onError: () => void) {

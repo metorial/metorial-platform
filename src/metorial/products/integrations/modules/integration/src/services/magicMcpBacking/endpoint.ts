@@ -187,9 +187,7 @@ class magicMcpEndpointBackingServiceImpl {
             }
           });
 
-          let persistedBacking = await db.magicMcpEndpointBacking.findUniqueOrThrow({
-            where: { id: d.input.id }
-          });
+          let persistedBacking = backing;
           let requestedJoinIds = new Set(d.input.servers.map(server => server.id));
           await db.magicMcpEndpointServerBacking.deleteMany({
             where: {

@@ -7,7 +7,9 @@ import SuperJson from 'superjson';
 
 let Sentry = getSentry();
 
-let cache = new LRUCache<string, any>({ max: 500, ttl: 15 });
+// Local entries are per process, so `clear()` evicts only this process's copy. The short local
+// TTL bounds how long other processes keep serving a value that was cleared elsewhere.
+let MAX_LOCAL_TTL_SECONDS = 5;
 
 let version = 0;
 
@@ -20,6 +22,10 @@ export let createCachedFunction = <I, O>(opts: {
   getTags?: (o: O, i: I) => string[];
 }) => {
   let active = new Map<string, Promise<O>>();
+  let cache = new LRUCache<string, any>({
+    max: 500,
+    ttl: Math.min(opts.ttlSeconds, MAX_LOCAL_TTL_SECONDS) * 1000
+  });
 
   let useRedisClient = createRedisClient({ redisUrl: opts.redisUrl }).lazy();
 
@@ -34,7 +40,11 @@ export let createCachedFunction = <I, O>(opts: {
     let promise = (async () => {
       let redis = await useRedisClient();
       let value = await redis.get(hash);
-      if (value) return SuperJson.parse(value);
+      if (value) {
+        let parsed = SuperJson.parse(value);
+        cache.set(hash, parsed);
+        return parsed;
+      }
 
       let ttl = { current: opts.ttlSeconds };
       let setTTL = (newTTL: number) => (ttl.current = newTTL);
@@ -129,7 +139,7 @@ export let createLocallyCachedFunction = <I, O>(opts: {
   provider: (i: I) => Promise<O>;
   ttlSeconds: number;
 }) => {
-  let cache = new LRUCache<string, any>({ max: 500, ttl: opts.ttlSeconds });
+  let cache = new LRUCache<string, any>({ max: 500, ttl: opts.ttlSeconds * 1000 });
 
   let active = new Map<string, Promise<O>>();
 

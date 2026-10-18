@@ -46,6 +46,7 @@ model SessionErrorGroup {
   @@index([type])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([firstOccurrenceOid])
 }
 
 model SessionErrorGroupOccurrencePeriod {
@@ -116,4 +117,5 @@ model SessionError {
   @@index([connectionOid])
   @@index([providerRunOid])
   @@index([tenantOid, createdAt])
+  @@index([sessionOid])
 }

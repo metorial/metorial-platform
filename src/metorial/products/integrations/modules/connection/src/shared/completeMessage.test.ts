@@ -26,6 +26,10 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
+  dbPrimary: {
+    sessionMessage: { findUniqueOrThrow: mocks.db.sessionMessage.findFirstOrThrow }
+  },
+  withTransaction: (cb: (tx: any) => Promise<any>) => mocks.db.$transaction(cb),
   getId: mocks.getId,
   getRawToolCallAttachmentsFromOutput: mocks.getRawToolCallAttachmentsFromOutput,
   getToolCallAttachmentUrlKey: mocks.getToolCallAttachmentUrlKey,
@@ -91,7 +95,7 @@ describe('completeMessage', () => {
     let tx = {
       sessionMessage: {
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+        findUniqueOrThrow: vi.fn().mockResolvedValue(completedMessage)
       },
       toolCall: {
         updateMany: vi.fn()
@@ -164,7 +168,7 @@ describe('completeMessage', () => {
     let tx = {
       sessionMessage: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        findFirstOrThrow: vi.fn().mockResolvedValue(transitionedMessage)
+        findUniqueOrThrow: vi.fn().mockResolvedValue(transitionedMessage)
       },
       toolCall: {
         updateMany: vi.fn()
@@ -221,9 +225,10 @@ describe('completeMessage', () => {
         instanceOid: 27n
       })
     });
-    expect(mocks.finalizeMessageQueue.add).toHaveBeenCalledWith({
-      messageId: 'msg_transition'
-    });
+    expect(mocks.finalizeMessageQueue.add).toHaveBeenCalledWith(
+      { messageId: 'msg_transition' },
+      { id: 'msg_transition' }
+    );
   });
 
   it('does not run post-transaction side effects after a retried transaction loses the race', async () => {
@@ -255,7 +260,7 @@ describe('completeMessage', () => {
     let firstAttemptTx = {
       sessionMessage: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+        findUniqueOrThrow: vi.fn().mockResolvedValue(completedMessage)
       },
       toolCall: {
         updateMany: vi.fn()
@@ -267,7 +272,7 @@ describe('completeMessage', () => {
     let retriedAttemptTx = {
       sessionMessage: {
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+        findUniqueOrThrow: vi.fn().mockResolvedValue(completedMessage)
       },
       toolCall: {
         updateMany: vi.fn()
@@ -337,7 +342,7 @@ describe('completeMessage', () => {
     let tx = {
       sessionMessage: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+        findUniqueOrThrow: vi.fn().mockResolvedValue(completedMessage)
       },
       toolCall: {
         updateMany: vi.fn()
@@ -399,7 +404,7 @@ describe('completeMessage', () => {
     let tx = {
       sessionMessage: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+        findUniqueOrThrow: vi.fn().mockResolvedValue(completedMessage)
       },
       toolCall: {
         updateMany: vi.fn()
@@ -461,7 +466,7 @@ describe('completeMessage', () => {
     let tx = {
       sessionMessage: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+        findUniqueOrThrow: vi.fn().mockResolvedValue(completedMessage)
       },
       toolCall: {
         updateMany: vi.fn()

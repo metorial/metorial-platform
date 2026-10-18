@@ -182,9 +182,6 @@ export let sessionDeleteQueueProcessor = sessionDeleteQueue.process(async data =
   await db.sessionProviderInstance.deleteMany({
     where: { sessionOid: session.oid }
   });
-  await db.sessionUsageRecord.deleteMany({
-    where: { sessionOid: session.oid }
-  });
 
   await db.session.updateMany({
     where: { oid: session.oid },

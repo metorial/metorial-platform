@@ -55,7 +55,7 @@ let offloadMessagesQueueProcessor = offloadMessagesQueue.process(async data => {
 let offloadMessageQueue = createQueue<{ messageId: string }>({
   name: 'sub/con/ofl/msg',
   redisUrl: env.service.REDIS_URL,
-  workerOpts: { concurrency: 5 }
+  workerOpts: { concurrency: 5, limiter: { max: 20, duration: 1000 } }
 });
 
 let offloadMessageQueueProcessor = offloadMessageQueue.process(async data => {

@@ -105,3 +105,67 @@ export let getConnectionBaseState = async (d: {
 export type ConnectionBaseState = NonNullable<
   Awaited<ReturnType<typeof getConnectionBaseState>>
 >;
+
+let livenessRecordSelect = { id: true, status: true, createdAt: true } as const;
+
+type LivenessFingerprintSource = {
+  provider: { updatedAt: Date };
+  tenant: { messageProcessingTimeoutMs: number };
+  deployment: { currentVersionOid: bigint | null } | null;
+  config: { currentVersionOid: bigint | null } | null;
+  authConfig: { currentVersionOid: bigint | null } | null;
+};
+
+export let getConnectionStateFingerprint = (sessionProvider: LivenessFingerprintSource) =>
+  [
+    sessionProvider.provider.updatedAt.getTime(),
+    sessionProvider.tenant.messageProcessingTimeoutMs,
+    sessionProvider.deployment?.currentVersionOid,
+    sessionProvider.config?.currentVersionOid,
+    sessionProvider.authConfig?.currentVersionOid
+  ].join(':');
+
+// A scalar-only probe of the records `getConnectionBaseState` depends on. It lets the
+// receiver detect deletions and relevant changes without reloading the full state.
+export let getConnectionLiveness = async (d: {
+  connectionOid: bigint;
+  instanceOid: bigint;
+}) => {
+  let [connection, instance] = await Promise.all([
+    db.sessionConnection.findUnique({
+      where: { oid: d.connectionOid },
+      select: { oid: true }
+    }),
+
+    db.sessionProviderInstance.findUnique({
+      where: { oid: d.instanceOid },
+      select: {
+        sessionProvider: {
+          select: {
+            ...livenessRecordSelect,
+            session: { select: livenessRecordSelect },
+            provider: { select: { ...livenessRecordSelect, updatedAt: true } },
+            tenant: { select: { messageProcessingTimeoutMs: true } },
+            deployment: { select: { ...livenessRecordSelect, currentVersionOid: true } },
+            config: { select: { ...livenessRecordSelect, currentVersionOid: true } },
+            authConfig: { select: { ...livenessRecordSelect, currentVersionOid: true } }
+          }
+        }
+      }
+    })
+  ]);
+  if (!connection || !instance) return;
+
+  let sessionProvider = instance.sessionProvider;
+
+  let anyRecordDeleted =
+    isRecordDeleted(sessionProvider.provider) ||
+    isRecordDeleted(sessionProvider) ||
+    isRecordDeleted(sessionProvider.session) ||
+    isRecordDeleted(sessionProvider.deployment) ||
+    isRecordDeleted(sessionProvider.config) ||
+    isRecordDeleted(sessionProvider.authConfig);
+  if (anyRecordDeleted) return;
+
+  return { fingerprint: getConnectionStateFingerprint(sessionProvider) };
+};

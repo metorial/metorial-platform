@@ -1,6 +1,7 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { UnifiedApiKey } from '@metorial/api-keys';
+import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import {
   authenticateWithConsumerToken,
   authenticateWithOAuthConsumerSession,
@@ -41,6 +42,8 @@ import {
   scopes
 } from '../definitions';
 import { fineGrainedAuthService } from './fineGrainedAuth';
+
+let ORGANIZATION_RESOURCE_ACTOR_CACHE_TTL_SECONDS = 60;
 
 export type FineGrainedAccessTagGrant = {
   resourceType: 'subspace.session';
@@ -107,6 +110,22 @@ export type AuthInfo =
       };
     };
 
+let getOrganizationResourceActorCached = createLocallyCachedFunction({
+  ttlSeconds: ORGANIZATION_RESOURCE_ACTOR_CACHE_TTL_SECONDS,
+  getHash: (d: {
+    project: Pick<Project, 'oid'>;
+    actor: Pick<OrganizationActor, 'oid' | 'id'>;
+  }) => `${d.project.oid}:${d.actor.oid}`,
+  provider: async (d: {
+    project: Pick<Project, 'oid'>;
+    actor: Pick<OrganizationActor, 'oid' | 'id'>;
+  }) =>
+    await resourceActorService.getOrEnsureOrganizationActor({
+      project: d.project,
+      organizationActor: d.actor
+    })
+});
+
 class AuthenticationService {
   private async getOrganizationResourceActor(d: {
     project: Pick<Project, 'oid'>;
@@ -117,9 +136,9 @@ class AuthenticationService {
     );
     if (includedActor) return includedActor;
 
-    return await resourceActorService.ensureOrganizationActor({
-      project: d.project,
-      organizationActorOid: d.actor.oid
+    return await getOrganizationResourceActorCached({
+      project: { oid: d.project.oid },
+      actor: { oid: d.actor.oid, id: d.actor.id }
     });
   }
 
