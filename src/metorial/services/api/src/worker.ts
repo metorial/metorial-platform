@@ -41,6 +41,7 @@ import { skillMergeRequestQueueProcessor } from '@metorial/module-skill-merge-re
 import { skillTemplateQueueProcessor } from '@metorial/module-skill-templates';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
+import { webQueueProcessor } from '@metorial/module-web';
 import { multiRegionQueueProcessor } from '@metorial/multi-region';
 
 export let worker = runQueueProcessors([
@@ -71,6 +72,7 @@ export let worker = runQueueProcessors([
   skillMergeRequestQueueProcessor,
   usageQueueProcessor,
   communityQueueProcessor,
+  webQueueProcessor,
   consumerCoreQueueProcessor,
   consumerAccessQueueProcessor,
   consumerEntitiesQueueProcessor,
