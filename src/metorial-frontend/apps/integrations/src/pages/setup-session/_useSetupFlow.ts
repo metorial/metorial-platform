@@ -103,6 +103,8 @@ export let useSetupFlow = ({
     ? extractRequiredSchema(prefetchedConfigSchema)
     : (configSchemaLoader.data?.schema ?? null);
   let isAuthConfigSchemaLoaded = !!prefetchedAuthConfigSchema || !!authSchemaLoader.data;
+  let isConfigSchemaLoaded =
+    !needsConfig || !!prefetchedConfigSchema || !!configSchemaLoader.data;
   let hasAuthFields = hasSchemaFields(authConfigSchema);
   let hasConfigFields = hasSchemaFields(configSchema);
 
@@ -126,6 +128,7 @@ export let useSetupFlow = ({
     needsAuthConfig &&
     isOAuth &&
     isAuthConfigSchemaLoaded &&
+    isConfigSchemaLoaded &&
     !hasAuthFields;
 
   let resolveNextStep = (): Step => {
