@@ -88,10 +88,10 @@ export let reconcileMagicMcpServerOwnerQueueProcessor =
 
     if (!ownerActorOid) return;
 
-    // await db.magicMcpServer.updateMany({
-    //   where: { oid: server.oid, ownerActorOid: null },
-    //   data: { ownerActorOid }
-    // });
+    await db.magicMcpServer.updateMany({
+      where: { oid: server.oid, ownerActorOid: null },
+      data: { ownerActorOid }
+    });
   });
 
 export let magicOwnerActorQueueProcessor = combineQueueProcessors([

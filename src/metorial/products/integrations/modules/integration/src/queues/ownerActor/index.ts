@@ -103,7 +103,7 @@ let resolveProviderSetupSessionOwnerActorOid = async (providerSetupSessionOid: b
 export let ownerActorReconcileCron = createCron(
   {
     name: 'sub/int/cron/ownerActorReconcile',
-    cron: '0 3 * * *',
+    cron: '45 * * * *',
     redisUrl: env.service.REDIS_URL
   },
   async () => {
@@ -264,10 +264,10 @@ export let reconcileIntegrationSetupSessionOwnerQueueProcessor =
     let ownerActorOid = await resolveIntegrationSetupSessionOwnerActorOid(session);
     if (!ownerActorOid) return;
 
-    // await db.integrationSetupSession.updateMany({
-    //   where: { oid: session.oid, ownerActorOid: null },
-    //   data: { ownerActorOid }
-    // });
+    await db.integrationSetupSession.updateMany({
+      where: { oid: session.oid, ownerActorOid: null },
+      data: { ownerActorOid }
+    });
   });
 
 export let reconcileProviderSetupSessionOwnersManyQueue = createQueue<{ cursor?: string }>({
@@ -328,10 +328,10 @@ export let reconcileProviderSetupSessionOwnerQueueProcessor =
     let ownerActorOid = await resolveProviderSetupSessionOwnerActorOid(session.oid);
     if (!ownerActorOid) return;
 
-    // await db.providerSetupSession.updateMany({
-    //   where: { oid: session.oid, ownerActorOid: null },
-    //   data: { ownerActorOid }
-    // });
+    await db.providerSetupSession.updateMany({
+      where: { oid: session.oid, ownerActorOid: null },
+      data: { ownerActorOid }
+    });
   });
 
 export let reconcileProviderConfigOwnersManyQueue = createQueue<{ cursor?: string }>({
@@ -407,10 +407,10 @@ export let reconcileProviderConfigOwnerQueueProcessor =
       config.owningIntegrationInstanceProvider?.integrationInstance.identityActorOid;
     if (!ownerActorOid) return;
 
-    // await db.providerConfig.updateMany({
-    //   where: { oid: config.oid, ownerActorOid: null },
-    //   data: { ownerActorOid }
-    // });
+    await db.providerConfig.updateMany({
+      where: { oid: config.oid, ownerActorOid: null },
+      data: { ownerActorOid }
+    });
   });
 
 export let reconcileProviderAuthConfigOwnersManyQueue = createQueue<{ cursor?: string }>({
@@ -482,10 +482,10 @@ export let reconcileProviderAuthConfigOwnerQueueProcessor =
       authConfig.owningIntegrationInstanceProvider?.integrationInstance.identityActorOid;
     if (!ownerActorOid) return;
 
-    // await db.providerAuthConfig.updateMany({
-    //   where: { oid: authConfig.oid, ownerActorOid: null },
-    //   data: { ownerActorOid }
-    // });
+    await db.providerAuthConfig.updateMany({
+      where: { oid: authConfig.oid, ownerActorOid: null },
+      data: { ownerActorOid }
+    });
   });
 
 export let reconcileMagicMcpServerBackingIdentitiesManyQueue = createQueue<{
