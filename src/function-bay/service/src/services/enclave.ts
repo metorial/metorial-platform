@@ -19,20 +19,23 @@ class enclaveServiceImpl {
     });
     if (enclave) return enclave;
 
-    return await db.enclave.upsert({
-      where: {
-        identifier_tenantOid: {
-          identifier: d.identifier,
-          tenantOid: d.tenantOid
-        }
-      },
-      update: {},
-      create: {
+    await db.enclave.createMany({
+      data: {
         oid: snowflake.nextId(),
         id: await ID.generateId('enclave'),
         name: d.identifier,
         identifier: d.identifier,
         tenantOid: d.tenantOid
+      },
+      skipDuplicates: true
+    });
+
+    return await db.enclave.findUniqueOrThrow({
+      where: {
+        identifier_tenantOid: {
+          identifier: d.identifier,
+          tenantOid: d.tenantOid
+        }
       }
     });
   }
@@ -45,15 +48,18 @@ class enclaveServiceImpl {
     });
     if (existing) return existing;
 
-    return await db.enclaveFunction.upsert({
-      where: {
-        enclaveOid_functionOid: d
-      },
-      update: {},
-      create: {
+    await db.enclaveFunction.createMany({
+      data: {
         oid: snowflake.nextId(),
         enclaveOid: d.enclaveOid,
         functionOid: d.functionOid
+      },
+      skipDuplicates: true
+    });
+
+    return await db.enclaveFunction.findUniqueOrThrow({
+      where: {
+        enclaveOid_functionOid: d
       }
     });
   }
