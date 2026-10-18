@@ -8,7 +8,7 @@ import {
   PING_INTERVAL_MS,
   PING_MESSAGE_ID_PREFIX
 } from '../const';
-import type { SenderMangerProps } from '../sender';
+import type { SenderMangerProps, SessionlessConnectionProps } from '../sender';
 import {
   getMcpProgressToken,
   isProgressNotificationForToken,
@@ -118,7 +118,10 @@ export class McpConnection {
           continue;
         }
 
-        if (isProgressNotificationForToken(event.result.value.mcp, progressToken)) {
+        if (
+          event.result.value.requestNonce === this.#control.requestNonce &&
+          isProgressNotificationForToken(event.result.value.mcp, progressToken)
+        ) {
           await onProgress({ mcp: event.result.value.mcp, message: null });
         }
 
@@ -131,6 +134,14 @@ export class McpConnection {
 
   createConnection() {
     return this.manager.createConnection();
+  }
+
+  resolveSessionlessConnection(d: SessionlessConnectionProps) {
+    return this.manager.resolveSessionlessConnection(d);
+  }
+
+  getServerInfo() {
+    return this.#sender.getServerInfo();
   }
 
   disableConnection() {

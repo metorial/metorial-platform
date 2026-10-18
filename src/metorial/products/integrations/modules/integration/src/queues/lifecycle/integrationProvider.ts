@@ -6,6 +6,7 @@ import { identityInternalService } from '@metorial-subspace/module-identity';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { enqueueSyncIntegrationInstanceSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { env } from '../../env';
+import { syncMagicMcpServerProviderRows } from '../../lib/magicMcpBacking/serverProviderSync';
 import { integrationInstanceProviderService } from '../../services/integrationInstanceProvider';
 import { indexIntegrationQueue } from '../search/integration';
 import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
@@ -53,6 +54,10 @@ export let integrationProviderCreatedQueueProcessor = integrationProviderCreated
     await db.integrationInstanceProvider.updateMany({
       where: { integrationProviderOid: integrationProvider.oid },
       data: { isParentDeleted: false }
+    });
+
+    await syncMagicMcpServerProviderRows({
+      integrationProviderOids: [integrationProvider.oid]
     });
 
     await enqueueCallbackReconcile({ integrationProviderId: data.integrationProviderId });
@@ -309,6 +314,10 @@ export let integrationProviderArchiveInstanceProvidersManyQueueProcessor =
         archivedAt,
         isParentDeleted: true
       }
+    });
+
+    await syncMagicMcpServerProviderRows({
+      integrationProviderOids: [integrationProvider.oid]
     });
 
     await enqueueIntegrationInstanceProvidersSet(

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
-  ensureMagicMcpServerBacking: vi.fn(),
+  applyMagicMcpServerBacking: vi.fn(),
+  getConsumerOwnerForServer: vi.fn(),
   getIntegrationInstanceById: vi.fn(),
   assertAuthMethodAllowedForTenant: vi.fn(),
   endpointUpdatedAddMany: vi.fn(),
@@ -57,7 +58,16 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   }
 }));
 vi.mock('../src/lib/backing', () => ({
-  ensureMagicMcpServerBacking: mocks.ensureMagicMcpServerBacking
+  applyMagicMcpServerBacking: mocks.applyMagicMcpServerBacking,
+  ensureMagicMcpServerBacking: vi.fn(),
+  getConsumerOwnerForServer: mocks.getConsumerOwnerForServer,
+  getMagicMcpServerBackingCoreFields: (backing: any) => ({
+    hasSubspaceBacking: true,
+    isSubspaceBackingReconciling: false,
+    ownerType: backing.ownerType,
+    subspaceEphemeralManagedSessionId: backing.ephemeralManagedSession.id
+  }),
+  healMagicMcpServerBacking: vi.fn()
 }));
 vi.mock('../src/queues/lifecycle/magicMcpServer', () => ({
   magicMcpServerCreatedQueue: { add: vi.fn() },
@@ -109,6 +119,11 @@ describe('magicMcpServerService.relinkMagicMcpServerIntegrationInstance', () => 
       ...server,
       subspaceIntegrationInstanceId: 'iin_new'
     });
+    mocks.getConsumerOwnerForServer.mockResolvedValue({});
+    mocks.applyMagicMcpServerBacking.mockResolvedValue({
+      ownerType: 'server_owned',
+      ephemeralManagedSession: { id: 'ems_1' }
+    });
     (db.magicMcpServer.findUniqueOrThrow as any).mockResolvedValue({
       ...server,
       subspaceIntegrationInstanceId: 'iin_new'
@@ -127,15 +142,17 @@ describe('magicMcpServerService.relinkMagicMcpServerIntegrationInstance', () => 
     expect(db.magicMcpServer.update).toHaveBeenCalledWith({
       where: { oid: server.oid },
       data: {
-        subspaceIntegrationInstanceId: 'iin_new',
-        isSubspaceBackingReconciling: true
+        hasSubspaceBacking: true,
+        isSubspaceBackingReconciling: false,
+        ownerType: 'server_owned',
+        subspaceEphemeralManagedSessionId: 'ems_1',
+        subspaceIntegrationInstanceId: 'iin_new'
       }
     });
-    expect(mocks.ensureMagicMcpServerBacking).toHaveBeenCalledWith(
+    expect(mocks.applyMagicMcpServerBacking).toHaveBeenCalledWith(
       expect.objectContaining({
         instance,
-        server: expect.objectContaining({ subspaceIntegrationInstanceId: 'iin_new' }),
-        deferReconcile: false
+        server: expect.objectContaining({ subspaceIntegrationInstanceId: 'iin_new' })
       })
     );
     expect(mocks.assertAuthMethodAllowedForTenant).toHaveBeenCalledWith({
@@ -177,6 +194,6 @@ describe('magicMcpServerService.relinkMagicMcpServerIntegrationInstance', () => 
       })
     ).rejects.toThrow();
 
-    expect(mocks.ensureMagicMcpServerBacking).not.toHaveBeenCalled();
+    expect(mocks.applyMagicMcpServerBacking).not.toHaveBeenCalled();
   });
 });

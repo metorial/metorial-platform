@@ -1,17 +1,29 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import './listener';
-import { attachmentQueues } from './queues/attachment';
+import { attachmentFederationQueues, attachmentSubspaceQueues } from './queues/attachment';
 import { deleteQueues } from './queues/delete';
-import { eventQueues } from './queues/event';
-import { lifecycleQueues } from './queues/lifecycle';
+import { eventFederationQueues, eventSubspaceQueues } from './queues/event';
+import { lifecycleFederationQueues, lifecycleSubspaceQueues } from './queues/lifecycle';
 import { searchQueues } from './queues/search';
-import { syncQueues } from './queues/sync';
+import { syncFederationQueues, syncSubspaceQueues } from './queues/sync';
 
-export let chatQueueProcessor = combineQueueProcessors([
-  lifecycleQueues,
+export let chatSubspaceQueueProcessor = combineQueueProcessors([
+  lifecycleSubspaceQueues,
+  syncSubspaceQueues,
+  attachmentSubspaceQueues,
+  eventSubspaceQueues
+]);
+
+export let chatFederationQueueProcessor = combineQueueProcessors([
+  lifecycleFederationQueues,
   searchQueues,
   deleteQueues,
-  syncQueues,
-  attachmentQueues,
-  eventQueues
+  syncFederationQueues,
+  attachmentFederationQueues,
+  eventFederationQueues
+]);
+
+export let chatQueueProcessor = combineQueueProcessors([
+  chatSubspaceQueueProcessor,
+  chatFederationQueueProcessor
 ]);

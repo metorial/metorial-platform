@@ -44,7 +44,8 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
                 transport: {
                   none: 'unknown',
                   sse: 'sse',
-                  streamable_http: 'streamable_http'
+                  streamable_http: 'streamable_http',
+                  sessionless: 'sessionless'
                 }[sessionMessage.connection?.mcpTransport ?? 'none']
               }
             : null,
@@ -215,7 +216,7 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
               transport: v.string({
                 name: 'transport',
                 description: 'MCP transport type',
-                examples: ['unknown', 'sse', 'streamable_http']
+                examples: ['unknown', 'sse', 'streamable_http', 'sessionless']
               })
             })
           ),

@@ -49,9 +49,7 @@ type ArchiveProviderTemplateBackingParams = {
 };
 
 class providerTemplateBackingServiceImpl {
-  async updateProviderTemplateBacking(
-    d: MetorialFacing<UpdateProviderTemplateBackingParams>
-  ) {
+  async updateProviderTemplateBacking(d: MetorialFacing<UpdateProviderTemplateBackingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 

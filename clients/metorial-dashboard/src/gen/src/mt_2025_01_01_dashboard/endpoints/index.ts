@@ -199,6 +199,7 @@ export * from './dashboard_instance_tool-calls';
 export * from './dashboard_instance_webhook-registrations';
 export * from './dashboard_instances_resource-counts';
 export * from './dashboard_oauth_authorization-requests';
+export * from './dashboard_oauth_authorization-requests_consumer-targets';
 export * from './dashboard_organizations';
 export * from './dashboard_organizations_access-policies';
 export * from './dashboard_organizations_access-roles';

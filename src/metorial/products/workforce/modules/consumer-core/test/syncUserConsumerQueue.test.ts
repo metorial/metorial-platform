@@ -52,6 +52,7 @@ describe('sync user consumer queues', () => {
       where: {
         id: { gt: undefined },
         consumer: {
+          isServiceAccount: false,
           OR: [{ userOid: 42n }, { organizationMember: { userOid: 42n } }]
         }
       },

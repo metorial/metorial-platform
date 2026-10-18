@@ -47,6 +47,16 @@ let assertAssignablePolicy = (d: { accessPolicy: AccessPolicy; allowDefault?: bo
   }
 };
 
+let assertOrganizationMemberServiceAccount = (d: { serviceAccount: ServiceAccount }) => {
+  if (d.serviceAccount.subjectType == 'consumer') {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Access policies cannot be assigned to consumer service accounts'
+      })
+    );
+  }
+};
+
 class AccessPolicyAssignmentService {
   async assignAccessPolicyToTeam(d: {
     organization: Organization;
@@ -287,6 +297,7 @@ class AccessPolicyAssignmentService {
   }) {
     assertPolicyBelongsToOrganization(d);
     assertAssignablePolicy(d);
+    assertOrganizationMemberServiceAccount(d);
 
     return await withTransaction(async db => {
       let existingAssignment = await db.accessPolicyAssignment.findFirst({
@@ -344,6 +355,7 @@ class AccessPolicyAssignmentService {
     allowDefault?: boolean;
   }) {
     assertAssignablePolicy(d);
+    assertOrganizationMemberServiceAccount(d);
 
     return await withTransaction(async db => {
       let accessPolicyAssignment = await db.accessPolicyAssignment.findFirst({

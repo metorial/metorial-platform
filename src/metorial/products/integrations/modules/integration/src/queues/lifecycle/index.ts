@@ -36,7 +36,7 @@ import {
   integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor
 } from './integrationProvider';
 import { integrationProviderStaleCredentialsProcessors } from './integrationProviderStaleCredentials';
-import { magicMcpBackingReconcileQueueProcessor } from './magicMcpBackingReconcile';
+import { magicMcpBackingReconcileQueueProcessor } from './magicMcpBackingSync';
 
 export let lifecycleQueues = combineQueueProcessors([
   archiveIntegrationInstanceQueueProcessor,
@@ -67,4 +67,38 @@ export let lifecycleQueues = combineQueueProcessors([
   magicMcpBackingReconcileQueueProcessor,
   integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor,
   integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor
+]);
+
+export let lifecycleSubspaceQueues = combineQueueProcessors([
+  integrationCreatedQueueProcessor,
+  integrationUpdatedQueueProcessor,
+  integrationInstanceGroupCreatedQueueProcessor,
+  integrationInstanceGroupUpdatedQueueProcessor,
+  integrationInstanceGroupProviderSetQueueProcessor,
+  integrationInstanceCreatedQueueProcessor,
+  integrationInstanceUpdatedQueueProcessor,
+  integrationInstanceProviderSetQueueProcessor,
+  integrationInstanceProviderSyncGroupProvidersManyQueueProcessor,
+  integrationProviderCreatedQueueProcessor,
+  integrationProviderUpdatedQueueProcessor,
+  magicMcpBackingReconcileQueueProcessor,
+  integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor,
+  integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor
+]);
+
+export let lifecycleFederationQueues = combineQueueProcessors([
+  archiveIntegrationInstanceQueueProcessor,
+  integrationArchivedQueueProcessor,
+  integrationArchiveInstancesManyQueueProcessor,
+  integrationArchiveProvidersManyQueueProcessor,
+  integrationDeletedQueueProcessor,
+  integrationInstanceGroupArchivedQueueProcessor,
+  integrationInstanceGroupArchiveProvidersManyQueueProcessor,
+  integrationInstanceArchivedQueueProcessor,
+  integrationInstanceArchiveGroupSourcesManyQueueProcessor,
+  integrationInstanceDeletedQueueProcessor,
+  integrationProviderArchivedQueueProcessor,
+  integrationProviderArchiveInstanceProvidersManyQueueProcessor,
+  integrationProviderArchiveGroupProvidersManyQueueProcessor,
+  integrationProviderStaleCredentialsProcessors
 ]);

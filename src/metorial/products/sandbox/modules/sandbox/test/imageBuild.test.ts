@@ -668,7 +668,9 @@ describe('sandboxImageBuildService', () => {
       id: 'sandboxMachineImageBuild_new'
     });
     db.sandboxMachineImageBuild.findFirst.mockResolvedValue({
-      id: 'sandboxMachineImageBuild_new'
+      id: 'sandboxMachineImageBuild_new',
+      status: 'preparing',
+      image: { id: 'sbi_1', name: 'app' }
     });
   });
 
@@ -838,6 +840,7 @@ describe('sandboxImageBuildService', () => {
       oid: 50n,
       id: 'sbb_1',
       status: 'replicating',
+      image: { id: 'sbi_1', name: 'app' },
       versionOid: 70n,
       regions: [
         builderRow({ status: 'succeeded' }),

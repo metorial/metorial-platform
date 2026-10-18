@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Function, FunctionVersion, Tenant } from '../../prisma/generated/client';
-import { db } from '../db';
+import { db, dbPrimary } from '../db';
 import { ID, snowflake } from '../id';
 import { enqueueEnclaveOverrideClone } from '../queues/enclaveOverride';
 import { tenantService } from './tenant';
@@ -19,20 +19,23 @@ class enclaveServiceImpl {
     });
     if (enclave) return enclave;
 
-    return await db.enclave.upsert({
-      where: {
-        identifier_tenantOid: {
-          identifier: d.identifier,
-          tenantOid: d.tenantOid
-        }
-      },
-      update: {},
-      create: {
+    await db.enclave.createMany({
+      data: {
         oid: snowflake.nextId(),
         id: await ID.generateId('enclave'),
         name: d.identifier,
         identifier: d.identifier,
         tenantOid: d.tenantOid
+      },
+      skipDuplicates: true
+    });
+
+    return await dbPrimary.enclave.findUniqueOrThrow({
+      where: {
+        identifier_tenantOid: {
+          identifier: d.identifier,
+          tenantOid: d.tenantOid
+        }
       }
     });
   }
@@ -45,15 +48,18 @@ class enclaveServiceImpl {
     });
     if (existing) return existing;
 
-    return await db.enclaveFunction.upsert({
-      where: {
-        enclaveOid_functionOid: d
-      },
-      update: {},
-      create: {
+    await db.enclaveFunction.createMany({
+      data: {
         oid: snowflake.nextId(),
         enclaveOid: d.enclaveOid,
         functionOid: d.functionOid
+      },
+      skipDuplicates: true
+    });
+
+    return await dbPrimary.enclaveFunction.findUniqueOrThrow({
+      where: {
+        enclaveOid_functionOid: d
       }
     });
   }

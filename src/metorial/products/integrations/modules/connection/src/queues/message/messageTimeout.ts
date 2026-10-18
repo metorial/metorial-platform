@@ -1,6 +1,6 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import type { ConduitResult } from '@metorial-subspace/connection-utils';
-import { db } from '@metorial-subspace/db';
+import { dbPrimary } from '@metorial-subspace/db';
 import { serialize } from '@lowerdeck/serialize';
 import { env } from '../../env';
 import { broadcastNats } from '../../lib/nats';
@@ -11,16 +11,23 @@ import { upsertParticipant } from '../../shared/upsertParticipant';
 let MESSAGE_TIMEOUT_FALLBACK_MS = 20 * 60 * 1000;
 let MESSAGE_TIMEOUT_RECHECK_DELAY_MS = 60_000;
 
-export let messageTimeoutQueue = createQueue<{ messageId: string }>({
+export let messageTimeoutQueue = createQueue<{ messageId: string; attempt?: number }>({
   name: 'sub/con/msg/to',
   redisUrl: env.service.REDIS_URL,
   workerOpts: { concurrency: 10 }
 });
 
 export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data => {
-  let message = await db.sessionMessage.findFirst({
+  let message = await dbPrimary.sessionMessage.findUnique({
     where: { id: data.messageId },
-    include: { session: true, connection: true }
+    select: {
+      id: true,
+      status: true,
+      transport: true,
+      createdAt: true,
+      session: true,
+      connection: true
+    }
   });
   if (!message) throw new QueueRetryError();
 
@@ -90,8 +97,15 @@ export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data
     return;
   }
 
-  await messageTimeoutQueue.add(data, {
-    delay: MESSAGE_TIMEOUT_RECHECK_DELAY_MS,
-    id: data.messageId
-  });
+  // Each hop needs its own job id: re-adding the id of the job that is currently running
+  // is deduplicated by BullMQ and would silently end the chain.
+  let attempt = (data.attempt ?? 0) + 1;
+
+  await messageTimeoutQueue.add(
+    { messageId: data.messageId, attempt },
+    {
+      delay: MESSAGE_TIMEOUT_RECHECK_DELAY_MS,
+      id: `${data.messageId}:timeout:${attempt}`
+    }
+  );
 });

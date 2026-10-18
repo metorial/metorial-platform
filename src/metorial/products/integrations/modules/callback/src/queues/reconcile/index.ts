@@ -28,3 +28,17 @@ export let reconcileQueues = combineQueueProcessors([
   callbackRetrySyncManyQueueProcessor,
   callbackInstanceRetrySyncManyQueueProcessor
 ]);
+
+export let reconcileSubspaceQueues = combineQueueProcessors([
+  callbackReconcileQueueProcessor,
+  callbackInstanceReconcileQueueProcessor
+]);
+
+export let reconcileFederationQueues = combineQueueProcessors([
+  callbackReconcileForIntegrationManyQueueProcessor,
+  callbackInstanceReconcileManyQueueProcessor,
+  callbackInstanceReconcileForIntegrationInstanceManyQueueProcessor,
+  callbackRetrySyncCron,
+  callbackRetrySyncManyQueueProcessor,
+  callbackInstanceRetrySyncManyQueueProcessor
+]);

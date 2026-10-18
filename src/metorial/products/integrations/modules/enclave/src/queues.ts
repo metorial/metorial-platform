@@ -4,9 +4,17 @@ import { ingressNetworkLogProcessors } from './queues/networkLog/ingress';
 import { reconcileEnclaveInstanceConfigurationProcessors } from './queues/reconcile/enclaveInstanceConfiguration';
 import { reconcileProviderDeploymentEnclaveProcessors } from './queues/reconcile/providerDeploymentEnclave';
 
-export let enclaveQueueProcessor = combineQueueProcessors([
+export let enclaveSubspaceQueueProcessor = combineQueueProcessors([
   lifecycleQueues,
-  ingressNetworkLogProcessors,
   reconcileProviderDeploymentEnclaveProcessors,
   reconcileEnclaveInstanceConfigurationProcessors
+]);
+
+export let enclaveFederationQueueProcessor = combineQueueProcessors([
+  ingressNetworkLogProcessors
+]);
+
+export let enclaveQueueProcessor = combineQueueProcessors([
+  enclaveSubspaceQueueProcessor,
+  enclaveFederationQueueProcessor
 ]);

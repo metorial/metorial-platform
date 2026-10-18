@@ -29,3 +29,21 @@ export let syncQueues = combineQueueProcessors([
   syncSlatesCron,
   syncSlatesQueueProcessor
 ]);
+
+export let syncSubspaceQueues = combineQueueProcessors([
+  syncAuthConfigEventsQueueProcessor,
+  syncAuthConfigEventQueueProcessor,
+  syncAuthConfigProcessingQueueProcessor,
+  syncAuthConfigEventsCron,
+  syncChangeNotificationsQueueProcessor,
+  syncChangeNotificationsCron,
+  syncOAuthSetupsQueueProcessor,
+  syncOAuthSetupQueueProcessor,
+  syncOAuthSetupsCron
+]);
+
+export let syncFederationQueues = combineQueueProcessors([
+  syncSlateVersionQueueProcessor,
+  syncSlatesCron,
+  syncSlatesQueueProcessor
+]);

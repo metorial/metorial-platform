@@ -1462,6 +1462,14 @@ export let oauthAuthorizationType = PresentableType.create<{
       serverSideMachineAccess: MachineAccess | null;
     };
     organizationMember: OrganizationMember | null;
+    instance: Instance | null;
+    consumerProfile:
+      | (ConsumerProfile & {
+          surface: ConsumerSurface & {
+            portal: Portal | null;
+          };
+        })
+      | null;
     machineAccess: MachineAccess & {
       organization: Organization | null;
       actor: OrganizationActor | null;
@@ -1472,9 +1480,25 @@ export let oauthAuthorizationType = PresentableType.create<{
   };
 }>()('oauth_authorization');
 
+export let consumerOAuthAuthorizationType = PresentableType.create<{
+  oauthAuthorization: OAuthAuthorization & {
+    oauthApplication: OAuthApplication;
+  };
+}>()('consumer_oauth_authorization');
+
 export let oauthAuthorizationRequestType = PresentableType.create<{
   oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
 }>()('oauth_authorization_request');
+
+export let oauthAuthorizationRequestConsumerTargetType = PresentableType.create<{
+  consumerProfile: ConsumerProfile & {
+    organization: Organization;
+    instance: Instance;
+    surface: ConsumerSurface & {
+      portal: Portal | null;
+    };
+  };
+}>()('oauth_authorization_request_consumer_target');
 
 export let oauthAuthorizationLogType = PresentableType.create<{
   oauthAuthorizationLog: OAuthAuthorizationLogWithRelations;
@@ -1483,6 +1507,8 @@ export let oauthAuthorizationLogType = PresentableType.create<{
 export let serviceAccountType = PresentableType.create<{
   serviceAccount: ServiceAccount & {
     organization: Organization;
+    portal: Portal | null;
+    consumerProfile: ConsumerProfile | null;
     policies?: (AccessPolicyAssignment & {
       accessPolicy: AccessPolicy;
     })[];

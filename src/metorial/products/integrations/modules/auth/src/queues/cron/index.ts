@@ -18,3 +18,14 @@ export let cronQueues = combineQueueProcessors([
   reconcileProviderAuthConfigScopesManyQueueProcessor,
   reconcileProviderAuthCredentialsScopesManyQueueProcessor
 ]);
+
+export let cronSubspaceQueues = combineQueueProcessors([expireOAuthSetupCron]);
+
+export let cronFederationQueues = combineQueueProcessors([
+  reconcileProviderAuthConfigScopesCron,
+  reconcileProviderAuthConfigScopesQueueProcessor,
+  reconcileProviderAuthCredentialsScopesCron,
+  reconcileProviderAuthCredentialsScopesQueueProcessor,
+  reconcileProviderAuthConfigScopesManyQueueProcessor,
+  reconcileProviderAuthCredentialsScopesManyQueueProcessor
+]);

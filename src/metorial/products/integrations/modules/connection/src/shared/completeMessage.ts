@@ -1,6 +1,7 @@
 import { getJsonSizeBytes } from '@metorial-subspace/connection-utils';
 import {
   db,
+  dbPrimary,
   getId,
   getRawToolCallAttachmentsFromOutput,
   getToolCallAttachmentUrlKey,
@@ -10,7 +11,8 @@ import {
   type ProviderRun,
   type SessionError,
   type SessionMessageFailureReason,
-  type SessionParticipant
+  type SessionParticipant,
+  withTransaction
 } from '@metorial-subspace/db';
 import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
 import { finalizeMessageQueue } from '../queues/message/finalizeMessage';
@@ -48,9 +50,15 @@ export let completeMessage = async (
     };
   }
 
-  let currentMessage = await db.sessionMessage.findFirstOrThrow({
+  let currentMessage = await dbPrimary.sessionMessage.findUniqueOrThrow({
     where: 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid },
-    include: { connection: true, session: true, toolCall: true }
+    select: {
+      oid: true,
+      providerRunOid: true,
+      connection: true,
+      session: true,
+      toolCall: { select: { oid: true, providerRunOid: true } }
+    }
   });
 
   let retention = getRetentionPolicy(currentMessage.session);
@@ -92,8 +100,8 @@ export let completeMessage = async (
     }
   };
 
-  let { message, didTransition } = await db.$transaction(async tx => {
-    let result = await tx.sessionMessage.updateMany({
+  let { message, didTransition } = await withTransaction(async tx => {
+    let updated = await tx.sessionMessage.updateMany({
       where: {
         ...messageWhere,
         status: 'waiting_for_response'
@@ -110,48 +118,32 @@ export let completeMessage = async (
         responderParticipantOid: data.responderParticipant.oid
       }
     });
-    if (result.count === 0) {
-      return {
-        didTransition: false,
-        message: await tx.sessionMessage.findFirstOrThrow({
-          where: messageWhere,
-          include: messageInclude
-        })
-      };
-    }
 
-    let message = await tx.sessionMessage.findFirstOrThrow({
-      where: messageWhere,
-      include: messageInclude
-    });
+    let didTransition = updated.count > 0;
 
-    if (message.toolCall) {
-      await tx.toolCall.updateMany({
-        where: { oid: message.toolCall.oid },
-        data: { providerRunOid: message.providerRunOid }
-      });
+    if (didTransition && currentToolCall) {
+      let providerRunOid = data.providerRun?.oid ?? currentMessage.providerRunOid;
+
+      if (providerRunOid !== currentToolCall.providerRunOid) {
+        await tx.toolCall.updateMany({
+          where: { oid: currentToolCall.oid },
+          data: { providerRunOid }
+        });
+      }
 
       if (toolCallAttachmentRecords.length) {
         await tx.toolCallAttachment.createMany({
           data: toolCallAttachmentRecords
         });
-
-        message = await tx.sessionMessage.findFirstOrThrow({
-          where: { oid: message.oid },
-          include: {
-            toolCall: {
-              include: {
-                attachments: true
-              }
-            }
-          }
-        });
       }
     }
 
     return {
-      didTransition: true,
-      message
+      didTransition,
+      message: await tx.sessionMessage.findUniqueOrThrow({
+        where: { oid: currentMessage.oid },
+        include: messageInclude
+      })
     };
   });
 
@@ -175,15 +167,15 @@ export let completeMessage = async (
   }
 
   (async () => {
-    await db.sessionEvent.updateMany({
-      where: { messageOid: message.oid },
-      data: {
-        providerRunOid: message.providerRunOid,
-        connectionOid: message.connectionOid,
-        sessionOid: message.sessionOid,
-        errorOid: message.errorOid
-      }
-    });
+    if (message.providerRunOid || message.errorOid) {
+      await db.sessionEvent.updateMany({
+        where: { messageOid: message.oid },
+        data: {
+          providerRunOid: message.providerRunOid,
+          errorOid: message.errorOid
+        }
+      });
+    }
 
     await db.sessionEvent.createMany({
       data: {
@@ -201,7 +193,7 @@ export let completeMessage = async (
       }
     });
 
-    await finalizeMessageQueue.add({ messageId: message.id });
+    await finalizeMessageQueue.add({ messageId: message.id }, { id: message.id });
   })().catch(() => {});
 
   if (!retention.storeContent) {

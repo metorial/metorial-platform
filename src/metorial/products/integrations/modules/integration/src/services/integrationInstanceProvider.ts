@@ -33,6 +33,7 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { providerService } from '@metorial-subspace/module-catalog';
+import { providerDeploymentService } from '@metorial-subspace/module-deployment';
 import {
   assertAuthMethodAllowedForTenant,
   providerCombinationService
@@ -952,8 +953,22 @@ class integrationInstanceProviderServiceImpl {
       toolFilters?: PrismaJson.ToolFilter | null;
     }[];
   }) {
-    if (!d.input.length) return [];
-    if (d.input.length > MAX_INTEGRATION_PROVIDERS) {
+    // An integration has one integration provider per provider, so several deployments of the
+    // same provider collapse into one. The last input wins, matching the version it leaves behind.
+    let inputsByProviderOid = new Map<bigint, (typeof d.input)[number]>();
+    for (let input of d.input) {
+      let deployment = await providerDeploymentService.getProviderDeploymentByIdInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        providerDeploymentId: input.providerDeploymentId
+      });
+
+      inputsByProviderOid.set(deployment.providerOid, input);
+    }
+
+    let inputs = [...inputsByProviderOid.values()];
+    if (!inputs.length) return [];
+    if (inputs.length > MAX_INTEGRATION_PROVIDERS) {
       throw new ServiceError(
         badRequestError({
           message: `Cannot associate more than ${MAX_INTEGRATION_PROVIDERS} providers to an integration instance`
@@ -962,7 +977,7 @@ class integrationInstanceProviderServiceImpl {
     }
 
     let integrationProviders = [];
-    for (let input of d.input) {
+    for (let input of inputs) {
       integrationProviders.push(
         await integrationProviderService.ensureIntegrationProviderForDeploymentInternal({
           tenant: d.tenant,
@@ -985,7 +1000,7 @@ class integrationInstanceProviderServiceImpl {
       _canBreakIntegrationCanRules: true,
       _allowMissingProviderAuthConfig: d.isReconciliation,
       _canBypassProviderResourceOwnershipChecks: d.isReconciliation,
-      input: d.input.map((input, idx) => ({
+      input: inputs.map((input, idx) => ({
         providerId: integrationProviders[idx]!.id,
         providerDeploymentId: input.providerDeploymentId,
         providerConfigId: input.providerConfigId ?? null,

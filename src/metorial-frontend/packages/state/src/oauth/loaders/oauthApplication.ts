@@ -16,6 +16,7 @@ export let oauthAppsLoader = createLoader({
     create: (
       i: {
         accessLevel: 'organization';
+        subjectType?: 'organization_member' | 'consumer';
         allowTokenExchangeWithoutClientSecret?: boolean;
         name: string;
         description?: string;
@@ -30,6 +31,7 @@ export let oauthAppsLoader = createLoader({
       withAuth(sdk =>
         sdk.oauth.apps.create(organizationId, {
           accessLevel: 'organization',
+          subjectType: i.subjectType,
           allowTokenExchangeWithoutClientSecret: i.allowTokenExchangeWithoutClientSecret,
           name: i.name,
           description: i.description,

@@ -199,6 +199,9 @@ class ConsumerProviderSetupSessionServiceImpl {
       import: {
         ip: d.context.ip,
         ua: d.context.ua ?? ''
+      },
+      internal: {
+        skipConfirmation: true
       }
     });
 

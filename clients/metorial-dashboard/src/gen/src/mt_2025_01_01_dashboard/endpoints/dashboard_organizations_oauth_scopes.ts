@@ -5,7 +5,9 @@ import {
 
 import {
   mapDashboardOrganizationsOauthScopesListOutput,
-  type DashboardOrganizationsOauthScopesListOutput
+  mapDashboardOrganizationsOauthScopesListQuery,
+  type DashboardOrganizationsOauthScopesListOutput,
+  type DashboardOrganizationsOauthScopesListQuery
 } from '../resources';
 
 /**
@@ -40,6 +42,7 @@ export class MetorialDashboardOrganizationsOauthScopesEndpoint {
    * @description Returns all available OAuth scopes that organization-owned OAuth applications may request.
    *
    * @param `organizationId` - string
+   * @param `query` - DashboardOrganizationsOauthScopesListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsOauthScopesListOutput
    * @see https://metorial.com/api
@@ -47,6 +50,7 @@ export class MetorialDashboardOrganizationsOauthScopesEndpoint {
    */
   list(
     organizationId: string,
+    query?: DashboardOrganizationsOauthScopesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthScopesListOutput> {
     let path = `dashboard/organizations/${organizationId}/oauth/scopes`;
@@ -54,6 +58,9 @@ export class MetorialDashboardOrganizationsOauthScopesEndpoint {
     let request = {
       path,
 
+      query: query
+        ? mapDashboardOrganizationsOauthScopesListQuery.transformTo(query)
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 

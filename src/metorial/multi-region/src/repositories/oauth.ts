@@ -50,6 +50,7 @@ class OAuthGlobalRepository {
     id: string;
     oauthApplicationId: string;
     type: 'interactive' | 'device_code';
+    subjectType?: 'organization_member' | 'consumer';
     scopes: string[];
     oidcScopes?: string[];
     urlToken: string;
@@ -69,6 +70,7 @@ class OAuthGlobalRepository {
         id: d.id,
         type: d.type,
         status: 'pending',
+        subjectType: d.subjectType ?? 'organization_member',
         scopes: d.scopes,
         oidcScopes: d.oidcScopes ?? [],
         urlToken: d.urlToken,

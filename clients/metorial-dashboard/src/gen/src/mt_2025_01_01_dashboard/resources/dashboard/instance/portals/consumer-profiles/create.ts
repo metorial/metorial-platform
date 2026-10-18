@@ -29,6 +29,7 @@ export type DashboardInstancePortalsConsumerProfilesCreateOutput = ({
       }[]
     | null;
 }) & {
+  isServiceAccount: boolean;
   surface: {
     object: 'consumer.surface';
     id: string;
@@ -87,6 +88,7 @@ export let mapDashboardInstancePortalsConsumerProfilesCreateOutput =
                   ]
                 ]
               ],
+              'is_service_account',
               [
                 'surface',
                 0,

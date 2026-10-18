@@ -10,6 +10,11 @@ export type ManagementInstanceIntegrationsInstancesDeleteOutput = {
   integrationId: string;
   identityActorId: string | null;
   identityId: string | null;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    consumerId: string | null;
+  } | null;
   implementation: { type: 'magic_mcp_server'; magicMcpServerId: string } | null;
   providers: {
     object: 'integration.instance.provider';
@@ -132,6 +137,7 @@ export let mapManagementInstanceIntegrationsInstancesDeleteOutput =
       'integration_id',
       'identity_actor_id',
       'identity_id',
+      ['owner_actor', 1, [1, ['consumer_id']]],
       ['implementation', 0, [1, ['magic_mcp_server_id']]],
       [
         'providers',

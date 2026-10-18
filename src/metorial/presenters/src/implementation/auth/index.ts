@@ -6,6 +6,7 @@ export * from './oauthApplicationClientSecret';
 export * from './oauthAuthorization';
 export * from './oauthAuthorizationLog';
 export * from './oauthAuthorizationRequest';
+export * from './oauthAuthorizationRequestConsumerTarget';
 export * from './oauthInstallation';
 export * from './oauthScopePermissions';
 export * from './serviceAccount';

@@ -1,6 +1,6 @@
 import {
   instanceProviderAuthConfigsLoader,
-  useProviderAuthCredentials,
+  useProviderAuthCredentialsForMethods,
   useProviderListing
 } from '@metorial/state';
 import { Button, Dialog, Spacer, Text, showModal, toast } from '@metorial/ui';
@@ -12,9 +12,11 @@ import {
   getRememberedProviderAuthCredentialId
 } from './credentialPicker';
 import { showProviderAuthConfigCreateModal } from './createModal';
-import { type AuthMethod, getGeneratedAuthConfigName, isSetupFlowAuthMethod } from './modalHelpers';
-
-let WINDOW_DIALOG_DURATION_MS = 45_000;
+import {
+  type AuthMethod,
+  getGeneratedAuthConfigName,
+  isSetupFlowAuthMethod
+} from './modalHelpers';
 
 let AuthenticationWindowDialog = (p: {
   providerName: string;
@@ -70,23 +72,30 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     providerListing.data?.name ?? authCreation.provider.data?.name ?? 'Provider';
 
   let oauthMethods = authCreation.authMethodItems.filter(isSetupFlowAuthMethod);
-  let primaryOAuthMethod = p.fixedAuthMethodId
-    ? oauthMethods.find(method => method.id === p.fixedAuthMethodId)
-    : oauthMethods.length === 1
-      ? oauthMethods[0]
-      : undefined;
+  let credentialMethods = p.fixedAuthMethodId
+    ? oauthMethods.filter(method => method.id === p.fixedAuthMethodId)
+    : oauthMethods;
   let needsCredentials =
     !authCreation.oauthAutoRegistrationEnabled && !p.fixedAuthCredentialsId;
 
-  let credentials = useProviderAuthCredentials(
+  let credentials = useProviderAuthCredentialsForMethods(
     p.instanceId,
-    providerId && primaryOAuthMethod && needsCredentials
-      ? getProviderAuthCredentialsQuery({
-          providerId,
-          providerAuthMethodId: primaryOAuthMethod.id
-        })
+    providerId && needsCredentials
+      ? credentialMethods.map(method =>
+          getProviderAuthCredentialsQuery({
+            providerId,
+            providerAuthMethodId: method.id
+          })
+        )
       : null
   );
+
+  let isPreparing =
+    !!providerId &&
+    credentialMethods.length > 0 &&
+    needsCredentials &&
+    !credentials.data &&
+    !credentials.error;
 
   let runner = useProviderSetupSessionRunner({
     instanceId: p.instanceId,
@@ -97,73 +106,36 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
       if (!setupSession.authConfig) return;
       void instanceProviderAuthConfigsLoader.refetchAll();
       p.onCreate?.(setupSession.authConfig);
-    },
-    onWindowClosed: () => {}
+    }
   });
 
   let runnerRef = useRef(runner);
   runnerRef.current = runner;
-  let closeDialogRef = useRef<(() => void) | null>(null);
   let startedDirectlyRef = useRef(false);
 
-  let closeWindowDialog = () => {
-    closeDialogRef.current?.();
-    closeDialogRef.current = null;
-  };
-
   useEffect(() => {
-    if (!runner.isWindowOpen) {
+    if (!runner.isAwaitingCompletion) {
       startedDirectlyRef.current = false;
-      closeWindowDialog();
       return;
     }
 
     if (!startedDirectlyRef.current) return;
 
-    showModal(({ dialogProps, close }) => {
-      closeDialogRef.current = close;
-      return (
+    let modal = showModal(
+      ({ dialogProps, close }) => (
         <Dialog.Wrapper {...dialogProps} width={450}>
           <AuthenticationWindowDialog
             providerName={providerName}
             onReopen={() => runnerRef.current.openWindow()}
-            onCancel={() => {
-              runnerRef.current.reset();
-              close();
-            }}
+            onCancel={close}
           />
         </Dialog.Wrapper>
-      );
-    });
+      ),
+      { onClose: () => runnerRef.current.reset() }
+    );
 
-    let remaining = WINDOW_DIALOG_DURATION_MS;
-    let resumedAt = 0;
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-
-    let resume = () => {
-      if (timeout) return;
-      resumedAt = Date.now();
-      timeout = setTimeout(closeWindowDialog, remaining);
-    };
-
-    let pause = () => {
-      if (!timeout) return;
-      clearTimeout(timeout);
-      timeout = undefined;
-      remaining = Math.max(0, remaining - (Date.now() - resumedAt));
-    };
-
-    if (!document.hasFocus()) resume();
-    window.addEventListener('blur', resume);
-    window.addEventListener('focus', pause);
-
-    return () => {
-      pause();
-      window.removeEventListener('blur', resume);
-      window.removeEventListener('focus', pause);
-      closeWindowDialog();
-    };
-  }, [runner.isWindowOpen]);
+    return () => modal.close();
+  }, [runner.isAwaitingCompletion]);
 
   useEffect(() => {
     if (!runner.error) return;
@@ -181,13 +153,22 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
 
   let getDirectCredentials = (method: AuthMethod) => {
     if (!needsCredentials) return { providerAuthCredentialsId: p.fixedAuthCredentialsId };
-    if (method.id !== primaryOAuthMethod?.id || !credentials.data) return null;
+    let methodCredentials = credentials.data?.find(
+      entry => entry.providerAuthMethodId === method.id
+    )?.credentials;
+    if (!methodCredentials) return null;
 
-    let items = credentials.data.items;
+    let items = methodCredentials.items;
     let remembered = getRememberedProviderAuthCredentialId(items);
     if (remembered) return { providerAuthCredentialsId: remembered };
 
-    if (items.length !== 1 || credentials.data.pagination.hasMoreAfter) return null;
+    if (
+      items.length !== 1 ||
+      methodCredentials.pagination.hasMoreAfter ||
+      methodCredentials.pagination.hasMoreBefore
+    ) {
+      return null;
+    }
 
     return { providerAuthCredentialsId: items[0]!.id };
   };
@@ -207,7 +188,8 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
 
   let start = (authMethodId: string) => {
     let method = authCreation.authMethodItems.find(method => method.id === authMethodId);
-    let direct = method && providerId && isSetupFlowAuthMethod(method) && getDirectCredentials(method);
+    let direct =
+      method && providerId && isSetupFlowAuthMethod(method) && getDirectCredentials(method);
 
     if (!method || !direct) {
       openModal(authMethodId);
@@ -226,6 +208,6 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     authCreation,
     providerName,
     start,
-    isLoading: runner.isStarting || runner.isWindowOpen
+    isLoading: isPreparing || runner.isStarting || runner.isAwaitingCompletion
   };
 };

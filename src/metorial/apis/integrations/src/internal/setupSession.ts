@@ -59,12 +59,28 @@ export let getFullSession = async (
       clientSecret: input.clientSecret
     }));
 
-  let brand =
-    session.brand ?? (await brandService.getBrandForTenant({ tenantId: session.tenant.id }));
-  let integrationSetupSession =
-    await integrationSetupSessionService.getIntegrationSetupSessionByProviderSetupSession({
-      providerSetupSession: session
-    });
+  let [brand, integrationSetupSession, authConfigSchema, configSchema, oauthSetup] =
+    await Promise.all([
+      session.brand ?? brandService.getBrandForTenant({ tenantId: session.tenant.id }),
+
+      integrationSetupSessionService.getIntegrationSetupSessionByProviderSetupSession({
+        providerSetupSession: session
+      }),
+
+      session.providerOid && !session.authConfigOid
+        ? providerSetupSessionUiService
+            .getAuthConfigSchema({ providerSetupSession: session })
+            .catch(() => null)
+        : null,
+
+      session.providerOid && !session.configOid
+        ? providerSetupSessionUiService
+            .getConfigSchema({ providerSetupSession: session })
+            .catch(() => null)
+        : null,
+
+      providerSetupSessionUiService.getOAuthSetup({ providerSetupSession: session })
+    ]);
 
   return {
     provider: session.provider
@@ -78,7 +94,18 @@ export let getFullSession = async (
           url: integrationSetupSessionUrl(integrationSetupSession)
         }
       : null,
-    isWhitelabel: session.tenant.isWhitelabel
+    isWhitelabel: session.tenant.isWhitelabel,
+
+    authConfigSchema: authConfigSchema
+      ? setupSessionSchemaPresenter(
+          'provider.setup_session.auth_config_schema',
+          authConfigSchema
+        )
+      : null,
+    configSchema: configSchema
+      ? setupSessionSchemaPresenter('provider.setup_session.config_schema', configSchema)
+      : null,
+    oauthSetup: oauthSetup ? setupSessionOAuthSetupPresenter(oauthSetup) : null
   };
 };
 
@@ -88,19 +115,30 @@ export let setupSessionController = app.controller({
     .input(
       v.object({
         sessionId: v.string(),
-        clientSecret: v.string()
+        clientSecret: v.string(),
+        autoStartOauth: v.optional(v.boolean())
       })
     )
-    .do(
-      async ctx =>
-        await getFullSession(
-          {
-            sessionId: ctx.input.sessionId,
-            clientSecret: ctx.input.clientSecret
-          },
-          ctx.session
-        )
-    ),
+    .do(async ctx => {
+      let input = {
+        sessionId: ctx.input.sessionId,
+        clientSecret: ctx.input.clientSecret
+      };
+
+      let startedSession = ctx.input.autoStartOauth
+        ? await providerSetupSessionUiService
+            .autoStartOAuth({
+              providerSetupSession: ctx.session,
+              context: ctx.context
+            })
+            .catch(() => null)
+        : null;
+      if (!startedSession) return await getFullSession(input, ctx.session);
+
+      await reconcileIntegrationSetupSessionChild(startedSession, ctx.context);
+
+      return await getFullSession(input);
+    }),
 
   getAuthConfigSchema: sessionApp
     .handler()
@@ -187,6 +225,14 @@ export let setupSessionController = app.controller({
       });
 
       await reconcileIntegrationSetupSessionChild(session, ctx.context);
+
+      let oauthSetup = await providerSetupSessionUiService.getOAuthSetup({
+        providerSetupSession: session
+      });
+
+      return {
+        oauthSetup: oauthSetup ? setupSessionOAuthSetupPresenter(oauthSetup) : null
+      };
     }),
 
   listProviders: sessionApp
@@ -273,12 +319,23 @@ export let setupSessionController = app.controller({
     .input(
       v.object({
         sessionId: v.string(),
-        clientSecret: v.string()
+        clientSecret: v.string(),
+        toolFilters: v.optional(v.any())
       })
     )
     .do(async ctx => {
+      let startedSession =
+        await providerSetupSessionUiService.startOAuthWithoutAuthConfigInput({
+          providerSetupSession: ctx.session,
+          toolFilters: ctx.input.toolFilters as any,
+          context: ctx.context
+        });
+      if (startedSession) {
+        await reconcileIntegrationSetupSessionChild(startedSession, ctx.context);
+      }
+
       let oauthSetup = await providerSetupSessionUiService.getOAuthSetup({
-        providerSetupSession: ctx.session
+        providerSetupSession: startedSession ?? ctx.session
       });
       if (!oauthSetup) return null;
 

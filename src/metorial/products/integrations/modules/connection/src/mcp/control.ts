@@ -1,3 +1,4 @@
+import { generatePlainId } from '@lowerdeck/id';
 import { serialize } from '@lowerdeck/serialize';
 import type { ConduitResult } from '@metorial-subspace/connection-utils';
 import { conduitResultToMcpMessage } from '@metorial-subspace/connection-utils';
@@ -16,6 +17,7 @@ export type McpControlMessage =
       type: 'mcp_control_message';
       conduit: ConduitResult;
       channel: 'targeted_response' | 'broadcast_response_or_notification';
+      requestNonce?: string;
     }
   | {
       type: 'ping_received';
@@ -43,6 +45,7 @@ export let isProgressNotificationForToken = (
 
 export class McpControlMessageHandler {
   #lastInteractionAt: number;
+  readonly requestNonce = generatePlainId();
 
   constructor(private readonly manager: McpManager) {
     this.#lastInteractionAt = Date.now();
@@ -78,6 +81,7 @@ export class McpControlMessageHandler {
       await this.sendControlMessage({
         type: 'mcp_control_message',
         channel: 'broadcast_response_or_notification',
+        requestNonce: this.requestNonce,
         conduit: {
           status: 'succeeded',
           message: null,
@@ -144,7 +148,13 @@ export class McpControlMessageHandler {
               continue;
             }
 
-            if (conduitRes) yield { mcp: conduitRes, message: data.conduit.message };
+            if (conduitRes) {
+              yield {
+                mcp: conduitRes,
+                message: data.conduit.message,
+                requestNonce: data.requestNonce
+              };
+            }
           }
         }
       }

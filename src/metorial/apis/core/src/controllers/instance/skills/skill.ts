@@ -260,6 +260,7 @@ export let skillController = Controller.create(
           await skillGroupItemService.createSkillGroupItem({
             project: access.project,
             instance: access.instance,
+            auditScope: access.auditScope,
             input: { skillGroupId, skillId: skill.id }
           });
         }
@@ -334,6 +335,7 @@ export let skillController = Controller.create(
         let archived = await skillService.archiveSkill({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           skill: ctx.skill.localSkill,
           authorization: access.authorization,
           defaultPermissions: access.defaultPermissions,

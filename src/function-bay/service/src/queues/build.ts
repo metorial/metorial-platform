@@ -8,6 +8,7 @@ import { encryption } from '../encryption';
 import { env } from '../env';
 import { ensureForgeWorkflow, forge } from '../forge';
 import { ID, snowflake } from '../id';
+import { fetchBuildManifest } from '../lib/fetchBuildManifest';
 import { defaultProvider } from '../providers';
 import {
   MANIFEST_ARTIFACT_NAME,
@@ -116,11 +117,14 @@ let monitorBuildQueueProcessor = monitorBuildQueue.process(async data => {
   }
 });
 
+let MAX_MANIFEST_FETCH_ATTEMPTS = 5;
+
 let workflowFinishedBuildQueue = createQueue<{
   deploymentId: string;
   runId: string;
   workflowId: string;
   tenantId: string;
+  manifestFetchAttempt?: number;
 }>({
   name: 'fbay/build/wfin',
   workerOpts: { concurrency: 50 },
@@ -147,7 +151,27 @@ let workflowFinishedBuildQueueProcessor = workflowFinishedBuildQueue.process(asy
       return;
     }
 
-    let manifest = await fetch(manifestArtifact.url.url).then(res => res.json());
+    let manifestResult = await fetchBuildManifest(manifestArtifact.url.url);
+    if (!manifestResult.success) {
+      let attempt = (data.manifestFetchAttempt ?? 0) + 1;
+
+      if (attempt < MAX_MANIFEST_FETCH_ATTEMPTS) {
+        await workflowFinishedBuildQueue.add(
+          { ...data, manifestFetchAttempt: attempt },
+          { delay: 5000 * attempt }
+        );
+        return;
+      }
+
+      await errorQueue.add({
+        deploymentId: data.deploymentId,
+        code: 'function_bay.build_runtime_error',
+        message: `The build manifest could not be retrieved: ${manifestResult.reason}.`
+      });
+      return;
+    }
+
+    let manifest = manifestResult.value;
 
     let valRes = v
       .object({

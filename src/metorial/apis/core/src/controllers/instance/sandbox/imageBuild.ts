@@ -98,6 +98,7 @@ export let sandboxImageBuildController = Controller.create(
       .output(sandboxImageBuildPresenter)
       .do(async ctx => {
         let build = await sandboxImageBuildService.cancel({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           build: { id: requirePathParam(ctx.params, 'buildId') }
         });

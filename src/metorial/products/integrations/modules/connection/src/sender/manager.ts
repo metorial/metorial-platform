@@ -20,12 +20,14 @@ import type {
 import {
   type AgentInstance,
   db,
+  type Environment,
   getId,
   ID,
   type ProviderAuthConfig,
   type ProviderAuthCredentials,
   type ProviderAuthMethod,
   type ProviderDeployment,
+  type ProviderDeploymentConfigPairProviderVersion,
   type Session,
   type SessionConnection,
   type SessionConnectionMcpConnectionTransport,
@@ -59,15 +61,19 @@ import {
   sessionProviderNameTemplateService
 } from '@metorial-subspace/module-session';
 import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
-import { addDays, addMinutes, differenceInMinutes } from 'date-fns';
+import { addDays, addHours, addMinutes, differenceInMinutes, subHours } from 'date-fns';
+import { isEqual } from 'lodash';
+import { recordConnectionAuditEvent } from '../audit/recordMessage';
 import {
   DEFAULT_SESSION_EXPIRATION_DAYS,
   SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT,
   SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES,
+  SESSION_PROVIDER_INSTANCE_RENEWAL_THRESHOLD_MINUTES,
+  SESSIONLESS_CONNECTION_MAX_AGE_HOURS,
+  SESSIONLESS_CONNECTION_MAX_IDLE_HOURS,
   UNINITIALIZED_SESSION_EXPIRATION_MINUTES
 } from '../const';
 import { env } from '../env';
-import { conduit } from '../lib/conduit';
 import {
   buildCallbackEventTools,
   type CallbackEventToolScope,
@@ -75,6 +81,7 @@ import {
   resolveCallbackEventToolScope,
   runCallbackEventTool
 } from '../lib/callbackEventTools';
+import { conduit } from '../lib/conduit';
 import {
   buildConnectionFailedDetail,
   buildConnectionFailedTool,
@@ -86,8 +93,8 @@ import {
   buildConnectionStatusTool,
   CONNECTION_STATUS_TOOL_KEY
 } from '../lib/connectionStatusTool';
-import { getProviderActionAdapterWhere } from '../lib/internalSession';
 import { broadcastNats } from '../lib/nats';
+import { listSpecificationTools } from '../lib/providerToolCache';
 import { isSyntheticTool } from '../lib/syntheticTool';
 import {
   CONNECTION_DIAGNOSTICS_TIMEOUT_MS,
@@ -100,10 +107,9 @@ import { createMessage, type CreateMessageProps } from '../shared/createMessage'
 import { createWarning } from '../shared/createWarning';
 import { extractToolCallOperation, getToolCallArguments } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
-import { recordConnectionAuditEvent } from '../audit/recordMessage';
 import {
   type ConnectionScopedSpecification,
-  isConnectionScopedProviderVersion,
+  isConnectionScopedProviderVersionOid,
   resolveConnectionScopedSpecification
 } from './connectionSpecification';
 import { resolveProviderToolListingSpecificationOid } from './toolSpecification';
@@ -120,7 +126,16 @@ let connectionTokenLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+let sessionlessConnectionLock = createLock({
+  name: 'sub/conn/session/sessionless/lock',
+  redisUrl: env.service.REDIS_URL
+});
+
 let providerInstanceResolutionPromises = new Map<string, Promise<any>>();
+
+type ReusableProviderInstance = SessionProviderInstance & {
+  pairVersion: ProviderDeploymentConfigPairProviderVersion;
+};
 
 let sender = conduit.createSender({
   defaultTimeout: 10_000,
@@ -139,6 +154,15 @@ export interface InitProps {
   agentInstance?: AgentInstance | null;
   systemIdentifier?: string;
   allowReservedClientIdentifier?: boolean;
+  mcpClientKey?: string;
+  expiresAt?: Date;
+}
+
+export interface SessionlessConnectionProps {
+  clientKey: string;
+  client: InitProps['client'];
+  mcpCapabilities: Record<string, any>;
+  mcpProtocolVersion: string;
 }
 
 export interface CallToolProps {
@@ -229,7 +253,9 @@ export class SenderManager {
         let currentSession = await ephemeralManagedSessionService.resolveBackingSessionById({
           sessionId: connection.session.ephemeralManagedSession.id,
           tenantId: d.tenantId,
-          solutionId: d.solutionId
+          solutionId: d.solutionId,
+          tenantOid: connection.tenantOid,
+          solutionOid: connection.solutionOid
         });
 
         if (currentSession && currentSession.oid !== connection.session.oid) {
@@ -244,7 +270,9 @@ export class SenderManager {
                   await ephemeralManagedSessionService.resolveBackingSessionById({
                     sessionId: lockedConnection.session.ephemeralManagedSession.id,
                     tenantId: d.tenantId,
-                    solutionId: d.solutionId
+                    solutionId: d.solutionId,
+                    tenantOid: lockedConnection.tenantOid,
+                    solutionOid: lockedConnection.solutionOid
                   });
 
                 if (
@@ -435,14 +463,16 @@ export class SenderManager {
       );
     }
 
+    let environment: Environment | null = null;
     if (d.ingressPolicyCheck) {
-      let environment = await db.environment.findUniqueOrThrow({
+      environment = await db.environment.findUniqueOrThrow({
         where: { oid: session.environmentOid }
       });
 
       await enclaveIngressPolicyService.assertSessionIngressAccessInternal({
         tenant: session.tenant,
         environment,
+        session,
         sessionId: session.id,
         sourceIp: d.ingressPolicyCheck.sourceIp,
         hostname: d.ingressPolicyCheck.hostname,
@@ -460,6 +490,10 @@ export class SenderManager {
       }
 
       if (connection.expiresAt < new Date()) {
+        if (connection.mcpTransport === 'sessionless') {
+          throw new ServiceError(goneError({ message: 'Connection has expired' }));
+        }
+
         if (connection.initState === 'pending') {
           throw new ServiceError(
             badRequestError({
@@ -532,16 +566,24 @@ export class SenderManager {
       d.agentClient,
       d.connectionPrivateMetadata
     );
+    if (environment) manager.#environmentPromise = Promise.resolve(environment);
+
     return manager;
+  }
+
+  #environmentPromise: Promise<Environment> | null = null;
+  private getEnvironment() {
+    this.#environmentPromise ??= db.environment.findUniqueOrThrow({
+      where: { oid: this.session.environmentOid }
+    });
+    return this.#environmentPromise;
   }
 
   #upsertAgentClientPromise: ReturnType<typeof this.upsertAgentClientIfNeeded> | null = null;
   private async upsertAgentClientIfNeeded() {
     if (!this.agentClient) return null;
 
-    let environment = await db.environment.findUniqueOrThrow({
-      where: { oid: this.session.environmentOid }
-    });
+    let environment = await this.getEnvironment();
 
     return await agentClientService.upsertAgentClientInternal({
       tenant: this.tenant,
@@ -561,9 +603,7 @@ export class SenderManager {
   private async ensureConnectionClientAgentContext(d: InitProps['client']) {
     let agentClientContext = await this.ensureAgentClientUpserted();
 
-    let environment = await db.environment.findUniqueOrThrow({
-      where: { oid: this.session.environmentOid }
-    });
+    let environment = await this.getEnvironment();
 
     let agent = await agentService.upsertAgentInternal({
       tenant: this.tenant,
@@ -610,18 +650,52 @@ export class SenderManager {
     return connection.participant;
   }
 
-  private async findReusableProviderInstance(provider: SessionProvider) {
-    let currentInstance = await db.sessionProviderInstance.findFirst({
+  #prefetchedInstances = new Map<bigint, ReusableProviderInstance | null>();
+
+  private async prefetchProviderInstances(providers: SessionProvider[]) {
+    let instances = await db.sessionProviderInstance.findMany({
+      where: {
+        sessionProviderOid: { in: providers.map(provider => provider.oid) },
+        expiresAt: { gt: new Date() }
+      },
+      include: { pairVersion: true },
+      orderBy: { oid: 'desc' }
+    });
+
+    for (let provider of providers) {
+      let instance = instances.find(i => i.sessionProviderOid === provider.oid) ?? null;
+      this.#prefetchedInstances.set(provider.oid, instance);
+    }
+  }
+
+  private async findLiveProviderInstance(provider: SessionProvider) {
+    if (this.#prefetchedInstances.has(provider.oid)) {
+      let prefetched = this.#prefetchedInstances.get(provider.oid)!;
+      this.#prefetchedInstances.delete(provider.oid);
+      return prefetched;
+    }
+
+    return await db.sessionProviderInstance.findFirst({
       where: {
         sessionProviderOid: provider.oid,
         expiresAt: { gt: new Date() }
       },
       include: { pairVersion: true }
     });
+  }
+
+  private async findReusableProviderInstance(provider: SessionProvider) {
+    let currentInstance = await this.findLiveProviderInstance(provider);
     if (!currentInstance) return null;
 
     let ageInMinutes = Math.abs(differenceInMinutes(new Date(), currentInstance.createdAt));
     if (ageInMinutes > SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) return null;
+
+    let renewAfter = addMinutes(
+      new Date(),
+      SESSION_PROVIDER_INSTANCE_RENEWAL_THRESHOLD_MINUTES
+    );
+    if (currentInstance.expiresAt > renewAfter) return currentInstance;
 
     return await db.sessionProviderInstance.update({
       where: { oid: currentInstance.oid },
@@ -704,17 +778,26 @@ export class SenderManager {
 
     let rec = pair.version.latestDiscoveryRecord;
 
-    if (rec) {
-      for (let warning of rec.warnings) {
-        await createWarning({
-          session: this.session,
-          connection: this.connection,
-          warning: {
-            code: warning.code,
-            message: warning.message,
-            payload: warning.data
-          }
-        });
+    // Warnings belong to the pair version's discovery record, so an earlier instance on the
+    // same pair version has already reported them for this session provider.
+    if (rec?.warnings.length) {
+      let alreadyReported = await db.sessionProviderInstance.findFirst({
+        where: { sessionProviderOid: provider.oid, pairVersionOid: pair.version.oid },
+        select: { oid: true }
+      });
+
+      if (!alreadyReported) {
+        for (let warning of rec.warnings) {
+          await createWarning({
+            session: this.session,
+            connection: this.connection,
+            warning: {
+              code: warning.code,
+              message: warning.message,
+              payload: warning.data
+            }
+          });
+        }
       }
     }
 
@@ -878,11 +961,10 @@ export class SenderManager {
     if (cached) return await cached;
 
     let promise = (async () => {
-      let providerVersion = await db.providerVersion.findFirst({
-        where: { oid: d.instance.pairVersion.versionOid }
-      });
-      if (!providerVersion) return null;
-      if (!(await isConnectionScopedProviderVersion(providerVersion))) return null;
+      let isConnectionScoped = await isConnectionScopedProviderVersionOid(
+        d.instance.pairVersion.versionOid
+      );
+      if (!isConnectionScoped) return null;
 
       return await resolveConnectionScopedSpecification({
         connectionOid: connection.oid,
@@ -978,12 +1060,7 @@ export class SenderManager {
     }
 
     let tools = specificationOid
-      ? await db.providerTool.findMany({
-          where: {
-            specificationOid,
-            ...getProviderActionAdapterWhere(this.session)
-          }
-        })
+      ? await listSpecificationTools({ specificationOid, session: this.session })
       : [];
 
     let authMethodFilteredTools = tools.filter(
@@ -1033,6 +1110,7 @@ export class SenderManager {
 
   async listToolsIncludingInternalAndNonAllowed() {
     let providers = await this.listProviders();
+    if (providers.length > 1) await this.prefetchProviderInstances(providers);
 
     let discoveryRes = await Promise.all(
       providers.map(provider => this.listToolsForProvider(provider))
@@ -1099,25 +1177,10 @@ export class SenderManager {
     };
   }
 
-  private async getProviderByTag(d: { tag: string }) {
-    let provider = await db.sessionProvider.findFirst({
-      where: {
-        sessionOid: this.session.oid,
-        tag: d.tag,
-        status: 'active'
-      },
-      include: {
-        provider: true,
-        deployment: true,
-        config: true,
-        authConfig: { include: { authCredentials: true, authMethod: true } }
-      }
-    });
-    if (!provider) throw new ServiceError(notFoundError('provider', d.tag));
-    return provider;
-  }
-
-  private async getLegacyToolMatch(d: { toolId: string }) {
+  private getLegacyToolMatch<P extends { tag: string }>(d: {
+    toolId: string;
+    providers: P[];
+  }) {
     let parts = d.toolId.split('_');
     let providerTag = parts.pop();
     let toolKeyParts = parts;
@@ -1125,16 +1188,8 @@ export class SenderManager {
       return null;
     }
 
-    let provider: Awaited<ReturnType<SenderManager['getProviderByTag']>> | null = null;
-    try {
-      provider = await this.getProviderByTag({ tag: providerTag! });
-    } catch (error) {
-      if (error instanceof ServiceError) {
-        return null;
-      }
-
-      throw error;
-    }
+    let provider = d.providers.find(p => p.tag === providerTag);
+    if (!provider) return null;
 
     return {
       provider,
@@ -1195,13 +1250,11 @@ export class SenderManager {
     }
 
     // Find the tool by key in the specification of the current instance
-    let tool = await db.providerTool.findFirst({
-      where: {
-        key: d.originalToolName,
-        specificationOid,
-        ...getProviderActionAdapterWhere(this.session)
-      }
+    let specificationTools = await listSpecificationTools({
+      specificationOid,
+      session: this.session
     });
+    let tool = specificationTools.find(t => t.key === d.originalToolName);
     if (!tool) return null;
 
     let { allowed } = checkToolAccess(tool, d.provider, 'call');
@@ -1320,7 +1373,7 @@ export class SenderManager {
         throw new ServiceError(badRequestError({ message: error.message }));
       }
 
-      let legacyMatch = await this.getLegacyToolMatch(d);
+      let legacyMatch = this.getLegacyToolMatch({ toolId: d.toolId, providers });
       matches = [templateMatch, legacyMatch].filter(
         (match): match is ToolMatch => match !== null
       );
@@ -1830,7 +1883,8 @@ export class SenderManager {
           mcpData: {},
 
           expiresAt: addMinutes(new Date(), UNINITIALIZED_SESSION_EXPIRATION_MINUTES),
-          lastPingAt: new Date()
+          lastPingAt: new Date(),
+          lastActiveAt: new Date()
         }
       })
       .then(c => c); // Force promise to run
@@ -1865,6 +1919,104 @@ export class SenderManager {
       );
     }
     this.connection = Object.assign(this.connection ?? {}, connection);
+  }
+
+  async resolveSessionlessConnection(d: SessionlessConnectionProps) {
+    let existing = await this.findSessionlessConnection(d.clientKey);
+    if (existing) return await this.reuseSessionlessConnection(existing, d);
+
+    return await sessionlessConnectionLock.usingLock(
+      `${this.session.oid}:${d.clientKey}`,
+      async () => {
+        let current = await this.findSessionlessConnection(d.clientKey);
+        if (current) return await this.reuseSessionlessConnection(current, d);
+
+        return await this.initialize({
+          client: d.client,
+          mcpCapabilities: d.mcpCapabilities,
+          mcpProtocolVersion: d.mcpProtocolVersion,
+          mcpTransport: 'sessionless',
+          mcpClientKey: d.clientKey,
+          expiresAt: addHours(new Date(), SESSIONLESS_CONNECTION_MAX_AGE_HOURS)
+        });
+      }
+    );
+  }
+
+  private async findSessionlessConnection(clientKey: string) {
+    let now = new Date();
+
+    return await db.sessionConnection.findFirst({
+      where: {
+        sessionOid: this.session.oid,
+        mcpClientKey: clientKey,
+        mcpTransport: 'sessionless',
+        transport: this.transport,
+        status: 'active',
+        isManuallyDisabled: false,
+        expiresAt: { gt: now },
+        lastActiveAt: { gt: subHours(now, SESSIONLESS_CONNECTION_MAX_IDLE_HOURS) }
+      },
+      orderBy: { lastActiveAt: 'desc' },
+      include: { participant: true }
+    });
+  }
+
+  private async reuseSessionlessConnection(
+    connection: SessionConnection,
+    d: SessionlessConnectionProps
+  ) {
+    let now = new Date();
+    let wasDisconnected = connection.state === 'disconnected';
+    let mcpDataChanged =
+      connection.mcpProtocolVersion !== d.mcpProtocolVersion ||
+      !isEqual(connection.mcpData?.capabilities, d.mcpCapabilities);
+
+    let updated = await db.sessionConnection.update({
+      where: { oid: connection.oid },
+      data: {
+        lastActiveAt: now,
+        lastPingAt: now,
+        ...(wasDisconnected ? { state: 'connected' as const, disconnectedAt: null } : {}),
+        ...(mcpDataChanged
+          ? {
+              mcpProtocolVersion: d.mcpProtocolVersion,
+              mcpData: {
+                ...connection.mcpData,
+                capabilities: d.mcpCapabilities,
+                protocolVersion: d.mcpProtocolVersion
+              }
+            }
+          : {})
+      },
+      include: { participant: true }
+    });
+
+    if (wasDisconnected) {
+      await db.session.updateMany({
+        where: { oid: this.session.oid },
+        data: { connectionState: 'connected', lastActiveAt: now }
+      });
+
+      if (!this.session.isInternal) {
+        await db.sessionEvent.createMany({
+          data: {
+            ...getId('sessionEvent'),
+            type: 'connection_connected',
+            sessionOid: this.session.oid,
+            connectionOid: updated.oid,
+            tenantOid: this.session.tenantOid,
+            projectOid: this.session.projectOid,
+            solutionOid: this.session.solutionOid,
+            environmentOid: this.session.environmentOid,
+            instanceOid: this.session.instanceOid
+          }
+        });
+      }
+    }
+
+    await this.setConnection(updated);
+    return updated;
   }
 
   async disableConnection() {
@@ -1965,13 +2117,14 @@ export class SenderManager {
       mcpProtocolVersion: d.mcpProtocolVersion,
       mcpTransport: d.mcpTransport,
 
-      expiresAt: addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
+      expiresAt: d.expiresAt ?? addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
       lastPingAt: new Date(),
       lastActiveAt: new Date(),
       disconnectedAt: null,
 
       transport: this.transport,
-      ...(d.systemIdentifier === undefined ? {} : { systemIdentifier: d.systemIdentifier })
+      ...(d.systemIdentifier === undefined ? {} : { systemIdentifier: d.systemIdentifier }),
+      ...(d.mcpClientKey === undefined ? {} : { mcpClientKey: d.mcpClientKey })
     };
 
     let connection: SessionConnection;

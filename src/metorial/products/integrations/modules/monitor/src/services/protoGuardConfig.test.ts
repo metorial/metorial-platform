@@ -84,6 +84,27 @@ describe('getProtoGuardConfigForEvaluation', () => {
       }
     ]);
   });
+  it('reads the global filter list once across tenants', async () => {
+    findManyFilters.mockResolvedValue([
+      {
+        oid: BigInt(456),
+        key: 'instruction_override',
+        defaultEnabled: true,
+        alertConfidenceThreshold: 0.8
+      }
+    ]);
+    findManySettings.mockResolvedValue([]);
+    findUniqueTenantSetting.mockResolvedValue(null);
+
+    let { getProtoGuardConfigForEvaluation } = await import('./protoGuardConfig');
+
+    await getProtoGuardConfigForEvaluation({ tenantOid: BigInt(1) });
+    await getProtoGuardConfigForEvaluation({ tenantOid: BigInt(2) });
+    await getProtoGuardConfigForEvaluation({ tenantOid: BigInt(1) });
+
+    expect(findManyFilters).toHaveBeenCalledTimes(1);
+    expect(findManySettings).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('protoGuardConfigService', () => {

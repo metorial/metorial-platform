@@ -59,7 +59,8 @@ import { notifyIntegrationTransaction } from '../listeners';
 import {
   integrationInstanceArchivedQueue,
   integrationInstanceCreatedQueue,
-  integrationInstanceUpdatedQueue
+  integrationInstanceUpdatedQueue,
+  syncIntegrationInstanceProviderCredentials
 } from '../queues/lifecycle/integrationInstance';
 import {
   integrationInstanceProviderService,
@@ -832,6 +833,7 @@ class integrationInstanceServiceImpl {
             include: magicMcpBackingIntegrationInstanceInclude
           });
       let isNew = integrationInstance.id === newId.id;
+      let previousIdentityOid = integrationInstance.identityOid;
 
       integrationInstance = await this.applyIdentityAndProviders({
         tenant: d.tenant,
@@ -840,6 +842,10 @@ class integrationInstanceServiceImpl {
         input: d.input,
         current: integrationInstance
       });
+
+      // The updated lifecycle skips magic backings, so identity credentials have to follow
+      // an identity change here.
+      let hasIdentityChanged = integrationInstance.identityOid !== previousIdentityOid;
 
       await addAfterTransactionHook(async () => {
         if (isNew) {
@@ -850,6 +856,10 @@ class integrationInstanceServiceImpl {
           await integrationInstanceUpdatedQueue.add({
             integrationInstanceId: integrationInstance.id
           });
+
+          if (hasIdentityChanged) {
+            await syncIntegrationInstanceProviderCredentials(integrationInstance.id);
+          }
         }
       });
 

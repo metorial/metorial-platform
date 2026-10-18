@@ -4,9 +4,7 @@ import {
   ensureMagicMcpEndpointBacking,
   ensureMagicMcpServerBacking,
   healMagicMcpEndpointBacking,
-  healMagicMcpServerBacking,
-  waitForMagicMcpEndpointBackingReady,
-  waitForMagicMcpServerBackingReady
+  healMagicMcpServerBacking
 } from './backing';
 import {
   assertMagicMcpTargetLinkedResourcesActive,
@@ -17,45 +15,24 @@ import { MagicMcpResolvedTarget } from './magicMcpTarget';
 let ensureServerBackingSession = async (
   target: MagicMcpResolvedTarget & { type: 'server' }
 ) => {
-  let targetServer = target.target;
-  if (
-    !targetServer.hasSubspaceBacking ||
-    !targetServer.subspaceEphemeralManagedSessionId ||
-    targetServer.isSubspaceBackingReconciling
-  ) {
-    let latest = await waitForMagicMcpServerBackingReady({
-      instance: target.target.instance as Instance,
-      server: target.target
-    });
-    if (latest) targetServer = { ...targetServer, ...latest };
-  }
+  let instance = target.target.instance as Instance;
 
-  if (
-    targetServer.hasSubspaceBacking &&
-    targetServer.subspaceEphemeralManagedSessionId &&
-    !targetServer.isSubspaceBackingReconciling
-  ) {
+  if (target.target.hasSubspaceBacking && target.target.subspaceEphemeralManagedSessionId) {
     await assertMagicMcpTargetLinkedResourcesActive(target);
-    let healed = await healMagicMcpServerBacking({
-      instance: target.target.instance as Instance,
-      server: targetServer
-    });
+
+    let healed = await healMagicMcpServerBacking({ instance, server: target.target });
+
     return (
       healed.subspaceEphemeralManagedSessionId ??
-      targetServer.subspaceEphemeralManagedSessionId
+      target.target.subspaceEphemeralManagedSessionId
     );
   }
 
-  let server = {
-    ...targetServer,
-    ...(await ensureMagicMcpServerBacking({
-      instance: target.target.instance as Instance,
-      server: targetServer,
-      isReconciliation: true,
-      deferReconcile: false
-    }))
-  };
-
+  let server = await ensureMagicMcpServerBacking({
+    instance,
+    server: target.target,
+    isReconciliation: true
+  });
   if (!server.subspaceEphemeralManagedSessionId) {
     throw new ServiceError(
       badRequestError({
@@ -73,49 +50,24 @@ let ensureServerBackingSession = async (
 let ensureEndpointBackingSession = async (
   target: MagicMcpResolvedTarget & { type: 'endpoint' }
 ) => {
-  let targetEndpoint = target.target;
-  if (
-    !targetEndpoint.hasSubspaceBacking ||
-    !targetEndpoint.subspaceEphemeralManagedSessionId ||
-    targetEndpoint.isSubspaceBackingReconciling
-  ) {
-    let latest = await waitForMagicMcpEndpointBackingReady({
-      instance: target.target.instance as Instance,
-      endpoint: target.target
-    });
-    if (latest) {
-      targetEndpoint = {
-        ...targetEndpoint,
-        hasSubspaceBacking: latest.hasSubspaceBacking,
-        subspaceEphemeralManagedSessionId: latest.subspaceEphemeralManagedSessionId,
-        isSubspaceBackingReconciling: latest.isSubspaceBackingReconciling
-      };
-    }
-  }
+  let instance = target.target.instance as Instance;
 
-  if (
-    targetEndpoint.hasSubspaceBacking &&
-    targetEndpoint.subspaceEphemeralManagedSessionId &&
-    !targetEndpoint.isSubspaceBackingReconciling
-  ) {
+  if (target.target.hasSubspaceBacking && target.target.subspaceEphemeralManagedSessionId) {
     await assertMagicMcpTargetLinkedResourcesActive(target);
-    let healed = await healMagicMcpEndpointBacking({
-      instance: target.target.instance as Instance,
-      endpoint: targetEndpoint
-    });
+
+    let healed = await healMagicMcpEndpointBacking({ instance, endpoint: target.target });
+
     return (
       healed.subspaceEphemeralManagedSessionId ??
-      targetEndpoint.subspaceEphemeralManagedSessionId
+      target.target.subspaceEphemeralManagedSessionId
     );
   }
 
   let endpoint = await ensureMagicMcpEndpointBacking({
-    instance: target.target.instance as Instance,
-    endpoint: targetEndpoint,
-    isReconciliation: true,
-    deferReconcile: false
+    instance,
+    endpoint: target.target,
+    isReconciliation: true
   });
-
   if (!endpoint.subspaceEphemeralManagedSessionId) {
     throw new ServiceError(
       badRequestError({

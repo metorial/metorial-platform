@@ -23,7 +23,7 @@ import { Fabric } from '@metorial/fabric';
 import { env } from '../env';
 import { recordEphemeralSessionAuditEvent } from '../lib/ephemeralSessionAudit';
 import { sessionArchivedQueue } from '../queues/lifecycle/session';
-import { createSessionRecord } from './_shared/createSession';
+import { createSessionRecord, resolveSessionRecordProviders } from './_shared/createSession';
 import {
   assertInternalAdapterSupportedBySession,
   type InternalAdapterInput,
@@ -71,26 +71,64 @@ let include = {
   }
 };
 
-let getEphemeralManagedSessionById = (d: {
+let stateSelect = {
+  oid: true,
+  id: true,
+  isReconciling: true,
+  markSessionsAsInternal: true,
+  adapterGlobalOid: true,
+  templateHash: true,
+  willRotateAt: true,
+  maxSessionDurationInMinutes: true,
+  sessionTemplate: { select: { hash: true, status: true } },
+  currentSession: {
+    include: {
+      tenant: true,
+      solution: true
+    }
+  }
+};
+
+type EphemeralManagedSessionScope = {
   sessionId: string;
   tenantId: string;
   solutionId: string;
-}) =>
+  tenantOid?: bigint;
+  solutionOid?: number;
+};
+
+let getEphemeralManagedSessionStateById = (d: EphemeralManagedSessionScope) =>
   db.ephemeralManagedSession.findFirst({
     where: {
       id: d.sessionId,
       status: 'active',
-      tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
-      solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
+      tenant:
+        d.tenantOid !== undefined
+          ? { oid: d.tenantOid }
+          : { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
+      solution:
+        d.solutionOid !== undefined
+          ? { oid: d.solutionOid }
+          : { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
     },
+    select: stateSelect
+  });
+
+let getEphemeralManagedSessionForRotation = (d: { oid: bigint }) =>
+  db.ephemeralManagedSession.findFirst({
+    where: { oid: d.oid, status: 'active' },
     include
   });
 
 type EphemeralManagedSessionRecord = NonNullable<
-  Awaited<ReturnType<typeof getEphemeralManagedSessionById>>
+  Awaited<ReturnType<typeof getEphemeralManagedSessionForRotation>>
 >;
 
-let shouldRotateBackingSession = (ephemeralManagedSession: EphemeralManagedSessionRecord) => {
+type EphemeralManagedSessionState = NonNullable<
+  Awaited<ReturnType<typeof getEphemeralManagedSessionStateById>>
+>;
+
+let shouldRotateBackingSession = (ephemeralManagedSession: EphemeralManagedSessionState) => {
   let currentSession = ephemeralManagedSession.currentSession;
   if (!currentSession) return true;
   if (currentSession.status !== 'active') return true;
@@ -121,19 +159,15 @@ let shouldRotateBackingSession = (ephemeralManagedSession: EphemeralManagedSessi
   return Date.now() - currentSession.createdAt.getTime() >= maxDurationInMinutes * 60 * 1000;
 };
 
-let waitForEphemeralManagedSessionReconcile = async (d: {
-  sessionId: string;
-  tenantId: string;
-  solutionId: string;
-}) => {
-  let latest: EphemeralManagedSessionRecord | null = null;
+let waitForEphemeralManagedSessionReconcile = async (d: EphemeralManagedSessionScope) => {
+  let latest: EphemeralManagedSessionState | null = null;
 
   for (
     let attempt = 0;
     attempt < EPHEMERAL_MANAGED_SESSION_RECONCILE_POLL_ATTEMPTS;
     attempt++
   ) {
-    latest = await getEphemeralManagedSessionById(d);
+    latest = await getEphemeralManagedSessionStateById(d);
     if (!latest || !latest.isReconciling) return latest;
 
     await wait(EPHEMERAL_MANAGED_SESSION_RECONCILE_POLL_INTERVAL_MS);
@@ -232,23 +266,49 @@ class ephemeralManagedSessionServiceImpl {
     let instanceOid = d.environment.instanceOid;
     if (instanceOid == null) throw new Error('Ephemeral managed sessions require an instance');
 
+    let markSessionsAsInternal = d.input.markSessionsAsInternal ?? false;
+    if (markSessionsAsInternal !== !!d.input.adapter) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'invalid_internal_ephemeral_session_adapter',
+          message: 'Internal ephemeral managed sessions require exactly one adapter.'
+        })
+      );
+    }
+
+    let adapter = d.input.adapter
+      ? await resolveInternalAdapter({
+          tenant: d.tenant,
+          environment: d.environment,
+          adapter: d.input.adapter
+        })
+      : null;
+
+    await Fabric.fire('provider.session.ephemeral_created:before', {
+      instanceOid
+    });
+
+    let input = {
+      name: d.sessionTemplate.name ?? undefined,
+      description: d.sessionTemplate.description ?? undefined,
+      metadata: (d.sessionTemplate.metadata as Record<string, any> | null) ?? undefined,
+      privateMetadata:
+        (d.sessionTemplate.privateMetadata as Record<string, any> | null) ?? undefined,
+      providers: [
+        {
+          sessionTemplateId: d.sessionTemplate.id,
+          __sessionTemplate: d.sessionTemplate
+        }
+      ]
+    };
+
+    let resolvedProviders = await resolveSessionRecordProviders({
+      tenant: d.tenant,
+      environment: d.environment,
+      providers: input.providers
+    });
+
     return withTransaction(async db => {
-      let markSessionsAsInternal = d.input.markSessionsAsInternal ?? false;
-      if (markSessionsAsInternal !== !!d.input.adapter) {
-        throw new ServiceError(
-          badRequestError({
-            code: 'invalid_internal_ephemeral_session_adapter',
-            message: 'Internal ephemeral managed sessions require exactly one adapter.'
-          })
-        );
-      }
-      let adapter = d.input.adapter
-        ? await resolveInternalAdapter({
-            tenant: d.tenant,
-            environment: d.environment,
-            adapter: d.input.adapter
-          })
-        : null;
       let ephemeralManagedSession = await db.ephemeralManagedSession.create({
         data: {
           ...getId('ephemeralManagedSession'),
@@ -265,12 +325,7 @@ class ephemeralManagedSessionServiceImpl {
           templateHash: d.sessionTemplate.hash ?? null,
           markSessionsAsInternal,
           adapterGlobalOid: adapter?.oid ?? null
-        },
-        include
-      });
-
-      await Fabric.fire('provider.session.ephemeral_created:before', {
-        instanceOid
+        }
       });
 
       let session = await createSessionRecord({
@@ -282,19 +337,8 @@ class ephemeralManagedSessionServiceImpl {
         ephemeralManagedSessionOid: ephemeralManagedSession.oid,
         identityActorOid: d.sessionTemplate.identityActorOid ?? null,
         identityOid: d.sessionTemplate.identityOid ?? null,
-        input: {
-          name: d.sessionTemplate.name ?? undefined,
-          description: d.sessionTemplate.description ?? undefined,
-          metadata: (d.sessionTemplate.metadata as Record<string, any> | null) ?? undefined,
-          privateMetadata:
-            (d.sessionTemplate.privateMetadata as Record<string, any> | null) ?? undefined,
-          providers: [
-            {
-              sessionTemplateId: d.sessionTemplate.id,
-              __sessionTemplate: d.sessionTemplate
-            }
-          ]
-        }
+        input,
+        resolvedProviders
       });
 
       if (adapter) {
@@ -494,12 +538,10 @@ class ephemeralManagedSessionServiceImpl {
     );
   }
 
-  async resolveBackingSessionById(d: {
-    sessionId: string;
-    tenantId: string;
-    solutionId: string;
-  }): Promise<ResolvedBackingSession | null> {
-    let existing = await getEphemeralManagedSessionById(d);
+  async resolveBackingSessionById(
+    d: EphemeralManagedSessionScope
+  ): Promise<ResolvedBackingSession | null> {
+    let existing = await getEphemeralManagedSessionStateById(d);
     if (!existing) return null;
 
     if (existing.isReconciling) {
@@ -516,35 +558,62 @@ class ephemeralManagedSessionServiceImpl {
     }
 
     return await ephemeralManagedSessionResolveLock.usingLock(existing.id, async () => {
-      let ephemeralManagedSession = await getEphemeralManagedSessionById(d);
-      if (!ephemeralManagedSession) return null;
+      let state = await getEphemeralManagedSessionStateById(d);
+      if (!state) return null;
 
-      if (ephemeralManagedSession.isReconciling) {
+      if (state.isReconciling) {
         let resolved = await waitForEphemeralManagedSessionReconcile(d);
         if (!resolved) return null;
         if (resolved.isReconciling && resolved.currentSession?.status === 'active') {
           return resolved.currentSession;
         }
-        ephemeralManagedSession = resolved;
+        state = resolved;
       }
 
-      if (!shouldRotateBackingSession(ephemeralManagedSession)) {
-        return ephemeralManagedSession.currentSession!;
+      if (!shouldRotateBackingSession(state)) {
+        return state.currentSession!;
       }
 
-      if (ephemeralManagedSession.sessionTemplate.status !== 'active') {
-        return ephemeralManagedSession.currentSession;
+      if (state.sessionTemplate.status !== 'active') {
+        return state.currentSession;
       }
+
+      let ephemeralManagedSession = await getEphemeralManagedSessionForRotation({
+        oid: state.oid
+      });
+      if (!ephemeralManagedSession) return null;
+
+      let instanceOid = ephemeralManagedSession.environment.instanceOid;
+      if (instanceOid == null) {
+        throw new Error('Ephemeral managed sessions require an instance');
+      }
+
+      await Fabric.fire('provider.session.ephemeral_created:before', {
+        instanceOid
+      });
+
+      let input = {
+        name: ephemeralManagedSession.sessionTemplate.name ?? undefined,
+        description: ephemeralManagedSession.sessionTemplate.description ?? undefined,
+        metadata:
+          (ephemeralManagedSession.sessionTemplate.metadata as any | null) ?? undefined,
+        privateMetadata:
+          (ephemeralManagedSession.sessionTemplate.privateMetadata as any | null) ?? undefined,
+        providers: [
+          {
+            sessionTemplateId: ephemeralManagedSession.sessionTemplate.id,
+            __sessionTemplate: ephemeralManagedSession.sessionTemplate
+          }
+        ]
+      };
+
+      let resolvedProviders = await resolveSessionRecordProviders({
+        tenant: ephemeralManagedSession.tenant,
+        environment: ephemeralManagedSession.environment,
+        providers: input.providers
+      });
 
       return await withTransaction(async db => {
-        let instanceOid = ephemeralManagedSession.environment.instanceOid;
-        if (instanceOid == null) {
-          throw new Error('Ephemeral managed sessions require an instance');
-        }
-        await Fabric.fire('provider.session.ephemeral_created:before', {
-          instanceOid
-        });
-
         let session = await createSessionRecord({
           tenant: ephemeralManagedSession.tenant,
           environment: ephemeralManagedSession.environment,
@@ -554,21 +623,8 @@ class ephemeralManagedSessionServiceImpl {
           ephemeralManagedSessionOid: ephemeralManagedSession.oid,
           identityActorOid: ephemeralManagedSession.sessionTemplate.identityActorOid ?? null,
           identityOid: ephemeralManagedSession.sessionTemplate.identityOid ?? null,
-          input: {
-            name: ephemeralManagedSession.sessionTemplate.name ?? undefined,
-            description: ephemeralManagedSession.sessionTemplate.description ?? undefined,
-            metadata:
-              (ephemeralManagedSession.sessionTemplate.metadata as any | null) ?? undefined,
-            privateMetadata:
-              (ephemeralManagedSession.sessionTemplate.privateMetadata as any | null) ??
-              undefined,
-            providers: [
-              {
-                sessionTemplateId: ephemeralManagedSession.sessionTemplate.id,
-                __sessionTemplate: ephemeralManagedSession.sessionTemplate
-              }
-            ]
-          }
+          input,
+          resolvedProviders
         });
 
         if (ephemeralManagedSession.adapterGlobalOid) {

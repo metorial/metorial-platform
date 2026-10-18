@@ -116,6 +116,7 @@ export let sandboxDiskController = Controller.create(
       .output(sandboxDiskPresenter)
       .do(async ctx => {
         let disk = await sandboxDiskService.create({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           regionIdentifier: ctx.body.region,
           input: {
@@ -157,6 +158,7 @@ export let sandboxDiskController = Controller.create(
       .output(sandboxDiskPresenter)
       .do(async ctx => {
         let disk = await sandboxDiskService.update({
+          auditScope: ctx.auditScope,
           disk: ctx.disk,
           input: { metadata: ctx.body.metadata, name: ctx.body.name }
         });
@@ -173,7 +175,10 @@ export let sandboxDiskController = Controller.create(
       .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
       .output(sandboxDiskPresenter)
       .do(async ctx => {
-        let disk = await sandboxDiskService.delete({ disk: ctx.disk });
+        let disk = await sandboxDiskService.delete({
+          auditScope: ctx.auditScope,
+          disk: ctx.disk
+        });
 
         return sandboxDiskPresenter.present({ disk });
       }),
@@ -199,6 +204,7 @@ export let sandboxDiskController = Controller.create(
       .output(sandboxDiskPresenter)
       .do(async ctx => {
         let disk = await sandboxDiskService.clone({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           disk: ctx.disk,
           input: { metadata: ctx.body.metadata, name: ctx.body.name }

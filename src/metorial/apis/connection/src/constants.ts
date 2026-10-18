@@ -1,4 +1,4 @@
-export let CONNECTION_TYPES = ['sse', 'websocket', 'streamable_http'] as const;
+export let CONNECTION_TYPES = ['sse', 'websocket', 'streamable_http', 'sessionless'] as const;
 export type ConnectionType = (typeof CONNECTION_TYPES)[number];
 
 export let CONNECTION_TYPE_ALIASES: {
@@ -13,8 +13,11 @@ export let CONNECTION_TYPE_ALIASES: {
     '2025_03_26',
     '2025-06-18',
     '2025_06_18',
+    '2025-11-25',
+    '2025_11_25',
     'mcp'
   ],
+  sessionless: ['sessionless', '2026-07-28', '2026_07_28'],
   websocket: ['websocket', 'ws']
 };
 

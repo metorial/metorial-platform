@@ -10,7 +10,11 @@ export type ConsumersListOutput = {
     userId: string | null;
     createdAt: Date;
     updatedAt: Date;
-  } & { isPortalConsumer: boolean; isOrganizationMember: boolean })[];
+  } & {
+    isPortalConsumer: boolean;
+    isOrganizationMember: boolean;
+    isServiceAccount: boolean;
+  })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -31,7 +35,8 @@ export let mapConsumersListOutput =
                 'created_at',
                 'updated_at',
                 'is_portal_consumer',
-                'is_organization_member'
+                'is_organization_member',
+                'is_service_account'
               ]
             ]
           ]

@@ -53,6 +53,11 @@ vi.mock('../src/queues/created/sendApiKeyCreatedEmail', () => ({
     add: vi.fn()
   }
 }));
+vi.mock('../src/services/machineAccessAuth', () => ({
+  machineAccessAuthService: {
+    clearApiKeyAuthCache: vi.fn(() => Promise.resolve())
+  }
+}));
 vi.mock('../src/services/machineAccess', () => ({
   machineAccessService: {
     createMachineAccess: vi.fn(() => Promise.resolve({ oid: 'machine-access-oid' })),
@@ -75,7 +80,6 @@ let testAuditScope = {
   actor: { type: 'org_actor' as const, id: (baseActor as any).id ?? 'actor-id' },
   context: baseContext
 } as any;
-
 
 describe('apiKeyService', () => {
   beforeEach(() => {
@@ -122,7 +126,8 @@ describe('apiKeyService', () => {
     });
 
     let { addAfterTransactionHook } = await import('@metorial/db');
-    let { sendApiKeyCreatedEmailQueue } = await import('../src/queues/created/sendApiKeyCreatedEmail');
+    let { sendApiKeyCreatedEmailQueue } =
+      await import('../src/queues/created/sendApiKeyCreatedEmail');
 
     expect(addAfterTransactionHook).toHaveBeenCalledTimes(1);
 

@@ -12,6 +12,7 @@ import type {
 import { storeService, storeTemplateService } from '@metorial/module-store';
 import type { Prisma } from '@metorial/db';
 import type { AuditScope } from '@metorial/audit-scope';
+import { Fabric, type AuditSkillTemplate } from '@metorial/fabric';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
@@ -141,6 +142,20 @@ let isSystemIdentifierUniqueConstraintError = (error: any) => {
 
   return `${error?.message ?? ''}`.includes('systemIdentifier');
 };
+
+let toAuditSkillTemplate = (skillTemplate: {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: string;
+}): AuditSkillTemplate => ({
+  id: skillTemplate.id,
+  name: skillTemplate.name,
+  slug: skillTemplate.slug,
+  description: skillTemplate.description,
+  status: skillTemplate.status
+});
 
 class SkillTemplateServiceImpl {
   private async ensurePlainSkillTemplate() {
@@ -622,10 +637,16 @@ class SkillTemplateServiceImpl {
       input: SkillTemplateCreateInput;
     }
   ) {
-    return await this.createSkillTemplateRecord({
+    let skillTemplate = await this.createSkillTemplateRecord({
       ...d,
       input: d.input
     });
+    await Fabric.fire('skill.template.audit.created:after', {
+      auditScope: d.auditScope,
+      skillTemplate: toAuditSkillTemplate(skillTemplate)
+    });
+
+    return skillTemplate;
   }
 
   async upsertSkillTemplate(d: { input: SkillTemplateUpsertInput }) {
@@ -677,6 +698,7 @@ class SkillTemplateServiceImpl {
 
   async updateSkillTemplate(
     d: RequiredStoreTemplateScope & {
+      auditScope: AuditScope;
       skillTemplateId: string;
       input: SkillTemplateUpdateInput;
     }
@@ -693,14 +715,22 @@ class SkillTemplateServiceImpl {
       instance: d.instance
     });
 
-    return await this.updateSkillTemplateRecord({
+    let updated = await this.updateSkillTemplateRecord({
       skillTemplate,
       input: d.input
     });
+    await Fabric.fire('skill.template.audit.updated:after', {
+      auditScope: d.auditScope,
+      skillTemplate: toAuditSkillTemplate(updated),
+      previousSkillTemplate: toAuditSkillTemplate(skillTemplate)
+    });
+
+    return updated;
   }
 
   async deleteSkillTemplate(
     d: RequiredStoreTemplateScope & {
+      auditScope: AuditScope;
       skillTemplateId: string;
     }
   ) {
@@ -721,6 +751,11 @@ class SkillTemplateServiceImpl {
       await enqueueSkillTemplateLifecycle({
         skillTemplateId: archived.id,
         event: 'archived'
+      });
+
+      await Fabric.fire('skill.template.audit.archived:after', {
+        auditScope: d.auditScope,
+        skillTemplate: toAuditSkillTemplate(archived)
       });
 
       return this.withScopedStoreId(archived, d);

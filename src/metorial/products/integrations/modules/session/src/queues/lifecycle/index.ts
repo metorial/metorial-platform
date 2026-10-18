@@ -12,6 +12,7 @@ import {
   syncIntegrationInstanceSessionTemplatesQueueProcessor
 } from './linkedSessionTemplate';
 import {
+  sessionArchivedChildrenQueueProcessor,
   sessionArchivedQueueProcessor,
   sessionCreatedQueueProcessor,
   sessionDeletedQueueProcessor,
@@ -32,7 +33,9 @@ import {
 export let lifecycleQueues = combineQueueProcessors([
   sessionCreatedQueueProcessor,
   sessionUpdatedQueueProcessor,
+  sessionDeletedQueueProcessor,
   sessionArchivedQueueProcessor,
+  sessionArchivedChildrenQueueProcessor,
   sessionDeletedQueueProcessor,
   sessionProviderCreatedQueueProcessor,
   syncIntegrationInstanceSessionTemplatesQueueProcessor,
@@ -46,6 +49,31 @@ export let lifecycleQueues = combineQueueProcessors([
   sessionTemplateArchivedQueueProcessor,
   sessionTemplateArchiveSessionsManyQueueProcessor,
   sessionTemplateInvalidateRuntimeQueueProcessor,
+  sessionTemplateDeletedQueueProcessor,
+  sessionTemplateProviderCreatedQueueProcessor,
+  sessionTemplateSyncHashQueueProcessor
+]);
+
+export let lifecycleSubspaceQueues = combineQueueProcessors([
+  sessionArchivedQueueProcessor,
+  syncIntegrationInstanceSessionTemplatesQueueProcessor,
+  syncIntegrationInstanceSessionTemplateQueueProcessor,
+  syncIntegrationInstanceGroupSessionTemplatesQueueProcessor,
+  syncIntegrationInstanceGroupSessionTemplateQueueProcessor,
+  sessionTemplateInvalidateRuntimeQueueProcessor
+]);
+
+export let lifecycleFederationQueues = combineQueueProcessors([
+  sessionCreatedQueueProcessor,
+  sessionUpdatedQueueProcessor,
+  sessionDeletedQueueProcessor,
+  sessionProviderCreatedQueueProcessor,
+  archiveIntegrationInstanceSessionTemplatesQueueProcessor,
+  archiveIntegrationInstanceSessionTemplateQueueProcessor,
+  archiveIntegrationInstanceGroupSessionTemplatesQueueProcessor,
+  archiveIntegrationInstanceGroupSessionTemplateQueueProcessor,
+  sessionTemplateArchivedQueueProcessor,
+  sessionTemplateArchiveSessionsManyQueueProcessor,
   sessionTemplateDeletedQueueProcessor,
   sessionTemplateProviderCreatedQueueProcessor,
   sessionTemplateSyncHashQueueProcessor

@@ -19,6 +19,7 @@ import {
 } from './_categories';
 import {
   consumerActivityController,
+  consumerOAuthAuthorizationController,
   consumerProviderController,
   consumerSessionController
 } from './consumer';
@@ -629,6 +630,7 @@ export let magnetarController = Controller.create<any>(
     consumerSessionController,
     consumerProviderController,
     consumerActivityController,
+    consumerOAuthAuthorizationController,
 
     managementApiKeyController,
     outpostManagementController,
@@ -674,6 +676,7 @@ export let consumerApiController = Controller.create<any>(
     consumerSessionController,
     consumerProviderController,
     consumerActivityController,
+    consumerOAuthAuthorizationController,
     dashboardAssistantController
   }
 );

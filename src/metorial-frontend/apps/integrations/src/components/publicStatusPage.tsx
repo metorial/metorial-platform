@@ -1,6 +1,7 @@
-import { CenteredSpinner, Title, theme } from '@metorial/ui';
+import { Title, theme } from '@metorial/ui';
 import { useEffect, type ReactNode } from 'react';
 import styled from 'styled-components';
+import { useHideBootSpinner } from '../lib/bootSpinner';
 import { SecuredByFooter } from './securedByFooter';
 import { ErrorIcon } from './statusIcon';
 
@@ -68,13 +69,6 @@ let Footer = styled.div`
   }
 `;
 
-let LoadingWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100dvh;
-`;
-
 export let PublicStatusPage = ({
   icon,
   title,
@@ -85,27 +79,31 @@ export let PublicStatusPage = ({
   title: string;
   description: string;
   isWhitelabel?: boolean;
-}) => (
-  <Wrapper>
-    <Card>
-      <Content>
-        <IconWrapper>{icon}</IconWrapper>
+}) => {
+  useHideBootSpinner(true);
 
-        <StatusTitle size="3" weight="bold">
-          {title}
-        </StatusTitle>
+  return (
+    <Wrapper>
+      <Card>
+        <Content>
+          <IconWrapper>{icon}</IconWrapper>
 
-        <Description>{description}</Description>
-      </Content>
+          <StatusTitle size="3" weight="bold">
+            {title}
+          </StatusTitle>
 
-      {!isWhitelabel && (
-        <Footer>
-          <SecuredByFooter />
-        </Footer>
-      )}
-    </Card>
-  </Wrapper>
-);
+          <Description>{description}</Description>
+        </Content>
+
+        {!isWhitelabel && (
+          <Footer>
+            <SecuredByFooter />
+          </Footer>
+        )}
+      </Card>
+    </Wrapper>
+  );
+};
 
 export let PublicErrorPage = ({ error }: { error: { message: string } }) => (
   <PublicStatusPage
@@ -115,16 +113,10 @@ export let PublicErrorPage = ({ error }: { error: { message: string } }) => (
   />
 );
 
-export let PublicLoadingPage = () => (
-  <LoadingWrapper>
-    <CenteredSpinner />
-  </LoadingWrapper>
-);
-
 export let Redirect = ({ url }: { url: string }) => {
   useEffect(() => {
     window.location.href = url;
   }, [url]);
 
-  return <PublicLoadingPage />;
+  return null;
 };

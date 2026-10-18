@@ -18,6 +18,7 @@ model ConsumerToken {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([consumerProfileOid, magicMcpTokenOid])
+  @@index([magicMcpTokenOid])
 }
 
 model ConsumerIntegration {

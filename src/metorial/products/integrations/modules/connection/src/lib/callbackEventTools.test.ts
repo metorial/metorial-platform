@@ -12,6 +12,9 @@ let db = vi.hoisted(() => ({
 }));
 
 vi.mock('@metorial-subspace/db', () => ({ db }));
+vi.mock('@lowerdeck/cache', () => ({
+  createLocallyCachedFunction: (opts: any) => opts.provider
+}));
 vi.mock('@metorial-subspace/module-callback', () => ({ callbackEventService }));
 vi.mock('@metorial-subspace/module-provider-internal', () => ({}));
 vi.mock('@metorial-subspace/module-session', () => ({

@@ -60,8 +60,10 @@ import {
   MagicMcpToken,
   OAuthApplication,
   OAuthApplicationClientSecret,
+  OAuthApplicationSubjectType,
   OAuthAuthorization,
   OAuthInstallation,
+  OAuthSubjectType,
   OAuthToken,
   Organization,
   OrganizationActor,
@@ -119,12 +121,19 @@ export type MachineAccessInput =
       organization: Organization;
       instance: Instance;
       auditScope: AuditScope;
+    }
+  | {
+      type: 'instance_consumer';
+      organization: Organization;
+      consumerProfile: ConsumerProfile;
+      auditScope: AuditScope;
     };
 
 export type OAuthApplicationCreateInput = {
   status?: 'active' | 'archived';
   type: 'user_facing' | 'server_side' | 'cli_auth' | 'internal';
   accessLevel: 'organization' | 'global';
+  subjectType?: OAuthApplicationSubjectType;
   systemIdentifier?: string | null;
   allowClientSecretlessTokenExchange?: boolean;
   name: string;
@@ -675,6 +684,8 @@ export type AuditTeam = Team & {
 
 export type AuditServiceAccount = ServiceAccount & {
   organization: Organization;
+  portal?: Portal | null;
+  consumerProfile?: ConsumerProfile | null;
   policies?: (AccessPolicyAssignment & {
     accessPolicy: AccessPolicy;
   })[];
@@ -708,6 +719,63 @@ export type AuditDocument = Document & {
 };
 
 export type AuditStore = Store;
+
+export type AuditSkillGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  allowConsumerSkillAssignment: boolean;
+  skillIds: string[];
+};
+
+export type AuditSkillTemplate = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: string;
+};
+
+export type AuditSkillMergeRequest = {
+  id: string;
+  title: string;
+  status: string;
+  direction: string;
+  sourceSkillId: string;
+  targetSkillId: string;
+};
+
+export type AuditSandboxMachine = {
+  id: string;
+  name: string | null;
+  imageId: string | null;
+  regionIdentifier: string | null;
+  specMemoryMiB: number | null;
+  specVcpus: number | null;
+};
+
+export type AuditSandboxDisk = {
+  id: string;
+  name: string | null;
+  type: string;
+  sizeBytes: number | null;
+  regionIdentifier: string | null;
+};
+
+export type AuditSandboxImage = {
+  id: string;
+  name: string | null;
+};
+
+export type AuditSandboxImageBuild = {
+  id: string;
+  imageId: string;
+  status: string;
+};
+
+export type SandboxMachineLifecycleAction = 'start' | 'pause' | 'hibernate' | 'restart';
+export type SandboxMachineAccessKind = 'shell' | 'files' | 'port';
 
 export type StoreItemFabricOperation = {
   type: 'add' | 'modify' | 'remove';
@@ -803,6 +871,23 @@ export type MagicMcpServerMembershipFabricChange = {
 // prettier-ignore
 export interface FabricEvents {
   'sandbox.tenant.created:after': { tenant: SandboxTenant };
+
+  'sandbox.machine.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
+  'sandbox.machine.updated:after': { auditScope: AuditScope; machine: AuditSandboxMachine; previousMachine: AuditSandboxMachine };
+  'sandbox.machine.deleted:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
+  'sandbox.machine.lifecycle:after': { auditScope: AuditScope; machine: AuditSandboxMachine; action: SandboxMachineLifecycleAction };
+  'sandbox.machine.access.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine; kind: SandboxMachineAccessKind; ports: number[] | '*' | null; ttlSeconds: number | null };
+
+  'sandbox.disk.created:after': { auditScope: AuditScope; disk: AuditSandboxDisk; sourceDiskId: string | null; sourceImageId: string | null };
+  'sandbox.disk.updated:after': { auditScope: AuditScope; disk: AuditSandboxDisk; previousDisk: AuditSandboxDisk };
+  'sandbox.disk.deleted:after': { auditScope: AuditScope; disk: AuditSandboxDisk };
+  'sandbox.disk.resized:after': { auditScope: AuditScope; disk: AuditSandboxDisk; resizeId: string; sizeBytes: number | null; retry: boolean };
+
+  'sandbox.image.created:after': { auditScope: AuditScope; image: AuditSandboxImage };
+  'sandbox.image.updated:after': { auditScope: AuditScope; image: AuditSandboxImage; previousImage: AuditSandboxImage };
+  'sandbox.image.deleted:after': { auditScope: AuditScope; image: AuditSandboxImage };
+  'sandbox.image.build.created:after': { auditScope: AuditScope; build: AuditSandboxImageBuild };
+  'sandbox.image.build.cancelled:after': { auditScope: AuditScope; build: AuditSandboxImageBuild };
 
   'user.created:before': { context?: Context };
   'user.created:after': { user: User, performedBy: User; context?: Context };
@@ -1054,29 +1139,29 @@ export interface FabricEvents {
   'machine_access.oauth_installation.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope: AuditScope };
   'machine_access.oauth_installation.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; previousOAuthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
 
-  'machine_access.oauth_authorization.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope };
-  'machine_access.oauth_authorization.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
-  'machine_access.oauth_authorization.updated:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope };
-  'machine_access.oauth_authorization.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
-  'machine_access.oauth_authorization.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
-  'machine_access.oauth_authorization.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
+  'machine_access.oauth_authorization.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.updated:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
 
-  'machine_access.oauth_authorization_request.accepted:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
-  'machine_access.oauth_authorization_request.accepted:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
-  'machine_access.oauth_authorization_request.denied:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
-  'machine_access.oauth_authorization_request.denied:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
+  'machine_access.oauth_authorization_request.accepted:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member?: OrganizationMember | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization_request.accepted:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member?: OrganizationMember | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization_request.denied:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member?: OrganizationMember | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
+  'machine_access.oauth_authorization_request.denied:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member?: OrganizationMember | null; auditScope: AuditScope; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType };
 
   'machine_access.oauth_token.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.oauth_token.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.oauth_token.refreshed:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.oauth_token.refreshed:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
 
-  'machine_access.service_account.created:before': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; };
-  'machine_access.service_account.created:after': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; };
-  'machine_access.service_account.updated:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; };
-  'machine_access.service_account.updated:after': { serviceAccount: AuditServiceAccount; previousServiceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; };
-  'machine_access.service_account.archived:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; };
-  'machine_access.service_account.archived:after': { serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; };
+  'machine_access.service_account.created:before': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.created:after': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.updated:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.updated:after': { serviceAccount: AuditServiceAccount; previousServiceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.archived:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
+  'machine_access.service_account.archived:after': { serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; portal?: Portal | null; consumerProfile?: ConsumerProfile | null; subjectType?: OAuthSubjectType; };
   'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
 
@@ -1312,6 +1397,33 @@ export interface FabricEvents {
   'skill.marketplace.created:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.archived:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
   'skill.marketplace.deleted:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
+
+  'skill.audit.created:after': { auditScope: AuditScope; skill: Skill; parentSkillId: string | null; parentSkillTemplateId: string | null; cloneType: 'fork' | 'duplicate' | null };
+  'skill.audit.updated:after': { auditScope: AuditScope; skill: Skill; previousSkill: Skill };
+  'skill.audit.archived:after': { auditScope: AuditScope; skill: Skill };
+
+  'skill.plugin.audit.created:after': { auditScope: AuditScope; skillPlugin: SkillPlugin };
+  'skill.plugin.audit.updated:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; previousSkillPlugin: SkillPlugin };
+  'skill.plugin.audit.archived:after': { auditScope: AuditScope; skillPlugin: SkillPlugin };
+
+  'skill.marketplace.audit.created:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
+  'skill.marketplace.audit.updated:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace; previousSkillMarketplace: SkillMarketplace };
+  'skill.marketplace.audit.archived:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
+
+  'skill.group.audit.created:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup };
+  'skill.group.audit.updated:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup; previousSkillGroup: AuditSkillGroup };
+  'skill.group.audit.archived:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup };
+  'skill.group.audit.skill_added:after': { auditScope: AuditScope; skillGroupId: string; skillId: string };
+  'skill.group.audit.skill_removed:after': { auditScope: AuditScope; skillGroupId: string; skillId: string };
+
+  'skill.template.audit.created:after': { auditScope: AuditScope; skillTemplate: AuditSkillTemplate };
+  'skill.template.audit.updated:after': { auditScope: AuditScope; skillTemplate: AuditSkillTemplate; previousSkillTemplate: AuditSkillTemplate };
+  'skill.template.audit.archived:after': { auditScope: AuditScope; skillTemplate: AuditSkillTemplate };
+
+  'skill.merge_request.audit.created:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
+  'skill.merge_request.audit.merged:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
+  'skill.merge_request.audit.closed:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
+  'skill.merge_request.audit.rolled_back:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
 
   'skill.store.size:before': SkillStoreFabricOwner;
 

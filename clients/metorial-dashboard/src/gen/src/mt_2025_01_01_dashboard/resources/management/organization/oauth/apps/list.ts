@@ -7,6 +7,10 @@ export type ManagementOrganizationOauthAppsListOutput = {
     status: 'active' | 'archived';
     type: 'user_facing' | 'cli_auth' | 'server_side';
     accessLevel: 'organization' | 'global';
+    subjectType:
+      | 'organization_member'
+      | 'consumer'
+      | 'consumer_or_organization_member';
     allowTokenExchangeWithoutClientSecret: boolean;
     name: string;
     description: string | null;
@@ -40,6 +44,7 @@ export let mapManagementOrganizationOauthAppsListOutput =
         1,
         [
           'access_level',
+          'subject_type',
           'allow_token_exchange_without_client_secret',
           'image_url',
           'website_url',
@@ -63,7 +68,17 @@ export type ManagementOrganizationOauthAppsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined };
+} & {
+  status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
+  subjectType?:
+    | 'organization_member'
+    | 'consumer'
+    | ('organization_member' | 'consumer')[]
+    | undefined;
+};
 
 export let mapManagementOrganizationOauthAppsListQuery =
-  /* @__PURE__ */ createMapper<ManagementOrganizationOauthAppsListQuery>(0);
+  /* @__PURE__ */ createMapper<ManagementOrganizationOauthAppsListQuery>([
+    3,
+    [[0, [1, ['subject_type']]]]
+  ]);

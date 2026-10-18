@@ -44,11 +44,14 @@ model MagicMcpEndpoint {
   consumerAuthAttempts           ConsumerAuthAttempt[]
   consumerAuthTestAuthorizations ConsumerAuthTestAuthorization[]
   consumerIntegrationEndpoints   ConsumerIntegrationEndpoint[]
+
+  @@index([instanceOid, status])
+  @@index([legacySubspaceSessionTemplateId])
 }
 
 model MagicMcpEndpointServer {
-  oid BigInt  @id @default(autoincrement())
-  id  String? @unique
+  oid BigInt @id @default(autoincrement())
+  id  String @unique @default(dbgenerated("('mgep_00' || replace((gen_random_uuid())::text, '-', ''))"))
 
   magicMcpEndpointOid BigInt
   magicMcpEndpoint    MagicMcpEndpoint @relation(fields: [magicMcpEndpointOid], references: [oid], onDelete: Cascade)

@@ -1,3 +1,4 @@
+import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
@@ -15,6 +16,8 @@ import {
 import { isIpAllowedByIngressAllowList } from '../lib/ingressAllowList';
 import { recordIngressNetworkLog } from '../lib/ingressNetworkLogBuffer';
 import { integrationEnclaveService } from './integrationEnclave';
+
+let SESSION_ENCLAVE_CACHE_TTL_SECONDS = 60;
 
 type SessionWithProviders = Session & {
   providers: {
@@ -42,6 +45,7 @@ type CheckSessionIngressAccessParams = {
 
 type AssertSessionIngressAccessParams = {
   sessionId: string;
+  session?: Pick<Session, 'oid' | 'id' | 'status'>;
   sourceIp: string;
   hostname?: string | null;
   port?: number | null;
@@ -73,6 +77,105 @@ let sessionInclude = {
       }
     }
   }
+};
+
+type SessionEnclaveRules = {
+  enclave: IntegrationEnclave;
+  ingressPolicy: PrismaJson.CompiledNetworkRules['ingress'];
+};
+
+let compileEnclaveRules = async (d: {
+  tenant: Tenant;
+  environment: Environment;
+  enclaves: IntegrationEnclave[];
+}): Promise<SessionEnclaveRules[]> =>
+  await Promise.all(
+    d.enclaves.map(async enclave => {
+      let compiledNetworkRules =
+        await integrationEnclaveService.getCompiledNetworkRulesInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          enclave
+        });
+
+      return { enclave, ingressPolicy: compiledNetworkRules.ingress };
+    })
+  );
+
+let getSessionEnclaveRules = createLocallyCachedFunction({
+  ttlSeconds: SESSION_ENCLAVE_CACHE_TTL_SECONDS,
+  getHash: (d: { tenant: Tenant; environment: Environment; sessionOid: bigint }) =>
+    d.sessionOid.toString(),
+  provider: async (d: {
+    tenant: Tenant;
+    environment: Environment;
+    sessionOid: bigint;
+  }): Promise<SessionEnclaveRules[]> => {
+    let sessionProviders = await db.sessionProvider.findMany({
+      where: {
+        sessionOid: d.sessionOid,
+        status: 'active'
+      },
+      select: {
+        deployment: {
+          select: { enclave: true }
+        }
+      }
+    });
+
+    return await compileEnclaveRules({
+      tenant: d.tenant,
+      environment: d.environment,
+      enclaves: dedupeEnclaves(sessionProviders.map(provider => provider.deployment.enclave))
+    });
+  }
+});
+
+type IngressLogRecord = {
+  enclave: IntegrationEnclave;
+  sessionId: string;
+  result: 'allowed' | 'denied';
+};
+
+let deniedMissingSessionResult = (sessionId: string): EnclaveIngressCheckResult => ({
+  sessionId,
+  allowed: false,
+  enclaveIds: [],
+  deniedEnclaveIds: []
+});
+
+let evaluateIngress = (d: {
+  sessionId: string;
+  session: Pick<Session, 'id'>;
+  sourceIp: string;
+  enclaveRules: SessionEnclaveRules[];
+}) => {
+  let deniedEnclaves = d.enclaveRules
+    .filter(
+      rule =>
+        !isIpAllowedByIngressAllowList({
+          sourceIp: d.sourceIp,
+          ingressPolicy: rule.ingressPolicy
+        })
+    )
+    .map(rule => rule.enclave);
+  let deniedEnclaveOids = new Set(deniedEnclaves.map(enclave => enclave.oid));
+
+  let result: EnclaveIngressCheckResult = {
+    sessionId: d.sessionId,
+    resolvedSessionId: d.session.id,
+    allowed: deniedEnclaves.length === 0,
+    enclaveIds: d.enclaveRules.map(rule => rule.enclave.id),
+    deniedEnclaveIds: deniedEnclaves.map(enclave => enclave.id)
+  };
+
+  let logRecords: IngressLogRecord[] = d.enclaveRules.map(rule => ({
+    enclave: rule.enclave,
+    sessionId: d.session.id,
+    result: deniedEnclaveOids.has(rule.enclave.oid) ? 'denied' : 'allowed'
+  }));
+
+  return { result, logRecords };
 };
 
 class enclaveIngressPolicyServiceImpl {
@@ -145,85 +248,38 @@ class enclaveIngressPolicyServiceImpl {
     object: 'enclave.ingress_check';
     results: EnclaveIngressCheckResult[];
   }> {
-    let solution = await getMetorialSolution();
     let sessionIds = Array.from(new Set(d.sessionIds));
     let sessionsByRequestedId = await this.resolveSessions({ ...d, sessionIds });
 
     let results: EnclaveIngressCheckResult[] = [];
-    let logRecords: {
-      enclave: IntegrationEnclave;
-      sessionId: string;
-      result: 'allowed' | 'denied';
-    }[] = [];
+    let logRecords: IngressLogRecord[] = [];
 
     for (let sessionId of sessionIds) {
       let session = sessionsByRequestedId.get(sessionId);
       if (!session) {
-        results.push({
-          sessionId,
-          allowed: false,
-          enclaveIds: [],
-          deniedEnclaveIds: []
-        });
+        results.push(deniedMissingSessionResult(sessionId));
         continue;
       }
 
-      let enclaves = dedupeEnclaves(
-        session.providers.map(provider => provider.deployment.enclave)
-      );
-      let deniedEnclaves: IntegrationEnclave[] = [];
-
-      for (let enclave of enclaves) {
-        let compiledNetworkRules =
-          await integrationEnclaveService.getCompiledNetworkRulesInternal({
-            tenant: d.tenant,
-            environment: d.environment,
-            enclave
-          });
-
-        let allowed = isIpAllowedByIngressAllowList({
-          sourceIp: d.sourceIp,
-          ingressPolicy: compiledNetworkRules.ingress
-        });
-
-        if (!allowed) deniedEnclaves.push(enclave);
-      }
-
-      let allowed = deniedEnclaves.length === 0;
-      results.push({
-        sessionId,
-        resolvedSessionId: session.id,
-        allowed,
-        enclaveIds: enclaves.map(enclave => enclave.id),
-        deniedEnclaveIds: deniedEnclaves.map(enclave => enclave.id)
+      let enclaveRules = await compileEnclaveRules({
+        tenant: d.tenant,
+        environment: d.environment,
+        enclaves: dedupeEnclaves(
+          session.providers.map(provider => provider.deployment.enclave)
+        )
       });
 
-      for (let enclave of enclaves) {
-        logRecords.push({
-          enclave,
-          sessionId: session.id,
-          result: deniedEnclaves.some(e => e.oid === enclave.oid) ? 'denied' : 'allowed'
-        });
-      }
+      let evaluation = evaluateIngress({
+        sessionId,
+        session,
+        sourceIp: d.sourceIp,
+        enclaveRules
+      });
+      results.push(evaluation.result);
+      logRecords.push(...evaluation.logRecords);
     }
 
-    if (d.recordLog && logRecords.length > 0) {
-      for (let record of logRecords) {
-        recordIngressNetworkLog({
-          tenantOid: d.tenant.oid,
-          projectOid: d.tenant.projectOid,
-          environmentOid: d.environment.oid,
-          instanceOid: d.environment.instanceOid,
-          solutionOid: solution.oid,
-          enclaveOid: record.enclave.oid,
-          sessionId: record.sessionId,
-          sourceIp: d.sourceIp,
-          hostname: d.hostname ?? 'unknown',
-          port: d.port ?? 0,
-          result: record.result
-        });
-      }
-    }
+    if (d.recordLog) await this.recordLogs({ ...d, logRecords });
 
     return {
       object: 'enclave.ingress_check',
@@ -245,12 +301,15 @@ class enclaveIngressPolicyServiceImpl {
   async assertSessionIngressAccessInternal(
     d: { tenant: Tenant; environment: Environment } & AssertSessionIngressAccessParams
   ) {
-    let check = await this.checkSessionIngressAccessInternal({
-      ...d,
-      sessionIds: [d.sessionId]
-    });
+    let result = d.session
+      ? await this.checkResolvedSessionIngressAccess({ ...d, session: d.session })
+      : (
+          await this.checkSessionIngressAccessInternal({
+            ...d,
+            sessionIds: [d.sessionId]
+          })
+        ).results[0];
 
-    let result = check.results[0];
     if (!result?.allowed) {
       throw new ServiceError(
         forbiddenError({
@@ -261,6 +320,60 @@ class enclaveIngressPolicyServiceImpl {
     }
 
     return result;
+  }
+
+  private async checkResolvedSessionIngressAccess(
+    d: { tenant: Tenant; environment: Environment } & AssertSessionIngressAccessParams & {
+        session: Pick<Session, 'oid' | 'id' | 'status'>;
+      }
+  ) {
+    if (d.session.status !== 'active') return deniedMissingSessionResult(d.sessionId);
+
+    let enclaveRules = await getSessionEnclaveRules({
+      tenant: d.tenant,
+      environment: d.environment,
+      sessionOid: d.session.oid
+    });
+
+    let evaluation = evaluateIngress({
+      sessionId: d.sessionId,
+      session: d.session,
+      sourceIp: d.sourceIp,
+      enclaveRules
+    });
+
+    if (d.recordLog) await this.recordLogs({ ...d, logRecords: evaluation.logRecords });
+
+    return evaluation.result;
+  }
+
+  private async recordLogs(d: {
+    tenant: Tenant;
+    environment: Environment;
+    sourceIp: string;
+    hostname?: string | null;
+    port?: number | null;
+    logRecords: IngressLogRecord[];
+  }) {
+    if (d.logRecords.length === 0) return;
+
+    let solution = await getMetorialSolution();
+
+    for (let record of d.logRecords) {
+      recordIngressNetworkLog({
+        tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
+        environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
+        solutionOid: solution.oid,
+        enclaveOid: record.enclave.oid,
+        sessionId: record.sessionId,
+        sourceIp: d.sourceIp,
+        hostname: d.hostname ?? 'unknown',
+        port: d.port ?? 0,
+        result: record.result
+      });
+    }
   }
 }
 

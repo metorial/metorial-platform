@@ -41,6 +41,7 @@ export let sandboxDiskResizeController = Controller.create(
       .output(sandboxDiskResizePresenter)
       .do(async ctx => {
         let resize = await sandboxDiskResizeService.start({
+          auditScope: ctx.auditScope,
           disk: ctx.disk,
           input: {
             sizeBytes: String(ctx.body.size_bytes),
@@ -117,6 +118,7 @@ export let sandboxDiskResizeController = Controller.create(
       .output(sandboxDiskResizePresenter)
       .do(async ctx => {
         let resize = await sandboxDiskResizeService.retry({
+          auditScope: ctx.auditScope,
           disk: ctx.disk,
           resizeId: requirePathParam(ctx.params, 'resizeId')
         });

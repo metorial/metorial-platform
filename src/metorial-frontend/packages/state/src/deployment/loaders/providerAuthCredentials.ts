@@ -7,9 +7,44 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
+let providerAuthCredentialsForMethodsLoader = createLoader({
+  name: 'providerAuthCredentialsForMethods',
+  parents: [],
+  fetch: (input: {
+    instanceId: string;
+    queries: (DashboardInstanceProviderDeploymentsAuthCredentialsListQuery & {
+      providerAuthMethodId: string;
+    })[];
+  }) =>
+    withAuth(sdk =>
+      Promise.all(
+        input.queries.map(async query => ({
+          providerAuthMethodId: query.providerAuthMethodId,
+          credentials: await sdk.providerDeployments.authCredentials.list(
+            input.instanceId,
+            query
+          )
+        }))
+      )
+    ),
+  mutators: {}
+});
+
+export let useProviderAuthCredentialsForMethods = (
+  instanceId: string | null | undefined,
+  queries:
+    | (DashboardInstanceProviderDeploymentsAuthCredentialsListQuery & {
+        providerAuthMethodId: string;
+      })[]
+    | null
+) =>
+  providerAuthCredentialsForMethodsLoader.use(
+    instanceId && queries?.length ? { instanceId, queries } : null
+  );
+
 export let providerAuthCredentialsLoader = createLoader({
   name: 'providerAuthCredentials',
-  parents: [],
+  parents: [providerAuthCredentialsForMethodsLoader],
   fetch: ({
     instanceId,
     ...query
@@ -39,7 +74,10 @@ export let useDeleteProviderAuthCredentials =
   providerAuthCredentialsLoader.createExternalMutator(
     (i: { instanceId: string; providerAuthCredentialsId: string }) =>
       withAuth(sdk =>
-        sdk.providerDeployments.authCredentials.delete(i.instanceId, i.providerAuthCredentialsId)
+        sdk.providerDeployments.authCredentials.delete(
+          i.instanceId,
+          i.providerAuthCredentialsId
+        )
       )
   );
 
@@ -60,7 +98,7 @@ export let useProviderAuthCredentials = (
 
 export let providerAuthCredentialLoader = createLoader({
   name: 'providerAuthCredential',
-  parents: [providerAuthCredentialsLoader],
+  parents: [providerAuthCredentialsLoader, providerAuthCredentialsForMethodsLoader],
   fetch: (i: { instanceId: string; providerAuthCredentialsId: string }) =>
     withAuth(sdk =>
       sdk.providerDeployments.authCredentials.get(i.instanceId, i.providerAuthCredentialsId)

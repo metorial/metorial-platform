@@ -1,12 +1,10 @@
 import { useEffect } from 'react';
 import {
   PublicErrorPage,
-  PublicLoadingPage,
   PublicStatusPage,
   Redirect
 } from '../../components/publicStatusPage';
 import { ErrorIcon, SuccessIcon, WarningIcon } from '../../components/statusIcon';
-import { useHideBootSpinner } from '../../lib/bootSpinner';
 import { useSetupSession } from '../../state/loaders';
 import { useSessionCredentials } from '../../state/useSessionCredentials';
 import { SetupFlow } from './_flow';
@@ -33,12 +31,19 @@ export let SetupSessionPage = () => {
   let credentials = useSessionCredentials();
   let setupSession = useSetupSession(credentials);
 
-  useHideBootSpinner(!!setupSession.data || !!setupSession.error);
-
   if (setupSession.error) return <PublicErrorPage error={setupSession.error} />;
-  if (!setupSession.data || !credentials) return <PublicLoadingPage />;
+  if (!setupSession.data || !credentials) return null;
 
-  let { session, brand, provider, completionRedirect, isWhitelabel } = setupSession.data;
+  let {
+    session,
+    brand,
+    provider,
+    completionRedirect,
+    isWhitelabel,
+    authConfigSchema,
+    configSchema,
+    oauthSetup
+  } = setupSession.data;
 
   let keepOpenForToolAccess =
     completionRedirect?.type === 'integration_setup_session' &&
@@ -78,6 +83,7 @@ export let SetupSessionPage = () => {
       session={session}
       brand={brand}
       provider={provider}
+      prefetched={{ authConfigSchema, configSchema, oauthSetup }}
       clientSecret={credentials.clientSecret}
       isWhitelabel={isWhitelabel}
       completionRedirectUrl={completionRedirect?.url}

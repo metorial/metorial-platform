@@ -68,6 +68,9 @@ class providerDeploymentConfigPairInternalServiceImpl {
       return null;
     };
 
+    let existing = await getExisting();
+    if (existing) return existing;
+
     try {
       return await withTransaction(async db => {
         let existing = await getExisting(db);

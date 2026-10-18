@@ -18,10 +18,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
-import {
-  enqueueMagicMcpEndpointBackingReconcile,
-  reconcileMagicMcpEndpointBacking
-} from '../../queues/lifecycle/magicMcpBackingReconcile';
+import { syncMagicMcpEndpointBacking } from '../../queues/lifecycle/magicMcpBackingSync';
 import { integrationInstanceGroupService } from '../integrationInstanceGroup';
 import {
   type MagicMcpBackingInputBase,
@@ -38,7 +35,6 @@ type UpsertMagicMcpEndpointBackingParams = {
       toolFilters?: PrismaJson.ToolFilter | null;
     }[];
     isReconciliation?: boolean;
-    deferReconcile?: boolean;
   };
 };
 
@@ -81,7 +77,6 @@ class magicMcpEndpointBackingServiceImpl {
       identityId: d.input.identityId
     });
 
-    let shouldDeferReconcile = d.input.deferReconcile !== false;
     let syncTarget = await withMagicMcpBackingLock(
       [`endpoint:${d.input.id}`],
       async () =>
@@ -169,7 +164,7 @@ class magicMcpEndpointBackingServiceImpl {
                 input: {
                   maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
                   actorOid,
-                  isReconciling: shouldDeferReconcile
+                  isReconciling: false
                 }
               }
             );
@@ -192,9 +187,7 @@ class magicMcpEndpointBackingServiceImpl {
             }
           });
 
-          let persistedBacking = await db.magicMcpEndpointBacking.findUniqueOrThrow({
-            where: { id: d.input.id }
-          });
+          let persistedBacking = backing;
           let requestedJoinIds = new Set(d.input.servers.map(server => server.id));
           await db.magicMcpEndpointServerBacking.deleteMany({
             where: {
@@ -231,21 +224,12 @@ class magicMcpEndpointBackingServiceImpl {
         })
     );
 
-    if (shouldDeferReconcile) {
-      await enqueueMagicMcpEndpointBackingReconcile({
-        tenant: d.tenant,
-        solution,
-        environment: d.environment,
-        magicMcpEndpointBackingId: d.input.id
-      });
-    } else {
-      await reconcileMagicMcpEndpointBacking({
-        tenant: d.tenant,
-        solution,
-        environment: d.environment,
-        magicMcpEndpointBackingId: d.input.id
-      });
-    }
+    await syncMagicMcpEndpointBacking({
+      tenant: d.tenant,
+      solution,
+      environment: d.environment,
+      magicMcpEndpointBackingId: d.input.id
+    });
 
     return {
       ...syncTarget.backing,

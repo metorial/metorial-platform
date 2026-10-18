@@ -5,14 +5,23 @@ import { lifecycleQueues } from './queues/lifecycle';
 import { listingQueues } from './queues/listing';
 import { reconcilerQueues } from './queues/reconciler';
 import { searchQueues } from './queues/search';
-import { versionQueues } from './queues/version';
+import { versionFederationQueues, versionSubspaceQueues } from './queues/version';
 
-export let providerInternalQueueProcessor = combineQueueProcessors([
-  listingQueues,
-  cleanupCron,
+export let providerInternalSubspaceQueueProcessor = combineQueueProcessors([
   lifecycleQueues,
   deploymentConfigPairQueues,
-  versionQueues,
+  versionSubspaceQueues
+]);
+
+export let providerInternalFederationQueueProcessor = combineQueueProcessors([
+  listingQueues,
+  cleanupCron,
+  versionFederationQueues,
   searchQueues,
   reconcilerQueues
+]);
+
+export let providerInternalQueueProcessor = combineQueueProcessors([
+  providerInternalSubspaceQueueProcessor,
+  providerInternalFederationQueueProcessor
 ]);

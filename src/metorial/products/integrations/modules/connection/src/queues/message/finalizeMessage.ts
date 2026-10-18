@@ -1,8 +1,13 @@
 import { createQueue } from '@lowerdeck/queue';
-import { db } from '@metorial-subspace/db';
+import { db, dbPrimary } from '@metorial-subspace/db';
 import { Fabric } from '@metorial/fabric';
 import { env } from '../../env';
 import { recordMessageAuditEvent } from '../../audit/recordMessage';
+import {
+  getCreationIncrements,
+  recordMessageActivity,
+  shouldEvaluateProtoGuard
+} from '../../shared/messageActivity';
 import { protoGuardMessageQueue } from './protoGuard';
 
 export let finalizeMessageQueue = createQueue<{ messageId: string }>({
@@ -11,9 +16,9 @@ export let finalizeMessageQueue = createQueue<{ messageId: string }>({
   workerOpts: { concurrency: 10 }
 });
 
-export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async data => {
-  let message = await db.sessionMessage.findFirst({
-    where: { id: data.messageId },
+let finalizeMessage = async (messageId: string, progress: { activityRecorded: boolean }) => {
+  let message = await dbPrimary.sessionMessage.findUnique({
+    where: { id: messageId },
     include: {
       session: true,
       sessionProvider: { include: { provider: { select: { id: true, name: true } } } },
@@ -31,47 +36,23 @@ export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async da
 
   await recordMessageAuditEvent(message);
 
-  let initialClientProductive = message.isProductive && message.source === 'client' ? 1 : 0;
-  let initialProviderProductive =
-    message.isProductive && message.source === 'provider' ? 1 : 0;
+  if (shouldEvaluateProtoGuard(message)) {
+    await protoGuardMessageQueue.add({ messageId: message.id }, { id: message.id });
+  }
 
+  let creation = getCreationIncrements(message);
   let respondedTo = message.hasOutput || message.output !== null;
 
   let incrementProviderProductive = message.source === 'client' && respondedTo ? 1 : 0;
   let incrementClientProductive = message.source === 'provider' && respondedTo ? 1 : 0;
 
-  if (incrementClientProductive || incrementProviderProductive) {
-    let incrementData = {
-      totalProductiveClientMessageCount: incrementClientProductive
-        ? { increment: 1 }
-        : undefined,
-      totalProductiveProviderMessageCount: incrementProviderProductive
-        ? { increment: 1 }
-        : undefined
-    };
+  await recordMessageActivity(message, {
+    response: { client: incrementClientProductive, provider: incrementProviderProductive }
+  });
+  progress.activityRecorded = true;
 
-    if (message.connectionOid) {
-      await db.sessionConnection.updateMany({
-        where: { oid: message.connectionOid },
-        data: incrementData
-      });
-    }
-
-    if (message.sessionProviderOid) {
-      await db.sessionProvider.updateMany({
-        where: { oid: message.sessionProviderOid },
-        data: incrementData
-      });
-    }
-
-    await db.session.updateMany({
-      where: { oid: message.sessionOid },
-      data: incrementData
-    });
-  }
-
-  let clientMessageIncrement = initialClientProductive + incrementClientProductive;
-  let providerMessageIncrement = initialProviderProductive + incrementProviderProductive;
+  let clientMessageIncrement = creation.client + incrementClientProductive;
+  let providerMessageIncrement = creation.provider + incrementProviderProductive;
 
   if ((clientMessageIncrement || providerMessageIncrement) && message.instanceOid) {
     await Fabric.fire('provider.session_message.usage:after', {
@@ -80,8 +61,28 @@ export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async da
       providerMessageIncrement
     });
   }
+};
 
-  if (message.retentionLevel === 'full') {
-    await protoGuardMessageQueue.add({ messageId: message.id });
+export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async data => {
+  let claimed = await db.sessionMessage.updateMany({
+    where: { id: data.messageId, finalizedAt: null },
+    data: { finalizedAt: new Date() }
+  });
+  if (!claimed.count) return;
+
+  let progress = { activityRecorded: false };
+
+  try {
+    await finalizeMessage(data.messageId, progress);
+  } catch (err) {
+    // Once the counters are committed a retry would apply the response increments again.
+    if (!progress.activityRecorded) {
+      await db.sessionMessage.updateMany({
+        where: { id: data.messageId },
+        data: { finalizedAt: null }
+      });
+    }
+
+    throw err;
   }
 });

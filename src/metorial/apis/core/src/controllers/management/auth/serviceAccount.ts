@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { consumerServiceAccountService } from '@metorial/module-consumer-core';
 import { serviceAccountService } from '@metorial/module-machine-access';
 import {
   accessPolicyAssignmentService,
@@ -140,22 +141,48 @@ export let serviceAccountManagementController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          scopes: v.array(v.string())
+          name: v.string({
+            description: 'Human-readable service account name',
+            examples: ['CI Deploy Bot']
+          }),
+          description: v.optional(
+            v.string({
+              description: 'Optional description of the service account'
+            })
+          ),
+          scopes: v.array(v.string(), {
+            description:
+              'Scopes the service account may request. Consumer service accounts only accept consumer scopes.'
+          }),
+          subject_type: v.optional(
+            v.enumOf(['organization_member', 'consumer'], {
+              description:
+                'Whether the service account acts as an organization member or as a dedicated portal consumer. Defaults to organization_member.'
+            })
+          ),
+          portal_id: v.optional(
+            v.string({
+              description:
+                'Portal the consumer service account acts on. Required when subject_type is consumer.',
+              examples: ['ptl_7hNkPqRsTuVwXyZa']
+            })
+          )
         })
       )
       .output(serviceAccountPresenter)
       .do(async ctx => {
-        let serviceAccount = await serviceAccountService.createServiceAccount({
-          organization: ctx.organization,
-          auditScope: ctx.auditScope,
-          input: {
-            name: ctx.body.name,
-            description: ctx.body.description,
-            scopes: ctx.body.scopes
-          }
-        });
+        let serviceAccount =
+          await consumerServiceAccountService.createServiceAccountForSubject({
+            organization: ctx.organization,
+            auditScope: ctx.auditScope,
+            input: {
+              subjectType: ctx.body.subject_type,
+              portalId: ctx.body.portal_id,
+              name: ctx.body.name,
+              description: ctx.body.description,
+              scopes: ctx.body.scopes
+            }
+          });
 
         return serviceAccountPresenter.present({ serviceAccount });
       }),
@@ -210,11 +237,12 @@ export let serviceAccountManagementController = Controller.create(
       .use(checkAccess({ possibleScopes: ['organization.oauth_app:write'] }))
       .output(serviceAccountPresenter)
       .do(async ctx => {
-        let serviceAccount = await serviceAccountService.archiveServiceAccount({
-          serviceAccount: ctx.serviceAccount,
-          organization: ctx.organization,
-          auditScope: ctx.auditScope
-        });
+        let serviceAccount =
+          await consumerServiceAccountService.archiveServiceAccountForSubject({
+            serviceAccount: ctx.serviceAccount,
+            organization: ctx.organization,
+            auditScope: ctx.auditScope
+          });
 
         return serviceAccountPresenter.present({ serviceAccount });
       }),

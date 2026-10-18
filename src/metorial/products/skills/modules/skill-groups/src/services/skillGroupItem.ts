@@ -1,8 +1,10 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import type { Instance, Project } from '@metorial/db';
 import { db, ID, type Prisma, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { type DateFilter, normalizeDateFilter } from '@metorial/list-utils';
 import {
   accessTagService,
@@ -112,6 +114,7 @@ class SkillGroupItemServiceImpl {
   async createSkillGroupItem(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     input: { skillGroupId: string; skillId: string };
   }) {
     let [group, skill] = await Promise.all([
@@ -155,6 +158,11 @@ class SkillGroupItemServiceImpl {
             },
             include
           });
+      await Fabric.fire('skill.group.audit.skill_added:after', {
+        auditScope: d.auditScope,
+        skillGroupId: group.id,
+        skillId: skill.id
+      });
       await enqueueSkillGroupLifecycle({ skillGroupId: group.id, event: 'updated' });
       return item;
     });
@@ -163,6 +171,7 @@ class SkillGroupItemServiceImpl {
   async archiveSkillGroupItem(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillGroupItem: SkillGroupItemRecord;
   }) {
     let current = await this.getSkillGroupItemById({
@@ -174,6 +183,11 @@ class SkillGroupItemServiceImpl {
       where: { oid: current.oid },
       data: { status: 'archived' },
       include
+    });
+    await Fabric.fire('skill.group.audit.skill_removed:after', {
+      auditScope: d.auditScope,
+      skillGroupId: item.skillGroup.id,
+      skillId: item.skill.id
     });
     await enqueueSkillGroupLifecycle({
       skillGroupId: item.skillGroup.id,

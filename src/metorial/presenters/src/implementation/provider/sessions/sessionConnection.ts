@@ -85,7 +85,7 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
               description: 'MCP protocol version',
               examples: ['2024-11-05']
             }),
-            transport: v.enumOf(['none', 'sse', 'streamable_http'] as const, {
+            transport: v.enumOf(['none', 'sse', 'streamable_http', 'sessionless'] as const, {
               name: 'transport',
               description: 'MCP transport type'
             })

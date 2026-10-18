@@ -1,3 +1,4 @@
+import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { db, type Session, type SessionProvider, type Tenant } from '@metorial-subspace/db';
@@ -99,6 +100,20 @@ export let resolveCallbackEventToolScope = async (
     .filter((oid): oid is bigint => oid !== null);
   if (!templateProviderOids.length) return null;
 
+  return await getCallbackEventToolScope(templateProviderOids.sort());
+};
+
+// enableCallbackTools can be toggled on the integration, so the cache is short-lived.
+let getCallbackEventToolScope = createLocallyCachedFunction({
+  getHash: (templateProviderOids: bigint[]) => templateProviderOids.join(','),
+  ttlSeconds: 30,
+  provider: async templateProviderOids =>
+    await loadCallbackEventToolScope(templateProviderOids)
+});
+
+let loadCallbackEventToolScope = async (
+  templateProviderOids: bigint[]
+): Promise<CallbackEventToolScope | null> => {
   let templateProviders = await db.sessionTemplateProvider.findMany({
     where: { oid: { in: templateProviderOids } },
     select: {

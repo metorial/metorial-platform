@@ -9,7 +9,11 @@ export type ConsumersGetOutput = {
   userId: string | null;
   createdAt: Date;
   updatedAt: Date;
-} & { isPortalConsumer: boolean; isOrganizationMember: boolean };
+} & {
+  isPortalConsumer: boolean;
+  isOrganizationMember: boolean;
+  isServiceAccount: boolean;
+};
 
 export let mapConsumersGetOutput =
   /* @__PURE__ */ createMapper<ConsumersGetOutput>(
@@ -26,7 +30,8 @@ export let mapConsumersGetOutput =
               'created_at',
               'updated_at',
               'is_portal_consumer',
-              'is_organization_member'
+              'is_organization_member',
+              'is_service_account'
             ]
           ]
         ]

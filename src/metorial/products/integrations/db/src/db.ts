@@ -4,7 +4,7 @@ import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sd
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type { ChatBody, ChatContext, LinkUnfurl, ReactionCount } from '@slates/adapter-chat';
-import { PrismaClient } from '../prisma/generated/client';
+import { Prisma, PrismaClient } from '../prisma/generated/client';
 import type {
   CustomProviderConfig,
   CustomProviderFrom,
@@ -45,7 +45,7 @@ let replicaAdapter = replicaUrl
 
 let replicaClient = replicaAdapter ? new PrismaClient({ adapter: replicaAdapter }) : undefined;
 
-let baseClient = new PrismaClient({
+let primaryClient = new PrismaClient({
   adapter: mainAdapter,
   transactionOptions: {
     maxWait: 10000,
@@ -53,21 +53,55 @@ let baseClient = new PrismaClient({
   }
 });
 
+let baseClient = primaryClient;
+
 if (replicaClient) {
   baseClient = baseClient.$extends(
     readReplicas({ replicas: [replicaClient] })
   ) as any as PrismaClient;
 }
 
-export let db = baseClient.$extends({
+let pointLookupOperations = new Set([
+  'findUnique',
+  'findUniqueOrThrow',
+  'findFirst',
+  'findFirstOrThrow'
+]);
+let readOperations = new Set([...pointLookupOperations, 'findMany']);
+
+let loadsRelations = (args: any) =>
+  !!args &&
+  (!!args.include ||
+    (!!args.select &&
+      Object.values(args.select).some(value => typeof value === 'object' && value !== null)));
+
+let queryExtension = Prisma.defineExtension({
   query: {
     $allModels: {
-      async $allOperations({ args, query }) {
-        return await withExecutionContextTraceFallback(async () => await query(args));
+      async $allOperations({ operation, args, query }) {
+        let strategyArgs: any =
+          readOperations.has(operation) &&
+          loadsRelations(args) &&
+          (args as any).relationLoadStrategy === undefined
+            ? {
+                ...(args as any),
+                relationLoadStrategy: pointLookupOperations.has(operation) ? 'join' : 'query'
+              }
+            : args;
+
+        return await withExecutionContextTraceFallback(
+          async () => await query(strategyArgs as any)
+        );
       }
     }
   }
 });
+
+export let db = baseClient.$extends(queryExtension);
+
+// Reads that must observe a write another process made moments ago (queue jobs, the conduit
+// receiver) bypass the read replica, which may lag behind the primary.
+export let dbPrimary = primaryClient.$extends(queryExtension) as unknown as typeof db;
 
 declare global {
   namespace PrismaJson {

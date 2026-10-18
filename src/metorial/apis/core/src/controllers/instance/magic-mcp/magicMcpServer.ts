@@ -6,6 +6,7 @@ import { grantConsumerOwnedMagicMcpServerAccess } from '@metorial/consumer-magic
 import { consumerProfileService, consumerService } from '@metorial/module-consumer-core';
 import {
   ensureMagicMcpServerBacking,
+  getConsumerOwnerForProfile,
   magicMcpServerService,
   type MagicMcpServerOwnerFilter
 } from '@metorial/module-magic';
@@ -793,7 +794,13 @@ export let magicMcpServerController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             providerTemplateId: ctx.body.provider_template_id,
-            subspaceIntegrationInstanceId: ctx.body.integration_instance_id
+            subspaceIntegrationInstanceId: ctx.body.integration_instance_id,
+            consumerOwner: consumerProfile
+              ? await getConsumerOwnerForProfile({
+                  instance: ctx.instance,
+                  consumerProfileOid: consumerProfile.oid
+                })
+              : undefined
           }
         });
 

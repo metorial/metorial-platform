@@ -3,12 +3,14 @@ import { createMapper } from '@metorial/util-resource-mapper/compact';
 export type ManagementInstanceIdentityActorsUpdateOutput = {
   object: 'identity.actor';
   id: string;
-  type: 'person' | 'agent';
+  type: 'person' | 'agent' | 'consumer';
   status: 'active' | 'archived' | 'deleted';
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
   agentId: string | null;
+  consumerId: string | null;
+  defaultIdentityId: string | null;
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -22,7 +24,11 @@ export type ManagementInstanceIdentityActorsUpdateOutput = {
         userId: string | null;
         createdAt: Date;
         updatedAt: Date;
-      } & { isPortalConsumer: boolean; isOrganizationMember: boolean })
+      } & {
+        isPortalConsumer: boolean;
+        isOrganizationMember: boolean;
+        isServiceAccount: boolean;
+      })
     | null;
 };
 
@@ -37,6 +43,8 @@ export let mapManagementInstanceIdentityActorsUpdateOutput =
             1,
             [
               'agent_id',
+              'consumer_id',
+              'default_identity_id',
               'created_at',
               'updated_at',
               [
@@ -55,7 +63,8 @@ export let mapManagementInstanceIdentityActorsUpdateOutput =
                           'created_at',
                           'updated_at',
                           'is_portal_consumer',
-                          'is_organization_member'
+                          'is_organization_member',
+                          'is_service_account'
                         ]
                       ]
                     ]

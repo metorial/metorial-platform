@@ -24,6 +24,7 @@ model Consumer {
   isPortalConsumer     Boolean @default(false)
   isManuallyCreated    Boolean @default(false)
   isPending            Boolean @default(false)
+  isServiceAccount     Boolean @default(false)
 
   cargoActorId     String?
   synthesisActorId String?
@@ -149,6 +150,9 @@ model ConsumerProfile {
   consumerSkills                 ConsumerSkill[]
   resourceActors                 ResourceActor[]
   workspaceProfile               WorkspaceProfile?
+  oauthAuthorizations            OAuthAuthorization[]
+  oauthAuthorizationFlows        OAuthAuthorizationFlow[]
+  serviceAccount                 ServiceAccount?
 
   @@unique([surfaceOid, aresUserId])
   @@unique([email, surfaceOid])

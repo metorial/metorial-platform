@@ -61,8 +61,24 @@ import {
   type McpProgressToken
 } from './control';
 import type { McpManager } from './manager';
+import { modernMethodNotFound } from './modern/results';
+import {
+  MODERN_ERROR_CODES,
+  MODERN_REMOVED_METHODS,
+  type ModernServerInfo,
+  SUPPORTED_SESSIONLESS_VERSIONS
+} from './modern/types';
+
+// The idle sweeps expire after 2 minutes, so activity written at most every 30 s stays well clear.
+let PING_ACTIVITY_WRITE_INTERVAL_MS = 30_000;
 
 let Sentry = getSentry();
+
+let SERVER_CAPABILITIES = {
+  tools: {},
+  prompts: {},
+  resources: {}
+};
 
 type ID = string | number;
 
@@ -85,6 +101,10 @@ export class McpSender {
 
   get tenant() {
     return this.manager.tenant;
+  }
+
+  private get isModern() {
+    return this.mcpTransport === 'sessionless';
   }
 
   private encodeResourceCursor(d: { providerId: string; cursor?: string }) {
@@ -321,6 +341,10 @@ export class McpSender {
       return;
     }
 
+    if (this.isModern && MODERN_REMOVED_METHODS.has(method)) {
+      return { store: false, mcp: modernMethodNotFound(id) };
+    }
+
     if (
       this.session.isInternal &&
       (method.startsWith('prompts/') || method.startsWith('resources/'))
@@ -336,6 +360,10 @@ export class McpSender {
           }
         } satisfies JSONRPCErrorResponse
       };
+    }
+
+    if (this.isModern && method === 'server/discover') {
+      return this.handleDiscoverMessage(id);
     }
 
     switch (method) {
@@ -421,17 +449,23 @@ export class McpSender {
   }
 
   private async handlePingResponse(_id: ID) {
-    if (this.connection) {
-      await db.sessionConnection.updateMany({
-        where: { oid: this.connection.oid },
-        data: { lastPingAt: new Date(), lastActiveAt: new Date() }
-      });
-    }
+    let now = new Date();
+    let staleBefore = new Date(now.getTime() - PING_ACTIVITY_WRITE_INTERVAL_MS);
+    let isStale = { OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: staleBefore } }] };
 
-    await db.session.updateMany({
-      where: { oid: this.session.oid },
-      data: { lastActiveAt: new Date() }
-    });
+    await Promise.all([
+      this.connection
+        ? db.sessionConnection.updateMany({
+            where: { oid: this.connection.oid, ...isStale },
+            data: { lastPingAt: now, lastActiveAt: now }
+          })
+        : undefined,
+
+      db.session.updateMany({
+        where: { oid: this.session.oid, ...isStale },
+        data: { lastActiveAt: now }
+      })
+    ]);
 
     await this.control.sendControlMessage({
       type: 'ping_received'
@@ -787,7 +821,7 @@ export class McpSender {
           jsonrpc: '2.0',
           id,
           error: {
-            code: -32000,
+            code: this.isModern ? MODERN_ERROR_CODES.invalidParams : -32000,
             message: 'No provider found for resource URI'
           }
         } satisfies JSONRPCErrorResponse
@@ -912,6 +946,36 @@ export class McpSender {
     };
   }
 
+  #serverInfoPromise: Promise<ModernServerInfo> | null = null;
+  getServerInfo() {
+    this.#serverInfoPromise ??= this.buildServerInfo();
+    return this.#serverInfoPromise;
+  }
+
+  private async buildServerInfo(): Promise<ModernServerInfo> {
+    let providers = await this.manager.listProviders();
+
+    let title =
+      this.session.sharedProviderName ?? providers.map(p => p.provider.name).join(', ');
+    let description = [
+      this.session.sharedProviderDescription,
+      ...providers.map(p => `# ${p.provider.name}\n${p.provider.description ?? ''}`.trim())
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+      .trim();
+
+    return {
+      name:
+        providers.length === 1
+          ? Cases.toPascalCase(providers[0]!.provider.name)
+          : 'UnifiedProvider',
+      title,
+      version: '1.0.0',
+      description
+    };
+  }
+
   private async handleInitMessage(id: ID, msg: InitializeRequest) {
     let init = msg.params;
     let client = init.clientInfo;
@@ -927,17 +991,7 @@ export class McpSender {
       mcpTransport: this.mcpTransport
     });
 
-    let providers = await this.manager.listProviders();
-
-    let name =
-      this.session.sharedProviderName ?? providers.map(p => p.provider.name).join(', ');
-    let description = [
-      this.session.sharedProviderDescription,
-      ...providers.map(p => `# ${p.provider.name}\n${p.provider.description ?? ''}`.trim())
-    ]
-      .filter(Boolean)
-      .join('\n\n')
-      .trim();
+    let serverInfo = await this.getServerInfo();
 
     return {
       store: true,
@@ -946,21 +1000,26 @@ export class McpSender {
         id,
         result: {
           protocolVersion: init.protocolVersion,
-          capabilities: {
-            tools: {},
-            prompts: {},
-            resources: {}
-          },
-          serverInfo: {
-            name:
-              providers.length === 1
-                ? Cases.toPascalCase(providers[0]!.provider.name)
-                : 'UnifiedProvider',
-            title: name,
-            version: '1.0.0',
-            description
-          }
+          capabilities: SERVER_CAPABILITIES,
+          serverInfo
         } satisfies InitializeResult
+      } satisfies JSONRPCResponse
+    };
+  }
+
+  private async handleDiscoverMessage(id: ID) {
+    let serverInfo = await this.getServerInfo();
+
+    return {
+      store: true,
+      mcp: {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          supportedVersions: SUPPORTED_SESSIONLESS_VERSIONS,
+          capabilities: SERVER_CAPABILITIES,
+          ...(serverInfo.description ? { instructions: serverInfo.description } : {})
+        }
       } satisfies JSONRPCResponse
     };
   }

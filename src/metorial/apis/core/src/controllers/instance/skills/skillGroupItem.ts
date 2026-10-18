@@ -151,6 +151,7 @@ export let skillGroupItemController = Controller.create(
         let localSkillGroupItem = await skillGroupItemService.createSkillGroupItem({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           input: {
             skillGroupId: ctx.skillGroup.id,
             skillId: ctx.body.skill_id
@@ -198,6 +199,7 @@ export let skillGroupItemController = Controller.create(
         localSkillGroupItem = await skillGroupItemService.archiveSkillGroupItem({
           project: access.project,
           instance: access.instance,
+          auditScope: access.auditScope,
           skillGroupItem: localSkillGroupItem
         });
         let skillGroupItem =

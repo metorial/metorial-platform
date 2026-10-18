@@ -14,6 +14,7 @@ export let v1OAuthApplicationPresenter = Presenter.create(oauthApplicationType)
     status: oauthApplication.status,
     type: oauthApplication.type,
     access_level: oauthApplication.accessLevel,
+    subject_type: oauthApplication.subjectType,
     allow_token_exchange_without_client_secret:
       oauthApplication.allowClientSecretlessTokenExchange,
 
@@ -71,6 +72,14 @@ export let v1OAuthApplicationPresenter = Presenter.create(oauthApplicationType)
         description:
           'Whether this OAuth application is organization-scoped or globally installable'
       }),
+      subject_type: v.enumOf(
+        ['organization_member', 'consumer', 'consumer_or_organization_member'],
+        {
+          name: 'subject_type',
+          description:
+            'Who this OAuth application acts as: an organization member, a portal consumer, or either (chosen per authorization)'
+        }
+      ),
       allow_token_exchange_without_client_secret: v.boolean({
         name: 'allow_token_exchange_without_client_secret',
         description:

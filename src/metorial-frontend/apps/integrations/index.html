@@ -38,12 +38,17 @@
     }
 
     .mte_boot_spinner {
-      border: 3px solid #ddd;
-      border-top: 3px solid #999;
+      box-sizing: border-box;
+      width: 26px;
+      height: 26px;
+      border: calc(26px / 7) solid #efefef;
+      border-top-color: #000;
       border-radius: 50%;
-      width: 25px;
-      height: 25px;
-      animation: mte_boot_spin 0.5s linear infinite;
+      animation: mte_boot_spin 900ms ease infinite;
+    }
+
+    .mte_boot_continued .mte_boot_center {
+      animation: none;
     }
 
     @keyframes fadeIn {
@@ -79,7 +84,21 @@
       <div class="mte_boot_spinner"></div>
     </div>
   </div>
-  </div>
+
+  <script>
+    (() => {
+      let boot = document.querySelector('.mte_boot');
+      let spinner = boot.querySelector('.mte_boot_spinner');
+
+      spinner.style.animationDelay = `-${Date.now() % 900}ms`;
+
+      try {
+        if (document.referrer && new URL(document.referrer).origin === location.origin) {
+          boot.classList.add('mte_boot_continued');
+        }
+      } catch {}
+    })();
+  </script>
 </body>
 
 </html>

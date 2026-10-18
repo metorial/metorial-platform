@@ -5,8 +5,7 @@ import { createQueue } from '@metorial/queue';
 import {
   type ConsumerOwner,
   ensureMagicMcpServerBacking,
-  MAGIC_MCP_BACKING_READY_WORKER_ATTEMPTS,
-  waitForMagicMcpServerBackingReady
+  type MagicMcpBackingProviderInput
 } from '../../lib/backing';
 import { indexMagicMcpServerSearchQueue } from '../search/magicMcpServer';
 
@@ -41,44 +40,29 @@ let cleanupMagicMcpServerConsumerRecords = async (d: { magicMcpServerId: string 
 
 type MagicMcpServerLifecycleQueueInput = {
   magicMcpServerId: string;
-  providers?: {
-    providerDeploymentId: string;
-    providerConfigId?: string | null;
-    providerAuthConfigId?: string | null;
-    toolFilters?: PrismaJson.ToolFilter | null;
-  }[];
+  providers?: MagicMcpBackingProviderInput[];
   owner?: ConsumerOwner;
   isReconciliation?: boolean;
 };
 
-let ensureQueuedMagicMcpServerBacking = async (data: MagicMcpServerLifecycleQueueInput) => {
+// Backings are applied inline by the server service. This only finishes jobs enqueued by the
+// previous queue-driven flow, which left the core row unbacked or marked reconciling.
+let ensurePendingMagicMcpServerBacking = async (data: MagicMcpServerLifecycleQueueInput) => {
   let magicMcpServer = await db.magicMcpServer.findUnique({
     where: { id: data.magicMcpServerId },
     include: { instance: true }
   });
   if (!magicMcpServer || magicMcpServer.status !== 'active') return;
+  if (magicMcpServer.hasSubspaceBacking && !magicMcpServer.isSubspaceBackingReconciling)
+    return;
 
   await ensureMagicMcpServerBacking({
     instance: magicMcpServer.instance,
     server: magicMcpServer,
     providers: data.providers,
     owner: data.owner,
-    isReconciliation: data.isReconciliation,
-    deferReconcile: true
+    isReconciliation: data.isReconciliation
   });
-
-  let latest = await waitForMagicMcpServerBackingReady({
-    instance: magicMcpServer.instance,
-    server: magicMcpServer,
-    attempts: MAGIC_MCP_BACKING_READY_WORKER_ATTEMPTS
-  });
-
-  if (latest?.isSubspaceBackingReconciling) {
-    await db.magicMcpServer.update({
-      where: { oid: latest.oid },
-      data: { isSubspaceBackingReconciling: false }
-    });
-  }
 };
 
 export let magicMcpServerCreatedQueue = createQueue<MagicMcpServerLifecycleQueueInput>({
@@ -88,7 +72,7 @@ export let magicMcpServerCreatedQueue = createQueue<MagicMcpServerLifecycleQueue
 
 export let magicMcpServerCreatedQueueProcessor = magicMcpServerCreatedQueue.process(
   async data => {
-    await ensureQueuedMagicMcpServerBacking(data);
+    await ensurePendingMagicMcpServerBacking(data);
     await queueMagicMcpServerIndex(data.magicMcpServerId);
   }
 );
@@ -100,7 +84,7 @@ export let magicMcpServerUpdatedQueue = createQueue<MagicMcpServerLifecycleQueue
 
 export let magicMcpServerUpdatedQueueProcessor = magicMcpServerUpdatedQueue.process(
   async data => {
-    await ensureQueuedMagicMcpServerBacking(data);
+    await ensurePendingMagicMcpServerBacking(data);
     await queueMagicMcpServerIndex(data.magicMcpServerId);
   }
 );

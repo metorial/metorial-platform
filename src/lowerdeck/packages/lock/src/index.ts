@@ -18,6 +18,49 @@ interface LockPoolState {
   entries: Map<string, LockPoolEntry>;
 }
 
+class LockDeadlineError extends Error {
+  constructor() {
+    super('Lock acquisition deadline exceeded');
+    this.name = 'LockDeadlineError';
+  }
+}
+
+let ATTEMPT_STATS_TIMEOUT_MS = 100;
+
+// Redlock reports every failed attempt in `attempts` as a promise of its stats; the lock is only
+// contended (as opposed to Redis being unreachable) when every rejecting node answered with
+// ResourceLockedError.
+let isContentionFailure = async (error: unknown): Promise<boolean> => {
+  if (error instanceof LockDeadlineError) return true;
+
+  let attempts = (error as { attempts?: unknown } | null)?.attempts;
+  if ((error as Error | null)?.name !== 'ExecutionError' || !Array.isArray(attempts)) {
+    return false;
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    let stats = await Promise.race([
+      Promise.all(attempts),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), ATTEMPT_STATS_TIMEOUT_MS);
+      })
+    ]);
+
+    let votes = stats.flatMap(attempt =>
+      Array.from(
+        ((attempt?.votesAgainst as Map<unknown, Error> | undefined) ?? new Map()).values()
+      )
+    );
+
+    return votes.length > 0 && votes.every(vote => vote?.name === 'ResourceLockedError');
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 export class LockAcquisitionError extends Error {
   constructor(
     cause: unknown,
@@ -26,7 +69,8 @@ export class LockAcquisitionError extends Error {
       keyCount: number;
       attempts: number;
       elapsedMs: number;
-    }
+    },
+    public readonly isContention: boolean = false
   ) {
     super(cause instanceof Error ? cause.message : 'Failed to acquire distributed lock', {
       cause
@@ -126,7 +170,7 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             timer = setTimeout(
               () => {
                 abandoned = true;
-                reject(new Error('Lock acquisition deadline exceeded'));
+                reject(new LockDeadlineError());
               },
               Math.max(0, acquisitionTimeoutMs - (Date.now() - startedAt))
             );
@@ -135,7 +179,7 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
               (lease: any) => {
                 clearTimeout(timer);
                 if (abandoned || Date.now() - startedAt > acquisitionTimeoutMs) {
-                  reject(new Error('Lock acquisition deadline exceeded'));
+                  reject(new LockDeadlineError());
                   lease.release().catch((error: unknown) => {
                     console.error(`LOCK.release.abandoned name=${name}`, error);
                   });
@@ -154,12 +198,16 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             console.warn(
               `LOCK.acquire.failed name=${name} keyCount=${keyArray.length} attempts=${attempt + 1} elapsedMs=${elapsedMs}`
             );
-            throw new LockAcquisitionError(error, {
-              name,
-              keyCount: keyArray.length,
-              attempts: attempt + 1,
-              elapsedMs
-            });
+            throw new LockAcquisitionError(
+              error,
+              {
+                name,
+                keyCount: keyArray.length,
+                attempts: attempt + 1,
+                elapsedMs
+              },
+              await isContentionFailure(error)
+            );
           }
 
           let jitter = Math.floor((Math.random() * 2 - 1) * retryJitter);
@@ -168,12 +216,16 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             console.warn(
               `LOCK.acquire.failed name=${name} keyCount=${keyArray.length} attempts=${attempt + 1} elapsedMs=${elapsedMs}`
             );
-            throw new LockAcquisitionError(error, {
-              name,
-              keyCount: keyArray.length,
-              attempts: attempt + 1,
-              elapsedMs
-            });
+            throw new LockAcquisitionError(
+              error,
+              {
+                name,
+                keyCount: keyArray.length,
+                attempts: attempt + 1,
+                elapsedMs
+              },
+              await isContentionFailure(error)
+            );
           }
 
           attempt++;

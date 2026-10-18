@@ -8,6 +8,7 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { enqueueCallbackReconcileForIntegration } from '@metorial-subspace/module-callback/src/queues/reconcile/callback';
 import { env } from '../../env';
+import { syncMagicMcpServerProviderRows } from '../../lib/magicMcpBacking/serverProviderSync';
 import { integrationDeletedQueue } from '../lifecycle/integration';
 
 let integrationArchivedCleanup = createArchivedCleanupScan({
@@ -74,6 +75,8 @@ export let integrationDeleteQueueProcessor = integrationDeleteQueue.process(asyn
       metadata: {}
     }
   });
+
+  await syncMagicMcpServerProviderRows({ integrationOids: [integration.oid] });
 
   await db.integration.updateMany({
     where: { oid: integration.oid },

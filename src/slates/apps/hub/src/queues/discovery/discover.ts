@@ -15,6 +15,7 @@ import { getId, snowflake } from '../../id';
 import { getStackError, getStackResultsOrThrow } from '../../lib/invocation/error';
 import type { InvocationError, InvocationResult } from '../../lib/invocation/types';
 import { isReservedActionId } from '../../lib/reservedActions';
+import { retryOnOidCollision } from '../../lib/retryOnOidCollision';
 import {
   buildDiscoveredSpecificationHashes,
   dedupeDiscoveredItems,
@@ -977,18 +978,25 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         });
       }
 
-      await db.changeNotification.create({
-        data: {
-          ...getId('changeNotification'),
-          type: 'slate_version_created',
+      try {
+        await retryOnOidCollision(() =>
+          db.changeNotification.create({
+            data: {
+              ...getId('changeNotification'),
+              type: 'slate_version_created',
 
-          slateOid: slate.oid,
-          slateVersionOid: version.oid,
+              slateOid: slate.oid,
+              slateVersionOid: version.oid,
 
-          slateId: slate.id,
-          slateVersionId: version.id
-        }
-      });
+              slateId: slate.id,
+              slateVersionId: version.id
+            }
+          })
+        );
+      } catch (e) {
+        console.error('Error creating change notification after discovery:', e);
+        Sentry.captureException(e);
+      }
     } catch (e) {
       console.error('Error during discovery:', e);
       Sentry.captureException(e);
