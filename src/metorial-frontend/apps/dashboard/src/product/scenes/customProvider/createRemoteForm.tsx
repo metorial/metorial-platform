@@ -13,7 +13,10 @@ import { Stepper } from '@metorial/explainer';
 import { remoteServerTemplates } from './config';
 import { Actions, Form, Templates, TemplatesItem, TemplateWrapper } from './createFormShared';
 import {
+  customProviderRemoteProtocolOptions,
+  customProviderRemoteProtocols,
   getCustomProviderRemoteProtocolFromUrl,
+  normalizeCustomProviderRemoteProtocol,
   waitForCustomProviderVersionId
 } from './utils';
 
@@ -43,7 +46,7 @@ export let CustomProviderRemoteCreateForm = (p: {
         remoteUrl: yup.string().url().required('Remote URL is required'),
         description: yup.string().optional(),
         metadata: yup.object().optional(),
-        remoteProtocol: yup.string().optional()
+        remoteProtocol: yup.string().oneOf(customProviderRemoteProtocols).optional()
       }),
     onSubmit: async values => {
       if (!instance.data) return;
@@ -55,7 +58,7 @@ export let CustomProviderRemoteCreateForm = (p: {
         from: {
           type: 'remote',
           remoteUrl: values.remoteUrl.trim(),
-          protocol: values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http'
+          protocol: normalizeCustomProviderRemoteProtocol(values.remoteProtocol)
         }
       });
 
@@ -157,10 +160,7 @@ export let CustomProviderRemoteCreateForm = (p: {
                       value={form.values.remoteProtocol}
                       label="MCP Transport Protocol"
                       description="Which transport protocol does your remote MCP server support?"
-                      items={[
-                        { label: 'SSE (Server-Sent Events)', id: 'sse' },
-                        { label: 'Streamable HTTP', id: 'streamable_http' }
-                      ]}
+                      items={customProviderRemoteProtocolOptions}
                       onChange={v => {
                         setHasManualRemoteProtocol(true);
                         void form.setFieldValue('remoteProtocol', v);

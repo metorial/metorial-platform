@@ -4,7 +4,30 @@ import type {
   DashboardInstanceCustomProvidersVersionsCreateBody
 } from '@metorial/dashboard-sdk';
 
-export type CustomProviderRemoteProtocol = 'sse' | 'streamable_http';
+export type CustomProviderRemoteProtocol = 'sse' | 'streamable_http' | 'stateless';
+
+export let customProviderRemoteProtocolOptions: {
+  id: CustomProviderRemoteProtocol;
+  label: string;
+}[] = [
+  { id: 'streamable_http', label: 'Streamable HTTP' },
+  { id: 'stateless', label: 'Streamable HTTP (Stateless, MCP 2026-07-28)' },
+  { id: 'sse', label: 'SSE (Server-Sent Events)' }
+];
+
+export let customProviderRemoteProtocols = customProviderRemoteProtocolOptions.map(
+  option => option.id
+);
+
+export let getCustomProviderRemoteProtocolLabel = (protocol: string | null | undefined) =>
+  customProviderRemoteProtocolOptions.find(option => option.id === protocol)?.label ??
+  protocol ??
+  '';
+
+export let normalizeCustomProviderRemoteProtocol = (
+  protocol: string | null | undefined
+): CustomProviderRemoteProtocol =>
+  customProviderRemoteProtocols.find(option => option === protocol) ?? 'streamable_http';
 
 export let normalizeRepoPath = (path: string | null | undefined) => {
   let trimmed = path?.trim();

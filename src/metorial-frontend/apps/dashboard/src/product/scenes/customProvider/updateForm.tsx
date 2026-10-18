@@ -15,8 +15,11 @@ import styled from 'styled-components';
 import { FormPage } from '../form/page';
 import {
   type CustomProviderRemoteProtocol,
+  customProviderRemoteProtocolOptions,
+  customProviderRemoteProtocols,
   getCustomProviderRemoteProtocolFromUrl,
   getFunctionProviderVersionFrom,
+  normalizeCustomProviderRemoteProtocol,
   normalizeEnvRecord
 } from './utils';
 
@@ -137,8 +140,7 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
       if (!isExternalProvider) return;
 
       let nextRemoteUrl = values.remoteUrl.trim();
-      let nextRemoteProtocol: 'sse' | 'streamable_http' =
-        values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http';
+      let nextRemoteProtocol = normalizeCustomProviderRemoteProtocol(values.remoteProtocol);
       let didUpdateRemote =
         nextRemoteUrl !== currentRemoteUrl || nextRemoteProtocol !== currentRemoteProtocol;
       if (!didUpdateRemote) return;
@@ -183,7 +185,7 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
           .required('Remote URL is required'),
         remoteProtocol: yup
           .mixed<CustomProviderRemoteProtocol>()
-          .oneOf(['sse', 'streamable_http'])
+          .oneOf(customProviderRemoteProtocols)
           .required('Transport protocol is required')
       })
   });
@@ -339,10 +341,7 @@ export let CustomProviderUpdateForm = (p: { customProvider?: CustomProvidersGetO
                   label="MCP Transport Protocol"
                   description="Use the protocol supported by the remote MCP provider."
                   disabled={isArchived}
-                  items={[
-                    { label: 'SSE (Server-Sent Events)', id: 'sse' },
-                    { label: 'Streamable HTTP', id: 'streamable_http' }
-                  ]}
+                  items={customProviderRemoteProtocolOptions}
                   onChange={v => remoteForm.setFieldValue('remoteProtocol', v)}
                 />
                 <remoteForm.RenderError field="remoteProtocol" />

@@ -28,6 +28,7 @@ import {
   normalizeArrayFilterValue
 } from '@metorial/table';
 import { useDebounced } from '@metorial/use-debounced';
+import { getCustomProviderRemoteProtocolLabel } from './utils';
 
 type CustomProvider = DashboardInstanceCustomProvidersListOutput['items'][number];
 
@@ -79,7 +80,6 @@ let HeaderBadges = styled.div`
   flex-wrap: wrap;
   justify-content: flex-end;
 `;
-
 
 let getStatusFilterValue = (
   value: FilterPayload | undefined
@@ -178,7 +178,7 @@ let getProviderDetail = (provider: CustomProvider) => {
   if (provider.draft.remoteMcpServer?.url) {
     return {
       label: provider.draft.remoteMcpServer.url,
-      secondary: provider.draft.remoteMcpServer.transport
+      secondary: getCustomProviderRemoteProtocolLabel(provider.draft.remoteMcpServer.transport)
     };
   }
 
@@ -306,9 +306,7 @@ export let CustomProvidersGrid = ({
                         size={30}
                       />
                     }
-                    bottom={
-                      detail.label ? <Text size="1">{detail.label}</Text> : undefined
-                    }
+                    bottom={detail.label ? <Text size="1">{detail.label}</Text> : undefined}
                   />
                 );
               })}
