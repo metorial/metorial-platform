@@ -87,7 +87,8 @@ let refreshToken = async (d: {
     clientId: DANGEROUS_unencryptedCredentials.clientId,
     clientSecret: DANGEROUS_unencryptedCredentials.clientSecret,
     refreshToken: DANGEROUS_secretData.refreshToken,
-    config: d.connection.config.config
+    config: d.connection.config.config,
+    tokenEndpointAuthMethod: DANGEROUS_unencryptedCredentials.tokenEndpointAuthMethod
   });
 
   if (!res.ok) {

@@ -3,6 +3,7 @@ import { createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import z from 'zod';
 import { db } from '../../db';
+import { oauthDebug } from '../../lib/oauth/oauthDebug';
 import { remoteOauthAuthorizationService, serverOAuthSetupService } from '../../services';
 import { delegatedOauthAuthorizationService } from '../../services/oauth/delegated';
 
@@ -93,6 +94,16 @@ export let publicApp = createHono()
           where: { stateIdentifier: query.state }
         })
       : null;
+
+    oauthDebug('callback received', {
+      flow: delegatedSetup ? 'delegated' : 'remote',
+      hasCode: !!query.code,
+      hasState: !!query.state,
+      stateFromCookie: !parsedQuery.data.state && !!query.state,
+      providerError: query.error ?? null,
+      providerErrorDescription: query.error_description ?? null,
+      issuer: c.req.query('iss') ?? null
+    });
 
     let redirectUrl: string;
 

@@ -24,7 +24,7 @@ env = [{ key = "SHUTTLE_API_PORT", value = "{{BIND_PORT}}" }]
 port = 52081
 env = [
   { key = "SHUTTLE_PUBLIC_PORT", value = "{{BIND_PORT}}" },
-  { key = "PROVIDER_OAUTH_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+  { key = "PROVIDER_OAUTH_URL", value = "http://localhost:{{BIND_PORT}}" },
 ]
 
 [[resources]]

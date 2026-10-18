@@ -11,6 +11,7 @@ import type {
 import { db } from '../../../db';
 import { getId } from '../../../id';
 import { OAuthUtils } from '../../../lib/oauth/oauthUtils';
+import { parseTokenEndpointAuthMethod } from '../../../lib/oauth/tokenEndpointAuth';
 import { discoverRemoteOAuthConnectionQueue } from '../../../queues/discovery/remoteOAuthConnection';
 import { withTransaction } from '../../../transaction';
 import { secretService } from '../../secret';
@@ -241,7 +242,8 @@ class remoteOAuthConnectionServiceImpl {
 
       return {
         clientId: secret.clientId,
-        clientSecret: secret.clientSecret
+        clientSecret: secret.clientSecret,
+        tokenEndpointAuthMethod: undefined
       };
     }
 
@@ -281,14 +283,18 @@ class remoteOAuthConnectionServiceImpl {
 
       return {
         clientId: registration.clientId,
-        clientSecret: registration.clientSecret || undefined
+        clientSecret: registration.clientSecret || undefined,
+        tokenEndpointAuthMethod: parseTokenEndpointAuthMethod(
+          (registration.data as Record<string, unknown> | null)?.token_endpoint_auth_method
+        )
       };
     }
 
     if (d.connection.clientId) {
       return {
         clientId: d.connection.clientId,
-        clientSecret: undefined
+        clientSecret: undefined,
+        tokenEndpointAuthMethod: undefined
       };
     }
 
