@@ -136,6 +136,7 @@ export class ConduitReceiver {
         ttlExpiresAt: Number.POSITIVE_INFINITY // By default, never expire (until extendTtl is called)
       };
       this.topicStates.set(topic, state);
+      this.ensureOwnership(topic);
 
       // Queue this message first
       let messagePromise = new Promise<unknown>((resolve, reject) => {
@@ -333,20 +334,27 @@ export class ConduitReceiver {
         console.error(`Error releasing ownership of closed topic ${topic}:`, err);
       }
 
-      // A replacement state that started during the release relies on the key we just
-      // deleted; without re-claiming it, the next renewal would treat it as lost.
-      if (this.topicStates.has(topic)) {
-        try {
-          await ownershipManager.claimTopic(topic);
-        } catch (err) {
-          console.error(`Error re-claiming ownership of replaced topic ${topic}:`, err);
-        }
-      }
+      // A replacement state that started during the release may have claimed the key we
+      // just deleted; without re-claiming it, the next renewal would treat it as lost.
+      if (this.topicStates.has(topic)) this.ensureOwnership(topic);
     }
 
     for (let handler of state.closeHandlers) {
       await this.runCloseHandler(topic, handler);
     }
+  }
+
+  // A fresh state can start from a message that was received (and tracked) before the
+  // previous state's close dropped the topic and released its lease, so it must re-register
+  // locally and re-claim the lease if it is gone. Claims are NX, so this is a no-op when the
+  // lease is still ours; if another receiver holds it, renewal reports the loss and closes us.
+  private ensureOwnership(topic: string): void {
+    let ownershipManager = this.receiver.getOwnershipManager();
+    ownershipManager.addTopic(topic);
+
+    ownershipManager.claimTopic(topic).catch(err => {
+      console.error(`Error claiming ownership of topic ${topic}:`, err);
+    });
   }
 
   private async runCloseHandler(

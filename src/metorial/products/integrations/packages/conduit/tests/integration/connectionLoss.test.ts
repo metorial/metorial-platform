@@ -181,6 +181,43 @@ describe('Connection loss hardening', () => {
     await sender.close();
   }, 15_000);
 
+  it('a replacement started by a message queued behind the close keeps its ownership', async () => {
+    let setups = 0;
+
+    let receiver = conduit.createConduitReceiver(async ctx => {
+      let generation = ++setups;
+      ctx.extendTtl(60_000);
+
+      await ctx.onMessage(async (data: any) => {
+        if (data.close) {
+          await sleep(200);
+          await ctx.close();
+        }
+        return { id: data.id, generation };
+      });
+    });
+    await receiver.start();
+
+    let sender = conduit.createSender(productionSenderConfig);
+
+    let closing = sender.send('queued-replacement-topic', { id: 'first', close: true });
+    await sleep(50);
+    let queued = sender.send('queued-replacement-topic', { id: 'queued' });
+
+    let [, queuedResponse] = await Promise.all([closing, queued]);
+    await sleep(100);
+
+    expect(queuedResponse.result).toEqual({ id: 'queued', generation: 2 });
+    expect(receiver.getHandledTopics()).toContain('queued-replacement-topic');
+    expect(receiver.getOwnedTopics()).toContain('queued-replacement-topic');
+    expect(await conduit.coordination.getTopicOwner('queued-replacement-topic')).toBe(
+      receiver.getReceiverId()
+    );
+
+    await receiver.stop();
+    await sender.close();
+  }, 15_000);
+
   it('a topic closed during async setup still cleans up and the message is redelivered', async () => {
     let setups = 0;
     let cleanups = 0;
