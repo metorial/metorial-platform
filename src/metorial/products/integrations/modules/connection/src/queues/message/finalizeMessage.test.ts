@@ -24,7 +24,11 @@ let mocks = vi.hoisted(() => {
 });
 
 vi.mock('@lowerdeck/queue', () => ({ createQueue: mocks.createQueue }));
-vi.mock('@metorial-subspace/db', () => ({ db: mocks.db, dbPrimary: mocks.db }));
+vi.mock('@metorial-subspace/db', () => ({
+  db: mocks.db,
+  dbPrimary: mocks.db,
+  withTransaction: (cb: (db: unknown) => unknown) => cb(mocks.db)
+}));
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fabricFire } }));
 vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://localhost:6379' } } }));
 vi.mock('./protoGuard', () => ({ protoGuardMessageQueue: mocks.protoGuardMessageQueue }));
@@ -153,7 +157,7 @@ describe('finalizeMessage usage accounting', () => {
       mocks.fabricFire.mockResolvedValue(undefined);
       mocks.db.sessionMessage.updateMany.mockResolvedValue({ count: 1 });
       mocks.db.sessionMessage.findUnique.mockResolvedValue(
-        message({ type: 'mcp_control', methodOrToolKey: method })
+        message({ methodOrToolKey: method })
       );
 
       await run(message());
@@ -164,10 +168,20 @@ describe('finalizeMessage usage accounting', () => {
     mocks.fabricFire.mockResolvedValue(undefined);
     mocks.db.sessionMessage.updateMany.mockResolvedValue({ count: 1 });
     mocks.db.sessionMessage.findUnique.mockResolvedValue(
-      message({ type: 'mcp_control', methodOrToolKey: 'resources/read' })
+      message({ methodOrToolKey: 'resources/read' })
     );
 
     await run(message());
+    expect(mocks.protoGuardMessageQueue.add).toHaveBeenCalled();
+  });
+
+  it('still runs ProtoGuard for a tool that shares a control method name', async () => {
+    mocks.db.sessionMessage.findUnique.mockResolvedValue(
+      message({ methodOrToolKey: 'ping', toolCall: { id: 'tcl_1', tool: { key: 'ping' } } })
+    );
+
+    await run(message());
+
     expect(mocks.protoGuardMessageQueue.add).toHaveBeenCalled();
   });
 
@@ -200,6 +214,18 @@ describe('finalizeMessage usage accounting', () => {
     await expect(run(message())).rejects.toThrow('db down');
 
     expect(mocks.db.sessionMessage.updateMany).toHaveBeenLastCalledWith({
+      where: { id: 'msg_1' },
+      data: { finalizedAt: null }
+    });
+  });
+
+  it('keeps the finalize claim once usage was recorded so a retry cannot count it twice', async () => {
+    mocks.db.sessionMessage.findUnique.mockResolvedValue(message());
+    mocks.fabricFire.mockRejectedValue(new Error('fabric down'));
+
+    await expect(run(message())).rejects.toThrow('fabric down');
+
+    expect(mocks.db.sessionMessage.updateMany).not.toHaveBeenCalledWith({
       where: { id: 'msg_1' },
       data: { finalizedAt: null }
     });

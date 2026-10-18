@@ -1,11 +1,7 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { dbPrimary } from '@metorial-subspace/db';
 import { env } from '../../env';
-import {
-  applyMessageActivity,
-  claimMessageActivity,
-  getCreationIncrements
-} from '../../shared/messageActivity';
+import { recordMessageActivity } from '../../shared/messageActivity';
 import { finalizeMessageQueue } from './finalizeMessage';
 import { messageTimeoutQueue } from './messageTimeout';
 
@@ -40,9 +36,10 @@ export let messageCreatedQueueProcessor = messageCreatedQueue.process(async data
     return;
   }
 
-  if (await claimMessageActivity(message.oid)) {
-    await applyMessageActivity(message, { touch: true, ...getCreationIncrements(message) });
-  }
+  await recordMessageActivity(
+    { ...message, activityCountedAt: null },
+    { response: { client: 0, provider: 0 } }
+  );
 
   await messageTimeoutQueue.add(
     { messageId: message.id, attempt: 0 },

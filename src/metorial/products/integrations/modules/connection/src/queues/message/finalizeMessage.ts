@@ -4,9 +4,8 @@ import { Fabric } from '@metorial/fabric';
 import { env } from '../../env';
 import { recordMessageAuditEvent } from '../../audit/recordMessage';
 import {
-  applyMessageActivity,
-  claimMessageActivity,
   getCreationIncrements,
+  recordMessageActivity,
   shouldEvaluateProtoGuard
 } from '../../shared/messageActivity';
 import { protoGuardMessageQueue } from './protoGuard';
@@ -17,7 +16,7 @@ export let finalizeMessageQueue = createQueue<{ messageId: string }>({
   workerOpts: { concurrency: 10 }
 });
 
-let finalizeMessage = async (messageId: string) => {
+let finalizeMessage = async (messageId: string, progress: { activityRecorded: boolean }) => {
   let message = await dbPrimary.sessionMessage.findUnique({
     where: { id: messageId },
     include: {
@@ -37,19 +36,20 @@ let finalizeMessage = async (messageId: string) => {
 
   await recordMessageAuditEvent(message);
 
-  let creation = getCreationIncrements(message);
-  let countCreation = !message.activityCountedAt && (await claimMessageActivity(message.oid));
+  if (shouldEvaluateProtoGuard(message)) {
+    await protoGuardMessageQueue.add({ messageId: message.id }, { id: message.id });
+  }
 
+  let creation = getCreationIncrements(message);
   let respondedTo = message.hasOutput || message.output !== null;
 
   let incrementProviderProductive = message.source === 'client' && respondedTo ? 1 : 0;
   let incrementClientProductive = message.source === 'provider' && respondedTo ? 1 : 0;
 
-  await applyMessageActivity(message, {
-    touch: countCreation,
-    client: incrementClientProductive + (countCreation ? creation.client : 0),
-    provider: incrementProviderProductive + (countCreation ? creation.provider : 0)
+  await recordMessageActivity(message, {
+    response: { client: incrementClientProductive, provider: incrementProviderProductive }
   });
+  progress.activityRecorded = true;
 
   let clientMessageIncrement = creation.client + incrementClientProductive;
   let providerMessageIncrement = creation.provider + incrementProviderProductive;
@@ -61,10 +61,6 @@ let finalizeMessage = async (messageId: string) => {
       providerMessageIncrement
     });
   }
-
-  if (shouldEvaluateProtoGuard(message)) {
-    await protoGuardMessageQueue.add({ messageId: message.id }, { id: message.id });
-  }
 };
 
 export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async data => {
@@ -74,13 +70,18 @@ export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async da
   });
   if (!claimed.count) return;
 
+  let progress = { activityRecorded: false };
+
   try {
-    await finalizeMessage(data.messageId);
+    await finalizeMessage(data.messageId, progress);
   } catch (err) {
-    await db.sessionMessage.updateMany({
-      where: { id: data.messageId },
-      data: { finalizedAt: null }
-    });
+    // Once the counters are committed a retry would apply the response increments again.
+    if (!progress.activityRecorded) {
+      await db.sessionMessage.updateMany({
+        where: { id: data.messageId },
+        data: { finalizedAt: null }
+      });
+    }
 
     throw err;
   }

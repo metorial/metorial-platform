@@ -1,4 +1,4 @@
-import { db } from '@metorial-subspace/db';
+import { withTransaction } from '@metorial-subspace/db';
 
 let PROTOGUARD_SKIPPED_METHODS = new Set([
   'initialize',
@@ -20,58 +20,66 @@ export let getCreationIncrements = (message: { isProductive: boolean; source: st
   provider: message.isProductive && message.source === 'provider' ? 1 : 0
 });
 
-export let claimMessageActivity = async (messageOid: bigint) => {
-  let claimed = await db.sessionMessage.updateMany({
-    where: { oid: messageOid, activityCountedAt: null },
-    data: { activityCountedAt: new Date() }
+export let recordMessageActivity = async (
+  message: MessageActivityTarget & { oid: bigint; activityCountedAt: Date | null } & {
+    isProductive: boolean;
+    source: string;
+  },
+  d: { response: { client: number; provider: number } }
+) =>
+  withTransaction(async db => {
+    let claimed = message.activityCountedAt
+      ? { count: 0 }
+      : await db.sessionMessage.updateMany({
+          where: { oid: message.oid, activityCountedAt: null },
+          data: { activityCountedAt: new Date() }
+        });
+    let countCreation = claimed.count > 0;
+
+    let creation = countCreation ? getCreationIncrements(message) : { client: 0, provider: 0 };
+    let client = creation.client + d.response.client;
+    let provider = creation.provider + d.response.provider;
+    if (!countCreation && !client && !provider) return countCreation;
+
+    let now = new Date();
+
+    let increments = {
+      totalProductiveClientMessageCount: client ? { increment: client } : undefined,
+      totalProductiveProviderMessageCount: provider ? { increment: provider } : undefined
+    };
+    let activity = countCreation ? { lastActiveAt: now, lastMessageAt: now } : {};
+
+    await Promise.all([
+      message.connectionOid
+        ? db.sessionConnection.updateMany({
+            where: { oid: message.connectionOid },
+            data: { ...activity, ...increments }
+          })
+        : undefined,
+
+      message.sessionProviderOid
+        ? db.sessionProvider.updateMany({
+            where: { oid: message.sessionProviderOid },
+            data: { ...(countCreation ? { lastMessageAt: now } : {}), ...increments }
+          })
+        : undefined,
+
+      db.session.updateMany({
+        where: { oid: message.sessionOid },
+        data: { ...activity, ...increments }
+      })
+    ]);
+
+    return countCreation;
   });
-
-  return claimed.count > 0;
-};
-
-export let applyMessageActivity = async (
-  message: MessageActivityTarget,
-  d: { touch: boolean; client: number; provider: number }
-) => {
-  if (!d.touch && !d.client && !d.provider) return;
-
-  let now = new Date();
-
-  let increments = {
-    totalProductiveClientMessageCount: d.client ? { increment: d.client } : undefined,
-    totalProductiveProviderMessageCount: d.provider ? { increment: d.provider } : undefined
-  };
-  let activity = d.touch ? { lastActiveAt: now, lastMessageAt: now } : {};
-
-  await Promise.all([
-    message.connectionOid
-      ? db.sessionConnection.updateMany({
-          where: { oid: message.connectionOid },
-          data: { ...activity, ...increments }
-        })
-      : undefined,
-
-    message.sessionProviderOid
-      ? db.sessionProvider.updateMany({
-          where: { oid: message.sessionProviderOid },
-          data: { ...(d.touch ? { lastMessageAt: now } : {}), ...increments }
-        })
-      : undefined,
-
-    db.session.updateMany({
-      where: { oid: message.sessionOid },
-      data: { ...activity, ...increments }
-    })
-  ]);
-};
 
 export let shouldEvaluateProtoGuard = (message: {
   retentionLevel: string;
-  type: string;
   methodOrToolKey: string | null;
+  toolCall: unknown;
 }) => {
   if (message.retentionLevel !== 'full') return false;
-  if (message.type !== 'mcp_control' || !message.methodOrToolKey) return true;
+  if (message.toolCall || !message.methodOrToolKey) return true;
 
   return (
     !PROTOGUARD_SKIPPED_METHODS.has(message.methodOrToolKey) &&
