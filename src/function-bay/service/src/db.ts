@@ -31,6 +31,8 @@ if (replicaClient) {
 
 export let db = baseClient;
 
+export let dbPrimary: PrismaClient = replicaClient ? (baseClient as any).$primary() : baseClient;
+
 declare global {
   namespace PrismaJson {
     type PortRange = {

@@ -85,34 +85,20 @@ describe('claimVersion', () => {
     expect(result).toEqual({ version: '1.0.1', versionHash: 'b' });
   });
 
-  it('retries on top of a concurrent write with a different hash instead of failing', async () => {
+  it('fails instead of overwriting a concurrent write with a different hash', async () => {
     let store = createStore({ version: '1.0.0', versionHash: 'a' });
     store.overwrite({ version: '1.0.1', versionHash: 'c' });
-
-    let result = await claimVersion({
-      initial: { version: '1.0.0', versionHash: 'a' },
-      hash: 'b',
-      compareAndSet: store.compareAndSet,
-      reload: store.reload
-    });
-
-    expect(result).toEqual({ version: '1.0.2', versionHash: 'b' });
-    expect(store.casCalls).toBe(2);
-  });
-
-  it('gives up after repeated contention', async () => {
-    let attempts = 0;
 
     await expect(
       claimVersion({
         initial: { version: '1.0.0', versionHash: 'a' },
         hash: 'b',
-        compareAndSet: async () => false,
-        reload: async () => {
-          attempts++;
-          return { version: `1.0.${attempts}`, versionHash: `other-${attempts}` };
-        }
+        compareAndSet: store.compareAndSet,
+        reload: store.reload
       })
-    ).rejects.toThrow('Could not claim a version');
+    ).rejects.toThrow('Version changed while its sync was being processed');
+
+    expect(store.state).toEqual({ version: '1.0.1', versionHash: 'c' });
+    expect(store.casCalls).toBe(1);
   });
 });

@@ -5,8 +5,6 @@ export interface VersionState {
   versionHash: string | null;
 }
 
-let maxClaimAttempts = 5;
-
 export let claimVersion = async (d: {
   initial: VersionState;
   hash: string;
@@ -17,24 +15,21 @@ export let claimVersion = async (d: {
   }) => Promise<boolean>;
   reload: () => Promise<VersionState>;
 }): Promise<VersionState> => {
-  let state = d.initial;
+  if (d.initial.versionHash === d.hash) return d.initial;
 
-  for (let attempt = 0; attempt < maxClaimAttempts; attempt++) {
-    if (state.versionHash === d.hash) return state;
+  let version = semver.inc(d.initial.version ?? '0.0.0', 'patch')!;
 
-    let version = semver.inc(state.version ?? '0.0.0', 'patch')!;
+  let claimed = await d.compareAndSet({
+    expectedVersionHash: d.initial.versionHash,
+    versionHash: d.hash,
+    version
+  });
+  if (claimed) return { version, versionHash: d.hash };
 
-    let claimed = await d.compareAndSet({
-      expectedVersionHash: state.versionHash,
-      versionHash: d.hash,
-      version
-    });
-    if (claimed) return { version, versionHash: d.hash };
+  let current = await d.reload();
+  if (current.versionHash === d.hash) return current;
 
-    state = await d.reload();
-  }
-
-  throw new Error(
-    `Could not claim a version for hash ${d.hash} after ${maxClaimAttempts} attempts`
-  );
+  // A different hash means another sync published since our snapshot was loaded. We can't tell
+  // which snapshot is newer, so publishing ours could overwrite newer content.
+  throw new Error('Version changed while its sync was being processed');
 };

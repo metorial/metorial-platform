@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Function, FunctionVersion, Tenant } from '../../prisma/generated/client';
-import { db } from '../db';
+import { db, dbPrimary } from '../db';
 import { ID, snowflake } from '../id';
 import { enqueueEnclaveOverrideClone } from '../queues/enclaveOverride';
 import { tenantService } from './tenant';
@@ -30,7 +30,7 @@ class enclaveServiceImpl {
       skipDuplicates: true
     });
 
-    return await db.enclave.findUniqueOrThrow({
+    return await dbPrimary.enclave.findUniqueOrThrow({
       where: {
         identifier_tenantOid: {
           identifier: d.identifier,
@@ -57,7 +57,7 @@ class enclaveServiceImpl {
       skipDuplicates: true
     });
 
-    return await db.enclaveFunction.findUniqueOrThrow({
+    return await dbPrimary.enclaveFunction.findUniqueOrThrow({
       where: {
         enclaveOid_functionOid: d
       }
