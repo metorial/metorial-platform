@@ -35,3 +35,19 @@ export {
   enqueueChatInstanceUpdated,
   enqueueChatConnectionUpdated
 } from './chatConnection';
+
+export let lifecycleSubspaceQueues = combineQueueProcessors([
+  chatConnectionCreatedQueueProcessor,
+  chatConnectionUpdatedQueueProcessor,
+  chatInstanceCreatedQueueProcessor,
+  chatInstanceUpdatedQueueProcessor
+]);
+
+export let lifecycleFederationQueues = combineQueueProcessors([
+  chatConnectionArchivedQueueProcessor,
+  chatConnectionArchiveInstancesManyQueueProcessor,
+  chatConnectionArchiveProvidersManyQueueProcessor,
+  chatConnectionDeletedQueueProcessor,
+  chatInstanceArchivedQueueProcessor,
+  chatInstanceDeletedQueueProcessor
+]);

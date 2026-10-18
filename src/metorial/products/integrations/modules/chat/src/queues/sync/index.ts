@@ -15,3 +15,13 @@ export let syncQueues = combineQueueProcessors([
 
 export { enqueueSyncChatInstanceProviderAuthorization } from './authorization';
 export { enqueueSyncChatWorkspacesForProvider } from './workspaces';
+
+export let syncSubspaceQueues = combineQueueProcessors([
+  syncChatInstanceProviderAuthorizationQueueProcessor
+]);
+
+export let syncFederationQueues = combineQueueProcessors([
+  syncChatWorkspacesCron,
+  syncChatWorkspacesManyQueueProcessor,
+  syncChatWorkspacesForProviderQueueProcessor
+]);

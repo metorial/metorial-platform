@@ -11,16 +11,19 @@ import { protoGuardMessageQueueProcessor } from './message/protoGuard';
 import { providerRunStartQueueProcessor } from './provderRun/providerRunStart';
 import { stopProviderRunsCron } from './provderRun/stopProviderRuns';
 
-export let queues = combineQueueProcessors([
+export let subspaceQueues = combineQueueProcessors([
   expireSessionConnectionsQueues,
   expireSessionsCron,
   messageTimeoutQueueProcessor,
   finalizeMessageQueueProcessor,
   protoGuardMessageQueueProcessor,
-  offloadQueues,
   createErrorQueueProcessor,
   createWarningQueueProcessor,
   messageCreatedQueueProcessor,
   stopProviderRunsCron,
   providerRunStartQueueProcessor
 ]);
+
+export let federationQueues = combineQueueProcessors([offloadQueues]);
+
+export let queues = combineQueueProcessors([subspaceQueues, federationQueues]);

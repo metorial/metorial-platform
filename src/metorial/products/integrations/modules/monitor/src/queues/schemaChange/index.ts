@@ -410,3 +410,14 @@ export let schemaChangeQueueProcessors = combineQueueProcessors([
   schemaChangeVersionNotificationAlertManyQueueProcessor,
   schemaChangeMonitorBackfillManyQueueProcessor
 ]);
+
+export let schemaChangeSubspaceProcessors = combineQueueProcessors([
+  schemaChangeMonitorAlertSingleQueueProcessor,
+  schemaChangeNotificationAlertIngestQueueProcessor
+]);
+
+export let schemaChangeFederationProcessors = combineQueueProcessors([
+  schemaChangePairNotificationAlertManyQueueProcessor,
+  schemaChangeVersionNotificationAlertManyQueueProcessor,
+  schemaChangeMonitorBackfillManyQueueProcessor
+]);

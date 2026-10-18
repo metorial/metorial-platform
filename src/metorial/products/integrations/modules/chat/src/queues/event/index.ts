@@ -19,3 +19,11 @@ export let eventQueues = combineQueueProcessors([
   chatEventPayloadFlushSingleQueueProcessor,
   chatEventPayloadFlushCron
 ]);
+
+export let eventSubspaceQueues = combineQueueProcessors([chatEventIngestQueueProcessor]);
+
+export let eventFederationQueues = combineQueueProcessors([
+  chatEventPayloadFlushManyQueueProcessor,
+  chatEventPayloadFlushSingleQueueProcessor,
+  chatEventPayloadFlushCron
+]);

@@ -126,10 +126,12 @@ export let setupSessionController = app.controller({
       };
 
       let startedSession = ctx.input.autoStartOauth
-        ? await providerSetupSessionUiService.autoStartOAuth({
-            providerSetupSession: ctx.session,
-            context: ctx.context
-          })
+        ? await providerSetupSessionUiService
+            .autoStartOAuth({
+              providerSetupSession: ctx.session,
+              context: ctx.context
+            })
+            .catch(() => null)
         : null;
       if (!startedSession) return await getFullSession(input, ctx.session);
 

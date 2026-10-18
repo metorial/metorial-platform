@@ -68,3 +68,37 @@ export let lifecycleQueues = combineQueueProcessors([
   integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor,
   integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor
 ]);
+
+export let lifecycleSubspaceQueues = combineQueueProcessors([
+  integrationCreatedQueueProcessor,
+  integrationUpdatedQueueProcessor,
+  integrationInstanceGroupCreatedQueueProcessor,
+  integrationInstanceGroupUpdatedQueueProcessor,
+  integrationInstanceGroupProviderSetQueueProcessor,
+  integrationInstanceCreatedQueueProcessor,
+  integrationInstanceUpdatedQueueProcessor,
+  integrationInstanceProviderSetQueueProcessor,
+  integrationInstanceProviderSyncGroupProvidersManyQueueProcessor,
+  integrationProviderCreatedQueueProcessor,
+  integrationProviderUpdatedQueueProcessor,
+  magicMcpBackingReconcileQueueProcessor,
+  integrationProviderUpdatedSyncIntegrationInstanceSessionsQueueProcessor,
+  integrationProviderUpdatedSyncIntegrationInstanceGroupSessionsQueueProcessor
+]);
+
+export let lifecycleFederationQueues = combineQueueProcessors([
+  archiveIntegrationInstanceQueueProcessor,
+  integrationArchivedQueueProcessor,
+  integrationArchiveInstancesManyQueueProcessor,
+  integrationArchiveProvidersManyQueueProcessor,
+  integrationDeletedQueueProcessor,
+  integrationInstanceGroupArchivedQueueProcessor,
+  integrationInstanceGroupArchiveProvidersManyQueueProcessor,
+  integrationInstanceArchivedQueueProcessor,
+  integrationInstanceArchiveGroupSourcesManyQueueProcessor,
+  integrationInstanceDeletedQueueProcessor,
+  integrationProviderArchivedQueueProcessor,
+  integrationProviderArchiveInstanceProvidersManyQueueProcessor,
+  integrationProviderArchiveGroupProvidersManyQueueProcessor,
+  integrationProviderStaleCredentialsProcessors
+]);

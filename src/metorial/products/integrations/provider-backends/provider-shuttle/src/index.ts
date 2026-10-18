@@ -1,6 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { shuttle } from './client';
-import { syncQueues } from './queues/sync';
+import { syncFederationQueues, syncQueues, syncSubspaceQueues } from './queues/sync';
+
+export let shuttleProviderSubspaceQueues = combineQueueProcessors([syncSubspaceQueues]);
+
+export let shuttleProviderFederationQueues = combineQueueProcessors([syncFederationQueues]);
 
 export let shuttleProviderQueues = combineQueueProcessors([syncQueues]);
 

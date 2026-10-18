@@ -50,3 +50,27 @@ export let lifecycleQueues = combineQueueProcessors([
   identityDelegationConfigUpdatedQueueProcessor,
   identityDelegationConfigDeletedQueueProcessor
 ]);
+
+export let lifecycleSubspaceQueues = combineQueueProcessors([
+  integrationInstanceProviderCredentialSyncQueueProcessor
+]);
+
+export let lifecycleFederationQueues = combineQueueProcessors([
+  agentCreatedQueueProcessor,
+  agentUpdatedQueueProcessor,
+  agentDeletedQueueProcessor,
+  identityCreatedQueueProcessor,
+  identityUpdatedQueueProcessor,
+  identityDeletedQueueProcessor,
+  identityActorCreatedQueueProcessor,
+  identityActorUpdatedQueueProcessor,
+  identityActorDeletedQueueProcessor,
+  identityCredentialCreatedQueueProcessor,
+  identityCredentialUpdatedQueueProcessor,
+  identityCredentialDeletedQueueProcessor,
+  identityDelegationCreatedQueueProcessor,
+  identityDelegationUpdatedQueueProcessor,
+  identityDelegationConfigCreatedQueueProcessor,
+  identityDelegationConfigUpdatedQueueProcessor,
+  identityDelegationConfigDeletedQueueProcessor
+]);

@@ -1,16 +1,26 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
-import { cronQueues } from './queues/cron';
+import { cronFederationQueues, cronSubspaceQueues } from './queues/cron';
 import { deleteQueues } from './queues/delete';
-import { lifecycleQueues } from './queues/lifecycle';
+import { lifecycleFederationQueues, lifecycleSubspaceQueues } from './queues/lifecycle';
 import { reconcileQueues } from './queues/reconcile';
 import { searchQueues } from './queues/search';
 
 export * from './queues/reconcile';
 
-export let authQueueProcessor = combineQueueProcessors([
-  lifecycleQueues,
+export let authSubspaceQueueProcessor = combineQueueProcessors([
+  lifecycleSubspaceQueues,
+  cronSubspaceQueues
+]);
+
+export let authFederationQueueProcessor = combineQueueProcessors([
+  lifecycleFederationQueues,
+  cronFederationQueues,
   searchQueues,
-  cronQueues,
   deleteQueues,
   reconcileQueues
+]);
+
+export let authQueueProcessor = combineQueueProcessors([
+  authSubspaceQueueProcessor,
+  authFederationQueueProcessor
 ]);
