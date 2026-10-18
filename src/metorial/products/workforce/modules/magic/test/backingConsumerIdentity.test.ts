@@ -20,6 +20,7 @@ vi.mock('@metorial/db', () => {
     },
     magicMcpServer: {
       findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
       update: vi.fn()
     },
     magicMcpEndpoint: {
@@ -228,6 +229,9 @@ describe('Magic MCP consumer identity backing', () => {
       ]
     } as any;
     vi.mocked(db.magicMcpEndpoint.findUniqueOrThrow).mockResolvedValue(endpoint);
+    vi.mocked(db.magicMcpServer.findUniqueOrThrow).mockResolvedValue(
+      endpoint.servers[1].magicMcpServer
+    );
 
     await ensureMagicMcpEndpointBacking({
       instance: { oid: 10n, projectOid: 11n } as any,
@@ -262,5 +266,81 @@ describe('Magic MCP consumer identity backing', () => {
         })
       })
     );
+  });
+
+  let createEndpointWithUnbackedServers = (serverOids: bigint[]) =>
+    ({
+      oid: 41n,
+      id: 'shared_endpoint',
+      consumerProfileOid: null,
+      name: 'Shared endpoint',
+      description: null,
+      metadata: {},
+      servers: serverOids.map(oid => ({
+        id: `mgep_${oid}`,
+        toolFilters: null,
+        magicMcpServer: createServer({ oid, id: `server_${oid}`, source: 'manual' })
+      }))
+    }) as any;
+
+  it('skips member servers another worker backed in the meantime', async () => {
+    vi.mocked(db.consumerIntegration.findFirst).mockResolvedValue(null);
+    let endpoint = createEndpointWithUnbackedServers([60n, 61n]);
+    vi.mocked(db.magicMcpEndpoint.findUniqueOrThrow).mockResolvedValue(endpoint);
+    vi.mocked(db.magicMcpServer.findUniqueOrThrow).mockImplementation((async (args: any) =>
+      createServer({
+        oid: args.where.oid,
+        id: `server_${args.where.oid}`,
+        source: 'manual',
+        hasSubspaceBacking: args.where.oid === 60n
+      })) as any);
+
+    await ensureMagicMcpEndpointBacking({
+      instance: { oid: 10n, projectOid: 11n } as any,
+      endpoint
+    });
+
+    let serverUpserts = vi.mocked(magicMcpServerBackingService.upsertMagicMcpServerBacking)
+      .mock.calls;
+    expect(serverUpserts.map(call => call[0].input.id)).toEqual(['server_61']);
+    expect(
+      magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking
+    ).toHaveBeenCalledOnce();
+  });
+
+  it('backs member servers one at a time', async () => {
+    vi.mocked(db.consumerIntegration.findFirst).mockResolvedValue(null);
+    let endpoint = createEndpointWithUnbackedServers([70n, 71n, 72n]);
+    vi.mocked(db.magicMcpEndpoint.findUniqueOrThrow).mockResolvedValue(endpoint);
+    vi.mocked(db.magicMcpServer.findUniqueOrThrow).mockImplementation((async (args: any) =>
+      createServer({
+        oid: args.where.oid,
+        id: `server_${args.where.oid}`,
+        source: 'manual'
+      })) as any);
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    vi.mocked(magicMcpServerBackingService.upsertMagicMcpServerBacking).mockImplementation(
+      (async () => {
+        inFlight++;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise(resolve => setTimeout(resolve, 5));
+        inFlight--;
+
+        return {
+          ownerType: 'server_owned',
+          ephemeralManagedSession: { id: 'ems_server', isReconciling: false }
+        };
+      }) as any
+    );
+
+    await ensureMagicMcpEndpointBacking({
+      instance: { oid: 10n, projectOid: 11n } as any,
+      endpoint
+    });
+
+    expect(magicMcpServerBackingService.upsertMagicMcpServerBacking).toHaveBeenCalledTimes(3);
+    expect(maxInFlight).toBe(1);
   });
 });

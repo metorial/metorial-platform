@@ -1,10 +1,11 @@
-import { isServiceError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { db, Instance, MagicMcpEndpoint, MagicMcpServer, Prisma } from '@metorial/db';
 import {
   integrationInstanceService,
   magicMcpEndpointBackingService,
   magicMcpServerBackingService
 } from '@metorial-subspace/module-integration';
+import { isIntegrationInstanceUnavailableError } from './integrationInstanceUnavailable';
 import { resolveOwnerActorOid } from './ownerActor';
 
 let magicMcpEndpointBackingInclude = {
@@ -220,11 +221,6 @@ let magicMcpServerNeedsReconnectError = () =>
     })
   );
 
-let isIntegrationInstanceUnavailableError = (error: unknown) =>
-  isServiceError(error) &&
-  (error.data.code === 'integration_instance_not_active' ||
-    (error.data.code === 'not_found' && error.data.entity === 'integration.instance'));
-
 let rebuildOrNeedsReconnect = async <T>(cb: () => Promise<T>) => {
   try {
     return await cb();
@@ -325,18 +321,23 @@ export let ensureMagicMcpEndpointBacking = async (d: {
 
   // Member servers keep their own owner. A server can sit in endpoints of many consumers,
   // so the endpoint's consumer identity only goes onto the endpoint's own backing.
-  await Promise.all(
-    endpoint.servers.map(async server => {
-      if (server.magicMcpServer.hasSubspaceBacking) return;
+  // Servers are shared across endpoints and backed concurrently elsewhere, so they are backed
+  // one at a time from a fresh read to avoid piling up on the same backing locks.
+  for (let { magicMcpServer } of endpoint.servers) {
+    if (magicMcpServer.hasSubspaceBacking) continue;
 
-      await ensureMagicMcpServerBacking({
-        instance: d.instance,
-        server: server.magicMcpServer,
-        isReconciliation: d.isReconciliation,
-        maxSessionDurationInMinutes
-      });
-    })
-  );
+    let server = await db.magicMcpServer.findUniqueOrThrow({
+      where: { oid: magicMcpServer.oid }
+    });
+    if (server.hasSubspaceBacking) continue;
+
+    await ensureMagicMcpServerBacking({
+      instance: d.instance,
+      server,
+      isReconciliation: d.isReconciliation,
+      maxSessionDurationInMinutes
+    });
+  }
 
   let backing = await magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking({
     instance: d.instance,
