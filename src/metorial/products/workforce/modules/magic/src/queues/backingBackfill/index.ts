@@ -1,13 +1,30 @@
+import { LockAcquisitionError } from '@lowerdeck/lock';
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@metorial/queue';
+import {
+  combineQueueProcessors,
+  createQueue,
+  dailyPacedDelay,
+  QueueRetryError
+} from '@metorial/queue';
 import { ensureMagicMcpEndpointBacking, ensureMagicMcpServerBacking } from '../../lib/backing';
+import { isIntegrationInstanceUnavailableError } from '../../lib/integrationInstanceUnavailable';
 
 let BACKING_BACKFILL_BATCH_SIZE = 500;
 
 let pendingBackingWhere = {
   status: 'active' as const,
   OR: [{ hasSubspaceBacking: false }, { isSubspaceBackingReconciling: true }]
+};
+
+let runBackfillSafely = async (backfill: () => Promise<unknown>) => {
+  try {
+    await backfill();
+  } catch (error) {
+    // Another worker is upserting the same backing; a quiet retry lets it finish first.
+    if (error instanceof LockAcquisitionError) throw new QueueRetryError();
+    if (!isIntegrationInstanceUnavailableError(error)) throw error;
+  }
 };
 
 // Servers and endpoints created by the previous queue-driven flow may still be unbacked or
@@ -76,11 +93,15 @@ export let backfillMagicMcpServerBackingQueueProcessor =
     if (!server || server.status !== 'active') return;
     if (server.hasSubspaceBacking && !server.isSubspaceBackingReconciling) return;
 
-    await ensureMagicMcpServerBacking({
-      instance: server.instance,
-      server,
-      isReconciliation: true
-    });
+    // A removed integration instance can't be backed until the user reconnects, so retrying
+    // would only fail the same way. The next daily run picks the server up again.
+    await runBackfillSafely(() =>
+      ensureMagicMcpServerBacking({
+        instance: server.instance,
+        server,
+        isReconciliation: true
+      })
+    );
   });
 
 export let backfillMagicMcpEndpointBackingsManyQueue = createQueue<{ cursor?: string }>({
@@ -130,11 +151,13 @@ export let backfillMagicMcpEndpointBackingQueueProcessor =
     if (!endpoint || endpoint.status !== 'active') return;
     if (endpoint.hasSubspaceBacking && !endpoint.isSubspaceBackingReconciling) return;
 
-    await ensureMagicMcpEndpointBacking({
-      instance: endpoint.instance,
-      endpoint,
-      isReconciliation: true
-    });
+    await runBackfillSafely(() =>
+      ensureMagicMcpEndpointBacking({
+        instance: endpoint.instance,
+        endpoint,
+        isReconciliation: true
+      })
+    );
   });
 
 export let magicBackingBackfillQueueProcessor = combineQueueProcessors([
