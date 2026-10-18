@@ -7,6 +7,7 @@ import {
   type Environment,
   getId,
   type Provider,
+  type ProviderAuthMethod,
   type ProviderDeployment,
   type ProviderDeploymentVersion,
   type ProviderSetupSession,
@@ -17,7 +18,10 @@ import {
 import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerListingService, providerService } from '@metorial-subspace/module-catalog';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
-import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
+import {
+  checkProviderMatch,
+  providerDeploymentInternalService
+} from '@metorial-subspace/module-provider-internal';
 import { Fabric } from '@metorial/fabric';
 import {
   getSubspaceSystemProviderEventBase,
@@ -40,6 +44,13 @@ let updateLock = createLock({
 let undefinedIfEmpty = <T>(value: T[] | null | undefined): T[] | undefined => {
   if (!value || value.length === 0) return undefined;
   return value;
+};
+
+let hasSchemaProperties = (schema: unknown) => {
+  if (!schema || typeof schema !== 'object' || !('properties' in schema)) return false;
+
+  let properties = schema.properties;
+  return !!properties && typeof properties === 'object' && Object.keys(properties).length > 0;
 };
 
 class providerSetupSessionUiServiceImpl {
@@ -242,6 +253,24 @@ class providerSetupSessionUiServiceImpl {
 
     this.assertSelectedAuthMethod(fullSession);
 
+    let currentVersion = await providerDeploymentInternalService.getCurrentVersionOptional({
+      provider: fullSession.provider,
+      environment: fullSession.environment,
+      deployment: fullSession.deployment ?? undefined
+    });
+
+    let selectedAuthMethod = fullSession.authMethod;
+    if (
+      selectedAuthMethod &&
+      currentVersion?.specificationOid != null &&
+      currentVersion.specificationOid === selectedAuthMethod.specificationOid
+    ) {
+      return {
+        type: 'required' as const,
+        schema: selectedAuthMethod.value.inputJsonSchema
+      };
+    }
+
     let schema = await providerAuthConfigService.getProviderAuthConfigSchemaInternal({
       tenant: fullSession.tenant,
       environment: fullSession.environment,
@@ -263,6 +292,65 @@ class providerSetupSessionUiServiceImpl {
     return await db.providerOAuthSetup.findUnique({
       where: { oid: d.providerSetupSession.oauthSetupOid },
       include: providerOAuthSetupInclude
+    });
+  }
+
+  async startOAuthWithoutAuthConfigInput(d: {
+    providerSetupSession: ProviderSetupSession & { authMethod: ProviderAuthMethod | null };
+    toolFilters?: PrismaJson.ToolFilter | null;
+    context: {
+      ip: string;
+      ua: string;
+    };
+  }) {
+    let session = d.providerSetupSession;
+
+    if (
+      !session.typeConcrete ||
+      session.typeConcrete === 'config_only' ||
+      session.authMethod?.type !== 'oauth' ||
+      session.oauthSetupOid ||
+      session.authConfigOid
+    ) {
+      return null;
+    }
+
+    let schema = await this.getAuthConfigSchema({ providerSetupSession: session });
+    if (schema.type === 'required' && hasSchemaProperties(schema.schema)) return null;
+
+    return await this.setAuthConfig({
+      providerSetupSession: session,
+      input: {
+        authConfigInput: {},
+        toolFilters: d.toolFilters
+      },
+      context: d.context
+    });
+  }
+
+  async autoStartOAuth(d: {
+    providerSetupSession: ProviderSetupSession & { authMethod: ProviderAuthMethod | null };
+    context: {
+      ip: string;
+      ua: string;
+    };
+  }) {
+    let session = d.providerSetupSession;
+
+    let requiresConfigStep = session.typeConcrete !== 'auth_only' && !session.configOid;
+    if (
+      session.status !== 'pending' ||
+      session.expiresAt < new Date() ||
+      !session.providerOid ||
+      session.configuration?.toolFilters?.enabled ||
+      requiresConfigStep
+    ) {
+      return null;
+    }
+
+    return await this.startOAuthWithoutAuthConfigInput({
+      providerSetupSession: session,
+      context: d.context
     });
   }
 

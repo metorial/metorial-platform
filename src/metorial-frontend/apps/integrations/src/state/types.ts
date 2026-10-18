@@ -17,6 +17,11 @@ export type Provider = SetupSessionResponse['provider'];
 
 export type Brand = SetupSessionResponse['brand'];
 
+export type PrefetchedSetupData = Pick<
+  SetupSessionResponse,
+  'authConfigSchema' | 'configSchema' | 'oauthSetup'
+>;
+
 export type OAuthSetup = NonNullable<Awaited<ReturnType<SetupSessionApi['getOauthSetup']>>>;
 
 export type ProviderListing = Awaited<

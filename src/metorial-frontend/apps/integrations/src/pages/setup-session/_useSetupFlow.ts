@@ -7,14 +7,14 @@ import {
   type ToolSelection
 } from '@metorial/tool-selection';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { hasSchemaFields } from '../../lib/jsonSchema';
+import { extractRequiredSchema, hasSchemaFields } from '../../lib/jsonSchema';
 import { getIntegrationsClient } from '../../state/client';
 import {
   useAuthConfigSchema,
   useConfigSchema,
   useSetupSessionTools
 } from '../../state/loaders';
-import type { OAuthSetup, Provider, Session } from '../../state/types';
+import type { OAuthSetup, PrefetchedSetupData, Provider, Session } from '../../state/types';
 
 export type Step =
   | 'provider'
@@ -44,16 +44,19 @@ let stepStages: Record<Step, Stage | null> = {
 export let useSetupFlow = ({
   session,
   provider,
+  prefetched,
   clientSecret
 }: {
   session: Session;
   provider: Provider | null;
+  prefetched: PrefetchedSetupData;
   clientSecret: string;
 }) => {
   let client = useMemo(() => getIntegrationsClient(clientSecret), [clientSecret]);
 
   let [flowSession, setFlowSession] = useState(session);
   let [flowProvider, setFlowProvider] = useState(provider);
+  let [prefetchedData, setPrefetchedData] = useState(prefetched);
   let [explicitStep, setExplicitStep] = useState<Step | null>(null);
   let [includesProviderStage] = useState(() => !session.providerId);
 
@@ -82,12 +85,24 @@ export let useSetupFlow = ({
   );
   let providerCredentials = needsProviderSelection ? null : sessionCredentials;
 
-  let authSchemaLoader = useAuthConfigSchema(needsAuthConfig ? providerCredentials : null);
-  let configSchemaLoader = useConfigSchema(needsConfig ? providerCredentials : null);
+  let prefetchedAuthConfigSchema = needsAuthConfig ? prefetchedData.authConfigSchema : null;
+  let prefetchedConfigSchema = needsConfig ? prefetchedData.configSchema : null;
+  let fetchAuthConfigSchema = needsAuthConfig && !prefetchedAuthConfigSchema;
+  let fetchConfigSchema = needsConfig && !prefetchedConfigSchema;
+
+  let authSchemaLoader = useAuthConfigSchema(
+    fetchAuthConfigSchema ? providerCredentials : null
+  );
+  let configSchemaLoader = useConfigSchema(fetchConfigSchema ? providerCredentials : null);
   let tools = useSetupSessionTools(toolFiltersEnabled ? providerCredentials : null);
 
-  let authConfigSchema = authSchemaLoader.data?.schema ?? null;
-  let configSchema = configSchemaLoader.data?.schema ?? null;
+  let authConfigSchema = prefetchedAuthConfigSchema
+    ? extractRequiredSchema(prefetchedAuthConfigSchema)
+    : (authSchemaLoader.data?.schema ?? null);
+  let configSchema = prefetchedConfigSchema
+    ? extractRequiredSchema(prefetchedConfigSchema)
+    : (configSchemaLoader.data?.schema ?? null);
+  let isAuthConfigSchemaLoaded = !!prefetchedAuthConfigSchema || !!authSchemaLoader.data;
   let hasAuthFields = hasSchemaFields(authConfigSchema);
   let hasConfigFields = hasSchemaFields(configSchema);
 
@@ -110,7 +125,7 @@ export let useSetupFlow = ({
     !showConfigStep &&
     needsAuthConfig &&
     isOAuth &&
-    !!authSchemaLoader.data &&
+    isAuthConfigSchemaLoaded &&
     !hasAuthFields;
 
   let resolveNextStep = (): Step => {
@@ -125,8 +140,8 @@ export let useSetupFlow = ({
   let step = explicitStep ?? resolveNextStep();
 
   let isPreparing =
-    (!!providerCredentials && needsAuthConfig && authSchemaLoader.isLoading) ||
-    (!!providerCredentials && needsConfig && configSchemaLoader.isLoading) ||
+    (!!providerCredentials && fetchAuthConfigSchema && authSchemaLoader.isLoading) ||
+    (!!providerCredentials && fetchConfigSchema && configSchemaLoader.isLoading) ||
     (step === 'config' && toolFiltersEnabled && tools.isLoading) ||
     (step === 'oauth_loading' && !oauthError);
 
@@ -150,7 +165,15 @@ export let useSetupFlow = ({
   }, [toolItems]);
 
   let sendAuthConfig = async (authConfigInput: Record<string, unknown>) => {
-    await client.setupSession.setAuthConfig({
+    if (isOAuth && !hasAuthFields) {
+      let setup = await client.setupSession.getOauthSetup({
+        ...sessionCredentials,
+        toolFilters
+      });
+      if (setup) return setup;
+    }
+
+    let result = await client.setupSession.setAuthConfig({
       ...sessionCredentials,
       authConfigInput,
       toolFilters
@@ -158,7 +181,7 @@ export let useSetupFlow = ({
 
     if (!isOAuth) return null;
 
-    return await client.setupSession.getOauthSetup(sessionCredentials);
+    return result.oauthSetup;
   };
 
   let showOAuthRedirect = (setup: OAuthSetup) => {
@@ -182,7 +205,11 @@ export let useSetupFlow = ({
     if (!shouldStartOAuth || oauthStarted.current) return;
     oauthStarted.current = true;
 
-    sendAuthConfig({})
+    let setupRequest = prefetchedData.oauthSetup
+      ? Promise.resolve(prefetchedData.oauthSetup)
+      : sendAuthConfig({});
+
+    setupRequest
       .then(setup => {
         if (setup) showOAuthRedirect(setup);
         else setOauthError('Failed to get OAuth URL. Please try again with a new session.');
@@ -200,6 +227,11 @@ export let useSetupFlow = ({
 
     setFlowSession(result.session);
     setFlowProvider(result.provider);
+    setPrefetchedData({
+      authConfigSchema: result.authConfigSchema,
+      configSchema: result.configSchema,
+      oauthSetup: result.oauthSetup
+    });
     setToolAccessCompleted(false);
     setExplicitStep(null);
   });
@@ -271,8 +303,8 @@ export let useSetupFlow = ({
     authConfigSchema,
     configSchema,
     schemaLoaders: {
-      authSchema: !!providerCredentials && needsAuthConfig && authSchemaLoader,
-      configSchema: !!providerCredentials && needsConfig && configSchemaLoader
+      authSchema: !!providerCredentials && fetchAuthConfigSchema && authSchemaLoader,
+      configSchema: !!providerCredentials && fetchConfigSchema && configSchemaLoader
     },
 
     oauthSetup,
