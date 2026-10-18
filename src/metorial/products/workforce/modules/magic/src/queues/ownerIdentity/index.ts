@@ -72,7 +72,7 @@ let getCurrentOwner = (d: { backing: ServerBacking; usesOwnIntegrationInstance: 
 export let magicMcpServerOwnerIdentityReconcileCron = createCron(
   {
     name: 'magic/server/ownerIdentity/reconcile/cron',
-    cron: '15 4 * * *'
+    cron: '15 * * * *'
   },
   async () => {
     await reconcileMagicMcpServerOwnerIdentitiesManyQueue.add(
