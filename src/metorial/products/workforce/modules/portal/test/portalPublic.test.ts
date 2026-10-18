@@ -7,7 +7,6 @@ let mocks = vi.hoisted(() => {
     cached,
     cachedFunctions: [] as any[],
     portalFindFirst: vi.fn(),
-    portalFindUnique: vi.fn(),
     enrichConsumerSurfaces: vi.fn(async (d: { consumerSurfaces: any[] }) => d.consumerSurfaces)
   };
 });
@@ -33,7 +32,7 @@ vi.mock('@metorial/cache', () => ({
 
 vi.mock('@metorial/db', () => ({
   db: {
-    portal: { findFirst: mocks.portalFindFirst, findUnique: mocks.portalFindUnique },
+    portal: { findFirst: mocks.portalFindFirst },
     cellPortal: { findFirst: vi.fn() }
   },
   ID: { generateId: vi.fn() },
@@ -80,33 +79,61 @@ let activePortal = {
   instance: { oid: 2n }
 };
 
+let oidLookups = () =>
+  mocks.portalFindFirst.mock.calls.filter(([args]) => args.select?.oid === true);
+let rowLoads = () => mocks.portalFindFirst.mock.calls.filter(([args]) => !!args.include);
+
 describe('portalService.getPortalPublic', () => {
+  let resolvedOid: bigint | null;
+  let loadableOids: Set<bigint>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.cached.clear();
-    mocks.portalFindFirst.mockResolvedValue({ oid: activePortal.oid });
-    mocks.portalFindUnique.mockResolvedValue(activePortal);
+
+    resolvedOid = activePortal.oid;
+    loadableOids = new Set([activePortal.oid]);
+
+    mocks.portalFindFirst.mockImplementation(async (args: any) => {
+      if (args.select) return resolvedOid === null ? null : { oid: resolvedOid };
+      return loadableOids.has(args.where.oid)
+        ? { ...activePortal, oid: args.where.oid }
+        : null;
+    });
   });
 
-  it('caches only the resolved portal oid and loads the row by primary key', async () => {
+  it('caches only the resolved portal oid', async () => {
     let portal = await portalService.getPortalPublic({ portalId: 'acme' });
 
     expect(portal.id).toBe('prt_1');
-    expect(mocks.portalFindFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ select: { oid: true } })
-    );
-    expect(mocks.portalFindUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { oid: activePortal.oid } })
-    );
+    expect(oidLookups()).toHaveLength(1);
     expect([...mocks.cached.values()]).toEqual([activePortal.oid]);
+  });
+
+  it('re-applies the full lookup predicate when loading the cached oid', async () => {
+    let namespace = { value: 'acme', compartmentValue: 'default' };
+    await portalService.getPortalPublic({ portalId: 'acme', namespace });
+
+    let [[loadArgs]] = rowLoads();
+    expect(loadArgs.where).toMatchObject({
+      oid: activePortal.oid,
+      status: 'active',
+      surface: { status: 'active' },
+      slug: 'acme',
+      namespaceProperties: {
+        some: {
+          namespace: { value: 'acme', compartment: { value: 'default' } }
+        }
+      }
+    });
   });
 
   it('reuses the cached oid on later lookups', async () => {
     await portalService.getPortalPublic({ portalId: 'acme' });
     await portalService.getPortalPublic({ portalId: 'acme' });
 
-    expect(mocks.portalFindFirst).toHaveBeenCalledTimes(1);
-    expect(mocks.portalFindUnique).toHaveBeenCalledTimes(2);
+    expect(oidLookups()).toHaveLength(1);
+    expect(rowLoads()).toHaveLength(2);
   });
 
   it('keys namespace lookups separately from id lookups', async () => {
@@ -120,13 +147,26 @@ describe('portalService.getPortalPublic', () => {
     );
   });
 
-  it('drops a cached oid whose portal is no longer active', async () => {
+  it('re-resolves once when the cached portal no longer matches the lookup', async () => {
     let [resolveOid] = mocks.cachedFunctions;
-    mocks.portalFindUnique.mockResolvedValue({ ...activePortal, status: 'archived' });
+    await portalService.getPortalPublic({ portalId: 'acme' });
 
-    await expect(portalService.getPortalPublic({ portalId: 'acme' })).rejects.toThrow();
+    loadableOids = new Set([11n]);
+    resolvedOid = 11n;
+
+    let portal = await portalService.getPortalPublic({ portalId: 'acme' });
 
     expect(resolveOid.clearAndWait).toHaveBeenCalledWith({ portalId: 'acme' });
-    expect(mocks.cached.size).toBe(0);
+    expect(portal.oid).toBe(11n);
+    expect([...mocks.cached.values()]).toEqual([11n]);
+  });
+
+  it('returns not found when nothing matches after re-resolving', async () => {
+    await portalService.getPortalPublic({ portalId: 'acme' });
+
+    loadableOids = new Set();
+
+    await expect(portalService.getPortalPublic({ portalId: 'acme' })).rejects.toThrow();
+    expect(rowLoads()).toHaveLength(3);
   });
 });

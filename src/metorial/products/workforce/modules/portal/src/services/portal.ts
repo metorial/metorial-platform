@@ -103,6 +103,30 @@ type PublicPortalLookup = {
   namespace?: { value: string; compartmentValue: string };
 };
 
+let getPublicPortalWhere = (d: PublicPortalLookup): Prisma.PortalWhereInput => ({
+  status: 'active',
+  surface: {
+    status: 'active'
+  },
+  ...(d.namespace
+    ? {
+        slug: d.portalId,
+        namespaceProperties: {
+          some: {
+            type: 'portal' as const,
+            namespace: {
+              value: d.namespace.value,
+              purposes: {
+                hasSome: ['metorial_portal', 'metorial_portal_single'] as const
+              },
+              compartment: { value: d.namespace.compartmentValue }
+            }
+          }
+        }
+      }
+    : { OR: [{ id: d.portalId }, { slug: d.portalId }] })
+});
+
 let resolvePublicPortalOid = createCachedFunction({
   name: 'portal:public:oid',
   ttlSeconds: 30,
@@ -113,29 +137,7 @@ let resolvePublicPortalOid = createCachedFunction({
   getTags: (portalOid: bigint) => [`portal:${portalOid}`],
   provider: async (d: PublicPortalLookup) => {
     let portal = await db.portal.findFirst({
-      where: {
-        status: 'active',
-        surface: {
-          status: 'active'
-        },
-        ...(d.namespace
-          ? {
-              slug: d.portalId,
-              namespaceProperties: {
-                some: {
-                  type: 'portal' as const,
-                  namespace: {
-                    value: d.namespace.value,
-                    purposes: {
-                      hasSome: ['metorial_portal', 'metorial_portal_single'] as const
-                    },
-                    compartment: { value: d.namespace.compartmentValue }
-                  }
-                }
-              }
-            }
-          : { OR: [{ id: d.portalId }, { slug: d.portalId }] })
-      },
+      where: getPublicPortalWhere(d),
       select: { oid: true }
     });
     if (!portal) {
@@ -203,14 +205,20 @@ class PortalServiceImpl {
   }
 
   async getPortalPublic(d: PublicPortalLookup) {
-    let portalOid = await resolvePublicPortalOid(d);
+    // The cached oid is only a hint: the full lookup predicate is re-applied, so a portal whose
+    // namespace or slug changed since it was cached is never served for this lookup.
+    let loadPortal = async () =>
+      await db.portal.findFirst({
+        where: { oid: await resolvePublicPortalOid(d), ...getPublicPortalWhere(d) },
+        include
+      });
 
-    let portal = await db.portal.findUnique({
-      where: { oid: portalOid },
-      include
-    });
-    if (!portal || portal.status != 'active' || portal.surface.status != 'active') {
+    let portal = await loadPortal();
+    if (!portal) {
       await resolvePublicPortalOid.clearAndWait(d);
+      portal = await loadPortal();
+    }
+    if (!portal) {
       throw new ServiceError(notFoundError('portal'));
     }
 
