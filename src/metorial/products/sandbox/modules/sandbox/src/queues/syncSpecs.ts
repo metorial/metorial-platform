@@ -5,7 +5,7 @@ import { sandboxRegionInternalService } from '../internal/regionInternal';
 import { sandboxSpecInternalService } from '../internal/specInternal';
 import { isSandboxingEnabled } from '../lib/regions';
 
-let SYNC_CRON = '*/15 * * * *';
+let SYNC_CRON = '0 0 * * *';
 let STARTUP_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 
 let enqueueRegionSyncs = async () => {

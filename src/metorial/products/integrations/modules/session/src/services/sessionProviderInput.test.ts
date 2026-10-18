@@ -5,7 +5,9 @@ let mocks = vi.hoisted(() => ({
   sessionProviderCreateManyAndReturn: vi.fn(),
   sessionTemplateProviderCount: vi.fn(),
   sessionTemplateProviderCreateManyAndReturn: vi.fn(),
-  getCombinationsInternal: vi.fn()
+  getCombinationsInternal: vi.fn(),
+  sessionTemplateFindMany: vi.fn(),
+  sessionProviderCreatedAddMany: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -21,12 +23,15 @@ vi.mock('@lowerdeck/id', () => ({
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
+  db: {},
+  dbPrimary: {},
   addAfterTransactionHook: vi.fn(async (hook: () => Promise<unknown>) => {
     await hook();
   }),
   getId: vi.fn((prefix: string) => ({ oid: 1n, id: `${prefix}_1` })),
   withTransaction: vi.fn(async (run: (db: unknown) => Promise<unknown>) =>
     run({
+      sessionTemplate: { findMany: mocks.sessionTemplateFindMany },
       sessionProvider: {
         count: mocks.sessionProviderCount,
         createManyAndReturn: mocks.sessionProviderCreateManyAndReturn
@@ -50,7 +55,7 @@ vi.mock('@metorial-subspace/module-provider-internal', () => ({
 }));
 
 vi.mock('../queues/lifecycle/sessionProvider', () => ({
-  sessionProviderCreatedQueue: { add: vi.fn() }
+  sessionProviderCreatedQueue: { addMany: mocks.sessionProviderCreatedAddMany }
 }));
 
 vi.mock('../queues/lifecycle/sessionTemplateProvider', () => ({
@@ -138,5 +143,63 @@ describe('sessionProviderInputService double writes', () => {
 
     expect(data[0].projectOid).toBeNull();
     expect(data[0].instanceOid).toBeNull();
+  });
+
+  it('skips the provider count for a new session and builds relations in memory', async () => {
+    mocks.sessionProviderCreateManyAndReturn.mockImplementation(async ({ data }) =>
+      data.map((row: any) => ({ ...row }))
+    );
+
+    let session = { oid: 60n, isEphemeral: false } as any;
+    let [created] = await sessionProviderInputService.createSessionProvidersForInput({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      session,
+      providers: [{ deploymentId: 'pd_1' }],
+      isNewSession: true
+    });
+
+    expect(mocks.sessionProviderCount).not.toHaveBeenCalled();
+    expect(mocks.sessionProviderCreateManyAndReturn.mock.calls[0]![0].include).toBeUndefined();
+    expect(created).toMatchObject({
+      provider: { oid: 51n },
+      deployment: { oid: 52n },
+      config: { oid: 53n },
+      authConfig: null,
+      session,
+      fromTemplate: null,
+      fromTemplateProvider: null
+    });
+    expect(mocks.sessionProviderCreatedAddMany).toHaveBeenCalledTimes(1);
+    expect(mocks.sessionProviderCreatedAddMany).toHaveBeenCalledWith([
+      { sessionProviderId: 'sessionProvider_1' }
+    ]);
+  });
+
+  it('loads every referenced template in one scoped query', async () => {
+    mocks.getCombinationsInternal.mockResolvedValue([]);
+    mocks.sessionTemplateFindMany.mockResolvedValue([
+      { id: 'st_1', oid: 70n, status: 'active', providers: [] }
+    ]);
+
+    let resolved = await sessionProviderInputService.resolveProviderSessionInput({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      providers: [{ sessionTemplateId: 'st_1' }, { sessionTemplateId: 'st_1' }]
+    });
+
+    expect(mocks.sessionTemplateFindMany).toHaveBeenCalledTimes(1);
+    expect(mocks.sessionTemplateFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          solutionOid: 7,
+          tenantOid: 10n,
+          environmentOid: 30n,
+          id: { in: ['st_1'] },
+          status: 'active'
+        }
+      })
+    );
+    expect(resolved.templates.get('st_1')).toMatchObject({ oid: 70n });
   });
 });

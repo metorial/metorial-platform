@@ -87,7 +87,7 @@ model Session {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([lastActiveAt])
-  @@index([connectionState])
+  @@index([connectionState, lastActiveAt])
   @@index([status])
   @@index([archivedAt])
   @@index([status, archivedAt])
@@ -100,4 +100,5 @@ model Session {
   @@index([ephemeralManagedSessionOid])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([tenantOid, status, archivedAt])
 }

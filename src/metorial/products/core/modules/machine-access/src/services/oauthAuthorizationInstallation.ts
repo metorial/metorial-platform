@@ -11,6 +11,7 @@ import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
+  ConsumerProfile,
   db,
   ID,
   MachineAccess,
@@ -26,6 +27,11 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
+import {
+  ensureOAuthConsumerSession,
+  revokeOAuthConsumerSessions
+} from '../internal/oauthConsumerSession';
+import { createConsumerProfileAuditScope } from '../lib/consumerAuditScope';
 import { matchesUpdate } from '../lib/matches';
 import { getOAuthApplicationScopes } from '../lib/oauthAuthorizationScopes';
 import { machineAccessService } from './machineAccess';
@@ -330,6 +336,163 @@ class OAuthAuthorizationInstallationService {
     });
   }
 
+  async getOrCreateConsumerAuthorization(d: {
+    oauthApplication: OAuthApplication;
+    oauthInstallation: OAuthInstallation;
+    organization: Organization;
+    consumerProfile: ConsumerProfile;
+    user: User;
+    scopes: string[];
+    oidcScopes?: string[];
+    requestingIp?: string | null;
+    acceptingIp?: string | null;
+    context: Context;
+  }): Promise<OAuthAuthorizationWithRelations> {
+    return await withTransaction(async db => {
+      let oauthAuthorization = await db.oAuthAuthorization.findUnique({
+        where: {
+          consumerProfileOid_oauthApplicationOid: {
+            consumerProfileOid: d.consumerProfile.oid,
+            oauthApplicationOid: d.oauthApplication.oid
+          }
+        },
+        include: authorizationInclude
+      });
+
+      let auditScope = createConsumerProfileAuditScope({
+        consumerProfile: d.consumerProfile,
+        context: d.context
+      });
+      let machineAccessInput = {
+        name: `OAUTH CONSUMER ${d.oauthApplication.name}`,
+        hasCustomScopes: true,
+        scopes: d.scopes
+      };
+
+      let machineAccess = oauthAuthorization?.machineAccess;
+      let machineAccessOid: bigint;
+
+      if (
+        !machineAccess ||
+        machineAccess.status != 'active' ||
+        machineAccess.type != 'instance_consumer'
+      ) {
+        let createdMachineAccess = await machineAccessService.createMachineAccess({
+          type: 'instance_consumer',
+          organization: d.organization,
+          consumerProfile: d.consumerProfile,
+          user: d.user,
+          auditScope,
+          kind: 'user',
+          input: machineAccessInput
+        });
+        machineAccessOid = createdMachineAccess.oid;
+      } else if (!matchesUpdate(machineAccess, machineAccessInput)) {
+        let updatedMachineAccess = await machineAccessService.updateMachineAccess({
+          machineAccess,
+          input: machineAccessInput,
+          auditScope
+        });
+        machineAccessOid = updatedMachineAccess.oid;
+      } else {
+        machineAccessOid = machineAccess.oid;
+      }
+
+      let inner = {
+        status: 'active' as const,
+        type: 'user' as const,
+        subjectType: 'consumer' as const,
+        scopes: d.scopes,
+        oidcScopes: d.oidcScopes ?? [],
+        oauthInstallationOid: d.oauthInstallation.oid,
+        oauthApplicationOid: d.oauthApplication.oid,
+        organizationOid: d.organization.oid,
+        instanceOid: d.consumerProfile.instanceOid,
+        userOid: d.user.oid,
+        consumerProfileOid: d.consumerProfile.oid,
+        machineAccessOid,
+        requestingIp: d.requestingIp,
+        acceptingIp: d.acceptingIp,
+        revokedAt: null
+      };
+
+      let updatedAuthorization = oauthAuthorization;
+      if (!updatedAuthorization || !matchesUpdate(updatedAuthorization, inner)) {
+        let fabricPayload = {
+          oauthApplication: d.oauthApplication,
+          oauthInstallation: d.oauthInstallation,
+          organization: d.organization,
+          consumerProfile: d.consumerProfile,
+          subjectType: 'consumer' as const
+        };
+
+        if (oauthAuthorization) {
+          await Fabric.fire(
+            'machine_access.oauth_authorization.updated:before',
+            fabricPayload
+          );
+        } else {
+          await Fabric.fire(
+            'machine_access.oauth_authorization.created:before',
+            fabricPayload
+          );
+        }
+
+        let newId = await ID.generateId('oauthAuthorization');
+        let upsertedAuthorization = await db.oAuthAuthorization.upsert({
+          where: {
+            consumerProfileOid_oauthApplicationOid: {
+              consumerProfileOid: d.consumerProfile.oid,
+              oauthApplicationOid: d.oauthApplication.oid
+            }
+          },
+          create: {
+            id: newId,
+            ...inner
+          },
+          update: inner,
+          include: authorizationInclude
+        });
+        updatedAuthorization = upsertedAuthorization;
+
+        if (oauthAuthorization) {
+          addAfterTransactionHook(() =>
+            Fabric.fire('machine_access.oauth_authorization.updated:after', {
+              oauthApplication: upsertedAuthorization.oauthApplication,
+              oauthInstallation: upsertedAuthorization.oauthInstallation,
+              oauthAuthorization: upsertedAuthorization,
+              previousOAuthAuthorization: oauthAuthorization,
+              organization: upsertedAuthorization.oauthInstallation.organization,
+              appActor: upsertedAuthorization.oauthInstallation.appActor,
+              consumerProfile: d.consumerProfile,
+              subjectType: 'consumer'
+            })
+          );
+        } else {
+          addAfterTransactionHook(() =>
+            Fabric.fire('machine_access.oauth_authorization.created:after', {
+              oauthApplication: upsertedAuthorization.oauthApplication,
+              oauthInstallation: upsertedAuthorization.oauthInstallation,
+              oauthAuthorization: upsertedAuthorization,
+              organization: upsertedAuthorization.oauthInstallation.organization,
+              appActor: upsertedAuthorization.oauthInstallation.appActor,
+              consumerProfile: d.consumerProfile,
+              subjectType: 'consumer'
+            })
+          );
+        }
+      }
+
+      await ensureOAuthConsumerSession({
+        oauthAuthorization: updatedAuthorization,
+        consumerProfile: d.consumerProfile,
+        context: d.context
+      });
+
+      return updatedAuthorization;
+    });
+  }
+
   async getOrCreateServerSideAuthorization(d: {
     oauthApplication: OAuthApplication & {
       scopedInstallation:
@@ -382,10 +545,35 @@ class OAuthAuthorizationInstallationService {
         );
       }
 
+      let serviceAccount = await db.serviceAccount.findFirst({
+        where: {
+          oauthApplicationOid: d.oauthApplication.oid
+        },
+        include: {
+          consumerProfile: true
+        }
+      });
+
+      let consumerProfile =
+        serviceAccount?.subjectType == 'consumer' ? serviceAccount.consumerProfile : null;
+      if (serviceAccount?.subjectType == 'consumer' && !consumerProfile) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Consumer service account is missing its consumer profile'
+          })
+        );
+      }
+
+      let subjectType = consumerProfile
+        ? ('consumer' as const)
+        : ('organization_member' as const);
+
       await Fabric.fire('machine_access.oauth_authorization.created:before', {
         oauthApplication: d.oauthApplication,
         oauthInstallation: installation,
-        organization: installation.organization
+        organization: installation.organization,
+        consumerProfile,
+        subjectType
       });
 
       let authorization = await db.oAuthAuthorization.create({
@@ -393,10 +581,12 @@ class OAuthAuthorizationInstallationService {
           id: await ID.generateId('oauthAuthorization'),
           status: 'active',
           type: 'server_side',
+          subjectType,
           scopes: d.scopes,
           oauthInstallationOid: installation.oid,
           oauthApplicationOid: d.oauthApplication.oid,
           organizationOid: installation.organizationOid,
+          instanceOid: consumerProfile?.instanceOid,
           machineAccessOid: machineAccess.oid,
           requestingIp: d.ip,
           acceptingIp: d.ip
@@ -404,11 +594,15 @@ class OAuthAuthorizationInstallationService {
         include: authorizationInclude
       });
 
-      let serviceAccount = await db.serviceAccount.findFirst({
-        where: {
-          oauthApplicationOid: d.oauthApplication.oid
-        }
-      });
+      // Every client_credentials exchange creates its own authorization, so the profile is
+      // linked through the session; consumerProfileOid is unique per application.
+      if (consumerProfile) {
+        await ensureOAuthConsumerSession({
+          oauthAuthorization: authorization,
+          consumerProfile,
+          context: { ip: d.ip ?? '0.0.0.0', ua: 'Metorial Service Account' }
+        });
+      }
 
       if (serviceAccount) {
         await Fabric.fire('machine_access.service_account_credential.created:before', {
@@ -447,7 +641,9 @@ class OAuthAuthorizationInstallationService {
           oauthInstallation: authorization.oauthInstallation,
           oauthAuthorization: authorization,
           organization: authorization.oauthInstallation.organization,
-          appActor: authorization.oauthInstallation.appActor
+          appActor: authorization.oauthInstallation.appActor,
+          consumerProfile,
+          subjectType
         })
       );
 
@@ -482,6 +678,13 @@ class OAuthAuthorizationInstallationService {
         oauthInstallation: existingInstallation,
         organization: existingInstallation.organization,
         auditScope: d.auditScope
+      });
+
+      await revokeOAuthConsumerSessions({
+        oauthAuthorization: {
+          oauthInstallationOid: d.oauthInstallation.oid,
+          status: 'active'
+        }
       });
 
       await db.oAuthAuthorization.updateMany({

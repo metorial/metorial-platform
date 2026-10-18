@@ -36,3 +36,22 @@ export let lifecycleQueues = combineQueueProcessors([
   providerSetupSessionCreatedQueueProcessor,
   providerSetupSessionUpdatedQueueProcessor
 ]);
+
+export let lifecycleSubspaceQueues = combineQueueProcessors([
+  providerAuthCredentialsCreatedQueueProcessor,
+  providerAuthCredentialsUpdatedQueueProcessor,
+  providerAuthConfigCreatedQueueProcessor,
+  providerAuthConfigUpdatedQueueProcessor,
+  providerOAuthSetupCreatedQueueProcessor,
+  providerOAuthSetupUpdatedQueueProcessor,
+  providerSetupSessionCreatedQueueProcessor,
+  providerSetupSessionUpdatedQueueProcessor
+]);
+
+export let lifecycleFederationQueues = combineQueueProcessors([
+  providerAuthCredentialsArchivedQueueProcessor,
+  providerAuthCredentialsArchiveAuthConfigsManyQueueProcessor,
+  providerAuthCredentialsDeletedQueueProcessor,
+  providerAuthConfigArchivedQueueProcessor,
+  providerAuthConfigDeletedQueueProcessor
+]);

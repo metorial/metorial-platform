@@ -11,6 +11,7 @@ import type {
   SkillPluginStatus
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
@@ -321,6 +322,7 @@ class SkillPluginServiceImpl {
   async createSkillPlugin(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillMarketplaceId?: string;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: {
@@ -456,6 +458,10 @@ class SkillPluginServiceImpl {
         instance: d.instance,
         skillPlugin
       });
+      await Fabric.fire('skill.plugin.audit.created:after', {
+        auditScope: d.auditScope,
+        skillPlugin
+      });
 
       await enqueueSkillPluginLifecycle({ skillPluginId: skillPlugin.id, event: 'created' });
 
@@ -482,6 +488,7 @@ class SkillPluginServiceImpl {
   async updateSkillPlugin(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillPlugin: SkillPluginRecord;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: SkillPluginInput;
@@ -570,6 +577,11 @@ class SkillPluginServiceImpl {
       instance: d.instance,
       skillPlugin
     });
+    await Fabric.fire('skill.plugin.audit.updated:after', {
+      auditScope: d.auditScope,
+      skillPlugin,
+      previousSkillPlugin: d.skillPlugin
+    });
 
     return skillPlugin;
   }
@@ -577,6 +589,7 @@ class SkillPluginServiceImpl {
   async archiveSkillPlugin(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillPlugin: SkillPluginRecord;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
   }) {
@@ -651,6 +664,10 @@ class SkillPluginServiceImpl {
       await Fabric.fire('skill.plugin.archived:after', {
         organization,
         instance: d.instance,
+        skillPlugin: d.skillPlugin
+      });
+      await Fabric.fire('skill.plugin.audit.archived:after', {
+        auditScope: d.auditScope,
         skillPlugin: d.skillPlugin
       });
 

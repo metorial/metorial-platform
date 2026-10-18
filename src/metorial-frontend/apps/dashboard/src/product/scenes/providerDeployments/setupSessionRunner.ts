@@ -9,8 +9,14 @@ import type { SetupSessionState } from './setupSessionEmbed/types';
 let SETUP_WINDOW_NAME = 'metorial_provider_setup';
 let SETUP_WINDOW_FEATURES = 'popup,width=560,height=760';
 let POLL_INTERVAL_MS = 2000;
-let MAX_POLL_ATTEMPTS = 120;
-let CLOSED_POLLS_BEFORE_CANCEL = 2;
+let EXPIRY_GRACE_MS = 60_000;
+
+let FAILED_STATUS_MESSAGES: Partial<Record<SetupSessionState['status'], string>> = {
+  failed: 'Setup session failed. Please try again.',
+  expired: 'Setup session expired. Please start again.',
+  archived: 'Setup session is no longer available. Please start again.',
+  deleted: 'Setup session is no longer available. Please start again.'
+};
 
 export type SetupSessionStartInput = {
   providerAuthMethodId: string;
@@ -36,16 +42,26 @@ let getErrorMessage = (err: unknown) => {
   return 'Failed to create setup session.';
 };
 
-let closeWindow = (popup: Window | null) => {
-  if (popup && !popup.closed) popup.close();
+let isPastExpiry = (setupSession: SetupSessionState) => {
+  let expiresAt = new Date(setupSession.expiresAt).getTime();
+  return Number.isFinite(expiresAt) && Date.now() > expiresAt + EXPIRY_GRACE_MS;
 };
 
+let closeWindow = (popup: Window | null) => {
+  try {
+    if (popup && !popup.closed) popup.close();
+  } catch {}
+};
+
+// Once the setup window navigates to a provider that sets Cross-Origin-Opener-Policy,
+// the browser severs our handle: `popup.closed` reports true while the window is still
+// open. The window handle is therefore only used to open/close the window — the setup
+// session status from the API is the sole source of truth for progress.
 export let useProviderSetupSessionRunner = (p: {
   instanceId: string;
   providerId: string;
   providerDeploymentId?: string;
   onComplete: (setupSession: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput) => void;
-  onWindowClosed?: () => void;
 }) => {
   let createSetupSession = useCreateProviderSetupSession(
     p.instanceId,
@@ -62,11 +78,9 @@ export let useProviderSetupSessionRunner = (p: {
   let windowRef = useRef<Window | null>(null);
   let completedRef = useRef(false);
   let onCompleteRef = useRef(p.onComplete);
-  let onWindowClosedRef = useRef(p.onWindowClosed);
   let getSetupSessionRef = useRef(getSetupSession);
 
   onCompleteRef.current = p.onComplete;
-  onWindowClosedRef.current = p.onWindowClosed;
   getSetupSessionRef.current = getSetupSession;
 
   useEffect(
@@ -79,14 +93,14 @@ export let useProviderSetupSessionRunner = (p: {
   let openWindow = (url = setupSession?.url) => {
     if (typeof window === 'undefined' || !url) return false;
 
-    let popup = windowRef.current;
-    if (!popup || popup.closed) {
-      popup = window.open('', SETUP_WINDOW_NAME, SETUP_WINDOW_FEATURES);
-      windowRef.current = popup;
-    }
-    if (!popup) return false;
-
     try {
+      let popup = windowRef.current;
+      if (!popup || popup.closed) {
+        popup = window.open('', SETUP_WINDOW_NAME, SETUP_WINDOW_FEATURES);
+        windowRef.current = popup;
+      }
+      if (!popup) return false;
+
       popup.location.href = url;
       popup.focus();
       return true;
@@ -156,24 +170,42 @@ export let useProviderSetupSessionRunner = (p: {
   };
 
   useEffect(() => {
-    if (!setupSession?.id) return;
+    if (!setupSession) return;
 
+    let setupSessionId = setupSession.id;
+    let latest: SetupSessionState = setupSession;
     let canceled = false;
-    let attempts = 0;
-    let closedPolls = 0;
+    let inFlight = false;
+    let pollAgain = false;
     let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    let stop = (message: string) => {
+      canceled = true;
+      setError(message);
+      clearSession();
+    };
 
     let poll = async () => {
       if (canceled || completedRef.current) return;
+      if (inFlight) {
+        pollAgain = true;
+        return;
+      }
 
-      let [result, err] = await getSetupSessionRef.current.mutate({
-        setupSessionId: setupSession.id
-      });
+      if (timeout) clearTimeout(timeout);
+      timeout = null;
+      inFlight = true;
+
+      let [result, err] = await getSetupSessionRef.current.mutate({ setupSessionId });
+
+      inFlight = false;
       if (canceled) return;
 
-      if (err) {
+      if (err || !result) {
         console.warn('Failed to poll setup session:', err);
-      } else if (result) {
+      } else {
+        latest = result;
+
         if (result.status === 'completed') {
           completedRef.current = true;
           closeWindow(windowRef.current);
@@ -183,44 +215,35 @@ export let useProviderSetupSessionRunner = (p: {
           return;
         }
 
-        if (result.status === 'failed' || result.status === 'expired') {
-          setError(
-            result.status === 'expired'
-              ? 'Setup session expired. Please start again.'
-              : 'Setup session failed. Please try again.'
-          );
-          clearSession();
-          return;
-        }
+        let failedMessage = FAILED_STATUS_MESSAGES[result.status];
+        if (failedMessage) return stop(failedMessage);
       }
 
-      let popup = windowRef.current;
-      if (onWindowClosedRef.current && popup?.closed) {
-        closedPolls += 1;
-        if (closedPolls >= CLOSED_POLLS_BEFORE_CANCEL) {
-          clearSession();
-          onWindowClosedRef.current();
-          return;
-        }
-      } else {
-        closedPolls = 0;
-      }
+      if (isPastExpiry(latest)) return stop(FAILED_STATUS_MESSAGES.expired!);
 
-      attempts += 1;
-      if (attempts > MAX_POLL_ATTEMPTS) {
-        setError('Authentication timed out. Please try again.');
-        clearSession();
+      if (pollAgain) {
+        pollAgain = false;
+        void poll();
         return;
       }
 
       timeout = setTimeout(poll, POLL_INTERVAL_MS);
     };
 
+    let pollWhenVisible = () => {
+      if (document.visibilityState === 'visible') void poll();
+    };
+
+    window.addEventListener('focus', pollWhenVisible);
+    document.addEventListener('visibilitychange', pollWhenVisible);
+
     void poll();
 
     return () => {
       canceled = true;
       if (timeout) clearTimeout(timeout);
+      window.removeEventListener('focus', pollWhenVisible);
+      document.removeEventListener('visibilitychange', pollWhenVisible);
     };
   }, [setupSession?.id]);
 
@@ -233,6 +256,6 @@ export let useProviderSetupSessionRunner = (p: {
     isStarting,
     setupSession,
     windowBlocked,
-    isWindowOpen: !!setupSession?.url && !completedRef.current
+    isAwaitingCompletion: !!setupSession?.url && !completedRef.current
   };
 };

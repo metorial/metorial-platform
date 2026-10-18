@@ -434,6 +434,7 @@ export let setupSessionPresenter = (
 
     uiMode: providerSetupSession.uiMode,
     redirectUrl: providerSetupSession.redirectUrl,
+    skipConfirmation: providerSetupSession.skipConfirmation,
 
     createdAt: providerSetupSession.createdAt,
     updatedAt: providerSetupSession.updatedAt,

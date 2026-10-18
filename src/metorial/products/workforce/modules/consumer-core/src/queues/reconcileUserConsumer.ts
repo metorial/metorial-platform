@@ -31,6 +31,7 @@ let getCandidateWhere = (user: {
   let normalizedEmail = normalizeConsumerEmail(user.email);
 
   return {
+    isServiceAccount: false,
     OR: [
       { userOid: user.oid },
       // Include the exact unique-key holder even if it still points at a stale user. Otherwise

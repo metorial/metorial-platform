@@ -162,11 +162,10 @@ export let ProviderOAuthAuthenticateContent = (p: {
       if (!setupSession.authConfig) return;
       void instanceProviderAuthConfigsLoader.refetchAll();
       p.onCreate(setupSession.authConfig);
-    },
-    onWindowClosed: () => {}
+    }
   });
 
-  let isWindowOpen = runner.isWindowOpen;
+  let isWindowOpen = runner.isAwaitingCompletion;
   useEffect(() => {
     p.onWindowOpenStateChange?.(isWindowOpen);
   }, [isWindowOpen]);

@@ -2,9 +2,11 @@ import { v } from '@lowerdeck/validation';
 import {
   AccessPolicy,
   AccessPolicyAssignment,
+  ConsumerProfile,
   OAuthApplication,
   OAuthApplicationClientSecret,
   Organization,
+  Portal,
   ServiceAccount
 } from '@metorial/db';
 import { serviceAccountPresenter } from '@metorial/presenters';
@@ -15,6 +17,8 @@ export let serviceAccountResource = resource({
   payload: v.typedAny<{
     serviceAccount: ServiceAccount & {
       organization: Organization;
+      portal: Portal | null;
+      consumerProfile: ConsumerProfile | null;
       policies?: (AccessPolicyAssignment & {
         accessPolicy: AccessPolicy;
       })[];

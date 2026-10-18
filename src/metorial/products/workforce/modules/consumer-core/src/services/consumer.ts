@@ -69,12 +69,14 @@ class ConsumerServiceImpl {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
       isManuallyCreated?: boolean;
+      isServiceAccount?: boolean;
     };
   }) {
     return (
       (!d.flags?.isOrganizationMember || d.consumer.consumer.isOrganizationMember) &&
       (!d.flags?.isPortalConsumer || d.consumer.consumer.isPortalConsumer) &&
-      (!d.flags?.isManuallyCreated || d.consumer.consumer.isManuallyCreated)
+      (!d.flags?.isManuallyCreated || d.consumer.consumer.isManuallyCreated) &&
+      (!d.flags?.isServiceAccount || d.consumer.consumer.isServiceAccount)
     );
   }
 
@@ -181,6 +183,7 @@ class ConsumerServiceImpl {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
       isManuallyCreated?: boolean;
+      isServiceAccount?: boolean;
     };
     input: {
       name: string;
@@ -199,7 +202,8 @@ class ConsumerServiceImpl {
 
         isOrganizationMember: !!d.member || d.flags?.isOrganizationMember ? true : undefined,
         isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined,
-        isManuallyCreated: d.flags?.isManuallyCreated ? true : undefined
+        isManuallyCreated: d.flags?.isManuallyCreated ? true : undefined,
+        isServiceAccount: d.flags?.isServiceAccount ? true : undefined
       };
       // The unique index is case-sensitive, so a consumer stored before emails were normalized
       // has to be adopted by oid instead of upserted, which would insert a second root for it.
@@ -236,7 +240,8 @@ class ConsumerServiceImpl {
 
               isOrganizationMember: !!d.member || !!d.flags?.isOrganizationMember,
               isPortalConsumer: !!d.flags?.isPortalConsumer,
-              isManuallyCreated: !!d.flags?.isManuallyCreated
+              isManuallyCreated: !!d.flags?.isManuallyCreated,
+              isServiceAccount: !!d.flags?.isServiceAccount
             },
             update: consumerUpdate
           });
@@ -297,6 +302,7 @@ class ConsumerServiceImpl {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
       isManuallyCreated?: boolean;
+      isServiceAccount?: boolean;
     };
     input: {
       name?: string;
@@ -329,7 +335,8 @@ class ConsumerServiceImpl {
               ? true
               : undefined,
           isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined,
-          isManuallyCreated: d.flags?.isManuallyCreated ? true : undefined
+          isManuallyCreated: d.flags?.isManuallyCreated ? true : undefined,
+          isServiceAccount: d.flags?.isServiceAccount ? true : undefined
         }
       });
 
@@ -378,6 +385,7 @@ class ConsumerServiceImpl {
       isOrganizationMember?: boolean;
       isPortalConsumer?: boolean;
       isManuallyCreated?: boolean;
+      isServiceAccount?: boolean;
     };
     input: {
       name: string;

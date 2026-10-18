@@ -12,4 +12,6 @@ model ShuttleConnection {
   shuttleServerVersion    ShuttleServerVersion @relation(fields: [shuttleServerVersionOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  @@index([providerRunOid])
 }

@@ -130,6 +130,8 @@ describe('tenantService.upsertTenant', () => {
   });
 
   it('never writes mirror references that have no mirror record behind them', async () => {
+    mocks.environmentFindMany.mockResolvedValueOnce([]);
+
     await tenantService.upsertTenant({ input });
 
     expect(mocks.tenantUpsert).toHaveBeenCalledWith(
@@ -148,6 +150,57 @@ describe('tenantService.upsertTenant', () => {
         data: expect.not.objectContaining({ instanceOid: expect.anything() })
       })
     );
+  });
+
+  it('does not rewrite a tenant and its environments when nothing changed', async () => {
+    let existingTenant = {
+      ...tenant,
+      name: input.name,
+      resourceTenantId: input.resourceTenantId,
+      resourceTenantIdentifier: input.resourceTenantIdentifier,
+      logRetentionInDays: 30
+    };
+    mocks.tenantFindUnique.mockResolvedValue(existingTenant);
+    mocks.environmentFindMany.mockResolvedValue([
+      {
+        ...environment,
+        name: 'Production',
+        resourceGroupId: 'rgr_200',
+        resourceGroupIdentifier: 'mte-ins-3'
+      }
+    ]);
+
+    await tenantService.upsertTenant({ input });
+
+    expect(mocks.tenantUpsert).not.toHaveBeenCalled();
+    expect(mocks.environmentCreateMany).not.toHaveBeenCalled();
+    expect(mocks.environmentUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.linkTenantToProjectMirror).toHaveBeenCalledWith({
+      tenant: existingTenant,
+      projectOid: 2n
+    });
+  });
+
+  it('rewrites a tenant and an environment when a field changed', async () => {
+    mocks.tenantFindUnique.mockResolvedValue({
+      ...tenant,
+      name: 'Old Name',
+      resourceTenantId: input.resourceTenantId,
+      resourceTenantIdentifier: input.resourceTenantIdentifier
+    });
+    mocks.environmentFindMany.mockResolvedValue([
+      {
+        ...environment,
+        name: 'Old Environment',
+        resourceGroupId: 'rgr_200',
+        resourceGroupIdentifier: 'mte-ins-3'
+      }
+    ]);
+
+    await tenantService.upsertTenant({ input });
+
+    expect(mocks.tenantUpsert).toHaveBeenCalledTimes(1);
+    expect(mocks.environmentUpdateMany).toHaveBeenCalledTimes(1);
   });
 
   it('links the tenant and its environments to their mirror records', async () => {

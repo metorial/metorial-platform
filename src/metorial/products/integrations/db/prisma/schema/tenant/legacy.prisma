@@ -278,6 +278,7 @@ model Environment {
   webhookRegistrations                       WebhookRegistration[]
 
   @@index([projectOid])
+  @@index([tenantOid])
 }
 
 enum TenantActorType {

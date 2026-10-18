@@ -4,6 +4,8 @@ import { coreResources } from './core';
 import { machineAccessResources } from './machine-access';
 import { organizationResources } from './organization';
 import { outpostResources } from './outpost';
+import { sandboxResources } from './sandbox';
+import { skillResources } from './skills';
 import { storageResources } from './storage';
 import { workforceResources } from './workforce';
 
@@ -12,6 +14,8 @@ export let auditResources = combineResourceSets({
   ...organizationResources,
   ...machineAccessResources,
   ...outpostResources,
+  ...sandboxResources,
+  ...skillResources,
   ...storageResources,
   ...workforceResources,
   ...subspaceAuditResources

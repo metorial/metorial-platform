@@ -3,12 +3,15 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
+  db as defaultDb,
+  dbPrimary,
   type Environment,
   getId,
   type Session,
   type SessionTemplate,
   type SessionTemplateProvider,
   type Tenant,
+  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import { getMetorialSolution } from '@metorial-subspace/module-tenant';
@@ -44,12 +47,29 @@ export type SessionProviderInput = {
   __sessionTemplate?: SessionProviderTemplateInput;
 };
 
-let providerMismatchError = badRequestError({
-  message: 'Provider session inputs have mismatched providers'
-});
+type NormalizedProviderInput = {
+  deploymentId?: string;
+  configId?: string;
+  authConfigId?: string;
+  toolFilters?: SessionProviderInputToolFilters | SessionTemplateProvider['toolFilter'];
+  __allowEphemeral?: boolean;
+  template: SessionProviderTemplateInput | null;
+  templateProvider: SessionProviderTemplateInput['providers'][number] | null;
+};
+
+let sessionTemplateInclude = {
+  providers: {
+    where: { status: 'active' as const },
+    include: {
+      deployment: true,
+      config: true,
+      authConfig: true
+    }
+  }
+};
 
 class sessionProviderInputServiceImpl {
-  async createProviderSessionInput(d: {
+  async resolveProviderSessionInput(d: {
     tenant: Tenant;
     environment: Environment;
 
@@ -60,7 +80,11 @@ class sessionProviderInputServiceImpl {
     let solution = await getMetorialSolution();
 
     return withTransaction(
-      async db => {
+      async tdb => {
+        // Without an enclosing transaction withTransaction hands back the replica-routed
+        // client; templates created moments ago must be visible, so read from the primary.
+        let db = (tdb === defaultDb ? dbPrimary : tdb) as TransactionDB;
+
         let ts = {
           solutionOid: solution.oid,
           tenantOid: d.tenant.oid,
@@ -78,54 +102,53 @@ class sessionProviderInputServiceImpl {
           }
         }
 
-        let normalizedProviders = (
-          await Promise.all(
-            d.providers.map(async s => {
-              if (s.sessionTemplateId) {
-                let template =
-                  s.__sessionTemplate ??
-                  (await db.sessionTemplate.findFirst({
-                    where: { ...ts, id: s.sessionTemplateId, status: 'active' as const },
-                    include: {
-                      providers: {
-                        where: { status: 'active' as const },
-                        include: {
-                          deployment: true,
-                          config: true,
-                          authConfig: true
-                        }
-                      }
-                    }
-                  }));
-                if (!template) {
-                  throw new ServiceError(
-                    notFoundError('session.template', s.sessionTemplateId)
-                  );
-                }
-                if (template.status !== 'active') {
-                  throw new ServiceError(
-                    notFoundError('session.template', s.sessionTemplateId)
-                  );
-                }
+        let templates = new Map<string, SessionProviderTemplateInput>();
+        for (let s of d.providers) {
+          if (s.sessionTemplateId && s.__sessionTemplate) {
+            templates.set(s.sessionTemplateId, s.__sessionTemplate);
+          }
+        }
 
-                return template.providers.map(tp => ({
-                  deploymentId: tp.deployment.id,
-                  configId: tp.config?.id,
-                  authConfigId: tp.authConfig?.id,
-                  toolFilters: s.toolFilters ?? tp.toolFilter,
-                  template,
-                  templateProvider: tp
-                }));
-              }
-
-              return {
-                ...s,
-                template: null,
-                templateProvider: null
-              };
-            })
+        let templateIdsToLoad = [
+          ...new Set(
+            d.providers.flatMap(s =>
+              s.sessionTemplateId && !s.__sessionTemplate ? [s.sessionTemplateId] : []
+            )
           )
-        ).flat();
+        ].filter(id => !templates.has(id));
+        if (templateIdsToLoad.length) {
+          let loaded = await db.sessionTemplate.findMany({
+            where: { ...ts, id: { in: templateIdsToLoad }, status: 'active' as const },
+            include: sessionTemplateInclude
+          });
+          for (let template of loaded) templates.set(template.id, template);
+        }
+
+        let normalizedProviders = d.providers.flatMap((s): NormalizedProviderInput[] => {
+          if (s.sessionTemplateId) {
+            let template = s.__sessionTemplate ?? templates.get(s.sessionTemplateId);
+            if (!template || template.status !== 'active') {
+              throw new ServiceError(notFoundError('session.template', s.sessionTemplateId));
+            }
+
+            return template.providers.map(tp => ({
+              deploymentId: tp.deployment.id,
+              configId: tp.config?.id,
+              authConfigId: tp.authConfig?.id,
+              toolFilters: s.toolFilters ?? tp.toolFilter,
+              template,
+              templateProvider: tp
+            }));
+          }
+
+          return [
+            {
+              ...s,
+              template: null,
+              templateProvider: null
+            }
+          ];
+        });
 
         if (normalizedProviders.length > 100) {
           throw new ServiceError(
@@ -142,8 +165,8 @@ class sessionProviderInputServiceImpl {
           providers: normalizedProviders
         });
 
-        let res = inner.map((s, i) => {
-          let normalized = normalizedProviders[i];
+        let providers = inner.map((s, i) => {
+          let normalized = normalizedProviders[i]!;
 
           return {
             ...s,
@@ -153,7 +176,7 @@ class sessionProviderInputServiceImpl {
           };
         });
 
-        return res;
+        return { templates, providers };
       },
       { ifExists: true }
     );
@@ -164,62 +187,94 @@ class sessionProviderInputServiceImpl {
     environment: Environment;
 
     providers: SessionProviderInput[];
+    resolvedProviders?: ResolvedSessionProviderInput[];
     session: Session;
+    isNewSession?: boolean;
   }) {
     let solution = await getMetorialSolution();
 
-    let providerSessions = await this.createProviderSessionInput({
-      tenant: d.tenant,
-      environment: d.environment,
-      providers: d.providers
-    });
+    let providerSessions =
+      d.resolvedProviders ??
+      (
+        await this.resolveProviderSessionInput({
+          tenant: d.tenant,
+          environment: d.environment,
+          providers: d.providers
+        })
+      ).providers;
 
     return withTransaction(async db => {
-      let existingProviderCount = await db.sessionProvider.count({
-        where: {
-          sessionOid: d.session.oid,
-          status: 'active' as const
+      if (!d.isNewSession) {
+        let existingProviderCount = await db.sessionProvider.count({
+          where: {
+            sessionOid: d.session.oid,
+            status: 'active' as const
+          }
+        });
+        if (providerSessions.length + existingProviderCount > 100) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot associate more than 100 providers to a session'
+            })
+          );
         }
-      });
-      if (providerSessions.length + existingProviderCount > 100) {
-        throw new ServiceError(
-          badRequestError({ message: 'Cannot associate more than 100 providers to a session' })
-        );
       }
 
-      let sessionProviders = await db.sessionProvider.createManyAndReturn({
-        data: await Promise.all(
-          providerSessions.map(async ps => ({
-            ...getId('sessionProvider'),
+      let rows = providerSessions.map(ps => ({
+        resolved: ps,
+        data: {
+          ...getId('sessionProvider'),
 
-            tag: generatePlainId(4).toLowerCase(),
-            status: 'active' as const,
-            isEphemeral: d.session.isEphemeral,
+          tag: generatePlainId(4).toLowerCase(),
+          status: 'active' as const,
+          isEphemeral: d.session.isEphemeral,
 
-            tenantOid: d.tenant.oid,
-            projectOid: d.tenant.projectOid,
-            solutionOid: solution.oid,
-            environmentOid: d.environment.oid,
-            instanceOid: d.environment.instanceOid,
+          tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
 
-            sessionOid: d.session.oid,
-            providerOid: ps.provider.oid,
-            deploymentOid: ps.deployment.oid,
-            configOid: ps.config.oid,
-            authConfigOid: ps.authConfig?.oid,
+          sessionOid: d.session.oid,
+          providerOid: ps.provider.oid,
+          deploymentOid: ps.deployment.oid,
+          configOid: ps.config.oid,
+          authConfigOid: ps.authConfig?.oid,
 
-            fromTemplateOid: ps.template?.oid,
-            fromTemplateProviderOid: ps.templateProvider?.oid,
+          fromTemplateOid: ps.template?.oid,
+          fromTemplateProviderOid: ps.templateProvider?.oid,
 
-            toolFilter: ps.toolFilters ?? { type: 'v1.allow_all' }
-          }))
-        ),
-        include: sessionProviderInclude
+          toolFilter: ps.toolFilters ?? { type: 'v1.allow_all' as const }
+        }
+      }));
+
+      let created = await db.sessionProvider.createManyAndReturn({
+        data: rows.map(row => row.data)
       });
 
-      for (let sp of sessionProviders) {
+      // Every relation is already in memory from the resolution step, so reloading the
+      // seven-relation include for each new row would only repeat those reads.
+      let resolvedById = new Map(rows.map(row => [row.data.id, row.resolved]));
+      let sessionProviders = created.map(sp => {
+        let resolved = resolvedById.get(sp.id)!;
+
+        return {
+          ...sp,
+          provider: resolved.provider,
+          deployment: resolved.deployment,
+          config: resolved.config,
+          authConfig: resolved.authConfig ?? null,
+          session: d.session,
+          fromTemplate: resolved.template ?? null,
+          fromTemplateProvider: resolved.templateProvider ?? null
+        };
+      });
+
+      if (sessionProviders.length) {
         await addAfterTransactionHook(async () =>
-          sessionProviderCreatedQueue.add({ sessionProviderId: sp.id })
+          sessionProviderCreatedQueue.addMany(
+            sessionProviders.map(sp => ({ sessionProviderId: sp.id }))
+          )
         );
       }
 
@@ -236,7 +291,7 @@ class sessionProviderInputServiceImpl {
   }) {
     let solution = await getMetorialSolution();
 
-    let providerSessions = await this.createProviderSessionInput({
+    let { providers: providerSessions } = await this.resolveProviderSessionInput({
       tenant: d.tenant,
       environment: d.environment,
       providers: d.providers
@@ -299,3 +354,7 @@ export let sessionProviderInputService = Service.create(
   'sessionProviderInputService',
   () => new sessionProviderInputServiceImpl()
 ).build();
+
+export type ResolvedSessionProviderInput = Awaited<
+  ReturnType<typeof sessionProviderInputService.resolveProviderSessionInput>
+>['providers'][number];

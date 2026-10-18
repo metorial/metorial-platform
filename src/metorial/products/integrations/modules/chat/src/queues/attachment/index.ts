@@ -11,3 +11,11 @@ export { enqueueChatMessageAttachmentCleanup } from './cleanup';
 export type { ChatMessageAttachmentCleanupJob } from './cleanup';
 export { enqueueChatMessageAttachmentSync } from './sync';
 export type { ChatMessageAttachmentSyncJob } from './sync';
+
+export let attachmentSubspaceQueues = combineQueueProcessors([
+  chatMessageAttachmentSyncQueueProcessor
+]);
+
+export let attachmentFederationQueues = combineQueueProcessors([
+  chatMessageAttachmentCleanupQueueProcessor
+]);

@@ -1,25 +1,35 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, getIdMock, upsertMock } = vi.hoisted(() => {
+let { db, getIdMock, upsertMock, findUniqueMock } = vi.hoisted(() => {
   let upsertMock = vi.fn(async (args: any) => ({
     ...args.create,
     oid: 1n
   }));
 
+  let findUniqueMock = vi.fn(async (_args: any): Promise<any> => null);
+
   return {
     db: {
       sessionParticipant: {
-        upsert: upsertMock
+        upsert: upsertMock,
+        findUnique: findUniqueMock
       }
     },
     getIdMock: vi.fn(() => ({ id: 'spar_test' })),
-    upsertMock
+    upsertMock,
+    findUniqueMock
   };
 });
 
 vi.mock('@metorial-subspace/db', () => ({
   db,
   getId: getIdMock
+}));
+
+// The per-process participant cache would carry rows across cases; caching itself is
+// covered by @lowerdeck/cache.
+vi.mock('@lowerdeck/cache', () => ({
+  createLocallyCachedFunction: (opts: any) => opts.provider
 }));
 
 vi.mock('@lowerdeck/canonicalize', () => ({
@@ -61,6 +71,43 @@ let provider = {
 describe('upsertParticipant', () => {
   beforeEach(() => {
     upsertMock.mockClear();
+    findUniqueMock.mockReset();
+    findUniqueMock.mockResolvedValue(null);
+  });
+
+  let clientFrom = {
+    type: 'connection_client' as const,
+    transport: 'mcp' as const,
+    participant: { identifier: 'claude-desktop', name: 'Claude Desktop' },
+    agentInstance: { oid: 400n } as any
+  };
+
+  let existingClient = {
+    oid: 5n,
+    identifier: 'claude-desktop',
+    name: 'Claude Desktop',
+    connectionType: 'mcp',
+    payload: { identifier: 'claude-desktop', name: 'Claude Desktop' },
+    agentInstanceOid: 400n,
+    identityActorOid: 100n,
+    identityOid: 200n
+  };
+
+  it('returns an unchanged connection client without writing', async () => {
+    findUniqueMock.mockResolvedValue(existingClient);
+
+    let participant = await upsertParticipant({ session, from: clientFrom });
+
+    expect(participant).toBe(existingClient);
+    expect(upsertMock).not.toHaveBeenCalled();
+  });
+
+  it('writes a connection client whose identity changed', async () => {
+    findUniqueMock.mockResolvedValue({ ...existingClient, identityOid: 999n });
+
+    await upsertParticipant({ session, from: clientFrom });
+
+    expect(upsertMock).toHaveBeenCalledTimes(1);
   });
 
   it('persists session identity for connection clients', async () => {

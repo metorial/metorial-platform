@@ -11,7 +11,8 @@ vi.mock('@metorial/db', () => ({
       update: vi.fn()
     },
     apiKeySecret: {
-      findUnique: vi.fn()
+      findUnique: vi.fn(),
+      findMany: vi.fn()
     },
     apiKey: {
       update: vi.fn()
@@ -215,5 +216,34 @@ describe('MachineAccessAuthService', () => {
       where: { id: 3 },
       data: { lastUsedAt: expect.any(Date) }
     });
+  });
+
+  it('serves repeated API key lookups from the cache until the key is cleared', async () => {
+    let { Hash } = await import('@lowerdeck/hash');
+    let token = 'cached-api-key-token';
+    let secret = {
+      expiresAt: null,
+      apiKey: {
+        id: 'key-cached',
+        status: 'active',
+        expiresAt: null,
+        lastUsedAt: new Date(),
+        machineAccess: { status: 'active' }
+      }
+    };
+
+    (UnifiedApiKey.from as any).mockReturnValue({ type: 'machine_access_token' });
+    (db.apiKeySecret.findUnique as any).mockResolvedValue(secret);
+    (db.apiKeySecret.findMany as any).mockResolvedValue([
+      { secretSha512: await Hash.sha512(token) }
+    ]);
+
+    await machineAccessAuthService.authenticateWithMachineAccessToken({ token, context });
+    await machineAccessAuthService.authenticateWithMachineAccessToken({ token, context });
+    expect(db.apiKeySecret.findUnique).toHaveBeenCalledTimes(1);
+
+    await machineAccessAuthService.clearApiKeyAuthCache({ apiKeyOid: 1n });
+    await machineAccessAuthService.authenticateWithMachineAccessToken({ token, context });
+    expect(db.apiKeySecret.findUnique).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,10 +1,17 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { providerTelemetryErrorGroupsExportProcessors } from './queues/providerTelemetryErrorGroups';
 import { deleteQueues } from './queues/delete';
-import { lifecycleQueues } from './queues/lifecycle';
+import { lifecycleFederationQueues, lifecycleSubspaceQueues } from './queues/lifecycle';
 
-export let sessionQueueProcessor = combineQueueProcessors([
-  lifecycleQueues,
+export let sessionSubspaceQueueProcessor = combineQueueProcessors([lifecycleSubspaceQueues]);
+
+export let sessionFederationQueueProcessor = combineQueueProcessors([
+  lifecycleFederationQueues,
   deleteQueues,
   providerTelemetryErrorGroupsExportProcessors
+]);
+
+export let sessionQueueProcessor = combineQueueProcessors([
+  sessionSubspaceQueueProcessor,
+  sessionFederationQueueProcessor
 ]);

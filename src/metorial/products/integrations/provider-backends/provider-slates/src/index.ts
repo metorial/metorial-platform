@@ -1,6 +1,10 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { slates } from './client';
-import { syncQueues } from './queues/sync';
+import { syncFederationQueues, syncQueues, syncSubspaceQueues } from './queues/sync';
+
+export let slatesProviderSubspaceQueues = combineQueueProcessors([syncSubspaceQueues]);
+
+export let slatesProviderFederationQueues = combineQueueProcessors([syncFederationQueues]);
 
 export let slatesProviderQueues = combineQueueProcessors([syncQueues]);
 

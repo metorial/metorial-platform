@@ -1,12 +1,5 @@
-import {
-  addAfterTransactionHook,
-  type Environment,
-  getId,
-  type Tenant,
-  withTransaction
-} from '@metorial-subspace/db';
+import { type Environment, getId, type Tenant, withTransaction } from '@metorial-subspace/db';
 import { getMetorialSolution } from '@metorial-subspace/module-tenant';
-import { sessionCreatedQueue } from '../../queues/lifecycle/session';
 import { sessionProviderInclude } from '../sessionProvider';
 import {
   type SessionProviderInput,
@@ -23,6 +16,23 @@ export let sessionInclude = {
   }
 };
 
+export let resolveSessionRecordProviders = async (d: {
+  tenant: Tenant;
+  environment: Environment;
+  providers: SessionProviderInput[];
+}) => {
+  let resolved = await sessionProviderInputService.resolveProviderSessionInput(d);
+
+  let templateId = d.providers.find(provider => provider.sessionTemplateId)?.sessionTemplateId;
+  let template = templateId ? (resolved.templates.get(templateId) ?? null) : null;
+
+  return { providers: resolved.providers, template };
+};
+
+export type ResolvedSessionRecordProviders = Awaited<
+  ReturnType<typeof resolveSessionRecordProviders>
+>;
+
 export let createSessionRecord = async (d: {
   tenant: Tenant;
   environment: Environment;
@@ -35,6 +45,7 @@ export let createSessionRecord = async (d: {
     privateMetadata?: Record<string, any>;
     providers: SessionProviderInput[];
   };
+  resolvedProviders?: ResolvedSessionRecordProviders;
   isEphemeral: boolean;
   isInternal?: boolean;
   adapterGlobalOid?: bigint | null;
@@ -42,28 +53,19 @@ export let createSessionRecord = async (d: {
 }) => {
   let solution = await getMetorialSolution();
 
-  return withTransaction(async db => {
-    let templateId = d.input.providers.find(
-      provider => provider.sessionTemplateId
-    )?.sessionTemplateId;
-    let templateIdentity =
-      d.identityActorOid === undefined && d.identityOid === undefined && templateId
-        ? await db.sessionTemplate.findFirst({
-            where: {
-              id: templateId,
-              tenantOid: d.tenant.oid,
-              solutionOid: solution.oid,
-              environmentOid: d.environment.oid,
-              status: 'active'
-            },
-            select: {
-              identityActorOid: true,
-              identityOid: true
-            }
-          })
-        : null;
+  let resolved =
+    d.resolvedProviders ??
+    (await resolveSessionRecordProviders({
+      tenant: d.tenant,
+      environment: d.environment,
+      providers: d.input.providers
+    }));
 
-    let session = await db.session.create({
+  let templateIdentity =
+    d.identityActorOid === undefined && d.identityOid === undefined ? resolved.template : null;
+
+  return withTransaction(async db => {
+    let created = await db.session.create({
       data: {
         ...getId('session'),
         status: 'active',
@@ -106,20 +108,22 @@ export let createSessionRecord = async (d: {
               }
             })
       },
-      include: sessionInclude
+      include: {
+        identityActor: true,
+        identity: true,
+        adapterGlobal: true
+      }
     });
 
-    session.providers = await sessionProviderInputService.createSessionProvidersForInput({
+    let providers = await sessionProviderInputService.createSessionProvidersForInput({
       tenant: d.tenant,
       environment: d.environment,
-      session,
-      providers: d.input.providers
+      session: created,
+      providers: d.input.providers,
+      resolvedProviders: resolved.providers,
+      isNewSession: true
     });
 
-    await addAfterTransactionHook(async () =>
-      sessionCreatedQueue.add({ sessionId: session.id })
-    );
-
-    return session;
+    return { ...created, providers };
   });
 };

@@ -15,3 +15,14 @@ export let versionQueues = combineQueueProcessors([
   syncVersionManyCronProcessor,
   syncVersionSingleCronProcessor
 ]);
+
+export let versionSubspaceQueues = combineQueueProcessors([
+  providerVersionSyncSpecificationQueueProcessor,
+  providerVersionSetSpecificationQueueProcessor
+]);
+
+export let versionFederationQueues = combineQueueProcessors([
+  syncVersionCron,
+  syncVersionManyCronProcessor,
+  syncVersionSingleCronProcessor
+]);

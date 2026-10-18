@@ -1,7 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import {
+  db,
+  type Environment,
+  type Prisma,
+  type Solution,
+  type Tenant
+} from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -112,41 +118,61 @@ class ProviderListingService {
   ) {
     let solution = await getMetorialSolution();
 
-    let providerListing = await db.providerListing.findFirst({
-      where: {
-        AND: [
-          {
-            OR: [
-              { id: d.providerListingId },
-              { slug: d.providerListingId },
-              { prettySlug: d.providerListingId },
-              { aliases: { has: d.providerListingId } },
-              { provider: { id: d.providerListingId } },
-              { provider: { globalIdentifier: d.providerListingId } }
-            ]
-          },
-
-          {
-            OR: [
-              { isPublic: true },
-              d.tenant && d.environment
-                ? {
-                    ownerTenantOid: d.tenant.oid,
-                    OR: [{ ownerSolutionOid: solution.oid }, { ownerSolutionOid: null }]
-                  }
-                : undefined!
-            ].filter(Boolean)
-          },
-
-          d.environment
+    let scopeFilters: Prisma.ProviderListingWhereInput[] = [
+      {
+        OR: [
+          { isPublic: true },
+          d.tenant && d.environment
             ? {
-                provider: getProviderEnvironmentVisibilityFilter(d)
+                ownerTenantOid: d.tenant.oid,
+                OR: [{ ownerSolutionOid: solution.oid }, { ownerSolutionOid: null }]
               }
             : undefined!
         ].filter(Boolean)
       },
-      include: getInclude(d.tenant, solution)
-    });
+
+      d.environment
+        ? {
+            provider: getProviderEnvironmentVisibilityFilter(d)
+          }
+        : undefined!
+    ].filter(Boolean);
+
+    let findListingOid = async (match: Prisma.ProviderListingWhereInput) => {
+      let found = await db.providerListing.findFirst({
+        where: { AND: [match, ...scopeFilters] },
+        select: { oid: true }
+      });
+      return found?.oid;
+    };
+
+    let listingOid =
+      (await findListingOid({
+        OR: [
+          { id: d.providerListingId },
+          { slug: d.providerListingId },
+          { prettySlug: d.providerListingId }
+        ]
+      })) ?? (await findListingOid({ aliases: { has: d.providerListingId } }));
+
+    if (listingOid === undefined) {
+      let provider = await db.provider.findFirst({
+        where: {
+          OR: [{ id: d.providerListingId }, { globalIdentifier: d.providerListingId }]
+        },
+        select: { oid: true }
+      });
+
+      if (provider) listingOid = await findListingOid({ providerOid: provider.oid });
+    }
+
+    let providerListing =
+      listingOid === undefined
+        ? null
+        : await db.providerListing.findFirst({
+            where: { oid: listingOid },
+            include: getInclude(d.tenant, solution)
+          });
     if (!providerListing) {
       throw new ServiceError(notFoundError('provider.listing', d.providerListingId));
     }

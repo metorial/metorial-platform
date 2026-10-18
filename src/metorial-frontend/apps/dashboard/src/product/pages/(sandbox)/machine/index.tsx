@@ -68,8 +68,9 @@ let OverviewMetrics = () => {
     let metrics = [
       {
         title: 'CPU',
-        field: 'averageCoresUsed' as const,
-        second: undefined,
+        series: [{ field: 'averageCoresUsed' as const, name: 'Used' }],
+        valueFormatter: (value: number) => `${formatNumber(value)} vCPU`,
+        binaryScale: false,
         value: latest
           ? `${formatNumber(latest.averageCoresUsed, { precision: 2 })} vCPU`
           : '—',
@@ -77,15 +78,20 @@ let OverviewMetrics = () => {
       },
       {
         title: 'Memory',
-        field: 'averageMemoryUsedBytes' as const,
-        second: undefined,
+        series: [{ field: 'averageMemoryUsedBytes' as const, name: 'Used' }],
+        valueFormatter: formatBytes,
+        binaryScale: true,
         value: latest ? formatBytes(latest.averageMemoryUsedBytes) : '—',
         context: `of ${latest ? formatBytes(latest.averageMemoryAllocatedBytes) : '—'} · peak ${latest ? formatBytes(latest.peakMemoryUsedBytes) : '—'}`
       },
       {
         title: 'Network',
-        field: 'networkRxBytes' as const,
-        second: 'networkTxBytes' as const,
+        series: [
+          { field: 'networkRxBytes' as const, name: 'In' },
+          { field: 'networkTxBytes' as const, name: 'Out' }
+        ],
+        valueFormatter: formatBytes,
+        binaryScale: true,
         value: latest
           ? `↓ ${formatBytes(latest.networkRxBytes)} ↑ ${formatBytes(latest.networkTxBytes)}`
           : '—',
@@ -93,8 +99,12 @@ let OverviewMetrics = () => {
       },
       {
         title: 'Disk I/O',
-        field: 'diskReadBytes' as const,
-        second: 'diskWriteBytes' as const,
+        series: [
+          { field: 'diskReadBytes' as const, name: 'Read' },
+          { field: 'diskWriteBytes' as const, name: 'Write' }
+        ],
+        valueFormatter: formatBytes,
+        binaryScale: true,
         value: latest
           ? `R ${formatBytes(latest.diskReadBytes)} W ${formatBytes(latest.diskWriteBytes)}`
           : '—',
@@ -120,26 +130,27 @@ let OverviewMetrics = () => {
                 }
                 href={path('usage')}
                 sparkline={{
-                  series: [metric.field, ...(metric.second ? [metric.second] : [])].map(
-                    field => ({
-                      id: field,
-                      name: field,
-                      color: paused ? ('gray' as const) : undefined,
-                      entries: paused
-                        ? Array.from({ length: 24 }, (_, index) => ({
-                            key: new Date(
-                              range.from.getTime() +
-                                (index * (range.to.getTime() - range.from.getTime())) / 23
-                            ),
-                            value: 20 + Math.sin(index * 0.8) * 7 + Math.cos(index * 1.7) * 3
-                          }))
-                        : points.map(point => ({
-                            key: point.timestamp,
-                            value: point[field]
-                          }))
-                    })
-                  ),
+                  series: metric.series.map(item => ({
+                    id: item.field,
+                    name: item.name,
+                    color: paused ? ('gray' as const) : undefined,
+                    entries: paused
+                      ? Array.from({ length: 24 }, (_, index) => ({
+                          key: new Date(
+                            range.from.getTime() +
+                              (index * (range.to.getTime() - range.from.getTime())) / 23
+                          ),
+                          value: 20 + Math.sin(index * 0.8) * 7 + Math.cos(index * 1.7) * 3
+                        }))
+                      : points.map(point => ({
+                          key: point.timestamp,
+                          value: point[item.field]
+                        }))
+                  })),
                   tooltip: !paused,
+                  valueFormatter: metric.valueFormatter,
+                  binaryScale: metric.binaryScale,
+                  yMin: 0,
                   xAxis: 'time',
                   domain: range
                 }}

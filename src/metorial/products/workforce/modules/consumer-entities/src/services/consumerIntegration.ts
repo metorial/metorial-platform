@@ -35,38 +35,25 @@ let consumerTokenInclude = {
   magicMcpToken: true
 } satisfies Prisma.ConsumerTokenInclude;
 
-let consumerTokenForMagicMcpInclude = {
-  consumerProfile: true,
-  magicMcpToken: {
-    include: {
-      consumerAuthAttempts: {
-        orderBy: {
-          updatedAt: 'desc'
-        },
+let magicMcpConsumerAuthClientSelect = {
+  consumerAuthClient: {
+    select: {
+      id: true,
+      name: true,
+      consumerAuthClientSurfaces: {
         take: 1,
         select: {
-          consumerAuthClient: {
+          consumerClient: {
             select: {
               id: true,
-              name: true,
-              consumerAuthClientSurfaces: {
-                take: 1,
-                select: {
-                  consumerClient: {
-                    select: {
-                      id: true,
-                      name: true
-                    }
-                  }
-                }
-              }
+              name: true
             }
           }
         }
       }
     }
   }
-} satisfies Prisma.ConsumerTokenInclude;
+} satisfies Prisma.ConsumerAuthAttemptSelect;
 
 let consumerIntegrationInclude = {
   magicMcpServer: true
@@ -149,13 +136,20 @@ let assertConsumerIntegrationOwnership = (d: {
 };
 
 class ConsumerIntegrationServiceImpl {
-  async findConsumerTokenByMagicMcpToken(d: { magicMcpToken: Pick<MagicMcpToken, 'oid'> }) {
-    return await db.consumerToken.findFirst({
+  async findLatestConsumerAuthClientForMagicMcpToken(d: {
+    magicMcpToken: Pick<MagicMcpToken, 'oid'>;
+  }) {
+    let consumerAuthAttempt = await db.consumerAuthAttempt.findFirst({
       where: {
         magicMcpTokenOid: d.magicMcpToken.oid
       },
-      include: consumerTokenForMagicMcpInclude
+      orderBy: {
+        updatedAt: 'desc'
+      },
+      select: magicMcpConsumerAuthClientSelect
     });
+
+    return consumerAuthAttempt?.consumerAuthClient ?? null;
   }
 
   async upsertConsumerToken(d: {

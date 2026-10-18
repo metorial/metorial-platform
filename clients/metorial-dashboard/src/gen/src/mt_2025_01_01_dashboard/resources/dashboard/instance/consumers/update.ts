@@ -9,7 +9,11 @@ export type DashboardInstanceConsumersUpdateOutput = {
   userId: string | null;
   createdAt: Date;
   updatedAt: Date;
-} & { isPortalConsumer: boolean; isOrganizationMember: boolean };
+} & {
+  isPortalConsumer: boolean;
+  isOrganizationMember: boolean;
+  isServiceAccount: boolean;
+};
 
 export let mapDashboardInstanceConsumersUpdateOutput =
   /* @__PURE__ */ createMapper<DashboardInstanceConsumersUpdateOutput>(
@@ -26,7 +30,8 @@ export let mapDashboardInstanceConsumersUpdateOutput =
               'created_at',
               'updated_at',
               'is_portal_consumer',
-              'is_organization_member'
+              'is_organization_member',
+              'is_service_account'
             ]
           ]
         ]

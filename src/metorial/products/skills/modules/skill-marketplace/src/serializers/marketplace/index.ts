@@ -1,9 +1,9 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial/db';
-import semver from 'semver';
 import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { claimVersion } from '../_lib/claimVersion';
 import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
 import { getMarketplacePruneScope } from '../_lib/paths';
 
@@ -83,36 +83,32 @@ export let applyMarketplace = createApplicator(
     getHash: async (_input, { hash }) => hash,
 
     apply: async (input, context, { plugins, project, hash }) => {
-      if (input.skillMarketplace.versionHash !== hash) {
-        let nextVersion = semver.inc(input.skillMarketplace.version ?? '0.0.0', 'patch')!;
-
-        let updated = await db.skillMarketplace.updateMany({
-          where: {
-            oid: input.skillMarketplace.oid,
-            versionHash: input.skillMarketplace.versionHash
-          },
-          data: {
-            versionHash: hash,
-            version: nextVersion,
-            updatedAt: input.skillMarketplace.updatedAt
-          }
-        });
-
-        if (updated.count > 0) {
-          input.skillMarketplace.version = nextVersion;
-          input.skillMarketplace.versionHash = hash;
-        } else {
-          let current = await db.skillMarketplace.findUniqueOrThrow({
-            where: { oid: input.skillMarketplace.oid }
+      let claimed = await claimVersion({
+        initial: input.skillMarketplace,
+        hash,
+        compareAndSet: async d => {
+          let updated = await db.skillMarketplace.updateMany({
+            where: {
+              oid: input.skillMarketplace.oid,
+              versionHash: d.expectedVersionHash
+            },
+            data: {
+              versionHash: d.versionHash,
+              version: d.version,
+              updatedAt: input.skillMarketplace.updatedAt
+            }
           });
-          if (current.versionHash !== hash) {
-            throw new Error('Marketplace changed while its sync was being processed');
-          }
+          return updated.count > 0;
+        },
+        reload: () =>
+          db.skillMarketplace.findUniqueOrThrow({
+            where: { oid: input.skillMarketplace.oid },
+            select: { version: true, versionHash: true }
+          })
+      });
 
-          input.skillMarketplace.version = current.version;
-          input.skillMarketplace.versionHash = current.versionHash;
-        }
-      }
+      input.skillMarketplace.version = claimed.version;
+      input.skillMarketplace.versionHash = claimed.versionHash;
 
       let codexMarketplace = json({
         name: input.skillMarketplace.slug,

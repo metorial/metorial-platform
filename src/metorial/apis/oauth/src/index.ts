@@ -8,8 +8,46 @@ import {
 import { ensureOptionalClientSecretIsValid } from './impl/credentials';
 import { OAuthError } from './lib/errors';
 import { getExpiresIn } from './lib/expiration';
-import { getString } from './lib/request';
+import { getString, type OAuthRequestSubjectType } from './lib/request';
 import { createOAuthAppSkeleton } from './skeleton';
+
+let presentTokenSubject = (response: {
+  subjectType: OAuthRequestSubjectType;
+  consumerProfile: {
+    id: string;
+    name: string;
+    email: string;
+    instance: { id: string };
+    surface: { portal: { id: string; name: string } | null };
+  } | null;
+}) => {
+  if (response.subjectType != 'consumer' || !response.consumerProfile) {
+    return { subject_type: response.subjectType };
+  }
+
+  let { consumerProfile } = response;
+
+  return {
+    subject_type: response.subjectType,
+
+    consumer_profile: {
+      id: consumerProfile.id,
+      name: consumerProfile.name,
+      email: consumerProfile.email
+    },
+
+    portal: consumerProfile.surface.portal
+      ? {
+          id: consumerProfile.surface.portal.id,
+          name: consumerProfile.surface.portal.name
+        }
+      : null,
+
+    instance: {
+      id: consumerProfile.instance.id
+    }
+  };
+};
 
 export let oauthApi = createOAuthAppSkeleton({
   oauth: {
@@ -168,11 +206,13 @@ export let oauthApi = createOAuthAppSkeleton({
               id: response.oauthInstallation.organization.id,
               name: response.oauthInstallation.organization.name
             }
-          : null
+          : null,
+
+        ...presentTokenSubject(response)
       });
     },
 
-    deviceAuthorization: async ({ context, credentials, scopes }, c) => {
+    deviceAuthorization: async ({ context, credentials, scopes, subjectType }, c) => {
       await ensureOptionalClientSecretIsValid({
         clientId: credentials.clientId!,
         clientSecret: credentials.clientSecret
@@ -185,6 +225,7 @@ export let oauthApi = createOAuthAppSkeleton({
             type: 'device_code',
             clientId: credentials.clientId!,
             clientIp: context.ip,
+            subjectType,
             scopes
           }
         });
@@ -227,7 +268,8 @@ export let oauthApi = createOAuthAppSkeleton({
             state: getString(d.state),
             nonce: getString(d.nonce),
             codeChallengeMethod: d.codeChallengeMethod,
-            codeChallenge: d.codeChallenge
+            codeChallenge: d.codeChallenge,
+            subjectType: d.subjectType
           }
         });
 
@@ -272,9 +314,12 @@ export let oauthApi = createOAuthAppSkeleton({
   },
 
   cli: {
-    authStart: async ({ context }, c) => {
+    authStart: async ({ context, subjectType }, c) => {
       let oauthAuthorizationRequest =
-        await oauthAuthorizationService.createCliAuthAuthorizationRequest({ context });
+        await oauthAuthorizationService.createCliAuthAuthorizationRequest({
+          context,
+          subjectType
+        });
 
       let authorizationUrl = new URL(`/oauth/authorize`, getConfig().urls.apiUrl);
       authorizationUrl.searchParams.set('token', oauthAuthorizationRequest.urlToken);
@@ -314,7 +359,9 @@ export let oauthApi = createOAuthAppSkeleton({
               id: response.oauthInstallation.organization.id,
               name: response.oauthInstallation.organization.name
             }
-          : null
+          : null,
+
+        ...presentTokenSubject(response)
       });
     }
   }

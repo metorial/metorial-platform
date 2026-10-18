@@ -30,6 +30,7 @@ export type PortalsConsumerProfilesListOutput = {
         }[]
       | null;
   }) & {
+    isServiceAccount: boolean;
     surface: {
       object: 'consumer.surface';
       id: string;
@@ -92,6 +93,7 @@ export let mapPortalsConsumerProfilesListOutput =
                     ]
                   ]
                 ],
+                'is_service_account',
                 [
                   'surface',
                   0,

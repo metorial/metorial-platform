@@ -42,7 +42,8 @@ export let dashboardConsumerPresenter = Presenter.create(consumerType)
     return {
       ...inner,
       is_portal_consumer: consumer.consumer.isPortalConsumer,
-      is_organization_member: consumer.consumer.isOrganizationMember
+      is_organization_member: consumer.consumer.isOrganizationMember,
+      is_service_account: consumer.consumer.isServiceAccount
     };
   })
   .schema(
@@ -50,7 +51,11 @@ export let dashboardConsumerPresenter = Presenter.create(consumerType)
       v1ConsumerPresenter.schema,
       v.object({
         is_portal_consumer: v.boolean(),
-        is_organization_member: v.boolean()
+        is_organization_member: v.boolean(),
+        is_service_account: v.boolean({
+          name: 'is_service_account',
+          description: 'Whether this consumer is the dedicated identity of a service account'
+        })
       })
     ])
   )

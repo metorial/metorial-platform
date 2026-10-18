@@ -5,6 +5,7 @@ import type { EmailIdentity } from '../../prisma/generated/browser';
 import type { Sender } from '../../prisma/generated/client';
 import { db } from '../db';
 import { get4ByteIntId, ID, snowflake } from '../id';
+import { filterIgnoredEmailRecipients } from '../lib/ignoredRecipients';
 import { sendEmailQueue } from '../queue/sendEmail';
 
 let normalizeTemplate = (template: any): any => {
@@ -91,6 +92,8 @@ class EmailService {
     };
     identity: EmailIdentity;
   }) {
+    let recipients = filterIgnoredEmailRecipients(d.to);
+
     let email;
     try {
       email = await db.outgoingEmail.create({
@@ -98,7 +101,7 @@ class EmailService {
           oid: get4ByteIntId(),
           id: ID.generateIdSync('outgoingEmail'),
           idempotencyKey: d.idempotencyKey,
-          numberOfDestinations: d.to.length,
+          numberOfDestinations: recipients.length,
           numberOfDestinationsCompleted: 0,
           values: normalizeTemplate(d.template),
           subject: d.content.subject,
@@ -107,7 +110,7 @@ class EmailService {
             create: { subject: d.content.subject, html: d.content.html, text: d.content.text }
           },
           destinations: {
-            create: d.to.map(destination => ({
+            create: recipients.map(destination => ({
               id: snowflake.nextId(),
               status: 'pending',
               destination
@@ -128,7 +131,7 @@ class EmailService {
       if (!email) throw error;
     }
 
-    if (!email.queuedAt) {
+    if (!email.queuedAt && email.numberOfDestinations > 0) {
       await sendEmailQueue.add({ emailId: email.id }, { id: email.id });
       await db.outgoingEmail.update({
         where: { oid: email.oid },

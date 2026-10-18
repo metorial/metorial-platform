@@ -60,10 +60,14 @@ model ProviderRun {
 
   @@index([createdAt])
   @@index([updatedAt])
-  @@index([status])
+  @@index([status, lastPingAt])
   @@index([lastPingAt])
   @@index([projectOid])
   @@index([metorialInstanceOid])
+  @@index([connectionOid])
+  @@index([tenantOid, createdAt])
+  @@index([sessionOid])
+  @@index([instanceOid])
 }
 
 model SessionProviderInstance {
@@ -95,4 +99,6 @@ model SessionProviderInstance {
   providerRuns ProviderRun[]
 
   @@index([expiresAt])
+  @@index([sessionProviderOid, expiresAt])
+  @@index([sessionOid])
 }

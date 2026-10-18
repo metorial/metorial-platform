@@ -18,6 +18,7 @@ export let syncUserConsumersQueueProcessor = syncUserConsumersQueue.process(asyn
     where: {
       id: { gt: data.cursor },
       consumer: {
+        isServiceAccount: false,
         OR: [{ userOid: user.oid }, { organizationMember: { userOid: user.oid } }]
       }
     },
@@ -57,6 +58,7 @@ export let syncUserConsumerQueueProcessor = syncUserConsumerQueue.process(async 
     where: {
       id: data.instanceConsumerId,
       consumer: {
+        isServiceAccount: false,
         OR: [{ userOid: user.oid }, { organizationMember: { userOid: user.oid } }]
       }
     },

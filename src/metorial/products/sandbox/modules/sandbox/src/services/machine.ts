@@ -1,6 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
   type Instance,
@@ -8,6 +9,7 @@ import {
   type SandboxRegion,
   type SandboxResourceStatus
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import type { GenesisInternalClient } from '@metorial/genesis-client';
 import {
   assertMachineActive,
@@ -19,6 +21,7 @@ import {
 } from '../lib/regional';
 import { isSearchEnabled, searchSandboxMachineIds } from '@metorial/module-search';
 import { sandboxDiskInternalService } from '../internal/diskInternal';
+import { toAuditMachine } from '../lib/audit';
 import { createRemotePaginator } from '../lib/remotePaginator';
 import { indexSandboxMachineQueue } from '../queues/search';
 import { sandboxMachineEgressInternalService } from '../internal/machineEgressInternal';
@@ -105,6 +108,7 @@ class SandboxMachineServiceImpl {
   async create(d: {
     instance: Instance;
     organization: Organization;
+    auditScope: AuditScope;
     regionIdentifier: string;
     input: {
       name?: CreateMachineInput['name'];
@@ -190,7 +194,13 @@ class SandboxMachineServiceImpl {
       });
       await indexSandboxMachineQueue.add({ machineOid: machine.oid.toString() });
 
-      return { ...machine, remote };
+      let created = { ...machine, remote };
+      await Fabric.fire('sandbox.machine.created:after', {
+        auditScope: d.auditScope,
+        machine: toAuditMachine(created)
+      });
+
+      return created;
     } catch (err) {
       await genesis.machine.terminate({ tenantId, machineId: remote.id });
 
@@ -320,6 +330,7 @@ class SandboxMachineServiceImpl {
   async update<Machine extends SandboxMachineWithTenant & { instance: Instance }>(d: {
     machine: Machine;
     organization: Organization;
+    auditScope: AuditScope;
     input: {
       name?: UpdateMachineInput['name'];
       metadata?: Record<string, any>;
@@ -352,6 +363,7 @@ class SandboxMachineServiceImpl {
         include: sandboxMachineInclude
       });
       let [hydrated] = await this.hydrate([{ ...d.machine, ...machine }]);
+      await this.fireUpdated(d, hydrated!);
 
       return hydrated!;
     }
@@ -410,35 +422,57 @@ class SandboxMachineServiceImpl {
 
     await indexSandboxMachineQueue.add({ machineOid: d.machine.oid.toString() });
 
-    return { ...machine, remote };
+    let updated = { ...machine, remote };
+    await this.fireUpdated(d, updated);
+
+    return updated;
+  }
+
+  private async fireUpdated(
+    d: { machine: SandboxMachineWithTenant; auditScope: AuditScope },
+    updated: SandboxMachineWithTenant & { remote?: any }
+  ) {
+    await Fabric.fire('sandbox.machine.updated:after', {
+      auditScope: d.auditScope,
+      machine: toAuditMachine({ ...d.machine, ...updated }),
+      previousMachine: toAuditMachine(d.machine)
+    });
   }
 
   private async act(d: {
     kind: 'start' | 'pause' | 'hibernate' | 'restart';
     machine: SandboxMachineWithTenant;
+    auditScope: AuditScope;
   }) {
     assertMachineActive(d.machine);
 
     let { genesis, tenantId } = getRegional(d.machine.tenant);
     let remote = await genesis.machine[d.kind]({ tenantId, machineId: d.machine.id });
 
-    return { ...d.machine, remote };
+    let result = { ...d.machine, remote };
+    await Fabric.fire('sandbox.machine.lifecycle:after', {
+      auditScope: d.auditScope,
+      machine: toAuditMachine({ ...d.machine, remote }),
+      action: d.kind
+    });
+
+    return result;
   }
 
-  async start(d: { machine: SandboxMachineWithTenant }) {
-    return await this.act({ kind: 'start', machine: d.machine });
+  async start(d: { machine: SandboxMachineWithTenant; auditScope: AuditScope }) {
+    return await this.act({ kind: 'start', machine: d.machine, auditScope: d.auditScope });
   }
 
-  async pause(d: { machine: SandboxMachineWithTenant }) {
-    return await this.act({ kind: 'pause', machine: d.machine });
+  async pause(d: { machine: SandboxMachineWithTenant; auditScope: AuditScope }) {
+    return await this.act({ kind: 'pause', machine: d.machine, auditScope: d.auditScope });
   }
 
-  async hibernate(d: { machine: SandboxMachineWithTenant }) {
-    return await this.act({ kind: 'hibernate', machine: d.machine });
+  async hibernate(d: { machine: SandboxMachineWithTenant; auditScope: AuditScope }) {
+    return await this.act({ kind: 'hibernate', machine: d.machine, auditScope: d.auditScope });
   }
 
-  async restart(d: { machine: SandboxMachineWithTenant }) {
-    return await this.act({ kind: 'restart', machine: d.machine });
+  async restart(d: { machine: SandboxMachineWithTenant; auditScope: AuditScope }) {
+    return await this.act({ kind: 'restart', machine: d.machine, auditScope: d.auditScope });
   }
 
   async touch(d: { machine: SandboxMachineWithTenant }) {
@@ -453,7 +487,7 @@ class SandboxMachineServiceImpl {
     };
   }
 
-  async terminate(d: { machine: SandboxMachineWithTenant }) {
+  async terminate(d: { machine: SandboxMachineWithTenant; auditScope: AuditScope }) {
     assertMachineActive(d.machine);
 
     let { genesis, tenantId } = getRegional(d.machine.tenant);
@@ -470,7 +504,13 @@ class SandboxMachineServiceImpl {
     });
     await indexSandboxMachineQueue.add({ machineOid: machine.oid.toString() });
 
-    return { ...machine, remote };
+    let terminated = { ...machine, remote };
+    await Fabric.fire('sandbox.machine.deleted:after', {
+      auditScope: d.auditScope,
+      machine: toAuditMachine({ ...d.machine, remote })
+    });
+
+    return terminated;
   }
 
   usage(d: { machine: SandboxMachineWithTenant; instanceIds?: string[] }) {

@@ -11,6 +11,7 @@ export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
 
     id: serviceAccount.id,
     status: serviceAccount.status,
+    subject_type: serviceAccount.subjectType,
 
     name: serviceAccount.name,
     description: serviceAccount.description,
@@ -44,6 +45,9 @@ export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
     ),
 
     organization_id: serviceAccount.organization.id,
+    portal_id: serviceAccount.portal?.id ?? null,
+    consumer_profile_id: serviceAccount.consumerProfile?.id ?? null,
+
     created_at: serviceAccount.createdAt,
     updated_at: serviceAccount.updatedAt
   }))
@@ -60,6 +64,11 @@ export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
       status: v.enumOf(['active', 'archived'], {
         name: 'status',
         description: 'Lifecycle status of the service account'
+      }),
+      subject_type: v.enumOf(['organization_member', 'consumer'], {
+        name: 'subject_type',
+        description:
+          'Whether the service account acts as an organization member or as a dedicated portal consumer'
       }),
       name: v.string({
         name: 'name',
@@ -92,6 +101,21 @@ export let v1ServiceAccountPresenter = Presenter.create(serviceAccountType)
         name: 'organization_id',
         description: 'Organization that owns this service account'
       }),
+      portal_id: v.nullable(
+        v.string({
+          name: 'portal_id',
+          description: 'Portal the service account acts on when the subject is a consumer',
+          examples: ['ptl_7hNkPqRsTuVwXyZa']
+        })
+      ),
+      consumer_profile_id: v.nullable(
+        v.string({
+          name: 'consumer_profile_id',
+          description:
+            'Dedicated consumer profile the service account acts as when the subject is a consumer',
+          examples: ['cop_7hNkPqRsTuVwXyZa']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when this service account was created'

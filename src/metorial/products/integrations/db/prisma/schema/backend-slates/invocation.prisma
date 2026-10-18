@@ -8,6 +8,8 @@ model SlateToolCall {
   createdAt DateTime @default(now())
 
   sessionMessages SessionMessage[]
+
+  @@index([sessionOid])
 }
 
 model SlateSession {
@@ -20,4 +22,6 @@ model SlateSession {
   createdAt DateTime @default(now())
 
   slateToolInvocations SlateToolCall[]
+
+  @@index([providerRunOid])
 }

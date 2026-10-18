@@ -22,6 +22,14 @@ let mocks = vi.hoisted(() => ({
   generateId: vi.fn()
 }));
 
+vi.mock('@lowerdeck/cache', () => ({
+  createCachedFunction: vi.fn((opts: { provider: (i: any) => Promise<unknown> }) =>
+    vi.fn((i: any) => opts.provider(i))
+  )
+}));
+
+import { createCachedFunction } from '@lowerdeck/cache';
+
 vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((_name, factory) => ({
@@ -31,7 +39,22 @@ vi.mock('@lowerdeck/service', () => ({
 }));
 
 vi.mock('@metorial/db', () => ({
-  ID: { generateId: mocks.generateId }
+  ID: { generateId: mocks.generateId },
+  withUniqueConstraintRecovery: async <T>(
+    write: () => Promise<T>,
+    recover: () => Promise<T | null>
+  ) => {
+    try {
+      return await write();
+    } catch (error) {
+      if ((error as { code?: string })?.code !== 'P2002') throw error;
+
+      let existing = await recover();
+      if (!existing) throw error;
+
+      return existing;
+    }
+  }
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
@@ -99,6 +122,8 @@ vi.mock('./actor', () => ({
 }));
 
 import { subspaceScopeService } from './subspaceScope';
+
+let cacheConfigs = vi.mocked(createCachedFunction).mock.calls.map(([opts]) => opts as any);
 
 let resourceTenant = {
   oid: 100n,
@@ -215,6 +240,62 @@ describe('Subspace scope provisioning', () => {
         input: expect.objectContaining({ instanceOid: 3n })
       })
     );
+  });
+
+  it('caches project and instance scopes for a minute', () => {
+    expect(cacheConfigs.map(opts => opts.name).sort()).toEqual([
+      'subspaceScope:instance',
+      'subspaceScope:project'
+    ]);
+    expect(cacheConfigs.every(opts => opts.ttlSeconds === 60)).toBe(true);
+  });
+
+  let makeLinkedInstance = (overrides: Record<string, unknown> = {}) => {
+    let instance = {
+      oid: 3n,
+      id: 'ins_3',
+      name: 'Production',
+      type: 'production',
+      organizationOid: 1n,
+      projectOid: 2n,
+      resourceGroupOid: 200n,
+      internalTenantIdentifier: 'mte-pro-2',
+      internalEnvironmentIdentifier: 'mte-ins-3',
+      subspaceTenantId: 'ktn_canonical',
+      subspaceEnvironmentId: 'ken_canonical',
+      ...overrides
+    } as any;
+    instance.project = makeProject({
+      internalTenantIdentifier: 'mte-pro-2',
+      subspaceTenantId: 'ktn_canonical',
+      instances: [instance]
+    });
+    instance.organization = { oid: 1n, id: 'org_1', subspaceTenantIds: ['ktn_canonical'] };
+    mocks.tenantFind.mockResolvedValue({ oid: 20n, identifier: 'mte-pro-2' });
+    mocks.environmentFind.mockResolvedValue({ identifier: 'mte-ins-3', tenantOid: 20n });
+    return instance;
+  };
+
+  it('skips rewriting an instance that is already linked and was synced recently', async () => {
+    await subspaceScopeService.ensureForInstance(
+      makeLinkedInstance({ lastSubspaceSyncAt: new Date() })
+    );
+
+    expect(mocks.instanceUpdate).not.toHaveBeenCalled();
+  });
+
+  it('refreshes an instance link that has not been synced for a while', async () => {
+    await subspaceScopeService.ensureForInstance(
+      makeLinkedInstance({ lastSubspaceSyncAt: new Date(Date.now() - 60 * 60 * 1000) })
+    );
+
+    expect(mocks.instanceUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes the instance link when it has never been synced', async () => {
+    await subspaceScopeService.ensureForInstance(makeLinkedInstance());
+
+    expect(mocks.instanceUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('refuses to provision when the project carries an identifier its oid does not produce', async () => {
@@ -420,6 +501,67 @@ describe('Organization actor tenant linking', () => {
       })
     });
     expect(mocks.organizationActorUpdate).not.toHaveBeenCalled();
+  });
+
+  it('creates the resource actor when none exists', async () => {
+    mocks.resourceActorFind.mockResolvedValue(null);
+    mocks.resourceActorCreate.mockResolvedValue(resourceActor);
+    mocks.generateId.mockResolvedValue('rac_300');
+
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant: tenant as any,
+      organizationActor: organizationActor as any
+    });
+
+    expect(mocks.resourceActorCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        projectOid: 2n,
+        identifier: 'mte-oac-oac_4',
+        organizationActorOid: 4n
+      })
+    });
+    expect(mocks.upsertActor).toHaveBeenCalledWith({
+      tenant,
+      input: expect.objectContaining({ resourceActorId: 'rac_300' })
+    });
+  });
+
+  it('reuses the resource actor created by a concurrent writer on a unique constraint conflict', async () => {
+    mocks.resourceActorFind
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(resourceActor);
+    mocks.resourceActorCreate.mockRejectedValue({ code: 'P2002' });
+
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant: tenant as any,
+      organizationActor: organizationActor as any
+    });
+
+    expect(mocks.resourceActorFind).toHaveBeenLastCalledWith({
+      where: {
+        projectOid: 2n,
+        OR: [{ organizationActorOid: 4n }, { identifier: 'mte-oac-oac_4' }]
+      }
+    });
+    expect(mocks.upsertActor).toHaveBeenCalledWith({
+      tenant,
+      input: expect.objectContaining({
+        resourceActorId: 'rac_300',
+        resourceActorIdentifier: 'mte-oac-oac_4'
+      })
+    });
+  });
+
+  it('rethrows unique constraint errors when no conflicting resource actor can be found', async () => {
+    mocks.resourceActorFind.mockResolvedValue(null);
+    mocks.resourceActorCreate.mockRejectedValue({ code: 'P2002' });
+
+    await expect(
+      subspaceScopeService.ensureForOrganizationActor({
+        tenant: tenant as any,
+        organizationActor: organizationActor as any
+      })
+    ).rejects.toEqual({ code: 'P2002' });
   });
 
   it('reuses an existing tenant actor in this tenant and backfills the organization actor relation', async () => {

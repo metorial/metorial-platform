@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { OAuthSubjectType } from '@metorial/db';
 import { resource } from '../../_lib/resource';
 
 export let oauthAuthorizationResource = resource({
@@ -7,7 +8,9 @@ export let oauthAuthorizationResource = resource({
     id: string;
     status: string;
     type: string;
+    subjectType: OAuthSubjectType;
     scopes: string[];
+    consumerProfileId: string | null;
     oauthApplication: { id: string; name: string };
   }>('oauth_authorization'),
   presenter: undefined,
@@ -22,7 +25,10 @@ export let oauthAuthorizationRequestResource = resource({
     id: string;
     status: string;
     type: string;
+    subjectType: OAuthSubjectType;
     scopes: string[];
+    organizationMemberId: string | null;
+    consumerProfileId: string | null;
     oauthApplication: { id: string; name: string };
   }>('oauth_authorization_request'),
   presenter: undefined,

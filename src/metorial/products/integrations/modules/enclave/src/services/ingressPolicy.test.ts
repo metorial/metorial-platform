@@ -10,6 +10,9 @@ let {
     session: {
       findMany: vi.fn()
     },
+    sessionProvider: {
+      findMany: vi.fn()
+    },
     ephemeralManagedSession: {
       findMany: vi.fn()
     }
@@ -181,5 +184,85 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccessInternal', () => 
       deniedEnclaveIds: []
     });
     expect(mockRecordIngressNetworkLog).not.toHaveBeenCalled();
+  });
+});
+
+describe('enclaveIngressPolicyService.assertSessionIngressAccessInternal with a resolved session', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetMetorialSolution.mockResolvedValue(solution);
+  });
+
+  it('loads only the provider enclaves and caches them per session', async () => {
+    mockDb.sessionProvider.findMany.mockResolvedValueOnce([
+      { deployment: { enclave } },
+      { deployment: { enclave } },
+      { deployment: { enclave: null } }
+    ]);
+    mockIntegrationEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
+      ingress: { direction: 'ingress', entries: [{ cidr: '203.0.113.0/24' }] },
+      egress: { direction: 'egress', entries: [] }
+    });
+
+    let session = { oid: BigInt(50), id: 'ses_cached', status: 'active' } as any;
+    let params = {
+      tenant,
+      environment,
+      sessionId: 'ses_cached',
+      session,
+      sourceIp: '203.0.113.10',
+      recordLog: true
+    };
+
+    let first = await enclaveIngressPolicyService.assertSessionIngressAccessInternal(params);
+    let second = await enclaveIngressPolicyService.assertSessionIngressAccessInternal(params);
+
+    expect(first).toMatchObject({
+      sessionId: 'ses_cached',
+      resolvedSessionId: 'ses_cached',
+      allowed: true,
+      enclaveIds: ['enc_test']
+    });
+    expect(second).toEqual(first);
+    expect(mockDb.session.findMany).not.toHaveBeenCalled();
+    expect(mockDb.sessionProvider.findMany).toHaveBeenCalledTimes(1);
+    expect(mockDb.sessionProvider.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { sessionOid: BigInt(50), status: 'active' } })
+    );
+    expect(
+      mockIntegrationEnclaveService.getCompiledNetworkRulesInternal
+    ).toHaveBeenCalledTimes(1);
+    expect(mockRecordIngressNetworkLog).toHaveBeenCalledTimes(2);
+  });
+
+  it('blocks a resolved session whose source IP is outside the enclave policy', async () => {
+    mockDb.sessionProvider.findMany.mockResolvedValueOnce([{ deployment: { enclave } }]);
+    mockIntegrationEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
+      ingress: { direction: 'ingress', entries: [{ cidr: '203.0.113.0/24' }] },
+      egress: { direction: 'egress', entries: [] }
+    });
+
+    await expect(
+      enclaveIngressPolicyService.assertSessionIngressAccessInternal({
+        tenant,
+        environment,
+        sessionId: 'ses_blocked',
+        session: { oid: BigInt(51), id: 'ses_blocked', status: 'active' } as any,
+        sourceIp: '198.51.100.10'
+      })
+    ).rejects.toThrow('Ingress network policy blocked this connection');
+  });
+
+  it('blocks a resolved session that is no longer active', async () => {
+    await expect(
+      enclaveIngressPolicyService.assertSessionIngressAccessInternal({
+        tenant,
+        environment,
+        sessionId: 'ses_archived',
+        session: { oid: BigInt(52), id: 'ses_archived', status: 'archived' } as any,
+        sourceIp: '203.0.113.10'
+      })
+    ).rejects.toThrow('Ingress network policy blocked this connection');
+    expect(mockDb.sessionProvider.findMany).not.toHaveBeenCalled();
   });
 });

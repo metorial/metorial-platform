@@ -1,4 +1,11 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { cleanupCron } from './cron/cleanup';
 
-export let catalogQueueProcessor = combineQueueProcessors([cleanupCron]);
+export let catalogSubspaceQueueProcessor = combineQueueProcessors([]);
+
+export let catalogFederationQueueProcessor = combineQueueProcessors([cleanupCron]);
+
+export let catalogQueueProcessor = combineQueueProcessors([
+  catalogSubspaceQueueProcessor,
+  catalogFederationQueueProcessor
+]);

@@ -30,6 +30,8 @@ import {
   recordOAuthApplicationCreated,
   recordOAuthApplicationUpdated,
   recordOAuthAuthorizationRequestAccepted,
+  recordOAuthAuthorizationRequestDenied,
+  recordOAuthAuthorizationRevoked,
   recordOAuthInstallationRevoked,
   recordOrganizationInitialized,
   recordOrganizationInviteAccepted,
@@ -507,7 +509,169 @@ describe('audit Fabric listeners', () => {
       'service_account',
       'create',
       expect.objectContaining({
-        payload: { serviceAccount }
+        payload: {
+          serviceAccount: { ...serviceAccount, portal: null, consumerProfile: null }
+        }
+      })
+    );
+  });
+
+  it('records consumer oauth requests, revocations and service accounts with their subject', async () => {
+    let consumerAuditScope = {
+      organizationOid: organization.oid,
+      instanceOid: instance.oid,
+      organizationActorOid: 5n,
+      actor: { type: 'consumer_profile' as const, id: 'cop_1' },
+      context: { ip: '127.0.0.1' }
+    };
+    let consumerProfile = { oid: 6n, id: 'cop_1' };
+    let portal = { oid: 7n, id: 'prt_1' };
+    let oauthApplication = { id: 'oap_1', name: 'CLI', type: 'cli_auth' };
+    let oauthAuthorizationRequest = {
+      id: 'oar_1',
+      status: 'pending',
+      type: 'device_code',
+      subjectType: 'consumer',
+      scopes: ['consumer#session:read']
+    };
+    let oauthAuthorization = {
+      id: 'oat_1',
+      status: 'active',
+      type: 'user',
+      subjectType: 'consumer',
+      scopes: ['consumer#session:read']
+    };
+    let serviceAccount = {
+      id: 'sac_1',
+      name: 'Bot',
+      subjectType: 'consumer',
+      organization,
+      oauthApplication
+    };
+
+    await recordOAuthAuthorizationRequestAccepted({
+      organization,
+      oauthApplication,
+      oauthAuthorizationRequest: { ...oauthAuthorizationRequest, status: 'accepted' },
+      previousOAuthAuthorizationRequest: oauthAuthorizationRequest,
+      member: null,
+      consumerProfile,
+      subjectType: 'consumer',
+      auditScope: consumerAuditScope
+    } as any);
+    await recordOAuthAuthorizationRequestDenied({
+      organization,
+      oauthApplication,
+      oauthAuthorizationRequest: { ...oauthAuthorizationRequest, status: 'rejected' },
+      previousOAuthAuthorizationRequest: oauthAuthorizationRequest,
+      consumerProfile,
+      subjectType: 'consumer',
+      auditScope: consumerAuditScope
+    } as any);
+    await recordOAuthAuthorizationRevoked({
+      organization,
+      oauthApplication,
+      oauthAuthorization: { ...oauthAuthorization, status: 'revoked' },
+      previousOAuthAuthorization: oauthAuthorization,
+      consumerProfile,
+      subjectType: 'consumer',
+      auditScope: consumerAuditScope
+    } as any);
+    await recordServiceAccountCreated({
+      organization,
+      serviceAccount,
+      oauthApplication,
+      portal,
+      consumerProfile,
+      subjectType: 'consumer',
+      auditScope
+    } as any);
+
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      1,
+      consumerAuditScope,
+      'oauth_authorization_request',
+      'accept',
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          status: 'accepted',
+          subjectType: 'consumer',
+          organizationMemberId: null,
+          consumerProfileId: 'cop_1'
+        }),
+        previousPayload: expect.objectContaining({
+          status: 'pending',
+          subjectType: 'consumer',
+          consumerProfileId: 'cop_1'
+        })
+      })
+    );
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      2,
+      consumerAuditScope,
+      'oauth_authorization_request',
+      'deny',
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          organizationMemberId: null,
+          consumerProfileId: 'cop_1'
+        })
+      })
+    );
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      3,
+      consumerAuditScope,
+      'oauth_authorization',
+      'revoke',
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          status: 'revoked',
+          subjectType: 'consumer',
+          consumerProfileId: 'cop_1'
+        })
+      })
+    );
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      4,
+      auditScope,
+      'service_account',
+      'create',
+      expect.objectContaining({
+        payload: {
+          serviceAccount: { ...serviceAccount, portal, consumerProfile }
+        }
+      })
+    );
+  });
+
+  it('defaults oauth subjects to organization members', async () => {
+    let oauthApplication = { id: 'oap_1', name: 'Portal', type: 'user_facing' };
+    let oauthAuthorizationRequest = {
+      id: 'oar_1',
+      status: 'pending',
+      type: 'authorization_code',
+      scopes: ['organization:read']
+    };
+
+    await recordOAuthAuthorizationRequestAccepted({
+      organization,
+      oauthApplication,
+      oauthAuthorizationRequest: { ...oauthAuthorizationRequest, status: 'accepted' },
+      previousOAuthAuthorizationRequest: oauthAuthorizationRequest,
+      member: { id: 'om_1' },
+      auditScope
+    } as any);
+
+    expect(recordEvent).toHaveBeenCalledWith(
+      auditScope,
+      'oauth_authorization_request',
+      'accept',
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          subjectType: 'organization_member',
+          organizationMemberId: 'om_1',
+          consumerProfileId: null
+        })
       })
     );
   });

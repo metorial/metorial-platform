@@ -1,23 +1,32 @@
-import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import { getConfig } from '@metorial/config';
 import {
   addAfterTransactionHook,
+  ConsumerProfile,
   db,
   ID,
   MachineAccess,
   OAuthApplication,
   OAuthApplicationClientSecret,
   OAuthApplicationStatus,
+  OAuthApplicationSubjectType,
   OAuthApplicationType,
   OAuthAuthorizationAccessLevel,
+  OAuthSubjectType,
   Organization,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCustomId } from '@metorial/id';
+import { revokeOAuthConsumerSessions } from '../internal/oauthConsumerSession';
 import { cliAuthScopes, normalizeScopes } from '../lib/oauthAuthorizationScopes';
 import { validateOAuthScopes } from '../lib/oauthScopeValidation';
 import { validateUri } from '../lib/oauthUrls';
@@ -196,12 +205,54 @@ class OAuthApplicationService {
     });
   }
 
+  private createServerSideMachineAccess(d: {
+    organization: Organization;
+    auditScope: AuditScope;
+    subjectType: OAuthSubjectType;
+    consumer?: { consumerProfile: ConsumerProfile };
+    name: string;
+    scopes: string[];
+  }) {
+    let input = {
+      name: this.buildMachineAccessName(d.name),
+      hasCustomScopes: true,
+      scopes: d.scopes
+    };
+
+    if (d.subjectType == 'organization_member') {
+      return machineAccessService.createMachineAccess({
+        type: 'organization_management',
+        organization: d.organization,
+        auditScope: d.auditScope,
+        input
+      });
+    }
+
+    if (!d.consumer) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Server-side consumer oauth applications require a consumer profile'
+        })
+      );
+    }
+
+    return machineAccessService.createMachineAccess({
+      type: 'instance_consumer',
+      organization: d.organization,
+      consumerProfile: d.consumer.consumerProfile,
+      auditScope: d.auditScope,
+      input
+    });
+  }
+
   async createOAuthApplication(d: {
     organization: Organization;
     auditScope: AuditScope;
+    consumer?: { consumerProfile: ConsumerProfile };
     input: {
       type: 'user_facing' | 'server_side';
       accessLevel: OAuthAuthorizationAccessLevel;
+      subjectType?: 'organization_member' | 'consumer';
       allowClientSecretlessTokenExchange?: boolean;
       name: string;
       description?: string;
@@ -220,7 +271,8 @@ class OAuthApplicationService {
       organization: d.organization
     });
 
-    let scopes = validateOAuthScopes(d.input.scopes);
+    let subjectType = d.input.subjectType ?? 'organization_member';
+    let scopes = validateOAuthScopes(d.input.scopes, subjectType);
     let redirectUris = (d.input.redirectUris ?? []).map(uri => {
       validateUri(uri);
       return uri;
@@ -229,20 +281,19 @@ class OAuthApplicationService {
     let res = await withTransaction(async db => {
       let serverSideMachineAccess =
         d.input.type == 'server_side'
-          ? await machineAccessService.createMachineAccess({
-              type: 'organization_management',
+          ? await this.createServerSideMachineAccess({
               organization: d.organization,
               auditScope: d.auditScope,
-              input: {
-                name: this.buildMachineAccessName(d.input.name),
-                hasCustomScopes: true,
-                scopes
-              }
+              subjectType,
+              consumer: d.consumer,
+              name: d.input.name,
+              scopes
             })
           : null;
 
       await Fabric.fire('machine_access.oauth_application.created:before', {
         ...d,
+        input: { ...d.input, subjectType },
         serverSideMachineAccess
       });
 
@@ -252,6 +303,7 @@ class OAuthApplicationService {
           status: 'active',
           type: d.input.type,
           accessLevel: d.input.accessLevel,
+          subjectType,
           allowClientSecretlessTokenExchange:
             d.input.allowClientSecretlessTokenExchange ?? false,
           name: d.input.name,
@@ -294,6 +346,7 @@ class OAuthApplicationService {
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_application.created:after', {
           ...d,
+          input: { ...d.input, subjectType },
           oauthApplication: res.oauthApplication,
           serverSideMachineAccess: res.serverSideMachineAccess
         })
@@ -333,7 +386,12 @@ class OAuthApplicationService {
       organization: d.organization
     });
 
-    let scopes = d.input.scopes ? validateOAuthScopes(d.input.scopes) : undefined;
+    let scopes = d.input.scopes
+      ? validateOAuthScopes(
+          d.input.scopes,
+          d.oauthApplication.subjectType == 'consumer' ? 'consumer' : 'organization_member'
+        )
+      : undefined;
     let redirectUris = d.input.redirectUris
       ? d.input.redirectUris.map(uri => {
           validateUri(uri);
@@ -430,6 +488,13 @@ class OAuthApplicationService {
 
     return await withTransaction(async db => {
       await Fabric.fire('machine_access.oauth_application.archived:before', d);
+
+      await revokeOAuthConsumerSessions({
+        oauthAuthorization: {
+          oauthApplicationOid: d.oauthApplication.oid,
+          status: 'active'
+        }
+      });
 
       await db.oAuthAuthorization.updateMany({
         where: {
@@ -626,6 +691,13 @@ class OAuthApplicationService {
         auditScope: null
       });
 
+      await revokeOAuthConsumerSessions({
+        oauthAuthorization: {
+          oauthApplicationOid: d.oauthApplication.oid,
+          status: 'active'
+        }
+      });
+
       await db.oAuthAuthorization.updateMany({
         where: {
           oauthApplicationOid: d.oauthApplication.oid,
@@ -709,6 +781,7 @@ class OAuthApplicationService {
   async listOAuthApplications(d: {
     organization: Organization;
     statuses?: OAuthApplicationStatus[];
+    subjectTypes?: OAuthApplicationSubjectType[];
   }) {
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -718,6 +791,7 @@ class OAuthApplicationService {
             where: {
               organizationOid: d.organization.oid,
               status: d.statuses ? { in: d.statuses } : 'active',
+              subjectType: d.subjectTypes ? { in: d.subjectTypes } : undefined,
               type: {
                 in: ['user_facing']
               }
@@ -851,6 +925,7 @@ class OAuthApplicationService {
 
     let storedScopes = normalizeScopes(existing.scopes);
     let isInSync =
+      existing.subjectType == 'consumer_or_organization_member' &&
       storedScopes.length == cliAuthScopes.length &&
       storedScopes.every((scope, i) => scope == cliAuthScopes[i]);
     if (isInSync) return;
@@ -870,6 +945,7 @@ class OAuthApplicationService {
       status: 'active' as const,
       type: 'cli_auth' as const,
       accessLevel: 'global' as const,
+      subjectType: 'consumer_or_organization_member' as const,
       allowClientSecretlessTokenExchange: true,
       name: 'Metorial CLI',
       description: 'Authenticate the Metorial CLI',

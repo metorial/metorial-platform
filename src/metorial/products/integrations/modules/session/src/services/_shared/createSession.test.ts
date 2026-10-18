@@ -2,9 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   sessionCreate: vi.fn(),
-  sessionTemplateFindFirst: vi.fn(),
-  createSessionProvidersForInput: vi.fn(),
-  sessionCreatedAdd: vi.fn()
+  resolveProviderSessionInput: vi.fn(),
+  createSessionProvidersForInput: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -22,8 +21,7 @@ vi.mock('@metorial-subspace/db', () => ({
   getId: vi.fn((prefix: string) => ({ oid: 1n, id: `${prefix}_1` })),
   withTransaction: vi.fn(async (run: (db: unknown) => Promise<unknown>) =>
     run({
-      session: { create: mocks.sessionCreate },
-      sessionTemplate: { findFirst: mocks.sessionTemplateFindFirst }
+      session: { create: mocks.sessionCreate }
     })
   )
 }));
@@ -32,16 +30,13 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   getMetorialSolution: vi.fn(async () => ({ oid: 7 }))
 }));
 
-vi.mock('../../queues/lifecycle/session', () => ({
-  sessionCreatedQueue: { add: mocks.sessionCreatedAdd }
-}));
-
 vi.mock('../sessionProvider', () => ({
   sessionProviderInclude: {}
 }));
 
 vi.mock('../sessionProviderInput', () => ({
   sessionProviderInputService: {
+    resolveProviderSessionInput: mocks.resolveProviderSessionInput,
     createSessionProvidersForInput: mocks.createSessionProvidersForInput
   }
 }));
@@ -71,6 +66,10 @@ describe('createSessionRecord double writes', () => {
     vi.clearAllMocks();
     mocks.sessionCreate.mockResolvedValue({ oid: 1n, id: 'session_1', providers: [] });
     mocks.createSessionProvidersForInput.mockResolvedValue([]);
+    mocks.resolveProviderSessionInput.mockResolvedValue({
+      templates: new Map(),
+      providers: []
+    });
   });
 
   it('mirrors the tenant and environment references onto the session', async () => {
@@ -111,44 +110,64 @@ describe('createSessionRecord double writes', () => {
   });
 
   it('stores an explicit internal adapter binding without consulting the template', async () => {
+    mocks.resolveProviderSessionInput.mockResolvedValue({
+      templates: new Map([['st_1', { id: 'st_1', identityActorOid: 91n, identityOid: 92n }]]),
+      providers: []
+    });
+
     await createSessionRecord({
       tenant: linkedTenant as any,
       environment: linkedEnvironment as any,
       isEphemeral: true,
       isInternal: true,
       adapterGlobalOid: 55n,
-      input: { providers: [{ deploymentId: 'pd_1' }] }
+      identityActorOid: null,
+      identityOid: null,
+      input: { providers: [{ sessionTemplateId: 'st_1' }] }
     });
 
     expect(createdData()).toMatchObject({
       isEphemeral: true,
       isInternal: true,
-      adapterGlobalOid: 55n
+      adapterGlobalOid: 55n,
+      identityActorOid: null,
+      identityOid: null
     });
-    expect(mocks.sessionTemplateFindFirst).not.toHaveBeenCalled();
   });
 
-  it('does not add the mirrored references to any read filter', async () => {
-    mocks.sessionTemplateFindFirst.mockResolvedValue(null);
+  it('takes the identity from the template already loaded for provider resolution', async () => {
+    mocks.resolveProviderSessionInput.mockResolvedValue({
+      templates: new Map([['st_1', { id: 'st_1', identityActorOid: 91n, identityOid: 92n }]]),
+      providers: []
+    });
 
     await createSessionRecord({
       tenant: linkedTenant as any,
       environment: linkedEnvironment as any,
       isEphemeral: false,
-      input: {
-        providers: [{ sessionTemplateId: 'st_1' }]
-      }
+      input: { providers: [{ sessionTemplateId: 'st_1' }] }
     });
 
-    expect(mocks.sessionTemplateFindFirst).toHaveBeenCalledWith(
+    expect(mocks.resolveProviderSessionInput).toHaveBeenCalledTimes(1);
+    expect(createdData()).toMatchObject({ identityActorOid: 91n, identityOid: 92n });
+  });
+
+  it('reuses pre-resolved providers and creates them as a new session', async () => {
+    let resolvedProviders = { template: null, providers: [{ provider: { oid: 1n } }] };
+
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: false,
+      input: { providers: [{ deploymentId: 'pd_1' }] },
+      resolvedProviders: resolvedProviders as any
+    });
+
+    expect(mocks.resolveProviderSessionInput).not.toHaveBeenCalled();
+    expect(mocks.createSessionProvidersForInput).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          id: 'st_1',
-          tenantOid: 10n,
-          solutionOid: 7,
-          environmentOid: 30n,
-          status: 'active'
-        }
+        resolvedProviders: resolvedProviders.providers,
+        isNewSession: true
       })
     );
   });

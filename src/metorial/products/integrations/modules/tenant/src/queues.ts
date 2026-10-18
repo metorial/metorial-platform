@@ -1,4 +1,11 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { retentionQueues } from './queues/retention';
 
-export let tenantQueueProcessors = combineQueueProcessors([retentionQueues]);
+export let tenantSubspaceQueueProcessors = combineQueueProcessors([]);
+
+export let tenantFederationQueueProcessors = combineQueueProcessors([retentionQueues]);
+
+export let tenantQueueProcessors = combineQueueProcessors([
+  tenantSubspaceQueueProcessors,
+  tenantFederationQueueProcessors
+]);

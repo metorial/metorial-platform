@@ -23,6 +23,7 @@ import { env } from '../env';
 import { assertValidApiKeyIpFilters } from '../lib/apiKeyIpFilters';
 import { sendApiKeyCreatedEmailQueue } from '../queues/created/sendApiKeyCreatedEmail';
 import { machineAccessService } from './machineAccess';
+import { machineAccessAuthService } from './machineAccessAuth';
 
 export type ListApiKeysFilter =
   | {
@@ -244,6 +245,8 @@ class ApiKeyService {
       return apiKey;
     });
 
+    await machineAccessAuthService.clearApiKeyAuthCache({ apiKeyOid: d.apiKey.oid });
+
     await Fabric.fire('machine_access.api_key.updated:after', {
       ...d,
       apiKey: res,
@@ -297,6 +300,8 @@ class ApiKeyService {
 
       return apiKey;
     });
+
+    await machineAccessAuthService.clearApiKeyAuthCache({ apiKeyOid: d.apiKey.oid });
 
     await Fabric.fire('machine_access.api_key.revoked:after', {
       ...d,
@@ -391,6 +396,8 @@ class ApiKeyService {
         secret
       };
     });
+
+    await machineAccessAuthService.clearApiKeyAuthCache({ apiKeyOid: d.apiKey.oid });
 
     await Fabric.fire('machine_access.api_key.rotated:after', {
       ...d,

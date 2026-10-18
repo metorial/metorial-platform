@@ -119,6 +119,10 @@ vi.mock('../src/queues/lifecycle/integrationInstanceProvider', () => ({
   enqueueIntegrationInstanceProvidersSet: vi.fn()
 }));
 
+vi.mock('../src/lib/magicMcpBacking/serverProviderSync', () => ({
+  syncMagicMcpServerProviderRows: vi.fn()
+}));
+
 vi.mock('../src/env', () => ({
   env: {
     service: {

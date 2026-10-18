@@ -220,7 +220,7 @@ export let magicMcpEndpointController = Controller.create(
           magicMcpServer: ctx.body.magic_mcp_servers
         });
 
-        if (skillPlugin && servers?.length) {
+        if ((skillPlugin || ctx.consumerProfile) && servers?.length) {
           await Promise.all(
             servers.map(server =>
               magicMcpServerService.getMagicMcpServerById({

@@ -35,7 +35,8 @@ model ProviderSetupSession {
   typeConcrete ProviderSetupSessionTypeConcrete?
   uiMode       ProviderSetupSessionUiMode        @default(metorial_elements)
 
-  isParentDeleted Boolean @default(false)
+  isParentDeleted  Boolean @default(false)
+  skipConfirmation Boolean @default(false)
 
   clientSecret String
 
@@ -172,6 +173,8 @@ model IntegrationSetupSession {
   id  String @unique
 
   status IntegrationSetupSessionStatus
+
+  skipConfirmation Boolean @default(false)
 
   clientSecret String
 

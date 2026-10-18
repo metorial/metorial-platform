@@ -12,7 +12,8 @@ export type ProviderSearchInput = SessionCredentials & {
 
 export let setupSessionLoader = createLoader({
   name: 'setupSession',
-  fetch: (i: SessionCredentials) => getIntegrationsClient(i.clientSecret).setupSession.get(i),
+  fetch: (i: SessionCredentials) =>
+    getIntegrationsClient(i.clientSecret).setupSession.get({ ...i, autoStartOauth: true }),
   mutators: {}
 });
 

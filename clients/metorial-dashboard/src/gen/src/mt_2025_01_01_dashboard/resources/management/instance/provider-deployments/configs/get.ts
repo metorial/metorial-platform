@@ -58,6 +58,11 @@ export type ManagementInstanceProviderDeploymentsConfigsGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   } | null;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    consumerId: string | null;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -91,6 +96,7 @@ export let mapManagementInstanceProviderDeploymentsConfigsGetOutput =
           ]
         ]
       ],
+      ['owner_actor', 1, [1, ['consumer_id']]],
       'created_at',
       'updated_at'
     ],

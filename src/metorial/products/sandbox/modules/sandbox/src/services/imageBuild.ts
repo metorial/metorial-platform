@@ -1,6 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   db,
@@ -11,12 +12,14 @@ import {
   type SandboxMachineImage,
   type SandboxMachineImageBuildStatus
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   sandboxImageBuildContextFilePurposeSlug,
   sandboxImageBuildContextMaxBytes
 } from '@metorial/module-file';
 import { flagService } from '@metorial/module-flags';
 import { sandboxImageVersionInternalService } from '../internal/imageVersionInternal';
+import { toAuditImageBuild } from '../lib/audit';
 import { resolveBuildRegion } from '../lib/buildRegion';
 import { endImageBuild } from '../lib/imageBuildEnd';
 import { getRegional } from '../lib/regional';
@@ -74,6 +77,7 @@ class SandboxImageBuildServiceImpl {
   async create(d: {
     instance: Instance;
     organization: Organization;
+    auditScope: AuditScope;
     image: SandboxMachineImage;
     file: SandboxBuildContextFile;
     input: {
@@ -179,7 +183,13 @@ class SandboxImageBuildServiceImpl {
         return created;
       });
 
-      return await this.get({ instance: d.instance, buildId: build.id });
+      let result = await this.get({ instance: d.instance, buildId: build.id });
+      await Fabric.fire('sandbox.image.build.created:after', {
+        auditScope: d.auditScope,
+        build: toAuditImageBuild(result)
+      });
+
+      return result;
     } catch (err) {
       await genesis.machineImage.build
         .cancel({ tenantId, buildId: remote.id })
@@ -243,7 +253,7 @@ class SandboxImageBuildServiceImpl {
     });
   }
 
-  async cancel(d: { instance: Instance; build: { id: string } }) {
+  async cancel(d: { instance: Instance; auditScope: AuditScope; build: { id: string } }) {
     let build = await this.get({ instance: d.instance, buildId: d.build.id });
     if (!ACTIVE_BUILD_STATUSES.includes(build.status)) return build;
 
@@ -253,7 +263,13 @@ class SandboxImageBuildServiceImpl {
       failure: { code: 'cancelled', message: 'The build was cancelled.' }
     });
 
-    return await this.get({ instance: d.instance, buildId: build.id });
+    let cancelled = await this.get({ instance: d.instance, buildId: build.id });
+    await Fabric.fire('sandbox.image.build.cancelled:after', {
+      auditScope: d.auditScope,
+      build: toAuditImageBuild(cancelled)
+    });
+
+    return cancelled;
   }
 }
 

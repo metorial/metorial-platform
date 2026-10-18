@@ -6,7 +6,7 @@ let filterSyncPromise: Promise<ProtoGuardFilter[]> | null = null;
 export let syncProtoGuardFilters = async () => {
   if (filterSyncPromise) return await filterSyncPromise;
 
-  filterSyncPromise = Promise.all(
+  let promise: Promise<ProtoGuardFilter[]> = Promise.all(
     protoGuardFilterDefinitions.map(definition =>
       db.protoGuardFilter.upsert({
         where: { key: definition.key },
@@ -32,11 +32,14 @@ export let syncProtoGuardFilters = async () => {
         }
       })
     )
-  ).finally(() => {
-    filterSyncPromise = null;
+  );
+
+  filterSyncPromise = promise;
+  promise.catch(() => {
+    if (filterSyncPromise === promise) filterSyncPromise = null;
   });
 
-  return await filterSyncPromise;
+  return await promise;
 };
 
 export let getProtoGuardFilterDefinition = (key: string) =>

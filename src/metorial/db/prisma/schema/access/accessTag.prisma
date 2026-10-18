@@ -79,4 +79,7 @@ model AccessTagEntity {
   @@unique([accessTagOid, accessTagPolicyOid, skillPluginOid])
   @@index([skillMarketplaceOid])
   @@index([skillPluginOid])
+  @@index([magicMcpTokenOid])
+  @@index([magicMcpServerOid])
+  @@index([magicMcpEndpointOid])
 }

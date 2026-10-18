@@ -7,6 +7,7 @@ import type {
   SkillMergeRequestStatus
 } from '@metorial/db';
 import type { AuditScope } from '@metorial/audit-scope';
+import { Fabric, type AuditSkillMergeRequest } from '@metorial/fabric';
 import { db, Prisma, withTransaction } from '@metorial/db';
 import type { DateFilter } from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
@@ -31,17 +32,33 @@ export type {
   SkillMergeRequestRecord
 } from '../internal/skillMergeRequestInternal';
 
+let toAuditMergeRequest = (mergeRequest: SkillMergeRequestRecord): AuditSkillMergeRequest => ({
+  id: mergeRequest.id,
+  title: mergeRequest.title,
+  status: mergeRequest.status,
+  direction: mergeRequest.direction,
+  sourceSkillId: mergeRequest.sourceSkill.id,
+  targetSkillId: mergeRequest.targetSkill.id
+});
+
 class SkillMergeRequestServiceImpl {
   async createSkillMergeRequest(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     sourceSkillId: string;
     targetSkillId?: string;
     authorization: ResourceAuthorization;
     title: string;
     description?: string | null;
   }) {
-    return await skillMergeRequestInternalService.createSkillMergeRequest(d);
+    let mergeRequest = await skillMergeRequestInternalService.createSkillMergeRequest(d);
+    await Fabric.fire('skill.merge_request.audit.created:after', {
+      auditScope: d.auditScope,
+      mergeRequest: toAuditMergeRequest(mergeRequest)
+    });
+
+    return mergeRequest;
   }
 
   async listSkillMergeRequests(d: {
@@ -265,6 +282,7 @@ class SkillMergeRequestServiceImpl {
   async performSkillMergeRequest(d: {
     project: Project;
     instance: Instance;
+    auditScope?: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     authorization: ResourceAuthorization;
   }) {
@@ -376,18 +394,26 @@ class SkillMergeRequestServiceImpl {
       throw mergeError;
     }
 
+    if (d.auditScope) {
+      await Fabric.fire('skill.merge_request.audit.merged:after', {
+        auditScope: d.auditScope,
+        mergeRequest: toAuditMergeRequest(updated)
+      });
+    }
+
     return updated;
   }
 
   async closeSkillMergeRequest(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     mergeRequest: SkillMergeRequestRecord;
     authorization: ResourceAuthorization;
   }) {
     let actor = d.authorization.resourceActor;
 
-    return await skillMergeTargetLock.usingLock(
+    let closed = await skillMergeTargetLock.usingLock(
       d.mergeRequest.targetSkill.store!.id,
       async () => {
         let mergeRequest = await skillMergeRequestInternalService.getRawSkillMergeRequestById({
@@ -451,6 +477,12 @@ class SkillMergeRequestServiceImpl {
         });
       }
     );
+    await Fabric.fire('skill.merge_request.audit.closed:after', {
+      auditScope: d.auditScope,
+      mergeRequest: toAuditMergeRequest(closed)
+    });
+
+    return closed;
   }
 
   async rollbackSkillMergeRequest(d: {
@@ -460,7 +492,13 @@ class SkillMergeRequestServiceImpl {
     mergeRequest: SkillMergeRequestRecord;
     authorization: ResourceAuthorization;
   }) {
-    return await skillMergeRequestApplyInternalService.rollbackSkillMergeRequest(d);
+    let rolledBack = await skillMergeRequestApplyInternalService.rollbackSkillMergeRequest(d);
+    await Fabric.fire('skill.merge_request.audit.rolled_back:after', {
+      auditScope: d.auditScope,
+      mergeRequest: toAuditMergeRequest(rolledBack)
+    });
+
+    return rolledBack;
   }
 }
 

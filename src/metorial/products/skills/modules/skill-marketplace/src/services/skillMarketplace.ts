@@ -12,7 +12,9 @@ import type {
   SkillMarketplaceRepositoryAccessMode,
   SkillMarketplaceStatus
 } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -215,6 +217,7 @@ class SkillMarketplaceServiceImpl {
   async createSkillMarketplace(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string | null;
@@ -289,6 +292,11 @@ class SkillMarketplaceServiceImpl {
         event: 'created'
       });
 
+      await Fabric.fire('skill.marketplace.audit.created:after', {
+        auditScope: d.auditScope,
+        skillMarketplace
+      });
+
       return skillMarketplace;
     });
   }
@@ -296,6 +304,7 @@ class SkillMarketplaceServiceImpl {
   async updateSkillMarketplace(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillMarketplace: SkillMarketplaceRecord;
     input: SkillMarketplaceInput;
   }) {
@@ -366,16 +375,24 @@ class SkillMarketplaceServiceImpl {
       });
     }
 
-    return await this.getSkillMarketplaceRecord({
+    let updated = await this.getSkillMarketplaceRecord({
       project: d.project,
       instance: d.instance,
       skillMarketplaceId: d.skillMarketplace.id
     });
+    await Fabric.fire('skill.marketplace.audit.updated:after', {
+      auditScope: d.auditScope,
+      skillMarketplace: updated,
+      previousSkillMarketplace: d.skillMarketplace
+    });
+
+    return updated;
   }
 
   async archiveSkillMarketplace(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillMarketplace: SkillMarketplaceRecord;
   }) {
     await withTransaction(async db => {
@@ -431,6 +448,11 @@ class SkillMarketplaceServiceImpl {
         unlinkFromSkillMarketplaceOid: d.skillMarketplace.oid
       });
     }
+
+    await Fabric.fire('skill.marketplace.audit.archived:after', {
+      auditScope: d.auditScope,
+      skillMarketplace: d.skillMarketplace
+    });
 
     return await this.getSkillMarketplaceRecord({
       project: d.project,

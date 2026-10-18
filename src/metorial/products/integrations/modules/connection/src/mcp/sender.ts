@@ -69,6 +69,9 @@ import {
   SUPPORTED_SESSIONLESS_VERSIONS
 } from './modern/types';
 
+// The idle sweeps expire after 2 minutes, so activity written at most every 30 s stays well clear.
+let PING_ACTIVITY_WRITE_INTERVAL_MS = 30_000;
+
 let Sentry = getSentry();
 
 let SERVER_CAPABILITIES = {
@@ -446,17 +449,23 @@ export class McpSender {
   }
 
   private async handlePingResponse(_id: ID) {
-    if (this.connection) {
-      await db.sessionConnection.updateMany({
-        where: { oid: this.connection.oid },
-        data: { lastPingAt: new Date(), lastActiveAt: new Date() }
-      });
-    }
+    let now = new Date();
+    let staleBefore = new Date(now.getTime() - PING_ACTIVITY_WRITE_INTERVAL_MS);
+    let isStale = { OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: staleBefore } }] };
 
-    await db.session.updateMany({
-      where: { oid: this.session.oid },
-      data: { lastActiveAt: new Date() }
-    });
+    await Promise.all([
+      this.connection
+        ? db.sessionConnection.updateMany({
+            where: { oid: this.connection.oid, ...isStale },
+            data: { lastPingAt: now, lastActiveAt: now }
+          })
+        : undefined,
+
+      db.session.updateMany({
+        where: { oid: this.session.oid, ...isStale },
+        data: { lastActiveAt: now }
+      })
+    ]);
 
     await this.control.sendControlMessage({
       type: 'ping_received'

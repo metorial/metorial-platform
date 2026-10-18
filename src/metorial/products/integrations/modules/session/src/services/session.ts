@@ -41,8 +41,12 @@ import {
   enrichSessions,
   finalizeSessionCreate
 } from '../lib/sessionEnrichment';
-import { sessionArchivedQueue, sessionUpdatedQueue } from '../queues/lifecycle/session';
-import { createSessionRecord, sessionInclude as include } from './_shared/createSession';
+import { sessionArchivedQueue } from '../queues/lifecycle/session';
+import {
+  createSessionRecord,
+  resolveSessionRecordProviders,
+  sessionInclude as include
+} from './_shared/createSession';
 import {
   assertInternalAdapterSupportedBySession,
   assertInternalSessionMutable,
@@ -352,19 +356,28 @@ class sessionServiceImpl {
   async createSessionInternal(
     d: { tenant: Tenant; environment: Environment } & CreateInternalSessionParams
   ) {
-    return withTransaction(async db => {
-      let adapter = d.adapter
-        ? await resolveInternalAdapter({
-            tenant: d.tenant,
-            environment: d.environment,
-            adapter: d.adapter
-          })
-        : null;
+    let adapter = d.adapter
+      ? await resolveInternalAdapter({
+          tenant: d.tenant,
+          environment: d.environment,
+          adapter: d.adapter
+        })
+      : null;
 
+    // Provider resolution can poll for versions and create default deployments/configs,
+    // so it runs before the transaction instead of holding it open.
+    let resolvedProviders = await resolveSessionRecordProviders({
+      tenant: d.tenant,
+      environment: d.environment,
+      providers: d.input.providers
+    });
+
+    return withTransaction(async db => {
       let session = await createSessionRecord({
         tenant: d.tenant,
         environment: d.environment,
         input: d.input,
+        resolvedProviders,
         isEphemeral: false,
         isInternal: !!adapter,
         adapterGlobalOid: adapter?.oid ?? null
@@ -442,10 +455,6 @@ class sessionServiceImpl {
         },
         include
       });
-
-      await addAfterTransactionHook(async () =>
-        sessionUpdatedQueue.add({ sessionId: session.id })
-      );
 
       return session;
     });

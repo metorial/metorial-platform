@@ -111,7 +111,7 @@ model SessionConnection {
 
   @@index([createdAt])
   @@index([lastActiveAt])
-  @@index([state])
+  @@index([state, lastActiveAt])
   @@index([status])
   @@index([isInternal])
   @@index([adapterGlobalOid])
@@ -119,4 +119,6 @@ model SessionConnection {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([sessionOid, mcpClientKey, lastActiveAt])
+  @@index([sessionOid, state])
+  @@index([tenantOid, createdAt])
 }

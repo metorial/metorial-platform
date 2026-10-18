@@ -79,6 +79,12 @@ vi.mock('@metorial/module-resource-actor', () => ({
       projectOid: 100n,
       organizationActorOid: 1n
     })),
+    getOrEnsureOrganizationActor: vi.fn(async () => ({
+      oid: 102n,
+      id: 'rac-organization',
+      projectOid: 100n,
+      organizationActorOid: 1n
+    })),
     ensureConsumerProfileActor: vi.fn(async () => ({
       oid: 103n,
       id: 'rac-profile',
@@ -822,6 +828,241 @@ describe('AuthenticationService', () => {
         authenticationService.authenticate({
           type: 'api_key',
           apiKey: 'pk_invalid_123',
+          context: mockContext
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+  });
+
+  describe('authenticateApiKey - instance consumer oauth tokens', () => {
+    let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org', name: 'Test Org' };
+    let mockActor = { id: 'actor-consumer', oid: 12n, organizationId: 'org-1' };
+    let mockProject = { id: 'proj-1', oid: 21n, name: 'Test Project' };
+    let mockInstance = { id: 'inst-1', oid: 2n, slug: 'test-instance', project: mockProject };
+    let mockPortal = { id: 'portal-1', oid: 33n, status: 'active' };
+    let mockUser = { id: 'user-1' };
+
+    let createConsumerSession = (
+      overrides: {
+        session?: Record<string, unknown>;
+        profile?: Record<string, unknown>;
+        surface?: Record<string, unknown>;
+      } = {}
+    ) => ({
+      oid: 77n,
+      id: 'csn_oauth',
+      tokenNonce: 'nonce-oauth',
+      expiresAt: new Date(Date.now() + 60_000),
+      loggedOutAt: null,
+      ...overrides.session,
+      consumerProfile: {
+        oid: 88n,
+        id: 'cop_1',
+        status: 'active',
+        email: 'consumer@example.com',
+        instanceOid: 2n,
+        surfaceOid: 22n,
+        accessTagOid: 11n,
+        personalConsumerGroupOid: 99n,
+        ssoGroupIds: [],
+        resourceActors: [],
+        ...overrides.profile,
+        surface: {
+          id: 'csf_1',
+          oid: 22n,
+          type: 'portal',
+          status: 'active',
+          instanceOid: 2n,
+          isInternal: false,
+          portal: mockPortal,
+          ...overrides.surface
+        }
+      }
+    });
+
+    let mockConsumerOAuthToken = (consumerSession: unknown) => {
+      let mockMachineAccess = {
+        type: 'instance_consumer',
+        organization: mockOrg,
+        actor: mockActor,
+        instance: mockInstance,
+        user: null
+      };
+      let oauthToken = {
+        id: 'oauth-token-consumer',
+        oauthAuthorization: {
+          subjectType: 'consumer',
+          consumerProfileOid: 88n,
+          scopes: ['consumer#instance.profile:read', 'organization.instance:read'],
+          user: mockUser,
+          machineAccess: mockMachineAccess,
+          consumerSession
+        }
+      };
+
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          type: 'oauth_token',
+          oauthToken
+        } as any
+      );
+
+      return { oauthToken, mockMachineAccess };
+    };
+
+    it('attaches the linked consumer session as restrictions.consumer', async () => {
+      let consumerSession = createConsumerSession();
+      let { oauthToken, mockMachineAccess } = mockConsumerOAuthToken(consumerSession);
+      mocks.db.consumerGroup.findMany.mockResolvedValue([
+        { oid: 101n, id: 'cog_1', accessTagOid: 12n, isDefault: true, ssoGroupIds: [] }
+      ]);
+
+      let result = await authenticationService.authenticate({
+        type: 'api_key',
+        apiKey: 'metorial_oa_consumer',
+        context: mockContext
+      });
+
+      expect(result.type).toBe('machine');
+      if (result.type !== 'machine' || result.restrictions.type !== 'instance') {
+        throw new Error('Expected instance machine auth');
+      }
+
+      expect(result.oauthToken).toEqual(oauthToken);
+      expect(result.machineAccess).toEqual(mockMachineAccess);
+      expect(result.user).toEqual(mockUser);
+      expect(result.auditScope).toEqual({
+        organizationOid: 1n,
+        instanceOid: 2n,
+        organizationActorOid: undefined,
+        actor: {
+          type: 'consumer_profile',
+          id: 'cop_1'
+        },
+        context: mockContext
+      });
+      expect(result.restrictions.resourceActor).toEqual(
+        expect.objectContaining({ id: 'rac-profile' })
+      );
+      expect(result.restrictions.consumer).toEqual(
+        expect.objectContaining({
+          consumerSurface: consumerSession.consumerProfile.surface,
+          consumerSession,
+          consumerProfile: consumerSession.consumerProfile,
+          accessTags: [12n],
+          portal: mockPortal
+        })
+      );
+      expect(result.orgScopes).toEqual(
+        expect.arrayContaining([
+          ...instancePublishableTokenScopes,
+          'consumer#instance.profile:read'
+        ])
+      );
+      expect(new Set(result.orgScopes).size).toBe(result.orgScopes.length);
+      expect(mocks.db.consumerSession.update).toHaveBeenCalledWith({
+        where: { oid: 77n },
+        data: { lastUsedAt: expect.any(Date) }
+      });
+    });
+
+    it('rejects tokens whose consumer session has been logged out', async () => {
+      mockConsumerOAuthToken(createConsumerSession({ session: { loggedOutAt: new Date() } }));
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_oa_consumer',
+          context: mockContext
+        })
+      ).rejects.toThrow(ServiceError);
+      expect(mocks.db.consumerSession.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects tokens without a linked consumer session', async () => {
+      mockConsumerOAuthToken(null);
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_oa_consumer',
+          context: mockContext
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('rejects sessions on non-portal surfaces', async () => {
+      mockConsumerOAuthToken(createConsumerSession({ surface: { type: 'cli' } }));
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_oa_consumer',
+          context: mockContext
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('rejects sessions for a surface in another instance', async () => {
+      mockConsumerOAuthToken(createConsumerSession({ surface: { instanceOid: 99n } }));
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_oa_consumer',
+          context: mockContext
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('rejects deleted consumer profiles', async () => {
+      mockConsumerOAuthToken(createConsumerSession({ profile: { status: 'deleted' } }));
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_oa_consumer',
+          context: mockContext
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('rejects an additional consumer session client secret', async () => {
+      mockConsumerOAuthToken(createConsumerSession());
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_oa_consumer',
+          context: mockContext,
+          consumerSessionClientSecret: 'consumer-token'
+        })
+      ).rejects.toThrow(ServiceError);
+      expect(mocks.consumerTokens.verify).not.toHaveBeenCalled();
+    });
+
+    it('rejects instance consumer machine access used through an api key', async () => {
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          type: 'api_key',
+          secret: {
+            apiKey: {
+              id: 'key-1',
+              machineAccess: {
+                type: 'instance_consumer',
+                organization: mockOrg,
+                actor: mockActor,
+                instance: mockInstance
+              }
+            }
+          }
+        } as any
+      );
+
+      await expect(
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_sk_consumer',
           context: mockContext
         })
       ).rejects.toThrow(ServiceError);

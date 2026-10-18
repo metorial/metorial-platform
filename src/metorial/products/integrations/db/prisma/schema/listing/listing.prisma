@@ -71,7 +71,7 @@ model ProviderListing {
   @@index([rank])
   @@index([status])
   @@index([isDeprecated])
-  @@index([aliases])
+  @@index([aliases], type: Gin)
 }
 
 model ProviderListingUpdate {

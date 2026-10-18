@@ -53,4 +53,5 @@ model MagicMcpGroupToken {
   createdAt DateTime @default(now())
 
   @@unique([magicMcpGroupOid, magicMcpTokenOid])
+  @@index([magicMcpTokenOid])
 }

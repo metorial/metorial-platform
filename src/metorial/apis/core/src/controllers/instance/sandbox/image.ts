@@ -126,6 +126,7 @@ export let sandboxImageController = Controller.create(
       .output(sandboxImagePresenter)
       .do(async ctx => {
         let image = await sandboxImageService.create({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           input: { metadata: ctx.body.metadata, name: ctx.body.name }
         });
@@ -154,6 +155,7 @@ export let sandboxImageController = Controller.create(
       .output(sandboxImagePresenter)
       .do(async ctx => {
         let image = await sandboxImageService.update({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           image: ctx.image,
           input: { metadata: ctx.body.metadata, name: ctx.body.name }
@@ -171,6 +173,7 @@ export let sandboxImageController = Controller.create(
       .output(sandboxImagePresenter)
       .do(async ctx => {
         let image = await sandboxImageService.delete({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           image: ctx.image
         });
@@ -325,6 +328,7 @@ export let sandboxImageController = Controller.create(
         });
 
         let build = await sandboxImageBuildService.create({
+          auditScope: ctx.auditScope,
           instance: ctx.instance,
           organization: ctx.organization,
           image: ctx.image,

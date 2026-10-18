@@ -31,6 +31,12 @@ let fadeOut = keyframes`
   }
 `;
 
+let pendingPulse = keyframes`
+  50% {
+    background: ${theme.colors.gray500};
+  }
+`;
+
 let Wrapper = styled('div')`
   display: flex;
   align-items: center;
@@ -84,6 +90,11 @@ let Root = styled(RadixCheckbox.Root)`
       height: 30px;
     }
   }
+
+  &.pending::before {
+    background: ${theme.colors.gray550};
+    animation: ${pendingPulse} 1.4s ease-in-out infinite;
+  }
 `;
 
 let Indicator = styled(RadixCheckbox.Indicator)`
@@ -112,7 +123,8 @@ export let Checkbox = ({
   label,
   disabled,
   hideLabel,
-  readOnly
+  readOnly,
+  pending
 }: {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
@@ -121,6 +133,7 @@ export let Checkbox = ({
   disabled?: boolean;
   hideLabel?: boolean;
   readOnly?: boolean;
+  pending?: boolean;
 }) => {
   let [animate, setAnimate] = useState(false);
   let [initialValue] = useState(() => checked);
@@ -134,7 +147,7 @@ export let Checkbox = ({
     <>
       <Wrapper style={{ cursor: readOnly ? 'default' : undefined }}>
         <Root
-          className={clsx({ disabled, readonly: readOnly })}
+          className={clsx({ disabled, readonly: readOnly, pending })}
           id={id}
           checked={checked}
           onCheckedChange={readOnly ? undefined : onCheckedChange}

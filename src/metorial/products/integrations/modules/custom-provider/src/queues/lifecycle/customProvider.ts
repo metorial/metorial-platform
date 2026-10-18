@@ -4,13 +4,14 @@ import {
   reconcileSkillProviderLinksForProviderQueue,
   reconcileSkillProviderLinksQueue
 } from '@metorial/module-skill';
-import { db } from '@metorial-subspace/db';
+import { db, withTransaction } from '@metorial-subspace/db';
 import { providerAuthConfigArchivedQueue } from '@metorial-subspace/module-auth/src/queues/lifecycle/providerAuthConfig';
 import { providerAuthCredentialsArchivedQueue } from '@metorial-subspace/module-auth/src/queues/lifecycle/providerAuthCredentials';
 import { providerConfigArchivedQueue } from '@metorial-subspace/module-deployment/src/queues/lifecycle/providerConfig';
 import { providerConfigVaultArchivedQueue } from '@metorial-subspace/module-deployment/src/queues/lifecycle/providerConfigVault';
 import { firewallAssignmentDeletedQueue } from '@metorial-subspace/module-enclave/src/queues/lifecycle/firewallAssignment';
 import { identityCredentialDeletedQueue } from '@metorial-subspace/module-identity/src/queues/lifecycle/identityCredential';
+import { syncMagicMcpServerProviderRows } from '@metorial-subspace/module-integration';
 import { listingUpdatedQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/listing';
 import { providerUpdatedQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/provider';
 import { indexProviderDeploymentQueue } from '@metorial-subspace/module-deployment/src/queues/search/providerDeployment';
@@ -159,13 +160,17 @@ export let customProviderArchiveIntegrationProvidersManyQueueProcessor =
     });
     if (integrationProviders.length === 0) return;
 
-    let archivedAt = new Date();
-    await db.integrationProvider.updateMany({
-      where: {
-        oid: { in: integrationProviders.map(integrationProvider => integrationProvider.oid) },
-        status: 'active'
-      },
-      data: { status: 'archived', archivedAt }
+    let integrationProviderOids = integrationProviders.map(
+      integrationProvider => integrationProvider.oid
+    );
+
+    await withTransaction(async db => {
+      await db.integrationProvider.updateMany({
+        where: { oid: { in: integrationProviderOids }, status: 'active' },
+        data: { status: 'archived', archivedAt: new Date() }
+      });
+
+      await syncMagicMcpServerProviderRows({ integrationProviderOids });
     });
 
     await reconcileSkillProviderLinksForIntegrationProviderQueue.addMany(
@@ -217,19 +222,14 @@ export let customProviderArchiveMagicMcpServerProvidersManyQueueProcessor =
       },
       orderBy: { id: 'asc' },
       take: 100,
-      select: { id: true, oid: true }
+      select: { id: true, magicMcpServerBackingOid: true }
     });
     if (magicMcpServerProviders.length === 0) return;
 
-    let archivedAt = new Date();
-    await db.magicMcpServerProvider.updateMany({
-      where: {
-        oid: {
-          in: magicMcpServerProviders.map(magicMcpServerProvider => magicMcpServerProvider.oid)
-        },
-        status: { in: ['pending', 'active'] }
-      },
-      data: { status: 'archived', archivedAt }
+    await syncMagicMcpServerProviderRows({
+      magicMcpServerBackingOids: magicMcpServerProviders.map(
+        magicMcpServerProvider => magicMcpServerProvider.magicMcpServerBackingOid
+      )
     });
 
     let lastMagicMcpServerProvider =

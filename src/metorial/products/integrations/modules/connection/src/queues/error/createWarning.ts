@@ -15,17 +15,17 @@ export let createWarningQueueProcessor = createWarningQueue.process(async data =
   });
   if (!warning) throw new QueueRetryError();
 
-  if (!warning.session.hasErrors) {
+  if (!warning.session.hasWarnings) {
     await db.session.updateMany({
-      where: { oid: warning.sessionOid },
-      data: { hasErrors: true }
+      where: { oid: warning.sessionOid, hasWarnings: false },
+      data: { hasWarnings: true }
     });
   }
 
-  if (warning.connection && !warning.connection.hasErrors) {
+  if (warning.connection && !warning.connection.hasWarnings) {
     await db.sessionConnection.updateMany({
-      where: { oid: warning.connection.oid },
-      data: { hasErrors: true }
+      where: { oid: warning.connection.oid, hasWarnings: false },
+      data: { hasWarnings: true }
     });
   }
 

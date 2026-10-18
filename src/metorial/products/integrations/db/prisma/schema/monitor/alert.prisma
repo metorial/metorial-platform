@@ -48,6 +48,7 @@ model MonitorAlert {
   @@index([resolvedAt])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([protoGuardAlertOid])
 }
 
 enum MonitorAlertEventType {

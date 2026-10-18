@@ -12,6 +12,7 @@ export let v1OAuthAuthorizationPresenter = Presenter.create(oauthAuthorizationTy
     id: oauthAuthorization.id,
     status: oauthAuthorization.status,
     type: oauthAuthorization.type,
+    subject_type: oauthAuthorization.subjectType,
     scopes: oauthAuthorization.scopes.map(scope => {
       let definition = getScopeDefinition(scope as Scope);
 
@@ -27,6 +28,9 @@ export let v1OAuthAuthorizationPresenter = Presenter.create(oauthAuthorizationTy
     oauth_installation_id: oauthAuthorization.oauthInstallation.id,
     user_id: oauthAuthorization.user?.id ?? null,
     organization_member_id: oauthAuthorization.organizationMember?.id ?? null,
+    consumer_profile_id: oauthAuthorization.consumerProfile?.id ?? null,
+    portal_id: oauthAuthorization.consumerProfile?.surface.portal?.id ?? null,
+    instance_id: oauthAuthorization.instance?.id ?? null,
 
     oauth_application: await v1OAuthApplicationPresenter
       .present(
@@ -70,6 +74,11 @@ export let v1OAuthAuthorizationPresenter = Presenter.create(oauthAuthorizationTy
       type: v.enumOf(['user', 'server_side'], {
         name: 'type',
         description: 'OAuth authorization type'
+      }),
+      subject_type: v.enumOf(['organization_member', 'consumer'], {
+        name: 'subject_type',
+        description:
+          'Whether this authorization acts as an organization member or as a portal consumer'
       }),
       scopes: v.array(
         v.object({
@@ -118,6 +127,29 @@ export let v1OAuthAuthorizationPresenter = Presenter.create(oauthAuthorizationTy
           name: 'organization_member_id',
           description: 'Organization member identifier when this is a user authorization',
           examples: ['mem_4sTuVwXyZaBcDeFg']
+        })
+      ),
+      consumer_profile_id: v.nullable(
+        v.string({
+          name: 'consumer_profile_id',
+          description:
+            'Consumer profile this authorization acts as when the subject is a consumer',
+          examples: ['cop_4sTuVwXyZaBcDeFg']
+        })
+      ),
+      portal_id: v.nullable(
+        v.string({
+          name: 'portal_id',
+          description: 'Portal of the consumer profile when the subject is a consumer',
+          examples: ['ptl_4sTuVwXyZaBcDeFg']
+        })
+      ),
+      instance_id: v.nullable(
+        v.string({
+          name: 'instance_id',
+          description:
+            'Instance this authorization is bound to when the subject is a consumer',
+          examples: ['ins_4sTuVwXyZaBcDeFg']
         })
       ),
       oauth_application: v1OAuthApplicationPresenter.schema,

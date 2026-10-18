@@ -1,8 +1,15 @@
 import { db } from '@metorial-subspace/db';
 import type { AuditActor, AuditScope } from '@metorial/audit-scope';
+import { LRUCache } from 'lru-cache';
 
-let organizationOidByInstanceOid = new Map<bigint, bigint>();
-let organizationOidByProjectOid = new Map<bigint, bigint>();
+let ORGANIZATION_OID_CACHE_MAX_ENTRIES = 10_000;
+
+let organizationOidByInstanceOid = new LRUCache<bigint, bigint>({
+  max: ORGANIZATION_OID_CACHE_MAX_ENTRIES
+});
+let organizationOidByProjectOid = new LRUCache<bigint, bigint>({
+  max: ORGANIZATION_OID_CACHE_MAX_ENTRIES
+});
 
 export let resolveOrganizationOidForInstance = async (instanceOid: bigint) => {
   let cached = organizationOidByInstanceOid.get(instanceOid);

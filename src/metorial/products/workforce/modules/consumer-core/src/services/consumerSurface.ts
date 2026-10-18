@@ -20,7 +20,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
-import { apiKeyService } from '@metorial/module-machine-access';
+import { apiKeyService, machineAccessAuthService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import { normalizeConsumerSurfaceEmailWhitelist } from '../lib/consumerSurfaceEmailWhitelist';
@@ -228,7 +228,7 @@ class ConsumerSurfaceServiceImpl {
     publishableApiKeyOid: bigint;
     consumerSurfaceOid?: bigint;
   }) {
-    return await withTransaction(async db => {
+    await withTransaction(async db => {
       let now = new Date();
 
       if (d.consumerSurfaceOid) {
@@ -275,6 +275,10 @@ class ConsumerSurfaceServiceImpl {
           }
         });
       }
+    });
+
+    await machineAccessAuthService.clearApiKeyAuthCache({
+      apiKeyOid: d.publishableApiKeyOid
     });
   }
 

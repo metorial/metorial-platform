@@ -96,15 +96,32 @@ export let finalizeSessionCreate = async <T extends EnrichableSession>(d: {
   instance: Instance;
   session: T;
 }): Promise<T & EnrichedSessionFields> => {
-  await sessionClientSecretReferenceService.createForSession({
-    instance: d.instance,
-    sessionId: d.session.id
-  });
+  let [{ clientSecret }, magicMcpConnections] = await Promise.all([
+    sessionClientSecretReferenceService.createForSession({
+      instance: d.instance,
+      sessionId: d.session.id
+    }),
+    metorialDb.magicMcpSession.findMany({
+      where: {
+        instanceOid: d.instance.oid,
+        subspaceSessionId: d.session.id
+      },
+      include: {
+        instance: true,
+        magicMcpEndpoint: true,
+        magicMcpServer: true
+      }
+    })
+  ]);
 
-  return await enrichSession({
-    instance: d.instance,
-    session: d.session
-  });
+  let magicMcpSession = magicMcpConnections.at(-1) ?? null;
+
+  return {
+    ...d.session,
+    clientSecret,
+    magicMcpServer: magicMcpSession?.magicMcpServer ?? null,
+    magicMcpSession
+  };
 };
 
 export let assertMagicMcpSessionMutable = async (d: {

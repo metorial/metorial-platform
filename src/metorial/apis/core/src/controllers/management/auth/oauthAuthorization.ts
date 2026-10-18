@@ -57,7 +57,13 @@ export let oauthAuthorizationManagementController = Controller.create(
             }),
             app_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by OAuth application ID(s)'
-            })
+            }),
+            subject_type: v.optional(
+              v.enumOf(['organization_member', 'consumer'], {
+                description:
+                  'Filter by whether authorizations act as organization members or as portal consumers'
+              })
+            )
           })
         )
       )
@@ -66,7 +72,8 @@ export let oauthAuthorizationManagementController = Controller.create(
           organization: ctx.organization,
           statuses: normalizeArrayParam(ctx.query.status),
           oauthInstallationIds: normalizeArrayParam(ctx.query.installation_id),
-          oauthApplicationIds: normalizeArrayParam(ctx.query.app_id)
+          oauthApplicationIds: normalizeArrayParam(ctx.query.app_id),
+          subjectType: ctx.query.subject_type
         });
 
         let list = await paginator.run(ctx.query);

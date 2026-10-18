@@ -57,68 +57,71 @@ class tenantServiceImpl {
   }) {
     try {
       let existingTenant = await db.tenant.findUnique({
-        where: { identifier: d.input.identifier },
-        select: {
-          id: true,
-          logRetentionInDays: true,
-          dataRetentionLevel: true,
-          collectErrors: true,
-          storeToolCallAttachments: true,
-          disableCallbacks: true
-        }
+        where: { identifier: d.input.identifier }
       });
 
-      let tenant = await db.tenant.upsert({
-        where: { identifier: d.input.identifier },
-        update: {
-          name: d.input.name,
-          resourceTenantId: d.input.resourceTenantId,
-          resourceTenantIdentifier: d.input.resourceTenantIdentifier,
-          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
-          isWhitelabel: d.input.isWhitelabel,
-          logRetentionInDays: d.input.logRetentionInDays,
-          messageProcessingTimeoutMs: d.input.messageProcessingTimeoutMs,
-          enforceSessionExpiry: d.input.enforceSessionExpiry,
-          allowAuthConfigExport: d.input.allowAuthConfigExport,
-          allowAuthConfigImport: d.input.allowAuthConfigImport,
-          onlyAllowOAuthAuthMethods: d.input.onlyAllowOAuthAuthMethods,
-          collectOperationDescriptionForToolCalls:
-            d.input.collectOperationDescriptionForToolCalls,
-          useIntegrationNamesForSessionProviderNameTemplates:
-            d.input.useIntegrationNamesForSessionProviderNameTemplates,
-          dataRetentionLevel: d.input.dataRetentionLevel,
-          storeToolCallAttachments: d.input.storeToolCallAttachments,
-          collectErrors: d.input.collectErrors,
-          disableCallbacks: d.input.disableCallbacks,
-          reducedSubprocessors: d.input.reducedSubprocessors
-        },
-        create: {
-          ...getId('tenant'),
-          name: d.input.name,
-          identifier: d.input.identifier,
-          resourceTenantId: d.input.resourceTenantId,
-          resourceTenantIdentifier: d.input.resourceTenantIdentifier,
-          onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
-          isWhitelabel: d.input.isWhitelabel,
-          logRetentionInDays: d.input.logRetentionInDays ?? 30,
-          messageProcessingTimeoutMs: d.input.messageProcessingTimeoutMs ?? 30000,
-          enforceSessionExpiry: d.input.enforceSessionExpiry ?? false,
-          allowAuthConfigExport: d.input.allowAuthConfigExport ?? false,
-          allowAuthConfigImport: d.input.allowAuthConfigImport ?? false,
-          onlyAllowOAuthAuthMethods: d.input.onlyAllowOAuthAuthMethods ?? false,
-          collectOperationDescriptionForToolCalls:
-            d.input.collectOperationDescriptionForToolCalls ?? true,
-          useIntegrationNamesForSessionProviderNameTemplates:
-            d.input.useIntegrationNamesForSessionProviderNameTemplates ?? false,
-          dataRetentionLevel: d.input.dataRetentionLevel ?? 'full',
-          storeToolCallAttachments: d.input.storeToolCallAttachments ?? true,
-          collectErrors: d.input.collectErrors ?? true,
-          disableCallbacks: d.input.disableCallbacks ?? false,
-          reducedSubprocessors: d.input.reducedSubprocessors ?? false,
+      let tenantUpdate = {
+        name: d.input.name,
+        resourceTenantId: d.input.resourceTenantId,
+        resourceTenantIdentifier: d.input.resourceTenantIdentifier,
+        onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
+        isWhitelabel: d.input.isWhitelabel,
+        logRetentionInDays: d.input.logRetentionInDays,
+        messageProcessingTimeoutMs: d.input.messageProcessingTimeoutMs,
+        enforceSessionExpiry: d.input.enforceSessionExpiry,
+        allowAuthConfigExport: d.input.allowAuthConfigExport,
+        allowAuthConfigImport: d.input.allowAuthConfigImport,
+        onlyAllowOAuthAuthMethods: d.input.onlyAllowOAuthAuthMethods,
+        collectOperationDescriptionForToolCalls:
+          d.input.collectOperationDescriptionForToolCalls,
+        useIntegrationNamesForSessionProviderNameTemplates:
+          d.input.useIntegrationNamesForSessionProviderNameTemplates,
+        dataRetentionLevel: d.input.dataRetentionLevel,
+        storeToolCallAttachments: d.input.storeToolCallAttachments,
+        collectErrors: d.input.collectErrors,
+        disableCallbacks: d.input.disableCallbacks,
+        reducedSubprocessors: d.input.reducedSubprocessors
+      };
 
-          urlKey: generatePlainId(10).toLowerCase()
-        }
-      });
+      let isTenantUnchanged =
+        !!existingTenant &&
+        Object.entries(tenantUpdate).every(
+          ([key, value]) => value === undefined || (existingTenant as any)[key] === value
+        );
+
+      let tenant =
+        isTenantUnchanged && existingTenant
+          ? existingTenant
+          : await db.tenant.upsert({
+              where: { identifier: d.input.identifier },
+              update: tenantUpdate,
+              create: {
+                ...getId('tenant'),
+                name: d.input.name,
+                identifier: d.input.identifier,
+                resourceTenantId: d.input.resourceTenantId,
+                resourceTenantIdentifier: d.input.resourceTenantIdentifier,
+                onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
+                isWhitelabel: d.input.isWhitelabel,
+                logRetentionInDays: d.input.logRetentionInDays ?? 30,
+                messageProcessingTimeoutMs: d.input.messageProcessingTimeoutMs ?? 30000,
+                enforceSessionExpiry: d.input.enforceSessionExpiry ?? false,
+                allowAuthConfigExport: d.input.allowAuthConfigExport ?? false,
+                allowAuthConfigImport: d.input.allowAuthConfigImport ?? false,
+                onlyAllowOAuthAuthMethods: d.input.onlyAllowOAuthAuthMethods ?? false,
+                collectOperationDescriptionForToolCalls:
+                  d.input.collectOperationDescriptionForToolCalls ?? true,
+                useIntegrationNamesForSessionProviderNameTemplates:
+                  d.input.useIntegrationNamesForSessionProviderNameTemplates ?? false,
+                dataRetentionLevel: d.input.dataRetentionLevel ?? 'full',
+                storeToolCallAttachments: d.input.storeToolCallAttachments ?? true,
+                collectErrors: d.input.collectErrors ?? true,
+                disableCallbacks: d.input.disableCallbacks ?? false,
+                reducedSubprocessors: d.input.reducedSubprocessors ?? false,
+
+                urlKey: generatePlainId(10).toLowerCase()
+              }
+            });
 
       if (d.input.projectOid !== undefined) {
         await linkTenantToProjectMirror({ tenant, projectOid: d.input.projectOid });
@@ -169,26 +172,48 @@ class tenantServiceImpl {
           tenantOid: tenant.oid,
           identifier: { in: inputEnvironmentIdentifiers }
         },
-        select: { identifier: true }
+        select: {
+          identifier: true,
+          name: true,
+          resourceGroupId: true,
+          resourceGroupIdentifier: true
+        }
       });
-      let existingEnvironmentIdentifiers = new Set(
-        existingEnvironments.map(environment => environment.identifier)
+      let existingEnvironmentsByIdentifier = new Map(
+        existingEnvironments.map(environment => [environment.identifier, environment] as const)
+      );
+      let existingEnvironmentIdentifiers = new Set(existingEnvironmentsByIdentifier.keys());
+
+      let missingEnvironments = d.input.environments.filter(
+        env => !existingEnvironmentIdentifiers.has(env.identifier)
       );
 
-      await db.environment.createMany({
-        skipDuplicates: true,
-        data: d.input.environments.map(env => ({
-          ...getId('environment'),
-          tenantOid: tenant.oid,
-          name: env.name,
-          identifier: env.identifier,
-          type: env.type,
-          resourceGroupId: env.resourceGroupId,
-          resourceGroupIdentifier: env.resourceGroupIdentifier
-        }))
-      });
+      if (missingEnvironments.length > 0) {
+        await db.environment.createMany({
+          skipDuplicates: true,
+          data: missingEnvironments.map(env => ({
+            ...getId('environment'),
+            tenantOid: tenant.oid,
+            name: env.name,
+            identifier: env.identifier,
+            type: env.type,
+            resourceGroupId: env.resourceGroupId,
+            resourceGroupIdentifier: env.resourceGroupIdentifier
+          }))
+        });
+      }
 
       for (let environment of d.input.environments) {
+        let existing = existingEnvironmentsByIdentifier.get(environment.identifier);
+        if (
+          existing &&
+          existing.name === environment.name &&
+          existing.resourceGroupId === environment.resourceGroupId &&
+          existing.resourceGroupIdentifier === environment.resourceGroupIdentifier
+        ) {
+          continue;
+        }
+
         await db.environment.updateMany({
           where: {
             tenantOid: tenant.oid,

@@ -42,6 +42,7 @@ let createMagicMcpSecret = () =>
 
 let include = {
   consumerTokens: {
+    orderBy: { createdAt: 'asc' },
     include: {
       consumer: true,
       consumerProfile: true

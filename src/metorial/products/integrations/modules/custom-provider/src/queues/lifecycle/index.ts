@@ -41,3 +41,27 @@ export let lifecycleQueues = combineQueueProcessors([
 
   customProviderDeploymentCreatedQueueProcessor
 ]);
+
+export let lifecycleSubspaceQueues = combineQueueProcessors([
+  customProviderCreatedQueueProcessor,
+  customProviderUpdatedQueueProcessor,
+  customProviderDeploymentCreatedQueueProcessor
+]);
+
+export let lifecycleFederationQueues = combineQueueProcessors([
+  customProviderArchivedQueueProcessor,
+  customProviderArchiveIntegrationProvidersManyQueueProcessor,
+  customProviderArchiveMagicMcpServerProvidersManyQueueProcessor,
+  customProviderArchiveDeploymentsManyQueueProcessor,
+  customProviderArchiveConfigsManyQueueProcessor,
+  customProviderArchiveAuthConfigsManyQueueProcessor,
+  customProviderArchiveAuthCredentialsManyQueueProcessor,
+  customProviderArchiveConfigVaultsManyQueueProcessor,
+  customProviderArchiveProviderSetupSessionsManyQueueProcessor,
+  customProviderArchiveIdentityCredentialsManyQueueProcessor,
+  customProviderArchiveSessionProvidersManyQueueProcessor,
+  customProviderArchiveSessionTemplateProvidersManyQueueProcessor,
+  customProviderDeleteFirewallAssignmentsManyQueueProcessor,
+  customProviderArchiveSkillResourcesManyQueueProcessor,
+  customProviderArchiveMonitorsManyQueueProcessor
+]);

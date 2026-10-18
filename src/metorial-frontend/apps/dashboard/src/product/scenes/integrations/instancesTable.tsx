@@ -108,16 +108,9 @@ let integrationInstancesTable = new DashboardTable<
       isDefault: true,
       header: 'Name',
       render: (integrationInstance: IntegrationInstance) => (
-        <div>
-          <Text size="2" weight="strong">
-            {integrationInstance.name}
-          </Text>
-          {integrationInstance.description && (
-            <Text size="1" color="gray600">
-              {integrationInstance.description}
-            </Text>
-          )}
-        </div>
+        <Text size="2" weight="strong">
+          {integrationInstance.name}
+        </Text>
       )
     },
     {
@@ -125,7 +118,10 @@ let integrationInstancesTable = new DashboardTable<
       isDefault: true,
       header: 'Providers',
       render: (integrationInstance: IntegrationInstance) => (
-        <Text size="2">{integrationInstance.providers?.length ?? 0} providers</Text>
+        <Text size="2">
+          {integrationInstance.providers?.length ?? 0} provider
+          {integrationInstance.providers?.length === 1 ? '' : 's'}
+        </Text>
       )
     },
     {

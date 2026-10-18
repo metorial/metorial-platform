@@ -1,68 +1,41 @@
 import { db } from '@metorial/db';
 import { magicMcpEndpointBackingService } from '@metorial-subspace/module-integration';
 import { createQueue } from '@metorial/queue';
-import {
-  ensureMagicMcpEndpointBacking,
-  MAGIC_MCP_BACKING_READY_WORKER_ATTEMPTS,
-  waitForMagicMcpEndpointBackingReady
-} from '../../lib/backing';
+import { ensureMagicMcpEndpointBacking } from '../../lib/backing';
+
+let loadActiveMagicMcpEndpoint = async (magicMcpEndpointId: string) => {
+  let magicMcpEndpoint = await db.magicMcpEndpoint.findUnique({
+    where: { id: magicMcpEndpointId },
+    include: { instance: true }
+  });
+  if (!magicMcpEndpoint || magicMcpEndpoint.status !== 'active') return null;
+
+  return magicMcpEndpoint;
+};
+
+// Backings are applied inline by the endpoint service. This only finishes jobs enqueued by
+// the previous queue-driven flow, which left the core row unbacked or marked reconciling.
+let ensurePendingMagicMcpEndpointBacking = async (magicMcpEndpointId: string) => {
+  let magicMcpEndpoint = await loadActiveMagicMcpEndpoint(magicMcpEndpointId);
+  if (!magicMcpEndpoint) return;
+  if (magicMcpEndpoint.hasSubspaceBacking && !magicMcpEndpoint.isSubspaceBackingReconciling) {
+    return;
+  }
+
+  await ensureMagicMcpEndpointBacking({
+    instance: magicMcpEndpoint.instance,
+    endpoint: magicMcpEndpoint
+  });
+};
 
 export let magicMcpEndpointCreatedQueue = createQueue<{ magicMcpEndpointId: string }>({
   name: 'mgc/lc/endpoint/created',
   workerOpts: { concurrency: 10 }
 });
 
-let ensureQueuedMagicMcpEndpointBacking = async (magicMcpEndpointId: string) => {
-  let magicMcpEndpoint = await db.magicMcpEndpoint.findUnique({
-    where: { id: magicMcpEndpointId },
-    include: {
-      consumerProfile: true,
-      consumerIntegrationEndpoints: {
-        include: {
-          consumer: true,
-          consumerProfile: true
-        }
-      },
-      servers: {
-        include: {
-          magicMcpServer: {
-            include: {
-              aliases: true,
-              subspaceSession: true
-            }
-          }
-        }
-      },
-      subspaceSession: true,
-      skillPlugin: true,
-      instance: true
-    }
-  });
-  if (!magicMcpEndpoint || magicMcpEndpoint.status !== 'active') return;
-
-  await ensureMagicMcpEndpointBacking({
-    instance: magicMcpEndpoint.instance,
-    endpoint: magicMcpEndpoint,
-    deferReconcile: true
-  });
-
-  let latest = await waitForMagicMcpEndpointBackingReady({
-    instance: magicMcpEndpoint.instance,
-    endpoint: magicMcpEndpoint,
-    attempts: MAGIC_MCP_BACKING_READY_WORKER_ATTEMPTS
-  });
-
-  if (latest?.isSubspaceBackingReconciling) {
-    await db.magicMcpEndpoint.update({
-      where: { oid: latest.oid },
-      data: { isSubspaceBackingReconciling: false }
-    });
-  }
-};
-
 export let magicMcpEndpointCreatedQueueProcessor = magicMcpEndpointCreatedQueue.process(
   async data => {
-    await ensureQueuedMagicMcpEndpointBacking(data.magicMcpEndpointId);
+    await ensurePendingMagicMcpEndpointBacking(data.magicMcpEndpointId);
   }
 );
 
@@ -73,7 +46,13 @@ export let magicMcpEndpointUpdatedQueue = createQueue<{ magicMcpEndpointId: stri
 
 export let magicMcpEndpointUpdatedQueueProcessor = magicMcpEndpointUpdatedQueue.process(
   async data => {
-    await ensureQueuedMagicMcpEndpointBacking(data.magicMcpEndpointId);
+    let magicMcpEndpoint = await loadActiveMagicMcpEndpoint(data.magicMcpEndpointId);
+    if (!magicMcpEndpoint) return;
+
+    await ensureMagicMcpEndpointBacking({
+      instance: magicMcpEndpoint.instance,
+      endpoint: magicMcpEndpoint
+    });
   }
 );
 

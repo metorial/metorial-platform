@@ -223,6 +223,27 @@ class ResourceActorServiceImpl {
     });
   }
 
+  async getOrEnsureOrganizationActor(
+    d: ActorProject & {
+      organizationActor: { oid: bigint; id: string };
+    }
+  ) {
+    let existing = await db.resourceActor.findUnique({
+      where: {
+        projectOid_identifier: {
+          projectOid: d.project.oid,
+          identifier: `mte-oac-${d.organizationActor.id}`
+        }
+      }
+    });
+    if (existing) return existing;
+
+    return await this.ensureOrganizationActor({
+      project: d.project,
+      organizationActorOid: d.organizationActor.oid
+    });
+  }
+
   async ensureConsumerProfileActor(
     d: ActorProject & {
       consumerProfileOid?: bigint;

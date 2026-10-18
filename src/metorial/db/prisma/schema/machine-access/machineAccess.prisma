@@ -2,6 +2,7 @@ enum MachineAccessType {
   organization_management
   instance_secret
   instance_publishable
+  instance_consumer
 }
 
 enum MachineAccessStatus {

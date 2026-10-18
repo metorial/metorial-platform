@@ -41,9 +41,9 @@ class AccessService {
     );
     if (includedActor) return includedActor;
 
-    return await resourceActorService.ensureOrganizationActor({
+    return await resourceActorService.getOrEnsureOrganizationActor({
       project: d.project,
-      organizationActorOid: d.actor.oid
+      organizationActor: d.actor
     });
   }
 

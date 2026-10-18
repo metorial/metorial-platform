@@ -23,3 +23,16 @@ export let syncQueues = combineQueueProcessors([
   syncOAuthSetupsCron,
   syncShuttleVersionQueueProcessor
 ]);
+
+export let syncSubspaceQueues = combineQueueProcessors([
+  syncAuthConfigEventsQueueProcessor,
+  syncAuthConfigEventQueueProcessor,
+  syncAuthConfigEventsCron,
+  syncChangeNotificationsQueueProcessor,
+  syncChangeNotificationsCron,
+  syncOAuthSetupsQueueProcessor,
+  syncOAuthSetupQueueProcessor,
+  syncOAuthSetupsCron
+]);
+
+export let syncFederationQueues = combineQueueProcessors([syncShuttleVersionQueueProcessor]);
