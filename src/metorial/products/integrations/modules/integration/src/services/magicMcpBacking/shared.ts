@@ -32,6 +32,10 @@ let magicMcpBackingLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+// An upsert holds the lock for a whole transaction, so concurrent upserts of the same backing
+// (e.g. endpoints sharing a server) legitimately wait longer than the 5s default.
+let MAGIC_MCP_BACKING_LOCK_ACQUISITION_TIMEOUT_MS = 20_000;
+
 export let withMagicMcpBackingLock = async <T>(
   keys: string | string[],
   cb: () => Promise<T>
@@ -42,7 +46,10 @@ export let withMagicMcpBackingLock = async <T>(
     let key = sortedKeys[idx];
     if (!key) return await cb();
 
-    return await magicMcpBackingLock.usingLock(key, async () => await run(idx + 1));
+    return await magicMcpBackingLock.usingLock(key, async () => await run(idx + 1), {
+      acquisitionTimeoutMs: MAGIC_MCP_BACKING_LOCK_ACQUISITION_TIMEOUT_MS,
+      retryCount: 100
+    });
   };
 
   return await run(0);
