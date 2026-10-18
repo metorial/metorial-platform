@@ -3,6 +3,7 @@ import {
   diag,
   DiagConsoleLogger,
   DiagLogLevel,
+  SpanStatusCode,
   trace
 } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
@@ -21,6 +22,7 @@ import {
   ParentBasedSampler,
   TraceIdRatioBasedSampler
 } from '@opentelemetry/sdk-trace-base';
+import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
@@ -65,8 +67,49 @@ let getTraceSampleRate = () => {
     return configuredRate;
   }
 
-  return 0.1;
+  return 0.01;
 };
+
+let getPrismaSpanMinDurationMs = () => {
+  let configuredDuration = Number(process.env.OTEL_PRISMA_SPAN_MIN_DURATION_MS);
+
+  if (Number.isFinite(configuredDuration) && configuredDuration >= 0) {
+    return configuredDuration;
+  }
+
+  return 100;
+};
+
+let getSpanDurationMs = (span: ReadableSpan) => {
+  let [seconds, nanoseconds] = span.duration;
+
+  return seconds * 1000 + nanoseconds / 1_000_000;
+};
+
+export let shouldDropSpan = (span: ReadableSpan, prismaSpanMinDurationMs: number) => {
+  if (!span.name.startsWith('prisma:')) return false;
+
+  if (span.status.code === SpanStatusCode.ERROR) return false;
+
+  return getSpanDurationMs(span) < prismaSpanMinDurationMs;
+};
+
+let createFilteringSpanProcessor = (
+  delegate: SpanProcessor,
+  prismaSpanMinDurationMs: number
+): SpanProcessor => ({
+  onStart: (span, parentContext) => delegate.onStart(span, parentContext),
+
+  onEnd: span => {
+    if (shouldDropSpan(span, prismaSpanMinDurationMs)) return;
+
+    delegate.onEnd(span);
+  },
+
+  shutdown: () => delegate.shutdown(),
+
+  forceFlush: () => delegate.forceFlush()
+});
 
 export {
   context as otelContext,
@@ -127,6 +170,7 @@ export let initTelemetry = (opts: { serviceName: string; allowRootSpans?: boolea
   let allowRootSpans =
     opts.allowRootSpans === true || process.env.OTEL_ALLOW_ROOT_SPANS === 'true';
   let traceSampleRate = getTraceSampleRate();
+  let prismaSpanMinDurationMs = getPrismaSpanMinDurationMs();
 
   let provider = new NodeTracerProvider({
     resource: resourceFromAttributes({
@@ -141,11 +185,14 @@ export let initTelemetry = (opts: { serviceName: string; allowRootSpans?: boolea
         : new AlwaysOffSampler()
     }),
     spanProcessors: [
-      new BatchSpanProcessor(
-        new OTLPTraceExporter({
-          url: endpoint,
-          headers: parseHeaders(process.env.OTEL_EXPORTER_OTLP_HEADERS)
-        })
+      createFilteringSpanProcessor(
+        new BatchSpanProcessor(
+          new OTLPTraceExporter({
+            url: endpoint,
+            headers: parseHeaders(process.env.OTEL_EXPORTER_OTLP_HEADERS)
+          })
+        ),
+        prismaSpanMinDurationMs
       )
     ]
   });
@@ -169,6 +216,6 @@ export let initTelemetry = (opts: { serviceName: string; allowRootSpans?: boolea
   initialized = true;
 
   console.log(
-    `[otel] initialized for ${serviceName} -> ${endpoint} (allowRootSpans=${allowRootSpans}, traceSampleRate=${traceSampleRate})`
+    `[otel] initialized for ${serviceName} -> ${endpoint} (allowRootSpans=${allowRootSpans}, traceSampleRate=${traceSampleRate}, prismaSpanMinDurationMs=${prismaSpanMinDurationMs})`
   );
 };

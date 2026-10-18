@@ -79,13 +79,24 @@ export OTEL_ALLOW_ROOT_SPANS=true
 
 ### `OTEL_TRACES_SAMPLER_ARG`
 - Type: number between `0` and `1`
-- Default: `0.1`
+- Default: `0.01`
 - What it does: sets the proportion of new root traces to export. Parent trace sampling decisions are preserved so a sampled request remains sampled across services.
 
 Example:
 
 ```bash
 export OTEL_TRACES_SAMPLER_ARG=0.05
+```
+
+### `OTEL_PRISMA_SPAN_MIN_DURATION_MS`
+- Type: number (`>= 0`)
+- Default: `100`
+- What it does: successful Prisma spans (`prisma:*`) shorter than this duration are dropped before export — they are leaf spans created for every database query and otherwise dominate the span volume of a trace. Errored Prisma spans are always kept. Set to `0` to keep every Prisma span.
+
+Example:
+
+```bash
+export OTEL_PRISMA_SPAN_MIN_DURATION_MS=250
 ```
 
 ### `OTEL_SERVICE_NAME`
