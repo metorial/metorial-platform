@@ -10,7 +10,7 @@ let OWNER_RECONCILE_BATCH_SIZE = 500;
 export let magicMcpServerOwnerReconcileCron = createCron(
   {
     name: 'magic/server/ownerActor/reconcile/cron',
-    cron: '0 3 * * *'
+    cron: '0 * * * *'
   },
   async () => {
     await reconcileMagicMcpServerOwnersManyQueue.add(
