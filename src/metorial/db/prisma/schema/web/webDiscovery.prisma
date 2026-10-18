@@ -1,0 +1,48 @@
+enum WebDiscoveryStatus {
+  pending
+  running
+  succeeded
+  failed
+}
+
+model WebDiscovery {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status         WebDiscoveryStatus @default(pending)
+  attempts       Int                @default(0)
+  leaseExpiresAt DateTime?
+
+  errorCode    String?
+  errorMessage String?
+
+  urlKey            String  @unique
+  url               String
+  host              String
+  registrableDomain String?
+
+  title       String?
+  description String?
+  siteName    String?
+  lang        String?
+  themeColor  String?
+
+  canonicalUrl String?
+
+  /// [EntityImage]
+  image       Json?
+  imageWidth  Int?
+  imageHeight Int?
+  imageSource String?
+  imageScore  Float?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  bestPageOid BigInt?
+  bestPage    WebPage? @relation(fields: [bestPageOid], references: [oid], onDelete: SetNull)
+
+  @@index([status, leaseExpiresAt])
+}

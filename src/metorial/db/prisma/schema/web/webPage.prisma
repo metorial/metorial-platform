@@ -1,0 +1,29 @@
+model WebPage {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  url         String  @unique
+  finalUrl    String?
+  httpStatus  Int?
+  contentType String?
+  bytesRead   Int?
+
+  errorCode String?
+
+  title       String?
+  description String?
+  siteName    String?
+  lang        String?
+  themeColor  String?
+
+  canonicalUrl String?
+
+  /// [WebImageCandidates]
+  candidates Json
+
+  fetchedAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  discoveries WebDiscovery[]
+}

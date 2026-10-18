@@ -319,5 +319,8 @@ export let ID = createIdGenerator({
   systemEvent: idType.sorted('evnt'),
 
   eventDeliveryIntent: idType.sorted('evdi'),
-  eventDeliveryAttempt: idType.sorted('evda')
+  eventDeliveryAttempt: idType.sorted('evda'),
+
+  webDiscovery: idType.sorted('wdsc'),
+  webPage: idType.sorted('wpg')
 });
