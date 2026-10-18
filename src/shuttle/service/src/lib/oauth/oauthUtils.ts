@@ -14,6 +14,7 @@ import { db } from '../../db';
 import { getId } from '../../id';
 import { getAxiosSsrfFilter } from '../http/axiosSsrf';
 import { assertUrlAllowedByEgressPolicy } from '../network/egressPolicy';
+import { oauthDebug } from './oauthDebug';
 import { buildClientRegistrationMetadata } from './clientRegistrationMetadata';
 import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
 import { getOAuthRegistrationErrorDetails } from './oauthRegistrationError';
@@ -24,6 +25,11 @@ import {
 } from './oauthRequestError';
 import { isTransientRegistrationError } from './registrationRetry';
 import {
+  applyClientAuthentication,
+  resolveTokenEndpointAuthMethod,
+  type TokenEndpointAuthMethod
+} from './tokenEndpointAuth';
+import {
   type OAuthConfiguration,
   type RegistrationResponse,
   registrationResponseValidator,
@@ -32,6 +38,11 @@ import {
 } from './types';
 
 axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
+
+let getProviderErrorDescription = (error: any): string | null => {
+  let description = error?.response?.data?.error_description;
+  return typeof description === 'string' ? description.slice(0, 300) : null;
+};
 
 let id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 21);
 
@@ -105,6 +116,7 @@ export class OAuthUtils {
     redirectUri,
     codeVerifier,
     config,
+    tokenEndpointAuthMethod,
     egressPolicy
   }: {
     tokenEndpoint: string;
@@ -114,6 +126,7 @@ export class OAuthUtils {
     redirectUri: string;
     codeVerifier?: string;
     config: OAuthConfiguration;
+    tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
     egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
   }): Promise<TokenResponse> {
     let body = new URLSearchParams({
@@ -121,11 +134,6 @@ export class OAuthUtils {
       code,
       redirect_uri: redirectUri
     });
-
-    // Always include client_id if public client
-    if (!clientSecret) {
-      body.set('client_id', clientId);
-    }
 
     if (codeVerifier) {
       body.set('code_verifier', codeVerifier);
@@ -137,19 +145,12 @@ export class OAuthUtils {
       'User-Agent': 'Metorial (https://metorial.com)'
     };
 
-    if (clientSecret) {
-      let hasBasic =
-        config.token_endpoint_auth_methods_supported?.includes('client_secret_basic');
-      let hasPost =
-        config.token_endpoint_auth_methods_supported?.includes('client_secret_post');
-
-      if (hasBasic && !hasPost) {
-        headers.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
-      } else {
-        body.set('client_id', clientId);
-        body.set('client_secret', clientSecret);
-      }
-    }
+    let authMethod = resolveTokenEndpointAuthMethod({
+      config,
+      clientSecret,
+      registeredMethod: tokenEndpointAuthMethod
+    });
+    applyClientAuthentication({ method: authMethod, clientId, clientSecret, headers, body });
 
     try {
       await assertUrlAllowedByEgressPolicy({ url: tokenEndpoint, egressPolicy });
@@ -170,6 +171,22 @@ export class OAuthUtils {
     } catch (error: any) {
       let details = getOAuthRequestErrorDetails(error);
 
+      oauthDebug('token exchange failed', {
+        tokenEndpoint,
+        clientId,
+        authMethod,
+        registeredAuthMethod: tokenEndpointAuthMethod ?? null,
+        providerSupportedAuthMethods: config.token_endpoint_auth_methods_supported ?? null,
+        hasClientSecret: !!clientSecret,
+        redirectUri,
+        usedPkce: !!codeVerifier,
+        resource: config.resource ?? null,
+        status: details.status,
+        oauthCode: details.oauthCode,
+        providerErrorDescription: getProviderErrorDescription(error),
+        errorMessage: error?.message
+      });
+
       throw new ServiceError(
         badRequestError({
           code: 'oauth_token_exchange_failed',
@@ -184,13 +201,15 @@ export class OAuthUtils {
     clientId,
     clientSecret,
     refreshToken,
-    config
+    config,
+    tokenEndpointAuthMethod
   }: {
     tokenEndpoint: string;
     clientId: string;
-    clientSecret?: string; // now optional
+    clientSecret?: string;
     refreshToken: string;
     config: OAuthConfiguration;
+    tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
   }): Promise<
     | { ok: true; response: TokenResponse }
     | { ok: false; error: OAuthRequestErrorDetails; message: string }
@@ -200,30 +219,18 @@ export class OAuthUtils {
       refresh_token: refreshToken
     });
 
-    // Always include client_id if no client_secret (public client)
-    if (!clientSecret) {
-      body.set('client_id', clientId);
-    }
-
     let headers: Record<string, string> = {
       'Content-Type': 'application/x-www-form-urlencoded',
       Accept: 'application/json',
       'User-Agent': 'Metorial (https://metorial.com)'
     };
 
-    if (clientSecret) {
-      let hasBasic =
-        config.token_endpoint_auth_methods_supported?.includes('client_secret_basic');
-      let hasPost =
-        config.token_endpoint_auth_methods_supported?.includes('client_secret_post');
-
-      if (hasBasic && !hasPost) {
-        headers.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
-      } else {
-        body.set('client_id', clientId);
-        body.set('client_secret', clientSecret);
-      }
-    }
+    let authMethod = resolveTokenEndpointAuthMethod({
+      config,
+      clientSecret,
+      registeredMethod: tokenEndpointAuthMethod
+    });
+    applyClientAuthentication({ method: authMethod, clientId, clientSecret, headers, body });
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {

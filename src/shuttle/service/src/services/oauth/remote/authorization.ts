@@ -15,6 +15,7 @@ import { oauthCallbackUrl } from '../../../config';
 import { db } from '../../../db';
 import { getId } from '../../../id';
 import { oauthErrorDescriptions } from '../../../lib/oauth/oauthErrors';
+import { oauthDebug } from '../../../lib/oauth/oauthDebug';
 import { OAuthUtils } from '../../../lib/oauth/oauthUtils';
 import type { OAuthConfiguration, TokenResponse, UserProfile } from '../../../lib/oauth/types';
 import { secretService } from '../../secret';
@@ -271,6 +272,12 @@ class remoteOauthAuthorizationServiceImpl {
       }
     });
     if (!attempt || !attempt.connection.serverOAuthCredentials || !attempt.serverOAuthSetup) {
+      oauthDebug('remote callback: no matching pending attempt', {
+        attemptFound: !!attempt,
+        hasServerOAuthCredentials: !!attempt?.connection.serverOAuthCredentials,
+        hasServerOAuthSetup: !!attempt?.serverOAuthSetup
+      });
+
       throw new ServiceError(
         badRequestError({
           message: 'Invalid authorization attempt',
@@ -297,6 +304,15 @@ class remoteOauthAuthorizationServiceImpl {
         connection: attempt.connection
       });
 
+    oauthDebug('remote callback: exchanging code', {
+      connectionId: connection.id,
+      setupId: attempt.id,
+      usesAutoRegistration: !!connection.registrationOid,
+      registeredAuthMethod: DANGEROUS_unencryptedCredentials.tokenEndpointAuthMethod ?? null,
+      hasClientSecret: !!DANGEROUS_unencryptedCredentials.clientSecret,
+      redirectUri
+    });
+
     try {
       tokenResponse = await OAuthUtils.exchangeCodeForTokens({
         tokenEndpoint: connection.config.config.token_endpoint,
@@ -306,6 +322,7 @@ class remoteOauthAuthorizationServiceImpl {
         redirectUri,
         codeVerifier: attempt.codeVerifier ?? undefined,
         config: connection.config.config,
+        tokenEndpointAuthMethod: DANGEROUS_unencryptedCredentials.tokenEndpointAuthMethod,
         egressPolicy
       });
 
