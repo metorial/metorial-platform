@@ -24,6 +24,7 @@ interface ReceivedRequest {
 interface TestServerState {
   mode: 'modern' | 'legacy';
   listChanged: boolean;
+  listen: 'open' | 'end' | 'unsupported';
   received: ReceivedRequest[];
   slowRequestClosed: boolean;
 }
@@ -32,6 +33,7 @@ let state: TestServerState;
 let server: Server;
 let url: string;
 let emitted: ConnectionMessage[];
+let logs: { type: string; message: string }[];
 let bridge: InstanceType<typeof StatelessMcpBridge>;
 
 let tools = [
@@ -111,6 +113,8 @@ let handleRequest = (req: IncomingMessage, res: ServerResponse, body: any) => {
       });
 
     case 'subscriptions/listen': {
+      if (state.listen == 'unsupported') return sendError(res, 404, body.id, -32601);
+
       let write = openStream(res);
       let subscriptionMeta = { 'io.modelcontextprotocol/subscriptionId': body.id };
 
@@ -124,6 +128,8 @@ let handleRequest = (req: IncomingMessage, res: ServerResponse, body: any) => {
         method: 'notifications/tools/list_changed',
         params: { _meta: subscriptionMeta }
       });
+
+      if (state.listen == 'end') res.end();
       return;
     }
 
@@ -249,8 +255,15 @@ let initialize = async (capabilities: Record<string, unknown> = {}) => {
 };
 
 beforeEach(async () => {
-  state = { mode: 'modern', listChanged: false, received: [], slowRequestClosed: false };
+  state = {
+    mode: 'modern',
+    listChanged: false,
+    listen: 'open',
+    received: [],
+    slowRequestClosed: false
+  };
   emitted = [];
+  logs = [];
 
   server = createServer((req, res) => {
     let chunks: Buffer[] = [];
@@ -273,7 +286,9 @@ beforeEach(async () => {
     emit: async message => {
       emitted.push(message);
     },
-    log: () => {},
+    log: (type, message) => {
+      logs.push({ type, message });
+    },
     inputResponseTimeoutMs: 2000
   });
 });
@@ -507,6 +522,29 @@ describe('StatelessMcpBridge', () => {
           (m.data as any).method == 'notifications/subscriptions/acknowledged'
       )
     ).toBe(false);
+  });
+
+  it('reopens subscriptions/listen when the server ends the stream', async () => {
+    state.listChanged = true;
+    state.listen = 'end';
+    await initialize();
+
+    await waitFor(() => (receivedFor('subscriptions/listen').length >= 2 ? true : undefined));
+    expect(emitted.some(m => m.type == 'error')).toBe(false);
+  });
+
+  it('stops listening and warns when the server does not implement subscriptions/listen', async () => {
+    state.listChanged = true;
+    state.listen = 'unsupported';
+    await initialize();
+
+    await waitFor(() =>
+      logs.find(l => l.type == 'debug.warning' && l.message.includes('subscriptions/listen'))
+    );
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    expect(receivedFor('subscriptions/listen')).toHaveLength(1);
+    expect(emitted.some(m => m.type == 'error')).toBe(false);
   });
 
   it('maps resources/subscribe onto the subscription filter', async () => {

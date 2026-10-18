@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildSubscriptionFilter,
   SubscriptionStream,
-  toLegacySubscriptionMessage
+  toLegacySubscriptionMessage,
+  type SubscriptionStreamOutcome
 } from './subscriptions';
 
 describe('buildSubscriptionFilter', () => {
@@ -66,7 +67,7 @@ describe('SubscriptionStream', () => {
     let signals: AbortSignal[] = [];
     let open = vi.fn((_filter, signal: AbortSignal) => {
       signals.push(signal);
-      return new Promise<void>(() => {});
+      return new Promise<SubscriptionStreamOutcome>(() => {});
     });
     let stream = new SubscriptionStream(open);
 
@@ -80,5 +81,51 @@ describe('SubscriptionStream', () => {
 
     stream.update(null);
     expect(signals[1]!.aborted).toBe(true);
+  });
+
+  it('reconnects with backoff after the stream ends', async () => {
+    vi.useFakeTimers();
+
+    try {
+      let open = vi.fn(async (): Promise<SubscriptionStreamOutcome> => 'reconnect');
+      let stream = new SubscriptionStream(open);
+
+      stream.update({ toolsListChanged: true });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(open).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(open).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(open).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(open).toHaveBeenCalledTimes(3);
+
+      stream.close();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(open).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops reconnecting when the stream reports a permanent failure', async () => {
+    vi.useFakeTimers();
+
+    try {
+      let open = vi.fn(async (): Promise<SubscriptionStreamOutcome> => 'stop');
+      let stream = new SubscriptionStream(open);
+
+      stream.update({ toolsListChanged: true });
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(open).toHaveBeenCalledTimes(1);
+
+      stream.update({ toolsListChanged: true });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(open).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

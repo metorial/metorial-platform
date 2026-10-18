@@ -42,12 +42,35 @@ export let toLegacySubscriptionMessage = (message: JSONRPCMessage): JSONRPCMessa
   } as JSONRPCMessage;
 };
 
+export type SubscriptionStreamOutcome = 'reconnect' | 'stop';
+
+let INITIAL_RECONNECT_DELAY_MS = 1000;
+let MAX_RECONNECT_DELAY_MS = 30 * 1000;
+let HEALTHY_STREAM_DURATION_MS = 60 * 1000;
+
+let sleep = (ms: number, signal: AbortSignal) =>
+  new Promise<void>(resolve => {
+    let onAbort = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    let timeout = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+
 export class SubscriptionStream {
   #abortController: AbortController | null = null;
   #filterKey: string | null = null;
 
   constructor(
-    private readonly open: (filter: SubscriptionFilter, signal: AbortSignal) => Promise<void>
+    private readonly open: (
+      filter: SubscriptionFilter,
+      signal: AbortSignal
+    ) => Promise<SubscriptionStreamOutcome>
   ) {}
 
   update(filter: SubscriptionFilter | null) {
@@ -61,12 +84,31 @@ export class SubscriptionStream {
     this.#abortController = abortController;
     this.#filterKey = filterKey;
 
-    void this.open(filter, abortController.signal).finally(() => {
+    void this.#run(filter, abortController.signal).finally(() => {
       if (this.#abortController != abortController) return;
 
       this.#abortController = null;
       this.#filterKey = null;
     });
+  }
+
+  async #run(filter: SubscriptionFilter, signal: AbortSignal) {
+    let delay = INITIAL_RECONNECT_DELAY_MS;
+
+    while (!signal.aborted) {
+      let startedAt = Date.now();
+      let outcome = await this.open(filter, signal).catch(
+        (): SubscriptionStreamOutcome => 'reconnect'
+      );
+      if (outcome == 'stop' || signal.aborted) return;
+
+      if (Date.now() - startedAt >= HEALTHY_STREAM_DURATION_MS) {
+        delay = INITIAL_RECONNECT_DELAY_MS;
+      }
+
+      await sleep(delay, signal);
+      delay = Math.min(delay * 2, MAX_RECONNECT_DELAY_MS);
+    }
   }
 
   close() {

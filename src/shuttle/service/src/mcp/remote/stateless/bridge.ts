@@ -42,7 +42,8 @@ import {
   buildSubscriptionFilter,
   SubscriptionStream,
   toLegacySubscriptionMessage,
-  type SubscriptionFilter
+  type SubscriptionFilter,
+  type SubscriptionStreamOutcome
 } from './subscriptions';
 import { postStatelessRequest } from './transport';
 
@@ -427,7 +428,10 @@ export class StatelessMcpBridge {
     );
   }
 
-  async #listen(filter: SubscriptionFilter, signal: AbortSignal) {
+  async #listen(
+    filter: SubscriptionFilter,
+    signal: AbortSignal
+  ): Promise<SubscriptionStreamOutcome> {
     let request: JSONRPCRequest = {
       jsonrpc: '2.0',
       id: `sub_${generatePlainId(12)}`,
@@ -435,23 +439,49 @@ export class StatelessMcpBridge {
       params: { notifications: filter }
     };
 
+    let listenError = null as JSONRPCError['error'] | null;
+
     let outcome = await this.#post(request, signal, async message => {
+      if ('error' in message && message.id === request.id) {
+        listenError = message.error;
+        return;
+      }
+
       let legacy = toLegacySubscriptionMessage(message);
       if (legacy) await this.#emitMessage(legacy);
     });
 
-    if (outcome.type != 'failed') return;
+    if (outcome.type == 'aborted') return 'stop';
+
+    if (outcome.type == 'completed') {
+      if (!listenError) return 'reconnect';
+
+      if (listenError.code == METHOD_NOT_FOUND_ERROR_CODE) {
+        this.opts.log(
+          'debug.warning',
+          'MCP server does not implement subscriptions/listen, list-changed and resource notifications are unavailable'
+        );
+        return 'stop';
+      }
+
+      this.opts.log(
+        'debug.warning',
+        `MCP server rejected subscriptions/listen: ${listenError.message}`
+      );
+      return 'reconnect';
+    }
 
     let mapped = toConnectionError(outcome.error);
     if (FATAL_SUBSCRIPTION_CODES.has(mapped.code)) {
       await this.#emitError(mapped);
-      return;
+      return 'stop';
     }
 
     this.opts.log(
       'debug.info',
-      `Stateless subscription stream unavailable: ${mapped.message}`
+      `Stateless subscription stream unavailable, reconnecting: ${mapped.message}`
     );
+    return 'reconnect';
   }
 
   async #refreshToolHeaders(signal: AbortSignal) {
