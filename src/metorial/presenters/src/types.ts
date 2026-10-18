@@ -1253,6 +1253,11 @@ export let projectToolCallingConfigurationType = PresentableType.create<{
   messageProcessingTimeoutMs: number;
 }>()('project_tool_calling_configuration');
 
+export let projectSessionlessMcpConfigurationType = PresentableType.create<{
+  project: Project;
+  sessionlessMcpEnabled: boolean;
+}>()('project_sessionless_mcp_configuration');
+
 export let projectReducedSubprocessorsConfigurationType = PresentableType.create<{
   project: Project;
   reducedSubprocessors: boolean;

@@ -23,6 +23,7 @@ export * from './projectDataRetentionConfiguration';
 export * from './projectIntegrationNamingConfiguration';
 export * from './projectReducedSubprocessorsConfiguration';
 export * from './projectRetention';
+export * from './projectSessionlessMcpConfiguration';
 export * from './projectSkillSyncConfiguration';
 export * from './projectToolCallingConfiguration';
 export * from './team';

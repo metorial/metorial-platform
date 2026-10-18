@@ -22,6 +22,7 @@ export * from './loaders/sandbox';
 export * from './loaders/projectAuthConfigConfiguration';
 export * from './loaders/projectDataRetentionConfiguration';
 export * from './loaders/projectIntegrationNamingConfiguration';
+export * from './loaders/projectSessionlessMcpConfiguration';
 export * from './loaders/projectSkillSyncConfiguration';
 export * from './loaders/projectToolCallingConfiguration';
 export * from './loaders/projectWorkforceConfiguration';

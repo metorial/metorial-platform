@@ -142,7 +142,7 @@ export let handleMcpRequest = async (
     c.req.method === 'POST' &&
     !connectionToken &&
     isModernMcpRequest({ body, getHeader: name => c.req.header(name) });
-  if (isSessionless && !isSessionlessMcpEnabled()) {
+  if (isSessionless && !isSessionlessMcpEnabled(tenant)) {
     return sessionlessDisabledResponse(c, body);
   }
 

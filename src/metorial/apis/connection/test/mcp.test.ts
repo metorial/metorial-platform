@@ -407,6 +407,19 @@ describe('handleMcpRequest protocol detection', () => {
     expect(handleSessionlessMcpRequest).not.toHaveBeenCalled();
   });
 
+  it('decides whether sessionless is enabled from the instance tenant', async () => {
+    isSessionlessMcpEnabled.mockReturnValue(false);
+
+    await post(
+      { jsonrpc: '2.0', id: 7, method: 'tools/list', params: { _meta: modernMeta } },
+      modernHeaders('tools/list')
+    );
+
+    expect(isSessionlessMcpEnabled).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'ten_1' })
+    );
+  });
+
   it('rejects modern requests whose headers do not match the body', async () => {
     let response = await post(
       { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: modernMeta } },

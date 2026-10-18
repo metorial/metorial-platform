@@ -37,6 +37,8 @@ model Project {
   collectOperationDescriptionForToolCalls Boolean @default(true)
   messageProcessingTimeoutMs              Int     @default(30000)
 
+  sessionlessMcpEnabled Boolean?
+
   useIntegrationNamesForSessionProviderNameTemplates Boolean @default(false)
 
   skillSyncGitLfsThresholdBytes Int?

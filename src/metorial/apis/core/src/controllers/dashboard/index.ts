@@ -15,6 +15,7 @@ export * from './projectConfiguration';
 export * from './profile';
 export * from './resourceCounts';
 export * from './scopes';
+export * from './sessionlessMcpConfiguration';
 export * from './skillSyncConfiguration';
 export * from './toolCallingConfiguration';
 export * from './usage';
