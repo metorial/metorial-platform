@@ -39,8 +39,8 @@ export let getFullIntegrationSetupSession = async (
     session.brand ?? (await brandService.getBrandForTenant({ tenantId: session.tenant.id }));
 
   return {
-    session: integrationSetupSessionPresenter(session),
-    brand: setupSessionBrandPresenter(brand),
+    session: await integrationSetupSessionPresenter(session),
+    brand: await setupSessionBrandPresenter(brand),
     isWhitelabel: session.tenant.isWhitelabel
   };
 };

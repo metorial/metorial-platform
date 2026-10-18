@@ -1,12 +1,12 @@
+import { getImageUrl } from '@metorial/image-url';
 import type { Brand } from '@metorial-subspace/db';
-import { getImageUrl } from './utils';
 
-export let setupSessionBrandPresenter = (brand: Brand) => ({
+export let setupSessionBrandPresenter = async (brand: Brand) => ({
   object: 'brand',
 
   id: brand.id,
   name: brand.name,
-  imageUrl: getImageUrl({
+  imageUrl: await getImageUrl({
     id: brand.id,
     image: brand.image
   }),

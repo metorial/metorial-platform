@@ -1,3 +1,4 @@
+import { getImageUrl } from '@metorial/image-url';
 import type {
   Integration,
   IntegrationInstance,
@@ -11,7 +12,6 @@ import type {
   ProviderSetupSession
 } from '@metorial-subspace/db';
 import { env } from '../../env';
-import { getImageUrl } from './utils';
 
 export let integrationSetupSessionUrl = (
   integrationSetupSession: Pick<IntegrationSetupSession, 'id' | 'clientSecret'>
@@ -42,7 +42,7 @@ type IntegrationSetupSessionStepProvider = IntegrationSetupSessionProvider & {
   integrationInstanceProvider: IntegrationInstanceProvider | null;
 };
 
-let integrationSetupSessionStepProviderPresenter = (
+let integrationSetupSessionStepProviderPresenter = async (
   provider: Provider & { listing?: Pick<ProviderListing, 'id' | 'image'> | null }
 ) => ({
   object: 'provider',
@@ -52,11 +52,11 @@ let integrationSetupSessionStepProviderPresenter = (
   description: provider.description,
   slug: provider.prettySlug ?? provider.slug,
   imageUrl: provider.listing
-    ? getImageUrl({ id: provider.listing.id, image: provider.listing.image })
+    ? await getImageUrl({ id: provider.listing.id, image: provider.listing.image })
     : null
 });
 
-let integrationSetupSessionStepPresenter = (d: {
+let integrationSetupSessionStepPresenter = async (d: {
   integrationSetupSession: Pick<IntegrationSetupSession, 'id' | 'clientSecret'>;
   step: IntegrationSetupSessionStep & {
     integrationSetupSessionProvider: IntegrationSetupSessionStepProvider;
@@ -79,7 +79,7 @@ let integrationSetupSessionStepPresenter = (d: {
     }),
 
     integrationProviderId: provider.integrationProvider.id,
-    provider: integrationSetupSessionStepProviderPresenter(
+    provider: await integrationSetupSessionStepProviderPresenter(
       provider.integrationProvider.provider
     ),
     providerSetupSessionId: provider.providerSetupSession?.id ?? null,
@@ -90,7 +90,7 @@ let integrationSetupSessionStepPresenter = (d: {
   };
 };
 
-export let integrationSetupSessionPresenter = (
+export let integrationSetupSessionPresenter = async (
   integrationSetupSession: IntegrationSetupSession & {
     integration: Integration;
     integrationInstance: IntegrationInstance;
@@ -123,8 +123,10 @@ export let integrationSetupSessionPresenter = (
     integrationId: integrationSetupSession.integration.id,
     integrationInstanceId: integrationSetupSession.integrationInstance.id,
 
-    steps: integrationSetupSession.steps.map(step =>
-      integrationSetupSessionStepPresenter({ integrationSetupSession, step })
+    steps: await Promise.all(
+      integrationSetupSession.steps.map(step =>
+        integrationSetupSessionStepPresenter({ integrationSetupSession, step })
+      )
     ),
 
     createdAt: integrationSetupSession.createdAt,

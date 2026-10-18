@@ -1,4 +1,5 @@
 import { shadowId } from '@lowerdeck/shadow-id';
+import { getImageUrl } from '@metorial/image-url';
 import type {
   Identity,
   IdentityCredential,
@@ -14,7 +15,6 @@ import type {
   ProviderSpecification
 } from '@metorial-subspace/db';
 import { env } from '../../env';
-import { getImageUrl } from './utils';
 
 type SetupSessionAuthMethod = ProviderAuthMethod & {
   specification: Omit<ProviderSpecification, 'value'>;
@@ -50,7 +50,7 @@ export let setupSessionSchemaPresenter = (
   schema: schema.type === 'required' ? schema.schema : null
 });
 
-export let setupSessionProviderListingItemPresenter = (provider: {
+export let setupSessionProviderListingItemPresenter = async (provider: {
   id: string;
   listingId: string;
   name: string;
@@ -70,7 +70,7 @@ export let setupSessionProviderListingItemPresenter = (provider: {
   name: provider.name,
   description: provider.description,
   slug: provider.slug,
-  imageUrl: getImageUrl({
+  imageUrl: await getImageUrl({
     id: provider.listingId,
     image: provider.image
   }),
@@ -82,7 +82,7 @@ export let setupSessionProviderListingItemPresenter = (provider: {
   }))
 });
 
-export let setupSessionSelectedProviderPresenter = (
+export let setupSessionSelectedProviderPresenter = async (
   provider: Provider & {
     listing: ProviderListing | null;
   }
@@ -106,7 +106,7 @@ export let setupSessionSelectedProviderPresenter = (
     provider.prettySlug ??
     provider.slug,
   metadata: provider.metadata,
-  imageUrl: getImageUrl({
+  imageUrl: await getImageUrl({
     id: provider.listing?.id ?? provider.id,
     image: provider.listing?.image ?? null
   }),
@@ -132,7 +132,7 @@ export let setupSessionSelectedProviderPresenter = (
         aliases: provider.listing.aliases,
         skills: provider.listing.skills,
         rank: provider.listing.rank,
-        imageUrl: getImageUrl({
+        imageUrl: await getImageUrl({
           id: provider.listing.id,
           image: provider.listing.image
         }),

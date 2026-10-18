@@ -84,10 +84,10 @@ export let getFullSession = async (
 
   return {
     provider: session.provider
-      ? setupSessionSelectedProviderPresenter(session.provider)
+      ? await setupSessionSelectedProviderPresenter(session.provider)
       : null,
     session: setupSessionPresenter(session),
-    brand: setupSessionBrandPresenter(brand),
+    brand: await setupSessionBrandPresenter(brand),
     completionRedirect: integrationSetupSession
       ? {
           type: 'integration_setup_session' as const,
@@ -257,8 +257,8 @@ export let setupSessionController = app.controller({
       });
 
       return {
-        items: providers.items.map(provider =>
-          setupSessionProviderListingItemPresenter(provider)
+        items: await Promise.all(
+          providers.items.map(provider => setupSessionProviderListingItemPresenter(provider))
         ),
         pagination: {
           hasMoreBefore: providers.pagination.hasPreviousPage,
