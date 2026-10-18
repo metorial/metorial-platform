@@ -39,7 +39,22 @@ vi.mock('@lowerdeck/service', () => ({
 }));
 
 vi.mock('@metorial/db', () => ({
-  ID: { generateId: mocks.generateId }
+  ID: { generateId: mocks.generateId },
+  withUniqueConstraintRecovery: async <T>(
+    write: () => Promise<T>,
+    recover: () => Promise<T | null>
+  ) => {
+    try {
+      return await write();
+    } catch (error) {
+      if ((error as { code?: string })?.code !== 'P2002') throw error;
+
+      let existing = await recover();
+      if (!existing) throw error;
+
+      return existing;
+    }
+  }
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
@@ -486,6 +501,67 @@ describe('Organization actor tenant linking', () => {
       })
     });
     expect(mocks.organizationActorUpdate).not.toHaveBeenCalled();
+  });
+
+  it('creates the resource actor when none exists', async () => {
+    mocks.resourceActorFind.mockResolvedValue(null);
+    mocks.resourceActorCreate.mockResolvedValue(resourceActor);
+    mocks.generateId.mockResolvedValue('rac_300');
+
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant: tenant as any,
+      organizationActor: organizationActor as any
+    });
+
+    expect(mocks.resourceActorCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        projectOid: 2n,
+        identifier: 'mte-oac-oac_4',
+        organizationActorOid: 4n
+      })
+    });
+    expect(mocks.upsertActor).toHaveBeenCalledWith({
+      tenant,
+      input: expect.objectContaining({ resourceActorId: 'rac_300' })
+    });
+  });
+
+  it('reuses the resource actor created by a concurrent writer on a unique constraint conflict', async () => {
+    mocks.resourceActorFind
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(resourceActor);
+    mocks.resourceActorCreate.mockRejectedValue({ code: 'P2002' });
+
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant: tenant as any,
+      organizationActor: organizationActor as any
+    });
+
+    expect(mocks.resourceActorFind).toHaveBeenLastCalledWith({
+      where: {
+        projectOid: 2n,
+        OR: [{ organizationActorOid: 4n }, { identifier: 'mte-oac-oac_4' }]
+      }
+    });
+    expect(mocks.upsertActor).toHaveBeenCalledWith({
+      tenant,
+      input: expect.objectContaining({
+        resourceActorId: 'rac_300',
+        resourceActorIdentifier: 'mte-oac-oac_4'
+      })
+    });
+  });
+
+  it('rethrows unique constraint errors when no conflicting resource actor can be found', async () => {
+    mocks.resourceActorFind.mockResolvedValue(null);
+    mocks.resourceActorCreate.mockRejectedValue({ code: 'P2002' });
+
+    await expect(
+      subspaceScopeService.ensureForOrganizationActor({
+        tenant: tenant as any,
+        organizationActor: organizationActor as any
+      })
+    ).rejects.toEqual({ code: 'P2002' });
   });
 
   it('reuses an existing tenant actor in this tenant and backfills the organization actor relation', async () => {
