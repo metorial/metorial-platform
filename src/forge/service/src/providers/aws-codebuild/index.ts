@@ -7,8 +7,18 @@ import { storage } from '../../storage';
 import { ForgeBuildAdapter } from '../_lib/adapter';
 import { BuildContext } from '../_lib/buildContext';
 import { checkCodeBuildAccess } from './access';
+import { createBuildLookup } from './buildLookup';
 import { codebuild, logsClient } from './codeBuild';
 import { ensureProject } from './project';
+
+let getBuild = createBuildLookup({
+  fetchBuilds: async ids => {
+    if (!codebuild) throw new Error('CodeBuild client not initialized');
+
+    let res = await codebuild.send(new BatchGetBuildsCommand({ ids }));
+    return res.builds ?? [];
+  }
+});
 
 let SYSTEM_OUTPUT_PREFIX = `X@%%MT0RL-)AL:: `;
 
@@ -103,12 +113,7 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
   private readonly waitForBuildQueueProcessor = this.waitForBuildQueue.process(async data => {
     if (!codebuild) throw new Error('CodeBuild client not initialized');
 
-    let buildInfo = await codebuild.send(
-      new BatchGetBuildsCommand({
-        ids: [data.buildId]
-      })
-    );
-    let build = buildInfo.builds?.[0];
+    let build = await getBuild(data.buildId);
     if (!build) return;
 
     let ended =
@@ -144,12 +149,7 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
   private readonly startedBuildQueueProcessor = this.startedBuildQueue.process(async data => {
     if (!codebuild) throw new Error('CodeBuild client not initialized');
 
-    let buildInfo = await codebuild.send(
-      new BatchGetBuildsCommand({
-        ids: [data.buildId]
-      })
-    );
-    let build = buildInfo.builds?.[0];
+    let build = await getBuild(data.buildId);
     if (!build) return;
 
     let ctx = await BuildContext.of(data.runId);
@@ -166,12 +166,7 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
 
       let ctx = await BuildContext.of(data.runId);
 
-      let buildInfo = await codebuild.send(
-        new BatchGetBuildsCommand({
-          ids: [data.buildId]
-        })
-      );
-      let build = buildInfo.builds?.[0];
+      let build = await getBuild(data.buildId);
       if (!build) return;
 
       let logResp = await logsClient.send(
@@ -279,12 +274,7 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
   private readonly buildEndedQueueProcessor = this.buildEndedQueue.process(async data => {
     if (!codebuild) throw new Error('CodeBuild client not initialized');
 
-    let buildInfo = await codebuild.send(
-      new BatchGetBuildsCommand({
-        ids: [data.buildId]
-      })
-    );
-    let build = buildInfo.builds?.[0];
+    let build = await getBuild(data.buildId);
     if (!build) return;
 
     let terminalStatuses = ['FAILED', 'FAULT', 'STOPPED', 'SUCCEEDED', 'TIMED_OUT'] as const;

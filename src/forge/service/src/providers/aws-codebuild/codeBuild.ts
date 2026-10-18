@@ -15,7 +15,7 @@ export let codebuild =
               }
             : undefined,
 
-        maxAttempts: 25
+        maxAttempts: 5
       })
     : undefined;
 
