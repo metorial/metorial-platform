@@ -1,6 +1,7 @@
 import type { ICoordinationAdapter } from '../adapters/coordination/coordinationAdapter';
 import type { ITransportAdapter } from '../adapters/transport/transportAdapter';
 import type { ReceiverConfig } from '../types/config';
+import { ConduitTopicClosedError } from '../types/response';
 import type { MessageHandler } from './receiver';
 import { Receiver } from './receiver';
 
@@ -158,47 +159,35 @@ export class ConduitReceiver {
             await state.onMessagePromise;
           }
 
+          // A topic closed mid-setup has already rejected its pending messages.
+          if (state.closed) return;
+
           // Check if a message handler was registered
           // We check onMessageCalled instead of messageHandler to handle the case where
           // onMessage was called but is still executing asynchronously
           if (!state.onMessageCalled) {
-            console.error(`No message handler registered for topic ${topic}, releasing topic`);
-            this.topicStates.delete(topic);
-
-            // Reject all pending messages
-            for (let pending of state.pendingMessages) {
-              pending.reject(new Error(`No message handler registered for topic ${topic}`));
-            }
-            state.pendingMessages = [];
-
             throw new Error(`No message handler registered for topic ${topic}`);
           }
         } catch (err) {
-          // If handleTopic throws, release the topic
-          console.error(`handleTopic threw error for topic ${topic}, releasing topic:`, err);
-          this.topicStates.delete(topic);
+          if (state.closed) return;
 
-          // Reject all pending messages
+          console.error(`handleTopic failed for topic ${topic}, releasing topic:`, err);
+
+          let error = err instanceof Error ? err : new Error(String(err));
           for (let pending of state.pendingMessages) {
-            pending.reject(err instanceof Error ? err : new Error(String(err)));
+            pending.reject(error);
           }
           state.pendingMessages = [];
 
-          throw err;
+          await this.closeTopic(topic);
         }
       })();
 
-      // Start setup but don't wait - the message promise will be resolved by processPendingMessages
       setupPromise.catch(err => {
-        // Setup failed, the pending messages have already been rejected
+        console.error(`Error releasing topic ${topic} after failed setup:`, err);
       });
 
       return messagePromise;
-    }
-
-    // Check if topic was closed
-    if (state.closed) {
-      throw new Error(`Topic ${topic} has been closed`);
     }
 
     // If handler is not yet registered, queue the message
@@ -227,10 +216,11 @@ export class ConduitReceiver {
         state.ttlExpiresAt = Date.now() + ms;
       },
 
+      // Registering on a topic that closed during async setup is expected (TTL expiry,
+      // ownership loss), so these calls must not throw: onMessage is a no-op and onClose
+      // runs immediately so the caller's cleanup still happens.
       onMessage: async (handler: (data: unknown) => Promise<unknown> | unknown) => {
-        if (state.closed) {
-          throw new Error(`Cannot register message handler for closed topic ${topic}`);
-        }
+        if (state.closed) return;
 
         if (state.messageHandler) {
           throw new Error(`Message handler already registered for topic ${topic}`);
@@ -247,7 +237,8 @@ export class ConduitReceiver {
 
       onClose: async (handler: () => Promise<void> | void) => {
         if (state.closed) {
-          throw new Error(`Cannot register close handler for closed topic ${topic}`);
+          await this.runCloseHandler(topic, handler);
+          return;
         }
 
         state.closeHandlers.push(handler);
@@ -275,7 +266,7 @@ export class ConduitReceiver {
 
         try {
           if (state.closed) {
-            pending.reject(new Error(`Topic ${topic} has been closed`));
+            pending.reject(new ConduitTopicClosedError(topic));
             continue;
           }
 
@@ -308,6 +299,8 @@ export class ConduitReceiver {
     }
   }
 
+  // Detaching the state happens synchronously, before any await, so a message that arrives
+  // while close handlers are still running starts a fresh topic instead of being rejected.
   private async closeTopic(topic: string): Promise<void> {
     let state = this.topicStates.get(topic);
     if (!state || state.closed) {
@@ -315,30 +308,35 @@ export class ConduitReceiver {
     }
 
     state.closed = true;
+    this.topicStates.delete(topic);
+    this.receiver.getOwnershipManager().removeTopic(topic);
 
-    // Reject all pending messages
+    // These messages never reached a handler, so the sender can safely redeliver them.
     for (let pending of state.pendingMessages) {
-      pending.reject(new Error(`Topic ${topic} has been closed`));
+      pending.reject(new ConduitTopicClosedError(topic));
     }
     state.pendingMessages = [];
 
-    // Call all close handlers
-    for (let handler of state.closeHandlers) {
-      try {
-        await handler();
-      } catch (err) {
-        console.error(`Error in close handler for topic ${topic}:`, err);
-      }
+    try {
+      await this.coordination.releaseTopicOwnership(topic, this.receiver.getReceiverId());
+    } catch (err) {
+      console.error(`Error releasing ownership of closed topic ${topic}:`, err);
     }
 
-    // Remove from our state
-    this.topicStates.delete(topic);
+    for (let handler of state.closeHandlers) {
+      await this.runCloseHandler(topic, handler);
+    }
+  }
 
-    // Remove from ownership manager (updates internal owned set)
-    this.receiver.getOwnershipManager().removeTopic(topic);
-
-    // Release ownership in coordination (updates Redis)
-    await this.coordination.releaseTopicOwnership(topic, this.receiver.getReceiverId());
+  private async runCloseHandler(
+    topic: string,
+    handler: () => Promise<void> | void
+  ): Promise<void> {
+    try {
+      await handler();
+    } catch (err) {
+      console.error(`Error in close handler for topic ${topic}:`, err);
+    }
   }
 
   getReceiverId(): string {
