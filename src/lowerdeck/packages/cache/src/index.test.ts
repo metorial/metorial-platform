@@ -1,5 +1,42 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createLocallyCachedFunction } from './index';
+import { createCachedFunction, createLocallyCachedFunction } from './index';
+
+let { redisStore } = vi.hoisted(() => ({ redisStore: new Map<string, string>() }));
+
+vi.mock('@lowerdeck/redis', () => ({
+  createRedisClient: () => ({
+    lazy: () => async () => ({
+      get: async (key: string) => redisStore.get(key) ?? null,
+      set: async (key: string, value: string) => void redisStore.set(key, value),
+      del: async (key: string) => void redisStore.delete(key),
+      sAdd: async () => {},
+      sRem: async () => {},
+      sMembers: async () => [],
+      expire: async () => {}
+    })
+  })
+}));
+
+describe('createCachedFunction', () => {
+  it('evicts the local copy on clearAndWait even when redis was already cleared', async () => {
+    let provider = vi.fn(async (key: string) => `value:${key}:${provider.mock.calls.length}`);
+    let cached = createCachedFunction({
+      name: 'clear-local',
+      redisUrl: 'redis://test',
+      getHash: (key: string) => key,
+      provider,
+      ttlSeconds: 60
+    });
+
+    expect(await cached('key')).toBe('value:key:1');
+
+    redisStore.clear();
+    await cached.clearAndWait('key');
+
+    expect(await cached('key')).toBe('value:key:2');
+    expect(provider).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe('createLocallyCachedFunction', () => {
   it('cleans up rejected requests without creating an unhandled rejection', async () => {

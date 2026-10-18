@@ -81,13 +81,14 @@ export let createCachedFunction = <I, O>(opts: {
 
   let clearAndWait = async (i: I) => {
     let hash = getHash(i);
+    cache.delete(hash);
+
     let redis = await useRedisClient();
 
     let data = await redis.get(hash);
     if (!data) return;
 
     await redis.del(hash);
-    cache.delete(hash);
 
     if (opts.getTags) {
       let tags = opts.getTags(SuperJson.parse(data), i);
