@@ -14,7 +14,9 @@ import { indexIntegrationInstanceQueue } from '../search/integrationInstance';
 import { enqueueIntegrationInstanceProvidersSet } from './integrationInstanceProvider';
 import { integrationInstanceService } from '../../services/integrationInstance';
 
-let syncIntegrationInstanceProviderCredentials = async (integrationInstanceId: string) => {
+export let syncIntegrationInstanceProviderCredentials = async (
+  integrationInstanceId: string
+) => {
   let integrationInstanceProviders = await db.integrationInstanceProvider.findMany({
     where: {
       integrationInstance: {
