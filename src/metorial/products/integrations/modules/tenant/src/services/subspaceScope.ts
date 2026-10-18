@@ -14,7 +14,8 @@ import {
   type Organization,
   type OrganizationActor,
   type Prisma,
-  type Project
+  type Project,
+  withUniqueConstraintRecovery
 } from '@metorial/db';
 import { env } from '../env';
 import { metorialDb } from '../lib/metorialDb';
@@ -345,16 +346,28 @@ let resolveOrganizationActorResourceActor = async (d: {
 
   if (resourceActor) return resourceActor;
 
-  return await metorialDb.resourceActor.create({
-    data: {
-      id: await ID.generateId('resourceActor'),
-      projectOid,
-      identifier: getOrganizationActorIdentifier(loadedOrganizationActor),
-      name: loadedOrganizationActor.name,
-      type: 'external',
-      organizationActorOid: loadedOrganizationActor.oid
-    }
-  });
+  let identifier = getOrganizationActorIdentifier(loadedOrganizationActor);
+
+  return await withUniqueConstraintRecovery(
+    async () =>
+      await metorialDb.resourceActor.create({
+        data: {
+          id: await ID.generateId('resourceActor'),
+          projectOid,
+          identifier,
+          name: loadedOrganizationActor.name,
+          type: 'external',
+          organizationActorOid: loadedOrganizationActor.oid
+        }
+      }),
+    async () =>
+      await metorialDb.resourceActor.findFirst({
+        where: {
+          projectOid,
+          OR: [{ organizationActorOid: loadedOrganizationActor.oid }, { identifier }]
+        }
+      })
+  );
 };
 
 let persistProjectTenantLink = async (d: {
