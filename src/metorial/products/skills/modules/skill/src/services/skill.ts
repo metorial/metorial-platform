@@ -5,10 +5,8 @@ import {
   notFoundError,
   ServiceError
 } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { slugify } from '@lowerdeck/slugify';
 import {
   storeAccessService,
   storeReadPermission,
@@ -47,6 +45,7 @@ import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { Fabric } from '@metorial/fabric';
 import { internalImageService } from '@metorial/skills-images';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
+import { getSkillSlug } from '../lib/skillSlug';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillResourceService } from './resource';
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
@@ -225,7 +224,7 @@ class SkillServiceImpl {
           id: d.input.id,
           status: 'active',
           name: d.input.name,
-          slug: `${slugify(d.input.name)}-${generatePlainId(5).toLowerCase()}`,
+          slug: getSkillSlug(d.input.name),
           description: d.input.description,
           metadata: d.input.metadata as any,
 
