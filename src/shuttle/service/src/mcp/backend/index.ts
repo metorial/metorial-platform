@@ -7,6 +7,7 @@ import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { FunctionConnection } from '../function/connection';
 import { HolopodConnection } from '../holopod/connection';
 import { SSERemoteConnection } from '../remote/sse';
+import { StatelessRemoteConnection } from '../remote/stateless/connection';
 import { StreamableHttpRemoteConnection } from '../remote/streamableHttp';
 
 export class ConnectionBackend implements McpConnectionBackendAdapter {
@@ -76,6 +77,17 @@ export class ConnectionBackend implements McpConnectionBackendAdapter {
         return new ConnectionBackend(
           fullConnection,
           await StreamableHttpRemoteConnection.create(
+            instance.tenant,
+            serverVersion,
+            fullConnection
+          )
+        );
+      }
+
+      if (serverVersion.remoteProtocol == 'stateless') {
+        return new ConnectionBackend(
+          fullConnection,
+          await StatelessRemoteConnection.create(
             instance.tenant,
             serverVersion,
             fullConnection

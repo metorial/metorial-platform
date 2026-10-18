@@ -54,7 +54,7 @@ export let serverController = app.controller({
             type: v.literal('remote'),
             remoteUrl: v.string(),
             config: v.optional(v.record(v.any())),
-            protocol: v.enumOf(['sse', 'streamable_http'])
+            protocol: v.enumOf(['sse', 'streamable_http', 'stateless'])
           }),
           v.object({
             type: v.literal('function'),
@@ -130,7 +130,7 @@ export let serverController = app.controller({
           v.object({
             type: v.literal('remote'),
             remoteUrl: v.string(),
-            protocol: v.enumOf(['sse', 'streamable_http'])
+            protocol: v.enumOf(['sse', 'streamable_http', 'stateless'])
           }),
           v.object({
             type: v.literal('function'),

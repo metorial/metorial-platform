@@ -276,7 +276,9 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
           deployingStep.log(encode(oauthConfig.config));
         }
       } else {
-        let manualAuth = await OAuthDiscovery.checkIfManualAuthIsNeeded(data.remoteUrl);
+        let manualAuth = await OAuthDiscovery.checkIfManualAuthIsNeeded(data.remoteUrl, {
+          protocol: data.remoteProtocol
+        });
 
         if (manualAuth) {
           deployingStep.log(`Server requires manual authentication. OAuth is not supported.`);
