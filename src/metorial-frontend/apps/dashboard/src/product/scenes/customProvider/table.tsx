@@ -10,7 +10,7 @@ import {
   useCurrentProject,
   useCustomProviders
 } from '@metorial/state';
-import { Avatar, Input, Spacer, Text, theme } from '@metorial/ui';
+import { Input, Spacer, Text, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
@@ -28,6 +28,7 @@ import {
   normalizeArrayFilterValue
 } from '@metorial/table';
 import { useDebounced } from '@metorial/use-debounced';
+import { CustomProviderImage } from './image';
 import { getCustomProviderRemoteProtocolLabel } from './utils';
 
 type CustomProvider = DashboardInstanceCustomProvidersListOutput['items'][number];
@@ -298,12 +299,11 @@ export let CustomProvidersGrid = ({
                     variant="v2"
                     height={230}
                     icon={
-                      <Avatar
-                        entity={{
-                          name: title,
-                          imageUrl: `https://avatar-cdn.metorial.com/${provider.id}`
-                        }}
+                      <CustomProviderImage
+                        providerId={provider.provider?.id}
+                        name={title}
                         size={30}
+                        radius={5}
                       />
                     }
                     bottom={detail.label ? <Text size="1">{detail.label}</Text> : undefined}

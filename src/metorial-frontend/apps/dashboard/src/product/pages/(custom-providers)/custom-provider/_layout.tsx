@@ -9,8 +9,9 @@ import {
 } from '@metorial/state';
 import { Badge, Button, Callout, Spacer } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { RiServerLine } from '@remixicon/react';
 import { Link, Outlet, useParams } from 'react-router-dom';
+import { useInterval } from 'react-use';
+import { CustomProviderImage } from '../../../scenes/customProvider/image';
 import { isCustomProviderScmBacked } from '../../../scenes/customProvider/utils';
 import { UseProviderButton } from '../../../scenes/providers/useProviderButton';
 
@@ -21,6 +22,10 @@ export let CustomProviderLayout = () => {
 
   let { customProviderId } = useParams();
   let customProvider = useCustomProvider(instance.data?.id, customProviderId);
+
+  useInterval(() => {
+    customProvider.refetch();
+  }, 10_000);
 
   let pathParams = [
     organization.data,
@@ -43,7 +48,14 @@ export let CustomProviderLayout = () => {
   return (
     <DetailsLayout
       entity={customProvider.data}
-      icon={<RiServerLine />}
+      avatar={size => (
+        <CustomProviderImage
+          providerId={customProvider.data?.provider?.id}
+          name={customProvider.data?.name ?? 'Provider'}
+          size={size}
+          radius={Math.round(size / 4)}
+        />
+      )}
       breadcrumbs={[
         {
           label: isExternalProvider ? 'Remote MCP Servers' : 'Custom MCP Servers',
