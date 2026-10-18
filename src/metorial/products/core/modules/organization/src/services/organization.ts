@@ -35,8 +35,6 @@ import { authBootstrapService } from './authBootstrap';
 import { namespaceService } from './namespace';
 import { organizationActorService } from './organizationActor';
 import { organizationMemberService } from './organizationMember';
-import { projectService } from './project';
-
 let getOrgSlug = createSlugGenerator(
   async slug =>
     !(await db.organization.findFirst({
@@ -485,23 +483,39 @@ class OrganizationService {
     let namespacesByOrganizationOid =
       await namespaceService.getNamespacePropertiesByOrganizationOid({ organizations: orgs });
 
-    let orgsWithProjectAndInstances = await Promise.all(
-      orgs.map(async org => {
-        let projects = await projectService.getAllProjects({
-          organization: org,
-          actor: org.members[0].actor,
-          member: org.members[0]
-        });
+    let allProjects = orgs.length
+      ? await db.project.findMany({
+          where: {
+            organizationOid: { in: orgs.map(org => org.oid) },
+            status: 'active'
+          },
+          include: { instances: true }
+        })
+      : [];
 
-        return {
-          ...org,
-          member: org.members[0],
-          namespaces: namespacesByOrganizationOid.get(org.oid) ?? [],
-          projects,
-          instances: projects.flatMap(p => p.instances.map(i => ({ ...i, project: p })))
-        };
-      })
-    );
+    let projectsByOrganizationOid = new Map<bigint, typeof allProjects>();
+    for (let project of allProjects) {
+      let list = projectsByOrganizationOid.get(project.organizationOid) ?? [];
+      list.push(project);
+      projectsByOrganizationOid.set(project.organizationOid, list);
+    }
+
+    let orgsWithProjectAndInstances = orgs.map(org => {
+      let { members, ...organization } = org;
+
+      let projects = (projectsByOrganizationOid.get(org.oid) ?? []).map(project => ({
+        ...project,
+        organization
+      }));
+
+      return {
+        ...org,
+        member: members[0],
+        namespaces: namespacesByOrganizationOid.get(org.oid) ?? [],
+        projects,
+        instances: projects.flatMap(p => p.instances.map(i => ({ ...i, project: p })))
+      };
+    });
 
     return {
       user: d.user,

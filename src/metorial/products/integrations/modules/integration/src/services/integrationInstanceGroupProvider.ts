@@ -11,6 +11,7 @@ import {
   type IntegrationInstanceGroupProviderStatus,
   Prisma,
   type Tenant,
+  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import { Fabric } from '@metorial/fabric';
@@ -43,6 +44,7 @@ import {
   enqueueIntegrationInstanceGroupProviderSet,
   enqueueIntegrationInstanceGroupProvidersSet
 } from '../queues/lifecycle/integrationInstanceGroupProvider';
+import { isDeepStrictEqual } from 'node:util';
 import { integrationInstanceGroupProviderInclude } from './integrationInstanceGroup';
 
 export type SetIntegrationInstanceGroupProviderInput = {
@@ -87,6 +89,39 @@ export let resolveIntegrationInstanceGroupProviderToolFilterInput = (d: {
 
   return { toolFilter, isOverrideToolFilter };
 };
+
+let isLiveRow = (row: { status: string; archivedAt: Date | null; isParentDeleted: boolean }) =>
+  row.status === 'active' && row.archivedAt === null && !row.isParentDeleted;
+
+let jsonEqual = (a: unknown, b: unknown) => isDeepStrictEqual(a ?? null, b ?? null);
+
+let groupProviderMatches = (
+  existing: IntegrationInstanceGroupProvider,
+  desired: Pick<
+    IntegrationInstanceGroupProvider,
+    | 'name'
+    | 'description'
+    | 'metadata'
+    | 'privateMetadata'
+    | 'integrationInstanceGroupSourceOid'
+    | 'integrationOid'
+    | 'integrationInstanceOid'
+    | 'integrationInstanceProviderOid'
+    | 'integrationProviderOid'
+    | 'isOverrideToolFilter'
+  > & { toolFilter: PrismaJson.ToolFilter | null | undefined }
+) =>
+  existing.name === desired.name &&
+  existing.description === desired.description &&
+  existing.integrationInstanceGroupSourceOid === desired.integrationInstanceGroupSourceOid &&
+  existing.integrationOid === desired.integrationOid &&
+  existing.integrationInstanceOid === desired.integrationInstanceOid &&
+  existing.integrationInstanceProviderOid === desired.integrationInstanceProviderOid &&
+  existing.integrationProviderOid === desired.integrationProviderOid &&
+  existing.isOverrideToolFilter === desired.isOverrideToolFilter &&
+  jsonEqual(existing.metadata, desired.metadata) &&
+  jsonEqual(existing.privateMetadata, desired.privateMetadata) &&
+  jsonEqual(existing.toolFilter, desired.toolFilter);
 
 export type ListIntegrationInstanceGroupProvidersParams = {
   includeMagicMcpBackings?: boolean;
@@ -285,9 +320,46 @@ class integrationInstanceGroupProviderServiceImpl {
     environment: Environment;
     integrationInstanceGroup: IntegrationInstanceGroup;
     input: SetIntegrationInstanceGroupProviderInput[];
-    _allowMagicMcpBacking?: boolean;
-    _skipLifecycleSync?: boolean;
   }) {
+    return await this.upsertIntegrationInstanceGroupProviders(
+      d,
+      async (db, groupProviders) => {
+        let providerOids = groupProviders.map(provider => provider.oid);
+
+        let providers = await db.integrationInstanceGroupProvider.findMany({
+          where: { oid: { in: providerOids } },
+          include: integrationInstanceGroupProviderInclude
+        });
+        let providersByOid = new Map(providers.map(provider => [provider.oid, provider]));
+        let orderedProviders = providerOids.map(oid => providersByOid.get(oid)!);
+
+        await addAfterTransactionHook(async () =>
+          enqueueIntegrationInstanceGroupProvidersSet(
+            orderedProviders.map(provider => ({
+              integrationInstanceGroupId: d.integrationInstanceGroup.id,
+              integrationInstanceGroupProviderId: provider.id
+            }))
+          )
+        );
+
+        return orderedProviders;
+      }
+    );
+  }
+
+  private async upsertIntegrationInstanceGroupProviders<T>(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      integrationInstanceGroup: IntegrationInstanceGroup;
+      input: SetIntegrationInstanceGroupProviderInput[];
+      _allowMagicMcpBacking?: boolean;
+    },
+    finalize: (
+      db: TransactionDB,
+      groupProviders: IntegrationInstanceGroupProvider[]
+    ) => Promise<T[]>
+  ): Promise<T[]> {
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.integrationInstanceGroup);
@@ -403,33 +475,40 @@ class integrationInstanceGroupProviderServiceImpl {
     );
 
     return await withTransaction(async db => {
-      let providerOids: bigint[] = [];
+      let groupProviders: IntegrationInstanceGroupProvider[] = [];
 
       for (let [idx, sourceProvider] of orderedSourceProviders.entries()) {
-        let source = await db.integrationInstanceGroupSource.upsert({
-          where: {
-            integrationInstanceGroupOid_integrationInstanceOid: {
-              integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
-              integrationInstanceOid: sourceProvider.integrationInstanceOid
-            }
-          },
-          create: {
-            ...getId('integrationInstanceGroupSource'),
-            status: 'active',
-            integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
-            integrationInstanceOid: sourceProvider.integrationInstanceOid,
-            tenantOid: d.tenant.oid,
-            projectOid: d.tenant.projectOid,
-            solutionOid: solution.oid,
-            environmentOid: d.environment.oid,
-            instanceOid: d.environment.instanceOid
-          },
-          update: {
-            status: 'active',
-            archivedAt: null,
-            isParentDeleted: false
-          }
-        });
+        let existingSource = existingSourcesByIntegrationInstanceOid.get(
+          sourceProvider.integrationInstanceOid
+        );
+
+        let source =
+          existingSource && isLiveRow(existingSource)
+            ? existingSource
+            : await db.integrationInstanceGroupSource.upsert({
+                where: {
+                  integrationInstanceGroupOid_integrationInstanceOid: {
+                    integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+                    integrationInstanceOid: sourceProvider.integrationInstanceOid
+                  }
+                },
+                create: {
+                  ...getId('integrationInstanceGroupSource'),
+                  status: 'active',
+                  integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
+                  integrationInstanceOid: sourceProvider.integrationInstanceOid,
+                  tenantOid: d.tenant.oid,
+                  projectOid: d.tenant.projectOid,
+                  solutionOid: solution.oid,
+                  environmentOid: d.environment.oid,
+                  instanceOid: d.environment.instanceOid
+                },
+                update: {
+                  status: 'active',
+                  archivedAt: null,
+                  isParentDeleted: false
+                }
+              });
         existingSourcesByIntegrationInstanceOid.set(
           sourceProvider.integrationInstanceOid,
           source
@@ -445,6 +524,25 @@ class integrationInstanceGroupProviderServiceImpl {
             existingToolFilter: existing?.toolFilter as PrismaJson.ToolFilter | null,
             existingIsOverrideToolFilter: existing?.isOverrideToolFilter
           });
+
+        let desired = {
+          name: sourceProvider.name,
+          description: sourceProvider.description,
+          metadata: sourceProvider.metadata,
+          privateMetadata: sourceProvider.privateMetadata,
+          integrationInstanceGroupSourceOid: source.oid,
+          integrationOid: sourceProvider.integrationOid,
+          integrationInstanceOid: sourceProvider.integrationInstanceOid,
+          integrationInstanceProviderOid: sourceProvider.oid,
+          integrationProviderOid: sourceProvider.integrationProviderOid,
+          toolFilter,
+          isOverrideToolFilter
+        };
+
+        if (existing && isLiveRow(existing) && groupProviderMatches(existing, desired)) {
+          groupProviders.push(existing);
+          continue;
+        }
 
         let groupProvider = await db.integrationInstanceGroupProvider.upsert({
           where: {
@@ -492,33 +590,17 @@ class integrationInstanceGroupProviderServiceImpl {
           }
         });
 
-        providerOids.push(groupProvider.oid);
+        groupProviders.push(groupProvider);
       }
 
-      await db.integrationInstanceGroup.update({
-        where: { oid: d.integrationInstanceGroup.oid },
-        data: { status: 'active' }
-      });
-
-      let providers = await db.integrationInstanceGroupProvider.findMany({
-        where: { oid: { in: providerOids } },
-        include: integrationInstanceGroupProviderInclude
-      });
-      let providersByOid = new Map(providers.map(provider => [provider.oid, provider]));
-      let orderedProviders = providerOids.map(oid => providersByOid.get(oid)!);
-
-      if (!d._skipLifecycleSync) {
-        await addAfterTransactionHook(async () =>
-          enqueueIntegrationInstanceGroupProvidersSet(
-            orderedProviders.map(provider => ({
-              integrationInstanceGroupId: d.integrationInstanceGroup.id,
-              integrationInstanceGroupProviderId: provider.id
-            }))
-          )
-        );
+      if (d.integrationInstanceGroup.status !== 'active') {
+        await db.integrationInstanceGroup.update({
+          where: { oid: d.integrationInstanceGroup.oid },
+          data: { status: 'active' }
+        });
       }
 
-      return orderedProviders;
+      return await finalize(db, groupProviders);
     });
   }
 
@@ -576,11 +658,10 @@ class integrationInstanceGroupProviderServiceImpl {
     isReconciliation?: boolean;
     input: SetIntegrationInstanceGroupProviderInput[];
   }) {
-    let providers = await this.setIntegrationInstanceGroupProvidersInternal({
-      ...d,
-      _allowMagicMcpBacking: true,
-      _skipLifecycleSync: true
-    });
+    let providers = await this.upsertIntegrationInstanceGroupProviders(
+      { ...d, _allowMagicMcpBacking: true },
+      async (_db, groupProviders) => groupProviders
+    );
 
     await withTransaction(async db => {
       await db.integrationInstanceGroupProvider.updateMany({

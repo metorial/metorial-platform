@@ -9,7 +9,11 @@ let { db, tx } = vi.hoisted(() => ({
   },
   tx: {
     integrationInstanceGroupSource: { upsert: vi.fn() },
-    integrationInstanceGroupProvider: { upsert: vi.fn(), findMany: vi.fn() },
+    integrationInstanceGroupProvider: {
+      upsert: vi.fn(),
+      findMany: vi.fn(),
+      updateMany: vi.fn()
+    },
     integrationInstanceGroup: { update: vi.fn() }
   }
 }));
@@ -274,6 +278,122 @@ describe('integrationInstanceGroupProviderService.setIntegrationInstanceGroupPro
           integrationInstanceProviderOid: sourceProvider.oid,
           toolFilter: existingFilter,
           isOverrideToolFilter: true
+        })
+      })
+    );
+  });
+
+  let liveSource = {
+    oid: 60n,
+    integrationInstanceOid: sourceProvider.integrationInstanceOid,
+    status: 'active',
+    archivedAt: null,
+    isParentDeleted: false
+  };
+
+  let liveGroupProvider = {
+    oid: 80n,
+    id: 'iigp_1',
+    status: 'active',
+    archivedAt: null,
+    isParentDeleted: false,
+    name: sourceProvider.name,
+    description: sourceProvider.description,
+    metadata: sourceProvider.metadata,
+    privateMetadata: sourceProvider.privateMetadata,
+    integrationInstanceGroupSourceOid: liveSource.oid,
+    integrationOid: sourceProvider.integrationOid,
+    integrationInstanceOid: sourceProvider.integrationInstanceOid,
+    integrationInstanceProviderOid: sourceProvider.oid,
+    integrationProviderOid: sourceProvider.integrationProviderOid,
+    toolFilter: null,
+    isOverrideToolFilter: false
+  };
+
+  it('skips writes when the source, group provider and group are already up to date', async () => {
+    db.integrationInstanceGroupSource.findMany.mockResolvedValue([liveSource]);
+    db.integrationInstanceGroupProvider.findMany.mockResolvedValue([liveGroupProvider]);
+
+    await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvidersInternal(
+      {
+        tenant: { oid: 1n, projectOid: 11n } as any,
+        environment: { oid: 3n, instanceOid: 33n } as any,
+        integrationInstanceGroup: { ...integrationInstanceGroup, status: 'active' },
+        input: [{ integrationInstanceProviderId: sourceProvider.id }]
+      }
+    );
+
+    expect(tx.integrationInstanceGroupSource.upsert).not.toHaveBeenCalled();
+    expect(tx.integrationInstanceGroupProvider.upsert).not.toHaveBeenCalled();
+    expect(tx.integrationInstanceGroup.update).not.toHaveBeenCalled();
+    expect(tx.integrationInstanceGroupProvider.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { oid: { in: [liveGroupProvider.oid] } } })
+    );
+  });
+
+  it('rewrites a group provider whose fields drifted from its source provider', async () => {
+    db.integrationInstanceGroupSource.findMany.mockResolvedValue([liveSource]);
+    db.integrationInstanceGroupProvider.findMany.mockResolvedValue([
+      { ...liveGroupProvider, name: 'Old name' }
+    ]);
+
+    await runSetProviders({
+      tenant: { oid: 1n, projectOid: 11n },
+      environment: { oid: 3n, instanceOid: 33n }
+    });
+
+    expect(tx.integrationInstanceGroupSource.upsert).not.toHaveBeenCalled();
+    expect(tx.integrationInstanceGroupProvider.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('rewrites an archived group provider even when its fields match', async () => {
+    db.integrationInstanceGroupSource.findMany.mockResolvedValue([liveSource]);
+    db.integrationInstanceGroupProvider.findMany.mockResolvedValue([
+      { ...liveGroupProvider, status: 'archived', archivedAt: new Date() }
+    ]);
+
+    await runSetProviders({
+      tenant: { oid: 1n, projectOid: 11n },
+      environment: { oid: 3n, instanceOid: 33n }
+    });
+
+    expect(tx.integrationInstanceGroupProvider.upsert).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('integrationInstanceGroupProviderService.syncMagicMcpIntegrationInstanceGroupProvidersInternal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    db.integrationInstanceProvider.findMany.mockResolvedValue([sourceProvider]);
+    db.integrationInstanceGroupSource.findMany.mockResolvedValue([]);
+    db.integrationInstanceGroupProvider.findMany.mockResolvedValue([]);
+    tx.integrationInstanceGroupSource.upsert.mockResolvedValue({ oid: 60n });
+    tx.integrationInstanceGroupProvider.upsert.mockResolvedValue({
+      oid: 80n,
+      integrationInstanceProviderOid: sourceProvider.oid
+    });
+  });
+
+  it('archives stale providers without reloading the full provider tree', async () => {
+    let providers =
+      await integrationInstanceGroupProviderService.syncMagicMcpIntegrationInstanceGroupProvidersInternal(
+        {
+          tenant: { oid: 1n, projectOid: 11n } as any,
+          environment: { oid: 3n, instanceOid: 33n } as any,
+          integrationInstanceGroup: { ...integrationInstanceGroup, isMagicMcpBacking: true },
+          input: [{ integrationInstanceProviderId: sourceProvider.id }]
+        }
+      );
+
+    expect(providers).toEqual([
+      { oid: 80n, integrationInstanceProviderOid: sourceProvider.oid }
+    ]);
+    expect(tx.integrationInstanceGroupProvider.findMany).not.toHaveBeenCalled();
+    expect(tx.integrationInstanceGroupProvider.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          integrationInstanceProviderOid: { notIn: [sourceProvider.oid] }
         })
       })
     );

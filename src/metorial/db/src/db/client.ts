@@ -38,6 +38,32 @@ let getSecureRandomInt = () => {
   return array[0] & 0x7fffffff;
 };
 
+let pointLookupOperations = new Set([
+  'findUnique',
+  'findUniqueOrThrow',
+  'findFirst',
+  'findFirstOrThrow'
+]);
+let readOperations = new Set([...pointLookupOperations, 'findMany']);
+
+let loadsRelations = (args: any) =>
+  !!args &&
+  (!!args.include ||
+    (!!args.select &&
+      Object.values(args.select).some(value => typeof value === 'object' && value !== null)));
+
+// Point lookups load their relations in one joined query; lists keep one query per relation so
+// a page of rows doesn't multiply into a wide join.
+let withRelationLoadStrategy = (operation: string, args: any) => {
+  if (!readOperations.has(operation) || !loadsRelations(args)) return args;
+  if (args.relationLoadStrategy !== undefined) return args;
+
+  return {
+    ...args,
+    relationLoadStrategy: pointLookupOperations.has(operation) ? 'join' : 'query'
+  };
+};
+
 let createClient = () => {
   let mainAdapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL
@@ -66,6 +92,15 @@ let createClient = () => {
       readReplicas({ replicas: [replicaClient] })
     ) as any as PrismaClient;
   }
+
+  baseClient = baseClient.$extends({
+    query: {
+      $allModels: {
+        $allOperations: async ({ operation, args, query }) =>
+          await query(withRelationLoadStrategy(operation, args))
+      }
+    }
+  }) as any as PrismaClient;
 
   return baseClient.$extends({
     query: {
