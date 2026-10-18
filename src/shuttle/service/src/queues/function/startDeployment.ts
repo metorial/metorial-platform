@@ -41,7 +41,7 @@ export let deployFunctionServerStartQueueProcessor = deployFunctionServerStartQu
       }
     });
 
-    step.log('Starting MCP server deployment with Metorial Shuttle');
+    step.log('Starting MCP server deployment');
 
     try {
       let filesRes = getFunctionFs(upcomingFunctionServer);

@@ -35,10 +35,10 @@ export let deployContainerServerStartQueueProcessor = deployContainerServerStart
     let startingStep = await dep.step('started');
 
     if (data.from.type == 'image_ref') {
-      startingStep.log('Starting MCP server deployment with Metorial Shuttle.');
+      startingStep.log('Starting MCP server deployment.');
     } else {
       startingStep.log(
-        `The digest for the repository tag has changed to ${data.from.digest}. Starting MCP server deployment with Metorial Shuttle.`
+        `The digest for the repository tag has changed to ${data.from.digest}. Starting MCP server deployment.`
       );
     }
 

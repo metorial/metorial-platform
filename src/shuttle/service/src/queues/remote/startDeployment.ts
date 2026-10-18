@@ -53,7 +53,7 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
     let dep = await DeploymentManager.of({ serverDeployment: deployment });
 
     let startingStep = await dep.step('started');
-    startingStep.log('Starting MCP server deployment with Metorial Shuttle.');
+    startingStep.log('Starting MCP server deployment.');
     await db.serverDeployment.update({
       where: { id: data.serverDeploymentId },
       data: {
