@@ -19,7 +19,7 @@ export type ProviderVariantEnrichmentOutput = {
     containerRepository?: ShuttleContainerRepository;
 
     remoteUrl?: string;
-    remoteProtocol?: 'sse' | 'streamable_http';
+    remoteProtocol?: 'sse' | 'streamable_http' | 'stateless';
   }[];
 };
 
@@ -39,7 +39,7 @@ export type ProviderVersionEnrichmentOutput = {
     containerRepository?: ShuttleContainerRepository;
 
     remoteUrl?: string;
-    remoteProtocol?: 'sse' | 'streamable_http';
+    remoteProtocol?: 'sse' | 'streamable_http' | 'stateless';
   }[];
 };
 

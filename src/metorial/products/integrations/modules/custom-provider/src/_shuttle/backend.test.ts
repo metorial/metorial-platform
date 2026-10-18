@@ -64,6 +64,29 @@ describe('custom-provider Shuttle deployment', () => {
     );
   });
 
+  it('passes the stateless protocol through to Shuttle', async () => {
+    await backend.createCustomProvider({
+      tenant,
+      name: 'Stateless provider',
+      from: {
+        type: 'remote',
+        remoteUrl: 'https://example.com/mcp',
+        protocol: 'stateless'
+      },
+      config: undefined
+    });
+
+    expect(mocks.createServer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: {
+          type: 'remote',
+          remoteUrl: 'https://example.com/mcp',
+          protocol: 'stateless'
+        }
+      })
+    );
+  });
+
   it('does not send the preflight option for an initial container server', async () => {
     await backend.createCustomProvider({
       tenant,

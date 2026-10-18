@@ -149,7 +149,7 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
               description: 'URL of the remote MCP server',
               examples: ['https://mcp.example.com']
             }),
-            transport: v.enumOf(['sse', 'streamable_http'], {
+            transport: v.enumOf(['sse', 'streamable_http', 'stateless'], {
               name: 'transport',
               description: 'Transport protocol for connecting to the remote MCP server'
             })

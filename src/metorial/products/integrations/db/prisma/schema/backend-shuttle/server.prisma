@@ -7,6 +7,7 @@ enum ShuttleServerType {
 enum ShuttleServerRemoteProtocol {
   sse
   streamable_http
+  stateless
 }
 
 model ShuttleServer {

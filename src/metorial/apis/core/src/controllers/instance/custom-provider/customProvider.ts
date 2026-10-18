@@ -50,7 +50,10 @@ export let customProviderFromValidator = v.union([
       oauth_config: v.optional(
         v.record(v.any(), { description: 'Remote server configuration' })
       ),
-      protocol: v.enumOf(['sse', 'streamable_http'], { description: 'MCP protocol to use' })
+      protocol: v.enumOf(['sse', 'streamable_http', 'stateless'], {
+        description:
+          'MCP transport to use: `sse` (HTTP+SSE, 2024-11-05), `streamable_http` (session-based Streamable HTTP, 2025-03-26 to 2025-11-25), or `stateless` (sessionless Streamable HTTP, 2026-07-28)'
+      })
     },
     { name: 'remote', description: 'Connect to a remote MCP server' }
   ),

@@ -17,7 +17,7 @@ export type CustomProviderFromInternal =
   | {
       type: 'remote';
       remoteUrl: string;
-      protocol: 'sse' | 'streamable_http';
+      protocol: 'sse' | 'streamable_http' | 'stateless';
       oauthConfig?: Record<string, any>;
     }
   | {
