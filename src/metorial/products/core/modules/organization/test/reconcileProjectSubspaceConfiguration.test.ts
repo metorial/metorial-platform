@@ -53,6 +53,7 @@ let baseConfiguration = {
   disableCallbacks: false,
   collectOperationDescriptionForToolCalls: true,
   messageProcessingTimeoutMs: 30000,
+  sessionlessMcpEnabled: null,
   useIntegrationNamesForSessionProviderNameTemplates: false,
   reducedSubprocessors: false
 };
@@ -122,6 +123,29 @@ describe('project subspace configuration reconciler', () => {
     expect(mocks.projectUpdate).toHaveBeenCalledWith({
       where: { oid: 1n },
       data: tenant
+    });
+  });
+
+  it('copies an explicit sessionless MCP choice over an unset project mirror', async () => {
+    mocks.projectFindUnique.mockResolvedValue({
+      id: 'prj_1',
+      oid: 1n,
+      status: 'active',
+      subspaceTenantId: 'ten_1',
+      ...baseConfiguration
+    });
+    mocks.getTenantById.mockResolvedValue({
+      ...baseConfiguration,
+      sessionlessMcpEnabled: false
+    });
+
+    await (reconcileProjectSubspaceConfigurationSingleQueueProcessor as any).handler({
+      projectId: 'prj_1'
+    });
+
+    expect(mocks.projectUpdate).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      data: { ...baseConfiguration, sessionlessMcpEnabled: false }
     });
   });
 

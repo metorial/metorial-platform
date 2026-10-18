@@ -245,6 +245,7 @@ export * from './dashboard_projects_configure_auth-config';
 export * from './dashboard_projects_configure_data-retention';
 export * from './dashboard_projects_configure_integration-naming';
 export * from './dashboard_projects_configure_retention';
+export * from './dashboard_projects_configure_sessionless-mcp';
 export * from './dashboard_projects_configure_skill-sync';
 export * from './dashboard_projects_configure_tool-calling';
 export * from './dashboard_projects_configure_workforce';

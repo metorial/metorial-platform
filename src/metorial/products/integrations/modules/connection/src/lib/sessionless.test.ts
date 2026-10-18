@@ -6,25 +6,19 @@ describe('isSessionlessMcpEnabled', () => {
     vi.unstubAllEnvs();
   });
 
-  it.each([
-    ['development', 'production', true],
-    ['staging', 'production', true],
-    ['production', 'production', false],
-    ['production', 'development', false]
-  ])('METORIAL_ENV=%s NODE_ENV=%s -> %s', (metorialEnv, nodeEnv, expected) => {
-    vi.stubEnv('METORIAL_ENV', metorialEnv);
-    vi.stubEnv('NODE_ENV', nodeEnv);
+  it('follows the global default while the tenant has no override', () => {
+    vi.stubEnv('METORIAL_ENV', 'staging');
+    expect(isSessionlessMcpEnabled({ sessionlessMcpEnabled: null })).toBe(true);
 
-    expect(isSessionlessMcpEnabled()).toBe(expected);
+    vi.stubEnv('METORIAL_ENV', 'production');
+    expect(isSessionlessMcpEnabled({ sessionlessMcpEnabled: null })).toBe(false);
   });
 
-  it('falls back to NODE_ENV when METORIAL_ENV is unset', () => {
-    vi.stubEnv('METORIAL_ENV', '');
+  it('lets a tenant override win over the global default', () => {
+    vi.stubEnv('METORIAL_ENV', 'production');
+    expect(isSessionlessMcpEnabled({ sessionlessMcpEnabled: true })).toBe(true);
 
-    vi.stubEnv('NODE_ENV', 'development');
-    expect(isSessionlessMcpEnabled()).toBe(true);
-
-    vi.stubEnv('NODE_ENV', 'production');
-    expect(isSessionlessMcpEnabled()).toBe(false);
+    vi.stubEnv('METORIAL_ENV', 'staging');
+    expect(isSessionlessMcpEnabled({ sessionlessMcpEnabled: false })).toBe(false);
   });
 });

@@ -86,6 +86,7 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
       project.collectOperationDescriptionForToolCalls !==
         tenant.collectOperationDescriptionForToolCalls ||
       project.messageProcessingTimeoutMs !== tenant.messageProcessingTimeoutMs ||
+      project.sessionlessMcpEnabled !== tenant.sessionlessMcpEnabled ||
       project.useIntegrationNamesForSessionProviderNameTemplates !==
         tenant.useIntegrationNamesForSessionProviderNameTemplates ||
       project.reducedSubprocessors !== tenant.reducedSubprocessors;
@@ -104,6 +105,7 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
         collectOperationDescriptionForToolCalls:
           tenant.collectOperationDescriptionForToolCalls,
         messageProcessingTimeoutMs: tenant.messageProcessingTimeoutMs,
+        sessionlessMcpEnabled: tenant.sessionlessMcpEnabled,
         useIntegrationNamesForSessionProviderNameTemplates:
           tenant.useIntegrationNamesForSessionProviderNameTemplates,
         reducedSubprocessors: tenant.reducedSubprocessors

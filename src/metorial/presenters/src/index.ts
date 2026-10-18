@@ -173,6 +173,7 @@ import {
   v1ProjectPresenter,
   v1ProjectReducedSubprocessorsConfigurationPresenter,
   v1ProjectRetentionPresenter,
+  v1ProjectSessionlessMcpConfigurationPresenter,
   v1ProjectSkillSyncConfigurationPresenter,
   v1ProjectToolCallingConfigurationPresenter,
   v1ProjectWorkforceConfigurationPresenter,
@@ -422,6 +423,7 @@ import {
   projectIntegrationNamingConfigurationType,
   projectReducedSubprocessorsConfigurationType,
   projectRetentionType,
+  projectSessionlessMcpConfigurationType,
   projectSkillSyncConfigurationType,
   projectToolCallingConfigurationType,
   projectWorkforceConfigurationType,
@@ -828,6 +830,14 @@ export let projectToolCallingConfigurationPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1ProjectToolCallingConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectToolCallingConfigurationPresenter
+  }
+);
+
+export let projectSessionlessMcpConfigurationPresenter = declarePresenter(
+  projectSessionlessMcpConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectSessionlessMcpConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectSessionlessMcpConfigurationPresenter
   }
 );
 

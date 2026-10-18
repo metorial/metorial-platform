@@ -141,6 +141,29 @@ export let recordProjectToolCallingUpdated = async (
   });
 };
 
+export let recordProjectSessionlessMcpUpdated = async (
+  event: FabricEvents['organization.project.sessionless_mcp_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_sessionless_mcp_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project,
+          sessionlessMcpEnabled: event.configuration.sessionlessMcpEnabled
+        },
+        previousPayload: {
+          project: event.project,
+          sessionlessMcpEnabled: event.previousConfiguration.sessionlessMcpEnabled
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordProjectReducedSubprocessorsUpdated = async (
   event: FabricEvents['organization.project.reduced_subprocessors_configuration.updated:after']
 ) => {
@@ -229,6 +252,10 @@ Fabric.listen(
 Fabric.listen(
   'organization.project.tool_calling_configuration.updated:after',
   recordProjectToolCallingUpdated
+);
+Fabric.listen(
+  'organization.project.sessionless_mcp_configuration.updated:after',
+  recordProjectSessionlessMcpUpdated
 );
 Fabric.listen(
   'organization.project.data_retention_configuration.updated:after',

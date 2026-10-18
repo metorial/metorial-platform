@@ -7,6 +7,7 @@ import {
   projectDataRetentionConfigurationPresenter,
   projectIntegrationNamingConfigurationPresenter,
   projectRetentionPresenter,
+  projectSessionlessMcpConfigurationPresenter,
   projectSkillSyncConfigurationPresenter,
   projectReducedSubprocessorsConfigurationPresenter,
   projectToolCallingConfigurationPresenter,
@@ -94,6 +95,18 @@ export let projectToolCallingConfigurationResource = resource({
     messageProcessingTimeoutMs: number;
   }>('project_tool_calling_configuration'),
   presenter: projectToolCallingConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectSessionlessMcpConfigurationResource = resource({
+  name: 'project_sessionless_mcp_configuration',
+  payload: v.typedAny<{
+    project: Project;
+    sessionlessMcpEnabled: boolean;
+  }>('project_sessionless_mcp_configuration'),
+  presenter: projectSessionlessMcpConfigurationPresenter,
   actions: {
     update: true
   }

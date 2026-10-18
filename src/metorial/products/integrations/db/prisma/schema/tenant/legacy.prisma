@@ -42,6 +42,8 @@ model Tenant {
 
   collectOperationDescriptionForToolCalls Boolean @default(true)
 
+  sessionlessMcpEnabled Boolean?
+
   dataRetentionLevel       SessionDataRetentionLevel @default(full)
   storeToolCallAttachments Boolean                   @default(true)
   collectErrors            Boolean                   @default(true)

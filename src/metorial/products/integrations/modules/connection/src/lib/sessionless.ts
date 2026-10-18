@@ -1,8 +1,4 @@
-let SESSIONLESS_ENVIRONMENTS = ['development', 'staging'];
+import { resolveSessionlessMcpEnabled } from '@metorial-subspace/module-tenant/src/lib/sessionlessMcp';
 
-export let isSessionlessMcpEnabled = () => {
-  let metorialEnv = process.env.METORIAL_ENV;
-  if (metorialEnv) return SESSIONLESS_ENVIRONMENTS.includes(metorialEnv);
-
-  return process.env.NODE_ENV !== 'production';
-};
+export let isSessionlessMcpEnabled = (tenant: { sessionlessMcpEnabled?: boolean | null }) =>
+  resolveSessionlessMcpEnabled(tenant.sessionlessMcpEnabled);
