@@ -25,9 +25,12 @@ class LockDeadlineError extends Error {
   }
 }
 
-// Redlock reports every failed attempt in `attempts`; the lock is only contended (as opposed to
-// Redis being unreachable) when every rejecting node answered with ResourceLockedError.
-let isContentionFailure = (error: unknown) => {
+let ATTEMPT_STATS_TIMEOUT_MS = 100;
+
+// Redlock reports every failed attempt in `attempts` as a promise of its stats; the lock is only
+// contended (as opposed to Redis being unreachable) when every rejecting node answered with
+// ResourceLockedError.
+let isContentionFailure = async (error: unknown): Promise<boolean> => {
   if (error instanceof LockDeadlineError) return true;
 
   let attempts = (error as { attempts?: unknown } | null)?.attempts;
@@ -35,18 +38,30 @@ let isContentionFailure = (error: unknown) => {
     return false;
   }
 
-  let votes = attempts.flatMap(attempt =>
-    Array.from(
-      ((attempt?.votesAgainst as Map<unknown, Error> | undefined) ?? new Map()).values()
-    )
-  );
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    let stats = await Promise.race([
+      Promise.all(attempts),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), ATTEMPT_STATS_TIMEOUT_MS);
+      })
+    ]);
 
-  return votes.length > 0 && votes.every(vote => vote?.name === 'ResourceLockedError');
+    let votes = stats.flatMap(attempt =>
+      Array.from(
+        ((attempt?.votesAgainst as Map<unknown, Error> | undefined) ?? new Map()).values()
+      )
+    );
+
+    return votes.length > 0 && votes.every(vote => vote?.name === 'ResourceLockedError');
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 export class LockAcquisitionError extends Error {
-  public readonly isContention: boolean;
-
   constructor(
     cause: unknown,
     public readonly detail?: {
@@ -54,13 +69,13 @@ export class LockAcquisitionError extends Error {
       keyCount: number;
       attempts: number;
       elapsedMs: number;
-    }
+    },
+    public readonly isContention: boolean = false
   ) {
     super(cause instanceof Error ? cause.message : 'Failed to acquire distributed lock', {
       cause
     });
     this.name = 'LockAcquisitionError';
-    this.isContention = isContentionFailure(cause);
   }
 }
 
@@ -183,12 +198,16 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             console.warn(
               `LOCK.acquire.failed name=${name} keyCount=${keyArray.length} attempts=${attempt + 1} elapsedMs=${elapsedMs}`
             );
-            throw new LockAcquisitionError(error, {
-              name,
-              keyCount: keyArray.length,
-              attempts: attempt + 1,
-              elapsedMs
-            });
+            throw new LockAcquisitionError(
+              error,
+              {
+                name,
+                keyCount: keyArray.length,
+                attempts: attempt + 1,
+                elapsedMs
+              },
+              await isContentionFailure(error)
+            );
           }
 
           let jitter = Math.floor((Math.random() * 2 - 1) * retryJitter);
@@ -197,12 +216,16 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             console.warn(
               `LOCK.acquire.failed name=${name} keyCount=${keyArray.length} attempts=${attempt + 1} elapsedMs=${elapsedMs}`
             );
-            throw new LockAcquisitionError(error, {
-              name,
-              keyCount: keyArray.length,
-              attempts: attempt + 1,
-              elapsedMs
-            });
+            throw new LockAcquisitionError(
+              error,
+              {
+                name,
+                keyCount: keyArray.length,
+                attempts: attempt + 1,
+                elapsedMs
+              },
+              await isContentionFailure(error)
+            );
           }
 
           attempt++;

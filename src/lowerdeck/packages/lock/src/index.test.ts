@@ -191,9 +191,9 @@ describe('lock pooling and acquisition', () => {
       );
       error.name = 'ExecutionError';
       error.attempts = [
-        {
+        Promise.resolve({
           votesAgainst: new Map(votesAgainst.map((vote, index) => [index, vote]))
-        }
+        })
       ];
       return error;
     };
@@ -229,6 +229,15 @@ describe('lock pooling and acquisition', () => {
           new Error('connection closed')
         ])
       );
+
+      expect(error.isContention).toBe(false);
+    });
+
+    it('does not flag a quorum failure whose attempt stats never settle as contention', async () => {
+      let hanging: any = createExecutionError([createNamedError('ResourceLockedError')]);
+      hanging.attempts = [new Promise(() => {})];
+
+      let error = await acquireFailure(hanging);
 
       expect(error.isContention).toBe(false);
     });
