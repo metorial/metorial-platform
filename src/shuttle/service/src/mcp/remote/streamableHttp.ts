@@ -6,11 +6,17 @@ import type {
   ServerConnection,
   ServerInstanceConfiguration
 } from '../../../prisma/generated/client';
+import { parseModernMcpError } from '../../lib/remote/modernError';
+import { STATELESS_PROTOCOL_DETECTED_CODE } from '../../lib/remote/protocol';
 import { safeParse } from '../../lib/safeParse';
 import { fetchEventSource } from '../../lib/sse/fetch';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
-import { toConnectionError, type ConnectionErrorPayload } from '../utils/connectionError';
+import {
+  HttpResponseError,
+  toConnectionError,
+  type ConnectionErrorPayload
+} from '../utils/connectionError';
 import { ConnectionLogger } from '../utils/logger';
 import { ConnectionMessenger } from '../utils/messenger';
 import { RemoteConnectionAuthManager } from './authManager';
@@ -111,12 +117,29 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
         },
 
         onerror: async err => {
-          await this.#emitError(toConnectionError(err));
+          await this.#emitError(this.#mapSendError(message, err));
         }
       });
     } catch (e) {
-      await this.#emitError(toConnectionError(e));
+      await this.#emitError(this.#mapSendError(message, e));
     }
+  }
+
+  #mapSendError(message: JSONRPCMessage, error: unknown): ConnectionErrorPayload {
+    let isInitialize = 'method' in message && message.method == 'initialize';
+
+    if (
+      isInitialize &&
+      error instanceof HttpResponseError &&
+      parseModernMcpError(error.body)
+    ) {
+      return {
+        code: STATELESS_PROTOCOL_DETECTED_CODE,
+        message: `The MCP server rejected the initialize handshake with HTTP ${error.status} and appears to only support the stateless MCP transport`
+      };
+    }
+
+    return toConnectionError(error);
   }
 
   async #emitError(error: ConnectionErrorPayload) {
