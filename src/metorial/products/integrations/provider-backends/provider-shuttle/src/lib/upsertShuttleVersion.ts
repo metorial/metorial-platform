@@ -1,6 +1,10 @@
 import { generateCode, generatePlainId } from '@lowerdeck/id';
+import { getSentry } from '@lowerdeck/sentry';
 import { slugify } from '@lowerdeck/slugify';
+import { webDiscoveryService } from '@metorial/module-web';
 import {
+  addAfterTransactionHook,
+  db as subspaceDb,
   withTransaction,
   type Publisher,
   type ShuttleServer,
@@ -8,6 +12,7 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  enqueueApplyDiscoveredImage,
   providerInternalService,
   providerVersionInternalService,
   publisherInternalService
@@ -16,6 +21,8 @@ import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { backend } from '../backend';
 import type { shuttle } from '../client';
 import { env } from '../env';
+
+let Sentry = getSentry();
 
 export type Server = Awaited<ReturnType<typeof shuttle.server.get>>;
 export type Version = Awaited<ReturnType<typeof shuttle.serverVersion.get>>;
@@ -49,6 +56,41 @@ let getBackendForServerType = (
   }
 };
 
+let getRemoteUrl = (server: Server, version: Version) =>
+  server.type === 'remote' && version.remoteUrl ? version.remoteUrl : null;
+
+let getCachedDiscoveredImage = async (remoteUrl: string | null) => {
+  if (!remoteUrl) return null;
+
+  let discovery = await webDiscoveryService.getWebDiscoveryByUrl({ url: remoteUrl });
+  if (discovery?.status !== 'succeeded' || !discovery.image) return null;
+
+  return discovery.image;
+};
+
+let discoverRemoteImage = async (d: {
+  remoteUrl: string;
+  providerOid: bigint;
+  hasCachedImage: boolean;
+}) => {
+  try {
+    let discovery = await webDiscoveryService.discover({ url: d.remoteUrl });
+    if (d.hasCachedImage && discovery.status === 'succeeded') return;
+
+    let listing = await subspaceDb.providerListing.findFirst({
+      where: { providerOid: d.providerOid }
+    });
+    if (!listing) return;
+
+    await enqueueApplyDiscoveredImage({
+      providerListingId: listing.id,
+      discoveryId: discovery.id
+    });
+  } catch (error) {
+    Sentry.captureException(error);
+  }
+};
+
 export let upsertShuttleServerVersion = async ({
   publisherId,
   globalIdentifier,
@@ -75,6 +117,9 @@ export let upsertShuttleServerVersion = async ({
     readme?: string;
   };
 }) => {
+  let remoteUrl = getRemoteUrl(server, version);
+  let cachedImage = await getCachedDiscoveredImage(remoteUrl);
+
   return await withTransaction(
     async db => {
       let publisher: Publisher | null = null;
@@ -191,6 +236,9 @@ export let upsertShuttleServerVersion = async ({
           slug: slugify(`${server.name}-${generateCode(5)}`),
           globalIdentifier: owner ? null : (globalIdentifier ?? null),
 
+          image: cachedImage,
+          keepExistingImage: !!remoteUrl,
+
           categories: info?.categories,
           readme: info?.readme
         },
@@ -198,6 +246,16 @@ export let upsertShuttleServerVersion = async ({
       });
       if (!provider?.defaultVariant) {
         throw new Error(`No default variant after upserting provider for server ${server.id}`);
+      }
+
+      if (remoteUrl) {
+        await addAfterTransactionHook(() =>
+          discoverRemoteImage({
+            remoteUrl,
+            providerOid: provider.oid,
+            hasCachedImage: !!cachedImage
+          })
+        );
       }
 
       let providerVersion = await providerVersionInternalService.upsertVersion({

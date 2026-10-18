@@ -389,6 +389,29 @@ declare global {
 
     type SystemEventPayload = { [key: string]: any };
 
+    type WebImageCandidate = {
+      url: string;
+      source:
+        | 'jsonld_logo'
+        | 'svg_icon'
+        | 'apple_touch_icon'
+        | 'manifest_icon'
+        | 'icon'
+        | 'mask_icon'
+        | 'og_image'
+        | 'twitter_image'
+        | 'well_known';
+      declaredWidth: number | null;
+      declaredHeight: number | null;
+      width: number | null;
+      height: number | null;
+      format: 'svg' | 'png' | 'webp' | 'jpeg' | 'gif' | 'ico' | null;
+      bytes: number | null;
+      score: number | null;
+      rejectedReason: string | null;
+    };
+    type WebImageCandidates = WebImageCandidate[];
+
     type EventDeliveryAttemptDetails = {
       request: {
         url: string;
