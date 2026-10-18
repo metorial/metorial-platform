@@ -62,7 +62,12 @@ vi.mock('../../mcp/connection/embedded', () => ({
     create: createEmbeddedConnection
   },
   EmbeddedConnectionError: class EmbeddedConnectionError extends Error {
-    code = 'connection_error';
+    constructor(
+      readonly code = 'connection_error',
+      message = 'Connection failed'
+    ) {
+      super(message);
+    }
   }
 }));
 
@@ -170,4 +175,45 @@ describe('discoverServerQueueProcessor', () => {
       })
     });
   });
+
+  it.each([
+    ['streamable_http', 'stateless_protocol_detected', 'stateless'],
+    ['streamable_http', 'connection_error', 'sse'],
+    ['stateless', 'stateless_protocol_unsupported', 'streamable_http'],
+    ['sse', 'connection_error', 'streamable_http']
+  ])(
+    'auto-switches a failing %s remote server with %s to %s',
+    async (remoteProtocol, errorCode, expectedProtocol) => {
+      let { EmbeddedConnectionError } = await import('../../mcp/connection/embedded');
+      await import('./server');
+
+      serverDiscoveryFindFirst.mockResolvedValue({
+        ...discovery,
+        serverVersion: {
+          ...discovery.serverVersion,
+          remoteProtocol,
+          server: { oid: 5n, type: 'remote' }
+        }
+      });
+      createEmbeddedConnection.mockRejectedValue(new EmbeddedConnectionError(errorCode));
+
+      await queues['shut/server/discover'].processor({
+        serverDiscoveryId: discovery.id
+      });
+
+      expect(serverVersionUpdate).toHaveBeenCalledWith({
+        where: { oid: discovery.serverVersion.oid },
+        data: {
+          remoteProtocolAutoSwitchStatus: 'attempting',
+          originalRemoteProtocol: remoteProtocol,
+          remoteProtocol: expectedProtocol
+        }
+      });
+      expect(queues['shut/server/discover'].add).toHaveBeenCalledWith({
+        serverDiscoveryId: discovery.id,
+        _remote: { isAutoSwitched: true }
+      });
+      expect(serverDiscoveryUpdate).not.toHaveBeenCalled();
+    }
+  );
 });

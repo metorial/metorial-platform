@@ -1,3 +1,11 @@
+import type { ServerRemoteProtocol } from '../../../prisma/generated/client';
+import {
+  META_CLIENT_CAPABILITIES,
+  META_CLIENT_INFO,
+  META_PROTOCOL_VERSION,
+  STATELESS_PROTOCOL_VERSION
+} from '../../mcp/remote/stateless/constants';
+import { getStandardHeaders } from '../../mcp/remote/stateless/headers';
 import { getAxiosSsrfFilter } from '../http/axiosSsrf';
 import { axiosWithoutSse } from '../http/sse';
 import type { OAuthConfiguration } from './types';
@@ -59,7 +67,12 @@ export class OAuthDiscovery {
     );
   }
 
-  static async checkIfManualAuthIsNeeded(url: string) {
+  static async checkIfManualAuthIsNeeded(
+    url: string,
+    opts: { protocol?: ServerRemoteProtocol } = {}
+  ) {
+    if (opts.protocol == 'stateless') return this.checkIfStatelessManualAuthIsNeeded(url);
+
     try {
       let response = await axiosWithoutSse(url, {
         method: 'GET',
@@ -68,6 +81,42 @@ export class OAuthDiscovery {
           'User-Agent': 'Metorial (https://metorial.com)'
         },
         validateStatus: status => status >= 200 && status < 500, // allow 4xx to fall through
+        maxRedirects: 5,
+        timeout: 2000,
+        ...getAxiosSsrfFilter(url)
+      });
+
+      return response.status === 401;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private static async checkIfStatelessManualAuthIsNeeded(url: string) {
+    let request = {
+      jsonrpc: '2.0',
+      id: 'metorial-auth-probe',
+      method: 'server/discover',
+      params: {
+        _meta: {
+          [META_PROTOCOL_VERSION]: STATELESS_PROTOCOL_VERSION,
+          [META_CLIENT_INFO]: { name: 'Metorial', version: '1.0.0' },
+          [META_CLIENT_CAPABILITIES]: {}
+        }
+      }
+    };
+
+    try {
+      let response = await axiosWithoutSse(url, {
+        method: 'POST',
+        headers: {
+          ...getStandardHeaders(request),
+          Accept: 'application/json, text/event-stream',
+          'Content-Type': 'application/json',
+          'User-Agent': 'Metorial (https://metorial.com)'
+        },
+        data: request,
+        validateStatus: status => status >= 200 && status < 500,
         maxRedirects: 5,
         timeout: 2000,
         ...getAxiosSsrfFilter(url)

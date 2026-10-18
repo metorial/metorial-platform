@@ -7,6 +7,7 @@ import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
+import { getAutoSwitchRemoteProtocol } from '../../lib/remote/protocol';
 import { EmbeddedConnection, EmbeddedConnectionError } from '../../mcp/connection/embedded';
 import { autoPaginateMcp } from '../../mcp/utils/paginate';
 import { serverConnectionService } from '../../services';
@@ -278,8 +279,10 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
         data: {
           remoteProtocolAutoSwitchStatus: 'attempting',
           originalRemoteProtocol: discovery.serverVersion.remoteProtocol,
-          remoteProtocol:
-            discovery.serverVersion.remoteProtocol == 'sse' ? 'streamable_http' : 'sse'
+          remoteProtocol: getAutoSwitchRemoteProtocol(
+            discovery.serverVersion.remoteProtocol,
+            e instanceof EmbeddedConnectionError ? e.code : null
+          )
         }
       });
 
