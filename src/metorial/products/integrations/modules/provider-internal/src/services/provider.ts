@@ -98,6 +98,7 @@ class providerInternalServiceImpl {
       aliases?: string[];
       globalIdentifier: string | null;
       image?: EntityImage | null;
+      keepExistingImage?: boolean;
       skills?: string[];
       readme?: string;
       docs?: PrismaJson.ProviderListingDocs | null;
@@ -271,6 +272,8 @@ class providerInternalServiceImpl {
         };
 
         let newListingId = getId('providerListing');
+        let existingImage = d.info.keepExistingImage ? listing?.image : null;
+
         if (!listing?.isCustomized) {
           let inner = {
             ...allData,
@@ -282,7 +285,7 @@ class providerInternalServiceImpl {
             prettySlug: provider.prettySlug,
             aliases: [...new Set(d.info.aliases)],
 
-            image: d.info.image ?? { type: 'default' as const },
+            image: d.info.image ?? existingImage ?? { type: 'default' as const },
 
             readme: d.info.readme,
             docs: d.info.docs ?? Prisma.DbNull,

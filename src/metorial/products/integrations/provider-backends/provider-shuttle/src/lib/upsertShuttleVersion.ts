@@ -237,6 +237,7 @@ export let upsertShuttleServerVersion = async ({
           globalIdentifier: owner ? null : (globalIdentifier ?? null),
 
           image: cachedImage,
+          keepExistingImage: !!remoteUrl,
 
           categories: info?.categories,
           readme: info?.readme

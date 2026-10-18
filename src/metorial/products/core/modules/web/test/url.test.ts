@@ -78,3 +78,23 @@ describe('buildPageChain', () => {
     expect(pages[pages.length - 1]).toBe('https://example.com/');
   });
 });
+
+describe('normalizeWebUrl ip literals', () => {
+  it.each(['http://[2001:db8::1]:8080/mcp?x=1', 'https://203.0.113.5/mcp'])(
+    'produces a page url that normalizes to itself for %s',
+    input => {
+      let first = normalizeWebUrl(input)!;
+      let second = normalizeWebUrl(first.pageUrl);
+
+      expect(second).not.toBeNull();
+      expect(second!.pageUrl).toBe(first.pageUrl);
+      expect(second!.urlKey).toBe(first.urlKey);
+    }
+  );
+
+  it('keeps ipv6 hosts bracketed', () => {
+    expect(normalizeWebUrl('http://[2001:db8::1]/mcp')!.pageUrl).toBe(
+      'https://[2001:db8::1]/mcp'
+    );
+  });
+});
