@@ -1,21 +1,32 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createCachedFunction, createLocallyCachedFunction } from './index';
 
-let { redisStore } = vi.hoisted(() => ({ redisStore: new Map<string, string>() }));
+let { redisStore, redisSets } = vi.hoisted(() => ({
+  redisStore: new Map<string, string>(),
+  redisSets: new Map<string, Set<string>>()
+}));
 
 vi.mock('@lowerdeck/redis', () => ({
   createRedisClient: () => ({
     lazy: () => async () => ({
       get: async (key: string) => redisStore.get(key) ?? null,
       set: async (key: string, value: string) => void redisStore.set(key, value),
-      del: async (key: string) => void redisStore.delete(key),
-      sAdd: async () => {},
-      sRem: async () => {},
-      sMembers: async () => [],
+      del: async (key: string) => {
+        redisStore.delete(key);
+        redisSets.delete(key);
+      },
+      sAdd: async (key: string, member: string) => {
+        if (!redisSets.has(key)) redisSets.set(key, new Set());
+        redisSets.get(key)!.add(member);
+      },
+      sRem: async (key: string, member: string) => void redisSets.get(key)?.delete(member),
+      sMembers: async (key: string) => [...(redisSets.get(key) ?? [])],
       expire: async () => {}
     })
   })
 }));
+
+let tagMembers = (tag: string) => [...(redisSets.get(`cache:0:tag:${tag}`) ?? [])];
 
 describe('createCachedFunction', () => {
   it('evicts the local copy on clearAndWait even when redis was already cleared', async () => {
@@ -55,6 +66,56 @@ describe('createCachedFunction', () => {
     expect(await createCachedFunction(options)('key')).toBe('value:key:2');
     expect(revalidate).toHaveBeenCalledWith('value:key:1', 'key');
     expect(provider).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes a value that fails revalidation from its old tags', async () => {
+    let provider = vi.fn(async () => `owner:${provider.mock.calls.length}`);
+    let options = {
+      name: 'revalidate-tags',
+      redisUrl: 'redis://test',
+      getHash: (key: string) => key,
+      getTags: (value: string) => [value],
+      provider,
+      revalidate: async (value: string) => value !== 'owner:1',
+      ttlSeconds: 60
+    };
+
+    await createCachedFunction(options)('key');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    let refreshed = createCachedFunction(options);
+    expect(await refreshed('key')).toBe('owner:2');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(tagMembers('owner:1')).toEqual([]);
+    expect(tagMembers('owner:2')).toHaveLength(1);
+
+    await refreshed.clearByTagAndWait('owner:1');
+    expect(await refreshed('key')).toBe('owner:2');
+    expect(provider).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to redis when the local copy fails revalidation', async () => {
+    let provider = vi.fn(async () => `version:${provider.mock.calls.length}`);
+    let current = 'version:1';
+    let options = {
+      name: 'revalidate-stale-local',
+      redisUrl: 'redis://test',
+      getHash: (key: string) => key,
+      provider,
+      revalidate: async (value: string) => value === current,
+      ttlSeconds: 60
+    };
+
+    let lagging = createCachedFunction(options);
+    await lagging('key');
+
+    current = 'version:2';
+    await createCachedFunction(options)('key');
+
+    expect(await lagging('key')).toBe('version:2');
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(redisStore.has('cache:0:revalidate-stale-local:val:key')).toBe(true);
   });
 
   it('serves a local hit that still revalidates', async () => {

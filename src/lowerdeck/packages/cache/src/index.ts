@@ -33,14 +33,20 @@ export let createCachedFunction = <I, O>(opts: {
   let getHash = (i: I) => `cache:${version}:${opts.name}:val:${opts.getHash(i)}`;
   let getTagKeys = (tags: string[]) => tags.map(tag => `cache:${version}:tag:${tag}`);
 
-  let readCached = async (hash: string): Promise<{ value: O; local: boolean } | null> => {
-    if (cache.has(hash)) return { value: cache.get(hash), local: true };
+  let removeFromTags = async (hash: string, value: O, i: I) => {
+    if (!opts.getTags) return;
 
     let redis = await useRedisClient();
-    let value = await redis.get(hash);
-    if (!value) return null;
+    let tagKeys = getTagKeys(opts.getTags(value, i));
 
-    return { value: SuperJson.parse(value), local: false };
+    for (let tagKey of tagKeys) {
+      try {
+        await redis.sRem(tagKey, hash);
+      } catch (e) {
+        console.error('Error removing tag:', e);
+        Sentry.captureException(e);
+      }
+    }
   };
 
   let run = async (i: I): Promise<O> => {
@@ -51,15 +57,26 @@ export let createCachedFunction = <I, O>(opts: {
     let promise = (async () => {
       let redis = await useRedisClient();
 
-      let cached = await readCached(hash);
-      if (cached) {
-        if (!opts.revalidate || (await opts.revalidate(cached.value, i))) {
-          if (!cached.local) cache.set(hash, cached.value);
-          return cached.value;
-        }
+      // The local copy can lag redis, so failing it only drops this process's copy: redis may
+      // already hold a value another process recomputed, and that one gets checked on its own.
+      if (cache.has(hash)) {
+        let local: O = cache.get(hash);
+        if (await opts.revalidate!(local, i)) return local;
 
         cache.delete(hash);
+      }
+
+      let stored = await redis.get(hash);
+      if (stored) {
+        let parsed: O = SuperJson.parse(stored);
+
+        if (!opts.revalidate || (await opts.revalidate(parsed, i))) {
+          cache.set(hash, parsed);
+          return parsed;
+        }
+
         await redis.del(hash);
+        await removeFromTags(hash, parsed, i);
       }
 
       let ttl = { current: opts.ttlSeconds };
@@ -105,19 +122,7 @@ export let createCachedFunction = <I, O>(opts: {
     if (!data) return;
 
     await redis.del(hash);
-
-    if (opts.getTags) {
-      let tags = opts.getTags(SuperJson.parse(data), i);
-      let tagKeys = getTagKeys(tags);
-      for (let tagKey of tagKeys) {
-        try {
-          await redis.sRem(tagKey, hash);
-        } catch (e) {
-          console.error('Error removing tag:', e);
-          Sentry.captureException(e);
-        }
-      }
-    }
+    await removeFromTags(hash, SuperJson.parse(data), i);
   };
 
   let clearByTagAndWait = async (tag: string) => {
