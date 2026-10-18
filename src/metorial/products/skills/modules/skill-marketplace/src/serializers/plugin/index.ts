@@ -4,9 +4,9 @@ import { slugify } from '@lowerdeck/slugify';
 import { getConfig } from '@metorial/config';
 import { db } from '@metorial/db';
 import { internalImageService } from '@metorial/skills-images';
-import semver from 'semver';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import { claimVersion } from '../_lib/claimVersion';
 import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
 import { getPluginPath, getPluginPruneScope } from '../_lib/paths';
 
@@ -101,36 +101,32 @@ export let applyPlugin = createApplicator(
     getHash: async (_input, { hash }) => hash,
 
     apply: async (input, context, { project, agents, image, hash }) => {
-      if (input.skillPlugin.versionHash !== hash) {
-        let nextVersion = semver.inc(input.skillPlugin.version ?? '0.0.0', 'patch')!;
-
-        let updated = await db.skillPlugin.updateMany({
-          where: {
-            oid: input.skillPlugin.oid,
-            versionHash: input.skillPlugin.versionHash
-          },
-          data: {
-            versionHash: hash,
-            version: nextVersion,
-            updatedAt: input.skillPlugin.updatedAt
-          }
-        });
-
-        if (updated.count > 0) {
-          input.skillPlugin.version = nextVersion;
-          input.skillPlugin.versionHash = hash;
-        } else {
-          let current = await db.skillPlugin.findUniqueOrThrow({
-            where: { oid: input.skillPlugin.oid }
+      let claimed = await claimVersion({
+        initial: input.skillPlugin,
+        hash,
+        compareAndSet: async d => {
+          let updated = await db.skillPlugin.updateMany({
+            where: {
+              oid: input.skillPlugin.oid,
+              versionHash: d.expectedVersionHash
+            },
+            data: {
+              versionHash: d.versionHash,
+              version: d.version,
+              updatedAt: input.skillPlugin.updatedAt
+            }
           });
-          if (current.versionHash !== hash) {
-            throw new Error('Plugin changed while its sync was being processed');
-          }
+          return updated.count > 0;
+        },
+        reload: () =>
+          db.skillPlugin.findUniqueOrThrow({
+            where: { oid: input.skillPlugin.oid },
+            select: { version: true, versionHash: true }
+          })
+      });
 
-          input.skillPlugin.version = current.version;
-          input.skillPlugin.versionHash = current.versionHash;
-        }
-      }
+      input.skillPlugin.version = claimed.version;
+      input.skillPlugin.versionHash = claimed.versionHash;
 
       context.setBasePath(getPluginPath(input));
 
