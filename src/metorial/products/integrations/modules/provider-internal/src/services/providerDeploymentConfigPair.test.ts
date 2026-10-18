@@ -7,6 +7,7 @@ let mocks = vi.hoisted(() => {
   return {
     pairFindUnique,
     pairUpsert,
+    waitForDiscovery: vi.fn(),
     db: {
       providerDeploymentConfigPair: {
         findUnique: pairFindUnique,
@@ -30,8 +31,8 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
-vi.mock('@lowerdeck/delay', () => ({
-  delay: vi.fn()
+vi.mock('../lib/discoverySignal', () => ({
+  waitForDiscovery: mocks.waitForDiscovery
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
@@ -98,5 +99,46 @@ describe('providerDeploymentConfigPairInternalService', () => {
     expect(create.projectOid).toBeNull();
     expect(create.environmentOid).toBe(4n);
     expect(create.instanceOid).toBeNull();
+  });
+
+  it('waits for the discovery signal and re-reads the pair version once', async () => {
+    let pair = { oid: 20n, id: 'pair_1', lastUsedPairVersionOid: null };
+    let discovering = { oid: 30n, specificationDiscoveryStatus: 'discovering' };
+    let discovered = { ...discovering, specificationDiscoveryStatus: 'discovered' };
+
+    mocks.pairFindUnique.mockResolvedValue({ ...pair, versions: [discovering] });
+    mocks.db.providerDeploymentConfigPairProviderVersion.findFirstOrThrow.mockResolvedValue(
+      discovered
+    );
+
+    let res = await providerDeploymentConfigPairInternalService.useDeploymentConfigPair({
+      ...makeParts(),
+      version: { oid: 40n }
+    });
+
+    expect(mocks.waitForDiscovery).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'pairVersion', oid: discovering.oid })
+    );
+    expect(
+      mocks.db.providerDeploymentConfigPairProviderVersion.findFirstOrThrow
+    ).toHaveBeenCalledTimes(1);
+    expect(res.version).toBe(discovered);
+  });
+
+  it('does not wait when discovery has already finished', async () => {
+    let pairVersion = { oid: 30n, specificationDiscoveryStatus: 'discovered' };
+    mocks.pairFindUnique.mockResolvedValue({
+      oid: 20n,
+      id: 'pair_1',
+      lastUsedPairVersionOid: 30n,
+      versions: [pairVersion]
+    });
+
+    await providerDeploymentConfigPairInternalService.useDeploymentConfigPair({
+      ...makeParts(),
+      version: { oid: 40n }
+    });
+
+    expect(mocks.waitForDiscovery).not.toHaveBeenCalled();
   });
 });

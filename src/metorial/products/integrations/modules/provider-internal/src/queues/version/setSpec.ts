@@ -6,6 +6,7 @@ import {
 } from '@metorial-subspace/db';
 import { schemaChangeNotificationAlertIngestQueue } from '@metorial-subspace/module-monitor/src/queues/schemaChange';
 import { env } from '../../env';
+import { markDiscoveryFinished } from '../../lib/discoverySignal';
 
 export let providerVersionSetSpecificationQueue = createQueue<{
   versionOid: bigint;
@@ -55,6 +56,12 @@ export let providerVersionSetSpecificationQueueProcessor =
     version = await db.providerVersion.update({
       where: { oid: version.oid },
       data: result
+    });
+
+    await markDiscoveryFinished({
+      kind: 'providerVersion',
+      oid: version.oid,
+      status: version.specificationDiscoveryStatus
     });
 
     if (previousSpecificationOid !== version.specificationOid) {

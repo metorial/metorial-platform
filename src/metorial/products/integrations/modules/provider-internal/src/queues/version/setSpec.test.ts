@@ -6,6 +6,7 @@ let providerVersionFindFirst = vi.fn();
 let providerVersionUpdate = vi.fn();
 let providerAuthConfigUpdateMany = vi.fn();
 let providerAuthCredentialsUpdateMany = vi.fn();
+let markDiscoveryFinished = vi.fn();
 
 let db = {
   providerVersion: {
@@ -55,10 +56,15 @@ vi.mock('../../env', () => ({
   env: { service: { REDIS_URL: 'redis://localhost:6379' } }
 }));
 
+vi.mock('../../lib/discoverySignal', () => ({
+  markDiscoveryFinished
+}));
+
 describe('providerVersionSetSpecificationQueue', () => {
   beforeEach(() => {
     vi.resetModules();
     queues = {};
+    markDiscoveryFinished.mockReset();
     providerVersionFindFirst.mockReset();
     providerVersionUpdate.mockReset();
     providerAuthConfigUpdateMany.mockReset();
@@ -93,6 +99,11 @@ describe('providerVersionSetSpecificationQueue', () => {
       });
       expect(providerAuthConfigUpdateMany).not.toHaveBeenCalled();
       expect(providerAuthCredentialsUpdateMany).not.toHaveBeenCalled();
+      expect(markDiscoveryFinished).toHaveBeenCalledWith({
+        kind: 'providerVersion',
+        oid: version.oid,
+        status
+      });
     });
   }
 });
