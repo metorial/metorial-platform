@@ -7,6 +7,8 @@ let makeSpan = (opts: {
   name: string;
   durationMs: number;
   statusCode?: SpanStatusCode;
+  events?: ReadableSpan['events'];
+  attributes?: ReadableSpan['attributes'];
 }): ReadableSpan => {
   let seconds = Math.floor(opts.durationMs / 1000);
   let nanoseconds = (opts.durationMs - seconds * 1000) * 1_000_000;
@@ -14,7 +16,9 @@ let makeSpan = (opts: {
   return {
     name: opts.name,
     duration: [seconds, nanoseconds],
-    status: { code: opts.statusCode ?? SpanStatusCode.UNSET }
+    status: { code: opts.statusCode ?? SpanStatusCode.UNSET },
+    events: opts.events ?? [],
+    attributes: opts.attributes ?? {}
   } as ReadableSpan;
 };
 
@@ -39,6 +43,36 @@ describe('shouldDropSpan', () => {
     });
 
     expect(shouldDropSpan(span, 100)).toBe(false);
+  });
+
+  it('keeps prisma spans with an exception event regardless of duration', () => {
+    let span = makeSpan({
+      name: 'prisma:client:operation',
+      durationMs: 5,
+      events: [{ name: 'exception', time: [0, 0] }]
+    });
+
+    expect(shouldDropSpan(span, 100)).toBe(false);
+  });
+
+  it('keeps prisma spans marked as errors via attributes', () => {
+    let span = makeSpan({
+      name: 'prisma:client:operation',
+      durationMs: 5,
+      attributes: { error: true }
+    });
+
+    expect(shouldDropSpan(span, 100)).toBe(false);
+  });
+
+  it('drops fast prisma spans with only non-exception events', () => {
+    let span = makeSpan({
+      name: 'prisma:client:operation',
+      durationMs: 5,
+      events: [{ name: 'query', time: [0, 0] }]
+    });
+
+    expect(shouldDropSpan(span, 100)).toBe(true);
   });
 
   it('keeps non-prisma spans regardless of duration', () => {

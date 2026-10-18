@@ -86,10 +86,20 @@ let getSpanDurationMs = (span: ReadableSpan) => {
   return seconds * 1000 + nanoseconds / 1_000_000;
 };
 
+// Prisma ends failed operations without setting SpanStatusCode.ERROR, recording
+// the failure via recordException instead, so status alone misses fast failures.
+let hasSpanError = (span: ReadableSpan) => {
+  if (span.status.code === SpanStatusCode.ERROR) return true;
+
+  if (span.events.some(event => event.name === 'exception')) return true;
+
+  return span.attributes['error'] === true || 'exception.type' in span.attributes;
+};
+
 export let shouldDropSpan = (span: ReadableSpan, prismaSpanMinDurationMs: number) => {
   if (!span.name.startsWith('prisma:')) return false;
 
-  if (span.status.code === SpanStatusCode.ERROR) return false;
+  if (hasSpanError(span)) return false;
 
   return getSpanDurationMs(span) < prismaSpanMinDurationMs;
 };

@@ -91,7 +91,7 @@ export OTEL_TRACES_SAMPLER_ARG=0.05
 ### `OTEL_PRISMA_SPAN_MIN_DURATION_MS`
 - Type: number (`>= 0`)
 - Default: `100`
-- What it does: successful Prisma spans (`prisma:*`) shorter than this duration are dropped before export — they are leaf spans created for every database query and otherwise dominate the span volume of a trace. Errored Prisma spans are always kept. Set to `0` to keep every Prisma span.
+- What it does: successful Prisma spans (`prisma:*`) shorter than this duration are dropped before export — they are leaf spans created for every database query and otherwise dominate the span volume of a trace. Prisma spans that failed — error status, exception event, or error attributes — are always kept. Set to `0` to keep every Prisma span.
 
 Example:
 
