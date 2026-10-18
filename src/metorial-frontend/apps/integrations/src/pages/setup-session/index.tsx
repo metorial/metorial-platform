@@ -34,7 +34,16 @@ export let SetupSessionPage = () => {
   if (setupSession.error) return <PublicErrorPage error={setupSession.error} />;
   if (!setupSession.data || !credentials) return null;
 
-  let { session, brand, provider, completionRedirect, isWhitelabel } = setupSession.data;
+  let {
+    session,
+    brand,
+    provider,
+    completionRedirect,
+    isWhitelabel,
+    authConfigSchema,
+    configSchema,
+    oauthSetup
+  } = setupSession.data;
 
   let keepOpenForToolAccess =
     completionRedirect?.type === 'integration_setup_session' &&
@@ -74,6 +83,7 @@ export let SetupSessionPage = () => {
       session={session}
       brand={brand}
       provider={provider}
+      prefetched={{ authConfigSchema, configSchema, oauthSetup }}
       clientSecret={credentials.clientSecret}
       isWhitelabel={isWhitelabel}
       completionRedirectUrl={completionRedirect?.url}
