@@ -179,7 +179,7 @@ export class ConduitReceiver {
           }
           state.pendingMessages = [];
 
-          await this.closeTopic(topic);
+          await this.closeTopicState(topic, state);
         }
       })();
 
@@ -245,7 +245,7 @@ export class ConduitReceiver {
       },
 
       close: async () => {
-        await this.closeTopic(topic);
+        await this.closeTopicState(topic, state);
       }
     };
   }
@@ -294,22 +294,31 @@ export class ConduitReceiver {
 
       // Check if the logical TTL has expired
       if (state.ttlExpiresAt <= now) {
-        await this.closeTopic(topic);
+        await this.closeTopicState(topic, state);
       }
     }
   }
 
-  // Detaching the state happens synchronously, before any await, so a message that arrives
-  // while close handlers are still running starts a fresh topic instead of being rejected.
   private async closeTopic(topic: string): Promise<void> {
     let state = this.topicStates.get(topic);
-    if (!state || state.closed) {
-      return;
-    }
+    if (state) await this.closeTopicState(topic, state);
+  }
+
+  // Closing is bound to a specific state, never to the topic name: once a state is detached,
+  // a fresh state for the same topic may start, and stale callbacks (e.g. an old context's
+  // close()) must not tear it down. Detaching happens synchronously, before any await, so a
+  // message that arrives while close handlers are still running starts that fresh state
+  // instead of being rejected.
+  private async closeTopicState(topic: string, state: TopicState): Promise<void> {
+    if (state.closed) return;
 
     state.closed = true;
-    this.topicStates.delete(topic);
-    this.receiver.getOwnershipManager().removeTopic(topic);
+
+    let ownershipManager = this.receiver.getOwnershipManager();
+    if (this.topicStates.get(topic) === state) {
+      this.topicStates.delete(topic);
+      ownershipManager.removeTopic(topic);
+    }
 
     // These messages never reached a handler, so the sender can safely redeliver them.
     for (let pending of state.pendingMessages) {
@@ -317,10 +326,22 @@ export class ConduitReceiver {
     }
     state.pendingMessages = [];
 
-    try {
-      await this.coordination.releaseTopicOwnership(topic, this.receiver.getReceiverId());
-    } catch (err) {
-      console.error(`Error releasing ownership of closed topic ${topic}:`, err);
+    if (!this.topicStates.has(topic)) {
+      try {
+        await this.coordination.releaseTopicOwnership(topic, this.receiver.getReceiverId());
+      } catch (err) {
+        console.error(`Error releasing ownership of closed topic ${topic}:`, err);
+      }
+
+      // A replacement state that started during the release relies on the key we just
+      // deleted; without re-claiming it, the next renewal would treat it as lost.
+      if (this.topicStates.has(topic)) {
+        try {
+          await ownershipManager.claimTopic(topic);
+        } catch (err) {
+          console.error(`Error re-claiming ownership of replaced topic ${topic}:`, err);
+        }
+      }
     }
 
     for (let handler of state.closeHandlers) {

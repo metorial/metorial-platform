@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createConduit, createMemoryConduit } from '../../src/index';
 
-let sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+let sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 let productionSenderConfig = { defaultTimeout: 10_000, maxRetries: 10 };
 
@@ -99,6 +99,83 @@ describe('Connection loss hardening', () => {
     expect(second.success).toBe(true);
     expect(second.result).toEqual({ id: 'second' });
     expect(setups).toBe(2);
+
+    await receiver.stop();
+    await sender.close();
+  }, 15_000);
+
+  it("a stale context's close() does not close the replacement topic", async () => {
+    let contexts: { close: () => Promise<void> }[] = [];
+    let replacementCloses = 0;
+
+    let receiver = conduit.createConduitReceiver(async ctx => {
+      let generation = contexts.push(ctx);
+      ctx.extendTtl(60_000);
+
+      await ctx.onClose(() => {
+        if (generation === 2) replacementCloses++;
+      });
+
+      await ctx.onMessage(async (data: any) => {
+        if (data.close) await ctx.close();
+        return { id: data.id, generation };
+      });
+    });
+    await receiver.start();
+
+    let sender = conduit.createSender(productionSenderConfig);
+
+    await sender.send('replaced-topic', { id: 'first', close: true });
+    await sleep(50);
+    await sender.send('replaced-topic', { id: 'second' });
+
+    await contexts[0]!.close();
+
+    let third = await sender.send('replaced-topic', { id: 'third' });
+
+    expect(third.result).toEqual({ id: 'third', generation: 2 });
+    expect(contexts).toHaveLength(2);
+    expect(replacementCloses).toBe(0);
+    expect(await conduit.coordination.getTopicOwner('replaced-topic')).toBe(
+      receiver.getReceiverId()
+    );
+
+    await receiver.stop();
+    await sender.close();
+  }, 15_000);
+
+  it('a replacement topic started during ownership release keeps its ownership', async () => {
+    let coordination = conduit.coordination;
+    let originalRelease = coordination.releaseTopicOwnership.bind(coordination);
+    let release = vi
+      .spyOn(coordination, 'releaseTopicOwnership')
+      .mockImplementation(async (topic, receiverId) => {
+        await sleep(300);
+        await originalRelease(topic, receiverId);
+      });
+
+    let receiver = conduit.createConduitReceiver(async ctx => {
+      ctx.extendTtl(60_000);
+
+      await ctx.onMessage(async (data: any) => {
+        if (data.close) void ctx.close();
+        return { id: data.id };
+      });
+    });
+    await receiver.start();
+
+    let sender = conduit.createSender(productionSenderConfig);
+
+    await sender.send('release-race-topic', { id: 'first', close: true });
+    await sleep(50);
+    let second = await sender.send('release-race-topic', { id: 'second' });
+    await sleep(500);
+    release.mockRestore();
+
+    expect(second.success).toBe(true);
+    expect(await coordination.getTopicOwner('release-race-topic')).toBe(
+      receiver.getReceiverId()
+    );
 
     await receiver.stop();
     await sender.close();
