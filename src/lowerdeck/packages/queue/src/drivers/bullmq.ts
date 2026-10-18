@@ -142,6 +142,36 @@ let isPostgresDeadlockError = (error: unknown) => {
   return inspect(error);
 };
 
+// Matched by shape so the queue does not depend on @lowerdeck/lock.
+let isLockContentionError = (error: unknown) => {
+  let seen = new Set<unknown>();
+  let current = error;
+
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+
+    let candidate = current as { name?: unknown; isContention?: unknown; cause?: unknown };
+    if (candidate.name === 'LockAcquisitionError' && candidate.isContention === true) {
+      return true;
+    }
+
+    current = candidate.cause;
+  }
+
+  return false;
+};
+
+// Jobs that fail together (e.g. a cron burst contending on one lock) would otherwise all
+// retry at the same instant and collide again, so each retry is spread over 0.5x-1.5x.
+export let getBackoffDelayMs = (attemptsMade: number, random: () => number = Math.random) => {
+  let baseDelay = 1000;
+  let maxDelay = 1000 * 60 * 10; // 10 minutes
+
+  let delay = baseDelay * Math.pow(2, attemptsMade - 1) * (0.5 + random());
+
+  return Math.min(delay, maxDelay);
+};
+
 export interface BullMqQueueOptions {
   delay?: number;
   id?: string;
@@ -345,6 +375,13 @@ export let createBullMqQueue = <JobData>(
                 ) {
                   await delay(1000 + Math.random() * 5000);
                   throw e;
+                } else if (
+                  isLockContentionError(e) &&
+                  job.attemptsMade + 1 < (job.opts?.attempts ?? opts.jobOpts?.attempts ?? 25)
+                ) {
+                  // Another holder had the lock for the whole acquisition window. The job is
+                  // retried with backoff, so only an exhausted retry budget is worth reporting.
+                  throw e;
                 } else {
                   Sentry.captureException(e);
                   console.error(e);
@@ -373,15 +410,7 @@ export let createBullMqQueue = <JobData>(
               settings: {
                 ...opts.workerOpts?.settings,
 
-                backoffStrategy: (attemptsMade: number) => {
-                  let baseDelay = 1000;
-                  let maxDelay = 1000 * 60 * 10; // 10 minutes
-
-                  let delay = baseDelay * Math.pow(2, attemptsMade - 1);
-                  if (delay > maxDelay) delay = maxDelay;
-
-                  return delay;
-                }
+                backoffStrategy: (attemptsMade: number) => getBackoffDelayMs(attemptsMade)
               }
             }
           );

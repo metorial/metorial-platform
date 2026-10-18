@@ -183,4 +183,73 @@ describe('lock pooling and acquisition', () => {
       })
     ).rejects.toBe(criticalSectionError);
   });
+
+  describe('contention classification', () => {
+    let createExecutionError = (votesAgainst: Error[]) => {
+      let error: any = new Error(
+        'The operation was unable to achieve a quorum during its retry window.'
+      );
+      error.name = 'ExecutionError';
+      error.attempts = [
+        {
+          votesAgainst: new Map(votesAgainst.map((vote, index) => [index, vote]))
+        }
+      ];
+      return error;
+    };
+
+    let createNamedError = (name: string) => {
+      let error = new Error(name);
+      error.name = name;
+      return error;
+    };
+
+    let acquireFailure = async (failure: Error) => {
+      mocks.acquire.mockRejectedValue(failure);
+
+      let lock = createLock({ name: 'classify', redisUrl: 'redis://localhost:6379/0' });
+      return (await lock
+        .usingLock('resource', async () => 'never', { acquisitionTimeoutMs: 0 })
+        .catch(error => error)) as LockAcquisitionError;
+    };
+
+    it('flags a quorum failure caused by a held lock as contention', async () => {
+      let error = await acquireFailure(
+        createExecutionError([createNamedError('ResourceLockedError')])
+      );
+
+      expect(error).toBeInstanceOf(LockAcquisitionError);
+      expect(error.isContention).toBe(true);
+    });
+
+    it('does not flag a quorum failure caused by Redis errors as contention', async () => {
+      let error = await acquireFailure(
+        createExecutionError([
+          createNamedError('ResourceLockedError'),
+          new Error('connection closed')
+        ])
+      );
+
+      expect(error.isContention).toBe(false);
+    });
+
+    it('does not flag unrelated acquisition errors as contention', async () => {
+      let error = await acquireFailure(new Error('redis unavailable'));
+
+      expect(error.isContention).toBe(false);
+    });
+
+    it('flags an exceeded acquisition deadline as contention', async () => {
+      vi.useFakeTimers();
+      mocks.acquire.mockImplementation(() => new Promise(() => {}));
+
+      let lock = createLock({ name: 'deadline', redisUrl: 'redis://localhost:6379/0' });
+      let result = lock
+        .usingLock('resource', async () => 'never', { acquisitionTimeoutMs: 100 })
+        .catch(error => error);
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(((await result) as LockAcquisitionError).isContention).toBe(true);
+    });
+  });
 });

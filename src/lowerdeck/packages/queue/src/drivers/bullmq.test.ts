@@ -88,7 +88,7 @@ vi.mock('bullmq', () => ({
   }
 }));
 
-import { createBullMqQueue } from './bullmq';
+import { createBullMqQueue, getBackoffDelayMs } from './bullmq';
 
 let startWorker = async (name: string, cb: (payload: any) => Promise<void>) => {
   await createBullMqQueue({ name, redisUrl: 'redis://localhost:6379' }).process(cb).start();
@@ -177,5 +177,98 @@ describe('createBullMqQueue', () => {
     ]);
     expect(mocks.captureException).toHaveBeenCalledOnce();
     expect(mocks.scopeDuringCapture).toEqual(['queue process: failing-queue']);
+  });
+
+  describe('retry backoff', () => {
+    it('spreads each retry between half and one and a half times the exponential delay', () => {
+      expect(getBackoffDelayMs(1, () => 0)).toBe(500);
+      expect(getBackoffDelayMs(1, () => 0.5)).toBe(1000);
+      expect(getBackoffDelayMs(3, () => 0)).toBe(2000);
+      expect(getBackoffDelayMs(3, () => 0.999)).toBeCloseTo(5996, 0);
+    });
+
+    it('never exceeds ten minutes', () => {
+      expect(getBackoffDelayMs(25, () => 0.999)).toBe(10 * 60 * 1000);
+    });
+  });
+
+  describe('lock contention', () => {
+    let createContentionError = (isContention: boolean) =>
+      Object.assign(new Error('unable to achieve a quorum'), {
+        name: 'LockAcquisitionError',
+        isContention
+      });
+
+    it('retries a contended job without reporting it while attempts remain', async () => {
+      let error = createContentionError(true);
+      let handler = await startWorker('contended-queue', async () => {
+        throw error;
+      });
+
+      await expect(
+        handler({
+          id: 'job_1',
+          data: { payload: {} },
+          attemptsMade: 3,
+          opts: { attempts: 25 }
+        })
+      ).rejects.toBe(error);
+
+      expect(mocks.captureException).not.toHaveBeenCalled();
+    });
+
+    it('reports a contended job once it is on its last attempt', async () => {
+      let error = createContentionError(true);
+      let handler = await startWorker('exhausted-queue', async () => {
+        throw error;
+      });
+
+      await expect(
+        handler({
+          id: 'job_1',
+          data: { payload: {} },
+          attemptsMade: 24,
+          opts: { attempts: 25 }
+        })
+      ).rejects.toBe(error);
+
+      expect(mocks.captureException).toHaveBeenCalledWith(error);
+    });
+
+    it('reports lock failures that were not caused by contention', async () => {
+      let error = createContentionError(false);
+      let handler = await startWorker('unavailable-queue', async () => {
+        throw error;
+      });
+
+      await expect(
+        handler({
+          id: 'job_1',
+          data: { payload: {} },
+          attemptsMade: 0,
+          opts: { attempts: 25 }
+        })
+      ).rejects.toBe(error);
+
+      expect(mocks.captureException).toHaveBeenCalledWith(error);
+    });
+
+    it('recognises a contended lock failure wrapped in another error', async () => {
+      let error = new Error('wrapped', { cause: createContentionError(true) });
+      let handler = await startWorker('wrapped-queue', async () => {
+        throw error;
+      });
+
+      await expect(
+        handler({
+          id: 'job_1',
+          data: { payload: {} },
+          attemptsMade: 0,
+          opts: { attempts: 25 }
+        })
+      ).rejects.toBe(error);
+
+      expect(mocks.captureException).not.toHaveBeenCalled();
+    });
   });
 });

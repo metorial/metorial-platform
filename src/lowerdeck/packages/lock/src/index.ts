@@ -18,7 +18,35 @@ interface LockPoolState {
   entries: Map<string, LockPoolEntry>;
 }
 
+class LockDeadlineError extends Error {
+  constructor() {
+    super('Lock acquisition deadline exceeded');
+    this.name = 'LockDeadlineError';
+  }
+}
+
+// Redlock reports every failed attempt in `attempts`; the lock is only contended (as opposed to
+// Redis being unreachable) when every rejecting node answered with ResourceLockedError.
+let isContentionFailure = (error: unknown) => {
+  if (error instanceof LockDeadlineError) return true;
+
+  let attempts = (error as { attempts?: unknown } | null)?.attempts;
+  if ((error as Error | null)?.name !== 'ExecutionError' || !Array.isArray(attempts)) {
+    return false;
+  }
+
+  let votes = attempts.flatMap(attempt =>
+    Array.from(
+      ((attempt?.votesAgainst as Map<unknown, Error> | undefined) ?? new Map()).values()
+    )
+  );
+
+  return votes.length > 0 && votes.every(vote => vote?.name === 'ResourceLockedError');
+};
+
 export class LockAcquisitionError extends Error {
+  public readonly isContention: boolean;
+
   constructor(
     cause: unknown,
     public readonly detail?: {
@@ -32,6 +60,7 @@ export class LockAcquisitionError extends Error {
       cause
     });
     this.name = 'LockAcquisitionError';
+    this.isContention = isContentionFailure(cause);
   }
 }
 
@@ -126,7 +155,7 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
             timer = setTimeout(
               () => {
                 abandoned = true;
-                reject(new Error('Lock acquisition deadline exceeded'));
+                reject(new LockDeadlineError());
               },
               Math.max(0, acquisitionTimeoutMs - (Date.now() - startedAt))
             );
@@ -135,7 +164,7 @@ export let createLock = ({ name, redisUrl }: { name: string; redisUrl: string })
               (lease: any) => {
                 clearTimeout(timer);
                 if (abandoned || Date.now() - startedAt > acquisitionTimeoutMs) {
-                  reject(new Error('Lock acquisition deadline exceeded'));
+                  reject(new LockDeadlineError());
                   lease.release().catch((error: unknown) => {
                     console.error(`LOCK.release.abandoned name=${name}`, error);
                   });
