@@ -23,6 +23,7 @@ export type Flags = {
   'advanced-security-management-enabled': FlagValue;
   'networking-enabled': FlagValue;
   'sandbox-enabled': FlagValue;
+  'public-mcp-servers-enabled': FlagValue;
   outposts: FlagValue;
 
   'paid-oauth-import': FlagValue;
@@ -77,6 +78,7 @@ export let defaultFlags: Flags = {
   'advanced-security-management-enabled': false,
   'networking-enabled': false,
   'sandbox-enabled': false,
+  'public-mcp-servers-enabled': false,
   outposts: false,
 
   'paid-oauth-import': true,

@@ -1,6 +1,6 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { UnifiedApiKey } from '@metorial/api-keys';
+import { isPublicMcpToken, UnifiedApiKey } from '@metorial/api-keys';
 import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import {
   authenticateWithConsumerToken,
@@ -310,6 +310,15 @@ class AuthenticationService {
     context: Context;
     consumerSessionClientSecret?: string | null | undefined;
   }): Promise<AuthInfo> {
+    if (isPublicMcpToken(d.apiKey)) {
+      throw new ServiceError(
+        unauthorizedError({
+          message:
+            'Public MCP access tokens can only be used with the public MCP server they were issued for'
+        })
+      );
+    }
+
     let parsed = UnifiedApiKey.from(d.apiKey);
     if (parsed?.type == 'fine_grained_token') {
       if (d.consumerSessionClientSecret) {
