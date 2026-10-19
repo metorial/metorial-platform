@@ -1,6 +1,7 @@
 let ignoredRecipientDomains = [
   'onboarding.metorial.net',
   'system.metorial.net',
+  'system.metorial.com',
   'service-accounts.metorial.net',
   'service-accounts.metorial.invalid'
 ];
