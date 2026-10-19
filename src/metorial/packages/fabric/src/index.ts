@@ -59,6 +59,8 @@ export type {
   AuditSubspaceProviderConfigVault,
   AuditSubspaceProviderDeployment,
   AuditSubspaceProviderSetupSession,
+  AuditSubspacePublicMcpServer,
+  AuditSubspacePublicMcpServerGrant,
   AuditSubspaceScmRepo,
   AuditSubspaceSession,
   AuditSubspaceSessionProvider,
