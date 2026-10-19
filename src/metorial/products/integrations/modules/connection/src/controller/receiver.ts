@@ -206,6 +206,30 @@ export let startReceiver = () => {
         return;
       }
 
+      // Established lazily so that the receiver can acknowledge messages and start
+      // extending the sender's deadline before a slow provider finishes connecting.
+      let backendPromise: Promise<ConnectionBackendConnection> | null = null;
+
+      // Registered before any further awaits: if the topic closes during setup, conduit runs
+      // this immediately, otherwise the state's renewal intervals would leak.
+      await ctx.onClose(async () => {
+        try {
+          await state.dispose();
+        } catch (err) {
+          console.error('Error disposing connection state:', err);
+          Sentry.captureException(err);
+        }
+
+        if (!backendPromise) return;
+
+        try {
+          await (await backendPromise).close();
+        } catch (err) {
+          console.error('Error closing connection backend:', err);
+          Sentry.captureException(err);
+        }
+      });
+
       let providerParticipant = await upsertParticipant({
         session: state.session,
         from: {
@@ -279,9 +303,6 @@ export let startReceiver = () => {
         );
       };
 
-      // Established lazily so that the receiver can acknowledge messages and start
-      // extending the sender's deadline before a slow provider finishes connecting.
-      let backendPromise: Promise<ConnectionBackendConnection> | null = null;
       let getBackend = () => {
         if (!backendPromise) {
           backendPromise = (async () => {
@@ -452,7 +473,7 @@ export let startReceiver = () => {
           }
 
           if (err instanceof ConnectionMessageTimeoutError) {
-            Sentry.captureException(err);
+            Sentry.captureException(err, { level: 'warning' });
             console.error(
               `CONNECTION.receiver.message_timeout messageId=${message.id} methodOrToolKey=${message.methodOrToolKey ?? 'unknown'} timeoutMs=${err.timeoutMs}`
             );
@@ -501,6 +522,15 @@ export let startReceiver = () => {
         }
       };
 
+      // Not deferred: the topic must be detached before the next queued message on it starts,
+      // otherwise that message would run against a backend that is about to be closed.
+      let closeTimedOutContext = () => {
+        void ctx.close().catch(err => {
+          console.error('Error closing timed out receiver context:', err);
+          Sentry.captureException(err);
+        });
+      };
+
       let processToolCall = async (data: ConduitInput & { type: 'tool_call' }) => {
         let res = await sendToProvider(data);
 
@@ -540,14 +570,7 @@ export let startReceiver = () => {
           );
         }
 
-        if (res.closeContext) {
-          setTimeout(() => {
-            void ctx.close().catch(err => {
-              console.error('Error closing timed out receiver context:', err);
-              Sentry.captureException(err);
-            });
-          }, 0);
-        }
+        if (res.closeContext) closeTimedOutContext();
 
         return result;
       };
@@ -576,14 +599,7 @@ export let startReceiver = () => {
           }
         );
 
-        if (res.closeContext) {
-          setTimeout(() => {
-            void ctx.close().catch(err => {
-              console.error('Error closing timed out receiver context:', err);
-              Sentry.captureException(err);
-            });
-          }, 0);
-        }
+        if (res.closeContext) closeTimedOutContext();
       };
 
       let processListTools = async (): Promise<ConduitListToolsResult> => {
@@ -693,31 +709,13 @@ export let startReceiver = () => {
         }
       };
 
-      ctx.onMessage(async (data: ConduitInput) => {
+      await ctx.onMessage(async (data: ConduitInput) => {
         ctx.extendTtl(state.messageTTLExtensionMs);
 
         if (data.type === 'tool_call') return processToolCall(data);
         if (data.type === 'mcp.message_from_client') return processMcpResponse(data);
         if (data.type === 'provider.list_tools') return processListTools();
         if (data.type === 'provider.diagnostics') return processDiagnostics();
-      });
-
-      ctx.onClose(async () => {
-        try {
-          await state.dispose();
-        } catch (err) {
-          console.error('Error disposing connection state:', err);
-          Sentry.captureException(err);
-        }
-
-        if (!backendPromise) return;
-
-        try {
-          await (await backendPromise).close();
-        } catch (err) {
-          console.error('Error closing connection backend:', err);
-          Sentry.captureException(err);
-        }
       });
     },
     {

@@ -55,6 +55,11 @@ export class OwnershipManager {
     this.topicTtls.delete(topic);
   }
 
+  async claimTopic(topic: string): Promise<boolean> {
+    let ttl = this.topicTtls.get(topic) ?? this.ownershipTtl;
+    return await this.coordination.claimTopicOwnership(topic, this.receiverId, ttl);
+  }
+
   onOwnershipLoss(callback: OwnershipLossCallback): void {
     this.ownershipLossCallbacks.push(callback);
   }

@@ -5,7 +5,7 @@ import type { MemoryTransport } from '../adapters/transport/memoryTransport';
 import type { ITransportAdapter } from '../adapters/transport/transportAdapter';
 import type { ReceiverConfig } from '../types/config';
 import type { ConduitMessage, TimeoutExtension } from '../types/message';
-import type { ConduitResponse } from '../types/response';
+import { type ConduitResponse, ConduitTopicClosedError } from '../types/response';
 import type { TopicResponseBroadcast } from '../types/topicListener';
 import { CONDUIT_HEALTH_TOPIC, type ConduitHealthPong } from './health';
 import { MessageCache } from './messageCache';
@@ -25,11 +25,14 @@ class HandlerCeilingError extends Error {
   }
 }
 
-interface ProcessingMessage {
+// Tracked from receipt (not handler start) so messages queued behind a busy topic keep
+// extending the sender's deadline instead of looking like an unresponsive receiver.
+interface TrackedMessage {
   message: ConduitMessage;
-  startTime: number;
-  lastExtensionSentAt: number; // Timestamp of last extension
-  currentDeadline: number; // Current timeout deadline
+  replySubjects: Set<string>;
+  startedAt: number | null;
+  lastExtensionSentAt: number;
+  currentDeadline: number;
 }
 
 export class Receiver {
@@ -41,7 +44,7 @@ export class Receiver {
   private running = false;
   private ready = false;
   private readonly conduitId: string;
-  private processingMessages: Map<string, ProcessingMessage> = new Map();
+  private trackedMessages: Map<string, TrackedMessage> = new Map();
   private timeoutCheckInterval: Timer | null = null;
 
   // Per-topic FIFO chains: same-topic messages run in arrival order, different
@@ -148,7 +151,7 @@ export class Receiver {
     }
 
     console.log(
-      `CONDUIT.receiver.stop receiverId=${this.receiverId} processingMessages=${this.processingMessages.size}`
+      `CONDUIT.receiver.stop receiverId=${this.receiverId} trackedMessages=${this.trackedMessages.size}`
     );
     this.running = false;
     this.ready = false;
@@ -178,7 +181,7 @@ export class Receiver {
     this.messageCache.destroy();
 
     // Clear processing/in-flight state
-    this.processingMessages.clear();
+    this.trackedMessages.clear();
     this.inFlightById.clear();
     this.topicChains.clear();
     this.orphanedHandlers.clear();
@@ -238,6 +241,8 @@ export class Receiver {
       let inFlight = this.inFlightById.get(message.messageId);
       if (inFlight) {
         this.dedupHitCount++;
+        this.attachReplySubject(message);
+
         try {
           let response = await inFlight;
           await this.sendResponse(message, response);
@@ -265,6 +270,7 @@ export class Receiver {
 
       // Add topic to ownership (we're processing it now).
       this.ownershipManager.addTopic(message.topic);
+      this.trackMessage(message);
 
       // Run on the per-topic FIFO chain (serial within topic, concurrent across
       // topics), and register as in-flight for dedup.
@@ -286,10 +292,11 @@ export class Receiver {
         };
       } finally {
         this.inFlightById.delete(message.messageId);
+        this.trackedMessages.delete(message.messageId);
       }
 
-      // Cache the response and reply.
-      this.messageCache.set(message.messageId, response);
+      // Retryable responses are not cached: a redelivery must get a fresh attempt.
+      if (!response.retryable) this.messageCache.set(message.messageId, response);
       await this.sendResponse(message, response);
     } catch (err) {
       Sentry.captureException(err);
@@ -319,31 +326,8 @@ export class Receiver {
     // transport read loop - we are already off it here).
     await this.handlerSemaphore.acquire();
 
-    const now = Date.now();
-    let processingMessage: ProcessingMessage = {
-      message,
-      startTime: now,
-      lastExtensionSentAt: 0,
-      currentDeadline: now + message.timeout
-    };
-    this.processingMessages.set(message.messageId, processingMessage);
-
-    if (this.config.timeoutExtensionMs > 0) {
-      let initialExtensionMs = this.config.timeoutExtensionMs;
-      let initialExtension: TimeoutExtension = {
-        messageId: message.messageId,
-        extensionMs: initialExtensionMs,
-        type: 'timeout_extension'
-      };
-      processingMessage.lastExtensionSentAt = now;
-      processingMessage.currentDeadline = now + initialExtensionMs;
-      this.sendExtension(message, initialExtension).catch(err => {
-        console.error(
-          `CONDUIT.receiver.processMessage.initial_extension_error receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic}:`,
-          err
-        );
-      });
-    }
+    let tracked = this.trackedMessages.get(message.messageId);
+    if (tracked) tracked.startedAt = Date.now();
 
     let ceilingTimer: Timer | undefined;
     // Declared out here so the catch can register a still-running handler as an
@@ -394,6 +378,20 @@ export class Receiver {
         };
       }
 
+      if (err instanceof ConduitTopicClosedError) {
+        console.warn(
+          `CONDUIT.receiver.processMessage.topic_closed receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic}`
+        );
+
+        return {
+          messageId: message.messageId,
+          success: false,
+          error: err.message,
+          retryable: true,
+          processedAt: Date.now()
+        };
+      }
+
       Sentry.captureException(err);
       let error = err instanceof Error ? err : new Error(String(err));
       console.error(
@@ -408,7 +406,6 @@ export class Receiver {
       };
     } finally {
       if (ceilingTimer) clearTimeout(ceilingTimer);
-      this.processingMessages.delete(message.messageId);
       this.lastProgressAt = Date.now();
       this.handlerSemaphore.release();
     }
@@ -462,57 +459,85 @@ export class Receiver {
     let now = Date.now();
     let threshold = this.config.timeoutExtensionThreshold;
 
-    for (let [messageId, processing] of this.processingMessages.entries()) {
-      let remaining = processing.currentDeadline - now;
+    for (let tracked of this.trackedMessages.values()) {
+      let remaining = tracked.currentDeadline - now;
 
       // Cap extensions at the hard processing ceiling: once a message has been
       // running for maxProcessingMs it will be aborted by processMessage, so we
       // stop extending its deadline instead of allowing unlimited extensions.
-      const reachedCeiling = now - processing.startTime >= this.config.maxProcessingMs;
+      let reachedCeiling =
+        tracked.startedAt !== null && now - tracked.startedAt >= this.config.maxProcessingMs;
 
       // If we're getting close to deadline and haven't sent extension recently, send it.
       // Rate-limit extensions (at least 1 second between them).
-      const timeSinceLastExtension = now - processing.lastExtensionSentAt;
-      const shouldSendExtension =
+      let timeSinceLastExtension = now - tracked.lastExtensionSentAt;
+      let shouldSendExtension =
         this.config.timeoutExtensionMs > 0 &&
         !reachedCeiling &&
         remaining < threshold &&
         remaining > 0 &&
-        (processing.lastExtensionSentAt === 0 || timeSinceLastExtension >= 1000);
+        (tracked.lastExtensionSentAt === 0 || timeSinceLastExtension >= 1000);
 
       if (shouldSendExtension) {
-        let extensionMs = this.config.timeoutExtensionMs;
-        let extension: TimeoutExtension = {
-          messageId: processing.message.messageId,
-          extensionMs,
-          type: 'timeout_extension'
-        };
-
         // Update tracking before sending to avoid race conditions
-        processing.lastExtensionSentAt = now;
-        processing.currentDeadline = now + extensionMs;
+        tracked.lastExtensionSentAt = now;
+        tracked.currentDeadline = now + this.config.timeoutExtensionMs;
 
-        this.sendExtension(processing.message, extension).catch(err => {
-          console.error('Error sending timeout extension:', err);
-        });
+        for (let replySubject of tracked.replySubjects) {
+          this.sendExtension(tracked.message, replySubject);
+        }
       }
     }
   }
 
-  private async sendExtension(
-    message: ConduitMessage,
-    extension: TimeoutExtension
-  ): Promise<void> {
-    let encoder = new TextEncoder();
-    let data = encoder.encode(serialize.encode(extension));
+  private trackMessage(message: ConduitMessage): void {
+    let now = Date.now();
+    let tracked: TrackedMessage = {
+      message,
+      replySubjects: new Set([message.replySubject]),
+      startedAt: null,
+      lastExtensionSentAt: 0,
+      currentDeadline: now + message.timeout
+    };
+    this.trackedMessages.set(message.messageId, tracked);
 
-    // For MemoryTransport, we need special handling
-    if (this.isMemoryTransport()) {
-      await (this.transport as MemoryTransport).reply(message.replySubject, data);
-    } else {
-      // For NATS, publish to reply subject
-      await this.transport.publish(message.replySubject, data);
+    // Acknowledge pickup immediately, before the message waits on its topic chain or a
+    // handler slot, so the sender never mistakes a busy topic for a dead receiver.
+    if (this.config.timeoutExtensionMs > 0) {
+      tracked.lastExtensionSentAt = now;
+      tracked.currentDeadline = now + this.config.timeoutExtensionMs;
+      this.sendExtension(message, message.replySubject);
     }
+  }
+
+  private attachReplySubject(message: ConduitMessage): void {
+    let tracked = this.trackedMessages.get(message.messageId);
+    if (!tracked || tracked.replySubjects.has(message.replySubject)) return;
+
+    tracked.replySubjects.add(message.replySubject);
+    if (this.config.timeoutExtensionMs > 0) {
+      this.sendExtension(message, message.replySubject);
+    }
+  }
+
+  private sendExtension(message: ConduitMessage, replySubject: string): void {
+    let extension: TimeoutExtension = {
+      messageId: message.messageId,
+      extensionMs: this.config.timeoutExtensionMs,
+      type: 'timeout_extension'
+    };
+
+    let data = new TextEncoder().encode(serialize.encode(extension));
+    let sent = this.isMemoryTransport()
+      ? (this.transport as MemoryTransport).reply(replySubject, data)
+      : this.transport.publish(replySubject, data);
+
+    sent.catch(err => {
+      console.error(
+        `CONDUIT.receiver.extension_error receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic}:`,
+        err
+      );
+    });
   }
 
   private async sendResponse(
@@ -608,8 +633,8 @@ export class Receiver {
 
     let now = Date.now();
     let limit = this.config.maxProcessingMs + STUCK_GRACE_MS;
-    for (let processing of this.processingMessages.values()) {
-      if (now - processing.startTime > limit) {
+    for (let tracked of this.trackedMessages.values()) {
+      if (tracked.startedAt !== null && now - tracked.startedAt > limit) {
         return false;
       }
     }
@@ -621,7 +646,7 @@ export class Receiver {
     if (healthy !== this.lastHealthy) {
       this.lastHealthy = healthy;
       console.warn(
-        `CONDUIT.receiver.health_flip receiverId=${this.receiverId} healthy=${healthy} inFlight=${this.inFlightById.size} activeTopics=${this.topicChains.size} processing=${this.processingMessages.size} sinceProgressMs=${Date.now() - this.lastProgressAt}`
+        `CONDUIT.receiver.health_flip receiverId=${this.receiverId} healthy=${healthy} inFlight=${this.inFlightById.size} activeTopics=${this.topicChains.size} processing=${this.getProcessingCount()} sinceProgressMs=${Date.now() - this.lastProgressAt}`
       );
     }
 
@@ -631,7 +656,7 @@ export class Receiver {
     if (this.healthTick % 30 === 0 && this.inFlightById.size > 0) {
       let s = this.getStats();
       console.log(
-        `CONDUIT.receiver.stats receiverId=${this.receiverId} healthy=${healthy} inFlight=${s.inFlight} activeTopics=${s.activeTopics} processing=${s.processing} slotsAvail=${s.handlerSlotsAvailable} waiting=${s.handlerWaiting} dispatched=${s.dispatched} shed=${s.shed} ceilingAborts=${s.ceilingAborts} dedupHits=${s.dedupHits} orphaned=${s.orphaned} orphanedTotal=${s.orphanedTotal} sinceProgressMs=${Date.now() - s.lastProgressAt}`
+        `CONDUIT.receiver.stats receiverId=${this.receiverId} healthy=${healthy} inFlight=${s.inFlight} activeTopics=${s.activeTopics} processing=${s.processing} queued=${s.queued} slotsAvail=${s.handlerSlotsAvailable} waiting=${s.handlerWaiting} dispatched=${s.dispatched} shed=${s.shed} ceilingAborts=${s.ceilingAborts} dedupHits=${s.dedupHits} orphaned=${s.orphaned} orphanedTotal=${s.orphanedTotal} sinceProgressMs=${Date.now() - s.lastProgressAt}`
       );
     }
   }
@@ -640,10 +665,19 @@ export class Receiver {
     return this.ready;
   }
 
+  private getProcessingCount(): number {
+    let count = 0;
+    for (let tracked of this.trackedMessages.values()) {
+      if (tracked.startedAt !== null) count++;
+    }
+    return count;
+  }
+
   getStats(): {
     inFlight: number;
     activeTopics: number;
     processing: number;
+    queued: number;
     handlerSlotsAvailable: number;
     handlerWaiting: number;
     lastProgressAt: number;
@@ -654,10 +688,13 @@ export class Receiver {
     orphaned: number;
     orphanedTotal: number;
   } {
+    let processing = this.getProcessingCount();
+
     return {
       inFlight: this.inFlightById.size,
       activeTopics: this.topicChains.size,
-      processing: this.processingMessages.size,
+      processing,
+      queued: this.trackedMessages.size - processing,
       handlerSlotsAvailable: this.handlerSemaphore.getAvailable(),
       handlerWaiting: this.handlerSemaphore.getWaiting(),
       lastProgressAt: this.lastProgressAt,

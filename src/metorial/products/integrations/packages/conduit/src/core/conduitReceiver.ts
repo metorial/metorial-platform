@@ -1,6 +1,7 @@
 import type { ICoordinationAdapter } from '../adapters/coordination/coordinationAdapter';
 import type { ITransportAdapter } from '../adapters/transport/transportAdapter';
 import type { ReceiverConfig } from '../types/config';
+import { ConduitTopicClosedError } from '../types/response';
 import type { MessageHandler } from './receiver';
 import { Receiver } from './receiver';
 
@@ -135,6 +136,7 @@ export class ConduitReceiver {
         ttlExpiresAt: Number.POSITIVE_INFINITY // By default, never expire (until extendTtl is called)
       };
       this.topicStates.set(topic, state);
+      this.ensureOwnership(topic);
 
       // Queue this message first
       let messagePromise = new Promise<unknown>((resolve, reject) => {
@@ -158,47 +160,35 @@ export class ConduitReceiver {
             await state.onMessagePromise;
           }
 
+          // A topic closed mid-setup has already rejected its pending messages.
+          if (state.closed) return;
+
           // Check if a message handler was registered
           // We check onMessageCalled instead of messageHandler to handle the case where
           // onMessage was called but is still executing asynchronously
           if (!state.onMessageCalled) {
-            console.error(`No message handler registered for topic ${topic}, releasing topic`);
-            this.topicStates.delete(topic);
-
-            // Reject all pending messages
-            for (let pending of state.pendingMessages) {
-              pending.reject(new Error(`No message handler registered for topic ${topic}`));
-            }
-            state.pendingMessages = [];
-
             throw new Error(`No message handler registered for topic ${topic}`);
           }
         } catch (err) {
-          // If handleTopic throws, release the topic
-          console.error(`handleTopic threw error for topic ${topic}, releasing topic:`, err);
-          this.topicStates.delete(topic);
+          if (state.closed) return;
 
-          // Reject all pending messages
+          console.error(`handleTopic failed for topic ${topic}, releasing topic:`, err);
+
+          let error = err instanceof Error ? err : new Error(String(err));
           for (let pending of state.pendingMessages) {
-            pending.reject(err instanceof Error ? err : new Error(String(err)));
+            pending.reject(error);
           }
           state.pendingMessages = [];
 
-          throw err;
+          await this.closeTopicState(topic, state);
         }
       })();
 
-      // Start setup but don't wait - the message promise will be resolved by processPendingMessages
       setupPromise.catch(err => {
-        // Setup failed, the pending messages have already been rejected
+        console.error(`Error releasing topic ${topic} after failed setup:`, err);
       });
 
       return messagePromise;
-    }
-
-    // Check if topic was closed
-    if (state.closed) {
-      throw new Error(`Topic ${topic} has been closed`);
     }
 
     // If handler is not yet registered, queue the message
@@ -227,10 +217,11 @@ export class ConduitReceiver {
         state.ttlExpiresAt = Date.now() + ms;
       },
 
+      // Registering on a topic that closed during async setup is expected (TTL expiry,
+      // ownership loss), so these calls must not throw: onMessage is a no-op and onClose
+      // runs immediately so the caller's cleanup still happens.
       onMessage: async (handler: (data: unknown) => Promise<unknown> | unknown) => {
-        if (state.closed) {
-          throw new Error(`Cannot register message handler for closed topic ${topic}`);
-        }
+        if (state.closed) return;
 
         if (state.messageHandler) {
           throw new Error(`Message handler already registered for topic ${topic}`);
@@ -247,14 +238,15 @@ export class ConduitReceiver {
 
       onClose: async (handler: () => Promise<void> | void) => {
         if (state.closed) {
-          throw new Error(`Cannot register close handler for closed topic ${topic}`);
+          await this.runCloseHandler(topic, handler);
+          return;
         }
 
         state.closeHandlers.push(handler);
       },
 
       close: async () => {
-        await this.closeTopic(topic);
+        await this.closeTopicState(topic, state);
       }
     };
   }
@@ -275,7 +267,7 @@ export class ConduitReceiver {
 
         try {
           if (state.closed) {
-            pending.reject(new Error(`Topic ${topic} has been closed`));
+            pending.reject(new ConduitTopicClosedError(topic));
             continue;
           }
 
@@ -303,42 +295,77 @@ export class ConduitReceiver {
 
       // Check if the logical TTL has expired
       if (state.ttlExpiresAt <= now) {
-        await this.closeTopic(topic);
+        await this.closeTopicState(topic, state);
       }
     }
   }
 
   private async closeTopic(topic: string): Promise<void> {
     let state = this.topicStates.get(topic);
-    if (!state || state.closed) {
-      return;
-    }
+    if (state) await this.closeTopicState(topic, state);
+  }
+
+  // Closing is bound to a specific state, never to the topic name: once a state is detached,
+  // a fresh state for the same topic may start, and stale callbacks (e.g. an old context's
+  // close()) must not tear it down. Detaching happens synchronously, before any await, so a
+  // message that arrives while close handlers are still running starts that fresh state
+  // instead of being rejected.
+  private async closeTopicState(topic: string, state: TopicState): Promise<void> {
+    if (state.closed) return;
 
     state.closed = true;
 
-    // Reject all pending messages
+    let ownershipManager = this.receiver.getOwnershipManager();
+    if (this.topicStates.get(topic) === state) {
+      this.topicStates.delete(topic);
+      ownershipManager.removeTopic(topic);
+    }
+
+    // These messages never reached a handler, so the sender can safely redeliver them.
     for (let pending of state.pendingMessages) {
-      pending.reject(new Error(`Topic ${topic} has been closed`));
+      pending.reject(new ConduitTopicClosedError(topic));
     }
     state.pendingMessages = [];
 
-    // Call all close handlers
-    for (let handler of state.closeHandlers) {
+    if (!this.topicStates.has(topic)) {
       try {
-        await handler();
+        await this.coordination.releaseTopicOwnership(topic, this.receiver.getReceiverId());
       } catch (err) {
-        console.error(`Error in close handler for topic ${topic}:`, err);
+        console.error(`Error releasing ownership of closed topic ${topic}:`, err);
       }
+
+      // A replacement state that started during the release may have claimed the key we
+      // just deleted; without re-claiming it, the next renewal would treat it as lost.
+      if (this.topicStates.has(topic)) this.ensureOwnership(topic);
     }
 
-    // Remove from our state
-    this.topicStates.delete(topic);
+    for (let handler of state.closeHandlers) {
+      await this.runCloseHandler(topic, handler);
+    }
+  }
 
-    // Remove from ownership manager (updates internal owned set)
-    this.receiver.getOwnershipManager().removeTopic(topic);
+  // A fresh state can start from a message that was received (and tracked) before the
+  // previous state's close dropped the topic and released its lease, so it must re-register
+  // locally and re-claim the lease if it is gone. Claims are NX, so this is a no-op when the
+  // lease is still ours; if another receiver holds it, renewal reports the loss and closes us.
+  private ensureOwnership(topic: string): void {
+    let ownershipManager = this.receiver.getOwnershipManager();
+    ownershipManager.addTopic(topic);
 
-    // Release ownership in coordination (updates Redis)
-    await this.coordination.releaseTopicOwnership(topic, this.receiver.getReceiverId());
+    ownershipManager.claimTopic(topic).catch(err => {
+      console.error(`Error claiming ownership of topic ${topic}:`, err);
+    });
+  }
+
+  private async runCloseHandler(
+    topic: string,
+    handler: () => Promise<void> | void
+  ): Promise<void> {
+    try {
+      await handler();
+    } catch (err) {
+      console.error(`Error in close handler for topic ${topic}:`, err);
+    }
   }
 
   getReceiverId(): string {

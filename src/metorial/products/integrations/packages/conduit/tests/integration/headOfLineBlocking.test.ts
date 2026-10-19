@@ -1,7 +1,7 @@
 import { serialize } from '@lowerdeck/serialize';
 import { describe, expect, test } from 'vitest';
 import type { ConduitMessage } from '../../src/index';
-import { createConduit } from '../../src/index';
+import { createConduit, isTimeoutExtension } from '../../src/index';
 
 let sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -161,29 +161,46 @@ describe('Head-of-line blocking', () => {
 
     let reply1: any = null;
     let reply2: any = null;
-    let r1 = new Promise<void>(resolve => {
-      transport.subscribe('_INBOX.dup-1', async data => {
-        reply1 = serialize.decode(decoder.decode(data));
-        resolve();
+    let extensions = { '_INBOX.dup-1': 0, '_INBOX.dup-2': 0 };
+
+    let subscribeReply = (replySubject: keyof typeof extensions, onReply: (r: any) => void) =>
+      new Promise<void>(resolve => {
+        transport.subscribe(replySubject, async data => {
+          let decoded = serialize.decode(decoder.decode(data));
+          if (isTimeoutExtension(decoded)) {
+            extensions[replySubject]++;
+            return;
+          }
+
+          onReply(decoded);
+          resolve();
+        });
       });
-    });
-    let r2 = new Promise<void>(resolve => {
-      transport.subscribe('_INBOX.dup-2', async data => {
-        reply2 = serialize.decode(decoder.decode(data));
-        resolve();
-      });
-    });
+
+    let r1 = subscribeReply('_INBOX.dup-1', r => (reply1 = r));
+    let r2 = subscribeReply('_INBOX.dup-2', r => (reply2 = r));
 
     // Publish two copies with the SAME messageId in the same tick: the second
     // arrives while the first is still in-flight.
-    void transport.publish(subject, encoder.encode(serialize.encode(makeMessage('_INBOX.dup-1'))));
-    void transport.publish(subject, encoder.encode(serialize.encode(makeMessage('_INBOX.dup-2'))));
+    void transport.publish(
+      subject,
+      encoder.encode(serialize.encode(makeMessage('_INBOX.dup-1')))
+    );
+    void transport.publish(
+      subject,
+      encoder.encode(serialize.encode(makeMessage('_INBOX.dup-2')))
+    );
 
     await Promise.all([r1, r2]);
 
     expect(calls).toBe(1);
     expect(reply1.success).toBe(true);
     expect(reply2.success).toBe(true);
+
+    // The duplicate must be acknowledged on its own reply subject, otherwise the
+    // retrying sender would time out waiting for a pickup that already happened.
+    expect(extensions['_INBOX.dup-1']).toBeGreaterThan(0);
+    expect(extensions['_INBOX.dup-2']).toBeGreaterThan(0);
 
     await receiver.stop();
     await conduit.close();

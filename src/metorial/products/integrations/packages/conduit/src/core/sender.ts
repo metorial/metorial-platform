@@ -6,7 +6,11 @@ import type { SenderConfig } from '../types/config';
 import type { ConduitMessage, TimeoutExtension } from '../types/message';
 import { isTimeoutExtension } from '../types/message';
 import type { ConduitResponse } from '../types/response';
-import { ConduitReceiverUnavailableError, ConduitSendError } from '../types/response';
+import {
+  ConduitPickupTimeoutError,
+  ConduitReceiverUnavailableError,
+  ConduitSendError
+} from '../types/response';
 import type {
   TopicListener,
   TopicResponseBroadcast,
@@ -108,12 +112,25 @@ export class Sender {
 
       try {
         let response = await this.sendMessage(message, attemptTimeoutMs, startedAt);
+        if (!response.success && response.retryable) {
+          throw new ConduitSendError(
+            response.error ?? 'Receiver asked for redelivery',
+            messageId,
+            topic,
+            attemptNumber
+          );
+        }
+
         return response;
       } catch (err) {
         let error = err instanceof Error ? err : new Error(String(err));
         lastError = error;
 
         if (error.message === 'Sender closed') throw error;
+
+        if (error instanceof ConduitPickupTimeoutError) {
+          await this.releaseOwnerIfUnresponsive(topic, error.receiverId, deadline);
+        }
 
         if (error instanceof ConduitReceiverUnavailableError) {
           let backoffMs = Math.min(100 * 2 ** receiverWaitAttempt, 1_000);
@@ -380,24 +397,28 @@ export class Sender {
         if (inFlight?.subscriptionId) {
           this.safeUnsubscribe(inFlight.subscriptionId).catch(() => {});
         }
-        if (!(inFlight?.hasReceivedUpdate ?? false)) {
-          this.coordination.releaseTopicOwnership(message.topic, receiverId).catch(err => {
-            console.warn(
-              `CONDUIT.sender.release_owner_after_pickup_timeout senderId=${this.senderId} topic=${message.topic} receiverId=${receiverId}:`,
-              err
-            );
-          });
+
+        if (inFlight?.hasReceivedUpdate) {
+          reject(
+            new ConduitSendError(
+              `Request timed out after receiver stopped sending updates (${currentTimeout}ms)`,
+              message.messageId,
+              message.topic,
+              message.retryCount,
+              undefined,
+              false
+            )
+          );
+          return;
         }
+
         reject(
-          new ConduitSendError(
-            inFlight?.hasReceivedUpdate
-              ? `Request timed out after receiver stopped sending updates (${currentTimeout}ms)`
-              : `Request timeout before receiver pickup (${currentTimeout}ms)`,
+          new ConduitPickupTimeoutError(
             message.messageId,
             message.topic,
             message.retryCount,
-            undefined,
-            !(inFlight?.hasReceivedUpdate ?? false)
+            receiverId,
+            currentTimeout
           )
         );
       }, currentTimeout);
@@ -567,6 +588,37 @@ export class Sender {
     // Someone else claimed it, get the winner
     owner = await this.coordination.getTopicOwner(topic);
     return owner;
+  }
+
+  // A missed pickup alone doesn't prove the owner is gone (event-loop lag, a slow NATS hop).
+  // Releasing a live owner moves the topic and makes the old owner tear down its state, so
+  // only release once the owner also fails a direct health ping.
+  private async releaseOwnerIfUnresponsive(
+    topic: string,
+    receiverId: string,
+    deadline: number
+  ): Promise<void> {
+    // An owner that already left the active pool is cleaned up by resolveOwner on the next attempt.
+    let activeReceivers = await this.coordination.getActiveReceivers();
+    if (!activeReceivers.includes(receiverId)) return;
+
+    let pingTimeoutMs = Math.min(this.config.healthPingTimeout, deadline - Date.now());
+    if (pingTimeoutMs > 0) {
+      let pong = await this.pingReceiver(receiverId, pingTimeoutMs).catch(() => null);
+      if (pong?.success) {
+        console.warn(
+          `CONDUIT.sender.pickup_timeout.owner_alive senderId=${this.senderId} topic=${topic} receiverId=${receiverId}`
+        );
+        return;
+      }
+    }
+
+    await this.coordination.releaseTopicOwnership(topic, receiverId).catch(err => {
+      console.warn(
+        `CONDUIT.sender.release_owner_after_pickup_timeout senderId=${this.senderId} topic=${topic} receiverId=${receiverId}:`,
+        err
+      );
+    });
   }
 
   private handleTimeoutExtension(extension: TimeoutExtension): void {

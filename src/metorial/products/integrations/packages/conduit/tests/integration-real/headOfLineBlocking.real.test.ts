@@ -132,15 +132,22 @@ describe('head-of-line blocking (Redis + NATS)', () => {
     });
 
     let replies: Record<string, { success: boolean } | null> = { a: null, b: null };
+    let extensions = { a: 0, b: 0 };
     let inboxA = `_INBOX.dedup-a-${Math.random().toString(36).slice(2)}`;
     let inboxB = `_INBOX.dedup-b-${Math.random().toString(36).slice(2)}`;
 
-    await transport.subscribe(inboxA, async data => {
-      replies.a = serialize.decode(decoder.decode(data));
-    });
-    await transport.subscribe(inboxB, async data => {
-      replies.b = serialize.decode(decoder.decode(data));
-    });
+    let subscribeInbox = async (inbox: string, key: 'a' | 'b') => {
+      await transport.subscribe(inbox, async data => {
+        let decoded = serialize.decode(decoder.decode(data));
+        if (decoded?.type === 'timeout_extension') {
+          extensions[key]++;
+          return;
+        }
+        replies[key] = decoded;
+      });
+    };
+    await subscribeInbox(inboxA, 'a');
+    await subscribeInbox(inboxB, 'b');
 
     void transport.publish(subject, encoder.encode(serialize.encode(makeMessage(inboxA))));
     void transport.publish(subject, encoder.encode(serialize.encode(makeMessage(inboxB))));
@@ -153,6 +160,8 @@ describe('head-of-line blocking (Redis + NATS)', () => {
     expect(calls).toBe(1);
     expect(replies.a?.success).toBe(true);
     expect(replies.b?.success).toBe(true);
+    expect(extensions.a).toBeGreaterThanOrEqual(1);
+    expect(extensions.b).toBeGreaterThanOrEqual(1);
     expect(node.receiver.getStats().dedupHits).toBeGreaterThanOrEqual(1);
   }, 20000);
 });

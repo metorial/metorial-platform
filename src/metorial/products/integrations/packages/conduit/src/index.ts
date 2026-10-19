@@ -51,9 +51,11 @@ export { DEFAULT_CONFIG, mergeConfig } from './types/config';
 export { isTimeoutExtension } from './types/message';
 export type { ConduitMessage, TimeoutExtension } from './types/message';
 export {
+  ConduitPickupTimeoutError,
   ConduitProcessError,
   ConduitReceiverUnavailableError,
-  ConduitSendError
+  ConduitSendError,
+  ConduitTopicClosedError
 } from './types/response';
 export type { ConduitResponse } from './types/response';
 export type {
