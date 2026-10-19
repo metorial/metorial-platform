@@ -11,7 +11,7 @@
   "dependencies": {
     "formik": "^2.4.9",
     "react": "19.3.0",
-    "react-router-dom": "^6.30.6",
+    "react-router-dom": "^7.18.4",
     "yup": "^1.7.1",
     "@metorial/ui": "1.0.0",
     "@lowerdeck/error": "workspace:2.0.0",

@@ -33,7 +33,7 @@
     "clsx": "^2.1.1",
     "copy-to-clipboard": "^4.0.2",
     "date-fns": "^4.4.0",
-    "framer-motion": "^12.43.0",
+    "framer-motion": "^14.1.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-feather": "^2.0.10",

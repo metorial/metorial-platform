@@ -115,7 +115,7 @@
     "prisma-json-types-generator": "^5.1.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router-dom": "^6.30.6",
+    "react-router-dom": "^7.18.4",
     "semver": "^7.8.5",
     "sonner": "^2.0.8",
     "styled-components": "^6.5.3",
