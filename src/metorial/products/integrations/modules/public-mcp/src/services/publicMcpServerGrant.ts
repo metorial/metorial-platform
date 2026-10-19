@@ -268,11 +268,16 @@ class publicMcpServerGrantServiceImpl {
         }
 
         // A concurrent request won the race; drop ours and use the winner's session.
-        await sessionService.archiveSessionInternal({
-          tenant: grant.tenant,
-          environment: grant.environment,
-          session: await db.session.findUniqueOrThrow({ where: { oid: session.oid } })
-        });
+        // The scope above deliberately excludes any session, so the orphan needs its own.
+        await runWithPublicMcpAccess(
+          createPublicMcpGrantAccess({ grant, sessionOid: session.oid }),
+          async () =>
+            await sessionService.archiveSessionInternal({
+              tenant: grant.tenant,
+              environment: grant.environment,
+              session: await db.session.findUniqueOrThrow({ where: { oid: session.oid } })
+            })
+        );
 
         let winner = await db.publicMcpServerGrant.findUniqueOrThrow({
           where: { oid: grant.oid },
