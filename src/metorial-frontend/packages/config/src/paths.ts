@@ -2091,6 +2091,14 @@ export let WelcomePaths = Object.assign(
       let search = new URLSearchParams({ organization_id: i.organizationId });
       return `${inner}?${search.toString()}`;
     },
+    claim: (i: { organizationId: string; claimToken: string }) => {
+      let inner = WelcomePaths('claim');
+      let search = new URLSearchParams({
+        org_id: i.organizationId,
+        claim_token: i.claimToken
+      });
+      return `${inner}?${search.toString()}`;
+    },
     project: (i: { organizationId: string }) => {
       let inner = WelcomePaths('project');
       let search = new URLSearchParams({ organization_id: i.organizationId });

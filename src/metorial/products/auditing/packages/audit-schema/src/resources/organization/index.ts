@@ -5,6 +5,7 @@ import {
   accessRoleResource
 } from './access';
 import { organizationActorResource } from './actor';
+import { organizationClaimResource } from './claim';
 import { organizationInviteResource } from './invite';
 import { organizationMemberResource } from './member';
 import {
@@ -32,6 +33,7 @@ export let organizationResources = resourceSet({
   organization_actor: organizationActorResource,
   organization_member: organizationMemberResource,
   organization_invite: organizationInviteResource,
+  organization_claim: organizationClaimResource,
   audit_log_stream: auditLogStreamResource,
   audit_log_retention: auditLogRetentionResource,
   event_destination: eventDestinationResource,
