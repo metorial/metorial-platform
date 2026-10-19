@@ -6,6 +6,7 @@ import {
   isPublicMcpOAuthError,
   presentClientRegistration,
   PUBLIC_MCP_SCOPE,
+  createPublicMcpGrantAccess,
   PublicMcpOAuthError,
   type PublicMcpOAuthErrorCode,
   type PublicMcpRoute,
@@ -458,7 +459,7 @@ export let createPublicMcpHandler = () =>
                 foreignId: grant.client.clientId
               },
               publicBaseUrl: base,
-              publicMcpAccess: { publicMcpServerOid: server.oid, grantOid: grant.oid }
+              publicMcpAccess: createPublicMcpGrantAccess({ grant, sessionOid: session.oid })
             })
         );
       })

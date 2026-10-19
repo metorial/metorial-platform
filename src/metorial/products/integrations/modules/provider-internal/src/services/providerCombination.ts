@@ -31,7 +31,10 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
-import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
+import {
+  assertNotPublicMcpOwned,
+  assertPublicMcpScopeUsesOwned
+} from '@metorial-subspace/public-mcp-guard';
 
 export type ProviderCombinationInput = {
   deploymentId?: string;
@@ -444,6 +447,7 @@ class providerCombinationServiceImpl {
 
           assertNotPublicMcpOwned(config, 'provider_config');
           assertNotPublicMcpOwned(authConfig, 'provider_auth_config');
+          assertPublicMcpScopeUsesOwned(authConfig, 'provider_auth_config');
 
           checkProviderMatch(config, deployment);
           checkProviderMatch(authConfig, deployment);

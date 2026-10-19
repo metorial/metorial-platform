@@ -6,6 +6,7 @@ import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { sessionService } from '@metorial-subspace/module-session';
 import { runWithPublicMcpAccess } from '@metorial-subspace/public-mcp-guard';
 import { env } from '../env';
+import { createPublicMcpGrantAccess } from '../lib/guards';
 
 let CLEANUP_BATCH_SIZE = 500;
 
@@ -32,43 +33,40 @@ export let publicMcpGrantCleanupQueueProcessor = publicMcpGrantCleanupQueue.proc
     if (!grant || grant.isCleanedUp) return;
     if (grant.status !== 'revoked' && grant.status !== 'expired') return;
 
-    await runWithPublicMcpAccess(
-      { publicMcpServerOid: grant.publicMcpServerOid, grantOid: grant.oid },
-      async () => {
-        let scope = { tenant: grant.tenant, environment: grant.environment };
+    await runWithPublicMcpAccess(createPublicMcpGrantAccess({ grant }), async () => {
+      let scope = { tenant: grant.tenant, environment: grant.environment };
 
-        if (grant.currentSession && isLive(grant.currentSession.status)) {
-          await sessionService.archiveSessionInternal({
-            ...scope,
-            session: grant.currentSession
-          });
-        }
-
-        if (
-          grant.authConfig &&
-          grant.authConfig.ownerPublicMcpServerOid === grant.publicMcpServerOid &&
-          isLive(grant.authConfig.status)
-        ) {
-          await providerAuthConfigService.archiveProviderAuthConfigInternal({
-            ...scope,
-            providerAuthConfig: grant.authConfig,
-            _canArchiveOwned: true
-          });
-        }
-
-        if (
-          grant.config &&
-          grant.config.ownerPublicMcpServerOid === grant.publicMcpServerOid &&
-          isLive(grant.config.status)
-        ) {
-          await providerConfigService.archiveProviderConfigInternal({
-            ...scope,
-            providerConfig: grant.config,
-            _canArchiveOwned: true
-          });
-        }
+      if (grant.currentSession && isLive(grant.currentSession.status)) {
+        await sessionService.archiveSessionInternal({
+          ...scope,
+          session: grant.currentSession
+        });
       }
-    );
+
+      if (
+        grant.authConfig &&
+        grant.authConfig.ownerPublicMcpServerOid === grant.publicMcpServerOid &&
+        isLive(grant.authConfig.status)
+      ) {
+        await providerAuthConfigService.archiveProviderAuthConfigInternal({
+          ...scope,
+          providerAuthConfig: grant.authConfig,
+          _canArchiveOwned: true
+        });
+      }
+
+      if (
+        grant.config &&
+        grant.config.ownerPublicMcpServerOid === grant.publicMcpServerOid &&
+        isLive(grant.config.status)
+      ) {
+        await providerConfigService.archiveProviderConfigInternal({
+          ...scope,
+          providerConfig: grant.config,
+          _canArchiveOwned: true
+        });
+      }
+    });
 
     await db.publicMcpServerGrant.update({
       where: { oid: grant.oid },

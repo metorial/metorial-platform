@@ -16,6 +16,7 @@ import {
   PUBLIC_MCP_RATE_LIMITS,
   PUBLIC_MCP_SCOPE
 } from '../lib/constants';
+import { withPublicMcpGrantCapacity } from '../lib/capacityLock';
 import { PublicMcpOAuthError } from '../lib/oauthError';
 import { generateSecret, hashSecret, secretsEqual } from '../lib/secrets';
 import type { PublicMcpRoute } from './publicMcpRoute';
@@ -379,39 +380,45 @@ class publicMcpServerAuthorizationServiceImpl {
     let codeHash = await hashSecret(code);
     let now = new Date();
 
-    let grant = await withTransaction(async db => {
-      let claimed = await db.publicMcpServerAuthorization.updateMany({
-        where: { oid: authorization.oid, status: 'setup' },
-        data: {
-          status: 'code_issued',
-          authorizationCodeHash: codeHash,
-          codeExpiresAt: addMinutes(now, PUBLIC_MCP_AUTHORIZATION_CODE_TTL_MINUTES),
-          completedAt: now
-        }
-      });
-      if (claimed.count !== 1) return null;
+    let grant = await withPublicMcpGrantCapacity(server, async () => {
+      if (!(await publicMcpServerGrantService.hasCapacity({ publicMcpServer: server }))) {
+        throw redirectError('access_denied', 'This server has reached its user limit');
+      }
 
-      return await db.publicMcpServerGrant.create({
-        data: {
-          ...getId('publicMcpServerGrant'),
-          status: 'pending_exchange',
+      return await withTransaction(async db => {
+        let claimed = await db.publicMcpServerAuthorization.updateMany({
+          where: { oid: authorization.oid, status: 'setup' },
+          data: {
+            status: 'code_issued',
+            authorizationCodeHash: codeHash,
+            codeExpiresAt: addMinutes(now, PUBLIC_MCP_AUTHORIZATION_CODE_TTL_MINUTES),
+            completedAt: now
+          }
+        });
+        if (claimed.count !== 1) return null;
 
-          tenantOid: server.tenantOid,
-          projectOid: server.projectOid,
-          environmentOid: server.environmentOid,
-          instanceOid: server.instanceOid,
-          solutionOid: server.solutionOid,
+        return await db.publicMcpServerGrant.create({
+          data: {
+            ...getId('publicMcpServerGrant'),
+            status: 'pending_exchange',
 
-          publicMcpServerOid: server.oid,
-          clientOid: authorization.clientOid,
-          authorizationOid: authorization.oid,
-          deploymentOid: server.deploymentOid,
-          configOid: setupSession.configOid,
-          authConfigOid: setupSession.authConfigOid,
+            tenantOid: server.tenantOid,
+            projectOid: server.projectOid,
+            environmentOid: server.environmentOid,
+            instanceOid: server.instanceOid,
+            solutionOid: server.solutionOid,
 
-          expiresAt: addMinutes(now, PUBLIC_MCP_AUTHORIZATION_CODE_TTL_MINUTES)
-        },
-        include: { publicMcpServer: true, client: true }
+            publicMcpServerOid: server.oid,
+            clientOid: authorization.clientOid,
+            authorizationOid: authorization.oid,
+            deploymentOid: server.deploymentOid,
+            configOid: setupSession.configOid,
+            authConfigOid: setupSession.authConfigOid,
+
+            expiresAt: addMinutes(now, PUBLIC_MCP_AUTHORIZATION_CODE_TTL_MINUTES)
+          },
+          include: { publicMcpServer: true, client: true }
+        });
       });
     });
 

@@ -47,7 +47,7 @@ let isLoopbackHost = (hostname: string) =>
   hostname === '[::1]' ||
   hostname.endsWith('.localhost');
 
-let validateRedirectUris = (d: { server: PublicMcpServer; redirectUris: unknown }) => {
+export let validateRedirectUris = (d: { server: PublicMcpServer; redirectUris: unknown }) => {
   if (
     !Array.isArray(d.redirectUris) ||
     d.redirectUris.length === 0 ||

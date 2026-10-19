@@ -27,6 +27,7 @@ import { Fabric, type ProviderEventBase } from '@metorial/fabric';
 import { addSeconds, startOfHour } from 'date-fns';
 import { assertPublicMcpRateLimit } from '../internal/rateLimit';
 import { PUBLIC_MCP_RATE_LIMITS } from '../lib/constants';
+import { createPublicMcpGrantAccess } from '../lib/guards';
 import { publicMcpGrantCleanupQueue } from '../queues/grantCleanup';
 
 export let publicMcpServerGrantInclude = {
@@ -211,7 +212,7 @@ class publicMcpServerGrantServiceImpl {
 
   async ensureGrantSession(d: { grant: PublicMcpServerGrant }) {
     return await runWithPublicMcpAccess(
-      { publicMcpServerOid: d.grant.publicMcpServerOid, grantOid: d.grant.oid },
+      createPublicMcpGrantAccess({ grant: { ...d.grant, currentSessionOid: null } }),
       async () => {
         let grant = await db.publicMcpServerGrant.findUniqueOrThrow({
           where: { oid: d.grant.oid },

@@ -7,7 +7,8 @@ let mocks = vi.hoisted(() => ({
   grantCreate: vi.fn(),
   getClientForAuthorization: vi.fn(),
   hasCapacity: vi.fn(),
-  fabricFire: vi.fn()
+  fabricFire: vi.fn(),
+  withCapacity: vi.fn(async (_server: unknown, fn: () => Promise<unknown>) => await fn())
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -50,6 +51,10 @@ vi.mock('@metorial/fabric', () => ({
 
 vi.mock('../env', () => ({
   env: { service: { INTEGRATIONS_UI_URL: 'https://integrations.metorial.com' } }
+}));
+
+vi.mock('../lib/capacityLock', () => ({
+  withPublicMcpGrantCapacity: mocks.withCapacity
 }));
 
 vi.mock('../internal/rateLimit', () => ({
@@ -272,6 +277,23 @@ describe('complete', () => {
       'provider.public_mcp_grant.created:after',
       expect.anything()
     );
+  });
+
+  it('re-checks capacity under the per-server lock before creating the grant', async () => {
+    mocks.authorizationFindFirst.mockResolvedValue(pendingAuthorization());
+    mocks.hasCapacity.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+    await expect(complete({ bindingNonce: 'nonce' })).rejects.toEqual(
+      oauthError('access_denied')
+    );
+
+    expect(mocks.withCapacity).toHaveBeenCalledWith(
+      expect.objectContaining({ oid: 1n }),
+      expect.any(Function)
+    );
+    expect(mocks.hasCapacity).toHaveBeenCalledTimes(2);
+    expect(mocks.grantCreate).not.toHaveBeenCalled();
+    expect(mocks.authorizationUpdateMany).not.toHaveBeenCalled();
   });
 
   it('refuses to issue a code on a disabled server', async () => {

@@ -1,12 +1,29 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 
+export type PublicMcpGuardedEntity =
+  | 'session'
+  | 'session_provider'
+  | 'provider_config'
+  | 'provider_auth_config';
+
+export type PublicMcpGrantResources = {
+  session?: bigint | null;
+  provider_config?: bigint | null;
+  provider_auth_config?: bigint | null;
+};
+
 export type PublicMcpAccess = {
   publicMcpServerOid: bigint;
   grantOid?: bigint;
+  // When a grant is set, only the resources listed here are reachable. Anything else a public
+  // server owns belongs to another end user.
+  grantResources?: PublicMcpGrantResources;
 };
 
 export type PublicMcpOwnable = {
+  oid?: bigint;
+  sessionOid?: bigint;
   ownerPublicMcpServerOid?: bigint | null;
 };
 
@@ -22,18 +39,38 @@ export let getPublicMcpAccess = () => storage.getStore() ?? null;
 export let isPublicMcpOwned = (resource: PublicMcpOwnable | null | undefined) =>
   !!resource?.ownerPublicMcpServerOid;
 
-export let hasPublicMcpAccessTo = (resource: PublicMcpOwnable | null | undefined) => {
+let belongsToGrant = (
+  access: PublicMcpAccess,
+  resource: PublicMcpOwnable,
+  entity: PublicMcpGuardedEntity | undefined
+) => {
+  if (!access.grantResources) return true;
+  if (!entity) return false;
+
+  if (entity === 'session_provider') {
+    return !!resource.sessionOid && resource.sessionOid === access.grantResources.session;
+  }
+
+  return !!resource.oid && resource.oid === access.grantResources[entity];
+};
+
+export let hasPublicMcpAccessTo = (
+  resource: PublicMcpOwnable | null | undefined,
+  entity?: PublicMcpGuardedEntity
+) => {
   if (!isPublicMcpOwned(resource)) return true;
 
   let access = getPublicMcpAccess();
-  return !!access && access.publicMcpServerOid === resource!.ownerPublicMcpServerOid;
+  if (!access || access.publicMcpServerOid !== resource!.ownerPublicMcpServerOid) return false;
+
+  return belongsToGrant(access, resource!, entity);
 };
 
 export let assertNotPublicMcpOwned = (
   resource: PublicMcpOwnable | null | undefined,
-  entity: string
+  entity: PublicMcpGuardedEntity | (string & {})
 ) => {
-  if (hasPublicMcpAccessTo(resource)) return;
+  if (hasPublicMcpAccessTo(resource, entity as PublicMcpGuardedEntity)) return;
 
   throw new ServiceError(
     forbiddenError({
@@ -45,29 +82,31 @@ export let assertNotPublicMcpOwned = (
 
 export let assertNotPublicMcpOwnedOrNotFound = (
   resource: PublicMcpOwnable | null | undefined,
-  entity: string
+  entity: PublicMcpGuardedEntity | (string & {})
 ) => {
-  if (hasPublicMcpAccessTo(resource)) return;
+  if (hasPublicMcpAccessTo(resource, entity as PublicMcpGuardedEntity)) return;
   throw new ServiceError(notFoundError(entity));
 };
 
 export let assertNoneArePublicMcpOwned = (
   resources: (PublicMcpOwnable | null | undefined)[],
-  entity: string
+  entity: PublicMcpGuardedEntity | (string & {})
 ) => {
   for (let resource of resources) assertNotPublicMcpOwned(resource, entity);
 };
 
-export let excludePublicMcpOwned = () => {
-  let access = getPublicMcpAccess();
-  if (access) {
-    return {
-      OR: [
-        { ownerPublicMcpServerOid: null },
-        { ownerPublicMcpServerOid: access.publicMcpServerOid }
-      ]
-    };
-  }
+// Inside a public MCP scope a resource must be owned by the server. An unowned one would be the
+// organization's own, such as the deployment's default auth config.
+export let assertPublicMcpScopeUsesOwned = (
+  resource: PublicMcpOwnable | null | undefined,
+  entity: PublicMcpGuardedEntity | (string & {})
+) => {
+  if (!resource || !getPublicMcpAccess() || isPublicMcpOwned(resource)) return;
 
-  return { ownerPublicMcpServerOid: null };
+  throw new ServiceError(
+    forbiddenError({
+      message: `A public MCP server can only use ${entity.replaceAll('_', ' ')}s that belong to it.`,
+      code: 'public_mcp_unowned_resource'
+    })
+  );
 };
