@@ -6,6 +6,13 @@ import {
   consumerMagicMcpTokenPresenter,
   dashboardApiKeyPresenter,
   dashboardAuditLogStreamPresenter,
+  dashboardConfigPresenter,
+  dashboardProviderAuthConfigPresenter,
+  dashboardPublicMcpServerClientPresenter,
+  dashboardPublicMcpServerGrantPresenter,
+  dashboardPublicMcpServerPresenter,
+  dashboardPublicMcpServerSlugAvailabilityPresenter,
+  dashboardSetupSessionPresenter,
   dashboardChatConnectionPresenter,
   dashboardChatConnectionProviderPresenter,
   dashboardChatEventListPresenter,
@@ -440,6 +447,10 @@ import {
   providerAuthMethodType,
   providerConfigType,
   providerConfigVaultType,
+  publicMcpServerClientType,
+  publicMcpServerGrantType,
+  publicMcpServerSlugAvailabilityType,
+  publicMcpServerType,
   providerDeploymentType,
   providerInvocationType,
   providerInvocationsType,
@@ -1549,7 +1560,7 @@ export let providerDeploymentPreviewPresenter = declarePresenter(deploymentPrevi
 });
 
 export let providerConfigPresenter = declarePresenter(providerConfigType, {
-  mt_2025_01_01_dashboard: v1ConfigPresenter,
+  mt_2025_01_01_dashboard: dashboardConfigPresenter,
   mt_2026_01_01_magnetar: v1ConfigPresenter
 });
 
@@ -1563,8 +1574,31 @@ export let providerConfigVaultPresenter = declarePresenter(providerConfigVaultTy
   mt_2026_01_01_magnetar: v1ProviderConfigVaultPresenter
 });
 
+export let publicMcpServerPresenter = declarePresenter(publicMcpServerType, {
+  mt_2025_01_01_dashboard: dashboardPublicMcpServerPresenter,
+  mt_2026_01_01_magnetar: dashboardPublicMcpServerPresenter
+});
+
+export let publicMcpServerGrantPresenter = declarePresenter(publicMcpServerGrantType, {
+  mt_2025_01_01_dashboard: dashboardPublicMcpServerGrantPresenter,
+  mt_2026_01_01_magnetar: dashboardPublicMcpServerGrantPresenter
+});
+
+export let publicMcpServerClientPresenter = declarePresenter(publicMcpServerClientType, {
+  mt_2025_01_01_dashboard: dashboardPublicMcpServerClientPresenter,
+  mt_2026_01_01_magnetar: dashboardPublicMcpServerClientPresenter
+});
+
+export let publicMcpServerSlugAvailabilityPresenter = declarePresenter(
+  publicMcpServerSlugAvailabilityType,
+  {
+    mt_2025_01_01_dashboard: dashboardPublicMcpServerSlugAvailabilityPresenter,
+    mt_2026_01_01_magnetar: dashboardPublicMcpServerSlugAvailabilityPresenter
+  }
+);
+
 export let providerAuthConfigPresenter = declarePresenter(providerAuthConfigType, {
-  mt_2025_01_01_dashboard: v1ProviderAuthConfigPresenter,
+  mt_2025_01_01_dashboard: dashboardProviderAuthConfigPresenter,
   mt_2026_01_01_magnetar: v1ProviderAuthConfigPresenter
 });
 
@@ -1633,7 +1667,7 @@ export let integrationInstanceGroupProviderPresenter = declarePresenter(
 );
 
 export let providerSetupSessionPresenter = declarePresenter(providerSetupSessionType, {
-  mt_2025_01_01_dashboard: v1SetupSessionPresenter,
+  mt_2025_01_01_dashboard: dashboardSetupSessionPresenter,
   mt_2026_01_01_magnetar: v1SetupSessionPresenter,
   mt_2026_04_01_consumer: v1SetupSessionPresenter
 });
