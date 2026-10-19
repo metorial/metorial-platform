@@ -25,10 +25,10 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.4.0",
+    "@inquirer/prompts": "^7.10.1",
     "@types/fs-extra": "^11.0.4",
-    "dedent": "^1.5.3",
-    "fs-extra": "^11.3.0",
-    "prettier": "^3.5.3"
+    "dedent": "^1.7.2",
+    "fs-extra": "^11.4.1",
+    "prettier": "^3.9.10"
   }
 }

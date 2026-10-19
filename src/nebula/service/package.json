@@ -29,16 +29,16 @@
   "devDependencies": {
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "@types/bun": "latest",
-    "@types/node": "^25.0.3",
-    "@vercel/ncc": "^0.38.1",
-    "vitest": "4.0.17"
+    "@types/node": "^25.9.9",
+    "@vercel/ncc": "^0.38.4",
+    "vitest": "4.1.11"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-kms": "^3.957.0",
-    "@aws-sdk/credential-providers": "^3.957.0",
+    "@aws-sdk/client-kms": "^3.1149.0",
+    "@aws-sdk/credential-providers": "^3.1149.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
@@ -57,12 +57,12 @@
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/snowflake": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
-    "@prisma/adapter-pg": "^7.2.0",
-    "@prisma/client": "^7.2.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "@sentry/bun": "^10.38.0",
-    "@sentry/cli": "^3.2.0",
-    "date-fns": "^4.1.0",
-    "prisma": "^7.2.0"
+    "@sentry/bun": "^10.76.2",
+    "@sentry/cli": "^3.8.0",
+    "date-fns": "^4.4.0",
+    "prisma": "^7.10.0"
   }
 }

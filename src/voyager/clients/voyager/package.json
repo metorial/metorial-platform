@@ -34,9 +34,9 @@
   },
   "devDependencies": {
     "@metorial/voyager": "workspace:*",
-    "@types/node": "^25.0.3",
+    "@types/node": "^25.9.9",
     "tsup": "^8.5.1",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.2"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
   }
 }

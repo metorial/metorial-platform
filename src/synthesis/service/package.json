@@ -27,9 +27,9 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "^25.0.3",
-    "@vercel/ncc": "^0.38.1",
-    "vitest": "^4.0.17"
+    "@types/node": "^25.9.9",
+    "@vercel/ncc": "^0.38.4",
+    "vitest": "^4.1.11"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -51,18 +51,18 @@
     "@lowerdeck/validation": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/cron": "workspace:2.0.0",
-    "@ai-sdk/mcp": "^1.0.21",
-    "@prisma/adapter-pg": "^7.2.0",
-    "@prisma/client": "^7.2.0",
+    "@ai-sdk/mcp": "^1.0.92",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "@sentry/bun": "^10.38.0",
-    "@sentry/cli": "^3.2.0",
-    "ai": "^6.0.175",
-    "hono": "4.12.23",
-    "just-bash": "^2.14.4",
-    "p-queue": "^9.1.0",
-    "prisma": "^7.2.0",
-    "prisma-json-types-generator": "^4.0.1",
-    "zod": "^4.4.3"
+    "@sentry/bun": "^10.76.2",
+    "@sentry/cli": "^3.8.0",
+    "ai": "^6.0.303",
+    "hono": "4.13.13",
+    "just-bash": "^2.14.5",
+    "p-queue": "^9.3.5",
+    "prisma": "^7.10.0",
+    "prisma-json-types-generator": "^4.1.1",
+    "zod": "^4.6.7"
   }
 }

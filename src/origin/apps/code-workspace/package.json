@@ -14,17 +14,17 @@
   "devDependencies": {
     "@types/node": "*",
     "@types/vscode": "*",
-    "rollup": "^4.28.1",
-    "typescript": "~5.8.3",
-    "vite": "^5.4.1",
+    "rollup": "^4.64.5",
+    "typescript": "~5.9.3",
+    "vite": "^5.4.21",
     "vscode": "*",
     "vscode-web": "^1.91.1"
   },
   "dependencies": {
     "vscode-oniguruma": "^2.0.1",
-    "vscode-textmate": "^9.2.0"
+    "vscode-textmate": "^9.3.2"
   },
   "overrides": {
-    "rollup": "^4.28.1"
+    "rollup": "^4.64.5"
   }
 }

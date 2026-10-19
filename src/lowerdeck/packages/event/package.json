@@ -31,11 +31,11 @@
     "@lowerdeck/memo": "workspace:2.0.0",
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
-    "p-queue": "^9.1.0"
+    "p-queue": "^9.3.5"
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^3.2.7"
   }
 }

@@ -11,8 +11,8 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "^5",
-    "vitest": "^3.1.2"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
   },
   "peerDependencies": {
     "typescript": "^5"

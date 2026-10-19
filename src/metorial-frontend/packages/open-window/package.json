@@ -6,6 +6,6 @@
   "main": "src/index.ts",
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2"
+    "typescript": "5.9.3"
   }
 }

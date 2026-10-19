@@ -10,16 +10,16 @@
   },
   "dependencies": {
     "@metorial/ui": "^1.0.0",
-    "@radix-ui/react-popover": "^1.1.11",
-    "react": "19.1.1",
-    "react-use": "^17.5.1",
+    "@radix-ui/react-popover": "^1.3.0",
+    "react": "19.3.0",
+    "react-use": "^17.6.1",
     "copy-to-clipboard": "^3.3.3",
-    "styled-components": "^6.1.13",
-    "@remixicon/react": "^4.2.0"
+    "styled-components": "^6.5.3",
+    "@remixicon/react": "^4.9.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^3.2.7"
   }
 }

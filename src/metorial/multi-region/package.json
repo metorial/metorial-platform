@@ -13,7 +13,7 @@
     "control:db:push": "bun run prisma:push"
   },
   "dependencies": {
-    "@aws-sdk/rds-signer": "^3.1017.0",
+    "@aws-sdk/rds-signer": "^3.1149.0",
     "@lowerdeck/base62": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
@@ -29,22 +29,22 @@
     "@metorial/fabric": "^1.0.0",
     "@metorial/id": "^1.0.0",
     "@metorial/queue": "^1.0.0",
-    "@prisma/adapter-pg": "6.19.0",
-    "@prisma/client": "^7.4.1",
+    "@prisma/adapter-pg": "6.19.3",
+    "@prisma/client": "^7.10.0",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "@types/pg": "^8.11.11",
-    "@types/bun": "^1.2.12",
-    "pg": "^8.11.3",
-    "prisma": "^7.4.1",
+    "@types/pg": "^8.23.1",
+    "@types/bun": "^1.4.3",
+    "pg": "^8.23.1",
+    "prisma": "^7.10.0",
     "prisma-json-types-generator": "^4.1.1",
     "stripe": "^18.5.0",
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.3",
     "@lowerdeck/queue": "workspace:2.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "@types/bun": "^1.1.6",
-    "typescript": "^5.1.6"
+    "@types/bun": "^1.4.3",
+    "typescript": "^5.9.3"
   },
   "prisma": {
     "schema": "./prisma/schema"

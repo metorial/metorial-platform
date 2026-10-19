@@ -29,16 +29,16 @@
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^3.2.7"
   },
   "dependencies": {
     "@lowerdeck/memo": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/serialize": "workspace:2.0.0",
     "@lowerdeck/random-number": "workspace:2.0.0",
-    "ioredis": "^5.8.2",
-    "p-queue": "^9.0.1",
-    "redis": "^5.10.0"
+    "ioredis": "^5.11.1",
+    "p-queue": "^9.3.5",
+    "redis": "^5.12.1"
   }
 }

@@ -24,10 +24,10 @@
   },
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.39",
-    "@types/minimatch": "^5",
-    "@types/ws": "^8.5.13",
-    "tsup": "^7.1.0",
-    "typescript": "^5.1.6",
+    "@types/minimatch": "^5.1.2",
+    "@types/ws": "^8.18.2",
+    "tsup": "^7.2.0",
+    "typescript": "^5.9.3",
     "vitest": "^0.34.6"
   }
 }

@@ -16,14 +16,14 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.9"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
     "@lowerdeck/serialize": "workspace:2.0.0",
-    "ioredis": "^5.4.2",
+    "ioredis": "^5.11.1",
     "nats": "^2.28.2",
     "@lowerdeck/sentry": "workspace:2.0.0"
   }

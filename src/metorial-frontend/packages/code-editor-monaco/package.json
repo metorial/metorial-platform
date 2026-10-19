@@ -12,11 +12,11 @@
   "dependencies": {
     "@metorial/dynamic-component": "workspace:*",
     "monaco-editor": "0.52.2",
-    "react": "19.1.1"
+    "react": "19.3.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^3.2.7"
   }
 }

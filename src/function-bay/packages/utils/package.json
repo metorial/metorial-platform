@@ -34,11 +34,11 @@
     "microbundle": "^0.15.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.7"
   },
   "dependencies": {
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.2"
   }
 }

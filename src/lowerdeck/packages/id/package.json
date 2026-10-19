@@ -30,13 +30,13 @@
   "dependencies": {
     "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
-    "nanoid": "^5.0.7",
+    "nanoid": "^5.1.16",
     "short-uuid": "^5.2.0",
     "snowflake-uuid": "^1.0.0"
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.2"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
   }
 }

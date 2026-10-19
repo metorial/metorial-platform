@@ -35,7 +35,7 @@
     "microbundle": "^0.15.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.7"
   },
   "dependencies": {
     "@lowerdeck/validation": "workspace:2.0.0"

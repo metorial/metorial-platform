@@ -28,8 +28,8 @@
     "@metorial/module-magic": "^1.0.0",
     "@metorial/module-outpost": "^1.0.0",
     "@metorial/rest": "^1.0.0",
-    "@modelcontextprotocol/sdk": "^1.25.2",
-    "hono": "^4.10.6",
-    "zod": "^4.3.5"
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "hono": "^4.13.13",
+    "zod": "^4.6.7"
   }
 }
