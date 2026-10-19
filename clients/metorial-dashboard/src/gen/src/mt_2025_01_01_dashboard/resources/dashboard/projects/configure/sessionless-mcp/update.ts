@@ -18,6 +18,6 @@ export type DashboardProjectsConfigureSessionlessMcpUpdateBody = {
 };
 
 export let mapDashboardProjectsConfigureSessionlessMcpUpdateBody =
-  /* @__PURE__ */ mapObject<DashboardProjectsConfigureSessionlessMcpUpdateBody>([
-    'sessionless_mcp_enabled'
-  ]);
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureSessionlessMcpUpdateBody>(
+    ['sessionless_mcp_enabled']
+  );

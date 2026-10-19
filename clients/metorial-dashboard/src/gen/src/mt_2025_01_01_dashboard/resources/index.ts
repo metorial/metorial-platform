@@ -45,6 +45,7 @@ export * from './provider-runs';
 export * from './provider-specification-change-notifications';
 export * from './provider-templates';
 export * from './providers';
+export * from './public-mcp-servers';
 export * from './publishers';
 export * from './sandbox';
 export * from './scm';

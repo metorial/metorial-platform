@@ -1,7 +1,4 @@
-import {
-  createMapper,
-  mapObject
-} from '@metorial/util-resource-mapper/compact';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProviderDeploymentsConfigsCreateOutput = {
   object: 'provider.config';
@@ -68,40 +65,60 @@ export type ManagementInstanceProviderDeploymentsConfigsCreateOutput = {
   } | null;
   createdAt: Date;
   updatedAt: Date;
-};
+} & { publicMcpServerId: string | null };
 
 export let mapManagementInstanceProviderDeploymentsConfigsCreateOutput =
-  /* @__PURE__ */ mapObject<ManagementInstanceProviderDeploymentsConfigsCreateOutput>(
+  /* @__PURE__ */ createMapper<ManagementInstanceProviderDeploymentsConfigsCreateOutput>(
     [
-      'is_default',
-      ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
-      'provider_id',
-      'specification_id',
+      3,
       [
-        'deployment',
-        0,
-        [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
-      ],
-      [
-        'from_vault',
-        1,
         [
-          1,
+          0,
           [
-            'provider_id',
+            1,
             [
-              'deployment',
-              0,
-              [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
-            ],
-            'created_at',
-            'updated_at'
+              'is_default',
+              ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
+              'provider_id',
+              'specification_id',
+              [
+                'deployment',
+                0,
+                [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+              ],
+              [
+                'from_vault',
+                1,
+                [
+                  1,
+                  [
+                    'provider_id',
+                    [
+                      'deployment',
+                      0,
+                      [
+                        1,
+                        [
+                          'is_default',
+                          'provider_id',
+                          'created_at',
+                          'updated_at'
+                        ]
+                      ]
+                    ],
+                    'created_at',
+                    'updated_at'
+                  ]
+                ]
+              ],
+              ['owner_actor', 1, [1, ['consumer_id']]],
+              'created_at',
+              'updated_at',
+              'public_mcp_server_id'
+            ]
           ]
         ]
-      ],
-      ['owner_actor', 1, [1, ['consumer_id']]],
-      'created_at',
-      'updated_at'
+      ]
     ],
     1
   );

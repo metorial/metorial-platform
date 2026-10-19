@@ -1,7 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
-  items: {
+  items: ({
     object: 'provider.setup_session';
     id: string;
     type: 'auth_only' | 'config_only' | 'auth_and_config';
@@ -238,7 +238,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
     createdAt: Date;
     updatedAt: Date;
     expiresAt: Date;
-  }[];
+  } & { publicMcpServerId: string | null })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -247,55 +247,32 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
     [
       7,
       [
-        1,
+        3,
         [
-          'provider_id',
-          'identity_id',
-          'identity_credential_id',
-          ['owner_actor', 1, [1, ['consumer_id']]],
           [
-            'auth_method',
-            1,
-            [
-              1,
-              [
-                'input_schema',
-                'output_schema',
-                'provider_id',
-                'provider_specification_id',
-                'created_at',
-                'updated_at'
-              ]
-            ]
-          ],
-          [
-            'deployment',
-            0,
-            [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
-          ],
-          [
-            'credentials',
             0,
             [
               1,
               [
-                'is_default',
-                'is_managed',
                 'provider_id',
-                'created_at',
-                'updated_at'
-              ]
-            ]
-          ],
-          [
-            'auth_config',
-            1,
-            [
-              1,
-              [
-                'is_default',
-                'provider_id',
-                ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
+                'identity_id',
+                'identity_credential_id',
+                ['owner_actor', 1, [1, ['consumer_id']]],
+                [
+                  'auth_method',
+                  1,
+                  [
+                    1,
+                    [
+                      'input_schema',
+                      'output_schema',
+                      'provider_id',
+                      'provider_specification_id',
+                      'created_at',
+                      'updated_at'
+                    ]
+                  ]
+                ],
                 [
                   'deployment',
                   0,
@@ -316,48 +293,18 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
                   ]
                 ],
                 [
-                  'auth_method',
+                  'auth_config',
                   1,
                   [
                     1,
                     [
-                      'input_schema',
-                      'output_schema',
+                      'is_default',
                       'provider_id',
-                      'provider_specification_id',
-                      'created_at',
-                      'updated_at'
-                    ]
-                  ]
-                ],
-                ['owner_actor', 1, [1, ['consumer_id']]],
-                'created_at',
-                'updated_at'
-              ]
-            ]
-          ],
-          [
-            'config',
-            0,
-            [
-              1,
-              [
-                'is_default',
-                ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
-                'provider_id',
-                'specification_id',
-                [
-                  'deployment',
-                  0,
-                  [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
-                ],
-                [
-                  'from_vault',
-                  1,
-                  [
-                    1,
-                    [
-                      'provider_id',
+                      [
+                        'tool_filter',
+                        1,
+                        [3, [[0, [1, ['ignore_parent_filters']]]]]
+                      ],
                       [
                         'deployment',
                         0,
@@ -371,22 +318,108 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
                           ]
                         ]
                       ],
+                      [
+                        'credentials',
+                        0,
+                        [
+                          1,
+                          [
+                            'is_default',
+                            'is_managed',
+                            'provider_id',
+                            'created_at',
+                            'updated_at'
+                          ]
+                        ]
+                      ],
+                      [
+                        'auth_method',
+                        1,
+                        [
+                          1,
+                          [
+                            'input_schema',
+                            'output_schema',
+                            'provider_id',
+                            'provider_specification_id',
+                            'created_at',
+                            'updated_at'
+                          ]
+                        ]
+                      ],
+                      ['owner_actor', 1, [1, ['consumer_id']]],
                       'created_at',
                       'updated_at'
                     ]
                   ]
                 ],
-                ['owner_actor', 1, [1, ['consumer_id']]],
+                [
+                  'config',
+                  0,
+                  [
+                    1,
+                    [
+                      'is_default',
+                      [
+                        'tool_filter',
+                        1,
+                        [3, [[0, [1, ['ignore_parent_filters']]]]]
+                      ],
+                      'provider_id',
+                      'specification_id',
+                      [
+                        'deployment',
+                        0,
+                        [
+                          1,
+                          [
+                            'is_default',
+                            'provider_id',
+                            'created_at',
+                            'updated_at'
+                          ]
+                        ]
+                      ],
+                      [
+                        'from_vault',
+                        1,
+                        [
+                          1,
+                          [
+                            'provider_id',
+                            [
+                              'deployment',
+                              0,
+                              [
+                                1,
+                                [
+                                  'is_default',
+                                  'provider_id',
+                                  'created_at',
+                                  'updated_at'
+                                ]
+                              ]
+                            ],
+                            'created_at',
+                            'updated_at'
+                          ]
+                        ]
+                      ],
+                      ['owner_actor', 1, [1, ['consumer_id']]],
+                      'created_at',
+                      'updated_at'
+                    ]
+                  ]
+                ],
+                'ui_mode',
+                'redirect_url',
                 'created_at',
-                'updated_at'
+                'updated_at',
+                'expires_at',
+                'public_mcp_server_id'
               ]
             ]
-          ],
-          'ui_mode',
-          'redirect_url',
-          'created_at',
-          'updated_at',
-          'expires_at'
+          ]
         ]
       ]
     ],
