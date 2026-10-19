@@ -103,6 +103,74 @@ describe('createDisposableEmailDomains', () => {
 
     expect(await domains.isDisposable('mailinator.com')).toBe(true);
   });
+
+  it('keeps domains from a failed source when another source still succeeds', async () => {
+    let jsonFails = false;
+    let fetcher = vi.fn(async (url: string) => {
+      if (url.endsWith('json')) {
+        if (jsonFails) throw new Error('offline');
+        return jsonResponse(['guerrillamail.com']);
+      }
+      return textResponse('mailinator.com');
+    });
+
+    let domains = createDisposableEmailDomains({ sources, fetch: fetcher as any });
+    expect(await domains.isDisposable('guerrillamail.com')).toBe(true);
+
+    jsonFails = true;
+    await domains.refresh();
+
+    expect(await domains.isDisposable('guerrillamail.com')).toBe(true);
+    expect(await domains.isDisposable('mailinator.com')).toBe(true);
+  });
+
+  it('still adds new domains from the sources that succeeded', async () => {
+    let jsonFails = false;
+    let lines = 'mailinator.com';
+    let fetcher = vi.fn(async (url: string) => {
+      if (url.endsWith('json')) {
+        if (jsonFails) throw new Error('offline');
+        return jsonResponse(['guerrillamail.com']);
+      }
+      return textResponse(lines);
+    });
+
+    let domains = createDisposableEmailDomains({ sources, fetch: fetcher as any });
+    await domains.refresh();
+
+    jsonFails = true;
+    lines = 'mailinator.com\nnew-burner.test';
+    await domains.refresh();
+
+    expect(await domains.isDisposable('new-burner.test')).toBe(true);
+    expect(await domains.isDisposable('guerrillamail.com')).toBe(true);
+  });
+
+  it('retries an incomplete load before the regular refresh interval', async () => {
+    vi.useFakeTimers();
+    try {
+      let jsonFails = true;
+      let fetcher = vi.fn(async (url: string) => {
+        if (url.endsWith('json')) {
+          if (jsonFails) throw new Error('offline');
+          return jsonResponse(['guerrillamail.com']);
+        }
+        return textResponse('mailinator.com');
+      });
+
+      let domains = createDisposableEmailDomains({ sources, fetch: fetcher as any });
+      expect(await domains.isDisposable('guerrillamail.com')).toBe(false);
+
+      jsonFails = false;
+      vi.advanceTimersByTime(6 * 60 * 1000);
+      await domains.isDisposable('example.com');
+      await vi.waitFor(async () =>
+        expect(await domains.isDisposable('guerrillamail.com')).toBe(true)
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('hasMxRecords', () => {

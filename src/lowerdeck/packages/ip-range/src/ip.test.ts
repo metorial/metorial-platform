@@ -55,6 +55,14 @@ describe('isIpInCidr', () => {
   it('never matches across families', () => {
     expect(isIpInCidr('10.0.0.1', '::/0')).toBe(false);
   });
+
+  it('applies the prefix mask to cidrs with host bits set', () => {
+    expect(isIpInCidr('198.51.100.3', '198.51.100.7/24')).toBe(true);
+    expect(isIpInCidr('198.51.100.200', '198.51.100.7/24')).toBe(true);
+    expect(isIpInCidr('198.51.101.1', '198.51.100.7/24')).toBe(false);
+    expect(isIpInCidr('2001:db8:ffff::1', '2001:db8::5/32')).toBe(true);
+    expect(isIpInCidr('2001:db9::1', '2001:db8::5/32')).toBe(false);
+  });
 });
 
 describe('findMatchingCidr', () => {
@@ -62,6 +70,11 @@ describe('findMatchingCidr', () => {
     expect(findMatchingCidr('192.168.1.10', ['10.0.0.0/8', '192.168.0.0/16'])).toBe(
       '192.168.0.0/16'
     );
+  });
+
+  it('applies the prefix mask to cidrs with host bits set', () => {
+    expect(findMatchingCidr('198.51.100.3', ['198.51.100.7/24'])).toBe('198.51.100.7/24');
+    expect(findMatchingCidr('198.51.101.1', ['198.51.100.7/24'])).toBeUndefined();
   });
 
   it('ignores invalid cidrs and returns undefined without a match', () => {

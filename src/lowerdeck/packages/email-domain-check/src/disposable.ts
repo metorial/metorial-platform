@@ -2,6 +2,7 @@ import { getDomainWithParents, normalizeDomain } from './domain';
 
 let DEFAULT_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 let DEFAULT_FETCH_TIMEOUT_MS = 15_000;
+let PARTIAL_LOAD_RETRY_MS = 5 * 60 * 1000;
 
 export type DisposableDomainSourceFormat = 'lines' | 'json-array';
 
@@ -113,14 +114,23 @@ export let createDisposableEmailDomains = (
       for (let domain of result.value) next.add(domain);
     }
 
-    // Keep serving the previous list rather than replacing it with an empty or partial one.
-    if (succeeded === 0) {
-      if (!domains) domains = new Set();
-      return;
+    let complete = succeeded === sources.length;
+
+    // A failed source must never shrink the list: keep what we already know and add what we got.
+    if (!complete && domains) {
+      for (let domain of domains) next.add(domain);
     }
 
-    domains = next;
-    loadedAt = Date.now();
+    if (succeeded === 0) {
+      if (!domains) domains = new Set();
+    } else {
+      domains = next;
+    }
+
+    // Retry an incomplete load sooner than the regular refresh interval.
+    loadedAt = complete
+      ? Date.now()
+      : Date.now() - Math.max(0, refreshIntervalMs - PARTIAL_LOAD_RETRY_MS);
   };
 
   let refresh = async () => {

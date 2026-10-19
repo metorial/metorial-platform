@@ -49,11 +49,17 @@ export let normalizeCidr = (cidr: string) => {
   return `${network.toString()}/${prefix}`;
 };
 
+let parseNetworkRange = (cidr: string) => {
+  let normalized = normalizeCidr(cidr);
+  return normalized ? parseCidrOrThrow(normalized) : undefined;
+};
+
 export let isIpInCidr = (ip: string, cidr: string) => {
   let single = toSingleAddressCidr(ip);
-  if (!single || !isValidCidr(cidr)) return false;
+  let network = parseNetworkRange(cidr);
+  if (!single || !network) return false;
 
-  return rangeContains(parseCidrOrThrow(cidr.trim()), parseCidrOrThrow(single));
+  return rangeContains(network, parseCidrOrThrow(single));
 };
 
 export let findMatchingCidr = <T extends string>(ip: string, cidrs: T[]) => {
@@ -63,8 +69,8 @@ export let findMatchingCidr = <T extends string>(ip: string, cidrs: T[]) => {
   let target = parseCidrOrThrow(single);
 
   return cidrs.find(cidr => {
-    if (!isValidCidr(cidr)) return false;
-    return rangeContains(parseCidrOrThrow(cidr.trim()), target);
+    let network = parseNetworkRange(cidr);
+    return !!network && rangeContains(network, target);
   });
 };
 

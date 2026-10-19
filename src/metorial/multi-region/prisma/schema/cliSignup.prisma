@@ -32,10 +32,11 @@ model CliSignupBlockRule {
   @@unique([type, value])
 }
 
-model CliSignupIpLock {
+model CliSignupIpWindow {
   key String @id
 
-  lockedUntil DateTime
+  count        Int
+  windowEndsAt DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

@@ -59,41 +59,58 @@ class CliSignupRepository {
     });
   }
 
-  async acquireIpLock(d: { key: string; durationMs: number }) {
-    let now = new Date();
-    let lockedUntil = new Date(now.getTime() + d.durationMs);
+  async acquireIpSlot(d: { key: string; limit: number; windowMs: number }) {
+    let tryExisting = async () => {
+      let now = new Date();
+      let windowEndsAt = new Date(now.getTime() + d.windowMs);
 
-    let updated = await globalDB.cliSignupIpLock.updateMany({
-      where: { key: d.key, lockedUntil: { lte: now } },
-      data: { lockedUntil }
-    });
-    if (updated.count > 0) return { acquired: true as const, lockedUntil };
+      let reset = await globalDB.cliSignupIpWindow.updateMany({
+        where: { key: d.key, windowEndsAt: { lte: now } },
+        data: { count: 1, windowEndsAt }
+      });
+      if (reset.count > 0) return true;
+
+      let incremented = await globalDB.cliSignupIpWindow.updateMany({
+        where: { key: d.key, windowEndsAt: { gt: now }, count: { lt: d.limit } },
+        data: { count: { increment: 1 } }
+      });
+      return incremented.count > 0;
+    };
+
+    if (await tryExisting()) return { acquired: true as const };
 
     try {
-      await globalDB.cliSignupIpLock.create({
-        data: { key: d.key, lockedUntil }
+      await globalDB.cliSignupIpWindow.create({
+        data: {
+          key: d.key,
+          count: 1,
+          windowEndsAt: new Date(Date.now() + d.windowMs)
+        }
       });
 
-      return { acquired: true as const, lockedUntil };
+      return { acquired: true as const };
     } catch (err) {
       if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== 'P2002') {
         throw err;
       }
     }
 
-    let existing = await globalDB.cliSignupIpLock.findUnique({
+    if (await tryExisting()) return { acquired: true as const };
+
+    let existing = await globalDB.cliSignupIpWindow.findUnique({
       where: { key: d.key }
     });
 
     return {
       acquired: false as const,
-      lockedUntil: existing?.lockedUntil ?? lockedUntil
+      windowEndsAt: existing?.windowEndsAt ?? new Date(Date.now() + d.windowMs)
     };
   }
 
-  async releaseIpLock(d: { key: string }) {
-    await globalDB.cliSignupIpLock.deleteMany({
-      where: { key: d.key }
+  async releaseIpSlot(d: { key: string }) {
+    await globalDB.cliSignupIpWindow.updateMany({
+      where: { key: d.key, count: { gt: 0 } },
+      data: { count: { decrement: 1 } }
     });
   }
 
