@@ -7,7 +7,42 @@ import {
   Prisma
 } from '../db';
 
+let SETTINGS_KEY = 'global';
+
 class CliSignupRepository {
+  async getSettings() {
+    let settings = await globalDB.cliSignupSetting.findUnique({
+      where: { key: SETTINGS_KEY }
+    });
+
+    return {
+      signupDisabled: settings?.signupDisabled ?? false,
+      updatedByAdminId: settings?.updatedByAdminId ?? null,
+      updatedAt: settings?.updatedAt ?? null
+    };
+  }
+
+  async setSignupDisabled(d: { disabled: boolean; adminId?: string | null }) {
+    let settings = await globalDB.cliSignupSetting.upsert({
+      where: { key: SETTINGS_KEY },
+      create: {
+        key: SETTINGS_KEY,
+        signupDisabled: d.disabled,
+        updatedByAdminId: d.adminId ?? null
+      },
+      update: {
+        signupDisabled: d.disabled,
+        updatedByAdminId: d.adminId ?? null
+      }
+    });
+
+    return {
+      signupDisabled: settings.signupDisabled,
+      updatedByAdminId: settings.updatedByAdminId,
+      updatedAt: settings.updatedAt
+    };
+  }
+
   async listActiveBlockRules() {
     return await globalDB.cliSignupBlockRule.findMany({
       where: {
