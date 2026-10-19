@@ -34,6 +34,7 @@ export let createOrganizationNotificationProcessor =
         where: {
           organizationOid: notification.organizationOid,
           status: 'active',
+          user: { type: { not: 'system' } },
           ...(notification.onlyForMemberRoles.length
             ? { role: { in: notification.onlyForMemberRoles } }
             : {})
