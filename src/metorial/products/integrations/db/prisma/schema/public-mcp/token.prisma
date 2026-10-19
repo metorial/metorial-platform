@@ -1,0 +1,39 @@
+enum PublicMcpServerTokenType {
+  access
+  refresh
+}
+
+model PublicMcpServerToken {
+  oid BigInt @id
+  id  String @unique
+
+  type      PublicMcpServerTokenType
+  tokenHash String                   @unique
+
+  // Groups together one generation of tokens (access + refresh) for a given grant
+  familyId String
+
+  grantOid BigInt
+  grant    PublicMcpServerGrant @relation(fields: [grantOid], references: [oid], onDelete: Cascade)
+
+  replacedByOid BigInt?               @unique
+  replacedBy    PublicMcpServerToken? @relation("publicMcpTokenRotation", fields: [replacedByOid], references: [oid], onDelete: SetNull)
+  replaces      PublicMcpServerToken? @relation("publicMcpTokenRotation")
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  usedAt    DateTime?
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([grantOid, type])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

@@ -13,6 +13,7 @@ import {
   RiChatVoiceAiLine,
   RiFileCopyLine,
   RiFolderLine,
+  RiGlobalLine,
   RiGroupLine,
   RiHardDrive3Line,
   RiHome6Line,
@@ -65,6 +66,7 @@ export let ProjectPageLayout = () => {
   let chatEnabled = !!dashboardFlags.data?.flags['chat-enabled'];
   let sandboxEnabled = !!dashboardFlags.data?.flags['sandbox-enabled'];
   let networkingEnabled = !!dashboardFlags.data?.flags['networking-enabled'];
+  let publicMcpEnabled = !!dashboardFlags.data?.flags['public-mcp-servers-enabled'];
 
   return (
     <AppLayout
@@ -130,7 +132,20 @@ export let ProjectPageLayout = () => {
               label: 'Magic MCP',
               to: Paths.instance.magicMcp.servers(...params),
               getProps: i => ({ isActive: i.pathname.includes('/magic-mcp/') })
-            }
+            },
+
+            ...(publicMcpEnabled
+              ? [
+                  {
+                    icon: <RiGlobalLine />,
+                    label: 'Public MCP',
+                    to: Paths.instance.publicMcp.servers(...params),
+                    getProps: (i: { pathname: string }) => ({
+                      isActive: i.pathname.includes('/public-mcp/')
+                    })
+                  }
+                ]
+              : [])
           ]
         },
 

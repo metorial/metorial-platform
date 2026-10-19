@@ -39,6 +39,7 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
+import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 import {
   getMetorialSolution,
   checkTenant,
@@ -74,7 +75,8 @@ let include = {
       ownerActor: ownerActorSelect
     }
   },
-  ownerActor: ownerActorSelect
+  ownerActor: ownerActorSelect,
+  ownerPublicMcpServer: { select: { id: true } }
 };
 
 export let providerSetupSessionInclude = include;
@@ -137,6 +139,7 @@ export type CreateProviderSetupSessionParams = {
   internal?: {
     integrationSetupSessionProviderOid?: bigint;
     skipConfirmation?: boolean;
+    ownerPublicMcpServerOid?: bigint;
   };
 };
 
@@ -170,6 +173,7 @@ type ListProviderSetupSessionsParams = {
   providerDeploymentIds?: string[];
   providerAuthConfigIds?: string[];
   providerAuthCredentialsIds?: string[];
+  publicMcpServerIds?: string[];
 
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
@@ -220,6 +224,9 @@ class providerSetupSessionServiceImpl {
               ...normalizeStatusForList(d).onlyParent,
 
               AND: [
+                d.publicMcpServerIds
+                  ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
+                  : { ownerPublicMcpServerOid: null },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.status ? { status: { in: d.status } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
@@ -372,6 +379,8 @@ class providerSetupSessionServiceImpl {
     checkDeletedRelation(d.identity);
     checkDeletedRelation(d.credentials);
 
+    assertNotPublicMcpOwned(d.providerConfig, 'provider_config');
+
     if (!d.provider) {
       let providerOid: bigint | undefined;
 
@@ -429,6 +438,7 @@ class providerSetupSessionServiceImpl {
             providerDeployment: d.providerDeployment,
             credentials: d.credentials,
             ownerActorOid,
+            ownerPublicMcpServerOid: d.internal?.ownerPublicMcpServerOid,
             expiresAt,
             input: {
               name: d.input.name,
@@ -495,6 +505,7 @@ class providerSetupSessionServiceImpl {
           brandOid: d.brand?.oid,
           authCredentialsOid: inner.authCredentialsOid ?? d.credentials?.oid,
           integrationSetupSessionProviderOid: d.internal?.integrationSetupSessionProviderOid,
+          ownerPublicMcpServerOid: d.internal?.ownerPublicMcpServerOid,
 
           expiresAt
         },
@@ -565,6 +576,7 @@ class providerSetupSessionServiceImpl {
   }
 
   async updateProviderSetupSessionInternal(d: UpdateProviderSetupSessionParams) {
+    assertNotPublicMcpOwned(d.providerSetupSession, 'provider_setup_session');
     let solution = await getMetorialSolution();
     checkDeletedEdit(d.providerSetupSession, 'update');
     checkTenant(d, d.input.identity);

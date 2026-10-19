@@ -1,4 +1,4 @@
-import { mapObject } from '@metorial/util-resource-mapper/compact';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput = {
   object: 'provider.auth_config';
@@ -84,51 +84,63 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput = {
   } | null;
   createdAt: Date;
   updatedAt: Date;
-};
+} & { publicMcpServerId: string | null };
 
 export let mapDashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput =
-  /* @__PURE__ */ mapObject<DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput>(
+  /* @__PURE__ */ createMapper<DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput>(
     [
-      'is_default',
-      'provider_id',
-      ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
+      3,
       [
-        'deployment',
-        0,
-        [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
-      ],
-      [
-        'credentials',
-        0,
         [
-          1,
+          0,
           [
-            'is_default',
-            'is_managed',
-            'provider_id',
-            'created_at',
-            'updated_at'
+            1,
+            [
+              'is_default',
+              'provider_id',
+              ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
+              [
+                'deployment',
+                0,
+                [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
+              ],
+              [
+                'credentials',
+                0,
+                [
+                  1,
+                  [
+                    'is_default',
+                    'is_managed',
+                    'provider_id',
+                    'created_at',
+                    'updated_at'
+                  ]
+                ]
+              ],
+              [
+                'auth_method',
+                1,
+                [
+                  1,
+                  [
+                    'input_schema',
+                    'output_schema',
+                    'provider_id',
+                    'provider_specification_id',
+                    'created_at',
+                    'updated_at'
+                  ]
+                ]
+              ],
+              ['owner_actor', 1, [1, ['consumer_id']]],
+              'created_at',
+              'updated_at',
+              'public_mcp_server_id'
+            ]
           ]
         ]
-      ],
-      [
-        'auth_method',
-        1,
-        [
-          1,
-          [
-            'input_schema',
-            'output_schema',
-            'provider_id',
-            'provider_specification_id',
-            'created_at',
-            'updated_at'
-          ]
-        ]
-      ],
-      ['owner_actor', 1, [1, ['consumer_id']]],
-      'created_at',
-      'updated_at'
+      ]
     ],
     1
   );

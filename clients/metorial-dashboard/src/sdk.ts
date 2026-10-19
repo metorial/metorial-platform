@@ -70,6 +70,10 @@ import {
   MetorialDashboardInstanceNetworkPoliciesEndpoint,
   MetorialDashboardInstanceNetworkPoliciesRulesEndpoint,
   MetorialDashboardInstanceIntegrationInternetGatewayEndpoint,
+  MetorialDashboardInstancePublicMcpServersClientsEndpoint,
+  MetorialDashboardInstancePublicMcpServersEndpoint,
+  MetorialDashboardInstancePublicMcpServersGrantsEndpoint,
+  MetorialDashboardInstancePublicMcpServersSlugsEndpoint,
   MetorialDashboardInstancePortalsAccessEndpoint,
   MetorialDashboardInstancePortalsAccessRequestsEndpoint,
   MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
@@ -970,6 +974,15 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     groups: new MetorialDashboardInstanceMagicMcpGroupsEndpoint(manager),
     endpoints: new MetorialDashboardInstanceMagicMcpEndpointsEndpoint(manager)
   },
+
+  publicMcpServers: Object.assign(
+    new MetorialDashboardInstancePublicMcpServersEndpoint(manager),
+    {
+      grants: new MetorialDashboardInstancePublicMcpServersGrantsEndpoint(manager),
+      clients: new MetorialDashboardInstancePublicMcpServersClientsEndpoint(manager),
+      slugs: new MetorialDashboardInstancePublicMcpServersSlugsEndpoint(manager)
+    }
+  ),
 
   portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {
     consumerGroups: new MetorialDashboardInstancePortalsConsumerGroupsEndpoint(manager),

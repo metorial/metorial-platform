@@ -73,6 +73,7 @@ import {
   integrationProviderCreatedQueue,
   integrationProviderUpdatedQueue
 } from '../queues/lifecycle/integrationProvider';
+import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 
 export let integrationProviderInclude = {
   integration: true,
@@ -312,6 +313,7 @@ export let resolveProviderAttachmentAuthMethodInternal = async (d: {
   if (d.providerAuthConfigId && !authConfig) {
     throw new ServiceError(notFoundError('provider.auth_config', d.providerAuthConfigId));
   }
+  assertNotPublicMcpOwned(authConfig, 'provider_auth_config');
   checkProviderMatch(provider, authConfig);
   if (authConfig?.deploymentOid && authConfig.deploymentOid !== deployment.oid) {
     throw new ServiceError(

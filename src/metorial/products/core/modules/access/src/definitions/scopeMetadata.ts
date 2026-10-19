@@ -240,6 +240,11 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Provider Config Vaults',
     description: 'These endpoints manage stored provider configuration secrets.'
   },
+  'instance.provider.public_mcp_server': {
+    name: 'Public MCP Servers',
+    description:
+      'These endpoints manage public MCP servers and the end-user grants connected to them.'
+  },
   'instance.provider.group': {
     name: 'Provider Groups',
     description: 'These endpoints manage custom provider grouping and membership.'

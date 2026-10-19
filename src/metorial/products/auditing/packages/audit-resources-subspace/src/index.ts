@@ -50,6 +50,7 @@ import {
   providerListingGroupAuditResource,
   providerListingGroupListingAuditResource
 } from './providerListingGroup';
+import { publicMcpServerAuditResource, publicMcpServerGrantAuditResource } from './publicMcp';
 import {
   sessionAuditResource,
   sessionProviderAuditResource,
@@ -108,6 +109,9 @@ export let subspaceAuditResources = resourceSet({
   identity_credential: identityCredentialAuditResource,
   identity_delegation: identityDelegationAuditResource,
   identity_delegation_config: identityDelegationConfigAuditResource,
+
+  public_mcp_server: publicMcpServerAuditResource,
+  public_mcp_server_grant: publicMcpServerGrantAuditResource,
 
   provider_listing_group: providerListingGroupAuditResource,
   provider_listing_group_listing: providerListingGroupListingAuditResource,

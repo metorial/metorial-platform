@@ -5,6 +5,10 @@ import {
   McpConnection
 } from '@metorial-subspace/module-connection';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
+import {
+  type PublicMcpAccess,
+  runWithPublicMcpAccess
+} from '@metorial-subspace/public-mcp-guard';
 import type { Instance } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
@@ -103,20 +107,29 @@ let applyConnectionHeaders = (
   setConnectionHeaders(c.res.headers, connection);
 };
 
-export let handleMcpRequest = async (
-  c: Context,
-  d: {
-    instance: Instance;
-    sessionId: string;
-    agentClient?: ConnectionMcpAgentClient | null;
-    enforceIngressNetworkPolicy?: boolean;
-    ingressIp?: string | null;
-    onSubspaceSessionResolved?: (d: {
-      subspaceSessionId: string;
-      response: Response;
-    }) => Promise<void> | void;
+type HandleMcpRequestInput = {
+  instance: Instance;
+  sessionId: string;
+  agentClient?: ConnectionMcpAgentClient | null;
+  enforceIngressNetworkPolicy?: boolean;
+  ingressIp?: string | null;
+  publicBaseUrl?: string;
+  publicMcpAccess?: PublicMcpAccess;
+  onSubspaceSessionResolved?: (d: {
+    subspaceSessionId: string;
+    response: Response;
+  }) => Promise<void> | void;
+};
+
+export let handleMcpRequest = async (c: Context, d: HandleMcpRequestInput) => {
+  if (d.publicMcpAccess) {
+    return await runWithPublicMcpAccess(d.publicMcpAccess, () => handleMcpRequestInner(c, d));
   }
-) => {
+
+  return await handleMcpRequestInner(c, d);
+};
+
+let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
   await assertOutpostConnectionAccess(c, {
     projectOid: d.instance.projectOid,
     instanceOid: d.instance.oid
@@ -129,7 +142,9 @@ export let handleMcpRequest = async (
     connectionToken || (c.req.method === 'POST' && !c.req.query('connection_token'))
       ? 'streamable_http'
       : 'sse';
-  let proxyUrl = publicProxyUrl(c, resolveOutpostOrigin(getOutpostAuth(c)));
+  let proxyUrl = d.publicBaseUrl
+    ? `${d.publicBaseUrl}${new URL(c.req.url).search}`
+    : publicProxyUrl(c, resolveOutpostOrigin(getOutpostAuth(c)));
 
   let body: unknown;
   if (c.req.method === 'POST') {

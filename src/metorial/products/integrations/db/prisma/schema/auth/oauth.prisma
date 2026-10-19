@@ -64,6 +64,9 @@ model ProviderOAuthSetup {
   shuttleOAuthSetupOid BigInt?            @unique
   shuttleOAuthSetup    ShuttleOAuthSetup? @relation(fields: [shuttleOAuthSetupOid], references: [oid], onDelete: Cascade)
 
+  ownerPublicMcpServerOid BigInt?
+  ownerPublicMcpServer    PublicMcpServer? @relation(fields: [ownerPublicMcpServerOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   expiresAt DateTime
@@ -78,4 +81,5 @@ model ProviderOAuthSetup {
   @@index([isEphemeral])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([ownerPublicMcpServerOid])
 }

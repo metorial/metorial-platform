@@ -41,11 +41,16 @@ vi.mock('@metorial/module-machine-access', () => ({
   }
 }));
 
-vi.mock('@metorial/api-keys', () => ({
-  UnifiedApiKey: {
-    from: vi.fn()
-  }
-}));
+vi.mock('@metorial/api-keys', async importOriginal => {
+  let actual = await importOriginal<typeof import('@metorial/api-keys')>();
+
+  return {
+    isPublicMcpToken: actual.isPublicMcpToken,
+    UnifiedApiKey: {
+      from: vi.fn()
+    }
+  };
+});
 
 vi.mock('../src/services/fineGrainedAuth', () => ({
   fineGrainedAuthService: {
@@ -1253,6 +1258,24 @@ describe('AuthenticationService', () => {
   });
 
   describe('authenticateApiKey - invalid tokens', () => {
+    it.each(['metorial_pma_abc123', 'metorial_pmr_abc123'])(
+      'should reject public MCP token %s before any lookup',
+      async apiKey => {
+        await expect(
+          authenticationService.authenticate({
+            type: 'api_key',
+            apiKey,
+            context: mockContext
+          })
+        ).rejects.toThrow(/Public MCP access tokens can only be used/);
+
+        expect(UnifiedApiKey.from).not.toHaveBeenCalled();
+        expect(
+          machineAccessAuthService.authenticateWithMachineAccessToken
+        ).not.toHaveBeenCalled();
+      }
+    );
+
     it('should throw error for unknown token type', async () => {
       let mockMachineAccess = {
         type: 'unknown_type',

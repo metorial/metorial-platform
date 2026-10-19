@@ -122,3 +122,30 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
     })
   )
   .build();
+
+export let dashboardConfigPresenter = Presenter.create(providerConfigType)
+  .presenter(async ({ config }, opts) => {
+    let inner = await v1ConfigPresenter.present({ config }, opts).run({});
+
+    return {
+      ...inner,
+
+      public_mcp_server_id: config.ownerPublicMcpServer?.id ?? null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1ConfigPresenter.schema,
+      v.object({
+        public_mcp_server_id: v.nullable(
+          v.string({
+            name: 'public_mcp_server_id',
+            description:
+              "ID of the public MCP server this resource belongs to. Such resources hold an end user's credentials and are read-only.",
+            examples: ['pmsv_1aBcDeFgHjKlMnPq']
+          })
+        )
+      })
+    ])
+  )
+  .build();

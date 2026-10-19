@@ -1,0 +1,108 @@
+enum PublicMcpServerGrantStatus {
+  pending_exchange
+  active
+
+  revoked
+  expired
+}
+
+enum PublicMcpServerGrantRevocationReason {
+  owner_revoked
+  user_revoked
+  refresh_token_reuse
+  authorization_code_reuse
+  server_archived
+  idle_expired
+  exchange_expired
+}
+
+model PublicMcpServerGrant {
+  oid BigInt @id
+  id  String @unique
+
+  status        PublicMcpServerGrantStatus
+  revokedReason PublicMcpServerGrantRevocationReason?
+
+  isCleanedUp Boolean @default(false)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  publicMcpServerOid BigInt
+  publicMcpServer    PublicMcpServer @relation(fields: [publicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  clientOid BigInt
+  client    PublicMcpServerClient @relation(fields: [clientOid], references: [oid], onDelete: Cascade)
+
+  authorizationOid BigInt                       @unique
+  authorization    PublicMcpServerAuthorization @relation(fields: [authorizationOid], references: [oid], onDelete: Cascade)
+
+  deploymentOid BigInt
+  deployment    ProviderDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  configOid BigInt?
+  config    ProviderConfig? @relation("publicMcpGrantConfig", fields: [configOid], references: [oid], onDelete: SetNull)
+
+  authConfigOid BigInt?
+  authConfig    ProviderAuthConfig? @relation("publicMcpGrantAuthConfig", fields: [authConfigOid], references: [oid], onDelete: SetNull)
+
+  currentSessionOid BigInt?  @unique
+  currentSession    Session? @relation("publicMcpGrantCurrentSession", fields: [currentSessionOid], references: [oid], onDelete: SetNull)
+
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  tokens PublicMcpServerToken[]
+  uses   PublicMcpServerGrantUse[]
+
+  @@index([publicMcpServerOid, status])
+  @@index([status, expiresAt])
+  @@index([status, isCleanedUp])
+  @@index([clientOid])
+  @@index([tenantOid, environmentOid, createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+model PublicMcpServerGrantUse {
+  oid BigInt @id
+  id  String @unique
+
+  ip String
+  ua String?
+
+  hourBucket DateTime
+  count      Int      @default(1)
+
+  grantOid BigInt
+  grant    PublicMcpServerGrant @relation(fields: [grantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([grantOid, hourBucket, ip])
+  @@index([hourBucket])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

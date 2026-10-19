@@ -2864,12 +2864,15 @@ export let providerConfigVaultType = PresentableType.create<{
   configVault: RawProviderConfigVault;
 }>()('configVault');
 
-export let providerConfigType = PresentableType.create<{ config: RawProviderConfig }>()(
-  'config'
-);
+// Optional so presenting rows loaded without the relation keeps working.
+type PublicMcpOwnerRef = { ownerPublicMcpServer?: { id: string } | null };
+
+export let providerConfigType = PresentableType.create<{
+  config: RawProviderConfig & PublicMcpOwnerRef;
+}>()('config');
 
 export let providerAuthConfigType = PresentableType.create<{
-  authConfig: RawProviderAuthConfig;
+  authConfig: RawProviderAuthConfig & PublicMcpOwnerRef;
 }>()('provider.auth_config');
 
 export let providerAuthConfigEventType = PresentableType.create<{
@@ -2888,8 +2891,40 @@ export let providerAuthCredentialsType = PresentableType.create<{
   authCredentials: RawProviderAuthCredentials;
 }>()('provider.auth_credentials');
 
+type RawPublicMcpServer = SubspacePrisma.PublicMcpServerGetPayload<{
+  include: {
+    provider: true;
+    deployment: true;
+    ownerActor: OwnerActorSelect;
+  };
+}>;
+
+type RawPublicMcpServerGrant = SubspacePrisma.PublicMcpServerGrantGetPayload<{
+  include: {
+    client: true;
+    publicMcpServer: true;
+  };
+}>;
+
+export let publicMcpServerType = PresentableType.create<{
+  publicMcpServer: RawPublicMcpServer;
+}>()('publicMcpServer');
+
+export let publicMcpServerGrantType = PresentableType.create<{
+  grant: RawPublicMcpServerGrant;
+}>()('publicMcpServerGrant');
+
+export let publicMcpServerClientType = PresentableType.create<{
+  client: SubspacePrisma.PublicMcpServerClientGetPayload<{}>;
+}>()('publicMcpServerClient');
+
+export let publicMcpServerSlugAvailabilityType = PresentableType.create<{
+  slug: string;
+  isAvailable: boolean;
+}>()('publicMcpServerSlugAvailability');
+
 export let providerSetupSessionType = PresentableType.create<{
-  setupSession: RawProviderSetupSession;
+  setupSession: RawProviderSetupSession & PublicMcpOwnerRef;
 }>()('setupSession');
 
 export let providerAuthImportType = PresentableType.create<{

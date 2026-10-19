@@ -66,9 +66,13 @@ model ProviderConfig {
   currentVersionOid BigInt?
   currentVersion    ProviderConfigVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
 
+  ownerPublicMcpServerOid BigInt?
+  ownerPublicMcpServer    PublicMcpServer? @relation(fields: [ownerPublicMcpServerOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  publicMcpGrants                     PublicMcpServerGrant[]               @relation("publicMcpGrantConfig")
   defaultForDeployment                ProviderDeployment?                  @relation("defaultConfig")
   vault                               ProviderConfigVault?
   providerSetupSessions               ProviderSetupSession[]
@@ -90,6 +94,7 @@ model ProviderConfig {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([ownerActorOid])
+  @@index([ownerPublicMcpServerOid])
 }
 
 model ProviderConfigVersion {

@@ -105,6 +105,7 @@ export let ElementsLayout = ({
   stepLabels = [],
   variant,
   isWhitelabel,
+  hideBrand,
   children
 }: {
   brand: Brand;
@@ -112,6 +113,7 @@ export let ElementsLayout = ({
   providerImageUrl?: string | null;
   headerTitle?: string;
   hideHeader?: boolean;
+  hideBrand?: boolean;
   currentStep?: number;
   stepLabels?: string[];
   variant: Variant;
@@ -128,6 +130,7 @@ export let ElementsLayout = ({
               providerName={providerName}
               providerImageUrl={providerImageUrl}
               title={headerTitle}
+              hideBrand={hideBrand}
               align="center"
             />
           </Header>

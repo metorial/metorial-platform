@@ -57,6 +57,9 @@ model SessionProvider {
   fromTemplateProviderOid BigInt?
   fromTemplateProvider    SessionTemplateProvider? @relation(fields: [fromTemplateProviderOid], references: [oid])
 
+  ownerPublicMcpServerOid BigInt?
+  ownerPublicMcpServer    PublicMcpServer? @relation(fields: [ownerPublicMcpServerOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -79,4 +82,5 @@ model SessionProvider {
   @@index([instanceOid])
   @@index([providerOid])
   @@index([fromTemplateOid])
+  @@index([ownerPublicMcpServerOid])
 }

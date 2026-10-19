@@ -39,6 +39,7 @@ export interface MetorialConfig {
     appUrl: string;
     filesUrl: string;
     portalsUrl: string;
+    publicMcpUrl: string | null;
   };
 
   encryptionSecret: string;

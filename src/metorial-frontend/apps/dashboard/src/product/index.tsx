@@ -201,6 +201,28 @@ let MagicMcpServerSessionsPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/sessions').then(c => c.MagicMcpServerSessionsPage)
 );
 
+let PublicMcpListLayout = dynamicPage(() =>
+  import('./pages/public-mcp/(list)/_layout').then(c => c.PublicMcpListLayout)
+);
+let PublicMcpServersPage = dynamicPage(() =>
+  import('./pages/public-mcp/(list)/servers').then(c => c.PublicMcpServersPage)
+);
+let PublicMcpServerLayout = dynamicPage(() =>
+  import('./pages/public-mcp/server/_layout').then(c => c.PublicMcpServerLayout)
+);
+let PublicMcpServerOverviewPage = dynamicPage(() =>
+  import('./pages/public-mcp/server/overview').then(c => c.PublicMcpServerOverviewPage)
+);
+let PublicMcpServerAccessPage = dynamicPage(() =>
+  import('./pages/public-mcp/server/access').then(c => c.PublicMcpServerAccessPage)
+);
+let PublicMcpServerClientsPage = dynamicPage(() =>
+  import('./pages/public-mcp/server/clients').then(c => c.PublicMcpServerClientsPage)
+);
+let PublicMcpServerSettingsPage = dynamicPage(() =>
+  import('./pages/public-mcp/server/settings').then(c => c.PublicMcpServerSettingsPage)
+);
+
 let CustomProviderCodePage = dynamicPage(() =>
   import('./pages/(custom-providers)/custom-provider/code').then(c => c.CustomProviderCodePage)
 );
@@ -1356,6 +1378,51 @@ export let productIntegrationsSlice = createSlice([
                   {
                     path: 'connections',
                     element: <MagicMcpServerSessionsPage />
+                  }
+                ]
+              }
+            ]
+          },
+
+          {
+            path: 'public-mcp',
+            children: [
+              {
+                element: (
+                  <FlaggedPage flag="public-mcp-servers-enabled">
+                    <PublicMcpListLayout />
+                  </FlaggedPage>
+                ),
+                children: [
+                  {
+                    path: 'servers',
+                    element: <PublicMcpServersPage />
+                  }
+                ]
+              },
+              {
+                path: 'server/:publicMcpServerId',
+                element: (
+                  <FlaggedPage flag="public-mcp-servers-enabled">
+                    <PublicMcpServerLayout />
+                  </FlaggedPage>
+                ),
+                children: [
+                  {
+                    path: '',
+                    element: <PublicMcpServerOverviewPage />
+                  },
+                  {
+                    path: 'access',
+                    element: <PublicMcpServerAccessPage />
+                  },
+                  {
+                    path: 'clients',
+                    element: <PublicMcpServerClientsPage />
+                  },
+                  {
+                    path: 'settings',
+                    element: <PublicMcpServerSettingsPage />
                   }
                 ]
               }

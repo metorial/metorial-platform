@@ -98,6 +98,11 @@ model ProviderSetupSession {
   brandOid BigInt?
   brand    Brand?  @relation(fields: [brandOid], references: [oid], onDelete: Cascade)
 
+  ownerPublicMcpServerOid BigInt?
+  ownerPublicMcpServer    PublicMcpServer? @relation(fields: [ownerPublicMcpServerOid], references: [oid])
+
+  publicMcpAuthorization PublicMcpServerAuthorization?
+
   integrationSetupSessionProviderOid BigInt?
   integrationSetupSessionProvider    IntegrationSetupSessionProvider? @relation("integrationSetupProviderSessionAttempts", fields: [integrationSetupSessionProviderOid], references: [oid], onDelete: Cascade)
   currentForIntegrationSetupProvider IntegrationSetupSessionProvider? @relation("currentIntegrationSetupProviderSession")
@@ -117,6 +122,7 @@ model ProviderSetupSession {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([ownerActorOid])
+  @@index([ownerPublicMcpServerOid])
 }
 
 enum ProviderSetupSessionEventType {

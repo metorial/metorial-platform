@@ -39,6 +39,7 @@ import {
 } from './sessionProviderInput';
 import { sessionProviderNameTemplateService } from './sessionProviderNameTemplate';
 import { assertInternalSessionMutable } from './_shared/internalAdapter';
+import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 
 let include = {
   provider: true,
@@ -228,6 +229,7 @@ class sessionProviderServiceImpl {
     d: { tenant: Tenant; environment: Environment } & CreateSessionProviderParams
   ) {
     checkDeletedRelation(d.session);
+    assertNotPublicMcpOwned(d.session, 'session');
     assertInternalSessionMutable(d.session, 'add providers to', d._allowInternalUpdate);
 
     let [res] = await sessionProviderInputService.createSessionProvidersForInput({
@@ -270,6 +272,7 @@ class sessionProviderServiceImpl {
 
     checkTenant(d, d.sessionProvider);
     checkDeletedEdit(d.sessionProvider, 'update');
+    assertNotPublicMcpOwned(d.sessionProvider, 'session_provider');
     let session = await db.session.findUniqueOrThrow({
       where: { oid: d.sessionProvider.sessionOid }
     });
@@ -315,6 +318,7 @@ class sessionProviderServiceImpl {
   ) {
     checkTenant(d, d.sessionProvider);
     checkDeletedEdit(d.sessionProvider, 'archive');
+    assertNotPublicMcpOwned(d.sessionProvider, 'session_provider');
     let session = await db.session.findUniqueOrThrow({
       where: { oid: d.sessionProvider.sessionOid }
     });
