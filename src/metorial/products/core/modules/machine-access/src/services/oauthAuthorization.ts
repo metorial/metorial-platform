@@ -1203,6 +1203,157 @@ class OAuthAuthorizationService {
     });
   }
 
+  private async getCliAuthOAuthApplicationOrThrow() {
+    let cliAuthApplication = await oauthApplicationService.getCliAuthOAuthApplication();
+
+    if (!cliAuthApplication) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'CLI auth is not enabled',
+          oauth: {
+            error: 'cli_auth_disabled',
+            errorMessage: 'CLI auth is not enabled'
+          }
+        })
+      );
+    }
+
+    return cliAuthApplication;
+  }
+
+  async issueCliAuthTokenForMember(d: {
+    organization: Organization;
+    member: OrganizationMember & { actor: OrganizationActor; user: User };
+    context: Context;
+  }) {
+    let oauthApplication = await this.getCliAuthOAuthApplicationOrThrow();
+
+    return await withTransaction(async () => {
+      let oauthInstallation =
+        await oauthAuthorizationInstallationService.getOrCreateInstallation({
+          oauthApplication,
+          organization: d.organization
+        });
+
+      let scopes = await getUserEffectiveScopes({
+        organization: d.organization,
+        member: d.member,
+        oauthApplication,
+        requestedScopes: cliAuthScopes
+      });
+
+      let oauthAuthorization =
+        await oauthAuthorizationInstallationService.getOrCreateUserAuthorization({
+          oauthApplication,
+          oauthInstallation,
+          organization: d.organization,
+          member: d.member,
+          user: d.member.user,
+          scopes,
+          requestingIp: d.context.ip,
+          acceptingIp: d.context.ip,
+          context: d.context
+        });
+
+      await cliDeviceService.upsertCliDevice({
+        ip: d.context.ip,
+        organization: d.organization,
+        user: d.member.user,
+        oauthAuthorization
+      });
+
+      let oauthToken = await this.issueOAuthToken({
+        oauthAuthorization,
+        withRefreshToken: true,
+        context: d.context
+      });
+
+      return {
+        oauthToken,
+        oauthAuthorization,
+        oauthInstallation: oauthAuthorization.oauthInstallation,
+        oauthApplication: oauthAuthorization.oauthApplication,
+        ...this.getAuthorizationSubject(oauthAuthorization)
+      };
+    });
+  }
+
+  // Tokens are opaque and resolve their subject through their authorization on every request, so
+  // re-pointing the existing token rows keeps the CLI logged in while it now acts as the new member.
+  async transferCliAuthorization(d: {
+    oauthAuthorization: OAuthAuthorization;
+    organization: Organization;
+    toMember: OrganizationMember & { actor: OrganizationActor; user: User };
+    context: Context;
+  }) {
+    let oauthApplication = await this.getCliAuthOAuthApplicationOrThrow();
+
+    return await withTransaction(async db => {
+      let sourceAuthorization = await db.oAuthAuthorization.findFirstOrThrow({
+        where: { oid: d.oauthAuthorization.oid },
+        include: authorizationInclude
+      });
+
+      if (
+        sourceAuthorization.oauthApplicationOid != oauthApplication.oid ||
+        sourceAuthorization.organizationOid != d.organization.oid
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Only CLI authorizations of this organization can be transferred'
+          })
+        );
+      }
+
+      if (sourceAuthorization.organizationMemberOid == d.toMember.oid) {
+        return sourceAuthorization;
+      }
+
+      let scopes = await getUserEffectiveScopes({
+        organization: d.organization,
+        member: d.toMember,
+        oauthApplication,
+        requestedScopes: sourceAuthorization.scopes
+      });
+
+      let targetAuthorization =
+        await oauthAuthorizationInstallationService.getOrCreateUserAuthorization({
+          oauthApplication,
+          oauthInstallation: sourceAuthorization.oauthInstallation,
+          organization: d.organization,
+          member: d.toMember,
+          user: d.toMember.user,
+          scopes,
+          requestingIp: sourceAuthorization.requestingIp,
+          acceptingIp: d.context.ip,
+          context: d.context
+        });
+
+      await db.oAuthToken.updateMany({
+        where: { oauthAuthorizationOid: sourceAuthorization.oid },
+        data: { oauthAuthorizationOid: targetAuthorization.oid }
+      });
+
+      await cliDeviceService.upsertCliDevice({
+        ip: sourceAuthorization.requestingIp ?? d.context.ip,
+        organization: d.organization,
+        user: d.toMember.user,
+        oauthAuthorization: targetAuthorization
+      });
+
+      await this.revokeOAuthAuthorization({
+        oauthAuthorization: sourceAuthorization,
+        auditScope: createOrganizationActorAuditScope({
+          organization: d.organization,
+          organizationActor: d.toMember.actor,
+          context: d.context
+        })
+      });
+
+      return targetAuthorization;
+    });
+  }
+
   private async resolveAcceptingSubject(d: {
     oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations;
     user: User;
