@@ -44,7 +44,7 @@ runs:
           exit 0
         fi
         read -r -a tasks <<< "$INPUT_TASKS"
-        if TURBO_SCM_BASE="$base" TURBO_SCM_HEAD="$head" bunx turbo@2.9.18 run "${tasks[@]}" --filter="$INPUT_PACKAGE" --affected --dry=json > "$RUNNER_TEMP/affected-image.json"; then
+        if TURBO_SCM_BASE="$base" TURBO_SCM_HEAD="$head" bunx turbo@2.11.7 run "${tasks[@]}" --filter="$INPUT_PACKAGE" --affected --dry=json > "$RUNNER_TEMP/affected-image.json"; then
           if jq -e '.tasks | length > 0' "$RUNNER_TEMP/affected-image.json" >/dev/null; then
             echo "should-build=true" >> "$GITHUB_OUTPUT"
           else

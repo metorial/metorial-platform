@@ -37,7 +37,7 @@ if (command === 'prepare') {
     [
       ...(process.env.TURBO_EXECUTABLE
         ? [process.env.TURBO_EXECUTABLE]
-        : ['bunx', 'turbo@2.9.18']),
+        : ['bunx', 'turbo@2.11.7']),
       'run',
       ...tasks,
       '--dry=json',

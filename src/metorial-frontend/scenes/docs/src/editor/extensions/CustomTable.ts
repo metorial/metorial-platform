@@ -2,6 +2,7 @@ import { Table } from '@tiptap/extension-table';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { NodeSelection } from '@tiptap/pm/state';
 import { CellSelection, TableMap, moveTableColumn, moveTableRow } from '@tiptap/pm/tables';
+import type { ViewMutationRecord } from '@tiptap/pm/view';
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CornerHandle, ColGutter, RowGutter } from './TableGutters';
@@ -394,7 +395,7 @@ export let CustomTable = Table.extend({
           scheduleSync();
           return true;
         },
-        ignoreMutation(mutation: MutationRecord) {
+        ignoreMutation(mutation: ViewMutationRecord) {
           let target = mutation.target as Node;
           return (
             target === colGutterHost ||

@@ -23,7 +23,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ runner.temp }}/test-turbo-cli
-        key: test-turbo-cli-${{ runner.os }}-${{ runner.arch }}-2.9.18
+        key: test-turbo-cli-${{ runner.os }}-${{ runner.arch }}-2.11.7
     - name: Prepare pinned Turbo CLI
       shell: bash
       run: |
@@ -31,7 +31,7 @@ runs:
         cli="$RUNNER_TEMP/test-turbo-cli"
         if [ ! -x "$cli/node_modules/.bin/turbo" ]; then
           mkdir -p "$cli"
-          echo '{"private":true,"dependencies":{"turbo":"2.9.18"}}' > "$cli/package.json"
+          echo '{"private":true,"dependencies":{"turbo":"2.11.7"}}' > "$cli/package.json"
           (cd "$cli" && bun install --ignore-scripts)
         fi
         echo "TURBO_EXECUTABLE=$cli/node_modules/.bin/turbo" >> "$GITHUB_ENV"

@@ -171,7 +171,7 @@ if (import.meta.main) {
             : '.github/workflows/backend-services.yml')
     );
   let tasks = process.env.TEST_TASKS!.split(/\s+/);
-  let graphResult = Bun.spawnSync(['bunx', 'turbo@2.9.18', 'run', ...tasks, '--dry=json'], {
+  let graphResult = Bun.spawnSync(['bunx', 'turbo@2.11.7', 'run', ...tasks, '--dry=json'], {
     stdout: 'pipe',
     stderr: 'inherit'
   });

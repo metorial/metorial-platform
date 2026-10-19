@@ -251,7 +251,7 @@ jobs:
           bucket: ${{ vars.WARP_CACHE_BUCKET }}
       - name: Restore test prerequisites
         working-directory: ${{ steps.tests.outputs.workspace }}
-        run: bunx turbo@2.9.18 run prisma:generate build --ui=stream --concurrency=2
+        run: bunx turbo@2.11.7 run prisma:generate build --ui=stream --concurrency=2
       - uses: ./.github/actions/backend-e2e
         with:
           suite: ${{ matrix.service.name }}
