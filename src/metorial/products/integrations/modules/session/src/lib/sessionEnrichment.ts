@@ -17,7 +17,10 @@ export type EnrichedSessionFields = {
   magicMcpSession?: MagicMcpSessionWithRelations | null;
 };
 
-export type EnrichableSession = { id: string };
+export type EnrichableSession = { id: string; ownerPublicMcpServerOid?: bigint | null };
+
+// Public MCP sessions belong to an end user; nobody else may get a client secret for them.
+let canHaveClientSecret = (session: EnrichableSession) => !session.ownerPublicMcpServerOid;
 
 export let enrichSessions = async <T extends EnrichableSession>(d: {
   instance: Instance;
@@ -56,7 +59,7 @@ export let enrichSessions = async <T extends EnrichableSession>(d: {
 
   return d.sessions.map(session => ({
     ...session,
-    clientSecret: referenceMap.get(session.id) ?? null,
+    clientSecret: canHaveClientSecret(session) ? (referenceMap.get(session.id) ?? null) : null,
     magicMcpServer: magicMcpConnectionMap.get(session.id)?.magicMcpServer ?? null,
     magicMcpSession: magicMcpConnectionMap.get(session.id) ?? null
   }));
@@ -79,7 +82,7 @@ export let enrichSessionEnsuringClientSecret = async <T extends EnrichableSessio
   session: T;
 }): Promise<T & EnrichedSessionFields> => {
   let session = await enrichSession(d);
-  if (session.clientSecret != null) return session;
+  if (session.clientSecret != null || !canHaveClientSecret(d.session)) return session;
 
   let { clientSecret } = await sessionClientSecretReferenceService.createForSession({
     instance: d.instance,
@@ -97,10 +100,12 @@ export let finalizeSessionCreate = async <T extends EnrichableSession>(d: {
   session: T;
 }): Promise<T & EnrichedSessionFields> => {
   let [{ clientSecret }, magicMcpConnections] = await Promise.all([
-    sessionClientSecretReferenceService.createForSession({
-      instance: d.instance,
-      sessionId: d.session.id
-    }),
+    canHaveClientSecret(d.session)
+      ? sessionClientSecretReferenceService.createForSession({
+          instance: d.instance,
+          sessionId: d.session.id
+        })
+      : { clientSecret: null },
     metorialDb.magicMcpSession.findMany({
       where: {
         instanceOid: d.instance.oid,

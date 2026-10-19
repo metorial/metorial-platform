@@ -33,6 +33,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { Fabric } from '@metorial/fabric';
+import { stampPublicMcpOwnership } from '../lib/publicMcpOwnership';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
@@ -52,6 +53,7 @@ class providerSetupSessionInternalServiceImpl {
     };
     credentials?: ProviderAuthCredentials;
     ownerActorOid?: bigint | null;
+    ownerPublicMcpServerOid?: bigint | null;
     expiresAt: Date;
     input: {
       name?: string;
@@ -175,6 +177,7 @@ class providerSetupSessionInternalServiceImpl {
                 credentials,
                 authMethod,
                 ownerActorOid: d.ownerActorOid,
+                ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
                 expiresAt: d.expiresAt,
                 input: {
                   name: d.input.name,
@@ -219,6 +222,7 @@ class providerSetupSessionInternalServiceImpl {
             provider: d.provider,
             providerDeployment: d.providerDeployment,
             ownerActorOid: d.ownerActorOid,
+            ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
             input: {
               name: d.input.name,
               description: d.input.description,
@@ -256,6 +260,7 @@ class providerSetupSessionInternalServiceImpl {
     credentials?: ProviderAuthCredentials;
     authMethod: ProviderAuthMethod;
     ownerActorOid?: bigint | null;
+    ownerPublicMcpServerOid?: bigint | null;
     expiresAt: Date;
     input: {
       name?: string;
@@ -303,6 +308,12 @@ class providerSetupSessionInternalServiceImpl {
         }
       });
 
+      await stampPublicMcpOwnership({
+        ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
+        oauthSetupOid: setup.oid,
+        authConfigOid: setup.authConfigOid
+      });
+
       return {
         oauthSetupOid: setup.oid,
         deploymentOid: setup.deploymentOid,
@@ -325,7 +336,7 @@ class providerSetupSessionInternalServiceImpl {
         providerDeployment: d.providerDeployment,
         ownerActorOid: d.ownerActorOid,
         import: d.import,
-        source: 'setup_session',
+        source: d.ownerPublicMcpServerOid ? 'public_mcp' : 'setup_session',
         input: {
           name: d.input.name,
           description: d.input.description,
@@ -335,6 +346,11 @@ class providerSetupSessionInternalServiceImpl {
           config: d.input.config,
           authMethodId: d.authMethod.id
         }
+      });
+
+      await stampPublicMcpOwnership({
+        ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
+        authConfigOid: config.oid
       });
 
       await Fabric.fire('provider.auth_config.created:after', {
@@ -373,6 +389,7 @@ class providerSetupSessionInternalServiceImpl {
         | null;
     };
     ownerActorOid?: bigint | null;
+    ownerPublicMcpServerOid?: bigint | null;
     input: {
       name?: string;
       description?: string;
@@ -403,6 +420,11 @@ class providerSetupSessionInternalServiceImpl {
         toolFilters: d.input.toolFilters,
         config: { type: 'inline', data: d.input.config }
       }
+    });
+
+    await stampPublicMcpOwnership({
+      ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
+      configOid: config.oid
     });
 
     await Fabric.fire('provider.config.created:after', { ...eventBase, config });
@@ -441,6 +463,11 @@ class providerSetupSessionInternalServiceImpl {
           await db.providerAuthConfig.update({
             where: { oid: d.setup.authConfigOid },
             data: { metadata: d.session.metadata }
+          });
+
+          await stampPublicMcpOwnership({
+            ownerPublicMcpServerOid: d.session.ownerPublicMcpServerOid,
+            authConfigOid: d.setup.authConfigOid
           });
         }
 
@@ -591,6 +618,13 @@ class providerSetupSessionInternalServiceImpl {
       if (d.session.typeConcrete === 'config_only' && hasConfig) isComplete = true;
 
       if (isComplete) {
+        await stampPublicMcpOwnership({
+          ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
+          authConfigOid: currentSession.authConfigOid,
+          configOid: currentSession.configOid,
+          oauthSetupOid: currentSession.oauthSetupOid
+        });
+
         result = await db.providerSetupSession.update({
           where: { oid: d.session.oid },
           data: { status: 'completed' }

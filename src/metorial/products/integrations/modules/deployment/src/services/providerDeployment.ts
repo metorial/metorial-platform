@@ -63,6 +63,7 @@ import {
   providerDeploymentUpdatedQueue
 } from '../queues/lifecycle/providerDeployment';
 import { providerConfigService } from './providerConfig';
+import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 
 let include = {
   provider: true,
@@ -513,6 +514,7 @@ class providerDeploymentServiceImpl {
 
       if (d.input.config.type === 'config') {
         checkProviderMatch(d.provider, d.input.config.config);
+        assertNotPublicMcpOwned(d.input.config.config, 'provider_config');
 
         await db.providerDeployment.update({
           where: { oid: providerDeployment.oid },

@@ -113,6 +113,7 @@ import {
   resolveConnectionScopedSpecification
 } from './connectionSpecification';
 import { resolveProviderToolListingSpecificationOid } from './toolSpecification';
+import { getPublicMcpAccess } from '@metorial-subspace/public-mcp-guard';
 
 let Sentry = getSentry();
 
@@ -225,6 +226,32 @@ export class SenderManager {
     readonly agentClient: SenderMangerProps['agentClient'],
     readonly connectionPrivateMetadata: SenderMangerProps['connectionPrivateMetadata']
   ) {}
+
+  // Public MCP sessions are only reachable through the grant that currently owns them.
+  private static async assertPublicMcpSessionAccess(session: {
+    oid: bigint;
+    ownerPublicMcpServerOid: bigint | null;
+  }) {
+    if (!session.ownerPublicMcpServerOid) return;
+
+    let access = getPublicMcpAccess();
+    if (!access?.grantOid || access.publicMcpServerOid !== session.ownerPublicMcpServerOid) {
+      throw new ServiceError(notFoundError('session'));
+    }
+
+    let grant = await db.publicMcpServerGrant.findUnique({
+      where: { oid: access.grantOid },
+      select: { status: true, currentSessionOid: true, publicMcpServerOid: true }
+    });
+    if (
+      !grant ||
+      grant.status !== 'active' ||
+      grant.publicMcpServerOid !== session.ownerPublicMcpServerOid ||
+      grant.currentSessionOid !== session.oid
+    ) {
+      throw new ServiceError(notFoundError('session'));
+    }
+  }
 
   private static async resolveSession(d: SenderMangerProps) {
     if (d.connectionToken) {
@@ -414,6 +441,7 @@ export class SenderManager {
   static async create(d: SenderMangerProps): Promise<SenderManager> {
     let session = await this.resolveSession(d);
     if (!session) throw new ServiceError(notFoundError('session'));
+    await this.assertPublicMcpSessionAccess(session);
     if (isRecordDeleted(session)) {
       throw new ServiceError(goneError({ message: 'Session has been archived or deleted' }));
     }

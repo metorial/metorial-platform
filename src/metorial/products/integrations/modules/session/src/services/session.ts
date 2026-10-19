@@ -54,13 +54,16 @@ import {
   resolveInternalAdapter
 } from './_shared/internalAdapter';
 import { type SessionProviderInput } from './sessionProviderInput';
+import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 
 export { finalizeSessionCreate };
 
 let assertCanWriteSession = (
-  session: Pick<Session, 'ephemeralManagedSessionOid'>,
+  session: Pick<Session, 'ephemeralManagedSessionOid' | 'ownerPublicMcpServerOid'>,
   action: string
 ) => {
+  assertNotPublicMcpOwned(session, 'session');
+
   if (!session.ephemeralManagedSessionOid) {
     return;
   }
