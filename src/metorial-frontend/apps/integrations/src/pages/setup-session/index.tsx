@@ -42,7 +42,8 @@ export let SetupSessionPage = () => {
     isWhitelabel,
     authConfigSchema,
     configSchema,
-    oauthSetup
+    oauthSetup,
+    publicMcp
   } = setupSession.data;
 
   let keepOpenForToolAccess =
@@ -87,6 +88,7 @@ export let SetupSessionPage = () => {
       clientSecret={credentials.clientSecret}
       isWhitelabel={isWhitelabel}
       completionRedirectUrl={completionRedirect?.url}
+      publicMcp={publicMcp}
     />
   );
 };

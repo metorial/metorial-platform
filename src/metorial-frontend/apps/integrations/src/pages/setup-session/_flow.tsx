@@ -4,7 +4,14 @@ import { EmbeddedLayout } from '../../components/embeddedLayout';
 import { SideLayout } from '../../components/sideLayout';
 import { MobileSheetProvider } from '../../components/stepContainer';
 import { useHideBootSpinner } from '../../lib/bootSpinner';
-import type { Brand, PrefetchedSetupData, Provider, Session } from '../../state/types';
+import type {
+  Brand,
+  PrefetchedSetupData,
+  Provider,
+  PublicMcpContext,
+  Session
+} from '../../state/types';
+import { PublicMcpConsent } from './_publicMcpConsent';
 import { RetryError } from './_retryError';
 import { CompletedStep } from './_steps/completedStep';
 import { OAuthLoadingStep, OAuthRedirectStep } from './_steps/oauthStep';
@@ -71,7 +78,8 @@ export let SetupFlow = ({
   prefetched,
   clientSecret,
   isWhitelabel,
-  completionRedirectUrl
+  completionRedirectUrl,
+  publicMcp
 }: {
   session: Session;
   brand: Brand;
@@ -80,18 +88,27 @@ export let SetupFlow = ({
   clientSecret: string;
   isWhitelabel?: boolean;
   completionRedirectUrl?: string | null;
+  publicMcp?: PublicMcpContext | null;
 }) => {
-  let flow = useSetupFlow({ session, provider, prefetched, clientSecret });
+  let isPublicMcp = !!publicMcp;
+  let flow = useSetupFlow({
+    session,
+    provider,
+    prefetched,
+    clientSecret,
+    skipOAuthConfirmation: isPublicMcp
+  });
 
   useHideBootSpinner(!flow.isPreparing);
 
   let isElementsMode = flow.session.uiMode === 'metorial_elements';
   let layout = flow.session.configuration?.ui?.layout ?? 'box';
   let isCompleted = flow.step === 'completed';
-  let stageLabels = isCompleted ? [] : flow.stageLabels;
+  let stageLabels = isCompleted || isPublicMcp ? [] : flow.stageLabels;
 
   let content = (
     <MobileSheetProvider value={isElementsMode}>
+      {publicMcp && !isCompleted && <PublicMcpConsent publicMcp={publicMcp} />}
       {renderWithLoader(flow.schemaLoaders, {
         spaceTop: 48,
         spaceBottom: 48,
@@ -117,6 +134,7 @@ export let SetupFlow = ({
         providerName={flow.provider?.name}
         providerImageUrl={flow.provider?.imageUrl}
         isWhitelabel={isWhitelabel}
+        hideBrand={isPublicMcp}
       >
         {embedded}
       </SideLayout>
@@ -133,6 +151,7 @@ export let SetupFlow = ({
       stepLabels={stageLabels}
       variant={layout === 'light' ? 'light' : 'box'}
       isWhitelabel={isWhitelabel}
+      hideBrand={isPublicMcp}
     >
       {content}
     </ElementsLayout>

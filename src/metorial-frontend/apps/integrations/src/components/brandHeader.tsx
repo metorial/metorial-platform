@@ -74,17 +74,19 @@ export let BrandHeader = ({
   providerName,
   providerImageUrl,
   align,
-  title
+  title,
+  hideBrand = false
 }: {
   brand: Brand;
   providerName?: string | null;
   providerImageUrl?: string | null;
   align: Align;
   title?: string;
+  hideBrand?: boolean;
 }) => (
   <Wrapper $align={align}>
     <IconsRow>
-      <Icon src={brand.imageUrl} alt={brand.name} />
+      {!hideBrand && <Icon src={brand.imageUrl} alt={brand.name} />}
 
       <AnimatePresence>
         {providerImageUrl && (
@@ -93,11 +95,13 @@ export let BrandHeader = ({
             animate={{ opacity: 1, width: 'auto' }}
           >
             <ProviderIconsRow>
-              <Chevrons>
-                <Chevron delay={0} />
-                <Chevron delay={0.3} />
-                <Chevron delay={0.6} />
-              </Chevrons>
+              {!hideBrand && (
+                <Chevrons>
+                  <Chevron delay={0} />
+                  <Chevron delay={0.3} />
+                  <Chevron delay={0.6} />
+                </Chevrons>
+              )}
 
               <Icon src={providerImageUrl} alt={providerName ?? ''} />
             </ProviderIconsRow>

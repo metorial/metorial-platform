@@ -45,12 +45,14 @@ export let useSetupFlow = ({
   session,
   provider,
   prefetched,
-  clientSecret
+  clientSecret,
+  skipOAuthConfirmation = false
 }: {
   session: Session;
   provider: Provider | null;
   prefetched: PrefetchedSetupData;
   clientSecret: string;
+  skipOAuthConfirmation?: boolean;
 }) => {
   let client = useMemo(() => getIntegrationsClient(clientSecret), [clientSecret]);
 
@@ -188,7 +190,7 @@ export let useSetupFlow = ({
   };
 
   let showOAuthRedirect = (setup: OAuthSetup) => {
-    if (flowSession.skipConfirmation && setup.url) {
+    if ((skipOAuthConfirmation || flowSession.skipConfirmation) && setup.url) {
       window.location.href = setup.url;
       return;
     }
