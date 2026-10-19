@@ -1,5 +1,6 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { cleanupCron } from './cron/cleanup';
+import { relayEmailQueueProcessor } from './email/client';
 import { disableSsoDirectoryUsersProcessor } from './queues/disableSsoDirectoryUsers';
 import { reconcileAccountUsersProcessor } from './queues/reconcileAccountUsers';
 import { recordSsoUserChangesProcessor } from './queues/recordSsoUserChanges';
@@ -10,6 +11,7 @@ import { syncImportedDelegationsProcessor } from './queues/syncImportedDelegatio
 
 await runQueueProcessors([
   cleanupCron,
+  relayEmailQueueProcessor,
   disableSsoDirectoryUsersProcessor,
   reconcileAccountUsersProcessor,
   recordSsoUserChangesProcessor,
