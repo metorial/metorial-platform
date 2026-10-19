@@ -11,7 +11,7 @@
   "dependencies": {
     "@prisma/client": "^7.10.0",
     "prisma": "^7.10.0",
-    "prisma-json-types-generator": "^4.1.1",
+    "prisma-json-types-generator": "^5.1.1",
     "typescript": "^5.9.3"
   },
   "devDependencies": {}

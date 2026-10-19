@@ -62,7 +62,7 @@
     "just-bash": "^2.14.5",
     "p-queue": "^9.3.5",
     "prisma": "^7.10.0",
-    "prisma-json-types-generator": "^4.1.1",
+    "prisma-json-types-generator": "^5.1.1",
     "zod": "^4.6.7"
   }
 }
