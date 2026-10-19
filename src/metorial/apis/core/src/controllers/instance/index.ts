@@ -15,6 +15,7 @@ export * from './portal';
 export * from './provider';
 export * from './provider-auth';
 export * from './provider-config';
+export * from './public-mcp';
 export * from './sandbox';
 export * from './scm';
 export * from './sessions';
