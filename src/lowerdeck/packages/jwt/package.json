@@ -28,7 +28,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "jose": "^5.10.0"
+    "jose": "^6.2.12"
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",

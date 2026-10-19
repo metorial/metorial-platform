@@ -37,8 +37,8 @@
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/serialize": "workspace:2.0.0",
     "@lowerdeck/random-number": "workspace:2.0.0",
-    "ioredis": "^5.11.1",
+    "ioredis": "^6.0.0",
     "p-queue": "^9.3.5",
-    "redis": "^5.12.1"
+    "redis": "^6.3.0"
   }
 }

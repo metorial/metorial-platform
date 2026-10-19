@@ -38,7 +38,7 @@
     "date-fns": "^4.4.0",
     "mitt": "^3.0.1",
     "mongoose": "^8.24.5",
-    "redis": "^5.12.1"
+    "redis": "^6.3.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

@@ -31,7 +31,7 @@
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
     "@types/bun": "^1.4.3",
-    "ioredis": "^5.11.1",
+    "ioredis": "^6.0.0",
     "redlock": "^5.0.0-beta.2",
     "superjson": "^2.2.6"
   },
