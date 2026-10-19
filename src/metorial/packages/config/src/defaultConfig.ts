@@ -51,7 +51,8 @@ export let defaultConfig: MetorialConfig = {
     apiUrl: env.urls.API_URL,
     filesUrl: env.urls.FILES_URL,
     appUrl: env.urls.APP_URL,
-    portalsUrl: env.urls.PORTALS_URL
+    portalsUrl: env.urls.PORTALS_URL,
+    publicMcpUrl: env.urls.PUBLIC_MCP_URL?.replace(/\/+$/, '') || null
   },
 
   encryptionSecret: env.encryption.ENCRYPTION_SECRET

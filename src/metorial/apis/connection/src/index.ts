@@ -8,6 +8,7 @@ import { createConnectionHono } from './hono';
 import { handleMagicMcpRequest } from './magic';
 import { handleMcpRequest } from './mcp';
 import { outpostConnectionAuthMiddleware, useConnectionRequestContext } from './outpost';
+import { createPublicMcpHandler } from './public';
 
 let CORS_ALLOW_HEADERS =
   'Content-Type, Authorization, metorial-version, mcp-protocol-version, Mcp-Method, Mcp-Name, MCP-Session-ID, Last-Event-ID, baggage, sentry-trace';
@@ -30,6 +31,8 @@ export let startMcpServer = (d: {
   /** Origins allowed to call this MCP server from a browser. Unset allows all. */
   corsOrigins?: CorsOriginOption;
 }) => {
+  let publicHandler = createPublicMcpHandler();
+
   let hono = createConnectionHono()
     .use(outpostConnectionAuthMiddleware)
     .use(async (c, next) => {
@@ -87,7 +90,20 @@ export let startMcpServer = (d: {
         magicMcpTargetIdOrAlias: magicMcpServerId,
         authenticate: d.authenticate
       });
-    });
+    })
+    .route('/connect/public', publicHandler.connectPublicServer)
+    .route(
+      '/.well-known/oauth-protected-resource/connect/public',
+      publicHandler.protectedResourceServer
+    )
+    .route(
+      '/.well-known/oauth-authorization-server/connect/public',
+      publicHandler.metadataServer
+    )
+    .route(
+      '/.well-known/openid-configuration/connect/public',
+      publicHandler.openIdConfigurationServer
+    );
 
   Bun.serve({
     port: d.port,
@@ -103,3 +119,4 @@ export { handleMagicMcpRequest } from './magic';
 export { handleMcpRequest } from './mcp';
 export * from './outpost';
 export * from './portal';
+export * from './public';
