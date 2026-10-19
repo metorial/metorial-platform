@@ -1,7 +1,7 @@
-import { delay } from '@lowerdeck/delay';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
+  dbPrimary,
   withTransaction,
   type Environment,
   type Provider,
@@ -10,6 +10,9 @@ import {
   type ProviderVariant,
   type ProviderVersion
 } from '@metorial-subspace/db';
+import { waitForDiscovery } from '../lib/discoverySignal';
+
+let discoveryTimeoutMs = 30_000;
 
 class providerDeploymentInternalServiceImpl {
   async getCurrentVersion(d: {
@@ -44,15 +47,27 @@ class providerDeploymentInternalServiceImpl {
     let inner = await this.getCurrentVersionInner(d);
     if (!inner) return null;
 
-    if (inner.specificationDiscoveryStatus === 'discovering') {
-      for (let i = 0; i < 50; i++) {
-        await delay(100);
-        inner = await this.getCurrentVersionInner(d);
-        if (inner!.specificationDiscoveryStatus !== 'discovering') break;
-      }
-    }
+    if (inner.specificationDiscoveryStatus !== 'discovering') return inner;
 
-    return inner;
+    let versionOid = inner.oid;
+    let isFinished = async () => {
+      let current = await dbPrimary.providerVersion.findFirst({
+        where: { oid: versionOid },
+        select: { specificationDiscoveryStatus: true }
+      });
+      return current?.specificationDiscoveryStatus !== 'discovering';
+    };
+
+    await waitForDiscovery({
+      kind: 'providerVersion',
+      oid: versionOid,
+      timeoutMs: discoveryTimeoutMs,
+      isFinished
+    });
+
+    return (
+      (await dbPrimary.providerVersion.findFirst({ where: { oid: versionOid } })) ?? inner
+    );
   }
 
   private async getCurrentVersionInner(d: {

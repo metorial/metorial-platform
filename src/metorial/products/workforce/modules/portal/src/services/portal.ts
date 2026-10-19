@@ -4,6 +4,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import type { AuditScope } from '@metorial/audit-scope';
+import { createCachedFunction } from '@metorial/cache';
 import {
   getPortalAllowedRedirectUrlFilters,
   portalAllowedRedirectUrlFiltersEqual,
@@ -97,6 +98,56 @@ let resolvePortalAllowedRedirectUrlFilters = (
   return input;
 };
 
+type PublicPortalLookup = {
+  portalId: string;
+  namespace?: { value: string; compartmentValue: string };
+};
+
+let getPublicPortalWhere = (d: PublicPortalLookup): Prisma.PortalWhereInput => ({
+  status: 'active',
+  surface: {
+    status: 'active'
+  },
+  ...(d.namespace
+    ? {
+        slug: d.portalId,
+        namespaceProperties: {
+          some: {
+            type: 'portal' as const,
+            namespace: {
+              value: d.namespace.value,
+              purposes: {
+                hasSome: ['metorial_portal', 'metorial_portal_single'] as const
+              },
+              compartment: { value: d.namespace.compartmentValue }
+            }
+          }
+        }
+      }
+    : { OR: [{ id: d.portalId }, { slug: d.portalId }] })
+});
+
+let resolvePublicPortalOid = createCachedFunction({
+  name: 'portal:public:oid',
+  ttlSeconds: 30,
+  getHash: (d: PublicPortalLookup) =>
+    d.namespace
+      ? `ns:${d.namespace.compartmentValue}:${d.namespace.value}:${d.portalId}`
+      : `id:${d.portalId}`,
+  getTags: (portalOid: bigint) => [`portal:${portalOid}`],
+  provider: async (d: PublicPortalLookup) => {
+    let portal = await db.portal.findFirst({
+      where: getPublicPortalWhere(d),
+      select: { oid: true }
+    });
+    if (!portal) {
+      throw new ServiceError(notFoundError('portal'));
+    }
+
+    return portal.oid;
+  }
+});
+
 let toNullablePortalAllowedRedirectUrlFilters = (
   value: PortalAllowedRedirectUrlFilter[] | null | undefined
 ) => {
@@ -153,36 +204,20 @@ class PortalServiceImpl {
     });
   }
 
-  async getPortalPublic(d: {
-    portalId: string;
-    namespace?: { value: string; compartmentValue: string };
-  }) {
-    let portal = await db.portal.findFirst({
-      where: {
-        status: 'active',
-        surface: {
-          status: 'active'
-        },
-        ...(d.namespace
-          ? {
-              slug: d.portalId,
-              namespaceProperties: {
-                some: {
-                  type: 'portal' as const,
-                  namespace: {
-                    value: d.namespace.value,
-                    purposes: {
-                      hasSome: ['metorial_portal', 'metorial_portal_single'] as const
-                    },
-                    compartment: { value: d.namespace.compartmentValue }
-                  }
-                }
-              }
-            }
-          : { OR: [{ id: d.portalId }, { slug: d.portalId }] })
-      },
-      include
-    });
+  async getPortalPublic(d: PublicPortalLookup) {
+    // The cached oid is only a hint: the full lookup predicate is re-applied, so a portal whose
+    // namespace or slug changed since it was cached is never served for this lookup.
+    let loadPortal = async () =>
+      await db.portal.findFirst({
+        where: { oid: await resolvePublicPortalOid(d), ...getPublicPortalWhere(d) },
+        include
+      });
+
+    let portal = await loadPortal();
+    if (!portal) {
+      await resolvePublicPortalOid.clearAndWait(d);
+      portal = await loadPortal();
+    }
     if (!portal) {
       throw new ServiceError(notFoundError('portal'));
     }
@@ -430,6 +465,8 @@ class PortalServiceImpl {
 
       return portal;
     });
+
+    await resolvePublicPortalOid.clearByTag(`portal:${portal.oid}`);
 
     return await this.enrichPortal({
       instance: portal.instance,

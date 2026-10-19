@@ -10,6 +10,7 @@ let providerSpecificationFindFirst = vi.fn();
 let providerVersionUpdate = vi.fn();
 let pairSpecificationChangeCreate = vi.fn();
 let notificationCreate = vi.fn();
+let markDiscoveryFinished = vi.fn();
 
 let db = {
   providerDeploymentConfigPair: {
@@ -65,6 +66,10 @@ vi.mock('../../env', () => ({
   env: { service: { REDIS_URL: 'redis://localhost:6379' } }
 }));
 
+vi.mock('../../lib/discoverySignal', () => ({
+  markDiscoveryFinished
+}));
+
 describe('providerDeploymentConfigPairSetSpecificationQueue', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -77,6 +82,7 @@ describe('providerDeploymentConfigPairSetSpecificationQueue', () => {
     providerVersionUpdate.mockReset();
     pairSpecificationChangeCreate.mockReset();
     notificationCreate.mockReset();
+    markDiscoveryFinished.mockReset();
   });
 
   it('preserves an existing pair specification when a refresh fails', async () => {
@@ -131,6 +137,11 @@ describe('providerDeploymentConfigPairSetSpecificationQueue', () => {
       })
     );
     expect(providerVersionUpdate).not.toHaveBeenCalled();
+    expect(markDiscoveryFinished).toHaveBeenCalledWith({
+      kind: 'pairVersion',
+      oid: existingPairVersion.oid,
+      status: 'failed'
+    });
   });
 
   let runSpecificationChange = async (deploymentOverrides: Record<string, unknown> = {}) => {

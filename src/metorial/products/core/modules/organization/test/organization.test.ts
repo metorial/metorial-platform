@@ -35,6 +35,9 @@ vi.mock('@metorial/db', () => ({
     },
     namespaceProperty: {
       findMany: vi.fn().mockResolvedValue([])
+    },
+    project: {
+      findMany: vi.fn().mockResolvedValue([])
     }
   },
   ID: {
@@ -171,7 +174,6 @@ import { organizationService } from '../src/services/organization';
 import { organizationActorService } from '../src/services/organizationActor';
 import { authBootstrapService } from '../src/services/authBootstrap';
 import { organizationMemberService } from '../src/services/organizationMember';
-import { projectService } from '../src/services/project';
 import { metorialResourceService } from '@metorial-subspace/module-tenant';
 
 describe('OrganizationService', () => {
@@ -652,7 +654,12 @@ describe('OrganizationService', () => {
     });
 
     it('should clear the magic MCP origin when given an empty string', async () => {
-      let mockOrg = { id: 'org-1', oid: 1, status: 'active', magicMcpOrigin: 'https://old.com' };
+      let mockOrg = {
+        id: 'org-1',
+        oid: 1,
+        status: 'active',
+        magicMcpOrigin: 'https://old.com'
+      };
       let updateMock = vi.fn().mockResolvedValue({ ...mockOrg, magicMcpOrigin: null });
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = { organization: { update: updateMock } };
@@ -695,7 +702,12 @@ describe('OrganizationService', () => {
     });
 
     it('should leave magic MCP origin untouched when not provided', async () => {
-      let mockOrg = { id: 'org-1', oid: 1, status: 'active', magicMcpOrigin: 'https://mcp.acme.com' };
+      let mockOrg = {
+        id: 'org-1',
+        oid: 1,
+        status: 'active',
+        magicMcpOrigin: 'https://mcp.acme.com'
+      };
       let updateMock = vi.fn().mockResolvedValue(mockOrg);
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = { organization: { update: updateMock } };
@@ -709,7 +721,9 @@ describe('OrganizationService', () => {
       });
 
       expect(updateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ magicMcpOrigin: undefined }) })
+        expect.objectContaining({
+          data: expect.objectContaining({ magicMcpOrigin: undefined })
+        })
       );
     });
 
@@ -1510,9 +1524,10 @@ describe('OrganizationService', () => {
       ];
 
       vi.mocked(db.organization.findMany).mockResolvedValue([mockOrg1, mockOrg2] as any);
-      vi.mocked(projectService.getAllProjects)
-        .mockResolvedValueOnce(mockProjects1 as any)
-        .mockResolvedValueOnce(mockProjects2 as any);
+      vi.mocked(db.project.findMany).mockResolvedValueOnce([
+        ...mockProjects1.map(project => ({ ...project, organizationOid: mockOrg1.oid })),
+        ...mockProjects2.map(project => ({ ...project, organizationOid: mockOrg2.oid }))
+      ] as any);
 
       let result = await organizationService.bootUser({
         user: mockUser as any
@@ -1584,7 +1599,7 @@ describe('OrganizationService', () => {
       expect(result.organizations).toEqual([]);
       expect(result.projects).toEqual([]);
       expect(result.instances).toEqual([]);
-      expect(projectService.getAllProjects).not.toHaveBeenCalled();
+      expect(db.project.findMany).not.toHaveBeenCalled();
     });
 
     it('should flatten projects from all organizations', async () => {
@@ -1606,9 +1621,10 @@ describe('OrganizationService', () => {
       let mockProjects2 = [{ id: 'proj-3', oid: 3, instances: [] }];
 
       vi.mocked(db.organization.findMany).mockResolvedValue([mockOrg1, mockOrg2] as any);
-      vi.mocked(projectService.getAllProjects)
-        .mockResolvedValueOnce(mockProjects1 as any)
-        .mockResolvedValueOnce(mockProjects2 as any);
+      vi.mocked(db.project.findMany).mockResolvedValueOnce([
+        ...mockProjects1.map(project => ({ ...project, organizationOid: mockOrg1.oid })),
+        ...mockProjects2.map(project => ({ ...project, organizationOid: mockOrg2.oid }))
+      ] as any);
 
       let result = await organizationService.bootUser({
         user: mockUser as any
@@ -1651,9 +1667,10 @@ describe('OrganizationService', () => {
       ];
 
       vi.mocked(db.organization.findMany).mockResolvedValue([mockOrg1, mockOrg2] as any);
-      vi.mocked(projectService.getAllProjects)
-        .mockResolvedValueOnce(mockProjects1 as any)
-        .mockResolvedValueOnce(mockProjects2 as any);
+      vi.mocked(db.project.findMany).mockResolvedValueOnce([
+        ...mockProjects1.map(project => ({ ...project, organizationOid: mockOrg1.oid })),
+        ...mockProjects2.map(project => ({ ...project, organizationOid: mockOrg2.oid }))
+      ] as any);
 
       let result = await organizationService.bootUser({
         user: mockUser as any
@@ -1706,8 +1723,6 @@ describe('OrganizationService', () => {
         user: mockUser as any
       });
 
-      // The new implementation doesn't order instances in the query,
-      // it gets them from projectService.getAllProjects
       expect(db.organization.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { id: 'asc' },
@@ -1737,7 +1752,7 @@ describe('OrganizationService', () => {
       };
 
       vi.mocked(db.organization.findMany).mockResolvedValue([mockOrg] as any);
-      vi.mocked(projectService.getAllProjects).mockResolvedValue([]);
+      vi.mocked(db.project.findMany).mockResolvedValueOnce([]);
 
       let result = await organizationService.bootUser({
         user: mockUser as any
@@ -1755,7 +1770,7 @@ describe('OrganizationService', () => {
       };
 
       vi.mocked(db.organization.findMany).mockResolvedValue([mockOrg] as any);
-      vi.mocked(projectService.getAllProjects).mockResolvedValue([]);
+      vi.mocked(db.project.findMany).mockResolvedValueOnce([]);
 
       let result = await organizationService.bootUser({
         user: mockUser as any
@@ -1764,6 +1779,42 @@ describe('OrganizationService', () => {
       expect(result.organizations).toHaveLength(1);
       expect(result.projects).toEqual([]);
       expect(result.instances).toEqual([]);
+    });
+
+    it('loads the projects of all organizations in one query', async () => {
+      let mockUser = { id: 'user-1', oid: 1 };
+      let mockOrg1 = {
+        id: 'org-1',
+        oid: 1,
+        members: [{ id: 'member-1', oid: 1, actor: { id: 'actor-1', teams: [] } }]
+      };
+      let mockOrg2 = {
+        id: 'org-2',
+        oid: 2,
+        members: [{ id: 'member-2', oid: 2, actor: { id: 'actor-2', teams: [] } }]
+      };
+
+      vi.mocked(db.organization.findMany).mockResolvedValue([mockOrg1, mockOrg2] as any);
+      vi.mocked(db.project.findMany).mockResolvedValueOnce([
+        { id: 'proj-2', oid: 2, organizationOid: 2, instances: [] },
+        { id: 'proj-1', oid: 1, organizationOid: 1, instances: [] }
+      ] as any);
+
+      let result = await organizationService.bootUser({
+        user: mockUser as any
+      });
+
+      expect(db.project.findMany).toHaveBeenCalledTimes(1);
+      expect(db.project.findMany).toHaveBeenCalledWith({
+        where: { organizationOid: { in: [1, 2] }, status: 'active' },
+        include: { instances: true }
+      });
+      expect(result.organizations[0].projects.map(project => project.id)).toEqual(['proj-1']);
+      expect(result.organizations[1].projects.map(project => project.id)).toEqual(['proj-2']);
+      expect(result.organizations[0].projects[0]!.organization).toEqual({
+        id: 'org-1',
+        oid: 1
+      });
     });
   });
 

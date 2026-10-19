@@ -33,6 +33,14 @@ vi.mock('@metorial/config', () => ({
   getConfig: () => config
 }));
 
+vi.mock('@metorial/cache', () => ({
+  createCachedFunction: (opts: { provider: (input: unknown) => Promise<unknown> }) =>
+    Object.assign(async (input: unknown) => await opts.provider(input), {
+      clearAndWait: vi.fn(),
+      clearByTag: vi.fn()
+    })
+}));
+
 vi.mock('@metorial/db', () => ({
   db: {
     organization: { findUnique: vi.fn().mockResolvedValue(null) }

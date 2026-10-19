@@ -7,6 +7,7 @@ import {
 } from '@metorial-subspace/db';
 import { schemaChangeNotificationAlertIngestQueue } from '@metorial-subspace/module-monitor/src/queues/schemaChange';
 import { env } from '../../env';
+import { markDiscoveryFinished } from '../../lib/discoverySignal';
 import { providerVersionSetSpecificationQueue } from '../version/setSpec';
 
 let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
@@ -161,6 +162,12 @@ export let providerDeploymentConfigPairSetSpecificationQueueProcessor =
       if (!isUniqueConstraintError(error)) throw error;
       newPairVersion = await savePairVersion('update');
     }
+
+    await markDiscoveryFinished({
+      kind: 'pairVersion',
+      oid: newPairVersion.oid,
+      status: newPairVersion.specificationDiscoveryStatus
+    });
 
     if (newPairVersion.specificationOid) {
       if (

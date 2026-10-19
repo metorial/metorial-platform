@@ -19,6 +19,7 @@
     "@lowerdeck/lock": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/queue-checkpoint": "workspace:2.0.0",
+    "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/slugify": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",

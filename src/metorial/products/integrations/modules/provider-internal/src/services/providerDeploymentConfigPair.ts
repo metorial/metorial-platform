@@ -1,8 +1,8 @@
-import { delay } from '@lowerdeck/delay';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   db,
+  dbPrimary,
   getId,
   type ProviderAuthConfig,
   type ProviderAuthConfigVersion,
@@ -16,10 +16,13 @@ import {
   type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
+import { waitForDiscovery } from '../lib/discoverySignal';
 import {
   providerDeploymentConfigPairCreatedQueue,
   providerDeploymentConfigPairVersionCreatedQueue
 } from '../queues/lifecycle/deploymentConfigPair';
+
+let discoveryTimeoutMs = 30_000;
 
 interface PairParts {
   deployment: ProviderDeployment & { currentVersion: ProviderDeploymentVersion | null };
@@ -230,14 +233,26 @@ class providerDeploymentConfigPairInternalServiceImpl {
     }
 
     if (res.version.specificationDiscoveryStatus === 'discovering') {
-      for (let i = 1; i < 75; i++) {
-        await delay(Math.min(100, 25 * i));
-        res.version = await db.providerDeploymentConfigPairProviderVersion.findFirstOrThrow({
-          where: { oid: res.version.oid },
+      let pairVersionOid = res.version.oid;
+
+      await waitForDiscovery({
+        kind: 'pairVersion',
+        oid: pairVersionOid,
+        timeoutMs: discoveryTimeoutMs,
+        isFinished: async () => {
+          let current = await dbPrimary.providerDeploymentConfigPairProviderVersion.findFirst({
+            where: { oid: pairVersionOid },
+            select: { specificationDiscoveryStatus: true }
+          });
+          return current?.specificationDiscoveryStatus !== 'discovering';
+        }
+      });
+
+      res.version =
+        await dbPrimary.providerDeploymentConfigPairProviderVersion.findFirstOrThrow({
+          where: { oid: pairVersionOid },
           include: { latestDiscoveryRecord: true }
         });
-        if (res.version.specificationDiscoveryStatus !== 'discovering') break;
-      }
     }
 
     if (res.pair.lastUsedPairVersionOid !== res.version.oid) {
