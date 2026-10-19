@@ -71,6 +71,8 @@ model ProviderDeployment {
   providerAuthConfigs         ProviderAuthConfig[]
   providerAuthImports         ProviderAuthImport[]
   providerSetupSessions       ProviderSetupSession[]
+  publicMcpServers            PublicMcpServer[]
+  publicMcpServerGrants       PublicMcpServerGrant[]
   sessionProviders            SessionProvider[]
   sessionTemplateProviders    SessionTemplateProvider[]
   providerDeploymentVersions  ProviderDeploymentVersion[]

@@ -99,6 +99,14 @@ export let ID = createIdGenerator({
   providerAuthConfigUsedForConfig: idType.sorted('pacufc'),
   providerAuthConfigUsedForDeployment: idType.sorted('pacufd'),
 
+  publicMcpServer: idType.sorted('pmsv'),
+  publicMcpServerClient: idType.sorted('pmcl'),
+  publicMcpServerClient_clientId: idType.unsorted('pmci', 30),
+  publicMcpServerAuthorization: idType.sorted('pmau'),
+  publicMcpServerGrant: idType.sorted('pmgr'),
+  publicMcpServerGrantUse: idType.sorted('pmgu'),
+  publicMcpServerToken: idType.sorted('pmtk'),
+
   customProvider: idType.sorted('cpr'),
   customProviderCommit: idType.sorted('cpc'),
   customProviderVersion: idType.sorted('cpv'),

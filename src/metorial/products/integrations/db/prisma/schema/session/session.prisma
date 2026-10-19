@@ -58,6 +58,11 @@ model Session {
   ephemeralManagedSessionOid BigInt?
   ephemeralManagedSession    EphemeralManagedSession? @relation("EphemeralManagedSessionSessions", fields: [ephemeralManagedSessionOid], references: [oid])
 
+  ownerPublicMcpServerOid BigInt?
+  ownerPublicMcpServer    PublicMcpServer? @relation(fields: [ownerPublicMcpServerOid], references: [oid])
+
+  currentForPublicMcpGrant PublicMcpServerGrant? @relation("publicMcpGrantCurrentSession")
+
   totalProductiveClientMessageCount   Int @default(0)
   totalProductiveProviderMessageCount Int @default(0)
 
@@ -101,4 +106,5 @@ model Session {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([tenantOid, status, archivedAt])
+  @@index([ownerPublicMcpServerOid])
 }

@@ -79,6 +79,9 @@ model SessionConnection {
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
+  ownerPublicMcpServerOid BigInt?
+  ownerPublicMcpServer    PublicMcpServer? @relation(fields: [ownerPublicMcpServerOid], references: [oid])
+
   /// [SessionConnectionMcpData]
   mcpData            Json
   mcpTransport       SessionConnectionMcpConnectionTransport
@@ -121,4 +124,5 @@ model SessionConnection {
   @@index([sessionOid, mcpClientKey, lastActiveAt])
   @@index([sessionOid, state])
   @@index([tenantOid, createdAt])
+  @@index([ownerPublicMcpServerOid])
 }

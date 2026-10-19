@@ -1,0 +1,63 @@
+enum PublicMcpServerAuthorizationStatus {
+  pending
+  setup
+  code_issued
+  exchanged
+
+  denied
+  failed
+  expired
+}
+
+model PublicMcpServerAuthorization {
+  oid BigInt @id
+  id  String @unique
+
+  status PublicMcpServerAuthorizationStatus
+
+  redirectUri   String
+  state         String?
+  codeChallenge String
+  resource      String?
+  scope         String?
+
+  baseUrl String
+
+  browserBindingHash String
+
+  authorizationCodeHash String?   @unique
+  codeExpiresAt         DateTime?
+  codeUsedAt            DateTime?
+
+  ip String
+  ua String?
+
+  publicMcpServerOid BigInt
+  publicMcpServer    PublicMcpServer @relation(fields: [publicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  clientOid BigInt
+  client    PublicMcpServerClient @relation(fields: [clientOid], references: [oid], onDelete: Cascade)
+
+  setupSessionOid BigInt?               @unique
+  setupSession    ProviderSetupSession? @relation(fields: [setupSessionOid], references: [oid], onDelete: SetNull)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  grant PublicMcpServerGrant?
+
+  completedAt DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  @@index([status, expiresAt])
+  @@index([publicMcpServerOid, createdAt])
+  @@index([clientOid])
+  @@index([ip, createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
