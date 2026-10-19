@@ -83,7 +83,11 @@ describe('organization notification fanout', () => {
 
     expect(mocks.memberFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { organizationOid: 1n, status: 'active' }
+        where: {
+          organizationOid: 1n,
+          status: 'active',
+          user: { type: { not: 'system' } }
+        }
       })
     );
     expect(mocks.destinationAddMany).toHaveBeenCalledWith([
@@ -209,7 +213,8 @@ describe('organization notification fanout', () => {
         where: {
           organizationOid: 1n,
           status: 'active',
-          role: { in: ['admin'] }
+          role: { in: ['admin'] },
+          user: { type: { not: 'system' } }
         }
       })
     );
