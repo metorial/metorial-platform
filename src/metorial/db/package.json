@@ -24,7 +24,7 @@
     "@types/json-schema": "^7.0.15",
     "json-schema": "^0.4.0",
     "lru-cache": "^11.5.3",
-    "p-queue": "^8.1.1",
+    "p-queue": "^9.3.5",
     "prisma": "^7.10.0",
     "prisma-json-types-generator": "^5.1.1"
   },

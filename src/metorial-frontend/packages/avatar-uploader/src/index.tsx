@@ -7,7 +7,7 @@ import {
 } from '@remixicon/react';
 import clsx from 'clsx';
 import { Fragment, useEffect, useState } from 'react';
-import Editor from 'react-avatar-editor';
+import Editor, { type AvatarEditorRef } from 'react-avatar-editor';
 import { useDropzone } from 'react-dropzone';
 import { useMeasure, useWindowSize } from 'react-use';
 import styled from 'styled-components';
@@ -192,7 +192,7 @@ export let AvatarUploader = (d: {
   let [stage, setStage] = useState<'overview' | 'edit'>('overview');
   let [zoom, setZoom] = useState(100);
   let [file, setFile] = useState<File>();
-  let [editor, setEditor] = useState<Editor>();
+  let [editor, setEditor] = useState<AvatarEditorRef>();
   let [cachedImageUrl, setCachedImageUrl] = useState(d.imageUrl);
   let { width } = useWindowSize();
   let [mainInnerRef, { height }] = useMeasure();

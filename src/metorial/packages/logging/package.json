@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@axiomhq/js": "^1.8.0"
+    "@axiomhq/js": "^2.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

@@ -23,7 +23,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.7.6",
+    "@hono/zod-validator": "^0.9.1",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
@@ -49,7 +49,7 @@
     "@sentry/bun": "^10.76.2",
     "hono": "4.13.13",
     "zod": "^4.6.7",
-    "@vercel/ncc": "^0.38.4",
+    "@vercel/ncc": "^0.45.0",
     "@sentry/cli": "^3.8.0"
   }
 }

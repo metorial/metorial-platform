@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@metorial/ui": "^1.0.0",
-    "p-queue": "^8.1.1",
+    "p-queue": "^9.3.5",
     "@lowerdeck/join-paths": "workspace:2.0.0"
   },
   "devDependencies": {

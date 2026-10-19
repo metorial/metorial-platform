@@ -30,7 +30,7 @@
   "dependencies": {
     "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
-    "nanoid": "^5.1.16",
+    "nanoid": "^6.0.2",
     "short-uuid": "^5.2.0",
     "snowflake-uuid": "^1.0.0"
   },

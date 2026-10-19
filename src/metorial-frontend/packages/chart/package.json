@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@metorial/ui": "^1.0.0",
-    "apexcharts": "^4.7.0",
+    "apexcharts": "^8.1.0",
     "react": "19.3.0",
-    "react-apexcharts": "^1.9.0"
+    "react-apexcharts": "^2.1.1"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

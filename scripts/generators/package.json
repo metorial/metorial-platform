@@ -19,13 +19,13 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "esbuild": "^0.25.12"
+    "esbuild": "^0.28.2"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.10.1",
+    "@inquirer/prompts": "^8.7.3",
     "@types/fs-extra": "^11.0.4",
     "dedent": "^1.7.2",
     "fs-extra": "^11.4.1",

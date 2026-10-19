@@ -31,7 +31,7 @@
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
-    "@vercel/ncc": "^0.38.4",
+    "@vercel/ncc": "^0.45.0",
     "vitest": "5.0.4"
   },
   "peerDependencies": {
@@ -65,12 +65,12 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@sentry/bun": "^10.76.2",
-    "@types/nodemailer": "^7.0.12",
+    "@types/nodemailer": "^8.0.2",
     "axios": "^1.20.0",
     "date-fns": "^4.4.0",
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.2",
-    "nodemailer": "^8.0.11",
+    "nodemailer": "^10.1.0",
     "object-storage-client": "^0.2.5",
     "prisma": "^7.10.0",
     "prisma-json-types-generator": "^5.1.1",

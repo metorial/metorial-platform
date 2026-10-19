@@ -24,7 +24,7 @@
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.39",
     "@types/ws": "^8.18.2",
-    "tsup": "^7.2.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
   }
