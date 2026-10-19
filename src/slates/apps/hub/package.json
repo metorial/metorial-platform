@@ -40,11 +40,11 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vercel/ncc": "^0.38.4",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "^5.2.0",
     "@types/minimatch": "^6.0.0",
-    "vite": "^5.4.21",
+    "vite": "^7.3.7",
     "@lowerdeck/testing-tools": "workspace:2.0.0",
-    "vitest": "4.1.11"
+    "vitest": "5.0.4"
   },
   "peerDependencies": {
     "typescript": "^5"

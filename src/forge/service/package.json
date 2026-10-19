@@ -32,7 +32,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@vercel/ncc": "^0.38.4",
-    "vitest": "^4.1.11",
+    "vitest": "^5.0.4",
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "lodash": "^4.18.1",
     "@types/lodash": "^4.17.26"

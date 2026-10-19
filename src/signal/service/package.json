@@ -33,7 +33,7 @@
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
     "@vercel/ncc": "^0.38.4",
-    "vitest": "4.1.11"
+    "vitest": "5.0.4"
   },
   "peerDependencies": {
     "typescript": "^5"

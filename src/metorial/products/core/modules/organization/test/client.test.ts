@@ -3,9 +3,11 @@ import { notificationClient } from '../src/email/client';
 
 // Mock the EmailClient
 vi.mock('@metorial/module-email', () => ({
-  EmailClient: vi.fn().mockImplementation(() => ({
-    send: vi.fn()
-  }))
+  EmailClient: vi.fn().mockImplementation(function () {
+    return {
+      send: vi.fn()
+    };
+  })
 }));
 
 describe('Email Client', () => {

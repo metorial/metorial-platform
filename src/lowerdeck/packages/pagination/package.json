@@ -31,7 +31,7 @@
     "@lowerdeck/tsconfig": "workspace:2.0.0",
     "mongoose": "^9.11.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.4"
   },
   "dependencies": {
     "@lowerdeck/base62": "workspace:2.0.0",

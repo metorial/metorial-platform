@@ -120,10 +120,10 @@
     "@sentry/vite-plugin": "^3.6.1",
     "@types/lodash.throttle": "^4.1.9",
     "@types/react": "19.3.0",
-    "@vitejs/plugin-react": "4.7.0",
+    "@vitejs/plugin-react": "5.2.0",
     "babel-plugin-styled-components": "^2.3.0",
     "sass-embedded": "^1.105.1",
     "typescript": "^5.9.3",
-    "vite": "5.4.21"
+    "vite": "7.3.7"
   }
 }

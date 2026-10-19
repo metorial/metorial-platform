@@ -34,7 +34,7 @@
     "@types/bun": "latest",
     "@types/lodash": "^4.17.26",
     "@vercel/ncc": "^0.38.4",
-    "vitest": "4.1.11"
+    "vitest": "5.0.4"
   },
   "peerDependencies": {
     "typescript": "^5"

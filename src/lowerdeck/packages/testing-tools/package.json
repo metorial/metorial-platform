@@ -28,7 +28,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "vite": "^5.4.21"
+    "vite": "^7.3.7"
   },
   "peerDependencies": {
     "vitest": ">=3.0.0"
@@ -36,6 +36,6 @@
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
     "typescript": "5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.4"
   }
 }
