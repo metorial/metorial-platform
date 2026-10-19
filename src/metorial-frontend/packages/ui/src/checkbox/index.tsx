@@ -150,7 +150,7 @@ export let Checkbox = ({
           className={clsx({ disabled, readonly: readOnly, pending })}
           id={id}
           checked={checked}
-          onCheckedChange={readOnly ? undefined : onCheckedChange}
+          onCheckedChange={readOnly ? undefined : state => onCheckedChange?.(state === true)}
           disabled={disabled || readOnly}
         >
           <Indicator data-animate={animate}>
