@@ -15,7 +15,10 @@ import { getId } from '../../id';
 import { getAxiosSsrfFilter } from '../http/axiosSsrf';
 import { assertUrlAllowedByEgressPolicy } from '../network/egressPolicy';
 import { oauthDebug } from './oauthDebug';
-import { buildClientRegistrationMetadata } from './clientRegistrationMetadata';
+import {
+  buildClientBrandingMetadata,
+  buildClientRegistrationMetadata
+} from './clientRegistrationMetadata';
 import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
 import { getOAuthRegistrationErrorDetails } from './oauthRegistrationError';
 import {
@@ -23,6 +26,7 @@ import {
   getOAuthRequestErrorDetails,
   type OAuthRequestErrorDetails
 } from './oauthRequestError';
+import { withBrandingFallback } from './registrationBrandingFallback';
 import { isTransientRegistrationError } from './registrationRetry';
 import {
   applyClientAuthentication,
@@ -378,24 +382,39 @@ export class OAuthUtils {
     try {
       let clientName = `${tenant.name} (via Metorial)`;
 
-      let response = await axios.post<RegistrationResponse>(
-        config.registration_endpoint,
-        {
-          client_name: clientName,
-          redirect_uris: [oauthCallbackUrl],
-          ...buildClientRegistrationMetadata(config)
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'User-Agent': 'Metorial (https://metorial.com)'
+      let registrationEndpoint = config.registration_endpoint;
+
+      let postRegistration = (withBranding: boolean) =>
+        axios.post<RegistrationResponse>(
+          registrationEndpoint,
+          {
+            client_name: clientName,
+            redirect_uris: [oauthCallbackUrl],
+            ...buildClientRegistrationMetadata(config),
+            ...(withBranding ? buildClientBrandingMetadata() : {})
           },
-          maxRedirects: 5,
-          timeout: 5000,
-          ...getAxiosSsrfFilter(config.registration_endpoint)
-        }
-      );
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              'User-Agent': 'Metorial (https://metorial.com)'
+            },
+            maxRedirects: 5,
+            timeout: 5000,
+            ...getAxiosSsrfFilter(registrationEndpoint)
+          }
+        );
+
+      let response = await withBrandingFallback(postRegistration, error => {
+        let details = getOAuthRegistrationErrorDetails(error);
+
+        oauthDebug('client registration with branding failed, retrying without', {
+          registrationEndpoint,
+          status: details.status,
+          oauthCode: details.oauthCode,
+          message: details.message
+        });
+      });
 
       let data = response.data;
 
