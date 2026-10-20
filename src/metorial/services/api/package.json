@@ -58,7 +58,7 @@
     "@metorial/module-web": "1.0.0",
     "@metorial/multi-region": "1.0.0",
     "@metorial/queue": "1.0.0",
-    "@vercel/ncc": "^0.45.0",
+    "@vercel/ncc": "^0.38.4",
     "@metorial/api-integrations": "1.0.0",
     "@metorial/module-event-delivery": "1.0.0",
     "@metorial/module-event-destination": "1.0.0"

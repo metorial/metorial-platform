@@ -208,7 +208,7 @@
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "@vitejs/plugin-react": "5.2.0",
         "jsdom": "29.1.1",
         "vitest": "5.0.4",
@@ -301,7 +301,7 @@
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@types/bun": "latest",
         "@types/lodash": "^4.17.26",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "lodash": "^4.18.1",
         "vitest": "^5.0.4",
       },
@@ -469,7 +469,7 @@
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@types/bun": "latest",
         "@types/lodash": "^4.17.26",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "vitest": "5.0.4",
       },
       "peerDependencies": {
@@ -3590,7 +3590,7 @@
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@sentry/bun": "^10.76.2",
         "@sentry/cli": "^3.8.0",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "hono": "4.13.13",
         "zod": "^4.6.7",
       },
@@ -3641,7 +3641,7 @@
         "@metorial/service-init": "^1.0.0",
         "@sentry/bun": "^10.76.2",
         "@sentry/cli": "^3.8.0",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -5269,7 +5269,7 @@
         "@metorial/multi-region": "1.0.0",
         "@metorial/queue": "1.0.0",
         "@metorial/webhook-listeners": "1.0.0",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -5344,7 +5344,7 @@
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "vitest": "5.0.4",
       },
       "peerDependencies": {
@@ -5463,7 +5463,7 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "@vitest/coverage-v8": "^5.0.4",
         "@vitest/ui": "^5.0.4",
         "vitest": "^5.0.4",
@@ -5959,7 +5959,7 @@
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "vitest": "5.0.4",
       },
       "peerDependencies": {
@@ -6128,7 +6128,7 @@
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
         "@types/ws": "^8.18.2",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "vitest": "5.0.4",
       },
       "peerDependencies": {
@@ -6215,7 +6215,7 @@
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "vitest": "5.0.4",
       },
       "peerDependencies": {
@@ -6305,7 +6305,7 @@
         "@types/minimatch": "^6.0.0",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "@vitejs/plugin-react": "^5.2.0",
         "vite": "^7.3.7",
         "vitest": "5.0.4",
@@ -6380,7 +6380,7 @@
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
         "@types/tar-stream": "^3.1.5",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "@vitejs/plugin-react": "^5.2.0",
         "autoprefixer": "^10.6.1",
         "vite": "^7.3.7",
@@ -6524,7 +6524,7 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "vitest": "^5.0.4",
       },
       "peerDependencies": {
@@ -6595,7 +6595,7 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
+        "@vercel/ncc": "^0.38.4",
         "@vitest/coverage-v8": "^5.0.4",
         "@vitest/ui": "^5.0.4",
         "vitest": "^5.0.4",
@@ -8882,7 +8882,7 @@
 
     "@upsetjs/venn.js": ["@upsetjs/venn.js@2.0.0", "", { "optionalDependencies": { "d3-selection": "^3.0.0", "d3-transition": "^3.0.1" } }, "sha512-WbBhLrooyePuQ1VZxrJjtLvTc4NVfpOyKx0sKqioq9bX1C1m7Jgykkn8gLrtwumBioXIqam8DLxp88Adbue6Hw=="],
 
-    "@vercel/ncc": ["@vercel/ncc@0.45.0", "", { "bin": { "ncc": "dist/ncc/cli.js" } }, "sha512-8zPi1yO2mHpoKTD+e+Bf0ZT3e+sWHSOyGapm9s7b5R0gxJi3CiFTqmeQiMEyu6ejrz2s09M8JkEoUaTWjBJPQQ=="],
+    "@vercel/ncc": ["@vercel/ncc@0.38.4", "", { "bin": { "ncc": "dist/ncc/cli.js" } }, "sha512-8LwjnlP39s08C08J5NstzriPvW1SP8Zfpp1BvC2sI35kPeZnHfxVkCwu4/+Wodgnd60UtT1n8K8zw+Mp7J9JmQ=="],
 
     "@vercel/oidc": ["@vercel/oidc@3.2.0", "", {}, "sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug=="],
 
