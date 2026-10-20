@@ -18,6 +18,7 @@ import {
   toConnectionError,
   type ConnectionErrorPayload
 } from '../utils/connectionError';
+import { reportRemoteConnectionIssue } from '../utils/connectionIssues';
 import { ConnectionLogger } from '../utils/logger';
 import { ConnectionMessenger } from '../utils/messenger';
 import { RemoteConnectionAuthManager } from './authManager';
@@ -90,7 +91,15 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
     if (!this.#endpointUrl) {
       Sentry.captureException(
         new Error('Attempted to send MCP message before connection was initialized'),
-        { extra: { messageId: 'id' in message ? message.id : undefined } }
+        {
+          tags: { transport: 'sse', phase: 'send_message' },
+          extra: {
+            messageId: 'id' in message ? message.id : undefined,
+            remoteUrl: this.version.remoteUrl,
+            connectionId: this.connection.id,
+            serverVersionId: this.version.id
+          }
+        }
       );
       await this.#emitError({
         code: 'initialize_failed',
@@ -99,21 +108,36 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
       return;
     }
 
-    let response = await safeFetch(this.#endpointUrl, {
-      method: 'POST',
-      egressPolicy: this.connection.serverInstanceConfiguration
-        ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
-      headers: {
-        ...(await this.getHeaders()),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(message)
-    });
+    let response: Response;
+    try {
+      response = await safeFetch(this.#endpointUrl, {
+        method: 'POST',
+        egressPolicy: this.connection.serverInstanceConfiguration
+          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+        headers: {
+          ...(await this.getHeaders()),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(message)
+      });
+    } catch (e) {
+      this.#reportIssue(e, 'send_message');
+      throw e;
+    }
 
     if (response.status >= 400) {
       let body = await response.text().catch(() => '');
       throw new HttpResponseError(response.status, response.statusText, body.slice(0, 1000));
     }
+  }
+
+  #reportIssue(error: unknown, phase: string) {
+    reportRemoteConnectionIssue(error, phase, {
+      transport: 'sse',
+      tenant: this.tenant,
+      version: this.version,
+      connection: this.connection
+    });
   }
 
   async #emitError(error: ConnectionErrorPayload) {
@@ -184,6 +208,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
         },
 
         onerror: async err => {
+          this.#reportIssue(err, 'event_stream');
           this.#initPromise.reject(err);
           await this.#emitError(toConnectionError(err));
           await this.terminate();
@@ -197,6 +222,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
         }
       });
     } catch (e) {
+      this.#reportIssue(e, 'init');
       this.#initPromise.reject(e);
       await this.#emitError(toConnectionError(e));
       await this.terminate();

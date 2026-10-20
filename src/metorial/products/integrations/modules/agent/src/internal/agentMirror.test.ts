@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@metorial/db', () => import('../../../../../../db/src/lib/unique'));
+
 let mocks = vi.hoisted(() => ({
   db: {
     agentClient: { findUnique: vi.fn() },
@@ -10,15 +12,26 @@ let mocks = vi.hoisted(() => ({
     consumerClient: { findUnique: vi.fn() },
     consumerAuthClient: { findUnique: vi.fn() },
     agent: { findUnique: vi.fn() },
-    agentClient: { upsert: vi.fn(), deleteMany: vi.fn() },
+    agentClient: {
+      upsert: vi.fn(),
+      update: vi.fn(),
+      findUnique: vi.fn(),
+      deleteMany: vi.fn()
+    },
     agentClientRegistration: {
       upsert: vi.fn(),
+      update: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
       deleteMany: vi.fn(),
       updateMany: vi.fn()
     },
-    agentInstance: { upsert: vi.fn(), deleteMany: vi.fn() }
+    agentInstance: {
+      upsert: vi.fn(),
+      update: vi.fn(),
+      findUnique: vi.fn(),
+      deleteMany: vi.fn()
+    }
   },
   resolveMetorialInstance: vi.fn(),
   syncAgent: vi.fn()
@@ -83,7 +96,7 @@ let buildInstance = (overrides: Record<string, unknown> = {}) => ({
 });
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 
   mocks.resolveMetorialInstance.mockResolvedValue({
     oid: 301n,
@@ -136,6 +149,77 @@ describe('syncAgentClient', () => {
         })
       })
     );
+  });
+
+  it('recovers a concurrent client insert by public id and uses its local oid', async () => {
+    mocks.db.agentClient.findUnique.mockResolvedValue(buildClient());
+    mocks.metorialDb.agentClient.upsert.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate oid'), { code: 'P2002' })
+    );
+    let existing = { oid: 999n, id: 'agc_1' };
+    mocks.metorialDb.agentClient.update.mockResolvedValueOnce(existing);
+
+    let result = await agentMirrorService.syncAgentClient({ agentClientId: 'agc_1' });
+
+    expect(result).toBe(existing);
+    expect(mocks.metorialDb.agentClient.update).toHaveBeenCalledWith({
+      where: { id: 'agc_1' },
+      data: expect.objectContaining({ name: 'Claude Desktop', consumerClientOid: 401n })
+    });
+    expect(mocks.metorialDb.agentClientRegistration.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ agentClientOid: 999n })
+      })
+    );
+  });
+
+  it('does not overwrite an unrelated client occupying the source oid', async () => {
+    mocks.db.agentClient.findUnique.mockResolvedValue(buildClient());
+    let error = Object.assign(new Error('duplicate oid'), { code: 'P2002' });
+    mocks.metorialDb.agentClient.upsert.mockRejectedValueOnce(error);
+    mocks.metorialDb.agentClient.update.mockRejectedValueOnce(
+      Object.assign(new Error('missing'), { code: 'P2025' })
+    );
+
+    await expect(agentMirrorService.syncAgentClient({ agentClientId: 'agc_1' })).rejects.toBe(
+      error
+    );
+
+    expect(mocks.metorialDb.agentClient.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('recovers registration insert races while keeping the requested client link', async () => {
+    mocks.db.agentClient.findUnique.mockResolvedValue(buildClient());
+    mocks.metorialDb.agentClientRegistration.upsert.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate'), { code: 'P2002' })
+    );
+    mocks.metorialDb.agentClientRegistration.update.mockResolvedValueOnce({
+      oid: 912n,
+      id: 'agr_1'
+    });
+    mocks.metorialDb.agentClientRegistration.findUnique.mockResolvedValueOnce({
+      oid: 912n,
+      id: 'agr_1'
+    });
+
+    await agentMirrorService.syncAgentClient({ agentClientId: 'agc_1' });
+
+    expect(mocks.metorialDb.agentClientRegistration.update).toHaveBeenCalledWith({
+      where: { id: 'agr_1' },
+      data: expect.objectContaining({ agentClientOid: 11n, consumerAuthClientOid: 501n })
+    });
+  });
+
+  it('propagates non-unique client failures without attempting recovery', async () => {
+    mocks.db.agentClient.findUnique.mockResolvedValue(buildClient());
+    let error = Object.assign(new Error('foreign key'), { code: 'P2003' });
+    mocks.metorialDb.agentClient.upsert.mockRejectedValueOnce(error);
+
+    await expect(agentMirrorService.syncAgentClient({ agentClientId: 'agc_1' })).rejects.toBe(
+      error
+    );
+
+    expect(mocks.metorialDb.agentClient.update).not.toHaveBeenCalled();
   });
 
   it('removes mirrored registrations that no longer exist in the source', async () => {
@@ -257,6 +341,27 @@ describe('syncAgentInstance', () => {
       })
     );
     expect(mocks.syncAgent).not.toHaveBeenCalled();
+  });
+
+  it('recovers instance insert races by id without replacing its local oid', async () => {
+    mocks.db.agentInstance.findUnique.mockResolvedValue(buildInstance());
+    mocks.metorialDb.agentInstance.upsert.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate'), { code: 'P2002' })
+    );
+    let existing = { oid: 913n, id: 'agi_1' };
+    mocks.metorialDb.agentInstance.update.mockResolvedValueOnce(existing);
+
+    let result = await agentMirrorService.syncAgentInstance({ agentInstanceId: 'agi_1' });
+
+    expect(result).toBe(existing);
+    expect(mocks.metorialDb.agentInstance.update).toHaveBeenCalledWith({
+      where: { id: 'agi_1' },
+      data: expect.objectContaining({
+        agentOid: 601n,
+        agentClientOid: 11n,
+        agentClientRegistrationOid: 12n
+      })
+    });
   });
 
   it('mirrors the agent first when it is missing in core', async () => {

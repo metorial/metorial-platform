@@ -1,6 +1,5 @@
 import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { db } from '@metorial/db';
-import { magicMcpEndpointInclude } from '../services/magicMcpEndpoint';
 
 export let magicMcpTargetServerInclude = {
   aliases: true,
@@ -9,8 +8,10 @@ export let magicMcpTargetServerInclude = {
 } as const;
 
 let magicMcpTargetEndpointInclude = {
-  ...magicMcpEndpointInclude,
-  instance: true
+  consumerProfile: true,
+  instance: true,
+  servers: { include: { magicMcpServer: true } },
+  subspaceSession: true
 } as const;
 
 let toMagicMcpTarget = <S, E>(server: S | null, endpoint: E | null) => {
@@ -27,37 +28,55 @@ let toMagicMcpTarget = <S, E>(server: S | null, endpoint: E | null) => {
   return null;
 };
 
-// Ids are tried before aliases/slugs so the common case is two unique-index lookups
-// instead of one OR over the id and an aliases EXISTS subquery.
+let loadMagicMcpTarget = async (
+  target: { type: 'server' | 'endpoint'; target: { oid: bigint } } | null
+) => {
+  if (!target) return null;
+
+  if (target.type === 'server') {
+    let server = await db.magicMcpServer.findFirst({
+      where: { oid: target.target.oid, status: 'active' },
+      include: magicMcpTargetServerInclude,
+      relationLoadStrategy: 'query'
+    });
+
+    return server ? { type: 'server' as const, target: server } : null;
+  }
+
+  let endpoint = await db.magicMcpEndpoint.findFirst({
+    where: { oid: target.target.oid, status: 'active' },
+    include: magicMcpTargetEndpointInclude,
+    relationLoadStrategy: 'query'
+  });
+
+  return endpoint ? { type: 'endpoint' as const, target: endpoint } : null;
+};
+
 export let resolveMagicMcpTargetByIdOrAliasSafe = async (magicMcpTargetIdOrAlias: string) => {
   let [serverById, endpointById] = await Promise.all([
     db.magicMcpServer.findFirst({
-      where: { id: magicMcpTargetIdOrAlias, status: 'active' },
-      include: magicMcpTargetServerInclude
+      where: { id: magicMcpTargetIdOrAlias, status: 'active' }
     }),
     db.magicMcpEndpoint.findFirst({
-      where: { id: magicMcpTargetIdOrAlias, status: 'active' },
-      include: magicMcpTargetEndpointInclude
+      where: { id: magicMcpTargetIdOrAlias, status: 'active' }
     })
   ]);
 
   let targetById = toMagicMcpTarget(serverById, endpointById);
-  if (targetById) return targetById;
+  if (targetById) return await loadMagicMcpTarget(targetById);
 
   let [serverAlias, endpointBySlug] = await Promise.all([
     db.magicMcpServerAlias.findUnique({
-      where: { slug: magicMcpTargetIdOrAlias },
-      include: { server: { include: magicMcpTargetServerInclude } }
+      where: { slug: magicMcpTargetIdOrAlias, server: { status: 'active' } }
     }),
     db.magicMcpEndpoint.findFirst({
-      where: { slug: magicMcpTargetIdOrAlias, status: 'active' },
-      include: magicMcpTargetEndpointInclude
+      where: { slug: magicMcpTargetIdOrAlias, status: 'active' }
     })
   ]);
 
-  let serverByAlias = serverAlias?.server.status == 'active' ? serverAlias.server : null;
+  let serverByAlias = serverAlias ? { oid: serverAlias.serverOid } : null;
 
-  return toMagicMcpTarget(serverByAlias, endpointBySlug);
+  return await loadMagicMcpTarget(toMagicMcpTarget(serverByAlias, endpointBySlug));
 };
 
 export let resolveMagicMcpTargetByIdOrAlias = async (magicMcpTargetIdOrAlias: string) => {

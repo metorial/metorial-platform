@@ -72,6 +72,7 @@ export interface StatelessMcpBridgeOptions {
   emit: (message: ConnectionMessage) => Promise<void>;
   log: (type: 'debug.info' | 'debug.warning' | 'debug.error', message: string) => void;
   inputResponseTimeoutMs?: number;
+  reportIssue?: (error: unknown, phase: string) => void;
 }
 
 export class StatelessMcpBridge {
@@ -188,6 +189,7 @@ export class StatelessMcpBridge {
 
   #mapDiscoverFailure(error: unknown): ConnectionErrorPayload {
     if (!(error instanceof HttpResponseError) || !isLegacyRejectionStatus(error.status)) {
+      this.opts.reportIssue?.(error, 'initialize');
       return toConnectionError(error, 'initialize_failed');
     }
 
@@ -258,6 +260,7 @@ export class StatelessMcpBridge {
       let outcome = await this.#exchange(request, abortController.signal);
       if (outcome.type == 'aborted') return;
       if (outcome.type == 'failed') {
+        this.opts.reportIssue?.(outcome.error, 'forward');
         await this.#emitError(toConnectionError(outcome.error));
         return;
       }
@@ -321,6 +324,7 @@ export class StatelessMcpBridge {
       let outcome = await this.#exchange(current, signal);
       if (outcome.type == 'aborted') return null;
       if (outcome.type == 'failed') {
+        this.opts.reportIssue?.(outcome.error, 'input_retry');
         await this.#emitError(toConnectionError(outcome.error));
         return null;
       }
@@ -471,6 +475,7 @@ export class StatelessMcpBridge {
       return 'reconnect';
     }
 
+    this.opts.reportIssue?.(outcome.error, 'subscription');
     let mapped = toConnectionError(outcome.error);
     if (FATAL_SUBSCRIPTION_CODES.has(mapped.code)) {
       await this.#emitError(mapped);

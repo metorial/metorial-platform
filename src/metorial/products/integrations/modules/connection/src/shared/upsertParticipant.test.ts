@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@metorial/db', () => import('../../../../../../db/src/lib/unique'));
+
 let { db, getIdMock, upsertMock, findUniqueMock } = vi.hoisted(() => {
   let upsertMock = vi.fn(async (args: any) => ({
     ...args.create,
@@ -12,6 +14,7 @@ let { db, getIdMock, upsertMock, findUniqueMock } = vi.hoisted(() => {
     db: {
       sessionParticipant: {
         upsert: upsertMock,
+        update: vi.fn(),
         findUnique: findUniqueMock
       }
     },
@@ -70,7 +73,9 @@ let provider = {
 
 describe('upsertParticipant', () => {
   beforeEach(() => {
-    upsertMock.mockClear();
+    upsertMock.mockReset();
+    upsertMock.mockImplementation(async (args: any) => ({ ...args.create, oid: 1n }));
+    db.sessionParticipant.update.mockReset();
     findUniqueMock.mockReset();
     findUniqueMock.mockResolvedValue(null);
   });
@@ -108,6 +113,98 @@ describe('upsertParticipant', () => {
     await upsertParticipant({ session, from: clientFrom });
 
     expect(upsertMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers a concurrent client creation and applies the requested identity and transport', async () => {
+    let error = Object.assign(new Error('duplicate participant'), { code: 'P2002' });
+    upsertMock.mockRejectedValueOnce(error);
+    db.sessionParticipant.update.mockResolvedValue(existingClient);
+    findUniqueMock.mockResolvedValueOnce(null);
+
+    let participant = await upsertParticipant({ session, from: clientFrom });
+
+    expect(participant).toBe(existingClient);
+    expect(db.sessionParticipant.update).toHaveBeenCalledWith({
+      where: { tenantOid_type_hash: { tenantOid: 10n, type: 'agent', hash: 'client-hash' } },
+      include: { identity: { select: { id: true } }, identityActor: { select: { id: true } } },
+      data: expect.objectContaining({
+        connectionType: 'mcp',
+        agentInstanceOid: 400n,
+        identityActorOid: 100n,
+        identityOid: 200n
+      })
+    });
+  });
+
+  it.each(['provider', 'system', 'unknown'] as const)(
+    'recovers a concurrent %s creation without changing it',
+    async type => {
+      upsertMock.mockRejectedValueOnce(
+        Object.assign(new Error('duplicate'), { code: 'P2002' })
+      );
+      let existing = { oid: 50n, identity: null, identityActor: null };
+      db.sessionParticipant.update.mockResolvedValueOnce(existing);
+
+      let participant = await upsertParticipant({
+        session,
+        from: type === 'provider' ? { type, provider } : { type }
+      });
+
+      expect(participant).toBe(existing);
+      expect(db.sessionParticipant.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            tenantOid_type_hash: {
+              tenantOid: 10n,
+              type,
+              hash: type === 'provider' ? 'provider:pro_test' : type
+            }
+          },
+          data: {},
+          include: {
+            identity: { select: { id: true } },
+            identityActor: { select: { id: true } }
+          }
+        })
+      );
+    }
+  );
+
+  it('preserves the original conflict when no matching client exists', async () => {
+    let error = Object.assign(new Error('unrelated oid collision'), { code: 'P2002' });
+    upsertMock.mockRejectedValueOnce(error);
+    db.sessionParticipant.update.mockRejectedValueOnce(
+      Object.assign(new Error('missing'), { code: 'P2025' })
+    );
+
+    await expect(upsertParticipant({ session, from: clientFrom })).rejects.toBe(error);
+  });
+
+  it('preserves a static participant conflict when recovery finds no matching row', async () => {
+    let error = Object.assign(new Error('duplicate'), { code: 'P2002' });
+    upsertMock.mockRejectedValueOnce(error);
+    db.sessionParticipant.update.mockRejectedValueOnce(
+      Object.assign(new Error('missing'), { code: 'P2025' })
+    );
+
+    await expect(upsertParticipant({ session, from: { type: 'system' } })).rejects.toBe(error);
+  });
+
+  it('propagates errors raised while applying a concurrent client update', async () => {
+    upsertMock.mockRejectedValueOnce(Object.assign(new Error('duplicate'), { code: 'P2002' }));
+    let error = Object.assign(new Error('foreign key'), { code: 'P2003' });
+    db.sessionParticipant.update.mockRejectedValueOnce(error);
+
+    await expect(upsertParticipant({ session, from: clientFrom })).rejects.toBe(error);
+  });
+
+  it('propagates non-unique errors without recovery', async () => {
+    let error = Object.assign(new Error('foreign key'), { code: 'P2003' });
+    upsertMock.mockRejectedValueOnce(error);
+
+    await expect(upsertParticipant({ session, from: clientFrom })).rejects.toBe(error);
+
+    expect(db.sessionParticipant.update).not.toHaveBeenCalled();
   });
 
   it('persists session identity for connection clients', async () => {
