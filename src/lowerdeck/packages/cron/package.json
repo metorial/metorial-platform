@@ -35,7 +35,7 @@
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
-    "bullmq": "^6.3.13"
+    "bullmq": "^6.3.14"
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",

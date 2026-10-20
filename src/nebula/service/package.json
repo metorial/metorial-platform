@@ -37,8 +37,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-kms": "^3.1149.0",
-    "@aws-sdk/credential-providers": "^3.1149.0",
+    "@aws-sdk/client-kms": "^3.1150.0",
+    "@aws-sdk/credential-providers": "^3.1150.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",

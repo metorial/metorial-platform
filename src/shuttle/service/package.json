@@ -42,9 +42,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1149.0",
-    "@aws-sdk/client-iam": "^3.1149.0",
-    "@aws-sdk/client-lambda": "^3.1149.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1150.0",
+    "@aws-sdk/client-iam": "^3.1150.0",
+    "@aws-sdk/client-lambda": "^3.1150.0",
     "@bufbuild/protobuf": "^2.16.0",
     "@hono/zod-validator": "^0.9.1",
     "@lowerdeck/api-mux": "workspace:2.0.0",

@@ -19,11 +19,11 @@
     "@metorial/ui": "workspace:*",
     "@metorial/use-debounced": "^1.0.0",
     "@remixicon/react": "^4.9.0",
-    "framer-motion": "^14.1.0",
+    "framer-motion": "^14.1.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "^7.18.4",
-    "styled-components": "^6.5.3",
+    "styled-components": "^6.6.0",
     "yup": "^1.7.1"
   },
   "devDependencies": {

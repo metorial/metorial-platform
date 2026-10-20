@@ -41,9 +41,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1149.0",
-    "@aws-sdk/client-codebuild": "^3.1149.0",
-    "@aws-sdk/client-iam": "^3.1149.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1150.0",
+    "@aws-sdk/client-codebuild": "^3.1150.0",
+    "@aws-sdk/client-iam": "^3.1150.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cron": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
@@ -71,7 +71,7 @@
     "@types/mongoose": "^5.11.97",
     "date-fns": "^4.4.0",
     "jszip": "^3.10.2",
-    "mongoose": "^9.11.1",
+    "mongoose": "^9.11.2",
     "object-storage-client": "^0.2.5",
     "prisma": "^7.10.0",
     "yaml": "^2.9.1"

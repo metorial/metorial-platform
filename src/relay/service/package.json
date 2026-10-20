@@ -38,10 +38,10 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1149.0",
-    "@aws-sdk/client-iam": "^3.1149.0",
-    "@aws-sdk/client-lambda": "^3.1149.0",
-    "@aws-sdk/client-ses": "^3.1149.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1150.0",
+    "@aws-sdk/client-iam": "^3.1150.0",
+    "@aws-sdk/client-lambda": "^3.1150.0",
+    "@aws-sdk/client-ses": "^3.1150.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",

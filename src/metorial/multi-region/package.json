@@ -13,7 +13,7 @@
     "control:db:push": "bun run prisma:push"
   },
   "dependencies": {
-    "@aws-sdk/rds-signer": "^3.1149.0",
+    "@aws-sdk/rds-signer": "^3.1150.0",
     "@lowerdeck/base62": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",

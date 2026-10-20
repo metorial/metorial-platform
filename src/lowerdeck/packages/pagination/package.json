@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
-    "mongoose": "^9.11.1",
+    "mongoose": "^9.11.2",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
   },

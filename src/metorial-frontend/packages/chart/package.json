@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@metorial/ui": "^1.0.0",
-    "apexcharts": "^8.1.0",
+    "apexcharts": "^8.2.0",
     "react": "19.3.0",
     "react-apexcharts": "^2.1.1"
   },

@@ -41,9 +41,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1149.0",
-    "@aws-sdk/client-iam": "^3.1149.0",
-    "@aws-sdk/client-lambda": "^3.1149.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1150.0",
+    "@aws-sdk/client-iam": "^3.1150.0",
+    "@aws-sdk/client-lambda": "^3.1150.0",
     "@hono/zod-validator": "^0.9.1",
     "@lowerdeck/api-key": "workspace:2.0.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -92,7 +92,7 @@
     "react-dom": "19.3.0",
     "react-router-dom": "^7.18.4",
     "semver": "^7.8.5",
-    "styled-components": "^6.5.3",
+    "styled-components": "^6.6.0",
     "tar-stream": "^3.2.2",
     "unzipper": "^0.12.5",
     "yaml": "^2.9.1",
