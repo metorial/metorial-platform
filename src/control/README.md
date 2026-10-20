@@ -236,6 +236,19 @@ Postgres, MongoDB, Redis, NATS (and object storage when requested), then:
    stack's environment plus `CONTROL_E2E=1` and `CONTROL_E2E_ENDPOINTS`
    (package → endpoint name → URL).
 
+`test:e2e` results are cached per test package. Besides the package's own
+inputs and dependencies, the Turbo hash includes `CONTROL_E2E_STACK_KEY`: a
+digest of the stack's environment and of every service it runs against, each
+fingerprinted by the `e2e:fingerprint` Turbo task (the service package and its
+dependency closure, excluding `e2e/` folders and unit tests). Editing one
+module's e2e suite therefore reruns only that suite, while any change to code
+the services run reruns the whole stack. Failed suites are never cached. A
+package that defines `test:e2e` outside a control stack opts out with a
+package `turbo.json` setting `"cache": false`. When `TURBO_API` points at a
+local remote-cache proxy, the runner reaches it through `host.docker.internal`
+and receives `TURBO_TEAM`, `TURBO_TOKEN` and
+`TURBO_REMOTE_CACHE_SIGNATURE_KEY` from the calling environment.
+
 Locally, the runner container syncs the checkout into a persistent
 `control-e2e-<hash>` volume (excluding `node_modules`, `.env*`, build output),
 installs dependencies when the lockfile changed, generates clients, pushes

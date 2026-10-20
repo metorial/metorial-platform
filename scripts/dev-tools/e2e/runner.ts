@@ -33,7 +33,9 @@ export interface Step {
 export interface Stack {
   name: string;
   tests: string[];
+  services: string[];
   env: Record<string, string>;
+  cacheKeyInputs?: unknown;
 }
 
 export interface Plan {
@@ -90,6 +92,11 @@ export let turboArgs = (stack: Stack, concurrency: number) => [
   `--concurrency=${concurrency}`,
   ...stack.tests.flatMap(test => ['--filter', test])
 ];
+
+export let stackCacheKey = (stack: Stack) =>
+  stack.cacheKeyInputs === undefined
+    ? `uncached-${crypto.randomUUID()}`
+    : createHash('sha256').update(JSON.stringify(stack.cacheKeyInputs)).digest('hex');
 
 // Mirrors Control's dotenv writer: Bun does not unescape `\"` inside double quotes, so values
 // containing quotes or `$` use single quotes whenever possible.
@@ -162,6 +169,16 @@ let syncWorkspace = async () => {
       env: {}
     }
   );
+};
+
+// Outside a Git repository Turbo 2.11 hashes gitignored files (dist/, .turbo/) for tasks whose
+// inputs combine $TURBO_DEFAULT$ with negations, so every build would invalidate its own cache.
+let indexWorkspace = async () => {
+  let options = { cwd: workspace, env: {} };
+  if (!existsSync(path.join(workspace, '.git'))) {
+    await runOrThrow('Initializing the workspace index', ['git', 'init', '--quiet'], options);
+  }
+  await runOrThrow('Indexing the workspace for Turbo', ['git', 'add', '--all'], options);
 };
 
 let installDependencies = async () => {
@@ -323,6 +340,7 @@ let main = async (planPath: string) => {
   try {
     if (plan.mode === 'local') {
       await syncWorkspace();
+      await indexWorkspace();
       await installDependencies();
       writeFiles(plan);
       for (let step of plan.prepare) {
@@ -356,7 +374,12 @@ let main = async (planPath: string) => {
       log(`Running ${stack.tests.length} e2e suite(s) against ${stack.name}`);
       let code = await run(['bun', ...turboArgs(stack, plan.concurrency)], {
         cwd: workspace,
-        env: { ...stack.env, CONTROL_E2E: '1', TURBO_GLOBAL_WARNING_DISABLED: '1' }
+        env: {
+          ...stack.env,
+          CONTROL_E2E: '1',
+          CONTROL_E2E_STACK_KEY: stackCacheKey(stack),
+          TURBO_GLOBAL_WARNING_DISABLED: '1'
+        }
       });
       results.push({ stack: stack.name, code });
     }

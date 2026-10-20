@@ -23,6 +23,13 @@ const DEFAULT_HEALTH_TIMEOUT: u64 = 300;
 const DEFAULT_CONCURRENCY: u32 = 4;
 const OBJECT_STORAGE_IMAGE: &str = "ghcr.io/metorial/object-storage:latest";
 const INFRASTRUCTURE: [&str; 4] = ["postgres-db2", "mongodb", "redis-db", "nats-1"];
+const FINGERPRINT_TASK: &str = "e2e:fingerprint";
+const HOST_ALIAS: &str = "host.docker.internal";
+const REMOTE_CACHE_SECRETS: [&str; 3] = [
+    "TURBO_TEAM",
+    "TURBO_TOKEN",
+    "TURBO_REMOTE_CACHE_SIGNATURE_KEY",
+];
 
 pub struct Options {
     pub filters: Vec<String>,
@@ -92,10 +99,14 @@ pub struct HealthUrl {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Stack {
     pub name: String,
     pub tests: Vec<String>,
+    pub services: Vec<String>,
     pub env: BTreeMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_key_inputs: Option<Value>,
 }
 
 #[derive(Debug)]
@@ -114,7 +125,13 @@ struct ImageArtifact {
 
 pub async fn run(project: &ProjectRoot, options: Options) -> Result<()> {
     let manifests = manifest::discover(&project.root)?;
-    let plan = build_plan(project, &manifests, &options)?;
+    let mut plan = build_plan(project, &manifests, &options)?;
+    match service_fingerprints(project, &plan).await {
+        Ok(fingerprints) => attach_cache_keys(&mut plan, &fingerprints),
+        Err(error) => eprintln!(
+            "Could not fingerprint the e2e services, so e2e results will not be cached: {error:?}"
+        ),
+    }
     if options.plan_only {
         println!("{}", serde_json::to_string_pretty(&plan).into_diagnostic()?);
         return Ok(());
@@ -342,16 +359,41 @@ pub fn build_plan(
         })
         .collect::<serde_json::Map<_, _>>();
     let endpoints = serde_json::to_string(&endpoints).into_diagnostic()?;
+    let stack_services = stacks
+        .iter()
+        .map(|(loaded, _)| {
+            let mut roots = vec![*loaded];
+            roots.extend(
+                loaded
+                    .manifest
+                    .e2e
+                    .services
+                    .iter()
+                    .filter_map(|service| by_name.get(service.as_str()).copied()),
+            );
+            let closure = manifest::dependency_closure(manifests, &roots, kind)?;
+            Ok(roots
+                .into_iter()
+                .chain(closure)
+                .map(package_name)
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>())
+        })
+        .collect::<Result<Vec<_>>>()?;
     let stacks = stacks
         .iter()
         .zip(&suts)
-        .map(|((_, tests), sut)| {
+        .zip(stack_services)
+        .map(|(((_, tests), sut), services)| {
             let mut env = sut.env.clone();
             env.insert("CONTROL_E2E_ENDPOINTS".into(), endpoints.clone());
             Stack {
                 name: sut.name.clone(),
                 tests: tests.clone(),
+                services,
                 env,
+                cache_key_inputs: None,
             }
         })
         .collect();
@@ -403,6 +445,110 @@ pub fn build_plan(
                 .any(|resource| resource.resource_type == E2eResourceType::ObjectStorage)
         }),
     })
+}
+
+async fn service_fingerprints(
+    project: &ProjectRoot,
+    plan: &Plan,
+) -> Result<BTreeMap<String, String>> {
+    let names = plan
+        .dependencies
+        .iter()
+        .chain(&plan.suts)
+        .map(|service| service.name.clone())
+        .collect::<BTreeSet<_>>();
+    let mut args = vec![
+        "run".to_string(),
+        FINGERPRINT_TASK.into(),
+        "--dry=json".into(),
+        "--cache=local:,remote:".into(),
+    ];
+    args.extend(names.iter().map(|name| format!("--filter={name}")));
+    let (program, args) = match std::env::var("TURBO_EXECUTABLE") {
+        Ok(executable) if !executable.is_empty() => (executable, args),
+        _ => turbo::command(&project.root, args),
+    };
+    let args = args.iter().map(String::as_str).collect::<Vec<_>>();
+    let output = process::output(&program, &args, &project.root).await?;
+    parse_fingerprints(&output, &names)
+}
+
+fn parse_fingerprints(output: &str, names: &BTreeSet<String>) -> Result<BTreeMap<String, String>> {
+    let start = output
+        .find('{')
+        .ok_or_else(|| miette::miette!("Turbo printed no dry-run summary"))?;
+    let summary: Value = serde_json::from_str(&output[start..])
+        .into_diagnostic()
+        .wrap_err("invalid Turbo dry-run summary")?;
+    let suffix = format!("#{FINGERPRINT_TASK}");
+    let fingerprints = summary["tasks"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|task| {
+            let name = task["taskId"].as_str()?.strip_suffix(&suffix)?;
+            Some((name.to_string(), task["hash"].as_str()?.to_string()))
+        })
+        .filter(|(name, _)| names.contains(name))
+        .collect::<BTreeMap<_, _>>();
+    if let Some(missing) = names.iter().find(|name| !fingerprints.contains_key(*name)) {
+        bail!("Turbo did not fingerprint {missing:?}");
+    }
+    Ok(fingerprints)
+}
+
+fn attach_cache_keys(plan: &mut Plan, fingerprints: &BTreeMap<String, String>) {
+    let mode = plan.mode;
+    let environments = plan
+        .dependencies
+        .iter()
+        .chain(&plan.suts)
+        .map(|service| (service.name.clone(), service.env.clone()))
+        .collect::<BTreeMap<_, _>>();
+    for stack in &mut plan.stacks {
+        let services = stack
+            .services
+            .iter()
+            .map(|name| {
+                (
+                    name.clone(),
+                    json!({
+                        "fingerprint": fingerprints.get(name),
+                        "env": environments.get(name),
+                    }),
+                )
+            })
+            .collect::<serde_json::Map<_, _>>();
+        stack.cache_key_inputs = Some(json!({
+            "version": 1,
+            "mode": mode,
+            "env": stack.env,
+            "services": services,
+        }));
+    }
+}
+
+fn remote_cache_environment(api: Option<&str>) -> Vec<Value> {
+    let Some(api) = api.filter(|api| !api.is_empty()) else {
+        return Vec::new();
+    };
+    std::iter::once(format!("TURBO_API={}", escape(&container_url(api))))
+        .chain(REMOTE_CACHE_SECRETS.iter().map(|name| name.to_string()))
+        .map(Value::String)
+        .collect()
+}
+
+fn container_url(url: &str) -> String {
+    let Some((scheme, rest)) = url.split_once("://") else {
+        return url.into();
+    };
+    let end = rest.find([':', '/']).unwrap_or(rest.len());
+    match &rest[..end] {
+        "127.0.0.1" | "localhost" | "0.0.0.0" => {
+            format!("{scheme}://{HOST_ALIAS}{}", &rest[end..])
+        }
+        _ => url.into(),
+    }
 }
 
 fn root_environment(project: &ProjectRoot) -> BTreeMap<String, String> {
@@ -838,6 +984,7 @@ fn render_compose(
         json!({
             "image": runner_image,
             "command": ["gateway"],
+            "extra_hosts": [format!("{HOST_ALIAS}:host-gateway")],
             "healthcheck": { "test": ["CMD-SHELL", "test -f /tmp/control-e2e-gateway-ready"], "interval": "1s", "timeout": "3s", "retries": 60 }
         }),
     );
@@ -877,6 +1024,7 @@ fn render_compose(
             "init": true,
             "working_dir": "/workspace",
             "volumes": volumes,
+            "environment": remote_cache_environment(std::env::var("TURBO_API").ok().as_deref()),
         }),
     );
     for service in plan.dependencies.iter().chain(&plan.suts) {
@@ -1493,6 +1641,82 @@ mod tests {
             "services"
         );
         assert_eq!(compose["services"]["runner"]["profiles"][0], "runner");
+    }
+
+    #[test]
+    fn keys_stack_caches_on_service_fingerprints_and_environment() {
+        let temp = tempdir().unwrap();
+        fixture(temp.path());
+        let manifests = manifest::discover(temp.path()).unwrap();
+        let mut plan = build_plan(&project(temp.path()), &manifests, &options(&[], None)).unwrap();
+        assert_eq!(
+            plan.stacks[0].services,
+            ["@x/api", "@x/signal", "@x/worker"]
+        );
+
+        let names = ["@x/api", "@x/signal", "@x/worker"]
+            .map(String::from)
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        let summary = r#"warning
+{"tasks":[
+  {"taskId":"@x/api#e2e:fingerprint","hash":"a1"},
+  {"taskId":"@x/signal#e2e:fingerprint","hash":"s1"},
+  {"taskId":"@x/worker#e2e:fingerprint","hash":"w1"},
+  {"taskId":"@x/db#e2e:fingerprint","hash":"d1"}
+]}"#;
+        let fingerprints = parse_fingerprints(summary, &names).unwrap();
+        assert_eq!(fingerprints.len(), 3);
+        assert!(parse_fingerprints(r#"{"tasks":[]}"#, &names).is_err());
+
+        attach_cache_keys(&mut plan, &fingerprints);
+        let inputs = plan.stacks[0].cache_key_inputs.as_ref().unwrap();
+        assert_eq!(inputs["mode"], "local");
+        assert_eq!(inputs["services"]["@x/signal"]["fingerprint"], "s1");
+        assert_eq!(
+            inputs["services"]["@x/api"]["env"]["SIGNAL_URL"],
+            "http://localhost:4400"
+        );
+        assert!(inputs["env"]["CONTROL_E2E_ENDPOINTS"].is_string());
+    }
+
+    #[test]
+    fn forwards_the_remote_cache_through_the_host_gateway() {
+        assert!(remote_cache_environment(None).is_empty());
+        assert_eq!(
+            remote_cache_environment(Some("http://127.0.0.1:8787")),
+            [
+                "TURBO_API=http://host.docker.internal:8787",
+                "TURBO_TEAM",
+                "TURBO_TOKEN",
+                "TURBO_REMOTE_CACHE_SIGNATURE_KEY"
+            ]
+            .map(|value| Value::String(value.into()))
+        );
+        assert_eq!(
+            container_url("https://cache.example.com/v8"),
+            "https://cache.example.com/v8"
+        );
+        assert_eq!(
+            container_url("http://localhost/"),
+            "http://host.docker.internal/"
+        );
+
+        let temp = tempdir().unwrap();
+        fixture(temp.path());
+        let manifests = manifest::discover(temp.path()).unwrap();
+        let plan = build_plan(&project(temp.path()), &manifests, &options(&[], None)).unwrap();
+        let compose = render_compose(
+            &plan,
+            "control-e2e-test",
+            "runner:latest",
+            &Mounts::Workspace(temp.path().into()),
+            temp.path(),
+        );
+        assert_eq!(
+            compose["services"]["gateway"]["extra_hosts"][0],
+            "host.docker.internal:host-gateway"
+        );
     }
 
     #[test]

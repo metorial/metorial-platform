@@ -6,6 +6,7 @@ import {
   formatDotenv,
   isHealthyStatus,
   rsyncArgs,
+  stackCacheKey,
   startService,
   stopProcesses,
   tail,
@@ -68,7 +69,9 @@ describe('command arguments', () => {
   });
 
   test('turbo runs every test package of a stack', () => {
-    expect(turboArgs({ name: 'api', tests: ['@x/a', '@x/b'], env: {} }, 2)).toEqual([
+    expect(
+      turboArgs({ name: 'api', tests: ['@x/a', '@x/b'], services: [], env: {} }, 2)
+    ).toEqual([
       'x',
       'turbo',
       'run',
@@ -81,6 +84,29 @@ describe('command arguments', () => {
       '--filter',
       '@x/b'
     ]);
+  });
+});
+
+describe('stack cache key', () => {
+  let stack = (cacheKeyInputs?: unknown) => ({
+    name: 'api',
+    tests: [],
+    services: ['@x/api'],
+    env: {},
+    cacheKeyInputs
+  });
+
+  test('is stable for identical service fingerprints', () => {
+    let inputs = { version: 1, services: { '@x/api': { fingerprint: 'a1' } } };
+    expect(stackCacheKey(stack(inputs))).toBe(stackCacheKey(stack(structuredClone(inputs))));
+    expect(stackCacheKey(stack(inputs))).toMatch(/^[0-9a-f]{64}$/);
+    expect(stackCacheKey(stack(inputs))).not.toBe(
+      stackCacheKey(stack({ version: 1, services: { '@x/api': { fingerprint: 'a2' } } }))
+    );
+  });
+
+  test('never matches a previous run when services could not be fingerprinted', () => {
+    expect(stackCacheKey(stack())).not.toBe(stackCacheKey(stack()));
   });
 });
 

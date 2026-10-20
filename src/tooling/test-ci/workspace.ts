@@ -139,6 +139,19 @@ if (command === 'prepare') {
     join(workspace, '.test-install-paths.json'),
     JSON.stringify(directories.map(directory => join(directory, 'node_modules')))
   );
+  // Outside a Git repository Turbo 2.11 hashes gitignored files (dist/, .turbo/) for tasks whose
+  // inputs combine $TURBO_DEFAULT$ with negations, so restored outputs would change task hashes.
+  for (let args of [
+    ['init', '--quiet'],
+    ['add', '--all']
+  ]) {
+    let result = Bun.spawnSync(['git', ...args], {
+      cwd: workspace,
+      stdout: 'inherit',
+      stderr: 'inherit'
+    });
+    if (result.exitCode) throw new Error(`Test workspace indexing failed: git ${args[0]}`);
+  }
   output('workspace', workspace);
   output('cache', cache);
   output('key', key);
