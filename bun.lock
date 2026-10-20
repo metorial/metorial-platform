@@ -3684,6 +3684,7 @@
       "name": "@metorial-subspace/module-agent",
       "version": "1.0.0",
       "dependencies": {
+        "@metorial/db": "workspace:*",
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/hash": "workspace:2.0.0",
@@ -3846,6 +3847,7 @@
       "name": "@metorial-subspace/module-connection",
       "version": "1.0.0",
       "dependencies": {
+        "@metorial/db": "workspace:*",
         "@lowerdeck/cache": "workspace:2.0.0",
         "@lowerdeck/canonicalize": "workspace:2.0.0",
         "@lowerdeck/case": "workspace:2.0.0",

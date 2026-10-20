@@ -9,6 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@metorial/db": "workspace:*",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/hash": "workspace:2.0.0",
