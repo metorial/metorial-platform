@@ -412,7 +412,8 @@ export let managementApiKeyController = Controller.create(
           auditScope: ctx.auditScope,
           input: {
             currentExpiresAt: ctx.body.current_expires_at
-          }
+          },
+          verification: getSecretVerification(ctx)
         });
 
         return apiKeyPresenter.present({

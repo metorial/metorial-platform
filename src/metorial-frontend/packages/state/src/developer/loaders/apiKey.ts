@@ -27,9 +27,14 @@ export let apiKeysLoader = createLoader({
       withAuth(sdk => sdk.apiKeys.revoke(input.organizationId, i.apiKeyId)),
     rotate: (i: { apiKeyId: string; currentExpiresAt?: Date }, { input }) =>
       withAuth(sdk =>
-        sdk.apiKeys.rotate(input.organizationId, i.apiKeyId, {
-          currentExpiresAt: i.currentExpiresAt
-        })
+        withVerification(opts =>
+          sdk.apiKeys.rotate(
+            input.organizationId,
+            i.apiKeyId,
+            { currentExpiresAt: i.currentExpiresAt },
+            opts
+          )
+        )
       )
   }
 });

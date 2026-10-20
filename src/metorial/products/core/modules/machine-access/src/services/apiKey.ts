@@ -326,11 +326,21 @@ class ApiKeyService {
   }
 
   async rotateApiKey(d: {
-    apiKey: ApiKey & { machineAccess: MachineAccess };
+    apiKey: ApiKey & { machineAccess: MachineAccess & { instance: Instance | null } };
     auditScope: AuditScope;
     input: { currentExpiresAt?: Date };
+    verification?: SecretVerification;
   }) {
     await this.ensureApiKeyActive(d.apiKey);
+
+    if (d.verification) {
+      await Fabric.fire('machine_access.secret.requested:before', {
+        secretType: 'api_key',
+        instance: d.apiKey.machineAccess.instance,
+        verification: d.verification,
+        auditScope: d.auditScope
+      });
+    }
 
     let organization = await db.organization.findUniqueOrThrow({
       where: { oid: d.auditScope.organizationOid }
