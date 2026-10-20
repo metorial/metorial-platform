@@ -11,7 +11,7 @@
       "devDependencies": {
         "@types/node": "*",
         "@types/vscode": "*",
-        "rollup": "^4.64.5",
+        "rollup": "^4.64.6",
         "typescript": "~5.9.3",
         "vite": "^7.3.7",
         "vscode": "*",
@@ -20,7 +20,7 @@
     },
   },
   "overrides": {
-    "rollup": "^4.64.5",
+    "rollup": "^4.64.6",
   },
   "packages": {
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.28.2", "", { "os": "aix", "cpu": "ppc64" }, "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ=="],
