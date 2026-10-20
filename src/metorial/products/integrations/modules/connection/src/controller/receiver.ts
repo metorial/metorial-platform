@@ -473,8 +473,7 @@ export let startReceiver = () => {
           }
 
           if (err instanceof ConnectionMessageTimeoutError) {
-            Sentry.captureException(err, { level: 'warning' });
-            console.error(
+            console.warn(
               `CONNECTION.receiver.message_timeout messageId=${message.id} methodOrToolKey=${message.methodOrToolKey ?? 'unknown'} timeoutMs=${err.timeoutMs}`
             );
 
