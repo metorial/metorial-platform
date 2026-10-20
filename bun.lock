@@ -3684,7 +3684,6 @@
       "name": "@metorial-subspace/module-agent",
       "version": "1.0.0",
       "dependencies": {
-        "@metorial/db": "workspace:*",
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/hash": "workspace:2.0.0",
@@ -3703,6 +3702,7 @@
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial-subspace/provider": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
+        "@metorial/db": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -3847,7 +3847,6 @@
       "name": "@metorial-subspace/module-connection",
       "version": "1.0.0",
       "dependencies": {
-        "@metorial/db": "workspace:*",
         "@lowerdeck/cache": "workspace:2.0.0",
         "@lowerdeck/canonicalize": "workspace:2.0.0",
         "@lowerdeck/case": "workspace:2.0.0",
@@ -3884,6 +3883,7 @@
         "@metorial/audit-resources-subspace": "workspace:*",
         "@metorial/audit-scope": "workspace:*",
         "@metorial/audit-stash": "workspace:*",
+        "@metorial/db": "workspace:*",
         "@metorial/fabric": "^1.0.0",
         "@modelcontextprotocol/sdk": "^1.25.2",
         "@types/lodash": "^4.17.23",
