@@ -9,6 +9,10 @@ export type FileExploreOperation = ProductAssistantTypes.FileExploreOperation;
 export type FileWriteChange = ProductAssistantTypes.FileWriteChange;
 export type WebSearchResult = ProductAssistantTypes.WebSearchResult;
 export type WebOperation = ProductAssistantTypes.WebOperation;
+export type DocumentEditOperation = ProductAssistantTypes.DocumentEditOperation;
+export type DocumentEditOperationKind = ProductAssistantTypes.DocumentEditOperationKind;
+export type DocumentEditReview = ProductAssistantTypes.DocumentEditReview;
+export type SkillWorkspaceChange = ProductAssistantTypes.SkillWorkspaceChange;
 export type StateItem = ProductAssistantTypes.StateItem;
 export type State = ProductAssistantTypes.State;
 

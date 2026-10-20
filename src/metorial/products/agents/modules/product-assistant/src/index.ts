@@ -7,6 +7,7 @@ export * from './services';
 export * from './types';
 export { assistants } from './definitions/assistants';
 export { getAssistantDefinition } from './lib/definitions/assistantDefinition';
+export type { AssistantAccess } from './lib/definitions/implementation';
 export { listenToAssistantRunDeltas } from './lib/run/redisDeltas';
 export type { AgentRunWireMessage } from './lib/run/state';
 export { generateAssistantConversationTitleQueue } from './queues/generateConversationTitle';

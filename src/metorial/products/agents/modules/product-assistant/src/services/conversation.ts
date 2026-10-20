@@ -1,11 +1,17 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Instance, ProductAssistantConversation, Project, ResourceActor } from '@metorial/db';
+import type {
+  Instance,
+  ProductAssistantConversation,
+  Project,
+  ResourceActor
+} from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import { resolveAssistantConversationInput } from '../lib/definitions/conversationInput';
+import type { AssistantAccess } from '../lib/definitions/implementation';
 import type { State } from '../types';
 import type { AvailableProductAssistant } from './assistant';
 import { productAssistantService } from './assistant';
@@ -187,6 +193,7 @@ class ProductAssistantConversationServiceImpl {
     project: Project;
     instance: Instance;
     actor: ResourceActor;
+    access?: AssistantAccess;
     input: {
       assistantId: string;
       title?: string | null;
@@ -212,6 +219,7 @@ class ProductAssistantConversationServiceImpl {
       project: d.project,
       instance: d.instance,
       actor: d.actor,
+      access: d.access,
       assistant,
       assistantInstance,
       assistantImplementation: definition.implementation,
