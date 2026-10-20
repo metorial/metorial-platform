@@ -204,8 +204,8 @@ export let startService = (service: Service, cwd: string, logDirectory: string) 
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: true
     });
-    child.stdout?.pipe(output);
-    child.stderr?.pipe(output);
+    child.stdout?.pipe(output, { end: false });
+    child.stderr?.pipe(output, { end: false });
     let running: RunningProcess = {
       service: service.name,
       script,
@@ -213,11 +213,15 @@ export let startService = (service: Service, cwd: string, logDirectory: string) 
       logFile,
       exitCode: undefined
     };
-    child.on('exit', code => {
-      running.exitCode = code;
+    child.on('close', code => {
+      output.end(() => {
+        running.exitCode = code;
+      });
     });
     child.on('error', () => {
-      running.exitCode = running.exitCode ?? 1;
+      output.end(() => {
+        running.exitCode = running.exitCode ?? 1;
+      });
     });
     return running;
   });
