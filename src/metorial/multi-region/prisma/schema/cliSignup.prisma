@@ -1,0 +1,77 @@
+enum CliSignupBlockRuleType {
+  ip
+  cidr
+  country
+  asn
+}
+
+enum CliSignupAttemptOutcome {
+  created
+  rate_limited
+  blocked
+  disabled
+  failed
+}
+
+model CliSignupBlockRule {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  type  CliSignupBlockRuleType
+  value String
+
+  note             String?
+  createdByAdminId String?
+
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  attempts CliSignupAttempt[]
+
+  @@unique([type, value])
+}
+
+model CliSignupSetting {
+  key String @id
+
+  signupDisabled   Boolean @default(false)
+  updatedByAdminId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model CliSignupIpWindow {
+  key String @id
+
+  count        Int
+  windowEndsAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model CliSignupAttempt {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  outcome CliSignupAttemptOutcome
+
+  ip      String
+  country String?
+  asn     String?
+
+  organizationId String?
+
+  blockRuleOid Int?
+  blockRule    CliSignupBlockRule? @relation(fields: [blockRuleOid], references: [oid], onDelete: SetNull)
+
+  cellOid Int?
+  cell    Cell? @relation(fields: [cellOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
+  @@index([outcome, createdAt])
+}

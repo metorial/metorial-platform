@@ -8,7 +8,7 @@ import {
   splitCidrsByFamily,
   universeCidr,
   type AddressFamily
-} from './cidrSet';
+} from '@lowerdeck/ip-range';
 import {
   fullPortRange,
   portRangeSetIntersect,

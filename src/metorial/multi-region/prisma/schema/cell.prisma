@@ -32,6 +32,7 @@ model Cell {
   workspacePolicies                 WorkspacePolicy[]
   workspaceGroupAssignments         WorkspaceGroupAssignment[]
   workspacePolicyAssignments        WorkspacePolicyAssignment[]
+  cliSignupAttempts                 CliSignupAttempt[]
 }
 
 model CellToken {

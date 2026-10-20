@@ -1,5 +1,5 @@
 import { Hash } from '@lowerdeck/hash';
-import { cidrSetSubtract, emptyCidr, universeCidr } from './cidrSet';
+import { cidrSetSubtract, emptyCidr, universeCidr } from '@lowerdeck/ip-range';
 import { compileNetworkAllowList } from './compileNetworkAllowList';
 import { getCurrentNetworkPolicyRules } from './networkPolicyRules';
 import { fullPortRange } from './portRangeSet';

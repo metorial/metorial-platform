@@ -3,7 +3,7 @@ import { backfillProcessors } from './queues/backfill';
 import { mirrorProcessors } from './queues/mirror';
 import { indexFirewallQueueProcessor } from './queues/search';
 
-export * from './lib/cidrSet';
+export * from '@lowerdeck/ip-range';
 export * from './lib/compileEgress';
 export * from './lib/compileNetworkAllowList';
 export * from './lib/networkPolicyRules';

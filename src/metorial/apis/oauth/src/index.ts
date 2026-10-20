@@ -8,46 +8,9 @@ import {
 import { ensureOptionalClientSecretIsValid } from './impl/credentials';
 import { OAuthError } from './lib/errors';
 import { getExpiresIn } from './lib/expiration';
-import { getString, type OAuthRequestSubjectType } from './lib/request';
+import { presentCliAuthToken, presentTokenSubject } from './lib/presenters';
+import { getString } from './lib/request';
 import { createOAuthAppSkeleton } from './skeleton';
-
-let presentTokenSubject = (response: {
-  subjectType: OAuthRequestSubjectType;
-  consumerProfile: {
-    id: string;
-    name: string;
-    email: string;
-    instance: { id: string };
-    surface: { portal: { id: string; name: string } | null };
-  } | null;
-}) => {
-  if (response.subjectType != 'consumer' || !response.consumerProfile) {
-    return { subject_type: response.subjectType };
-  }
-
-  let { consumerProfile } = response;
-
-  return {
-    subject_type: response.subjectType,
-
-    consumer_profile: {
-      id: consumerProfile.id,
-      name: consumerProfile.name,
-      email: consumerProfile.email
-    },
-
-    portal: consumerProfile.surface.portal
-      ? {
-          id: consumerProfile.surface.portal.id,
-          name: consumerProfile.surface.portal.name
-        }
-      : null,
-
-    instance: {
-      id: consumerProfile.instance.id
-    }
-  };
-};
 
 export let oauthApi = createOAuthAppSkeleton({
   oauth: {
@@ -339,30 +302,9 @@ export let oauthApi = createOAuthAppSkeleton({
         token
       });
 
-      return c.json({
-        access_token: response.oauthToken.accessToken,
-        expires_in: getExpiresIn(response.oauthToken.accessTokenExpiresAt),
-        refresh_token: response.oauthToken.refreshToken ?? undefined,
-        scope: oauthOidcService.getGrantedScopes(response.oauthAuthorization),
-        client_id: response.oauthAuthorization.oauthApplication.clientId,
-
-        user: response.oauthAuthorization.user
-          ? {
-              id: response.oauthAuthorization.user.id,
-              name: response.oauthAuthorization.user.name,
-              email: response.oauthAuthorization.user.email
-            }
-          : null,
-
-        organization: response.oauthInstallation.organization
-          ? {
-              id: response.oauthInstallation.organization.id,
-              name: response.oauthInstallation.organization.name
-            }
-          : null,
-
-        ...presentTokenSubject(response)
-      });
+      return c.json(presentCliAuthToken(response));
     }
   }
 });
+
+export * from './lib/presenters';
