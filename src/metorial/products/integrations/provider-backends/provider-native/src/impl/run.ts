@@ -15,7 +15,7 @@ import {
   type ToolInvocationCreateParam,
   type ToolInvocationCreateRes
 } from '@metorial-subspace/provider-utils';
-import { getNativeIntegration } from '../registry';
+import { getNativeIntegration, NativeToolError } from '../registry';
 
 let reducedSubprocessorProviders = new Set(['metorial-search', 'metorial-crawl']);
 
@@ -135,14 +135,28 @@ class ProviderRunConnection extends IProviderRunConnection {
       where: { oid: data.message.connectionOid }
     });
 
-    let result = await tool.invoke(parsedInput.data, {
-      tenant: sessionProvider.tenant,
-      environment: sessionProvider.environment,
-      solution: sessionProvider.solution,
-      session: sessionProvider.session,
-      message: data.message,
-      connection
-    });
+    let result: Awaited<ReturnType<typeof tool.invoke>>;
+    try {
+      result = await tool.invoke(parsedInput.data, {
+        tenant: sessionProvider.tenant,
+        environment: sessionProvider.environment,
+        solution: sessionProvider.solution,
+        session: sessionProvider.session,
+        message: data.message,
+        connection
+      });
+    } catch (err) {
+      if (err instanceof NativeToolError) {
+        return {
+          output: {
+            type: 'error',
+            error: { code: err.code, message: err.message }
+          }
+        };
+      }
+
+      throw err;
+    }
 
     if (tool.output) {
       let parsedOutput = await tool.output.safeParseAsync(result);
